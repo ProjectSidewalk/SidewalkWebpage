@@ -1,5 +1,6 @@
 import mapboxgl from '../common/mapboxgl.js';
 import { featureCollectionBounds } from '../common/geoBounds.js';
+import { util } from '../common/utilities.js';
 
 /**
  * Sequential color scale for coverage (ColorBrewer "Blues", colorblind-safe). Shared by the map fill, the Vega bar
@@ -61,14 +62,6 @@ export class CoverageFormat {
    */
   static pct(rate) {
     return `${Math.round((rate || 0) * 100)}%`;
-  }
-
-  /**
-   * @param {number} meters - A distance in meters.
-   * @returns {string} The distance in km with one decimal, e.g. "4.2 km".
-   */
-  static km(meters) {
-    return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
 }
 
@@ -219,7 +212,8 @@ export class CoverageMap {
       `<div class="coverage-popup-name">${p.name}</div>`,
       '<dl class="coverage-popup-dl">',
       row('Coverage', CoverageFormat.pct(p.completion_rate)),
-      row('Audited', `${CoverageFormat.km(p.audited_distance_m)} / ${CoverageFormat.km(p.total_distance_m)}`),
+      row('Audited', `${util.metersToLongDistanceString(p.audited_distance_m, 1)} / `
+      + `${util.metersToLongDistanceString(p.total_distance_m, 1)}`),
       row('Streets', (p.street_count || 0).toLocaleString()),
       row('Audits', (p.audit_count || 0).toLocaleString()),
       row('Labels', (p.label_count || 0).toLocaleString()),

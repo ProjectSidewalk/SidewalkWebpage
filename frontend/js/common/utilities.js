@@ -428,10 +428,45 @@ util.distanceToString = (meters) =>
  *
  * @param {number} km - The distance in kilometers. Always canonical: the formatter converts.
  * @param {number} [precision=0] - Decimal places to show.
+ * @param {boolean} [withUnit=true] - False for the bare number, where a column header or axis title names the unit.
+ * @returns {string} The distance converted, rounded, and localized.
+ */
+util.longDistanceToString = (km, precision = 0, withUnit = true) =>
+  i18next.services.formatter.format(km || 0,
+    `distance(style: large; precision: ${precision}${withUnit ? '' : '; unit: false'})`, i18next.language, {});
+
+/**
+ * Renders a short distance exactly rather than rounded to the nearest 25, e.g. "1.5 m" or "5 ft".
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
  * @returns {string} The distance converted, rounded, and localized, with its unit.
  */
-util.longDistanceToString = (km, precision = 0) =>
-  i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
+util.fineDistanceToString = (meters, precision = 0) => i18next.services.formatter.format(
+  meters || 0, `distance(style: fine; precision: ${precision})`, i18next.language, {});
+
+/**
+ * A distance in meters as a plain number in this reader's long unit (km or mi), for plotting on a chart's axis. The
+ * same conversion the `distance` formatter makes, so a plotted point and its label agree.
+ *
+ * @param {number} meters - The distance in meters.
+ * @returns {number} The distance in km or mi.
+ */
+util.metersToLongDistance = (meters) => {
+  const km = (meters || 0) / 1000;
+  return util.isMetric() ? km : util.math.kmsToMiles(km);
+};
+
+/**
+ * The same as `util.longDistanceToString`, for a distance in meters.
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
+ * @param {boolean} [withUnit=true] - False for the bare number.
+ * @returns {string} The distance converted, rounded, and localized.
+ */
+util.metersToLongDistanceString = (meters, precision = 0, withUnit = true) =>
+  util.longDistanceToString((meters || 0) / 1000, precision, withUnit);
 
 /**
  * The calendar year and month of a month, date or timestamp string, as the reader would name it.

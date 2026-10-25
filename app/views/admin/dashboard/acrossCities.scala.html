@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import models.label.{LabelType, RatingScale}
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
@@ -250,8 +251,8 @@
             <th class="ac-th-text">Progress</th>
             <th>Streets audited</th>
             <th>Streets left</th>
-            <th>km audited</th>
-            <th>km left</th>
+            <th>@distanceUnitWords.abbr audited</th>
+            <th>@distanceUnitWords.abbr left</th>
           </tr>
         </thead>
         <tbody id="ac-coverage-tbody"></tbody>

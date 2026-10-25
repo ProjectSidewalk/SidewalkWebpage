@@ -12,8 +12,11 @@
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 import { FakeLngLatBounds } from './lngLatBoundsStub.js';
+
+useUtil(metricDistanceUtil);
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
@@ -202,7 +205,7 @@ describe('ImageryPage KPIs', () => {
     // Street 2 is the only one carrying `outdated`; the tier count would agree here, and the case below is the one
     // where they diverge.
     expect(text('kpi-needs-reaudit')).toBe('1');
-    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi with newer imagery');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.6 km with newer imagery');
   });
 
   test('counts never-audited streets out of every routable street', async () => {
@@ -327,11 +330,11 @@ describe('ImageryPage legend', () => {
     expect(shares).toContainEqual(['Needs re-audit', '0%']);
   });
 
-  test('carries each tier\u2019s mileage so the work has a size, not just a count', async () => {
+  test('carries each tier\u2019s distance so the work has a size, not just a count', async () => {
     await renderPage();
-    const miles = [...document.querySelectorAll('#imagery-legend tbody tr')]
+    const distances = [...document.querySelectorAll('#imagery-legend tbody tr')]
       .map((row) => row.querySelectorAll('td')[5].textContent.trim());
-    expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
+    expect(distances).toEqual(['1.6', '1.6', '1.6', '1.6']);
   });
 
   test('gives every tier its own swatch class, so the legend reads the same palette the map does', async () => {
@@ -407,7 +410,7 @@ describe('ImageryPage tables', () => {
     expect(rows[0].cells[1].textContent).toBe('0.722');
     expect(rows[0].cells[2].textContent).toBe('1');
     expect(rows[0].cells[3].textContent).toBe('1');
-    expect(rows[0].cells[4].textContent).toBe('1.0');
+    expect(rows[0].cells[4].textContent).toBe('1.6');
     expect(rows[1].cells[0].textContent).toBe('Downtown');
   });
 

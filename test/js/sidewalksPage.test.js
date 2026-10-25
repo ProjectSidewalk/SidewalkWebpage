@@ -6,8 +6,11 @@
  * The review lists are the page's reason to exist, so each list's membership rule has a case of its own.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 import { FakeLngLatBounds } from './lngLatBoundsStub.js';
+
+useUtil(metricDistanceUtil);
 
 // jsdom has no layout, so it leaves scrollIntoView out; the region table calls it.
 window.HTMLElement.prototype.scrollIntoView = () => {};

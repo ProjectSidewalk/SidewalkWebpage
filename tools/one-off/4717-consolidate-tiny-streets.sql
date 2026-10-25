@@ -13,9 +13,9 @@
 --      ways between intersections, and heals what a region border cut), whatever their way ids or lengths. Two
 --      exceptions, as in the pipeline: a street that genuinely crosses a region border, with 30 m (-v border_m=) or
 --      more on each side and neither side running along the border (within -v rider_m= of the other side's
---      region), stays cut; and once a joined street runs through a junction, the streets still ending there stay
---      cut (the pipeline's end-to-end joins happen before its tiny-segment merges, so they never see that junction
---      as a dead end).
+--      region), stays cut; and once a joined street runs through a junction, in this run or an earlier one, the
+--      streets still ending there stay cut (the pipeline's end-to-end joins happen before its tiny-segment merges, so
+--      they never see that junction as a dead end).
 --   3. In a city without OSM way ids (the Infra3d cities carry -1 everywhere, and the ids never mattered there), a
 --      street under 20 m at an intersection joins the neighbour that continues it most nearly straight, if that
 --      bends less than -v straight_deg= (45).
@@ -209,6 +209,20 @@ WHERE NOT is_loop AND NOT active
 
 -- An end at a junction a joined street now runs through: not a dead end, whatever touch says is left there.
 CREATE TEMP TABLE blocked_end (id INTEGER NOT NULL, at_end TEXT NOT NULL, PRIMARY KEY (id, at_end)) ON COMMIT DROP;
+-- touch only sees street ends, so a street that already runs through a junction (one an earlier run joined, say) is
+-- invisible there and the two cross streets ending at it would look like one road. Their ends start out blocked.
+-- The degree pre-filter is wide enough for the same 1 m up to about 60 degrees of latitude.
+INSERT INTO blocked_end (id, at_end)
+SELECT edge.id, street_end.at_end
+FROM edge
+CROSS JOIN LATERAL (VALUES ('start', edge.start_pt), ('end', edge.end_pt)) AS street_end (at_end, pt)
+WHERE EXISTS (SELECT FROM edge AS through
+              WHERE through.id <> edge.id
+                AND ST_DWithin(through.geom, street_end.pt::geometry, :touch_m / 55000.0)
+                AND ST_DWithin(through.geom::geography, street_end.pt, :touch_m)
+                AND NOT ST_DWithin(through.start_pt, street_end.pt, :touch_m)
+                AND NOT ST_DWithin(through.end_pt, street_end.pt, :touch_m));
+ANALYZE blocked_end;
 
 -- For rule 2's "runs along the border" test.
 CREATE TEMP TABLE region_buffer ON COMMIT DROP AS
@@ -249,7 +263,8 @@ BEGIN
     FROM queue JOIN edge ON edge.id = queue.id
     WHERE queue.position = next_position AND edge.pending;
     IF NOT FOUND THEN
-      EXIT WHEN next_position > (SELECT max(position) FROM queue);
+      -- An empty queue has no max, and a NULL here would never stop the loop.
+      EXIT WHEN next_position > coalesce((SELECT max(position) FROM queue), 0);
       CONTINUE; -- Joined onto something, or settled, since it was queued.
     END IF;
 

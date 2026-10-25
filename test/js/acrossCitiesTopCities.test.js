@@ -8,7 +8,10 @@
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+
+useUtil(metricDistanceUtil);
 
 /**
  * Builds one scorecard row plus its rolling window.

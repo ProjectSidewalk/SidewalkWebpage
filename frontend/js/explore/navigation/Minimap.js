@@ -64,6 +64,9 @@ export class Minimap {
   // MapLibre refuses a second registration of the same protocol.
   static #archiveProtocolAdded = false;
 
+  // How many different map errors one page load sends to the interaction log; a lost connection fails every tile.
+  static #MAX_LOGGED_ERRORS = 10;
+
   #ui;
   #panoManager;
   #tracker;
@@ -161,7 +164,6 @@ export class Minimap {
         'AttributionControl.ToggleAttribution': i18next.t('audit:right-ui.minimap.attribution-toggle'),
       },
     });
-    this.#reportMapErrors();
     this.#addAttribution();
 
     this.#setupZoomControls();
@@ -176,7 +178,17 @@ export class Minimap {
       this.#moveListeners.forEach((listener) => listener());
     });
 
-    await new Promise((resolve) => this.#map.once('style.load', resolve));
+    // An error this early means the style will never be ready (rejected, or no worker), and waiting would stall
+    // Explore's start; create() turns the rejection into the can't-draw note. Tile errors only come after this.
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
+      const fail = (event) => reject(event.error);
+      this.#map.once('error', fail);
+      this.#map.once('style.load', () => {
+        this.#map.off('error', fail);
+        resolve();
+      });
+    }));
+    this.#reportMapErrors();
 
     const pixelRatio = window.devicePixelRatio || 1;
     this.#map.addImage(MinimapStyle.CHEVRON_IMAGE_ID, MinimapStyle.chevronImage(pixelRatio), { pixelRatio });
@@ -189,20 +201,27 @@ export class Minimap {
   }
 
   /**
-   * Logs the map's own errors: a failed tile, a bad style value, or a background worker that never started. That last
-   * one leaves a map that never draws without throwing anything create() could catch, so the log is the only sign.
-   *
-   * Only the first is sent to the interaction log, since one broken source can fail every tile. Every one still goes
-   * to the console, which MapLibre stops doing itself once anything listens.
+   * Logs the map's errors once it's ready, such as failed tiles or (from MapLibre 6.11) a worker that never started.
+   * URLs are stripped so a failing source logs once, not once per tile. The console gets every error, since MapLibre
+   * stops printing them once anything listens.
    */
   #reportMapErrors() {
-    let logged = false;
+    const logged = new Set();
     this.#map.on('error', (event) => {
       console.error('Minimap:', event.error);
-      if (logged) return;
-      logged = true;
-      this.#tracker.push('Minimap_Error', { error: String(event.error?.message ?? event.error) });
+      const message = Minimap.#errorMessage(event.error).replace(/\b[a-z]+:\/\/\S+/gi, '<url>');
+      if (logged.has(message) || logged.size >= Minimap.#MAX_LOGGED_ERRORS) return;
+      logged.add(message);
+      this.#tracker.push('Minimap_Error', { error: message });
     });
+  }
+
+  /**
+   * @param {unknown} error
+   * @returns {string} Its message, or the error as text when it has none.
+   */
+  static #errorMessage(error) {
+    return error instanceof Error && error.message ? error.message : String(error);
   }
 
   /**
@@ -661,15 +680,15 @@ export class Minimap {
     this.#ui.holder.classList.add('minimap-unavailable');
     const message = document.getElementById('minimap-unavailable-message');
     if (message) message.hidden = false;
-    this.#tracker.push('Minimap_Unavailable', { error: String(error && error.message ? error.message : error) });
+    this.#tracker.push('Minimap_Unavailable', { error: Minimap.#errorMessage(error) });
   }
 
   /**
    * Factory function that creates the minimap in the bottom-right of the UI.
    *
    * Never rejects. MapLibre needs WebGL2 and throws without it (hardware acceleration off, a GPU the browser
-   * blocklists, some remote desktops); a minimap that can't draw must not stop the rest of Explore from starting, so
-   * that and any failure to load the library leave a minimap that draws nothing and says so.
+   * blocklists, some remote desktops); a minimap that can't draw must not stop Explore from starting, so that, a
+   * library that fails to load, or an error before the style is ready leaves a minimap that says it can't draw.
    * @param {MinimapUi} ui
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @param {PanoManager} panoManager

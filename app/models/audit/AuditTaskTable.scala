@@ -291,6 +291,18 @@ class AuditTaskTable @Inject() (
   }
 
   /**
+   * Distance explored per day as [[metersAuditedByUser]] defines it, minus excluded users like Activity's other series.
+   * @return (day, meters explored), one row per day.
+   */
+  def getExploredDistanceByDate: DBIO[Seq[(OffsetDateTime, Double)]] = {
+    exploredStreetLengths(streetEdgeTable.countedAuditTasks)
+      .groupBy { case (task, _) => task.taskEnd.trunc("day") }
+      .map { case (day, rows) => (day, rows.map { case (_, meters) => meters }.sum.getOrElse(0d)) }
+      .sortBy { case (day, _) => day }
+      .result
+  }
+
+  /**
    * Returns the number of Explore tasks (streets) completed in the specific time range.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
@@ -607,14 +619,24 @@ class AuditTaskTable @Inject() (
   def metersAuditedByUser(
       includeUser: Rep[String] => Rep[Boolean]
   ): Query[(Rep[String], Rep[Double]), (String, Double), Seq] =
-    completedTasks
-      .filter(task => includeUser(task.userId))
+    exploredStreetLengths(completedTasks.filter(task => includeUser(task.userId)))
+      .groupBy { case (task, _) => task.userId }
+      .map { case (_userId, rows) => (_userId, rows.map { case (_, meters) => meters }.sum.getOrElse(0d)) }
+
+  /**
+   * Each audit paired with the length of its street, if the street counts toward distance explored: open and not the
+   * tutorial street. A street audited twice appears twice.
+   *
+   * @param tasks The audits to measure.
+   * @return A query of (audit, meters).
+   */
+  private def exploredStreetLengths(
+      tasks: Query[AuditTaskTableDef, AuditTask, Seq]
+  ): Query[(AuditTaskTableDef, Rep[Double]), (AuditTask, Double), Seq] =
+    tasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy { case (task, _) => task.userId }
-      .map { case (_userId, rows) =>
-        (_userId, rows.map { case (_, street) => street.geom.lengthGeodesic }.sum.getOrElse(0d))
-      }
+      .map { case (task, street) => (task, street.geom.lengthGeodesic) }
 
   /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.

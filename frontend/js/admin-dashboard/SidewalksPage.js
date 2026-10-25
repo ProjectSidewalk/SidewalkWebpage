@@ -77,7 +77,7 @@ const FLAGS = [
     // Keyed on the street, not a face's basis: a face's own NoSidewalk labels outrank the audit check, so one side
     // can be `absent` while the other is `unaudited`.
     test: (f) => f.street_side === 'left' && f.audit_count === 0,
-    evidence: (f) => `${f.length_m < 10 ? f.length_m.toFixed(1) : AdminShell.num(Math.round(f.length_m))} m long`,
+    evidence: (f) => `${util.fineDistanceToString(f.length_m, f.length_m < 10 ? 1 : 0)} long`,
     weight: (f) => f.length_m,
   },
 ];
@@ -196,13 +196,13 @@ export class SidewalksPage {
     // audit was never completed.
     const audited = this.#faces.filter((f) => f.presence !== 'unknown');
     const absent = audited.filter((f) => f.presence === 'absent');
-    const absentKm = absent.reduce((sum, f) => sum + f.length_m, 0) / 1000;
+    const absentM = absent.reduce((sum, f) => sum + f.length_m, 0);
     const single = absent.filter((f) => FLAGS[0].test(f));
     const confirmed = absent.filter((f) => f.validated_no_sidewalk_count > 0);
 
     AdminShell.setText('kpi-absent', audited.length ? `${SidewalksPage.#pct(absent.length, audited.length)}%` : '—');
     AdminShell.setText('kpi-absent-note', `${AdminShell.num(absent.length)} of ${AdminShell.num(audited.length)} `
-    + `sides with a verdict, ${absentKm.toFixed(1)} km`);
+    + `sides with a verdict, ${util.metersToLongDistanceString(absentM, 1)}`);
     AdminShell.setText('kpi-single', absent.length ? `${SidewalksPage.#pct(single.length, absent.length)}%` : '—');
     AdminShell.setText('kpi-single-note', `${AdminShell.num(single.length)} sides rest on one labeler`);
     AdminShell.setText('kpi-confirmed', AdminShell.num(confirmed.length));
@@ -357,7 +357,7 @@ export class SidewalksPage {
       const regionId = Number(face.region_id);
       if (!byRegion.has(regionId)) {
         byRegion.set(regionId, {
-          region_id: regionId, region_name: face.region_name, sides: 0, audited: 0, absent: 0, absent_km: 0,
+          region_id: regionId, region_name: face.region_name, sides: 0, audited: 0, absent: 0, absent_m: 0,
           single: 0, confirmed: 0,
         });
       }
@@ -366,7 +366,7 @@ export class SidewalksPage {
       if (face.presence !== 'unknown') row.audited += 1;
       if (face.presence === 'absent') {
         row.absent += 1;
-        row.absent_km += face.length_m / 1000;
+        row.absent_m += face.length_m;
         if (FLAGS[0].test(face)) row.single += 1;
         if (face.validated_no_sidewalk_count > 0) row.confirmed += 1;
       }
@@ -393,7 +393,8 @@ export class SidewalksPage {
         },
         { key: 'audited_share', label: 'Sides with a verdict', format: (r) => `${Math.round(r.audited_share * 100)}%` },
         { key: 'absent_share', label: 'No sidewalk', format: (r) => `${Math.round(r.absent_share * 100)}%` },
-        { key: 'absent_km', label: 'No sidewalk km', format: (r) => r.absent_km.toFixed(1) },
+        { key: 'absent_m', label: `No sidewalk ${util.unitWords().unitAbbr}`,
+          format: (r) => util.metersToLongDistanceString(r.absent_m, 1, false) },
         { key: 'single', label: 'On one labeler', format: (r) => AdminShell.num(r.single) },
         { key: 'confirmed', label: 'Confirmed', format: (r) => AdminShell.num(r.confirmed) },
       ],

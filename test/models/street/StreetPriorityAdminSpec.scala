@@ -263,13 +263,56 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
       rows.map(_.streetEdgeId) must not contain tutorial
       rows.map(_.streetEdgeId).filter(nonOpen.contains) mustBe empty
       rows.map(_.streetEdgeId).distinct.size mustBe rows.size
-      // Not `> 0` per row: real OSM imports carry degenerate edges whose two endpoints are the same point (210 of
-      // them are open in Seattle), and those are Explore-routable rows with a legitimate 0.0 length. The regression
-      // worth catching is a length computation that returns zero or negative for *everything*, so assert the floor
-      // per row and require the set to contain a real measurement.
-      all(rows.map(_.lengthMeters)) must be >= 0.0
-      rows.map(_.lengthMeters).exists(_ > 0.0) mustBe true
+      all(rows.map(_.lengthMeters)) must be > 0.0
       all(rows.map(_.priority)) must be <= 1.0
+    }
+  }
+
+  "recalculateStreetPriority" should {
+    "store the formula's priority for every street that has a row, and change nothing on a rerun" in {
+      assume(someRoutableStreet.isDefined)
+      val rowlessStreet = someRoutableStreet.get
+
+      val (rowlessBefore, firstRun, rerun, stored, formulaParams) = runRolledBack(
+        for {
+          rowlessBefore <- streetEdges
+            .filter(_.status === StreetEdgeStatus.Open)
+            .filterNot(edge => streetEdgePriorities.filter(_.streetEdgeId === edge.streetEdgeId).exists)
+            .length
+            .result
+          _ <- streetEdgePriorities.filter(_.streetEdgeId === rowlessStreet).delete
+          // Stale every row first so the first run has to write all of them.
+          _      <- streetEdgePriorities.map(_.priority).update(-1.0)
+          first  <- streetEdgePriorityTable.recalculateStreetPriority
+          rerun  <- streetEdgePriorityTable.recalculateStreetPriority
+          rows   <- streetEdgePriorities.map(row => (row.streetEdgeId, row.priority)).result
+          params <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
+        } yield (rowlessBefore, first, rerun, rows.toMap, params)
+      )
+
+      firstRun.streetsChanged mustBe stored.count { case (_, priority) => priority != -1.0 }
+      firstRun.streetsWithoutRow mustBe rowlessBefore + 1
+      rerun.streetsChanged mustBe 0
+      val mismatches = formulaParams
+        .filter(param => stored.contains(param.streetEdgeId))
+        .filterNot(param => stored.get(param.streetEdgeId).contains(param.priorityParameter))
+      mismatches mustBe empty
+    }
+
+    "leave a closed street's priority alone, so reopening it doesn't mark it audited" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+
+      val priority = runRolledBack(
+        for {
+          _        <- streetEdges.filter(_.streetEdgeId === streetId).map(_.status).update(StreetEdgeStatus.NoImagery)
+          _        <- streetEdgePriorities.filter(_.streetEdgeId === streetId).map(_.priority).update(0.5)
+          _        <- streetEdgePriorityTable.recalculateStreetPriority
+          priority <- streetEdgePriorities.filter(_.streetEdgeId === streetId).map(_.priority).result.head
+        } yield priority
+      )
+
+      priority mustBe 0.5
     }
   }
 }

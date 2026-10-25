@@ -1,6 +1,7 @@
 package controllers
 
 import actor.RecalculateStreetPriorityActor
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api.given
@@ -49,7 +50,7 @@ class AdminExcludeUserSpec
           StubService.answeringWith[StreetService](
             Map("recalculateStreetPriority" -> { () =>
               priorityRecalcs.incrementAndGet()
-              Future.successful(Seq.empty[Int])
+              Future.successful(StreetPriorityRecalc(0, 0))
             })
           )
         )
