@@ -343,6 +343,29 @@ describe('keys', () => {
     return event;
   };
 
+  test('Tab from the vote goes into the pop-up and Tab off its end comes back to the page after the vote', () => {
+    const tab = (target, shiftKey = false) => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+      return event;
+    };
+    const inside = () => [...el().querySelectorAll('button, input')].filter((n) => n.tabIndex >= 0 && !n.closest('[hidden]'));
+    anchor.focus();
+    open();
+    expect(tab(anchor).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(chips()[0]);
+    expect(tab(chips()[0], true).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(anchor);
+    const last = inside().at(-1);
+    last.focus();
+    tab(last);
+    expect(document.activeElement).toBe(document.getElementById('other-vote'));
+    tab(document.getElementById('other-vote'), true);
+    expect(document.activeElement).toBe(last);
+    // Anywhere else, Tab is the browser's.
+    expect(tab(document.getElementById('field')).defaultPrevented).toBe(false);
+  });
+
   test('arrows move between chips even with a pano viewer swallowing them for the page', async () => {
     const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
       'frontend/js/common/utilities.js');

@@ -10,9 +10,9 @@
  *
  * It leaves on a pick, a saved typed reason, Escape, its close control, a click outside (unless "Other…" holds
  * unsaved words), or when the host closes it (paging, another vote). Never on mouse-leave: the first version did
- * that and read as a flash. Mouse opens never move focus; a keyboard open focuses the chips. Number keys 1–N pick,
- * N+1 is "Other…", so the pop-up reads like Validate's menu; where a keyboard is likely (a hover-capable pointer)
- * each chip wears its digit as a keycap.
+ * that and read as a flash. Mouse opens never move focus; a keyboard open focuses the chips, and Tab from the vote
+ * reaches them next either way. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like Validate's menu;
+ * where a keyboard is likely (a hover-capable pointer) each chip wears its digit as a keycap.
  *
  * Native Popover API where there is one (top layer, so the Gallery grid never reflows and no card clips it) with
  * the same `hidden` fallback PanoImageAdjustmentsPopover uses, which is also what jsdom runs.
@@ -368,6 +368,10 @@ export class ReasonPopover {
       this.#dismiss('escape', true);
       return;
     }
+    if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey && this.#bridgeTab(e.target, e.shiftKey)) {
+      e.preventDefault();
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return;
     const typing = e.target instanceof HTMLElement && e.target.matches('input, textarea, select, [contenteditable]');
     if (typing) return;
@@ -377,6 +381,49 @@ export class ReasonPopover {
       e.stopPropagation();
     }
   };
+
+  /**
+   * Puts the pop-up in Tab order right after its anchor, as a native popover invoker would. It is mounted at the end
+   * of the page (or its dialog) to sit in the top layer, so plain Tab from the vote would otherwise skip past it.
+   * @param {EventTarget} target - Where focus is.
+   * @param {boolean} back - Shift+Tab.
+   * @returns {boolean} Whether focus was moved here.
+   */
+  #bridgeTab(target, back) {
+    const anchor = this.#request.anchor;
+    const inside = ReasonPopover.#tabbables(this.#el);
+    if (inside.length === 0) return false;
+    const page = ReasonPopover.#tabbables(this.#el.parentElement ?? document.body).filter((n) => !this.#el.contains(n));
+    const after = page.slice(page.indexOf(anchor) + 1);
+    if (!back && target === anchor) return ReasonPopover.#focusFirst(inside);
+    if (back && target === inside[0]) return ReasonPopover.#focusFirst([anchor]);
+    if (!back && target === inside.at(-1)) return ReasonPopover.#focusFirst(after);
+    if (back && target === after[0]) return ReasonPopover.#focusFirst(inside.slice().reverse());
+    return false;
+  }
+
+  /**
+   * @param {Element} scope
+   * @returns {HTMLElement[]} What Tab can reach in it, in document order. A CSS-hidden one is weeded out by
+   *     #focusFirst, which jsdom's lack of layout leaves no cheaper way to tell.
+   */
+  static #tabbables(scope) {
+    return [...scope.querySelectorAll('button, [href], input, select, textarea, [tabindex]')]
+      .filter((n) => n instanceof HTMLElement && n.tabIndex >= 0 && !n.matches(':disabled')
+        && !n.closest('[hidden], [inert]'));
+  }
+
+  /**
+   * @param {HTMLElement[]} candidates
+   * @returns {boolean} Whether one took focus; one that can't (display: none) is passed over.
+   */
+  static #focusFirst(candidates) {
+    for (const n of candidates) {
+      n.focus();
+      if (document.activeElement === n) return true;
+    }
+    return false;
+  }
 
   /**
    * Above the anchor, centred on it, with the tail pointing down at its centre; below it, tail up, only when the
