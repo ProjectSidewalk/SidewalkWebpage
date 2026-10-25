@@ -694,6 +694,13 @@ class AdminController @Inject() (
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
+    // People active in several cities count once here, unlike a sum of each city's contributors. This is the public
+    // aggregate stats' fan-out, which is already cached; a failure only blanks the one card.
+    val distinctContributorsF =
+      configService.getAggregateStats().map(stats => Option(stats.totalUsers)).recover { case e: Exception =>
+        logger.warn(s"Distinct contributor count unavailable: ${e.getMessage}")
+        None
+      }
 
     for {
       withFlags     <- scorecardsF
@@ -703,6 +710,7 @@ class AdminController @Inject() (
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
+      contributors  <- distinctContributorsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -742,7 +750,7 @@ class AdminController @Inject() (
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),
-          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+          "summary" -> crossCitySummaryJson(scorecards, cityInfoById, contributors)
         )
       )
     }
@@ -799,6 +807,9 @@ class AdminController @Inject() (
       "total_km"          -> sc.totalKm,
       "audited_km"        -> sc.auditedKm,
       "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+      "walked_km"         -> sc.walkedKm,
+      "mapped_km"         -> sc.mappedKm,
+      "reaudit_km"        -> ConfigService.reauditKm(sc),
       // Data + quality lens.
       "total_labels"             -> sc.totalLabels,
       "ai_labels"                -> sc.aiLabels,
@@ -955,28 +966,34 @@ class AdminController @Inject() (
     })
 
   /**
-   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
-   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
-   * page can flag the "needs attention" items.
+   * The page's headline totals, summed from the cities shown so they match the table, except `total_users`, which
+   * counts each person once across cities. The anomaly thresholds ride along so the page can flag the "needs
+   * attention" items.
    *
-   * @return The summary block.
+   * @param distinctContributors People who contributed in any city, each counted once; None if it couldn't be read.
+   * @return                     The summary block.
    */
-  private def crossCitySummaryJson(scorecards: Seq[CityScorecard], cityInfoById: Map[String, CityInfo]): JsObject = {
-    val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-    val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
-    val totalContributors = scorecards.map(_.activeContributors).sum
-    val totalKm           = scorecards.map(_.auditedKm).sum
-    val totalLabels       = scorecards.map(_.totalLabels).sum
-    val totalValidations  = scorecards.map(_.totalValidations).sum
-    val sumAgree          = scorecards.map(_.validationsAgree).sum
-    val sumDisagree       = scorecards.map(_.validationsDisagree).sum
-    val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+  private def crossCitySummaryJson(
+      scorecards: Seq[CityScorecard],
+      cityInfoById: Map[String, CityInfo],
+      distinctContributors: Option[Int]
+  ): JsObject = {
+    val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+    val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+    val totalLabels      = scorecards.map(_.totalLabels).sum
+    val totalValidations = scorecards.map(_.totalValidations).sum
+    val sumAgree         = scorecards.map(_.validationsAgree).sum
+    val sumDisagree      = scorecards.map(_.validationsDisagree).sum
+    val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
     Json.obj(
       "num_cities"                -> scorecards.length,
       "num_countries"             -> numCountries,
       "num_languages"             -> numLanguages,
-      "total_users"               -> totalContributors,
-      "total_km"                  -> totalKm,
+      "total_users"               -> distinctContributors,
+      "total_walked_km"           -> scorecards.map(_.walkedKm).sum,
+      "total_mapped_km"           -> scorecards.map(_.mappedKm).sum,
+      "total_current_km"          -> scorecards.map(_.auditedKm).sum,
+      "total_reaudit_km"          -> scorecards.map(ConfigService.reauditKm).sum,
       "total_labels"              -> totalLabels,
       "total_validations"         -> totalValidations,
       "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
@@ -984,7 +1001,8 @@ class AdminController @Inject() (
       "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
       "active_within_days"        -> ConfigService.ActiveWithinDays,
       "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-      "low_traction_contributors" -> ConfigService.LowTractionContributors
+      "low_traction_contributors" -> ConfigService.LowTractionContributors,
+      "reaudit_backlog_share"     -> ConfigService.ReauditBacklogShare
     )
   }
 

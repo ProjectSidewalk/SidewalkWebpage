@@ -63,6 +63,14 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       sc.coverage must be >= 0.0
       sc.coverage must be <= 100.0
     }
+
+    "order the distance measures walked >= mapped >= current (#5828)" in {
+      val sc = run(configTable.getCityScorecardBySchema(schema))
+      // The hero's funnel and the re-audit backlog (mapped - current) both rely on each measure containing the next.
+      sc.walkedKm must be >= (sc.mappedKm - 0.001)
+      sc.mappedKm must be >= (sc.auditedKm - 0.001)
+      sc.mappedKm must be <= (sc.totalKm + 0.001)
+    }
   }
 
   // The rest of the cross-city surface runs raw SQL against "#$schema".* and was otherwise untested — the same gap

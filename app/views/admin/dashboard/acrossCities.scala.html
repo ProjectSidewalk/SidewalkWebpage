@@ -26,20 +26,27 @@
     <p>Every city compared; figures can lag up to 2 hours.</p>
     <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
 
+    @* Each card carries a visible definition, not a tooltip: the distance cards differ only in what they count. *@
     <div class="ac-hero">
       <div class="ac-hero-row">
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-cities">—</span><span class="ac-hero-label">Cities</span></div>
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-countries">—</span><span class="ac-hero-label">Countries</span></div>
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-languages">—</span><span class="ac-hero-label">Languages</span></div>
-        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-users">—</span><span class="ac-hero-label">Contributors</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-users">—</span><span class="ac-hero-label">Contributors</span><span class="ac-hero-def">Each person counted once across cities</span></div>
       </div>
       <div class="ac-hero-row">
-        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-distance">—</span><span class="ac-hero-label">Distance explored</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-walked">—</span><span class="ac-hero-label">Distance walked</span><span class="ac-hero-def">Every audit, repeats counted</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-mapped">—</span><span class="ac-hero-label">Streets mapped</span><span class="ac-hero-def">Each street once, any imagery</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-current">—</span><span class="ac-hero-label">Currently mapped</span><span class="ac-hero-def">Audited on current imagery</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-reaudit">—</span><span class="ac-hero-label">Needs re-audit</span><span class="ac-hero-def">Mapped, but newer imagery since</span></div>
+      </div>
+      <div class="ac-hero-row">
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-labels">—</span><span class="ac-hero-label">Total labels</span></div>
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-validations">—</span><span class="ac-hero-label">Total validations</span></div>
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-datapoints">—</span><span class="ac-hero-label">Total datapoints</span></div>
-        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-agreement">—</span><span class="ac-hero-label">Validation agreement</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-agreement">—</span><span class="ac-hero-label">Validation agreement</span><span class="ac-hero-def">People's votes; AI excluded</span></div>
       </div>
+      <p class="ac-hero-note">Distances count open streets only, so they run below the public API's <code>km_explored</code>, which also counts closed ones.</p>
     </div>
   </div>
 
@@ -242,7 +249,7 @@
 
   <div class="page-section" id="ac-coverage-section">
     <h2 class="page-heading" id="coverage">Coverage <a href="#coverage" class="permalink">#</a></h2>
-    <p>Streets and distance audited, and what remains, per city.</p>
+    <p>Streets and distance audited on current imagery, and what remains, per city; plus everything ever mapped and how much of it has newer imagery since.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">
         <thead>
@@ -253,6 +260,8 @@
             <th>Streets left</th>
             <th>@distanceUnitWords.abbr audited</th>
             <th>@distanceUnitWords.abbr left</th>
+            <th>@distanceUnitWords.abbr mapped (all time)</th>
+            <th>@distanceUnitWords.abbr needs re-audit</th>
           </tr>
         </thead>
         <tbody id="ac-coverage-tbody"></tbody>

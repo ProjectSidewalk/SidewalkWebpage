@@ -23,6 +23,7 @@ export class AcrossCitiesPage {
   /** Human-friendly label + severity for each anomaly flag key the endpoints can emit (scorecard or traffic). */
   static #ANOMALY = {
     high_disagreement: { label: 'High disagreement', sev: 'warn' },
+    reaudit_backlog: { label: 'Re-audit backlog', sev: 'info' },
     traffic_spike: { label: 'Traffic spike', sev: 'info' },
     traffic_drop: { label: 'Traffic drop', sev: 'warn' },
   };
@@ -215,8 +216,11 @@ export class AcrossCitiesPage {
     this.#setText('hero-cities', this.#num(s.num_cities));
     this.#setText('hero-countries', this.#num(s.num_countries));
     this.#setText('hero-languages', this.#num(s.num_languages));
-    this.#setText('hero-users', this.#num(s.total_users));
-    this.#setText('hero-distance', util.longDistanceToString(s.total_km));
+    this.#setText('hero-users', typeof s.total_users === 'number' ? this.#num(s.total_users) : '—');
+    this.#setText('hero-walked', util.longDistanceToString(s.total_walked_km));
+    this.#setText('hero-mapped', util.longDistanceToString(s.total_mapped_km));
+    this.#setText('hero-current', util.longDistanceToString(s.total_current_km));
+    this.#setText('hero-reaudit', util.longDistanceToString(s.total_reaudit_km));
     this.#setText('hero-labels', this.#num(s.total_labels));
     this.#setText('hero-validations', this.#num(s.total_validations));
     this.#setText('hero-datapoints', this.#num(s.total_datapoints));
@@ -674,6 +678,9 @@ export class AcrossCitiesPage {
       case 'high_disagreement':
         return `${this.#pct(c.validation_disagreement_rate)} of human validations disagree `
           + `(median ${this.#pct(this.#summary.median_disagreement_rate)})`;
+      case 'reaudit_backlog':
+        return `${util.longDistanceToString(c.reaudit_km)} of ${util.longDistanceToString(c.mapped_km)} mapped `
+          + `(${this.#pct(c.mapped_km ? c.reaudit_km / c.mapped_km : 0)}) has newer imagery than its audits`;
       default:
         return flag;
     }
@@ -997,6 +1004,8 @@ export class AcrossCitiesPage {
         <td class="ac-num" title="${this.#num(c.streets_remaining)}"> ${this.#compact(c.streets_remaining)}</td>
         <td class="ac-num">${util.escapeHTML(this.#km(c.audited_km))} / ${util.escapeHTML(this.#km(c.total_km))}</td>
         <td class="ac-num">${util.escapeHTML(this.#km(c.km_remaining))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.mapped_km))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.reaudit_km))}</td>
       </tr>`,
     ).join('');
   }

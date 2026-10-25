@@ -483,6 +483,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
  * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param walkedKm                Length of every completed audit on a counted street, repeats and outdated imagery
+ *                                included, in km: effort rather than coverage.
+ * @param mappedKm                Distinct audited length on any imagery, in km. `mappedKm - auditedKm` is the length
+ *                                whose every audit predates newer imagery (the re-audit backlog, #4384).
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
@@ -524,6 +528,8 @@ case class CityScorecard(
     coverage: Double,
     totalKm: Double,
     auditedKm: Double,
+    walkedKm: Double,
+    mappedKm: Double,
     totalLabels: Int,
     aiLabels: Int,
     labelsWithSeverity: Int,
@@ -559,7 +565,7 @@ case class CityScorecard(
  * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
  *
  * @param scorecard The per-city metrics.
- * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
+ * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement", "reaudit_backlog". The page turns these into a
  *                  "needs attention" panel.
  */
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
@@ -1003,6 +1009,18 @@ object ConfigService {
 
   /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
   val DisagreementMedianMultiple: Double = 1.5
+
+  /** A city whose re-audit backlog is at least this share of its mapped km is flagged "reaudit_backlog". */
+  val ReauditBacklogShare: Double = 0.40
+
+  /** A city with less mapped km than this is never flagged "reaudit_backlog" (a few stale streets aren't a trend). */
+  val MinMappedKmForReauditFlag: Double = 10.0
+
+  /**
+   * The length of a city's mapped streets whose every audit predates newer imagery, in km. Clamped at 0 because the
+   * two sums are computed separately and floating-point error could leave a city with no backlog slightly negative.
+   */
+  def reauditKm(sc: CityScorecard): Double = math.max(0.0, sc.mappedKm - sc.auditedKm)
 
   /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
@@ -1937,9 +1955,10 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
-   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
-   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   * Attaches anomaly flags to each scorecard, using the full set for the relative (median-based) check (#4329): a
+   * "high_disagreement" data-quality flag, and "reaudit_backlog" when much of a city's mapped length has newer imagery
+   * than its audits. The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here.
    *
    * @param scorecards All gathered per-city scorecards.
    * @return           Each scorecard paired with its data-quality flags.
@@ -1956,6 +1975,13 @@ class ConfigServiceImpl @Inject() (
         ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple
       ) {
         flags += "high_disagreement"
+      }
+
+      if (
+        sc.mappedKm >= ConfigService.MinMappedKmForReauditFlag &&
+        ConfigService.reauditKm(sc) >= sc.mappedKm * ConfigService.ReauditBacklogShare
+      ) {
+        flags += "reaudit_backlog"
       }
 
       CityScorecardWithFlags(sc, flags.toSeq)

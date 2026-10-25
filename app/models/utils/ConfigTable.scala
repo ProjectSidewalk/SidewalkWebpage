@@ -377,6 +377,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets: Int,
       totalKm: Double,
       auditedKm: Double,
+      walkedKm: Double,
+      mappedKm: Double,
       totalLabels: Int,
       aiLabels: Int,
       labelsWithSeverity: Int,
@@ -405,6 +407,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets = r.nextInt(),
       totalKm = r.nextDouble(),
       auditedKm = r.nextDouble(),
+      walkedKm = r.nextDouble(),
+      mappedKm = r.nextDouble(),
       totalLabels = r.nextInt(),
       aiLabels = r.nextInt(),
       labelsWithSeverity = r.nextInt(),
@@ -500,6 +504,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
            audited_streets.cnt        AS audited_streets,
            COALESCE(street_km.km, 0)  AS total_km,
            COALESCE(audited_km.km, 0) AS audited_km,
+           COALESCE(walked_km.km, 0)  AS walked_km,
+           COALESCE(mapped_km.km, 0)  AS mapped_km,
            label_counts.label_count    AS total_labels,
            label_counts.ai_count       AS ai_labels,
            label_counts.with_severity     AS labels_with_severity,
@@ -541,6 +547,22 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                 ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
         ) AS distinct_audited
     ) AS audited_km, (
+        -- Effort: every completed audit's length, repeats and outdated imagery included. The public API's km_explored
+        -- counts the same thing but over every street, open or not.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM #${FilteredTables.streets(Some(schema))}
+        INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+            ON street_edge.street_edge_id = audit_task.street_edge_id
+    ) AS walked_km, (
+        -- audited_km without the current-imagery filter, so mapped_km - audited_km is exactly the re-audit backlog.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM (
+            SELECT DISTINCT street_edge.street_edge_id, geom
+            FROM #${FilteredTables.streets(Some(schema))}
+            INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+                ON street_edge.street_edge_id = audit_task.street_edge_id
+        ) AS distinct_mapped
+    ) AS mapped_km, (
         SELECT COUNT(DISTINCT label.label_id) AS label_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
@@ -648,6 +670,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       coverage = if (core.totalStreets > 0) core.auditedStreets.toDouble / core.totalStreets else 0.0,
       totalKm = core.totalKm,
       auditedKm = core.auditedKm,
+      walkedKm = core.walkedKm,
+      mappedKm = core.mappedKm,
       totalLabels = core.totalLabels,
       aiLabels = core.aiLabels,
       labelsWithSeverity = core.labelsWithSeverity,

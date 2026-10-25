@@ -2105,6 +2105,20 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-neutral-700);
 }
 
+/* What a headline card counts (#5828); visible text rather than a tooltip so touch and keyboard readers get it too. */
+.ac-hero-def {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ac-hero-note {
+  margin: 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
 /* Week-over-week delta line under a "Today & this week" tile (#4758); direction colors mirror .ov-trend--*. */
 .ac-hero-delta {
   display: block;
