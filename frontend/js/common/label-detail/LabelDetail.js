@@ -1525,10 +1525,11 @@ export class LabelDetail {
    *
    * @param {boolean} [prefill=true] - Start from the existing text. "Other…" passes false over a canned reason, whose
    *     text would only be in the way of the words replacing it.
+   * @returns {boolean} Whether the box opened; the Edit button logs on that, a reopen the card makes itself doesn't.
    */
   #startCommentEdit(prefill = true) {
     const own = this.#comments?.[this.#myCommentIdx];
-    if (!own || this.#interactionBlocked) return;
+    if (!own || this.#interactionBlocked) return false;
     this.#editingComment = true;
     this.#updateCommentRow();
     this.#renderComments(); // Drops the Edit/Delete pair; the box below now speaks for this comment.
@@ -1541,7 +1542,7 @@ export class LabelDetail {
     els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     els.commentInput.focus();
     if (prefill) els.commentInput.select();
-    this.#logAction('EditCommentOpen');
+    return true;
   }
 
   /**
@@ -2796,7 +2797,9 @@ export class LabelDetail {
           return btn;
         };
         return [
-          make('label-detail__comment-edit', 'labelmap:comment-edit', () => this.#startCommentEdit()),
+          make('label-detail__comment-edit', 'labelmap:comment-edit', () => {
+            if (this.#startCommentEdit()) this.#logAction('EditCommentOpen');
+          }),
           make('label-detail__comment-delete', 'labelmap:comment-delete', () => this.#deleteOwnComment()),
         ];
       };

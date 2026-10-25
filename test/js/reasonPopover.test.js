@@ -151,13 +151,26 @@ describe('opening', () => {
     expect(popover.containsFocus()).toBe(true);
   });
 
-  test('opening for another host moves the question there and unmarks the first', () => {
-    open();
+  test('opening for another host moves the question there, and the first hears it was dismissed', () => {
+    const onClose = vi.fn(() => expect(popover.isOpenFor(host)).toBe(false));
+    open({ onClose });
     const second = document.getElementById('elsewhere');
     placeAt(second, { top: 500, left: 500 });
-    expect(open({ host: second, anchor: second })).toBe(true);
+    // A keyboard vote on another card: no press outside, so only the move can tell the first card.
+    expect(open({ host: second, anchor: second, onDismiss: vi.fn() })).toBe(true);
     expect(host.classList.contains('has-reason-popover')).toBe(false);
     expect(second.classList.contains('has-reason-popover')).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledWith('outside', false);
+    expect(popover.isOpenFor(second)).toBe(true);
+  });
+
+  test('a re-vote on the same host redraws without closing or dismissing', () => {
+    const onClose = vi.fn();
+    open({ onClose });
+    open({ onClose, vote: 'Unsure' });
+    expect(onClose).not.toHaveBeenCalled();
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
@@ -319,6 +332,32 @@ describe('keys', () => {
     target.dispatchEvent(event);
     return event;
   };
+
+  test('arrows move between chips even with a pano viewer swallowing them for the page', async () => {
+    const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
+      'frontend/js/common/utilities.js');
+    // The viewers' guard (GsvViewer, Infra3dViewer, PannellumViewer): a window capture listener, so it runs first.
+    const guard = (e) => {
+      if (util.pano.keyBelongsToPage(e.target)) return;
+      if (e.key.startsWith('Arrow')) e.stopPropagation();
+    };
+    window.addEventListener('keydown', guard, { capture: true });
+    try {
+      open({ viaKeyboard: true });
+      expect(document.activeElement).toBe(chips()[0]);
+      chips()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+      expect(document.activeElement).toBe(chips()[1]);
+      // Outside the pop-up the pano keeps its arrows; a text field keeps them for its cursor.
+      const onPage = vi.fn();
+      document.body.addEventListener('keydown', onPage);
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      expect(onPage).not.toHaveBeenCalled();
+      document.body.removeEventListener('keydown', onPage);
+      expect(util.pano.keyBelongsToPage(document.getElementById('field'))).toBe(true);
+    } finally {
+      window.removeEventListener('keydown', guard, { capture: true });
+    }
+  });
 
   test('digits pick 1–N and N+1 is Other, claimed so the page never sees them; the rest fall through', () => {
     open();

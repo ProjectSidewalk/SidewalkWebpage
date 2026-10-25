@@ -329,6 +329,31 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(logged().some((e) => e.includes('_action=EditComment_'))).toBe(false);
     });
 
+    test('words the server refused land in your comment\'s edit box, which logs no EditCommentOpen of its own', async () => {
+      const mine = [comment('my own words', true)];
+      await reask({ comments: mine });
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      // The label's type moved on under the card (#5510): the save is refused and the card redraws from the server.
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+      window.fetch = vi.fn(async () => ({
+        ok: true, status: 200, json: async () => meta({ user_validation: 'Disagree', comments: mine }),
+      }));
+      panoManager.setPano.mockImplementation(async () => true);
+      panoManager.warmUp = vi.fn(async () => true);
+      click(otherSave());
+      await flush();
+      await flush();
+      expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
+      expect(logged().some((e) => e.includes('_action=EditCommentOpen_'))).toBe(false);
+
+      // The Edit button is what the event stands for.
+      q('.label-detail__comment-cancel').click();
+      q('.label-detail__comment-edit').click();
+      expect(logged()).toContain('Click_module=LabelDetail_action=EditCommentOpen_labelId=42');
+    });
+
     test('unsaved words outlast a click outside; Escape still closes', async () => {
       await reask();
       click(other());

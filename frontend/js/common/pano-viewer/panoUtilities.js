@@ -26,6 +26,22 @@ util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
 util.pano.MS_PER_JULIAN_YEAR = 365.25 * 24 * 3600 * 1000;
 
 /**
+ * Whether a key aimed at this element is the page's rather than the pano's. The viewers swallow arrow keys (and
+ * WASD/Space) in a window capture listener, which runs before any other handler, so whatever needs those keys has to
+ * be let through here: a text field, where they move the cursor, and the reason pop-up, whose chips move focus with
+ * the arrows (#5475).
+ *
+ * @param {EventTarget|null} target - The keydown's target.
+ * @returns {boolean}
+ */
+util.pano.keyBelongsToPage = function (target) {
+  if (target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && target.type === 'text')) {
+    return true;
+  }
+  return target instanceof Element && target.closest('.reason-popover') !== null;
+};
+
+/**
  * A JWT's `exp` claim as epoch milliseconds. Per-session tokens (Infra3d's, via Cognito) carry their expiry, so a
  * viewer can plan renewal from the token alone.
  * @param {string} token - The bearer token.

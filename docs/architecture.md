@@ -806,7 +806,8 @@ control, a click outside (unless "Other…" holds unsaved words), or the next vo
 the top layer but sits inside the host's `<dialog>` when there is one, since a modal (the LabelMap card) leaves
 everything outside it inert. There is no separate way back: the next Disagree or Unsure asks again (clicking the
 standing vote clears it, so a second click recasts it). The card's comment box holds still while the pop-up is up,
-then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal. A pick is stored as the validator's comment on the label with the id in
+then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal.
+A pick is stored as the validator's comment on the label with the id in
 `validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
 marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
 semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what

@@ -250,7 +250,8 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     expect(reasonPopover().isOpenFor(first.card)).toBe(false);
     expect(reasonPopover().isOpenFor(second.card)).toBe(true);
     expect(first.card.classList.contains('has-reason-popover')).toBe(false);
-    expect(events().filter((e) => e.includes('ReasonMenu_Dismiss'))).toHaveLength(1);
+    // Left without a pick, the first card's question counts as dismissed, as a real click's pointerdown would log.
+    expect(events().filter((e) => e.includes('ReasonMenu_Dismiss'))).toHaveLength(2);
   });
 
   test('a vote is refused while a pick is in flight', async () => {

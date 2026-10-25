@@ -158,8 +158,8 @@ export class ReasonPopover {
   }
 
   /**
-   * Shows the reasons for a vote at its anchor. Opening while open (a re-vote, or a reopen from the card's Reasons
-   * button) redraws in place for the new request; nothing is logged as a dismissal.
+   * Shows the reasons for a vote at its anchor. Opening while open for the same card (a re-vote, or a reopen from
+   * its Reasons button) redraws in place and logs no dismissal; opening for another card dismisses the first.
    * @param {ReasonPopoverRequest} request
    * @returns {boolean} Whether anything opened; false when the type offers no reason for the vote.
    */
@@ -181,9 +181,17 @@ export class ReasonPopover {
       return false;
     }
     const wasOpen = this.isOpen();
-    if (wasOpen && this.#request.host !== request.host) this.#request.host.classList.remove('has-reason-popover');
+    const left = wasOpen && this.#request.host !== request.host ? this.#request : null;
+    if (left) left.host.classList.remove('has-reason-popover');
     const moved = this.#mount(request.host);
     this.#request = request;
+    // The card left behind was dismissed without a pick, so it hears so as if closed: a host holding its comment
+    // row for the pop-up would otherwise hold it until its label changes. Told after the swap, so its handlers see
+    // the pop-up as no longer theirs.
+    if (left) {
+      left.onClose?.();
+      left.onDismiss?.('outside', false);
+    }
     request.host.classList.add('has-reason-popover');
     // The chips draw the prompt afresh on every render, so the dialog takes its name from the new one.
     const prompt = this.#el.querySelector('.reason-chips__prompt');

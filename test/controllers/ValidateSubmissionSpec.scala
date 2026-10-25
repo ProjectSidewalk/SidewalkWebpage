@@ -676,6 +676,27 @@ class ValidateSubmissionSpec
       after.disagreeCount mustBe before.disagreeCount + 1
     }
 
+    "apply a batch in label order while keeping each label's own votes in the order cast (#5475)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      // Descending, so the lock-order sort has to move them; the first label's three entries must still run in order.
+      val pair  = b.labels.take(2).sortBy(l => -(l \ "label_id").as[Int])
+      val high  = pair(0)
+      val low   = pair(1)
+      val batch = Seq(
+        validationJson(high, b.missionId, "Agree"),
+        validationJson(low, b.missionId, "Unsure"),
+        validationJson(high, b.missionId, "Agree", undone = true),
+        validationJson(high, b.missionId, "Disagree", redone = true)
+      )
+
+      status(postValidationTask(session, taskSubmission(b, batch, Some(missionProgressJson(b, 2))))) mustBe OK
+
+      validationRow((high \ "label_id").as[Int], b.userId).map(_._1) mustBe Some("Disagree")
+      validationCount((high \ "label_id").as[Int], b.userId) mustBe 1
+      validationRow((low \ "label_id").as[Int], b.userId).map(_._1) mustBe Some("Unsure")
+    }
+
     "keep the user's earlier comment when a repeat validation carries none (#4377)" in {
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
