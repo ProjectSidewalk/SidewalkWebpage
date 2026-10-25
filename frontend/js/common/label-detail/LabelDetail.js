@@ -1451,7 +1451,8 @@ export class LabelDetail {
    */
   #keepTypedWords(text) {
     if (this.#myCommentIdx >= 0) {
-      this.#startCommentEdit(false);
+      // The redraw resolves before the new pano does, so the box has to open while it is still loading.
+      this.#startCommentEdit(false, true);
     } else {
       this.#holdingWords = true;
       this.#updateCommentRow();
@@ -1525,11 +1526,12 @@ export class LabelDetail {
    *
    * @param {boolean} [prefill=true] - Start from the existing text. "Other…" passes false over a canned reason, whose
    *     text would only be in the way of the words replacing it.
+   * @param {boolean} [whileLoading=false] - Open even before the pano has loaded; only a lock still refuses.
    * @returns {boolean} Whether the box opened; the Edit button logs on that, a reopen the card makes itself doesn't.
    */
-  #startCommentEdit(prefill = true) {
+  #startCommentEdit(prefill = true, whileLoading = false) {
     const own = this.#comments?.[this.#myCommentIdx];
-    if (!own || this.#interactionBlocked) return false;
+    if (!own || this.#locked || (this.#panoLoading && !whileLoading)) return false;
     this.#editingComment = true;
     this.#updateCommentRow();
     this.#renderComments(); // Drops the Edit/Delete pair; the box below now speaks for this comment.

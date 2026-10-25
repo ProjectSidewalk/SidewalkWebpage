@@ -167,7 +167,7 @@ export class ReasonPopover {
     this.#clearCloseTimer();
     // A vote landing after its card was paged away would otherwise leave an invisible pop-up still taking clicks.
     if (!request.anchor.isConnected || !request.host.isConnected) {
-      this.close();
+      this.#closeForNothing(request);
       return false;
     }
     // A re-vote on the same card redraws the row; words half-typed into "Other…" ride across rather than vanish.
@@ -177,7 +177,7 @@ export class ReasonPopover {
       otherText: request.otherText ?? '', draft,
     });
     if (count === 0) {
-      this.close();
+      this.#closeForNothing(request);
       return false;
     }
     const wasOpen = this.isOpen();
@@ -241,6 +241,17 @@ export class ReasonPopover {
       });
     }
     return true;
+  }
+
+  /**
+   * Closes for a vote that opened nothing. A pop-up open for another card was still dismissed by that vote, so that
+   * card hears it the way a move tells it.
+   * @param {ReasonPopoverRequest} request - The request that opened nothing.
+   */
+  #closeForNothing(request) {
+    const left = this.#request && this.#request.host !== request.host ? this.#request : null;
+    this.close();
+    left?.onDismiss?.('outside', false);
   }
 
   /**

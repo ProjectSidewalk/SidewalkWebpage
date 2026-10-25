@@ -166,6 +166,16 @@ describe('opening', () => {
     expect(popover.isOpenFor(second)).toBe(true);
   });
 
+  test('a vote on another host that offers no reason still dismisses the first, as a move does', () => {
+    const onClose = vi.fn();
+    open({ onClose });
+    const second = document.getElementById('elsewhere');
+    expect(open({ host: second, anchor: second, vote: 'Agree', onDismiss: vi.fn() })).toBe(false);
+    expect(popover.isOpen()).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledWith('outside', false);
+  });
+
   test('a re-vote on the same host redraws without closing or dismissing', () => {
     const onClose = vi.fn();
     open({ onClose });

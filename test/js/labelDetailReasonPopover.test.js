@@ -340,11 +340,19 @@ describe('the reason pop-up on the label card (#5475)', () => {
       window.fetch = vi.fn(async () => ({
         ok: true, status: 200, json: async () => meta({ user_validation: 'Disagree', comments: mine }),
       }));
-      panoManager.setPano.mockImplementation(async () => true);
+      // The redraw resolves before its pano does, as in a browser, so the words arrive while the card is loading.
+      const redrawPano = deferred();
+      panoManager.setPano.mockImplementation(() => redrawPano.promise);
       panoManager.warmUp = vi.fn(async () => true);
       click(otherSave());
       await flush();
       await flush();
+      expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
+      expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
+      redrawPano.resolve(true);
+      await flush();
+      expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
+      expect(q('.label-detail__comment-input').disabled).toBe(false);
       expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
       expect(logged().some((e) => e.includes('_action=EditCommentOpen_'))).toBe(false);
 

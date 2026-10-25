@@ -85,4 +85,12 @@ describe('the own-comment cache on a Gallery card (#5475)', () => {
     card.updateUserValidation('Disagree');
     expect(card.getProperty('comments')).toEqual([theirs, own]);
   });
+
+  test('a first vote gives a comment that outlived its old vote the new vote\'s chip, as the server feed does', () => {
+    const card = makeCard(null);
+    const orphan = { comment: 'Hard to tell', mine: true, commenter: 0, validation: null };
+    card.getProperty('comments').splice(1, 1, orphan);
+    card.updateUserValidation('Unsure');
+    expect(card.getProperty('comments')).toEqual([theirs, { ...orphan, validation: 'Unsure' }]);
+  });
 });

@@ -589,6 +589,12 @@ export class Card {
             }
           }
         }
+      } else if (Array.isArray(properties.comments)) {
+        // A comment that predates clear-deletes-comment (#4653) can outlive its vote; the server's feed now pairs it
+        // with this first vote, so its chip should too.
+        for (const c of properties.comments) {
+          if (c && typeof c === 'object' && c.mine) c.validation = newUserValidation;
+        }
       }
       if (newUserValidation) properties.val_counts[newUserValidation] += 1;
       properties.user_validation = newUserValidation;
