@@ -153,7 +153,10 @@ describe('ReasonChips', () => {
     expect(document.activeElement).toBe(chipEls()[1]);
     chipEls()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     chipEls()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
-    expect(document.activeElement).toBe(chipEls()[2]); // Wraps.
+    // "Other…" sits in the row like a chip, so the arrows reach it, and wrap past it.
+    expect(document.activeElement).toBe(other());
+    other().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(document.activeElement).toBe(chipEls()[0]);
     expect(onPick).not.toHaveBeenCalled();
   });
 

@@ -8,11 +8,11 @@
  * leaves, and the keys it answers while open. The host owns what a pick does (it posts the comment) and tells the
  * pop-up when the pick landed, which is when it says "Reason saved" and shrinks back into its anchor.
  *
- * It leaves on a pick, a saved typed reason, Escape, its close control, a click outside (unless "Other…" holds
- * unsaved words), or when the host closes it (paging, another vote). Never on mouse-leave: the first version did
- * that and read as a flash. Mouse opens never move focus; a keyboard open focuses the chips, and Tab from the vote
- * reaches them next either way. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like Validate's menu;
- * where a keyboard is likely (a hover-capable pointer) each chip wears its digit as a keycap.
+ * It leaves on a pick, a saved typed reason, Escape, its close control, a click outside or a Tab out (unless
+ * "Other…" holds unsaved words), or when the host closes it (paging, another vote). Never on mouse-leave: the first
+ * version did that and read as a flash. Mouse opens never move focus; a keyboard open focuses the chips, and Tab
+ * from the vote reaches them next either way. Number keys 1–N pick, N+1 is "Other…", so the pop-up reads like
+ * Validate's menu; where a keyboard is likely (a hover-capable pointer) each chip wears its digit as a keycap.
  *
  * Native Popover API where there is one (top layer, so the Gallery grid never reflows and no card clips it) with
  * the same `hidden` fallback PanoImageAdjustmentsPopover uses, which is also what jsdom runs.
@@ -45,7 +45,8 @@ import '../../css/components/reason-popover.css';
  * @property {(viaKeyboard: boolean) => void} [onOther] - "Other…" was opened into its field; for logging.
  * @property {(text: string, viaKeyboard: boolean) => void} onSubmitOther - The field was saved with this text.
  * @property {(via: string, viaKeyboard: boolean) => void} [onDismiss] - Closed without a pick, by the reader:
- *     'close' (the ✕), 'escape', or 'outside'. Not called for a host-driven close or a close after a pick.
+ *     'close' (the ✕), 'escape', 'outside', or 'tab' (tabbed out). Not called for a host-driven close or a close
+ *     after a pick.
  * @property {() => void} [onClose] - Closed by any path, after the pop-up is gone; for a host keeping a disclosure
  *     control's state in step with it.
  */
@@ -322,7 +323,7 @@ export class ReasonPopover {
   }
 
   /**
-   * @param {string} via - 'close', 'escape' or 'outside'.
+   * @param {string} via - 'close', 'escape', 'outside' or 'tab'.
    * @param {boolean} viaKeyboard
    */
   #dismiss(via, viaKeyboard) {
@@ -397,7 +398,13 @@ export class ReasonPopover {
     const after = page.slice(page.indexOf(anchor) + 1);
     if (!back && target === anchor) return ReasonPopover.#focusFirst(inside);
     if (back && target === inside[0]) return ReasonPopover.#focusFirst([anchor]);
-    if (!back && target === inside.at(-1)) return ReasonPopover.#focusFirst(after);
+    if (!back && target === inside.at(-1)) {
+      // Left behind, the pop-up would float over the control focus moves to (WCAG 2.4.11), so leaving it closes it
+      // the way a click elsewhere does, words in "Other…" excepted.
+      if (!this.#chips.hasOtherDraft) this.#dismiss('tab', true);
+      ReasonPopover.#focusFirst(after);
+      return true;
+    }
     if (back && target === after[0]) return ReasonPopover.#focusFirst(inside.slice().reverse());
     return false;
   }

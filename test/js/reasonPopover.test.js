@@ -356,14 +356,34 @@ describe('keys', () => {
     expect(document.activeElement).toBe(chips()[0]);
     expect(tab(chips()[0], true).defaultPrevented).toBe(true);
     expect(document.activeElement).toBe(anchor);
-    const last = inside().at(-1);
-    last.focus();
-    tab(last);
-    expect(document.activeElement).toBe(document.getElementById('other-vote'));
-    tab(document.getElementById('other-vote'), true);
-    expect(document.activeElement).toBe(last);
     // Anywhere else, Tab is the browser's.
     expect(tab(document.getElementById('field')).defaultPrevented).toBe(false);
+    // Shift+Tab from what follows the vote steps back in at the pop-up's end.
+    tab(document.getElementById('other-vote'), true);
+    expect(document.activeElement).toBe(inside().at(-1));
+  });
+
+  test('Tab past its last control closes it, as a click elsewhere does, unless "Other…" holds words', () => {
+    const tab = (target) => target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    const last = () => [...el().querySelectorAll('button, input')].filter((n) => n.tabIndex >= 0 && !n.closest('[hidden]')).at(-1);
+    open({ viaKeyboard: true });
+    last().focus();
+    tab(last());
+    expect(popover.isOpen()).toBe(false);
+    expect(onDismiss).toHaveBeenCalledWith('tab', true);
+    expect(document.activeElement).toBe(document.getElementById('other-vote'));
+
+    onDismiss.mockClear();
+    open({ viaKeyboard: true });
+    other().click();
+    const field = el().querySelector('.reason-chips__other-form input');
+    field.value = 'half typed';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    last().focus();
+    tab(last());
+    expect(popover.isOpen()).toBe(true);
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.getElementById('other-vote'));
   });
 
   test('arrows move between chips even with a pano viewer swallowing them for the page', async () => {

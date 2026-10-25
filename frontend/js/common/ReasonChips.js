@@ -8,8 +8,9 @@
  * pick, since how the pick is posted differs per surface.
  *
  * Accessible shape: a `group` named by the prompt, one toggle button per reason (`aria-pressed` marks the one on
- * record), each its own Tab stop with arrow keys between them too, and the "Other…" button (or its field) beside
- * the group. Not a roving tabindex: with three to five chips, readers expect Tab to walk each one (Jon, #5475).
+ * record), each its own Tab stop with arrow keys between them (and on to "Other…") too, and the "Other…" button
+ * (or its field) beside the group. Not a roving tabindex: a `group` doesn't announce arrow keys the way a toolbar
+ * does, and with three to five chips readers expect Tab to walk each one (Jon, #5475).
  * Toggle buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file a
  * reason per keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a
  * reader who does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
@@ -365,16 +366,20 @@ export class ReasonChips {
     else this.#pick(chip, viaKeyboard);
   };
 
-  /** Arrow keys move focus along the chips without picking; Enter/Space pick natively. */
+  /**
+   * Arrow keys move focus along the row without picking, "Other…" included since it sits in the row like any chip;
+   * Enter/Space pick natively. Once "Other…" is a field, its arrows are the field's.
+   */
   #handleKeydown = (e) => {
-    const idx = this.#chips.findIndex((chip) => chip === document.activeElement);
+    const row = this.#otherButton ? [...this.#chips, this.#otherButton] : this.#chips;
+    const idx = row.findIndex((chip) => chip === document.activeElement);
     if (idx < 0) return;
     let next = null;
-    if (ReasonChips.#KEY_NEXT.has(e.key)) next = (idx + 1) % this.#chips.length;
-    else if (ReasonChips.#KEY_PREV.has(e.key)) next = (idx - 1 + this.#chips.length) % this.#chips.length;
+    if (ReasonChips.#KEY_NEXT.has(e.key)) next = (idx + 1) % row.length;
+    else if (ReasonChips.#KEY_PREV.has(e.key)) next = (idx - 1 + row.length) % row.length;
     if (next === null) return;
     e.preventDefault();
     e.stopPropagation();
-    this.#chips[next].focus();
+    row[next].focus();
   };
 }
