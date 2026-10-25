@@ -179,7 +179,6 @@
   },
   "edit-type-changed": "Cambiado a {{labelType}}",
   "edit-undo": "Deshacer",
-  "edit-conflict-short": "Tipo de etiqueta cambiado en otro lugar",
   "edit-conflict": "El tipo de esta etiqueta se cambió en otro lugar, así que la tarjeta ahora muestra su estado actual.",
   "delete-label": "Eliminar etiqueta",
   "delete-label-confirm": "¿Seguro que quieres eliminar esta etiqueta?",

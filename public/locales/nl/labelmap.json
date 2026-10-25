@@ -179,7 +179,6 @@
   },
   "edit-type-changed": "Gewijzigd naar {{labelType}}",
   "edit-undo": "Ongedaan maken",
-  "edit-conflict-short": "Labeltype elders gewijzigd",
   "edit-conflict": "Het type van dit label is elders gewijzigd, dus de kaart toont nu de huidige staat.",
   "delete-label": "Etiket verwijderen",
   "delete-label-confirm": "Weet je zeker dat je dit etiket wilt verwijderen?",

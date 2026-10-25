@@ -412,9 +412,11 @@ with respect to the image holder. This allows the validation menu to be placed o
   background-color: var(--color-asphalt-100);
 }
 
-/* Keyboard focus reveals the row just like hovering does. */
+/* Keyboard focus reveals the row just like hovering does, and so does the reason pop-up hung off one of these
+   (#5475): the control the pop-up points at must not fade under the pointer on its way to a chip. */
 .gallery-card:hover .validation-button,
-.gallery-validation-button-holder:focus-within .validation-button {
+.gallery-validation-button-holder:focus-within .validation-button,
+.gallery-card.has-reason-popover .validation-button {
   opacity: 0.78; /* Any lower and Disagree's text is too faint over dark imagery. */
 }
 
@@ -423,11 +425,22 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .gallery-card:hover .validation-button.is-selected,
-.gallery-validation-button-holder:focus-within .validation-button.is-selected {
+.gallery-validation-button-holder:focus-within .validation-button.is-selected,
+.gallery-card.has-reason-popover .validation-button.is-selected {
   opacity: 1;
 }
 
+/* A reason pick in flight holds the vote it explains (#5475): the controls stay put but take no vote until the
+   pick has landed, so a pick can't race the server's delete-on-vote-change. */
+.gallery-card--vote-locked .validation-button,
+.gallery-card--vote-locked .card-validation-info {
+  cursor: progress;
+}
+
+/* Keyboard focus also reveals the button it is on: a keyboard user has no hover, and the reason pop-up hands focus
+   back to one when it closes (#5475). */
 .validation-button:focus-visible {
+  opacity: 1;
   outline: 2px solid var(--color-link-100);
   outline-offset: -2px;
 }
