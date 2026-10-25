@@ -681,8 +681,8 @@ export class AcrossCitiesPage {
       case 'reaudit_backlog':
         return `${util.longDistanceToString(c.reaudit_km)} of ${util.longDistanceToString(c.mapped_km)} mapped `
           + `(${this.#pct(c.mapped_km ? c.reaudit_km / c.mapped_km : 0)}) has newer imagery than its audits; `
-          + `flagged at ${this.#pct(this.#summary.reaudit_backlog_share)} of at least `
-          + `${util.longDistanceToString(this.#summary.min_mapped_km_for_reaudit_flag)} mapped`;
+          + `flagged at ≥${this.#pct(this.#summary.reaudit_backlog_share)} of mapped, `
+          + `once ≥${util.longDistanceToString(this.#summary.min_mapped_km_for_reaudit_flag)} is mapped`;
       default:
         return flag;
     }

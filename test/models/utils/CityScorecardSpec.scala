@@ -90,6 +90,7 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "execute getAiUserIds" in {
       run(configTable.getAiUserIds) mustBe a[Seq[?]]
     }
+
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
       run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames

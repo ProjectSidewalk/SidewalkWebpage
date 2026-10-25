@@ -1239,8 +1239,9 @@ trait ConfigService {
    * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once (#5828).
    *
    * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
-   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. None when any city's read
-   * failed: a union missing a city would silently undercount.
+   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. A refresh where any city's read
+   * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
+   * count is cached.
    *
    * @return A Future of the distinct contributor count, or None if it couldn't be read for every city.
    */
@@ -1906,26 +1907,27 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityDistinctContributors(): Future[Option[Int]] = {
     swrCache
-      .staleWhileRevalidate[Option[Int]](
+      .staleWhileRevalidate[Int](
         "getCrossCityDistinctContributors",
         ConfigService.CrossCityFreshFor,
         ConfigService.CrossCityMaxAge
       ) {
         availableCityIds().flatMap { availableCities =>
-          val perCityFutures: Seq[Future[Option[Set[String]]]] = availableCities.map { cityId =>
-            db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-              .map(ids => Option(ids.toSet))
-              .recover { case e: Exception =>
-                logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-                None
-              }
+          // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
+          // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+          val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
+            val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+            idsF.failed.foreach(e =>
+              logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+            )
+            idsF
           }
           Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            if (perCity.contains(None)) None
-            else Some((perCity.flatten.foldLeft(Set.empty[String])(_ ++ _) -- aiIds).size)
+            (perCity.iterator.flatten.toSet -- aiIds).size
           }
         }
       }
+      .map(Option(_))
       .recover { case e: Exception =>
         logger.warn(s"Distinct contributor count unavailable: ${e.getMessage}")
         None
