@@ -802,7 +802,6 @@ class PanoDataServiceImpl @Inject() (
         val imageExists: Boolean = imageStatus == "OK"
 
         if (imageExists || imageStatus == "ZERO_RESULTS") {
-          // Mark the expired status, has_backup, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
           val hasBackup = Some(backupExists(panoId))
           db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, hasBackup, timestamp))

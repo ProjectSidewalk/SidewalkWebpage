@@ -256,7 +256,9 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
+   * Mark whether the pano was expired with a timestamp.
+   *
+   * Never touches `last_viewed`: it means a person looked at the pano, which the labeling harvest relies on (#5814).
    *
    * Both branches carry two edge-triggered side effects on top of the flip itself. `expired_at` is stamped on the
    * false -> true edge and cleared on the way back, so it dates the imagery that is missing now — which
@@ -315,7 +317,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
              SET expired = FALSE,
                  has_backup = $hasBackup,
                  last_checked = $lastChecked,
-                 last_viewed = $lastChecked,
                  expired_at = NULL
              WHERE pano_id = $panoId"""
     }

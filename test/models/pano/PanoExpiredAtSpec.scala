@@ -113,6 +113,23 @@ class PanoExpiredAtSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOn
     }
   }
 
+  "updateExpiredStatus" should {
+    "record a still-there check in last_checked without touching last_viewed" in {
+      val viewedAt = OffsetDateTime.now.minusDays(30)
+      run(panoDataTable.upsert(freshPano(viewedAt)))
+      val checkedAt = OffsetDateTime.now
+      run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), checkedAt))
+
+      val (lastViewed, lastChecked) = run(
+        sql"SELECT last_viewed, last_checked FROM pano_data WHERE pano_id = $panoId"
+          .as[(OffsetDateTime, OffsetDateTime)]
+          .head
+      )
+      micros(lastViewed) mustBe micros(viewedAt)
+      micros(lastChecked) mustBe micros(checkedAt)
+    }
+  }
+
   "countExpiredWithoutExpiryDate" should {
     "count an expired pano that carries no expiry date" in {
       // What the trend page reports as the history it cannot show: these panos expired before 358 added the column,
