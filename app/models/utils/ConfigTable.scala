@@ -311,8 +311,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
    * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
    * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
-   * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
-   * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
+   * within this city; cross-city dedup (by the global `user_id`) is done by the callers, which union these id sets
+   * across schemas or count the cities each id appears in ([[service.ConfigService.contributorCounts]]). Returns ids
+   * (not a count) precisely so that caller-side cross-schema dedup is possible.
    *
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
@@ -328,6 +329,17 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT voided_label_validation.user_id
       FROM #${FilteredTables.voidedVotesCast(Some(schema))};
     """.as[String]
+
+  /**
+   * The `user_id`s holding the AI role, from the shared login schema (#5828).
+   *
+   * Lets a caller strip AI accounts from a cross-city union of [[getContributorUserIdsBySchema]] once, rather than
+   * adding a role join to every city's query.
+   *
+   * @return DBIO action yielding the AI accounts' `user_id`s.
+   */
+  def getAiUserIds: DBIO[Seq[String]] =
+    sql"""SELECT user_id FROM sidewalk_login.user_role WHERE role = 'AI'""".as[String]
 
   /**
    * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
@@ -377,6 +389,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets: Int,
       totalKm: Double,
       auditedKm: Double,
+      walkedKm: Double,
+      mappedKm: Double,
       totalLabels: Int,
       aiLabels: Int,
       labelsWithSeverity: Int,
@@ -405,6 +419,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets = r.nextInt(),
       totalKm = r.nextDouble(),
       auditedKm = r.nextDouble(),
+      walkedKm = r.nextDouble(),
+      mappedKm = r.nextDouble(),
       totalLabels = r.nextInt(),
       aiLabels = r.nextInt(),
       labelsWithSeverity = r.nextInt(),
@@ -500,6 +516,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
            audited_streets.cnt        AS audited_streets,
            COALESCE(street_km.km, 0)  AS total_km,
            COALESCE(audited_km.km, 0) AS audited_km,
+           COALESCE(walked_km.km, 0)  AS walked_km,
+           COALESCE(mapped_km.km, 0)  AS mapped_km,
            label_counts.label_count    AS total_labels,
            label_counts.ai_count       AS ai_labels,
            label_counts.with_severity     AS labels_with_severity,
@@ -541,6 +559,22 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                 ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
         ) AS distinct_audited
     ) AS audited_km, (
+        -- Effort: every completed audit's length, repeats and outdated imagery included. The public API's km_explored
+        -- counts the same thing but over streets of every status, the tutorial street included.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM #${FilteredTables.streets(Some(schema))}
+        INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+            ON street_edge.street_edge_id = audit_task.street_edge_id
+    ) AS walked_km, (
+        -- audited_km without the current-imagery filter, so mapped_km - audited_km is exactly the re-audit backlog.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM (
+            SELECT DISTINCT street_edge.street_edge_id, geom
+            FROM #${FilteredTables.streets(Some(schema))}
+            INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+                ON street_edge.street_edge_id = audit_task.street_edge_id
+        ) AS distinct_mapped
+    ) AS mapped_km, (
         SELECT COUNT(DISTINCT label.label_id) AS label_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
@@ -648,6 +682,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       coverage = if (core.totalStreets > 0) core.auditedStreets.toDouble / core.totalStreets else 0.0,
       totalKm = core.totalKm,
       auditedKm = core.auditedKm,
+      walkedKm = core.walkedKm,
+      mappedKm = core.mappedKm,
       totalLabels = core.totalLabels,
       aiLabels = core.aiLabels,
       labelsWithSeverity = core.labelsWithSeverity,
