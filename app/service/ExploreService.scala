@@ -31,6 +31,7 @@ import scala.util.control.NoStackTrace
  *
  * @param routeUnavailable Whether a ?routeId= named no live route and was dropped, so the page tells the user rather
  *                         than passing the visit off as an ordinary session (#5156).
+ * @param servedStreetId   The ?streetEdgeId= the session was started on; None if none was asked for or it was dropped.
  * @param streetUnavailable Whether a ?streetEdgeId= named no street Explore can hand out and was dropped (#5824).
  * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
  */
@@ -42,6 +43,7 @@ case class ExplorePageData(
     route: Option[Route],
     routeResumed: Boolean,
     routeUnavailable: Boolean,
+    servedStreetId: Option[Int],
     streetUnavailable: Boolean,
     regionFinished: Boolean,
     hasCompletedAMission: Boolean,
@@ -238,13 +240,20 @@ class ExploreServiceImpl @Inject() (
       streetEdgeId: Option[Int]
   ): Future[Option[ExplorePageData]] = {
     def getExploreDataAction = for {
+      // A ?streetEdgeId= naming a street Explore can't hand out (not open, or no such street) is dropped, and the visit
+      // otherwise runs as a bare /explore would, so it must not pause a route walk either (#5824).
+      streetRegion: Option[Region] <- streetEdgeId
+        .map(streetEdgeRegionTable.getServedRegionFromStreetId)
+        .getOrElse(DBIO.successful(None))
+      servedStreetId: Option[Int] = streetEdgeId.filter(_ => streetRegion.isDefined)
+
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
       // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
       // precedence over all of it, and pause any active route: the page strips those params from the URL, so a
       // still-active route would otherwise pull the user into its region on their next reload (#5437).
       routeSetup: RouteWalkSetup <-
-        if (regionId.isEmpty && streetEdgeId.isEmpty) {
+        if (regionId.isEmpty && servedStreetId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
           setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
@@ -253,13 +262,6 @@ class ExploreServiceImpl @Inject() (
       routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
-
-      // A ?streetEdgeId= naming a street Explore can't hand out (not open, or no such street) is dropped, and the visit
-      // otherwise runs as a bare /explore would (#5824).
-      streetRegion: Option[Region] <- streetEdgeId
-        .map(streetEdgeRegionTable.getServedRegionFromStreetId)
-        .getOrElse(DBIO.successful(None))
-      servedStreetId: Option[Int] = streetEdgeId.filter(_ => streetRegion.isDefined)
 
       // Get the appropriate region the user is going to explore, and update their user_current_region entry.
       currRegion: Option[Region]                        <- userCurrentRegionTable.getCurrentRegion(userId)
@@ -393,6 +395,7 @@ class ExploreServiceImpl @Inject() (
         pageRoute,
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
         routeSetup.routeUnavailable,
+        servedStreetId = streetToServe,
         streetUnavailable = streetEdgeId.isDefined && streetToServe.isEmpty,
         regionFinished,
         hasCompletedAMission,
@@ -433,8 +436,8 @@ class ExploreServiceImpl @Inject() (
               } yield {
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
-                    routeUnavailable = false, streetUnavailable = false, regionFinished = false, hasCompletedAMission,
-                    nextTempLabelId)
+                    routeUnavailable = false, servedStreetId = None, streetUnavailable = false, regionFinished = false,
+                    hasCompletedAMission, nextTempLabelId)
                 )
               }
           }

@@ -126,7 +126,7 @@ class ExploreController @Inject() (
             Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
         case (_, Some(streetEdgeId), _, _, _) =>
           exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
-            resumeRoute = false, regionId = None, Some(streetEdgeId))
+            resumeRoute, regionId = None, Some(streetEdgeId))
         case (_, _, Some(regionId), _, _) =>
           exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
             routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
@@ -150,7 +150,6 @@ class ExploreController @Inject() (
       case Some(exploreData) =>
         val isExploreAddress: Boolean =
           exploreData.mission.missionType == MissionType.ExploreAddress
-        val servedStreetId: Option[Int] = streetEdgeId.filterNot(_ => exploreData.streetUnavailable)
         // The owner's seed is only right for the mission it was written in. A resume that landed elsewhere -- the
         // mission completed since (a modal was up, a bookmark is days old), a route ended -- opens at its own task
         // instead of kilometres away at a stale pano; the tutorial takes no seed either.
@@ -161,8 +160,9 @@ class ExploreController @Inject() (
         // Log the visit.
         val activityStr: String =
           if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
-          else if (servedStreetId.isDefined) s"Visit_Audit_StreetEdgeId=${servedStreetId.get}"
-          else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
+          else if (exploreData.servedStreetId.isDefined) s"Visit_Audit_StreetEdgeId=${exploreData.servedStreetId.get}"
+          else if (regionId.isDefined && routeId.isEmpty && streetEdgeId.isEmpty)
+            s"Visit_Audit_RegionId=${regionId.get}"
           else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${seedLat.get}_Lng=${seedLng.get}"
           else if (newRegion) "Visit_Audit_NewRegionSelected"
           else "Visit_Audit"
@@ -187,7 +187,7 @@ class ExploreController @Inject() (
         // pano wins when it loads, with the lat/lng as its fallback (#4635) -- or for the owner of a live URL's mission
         // (#5480). A POV needs a heading; pitch and zoom just refine it.
         val (startLat, startLng, startPanoId, startPlaceName) =
-          (servedStreetId, isAdmin(user), panoId, seedLat, seedLng) match {
+          (exploreData.servedStreetId, isAdmin(user), panoId, seedLat, seedLng) match {
             case (Some(_), true, Some(p), _, _)         => (None, None, Some(p), None)
             case (Some(_), true, _, Some(lt), Some(lg)) => (Some(lt), Some(lg), None, None)
             // placeName rides along only on the drop-in path -- it names the searched place in the landing greeting.
