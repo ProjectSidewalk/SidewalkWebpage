@@ -21,7 +21,7 @@ import scala.concurrent.duration.*
  * The column answers "when did this pano's imagery go away", which `last_checked` cannot: the nightly sweep re-checks
  * already-expired panos and bumps `last_checked` every time, so only a value written on the false -> true edge can
  * date the disappearance. Every case here is that edge condition — stamped once, never re-stamped by a confirming
- * re-check, cleared when the imagery comes back.
+ * re-check, cleared when the imagery comes back. It also checks that a still-there re-check leaves `last_viewed` alone.
  *
  * Seeds its own pano rather than hunting for one in the connected DB, so it can never pass vacuously. Requires a
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
@@ -120,13 +120,9 @@ class PanoExpiredAtSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOn
       val checkedAt = OffsetDateTime.now
       run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), checkedAt))
 
-      val (lastViewed, lastChecked) = run(
-        sql"SELECT last_viewed, last_checked FROM pano_data WHERE pano_id = $panoId"
-          .as[(OffsetDateTime, OffsetDateTime)]
-          .head
-      )
-      micros(lastViewed) mustBe micros(viewedAt)
-      micros(lastChecked) mustBe micros(checkedAt)
+      val pano = run(panoDataTable.getPano(panoId)).get
+      micros(pano.lastViewed) mustBe micros(viewedAt)
+      micros(pano.lastChecked) mustBe micros(checkedAt)
     }
   }
 

@@ -263,8 +263,7 @@ provider quotas.
 
 The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
 `street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
-`updated_at` too, so keying on it starved never-polled streets. Imagery-existence checks (the expiry sweep and on-demand
-ones) write only `pano_data.last_checked`, never `last_viewed`, so the harvest's seven-day `last_viewed` window holds only panos a person looked at (#5814).
+`updated_at` too, so keying on it starved never-polled streets.
 
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is

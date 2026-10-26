@@ -258,8 +258,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Mark whether the pano was expired with a timestamp.
    *
-   * Never touches `last_viewed`: it means a person looked at the pano, which the labeling harvest relies on (#5814).
-   *
    * Both branches carry two edge-triggered side effects on top of the flip itself. `expired_at` is stamped on the
    * false -> true edge and cleared on the way back, so it dates the imagery that is missing now — which
    * `last_checked` cannot, since every re-check bumps that whether or not anything changed. And a row goes into
