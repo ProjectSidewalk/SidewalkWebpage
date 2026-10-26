@@ -8,7 +8,8 @@ plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the res
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
-(#5060). Deep canvas/imagery testing stays manual by design.
+(#5060). One spec goes further: `explore-tutorial-labeling.spec.js` places a label in Explore's tutorial and reads
+it back (#4777). Other canvas/imagery testing stays manual.
 
 ## Running locally
 
@@ -218,8 +219,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label); admin pages (promote the setup user via a
-  superuser `UPDATE user_role` in CI).
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label); admin
+  pages (promote the setup user via a superuser `UPDATE user_role` in CI).
 
 ## File map
 

@@ -58,8 +58,8 @@ file, and this table says which doc to read first:
 - Never cause a billable Google pano or map: Google charges for every `StreetViewPanorama` and `Map` created,
   local tiles or not. The `test/e2e/` suite runs on a Maps stub that fails any request reaching Google, so pano
   interaction there is fine (`explore-tutorial-labeling.spec.js` places a tutorial label). Outside that suite, never
-  browser-test anything that needs live street-view imagery (labeling or validating real panos); hand the developer a
-  checklist or console snippet instead.
+  browser-test a page that builds a pano (Explore, its tutorial included, Validate, any label card); hand the developer
+  a checklist or console snippet instead.
 
 ## Before a change is done
 

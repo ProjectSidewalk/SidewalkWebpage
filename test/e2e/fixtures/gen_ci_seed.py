@@ -146,9 +146,10 @@ VALUES ({tn['region']['region_id']}, {q(tn['region']['data_source'])}, {q(tn['re
         FALSE)
 ON CONFLICT (region_id) DO NOTHING;
 
--- The template's own street 1 stays out of the region: it is the tutorial street, which region completion excludes,
--- so a region holding only it counts as vacuously complete for everyone and is never assigned -- the same 500 as
--- having no region at all.""")
+-- The template's own street 1 is the tutorial street. Region completion excludes it, so a region holding only it
+-- counts as complete for everyone and is never assigned -- the same 500 as having no region at all. It joins the
+-- region below beside the real streets instead, as it does in every real city: the label card's query only finds
+-- a label whose street is in a region, and the tutorial-labeling spec reads its label back through it.""")
 
 street_rows = [
     f"  ({s['street_edge_id']}, ST_GeomFromText({q(s['geom_wkt'])}, 4326),\n"
@@ -161,6 +162,10 @@ w("\nINSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)
   f"{tn['region']['region_id']}\nFROM (VALUES " + ", ".join(f"({s})" for s in sorted(STREETS)) +
   ") AS s(street_edge_id)\nWHERE NOT EXISTS (\n  SELECT 1 FROM sidewalk_teaneck.street_edge_region "
   "WHERE street_edge_id = s.street_edge_id\n);\n")
+w("\nINSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)\n"
+  f"SELECT config.tutorial_street_edge_id, {tn['region']['region_id']}\nFROM sidewalk_teaneck.config\n"
+  "WHERE NOT EXISTS (\n  SELECT 1 FROM sidewalk_teaneck.street_edge_region "
+  "WHERE street_edge_id = config.tutorial_street_edge_id\n);\n")
 
 w("""-- Every street needs an OSM way, because /v3/api/rawLabels and the label-clusters API both INNER JOIN
 -- osm_way_street_edge: without a row here those endpoints return an empty feature list for a fully labelled schema,

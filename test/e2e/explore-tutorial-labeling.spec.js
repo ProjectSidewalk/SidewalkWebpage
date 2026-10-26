@@ -28,17 +28,20 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
   await page.locator('#page-loading').waitFor({state: 'hidden'});
 
   const intro = page.locator('#tutorial-intro-next-btn');
+  await intro.waitFor();
   while (await intro.isVisible()) await intro.click();
   await page.locator('#onboarding-ok-button').click();
   await page.locator('#mode-switch-button-curb-ramp').click();
 
-  // The label is submitted as soon as it's placed; the response swaps its temporary id for the saved one.
+  // The label is submitted as soon as it's placed, and the response pairs its temporary id with the saved one.
   const placed = page.waitForResponse(async (r) => r.request().method() === 'POST'
     && new URL(r.url()).pathname === '/task' && (await r.json()).label_ids?.length > 0);
   const layer = await page.locator('#label-drawing-layer').boundingBox();
   const pov = await page.evaluate(() => window.svl.panoManager.getPov());
   const target = povToCanvas(panoCoordToPov(CURB_RAMP_TARGET), pov, layer.width, layer.height);
   await page.mouse.click(layer.x + target.x, layer.y + target.y);
+  // Only a click the tutorial accepts leads to the rating step and the save; a miss asks for the label to be deleted.
+  await expect(page.locator('#severity-menu'), 'the tutorial rejected the click as off target').toBeVisible();
   const labelIds = (await (await placed).json()).label_ids;
   expect(labelIds).toHaveLength(1);
   const labelId = labelIds[0].label_id;
@@ -48,16 +51,25 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
   const tag = page.locator('#context-menu-tag-section .context-menu-tag[data-tag-id="2"]');
   await tag.click();
   await expect(tag).toHaveClass(/tag-pill--active/);
-  expect(consoleErrors).toEqual([]);
 
   // Leaving the page flushes the edits made since the label was placed, as it does for a real user.
   await page.goto('/');
+  let label;
   await expect.poll(async () => {
-    const label = await (await page.request.get(`/label/id/${labelId}`)).json();
+    const response = await page.request.get(`/label/id/${labelId}`);
+    if (!response.ok()) return `HTTP ${response.status()}`;
+    label = await response.json();
     return {
       type: label.label_type, severity: label.severity, tags: label.tags, tutorial: label.tutorial, pano: label.pano_id,
     };
   }).toEqual({type: 'CurbRamp', severity: 2, tags: ['points into traffic'], tutorial: true, pano: 'tutorial'});
+
+  // Where the label sits: the view it was placed from, and the click within the canvas it was placed on.
+  expect({heading: label.heading, pitch: label.pitch, zoom: label.zoom}).toEqual(pov);
+  const scale = label.canvas_width / layer.width;
+  expect(Math.abs(label.canvas_x - target.x * scale)).toBeLessThan(2);
+  expect(Math.abs(label.canvas_y - target.y * scale)).toBeLessThan(2);
+  expect(consoleErrors).toEqual([]);
 });
 
 /**
