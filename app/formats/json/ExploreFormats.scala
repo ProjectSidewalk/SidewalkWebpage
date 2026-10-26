@@ -155,8 +155,7 @@ object ExploreFormats {
    * What /explore/session hands the page (#5650): the task and mission to start on, the region and route they sit in,
    * and the pano the page should open at when the URL asked for one. `task` is None once the region is fully mapped.
    * @param routeResumed     Whether a walk already in progress was picked back up, so the page can say so.
-   * @param routeUnavailable Whether a route was dropped from the session: a `?routeId=` named no live route (#5156),
-   *                         or the walk's route has no walkable distance (#5167). `routeId` is then absent.
+   * @param routeUnavailable Whether a `?routeId=` named no live route and was dropped (#5156).
    * @param regionFinished   Whether the user had already finished the `?regionId=` they asked for, so `regionId` is
    *                         where they were moved instead (#5692).
    * @param startPov         A heading, pitch and zoom to open the pano at; only ever set alongside a pano or lat/lng.

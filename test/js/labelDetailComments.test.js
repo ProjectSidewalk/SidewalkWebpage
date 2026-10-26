@@ -300,12 +300,21 @@ describe('the validator comment box (#5015)', () => {
     ])('a %s vote opens it asking %s', async (vote, key) => {
       // All three votes carry a comment (#5015): Disagree/Unsure ask for the reasoning behind the dispute,
       // Agree invites an optional note.
-      await showLabel({ user_validation: vote });
+      await showLabel({ user_validation: vote, label_type: 'Other' });
       await resolveImagery();
 
       expect(boxOpen()).toBe(true);
       expect(input().placeholder).toBe(key);
       expect(q('.label-detail__comment-row label').textContent).toBe(key);
+    });
+
+    test('a standing Disagree on a type with reasons opens it too, since no pop-up is asking (#5475)', async () => {
+      await showLabel({ user_validation: 'Disagree', comments: [] });
+      await resolveImagery();
+
+      expect(boxOpen()).toBe(true);
+      expect(q('.label-detail__comment-row label').textContent).toBe('labelmap:why-disagree');
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
     });
 
     test('no vote leaves it closed', async () => {
@@ -317,19 +326,31 @@ describe('the validator comment box (#5015)', () => {
     });
   });
 
-  describe('a vote that moves takes its comment with it', () => {
-    test('changing your vote drops the comment and reopens the box on the new prompt', async () => {
+  describe('a vote that moves takes only what no longer fits', () => {
+    test('changing your vote keeps typed words, under the new vote', async () => {
       await showLabel({ user_validation: 'Disagree', comments: [comment('because of the snow', true)] });
       await resolveImagery();
-      expect(q('.label-detail__validator-comments').textContent).toContain('because of the snow');
 
-      // The server deletes the comment on a changed vote; the list has to say so without a reload.
+      // Typed words describe the label, so the server keeps them across a vote change (#5475); the chip follows.
       card.querySelector('.label-detail__vote--agree').click();
       await flush();
 
-      expect(q('.label-detail__validator-comments').textContent).not.toContain('because of the snow');
-      expect(boxOpen()).toBe(true);
-      expect(input().placeholder).toBe('labelmap:why-agree');
+      expect(q('.label-detail__validator-comments').textContent).toContain('because of the snow');
+      expect(q('.label-detail__comment-vote--agree')).not.toBeNull();
+      expect(q('.label-detail__comment-vote--disagree')).toBeNull();
+      expect(q('.label-detail__comment-confirmation').textContent).not.toBe('labelmap:comment-cleared');
+    });
+
+    test('changing your vote drops a canned reason the new vote doesn\'t offer', async () => {
+      await showLabel({
+        user_validation: 'Disagree', comments: [comment('This is a driveway', true, { reason: 'driveway' })],
+      });
+      await resolveImagery();
+
+      card.querySelector('.label-detail__vote--unsure').click();
+      await flush();
+
+      expect(q('.label-detail__validator-comments').textContent).not.toContain('This is a driveway');
       expect(q('.label-detail__comment-confirmation').textContent).toBe('labelmap:comment-cleared');
     });
 
@@ -348,7 +369,7 @@ describe('the validator comment box (#5015)', () => {
     test('leaves someone else\'s comment alone', async () => {
       await showLabel({ user_validation: 'Disagree', comments: [comment('theirs', false), comment('mine', true)] });
       await resolveImagery();
-      card.querySelector('.label-detail__vote--agree').click();
+      card.querySelector('.label-detail__vote--disagree').click(); // A clear, which drops even typed words.
       await flush();
 
       const list = q('.label-detail__validator-comments').textContent;
@@ -359,7 +380,7 @@ describe('the validator comment box (#5015)', () => {
 
   describe('the compose box yields to the comment it would overwrite', () => {
     test('stays open when the voter has not commented yet', async () => {
-      await showLabel({ comments: [comment('someone else said this', false)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('someone else said this', false)] });
       await resolveImagery();
 
       expect(boxOpen()).toBe(true);
@@ -512,7 +533,7 @@ describe('the validator comment box (#5015)', () => {
     });
 
     test('Delete removes the comment and reopens the box', async () => {
-      await showLabel({ comments: [comment('regrettable', true)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('regrettable', true)] });
       await resolveImagery();
       deleteBtn().click();
       await flush();
@@ -537,7 +558,7 @@ describe('the validator comment box (#5015)', () => {
     test('Delete moves focus into the reopened box rather than dropping it', async () => {
       // The button that had focus is destroyed by the re-render, so without this focus falls to the document
       // and a keyboard or screen-reader user loses their place mid-card.
-      await showLabel({ comments: [comment('regrettable', true)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('regrettable', true)] });
       await resolveImagery();
       deleteBtn().click();
       await flush();

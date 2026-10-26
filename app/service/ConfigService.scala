@@ -483,6 +483,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
  * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param walkedKm                Length of every completed audit on a counted street, repeats and outdated imagery
+ *                                included, in km: effort rather than coverage.
+ * @param mappedKm                Distinct audited length on any imagery, in km. `mappedKm - auditedKm` is the length
+ *                                whose every audit predates newer imagery (the re-audit backlog, #4384).
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
@@ -524,6 +528,8 @@ case class CityScorecard(
     coverage: Double,
     totalKm: Double,
     auditedKm: Double,
+    walkedKm: Double,
+    mappedKm: Double,
     totalLabels: Int,
     aiLabels: Int,
     labelsWithSeverity: Int,
@@ -559,10 +565,18 @@ case class CityScorecard(
  * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
  *
  * @param scorecard The per-city metrics.
- * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
- *                  "needs attention" panel.
+ * @param anomalies Zero or more flag keys: "high_disagreement", "reaudit_backlog". The page turns these into a "needs
+ *                  attention" panel; stalled and low-coverage cities come from [[ConfigService.lifecycle]] instead.
  */
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
+
+/**
+ * People who contributed across the cities the Across Cities page shows, staging and AI accounts excluded (#5828).
+ *
+ * @param distinct  Each person counted once, wherever they contributed.
+ * @param multiCity Those who contributed in two or more cities.
+ */
+case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
 
 /**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
@@ -1004,6 +1018,38 @@ object ConfigService {
   /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
   val DisagreementMedianMultiple: Double = 1.5
 
+  /** A city whose re-audit backlog is at least this share of its mapped km is flagged "reaudit_backlog". */
+  val ReauditBacklogShare: Double = 0.40
+
+  /** A city with less mapped km than this is never flagged "reaudit_backlog" (a few stale streets aren't a trend). */
+  val MinMappedKmForReauditFlag: Double = 10.0
+
+  /**
+   * The length of a city's mapped streets whose every audit predates newer imagery, in km. Clamped at 0 because the
+   * two sums are computed separately and floating-point error could leave a city with no backlog slightly negative.
+   */
+  def reauditKm(sc: CityScorecard): Double = math.max(0.0, sc.mappedKm - sc.auditedKm)
+
+  /**
+   * Whether a city's re-audit backlog is big enough to flag "reaudit_backlog": at least [[ReauditBacklogShare]] of
+   * its mapped km, and only once it has [[MinMappedKmForReauditFlag]] mapped.
+   */
+  def hasReauditBacklog(sc: CityScorecard): Boolean =
+    sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
+
+  /**
+   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
+   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   *
+   * @param perCity One city's contributor `user_id`s per element.
+   * @param aiIds   The AI accounts' `user_id`s.
+   * @return        Each person counted once, and those in two or more cities.
+   */
+  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+    CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+  }
+
   /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
    * very differently from one that never took off:
@@ -1209,6 +1255,19 @@ trait ConfigService {
    * @return A Future of cityId → that city's story counts, or None where the count failed.
    */
   def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
+
+  /**
+   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once, and how
+   * many of them contributed in two or more (#5828).
+   *
+   * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
+   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. A refresh where any city's read
+   * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
+   * count is cached.
+   *
+   * @return A Future of the contributor counts, or None if they couldn't be read for every city.
+   */
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1868,6 +1927,35 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]] = {
+    swrCache
+      .staleWhileRevalidate[CrossCityContributorCounts](
+        "getCrossCityContributorCounts",
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
+      ) {
+        availableCityIds().flatMap { availableCities =>
+          // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
+          // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+          val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
+            val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+            idsF.failed.foreach(e =>
+              logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+            )
+            idsF
+          }
+          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+            ConfigService.contributorCounts(perCity, aiIds.toSet)
+          }
+        }
+      }
+      .map(Option(_))
+      .recover { case e: Exception =>
+        logger.warn(s"Cross-city contributor counts unavailable: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
@@ -1937,9 +2025,10 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
-   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
-   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   * Attaches anomaly flags to each scorecard, using the full set for the relative (median-based) check (#4329): a
+   * "high_disagreement" data-quality flag, and "reaudit_backlog" when much of a city's mapped length has newer imagery
+   * than its audits. The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here.
    *
    * @param scorecards All gathered per-city scorecards.
    * @return           Each scorecard paired with its data-quality flags.
@@ -1957,6 +2046,8 @@ class ConfigServiceImpl @Inject() (
       ) {
         flags += "high_disagreement"
       }
+
+      if (ConfigService.hasReauditBacklog(sc)) flags += "reaudit_backlog"
 
       CityScorecardWithFlags(sc, flags.toSeq)
     }

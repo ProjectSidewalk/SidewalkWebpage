@@ -134,7 +134,7 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
 
 - **A plpgsql statement keeps the plan it got the first time it ran in the session.** A trigger function reading
   transition tables is planned for however many rows the first firing carried, and a plan made for an empty
-  statement (a nested loop) is then reused on a 300k-row bulk write, quadratically (422.sql: the lineage import's
+  statement (a nested loop) is then reused on a 300k-row bulk write, quadratically (423.sql: the lineage import's
   re-rank took 5 hours on Chicago). Run such a join through `EXECUTE`, which plans every time.
 - **Prefer joins to correlated subqueries.** A scalar subquery in a SELECT list or a per-row `IN (SELECT …)` /
   `NOT IN (SELECT …)` re-executes per outer row; the same lookup as a `JOIN`/`LEFT JOIN` (or `EXISTS`/`NOT EXISTS`,

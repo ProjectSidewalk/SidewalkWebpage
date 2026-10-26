@@ -37,7 +37,7 @@ object StreetEnd {
  *
  * @param streetEnd `start` or `end` ([[StreetEnd]]), which end of the street's geometry sits at the intersection. A
  *                  street has at most one row per intersection: an edge with both ends in one node is a sliver
- *                  inside it (Seattle's 865 such edges are 0–0.8 m long) and the derivation drops it.
+ *                  inside it (only a disabled street can be under a metre, #5691) and the derivation drops it.
  */
 case class IntersectionStreetEdge(
     intersectionStreetEdgeId: Int,

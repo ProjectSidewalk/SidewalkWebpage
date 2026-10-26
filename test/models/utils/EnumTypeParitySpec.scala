@@ -7,7 +7,7 @@ import models.street.*
 import models.user.{MeasurementSystem, Role}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api.given
-import models.validation.{ValidationCommentChangeType, ValidationOption}
+import models.validation.{ValidationCommentChangeType, ValidationOption, ValidationReason}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -37,7 +37,7 @@ class EnumTypeParitySpec extends SidewalkSpec with GuiceOneAppPerSuite with Roll
     MissionType, PanoImageryChangeSource, PanoSource, Role, SidewalkPresenceBasis, SidewalkPresenceStatus,
     StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetGradientConfidence,
     StreetGradientQuality, StreetImagerySource, StreetSide, UiSource, ValidationCommentChangeType, ValidationOption,
-    ViewerType, WayType
+    ValidationReason, ViewerType, WayType
   )
 
   /** The labels Postgres holds for an enum type, in the city's schema or the shared login one. */

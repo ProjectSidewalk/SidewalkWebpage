@@ -40,7 +40,7 @@ fi
 # hold the rows to the invariants the matcher is meant to produce, and one bad row fails the whole transaction.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
-    -- The re-rank trigger keeps the first plan its change check gets in this session (evolution 422 plans it per
+    -- The re-rank trigger keeps the first plan its change check gets in this session (evolution 423 plans it per
     -- statement; a stage not yet on it does not), and the DELETE's re-rank below touches no row, which would leave
     -- a nested loop that is quadratic on the INSERT's. With nested loops off for this transaction, the first plan is
     -- a hash join whatever the row count.

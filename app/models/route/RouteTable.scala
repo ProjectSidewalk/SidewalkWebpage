@@ -2,7 +2,7 @@ package models.route
 
 import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
-import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeStatus, StreetEdgeTableDef}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
@@ -172,6 +172,17 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def countKnownStreets(streetEdgeIds: Set[Int]): DBIO[Int] = {
     streetEdgeRegions.filter(_.streetEdgeId inSet streetEdgeIds).length.result
+  }
+
+  /**
+   * Counts how many of the given street ids are streets that aren't disabled. A route needs at least one: only a
+   * disabled street can be under a metre (#5691), so a route of nothing else could measure nothing.
+   */
+  def countLiveStreets(streetEdgeIds: Set[Int]): DBIO[Int] = {
+    streetEdges
+      .filter(s => (s.streetEdgeId inSet streetEdgeIds) && s.status =!= StreetEdgeStatus.Disabled)
+      .length
+      .result
   }
 
   /**

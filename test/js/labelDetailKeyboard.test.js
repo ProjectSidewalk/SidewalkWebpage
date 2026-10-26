@@ -20,8 +20,7 @@
  * The shortcuts press the card's own buttons rather than reaching past them, so a hidden or disabled control means
  * the key does nothing here and is left for the page to handle (the arrows still scroll). The click they fire
  * carries `detail: 0`, the shape a browser gives a button activated with Enter or Space, which is how the handlers
- * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
- * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
+ * keep logging the keyboard apart from the mouse.
  *
  * The pano manager and the card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins:
  * the real ones want a viewer and page markup, and none is what a shortcut exercises.
@@ -243,7 +242,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
   const overlayButton = (result) => q(`.label-detail__pano-overlay-button--${result}`);
   const prevArrow = () => q('.label-detail__paging--prev');
   const nextArrow = () => q('.label-detail__paging--next');
-  const echo = () => q('.label-detail__vote-pop');
 
   /** The bodies of the validations posted so far, newest last. */
   const validations = () => post.mock.calls
@@ -441,7 +439,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
   describe('what the card refuses to claim', () => {
     test('a key typed into the comment box', async () => {
       // The comment box is inside the card, so "a" has to stay an "a" and the arrows have to move the caret.
-      await showLabel({ user_validation: 'Disagree', num_disagree: 1 });
+      await showLabel({ user_validation: 'Agree', num_agree: 1 });
       const prev = vi.fn();
       prevArrow().addEventListener('click', prev);
       q('.label-detail__comment-input').focus();
@@ -555,91 +553,74 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
   });
 
-  describe('the vote echo (#5194)', () => {
+  describe('the vote pop (#5475)', () => {
+    // Every vote gets it, pointer or keyboard, cast or cleared, as a Gallery card's does. jsdom has no Web
+    // Animations API, so a spy stands in for `animate` on every element and the calls say which tallies moved.
+    let animate;
+    beforeEach(() => {
+      animate = vi.fn();
+      HTMLElement.prototype.animate = animate;
+    });
+    afterEach(() => {
+      delete HTMLElement.prototype.animate;
+    });
+    const movedElements = () => animate.mock.instances;
+
     test.each([
-      ['KeyA', 'Agree', 'agree'],
-      ['KeyD', 'Disagree', 'disagree'],
-      ['KeyU', 'Unsure', 'unsure'],
-    ])('%s drops a ghost of the %s icon on that vote\'s tally', async (code, action, variant) => {
-      await showLabel();
-
-      press(code);
-      await flush();
-
-      // Mounted on the icon row, so it starts exactly over the icon it copies; the variant class is what
-      // sends agree and unsure up and disagree down.
-      expect(echo().parentElement).toBe(q(`.label-detail__vote--${variant} .label-detail__vote-top`));
-      expect(echo().classList.contains(`label-detail__vote-pop--${variant}`)).toBe(true);
-      // The filled, non-AI icon: the ghost stands for the verdict just cast, not for the icon's own state.
-      expect(echo().getAttribute('src')).toBe(`/assets/images/icons/validation/${variant}-filled.svg`);
-      // Decoration — the vote it reports is already carried by aria-pressed and the count beside it.
-      expect(echo().getAttribute('aria-hidden')).toBe('true');
-      expect(echo().alt).toBe('');
-    });
-
-    test('a pointer click gets none of it', async () => {
-      // Clicking leaves the pressed button under the cursor, which is feedback enough.
-      await showLabel();
-
-      overlayButton('agree').dispatchEvent(
+      ['a click', () => overlayButton('unsure').dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
-      );
+      )],
+      ['a shortcut', () => press('KeyU')],
+    ])('%s pops the icon it gained and moves the counts it changed', async (_how, vote) => {
+      await showLabel({ user_validation: 'Agree', num_agree: 1 });
+
+      vote();
       await flush();
 
-      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
-      expect(echo()).toBeNull();
+      // The unsure hand and its count rise; the agree count it took the vote from dips.
+      expect(movedElements()).toEqual([
+        q('.label-detail__vote--unsure .label-detail__vote-icon'),
+        q('.label-detail__vote--unsure .label-detail__vote-count'),
+        q('.label-detail__vote--agree .label-detail__vote-count'),
+      ]);
     });
 
-    test('clearing a vote gets none of it either', async () => {
-      // A rising icon says "counted"; it would read as the opposite of what clearing does.
+    test('clearing a vote dips its count and pops nothing', async () => {
       await showLabel({ user_validation: 'Agree', num_agree: 1 });
 
       press('KeyA');
       await flush();
 
       expect(validations()[0].undone).toBe(true);
-      expect(echo()).toBeNull();
+      expect(movedElements()).toEqual([q('.label-detail__vote--agree .label-detail__vote-count')]);
     });
 
-    test('prefers-reduced-motion skips it entirely', async () => {
-      // Skipped rather than slowed: it is an optional flourish, the way Confetti and StorySection treat theirs.
-      vi.stubGlobal('matchMedia', () => ({ matches: true }));
-      await showLabel();
-
-      press('KeyA');
-      await flush();
-
-      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
-      expect(echo()).toBeNull();
-    });
-
-    test('paging away takes the echo with it, so it cannot report a vote on the next label', async () => {
-      // The tally rows are cached once and reused for every label the card shows, so an echo still in flight
-      // when the reader pages would go on rising over a label they never voted on — the one thing this
-      // affordance must never say. Well within reach: the animation runs 700ms and the arrow keys are how
-      // the run moves.
+    test('paging away cancels a pop still running, so it cannot report a vote on the next label', async () => {
+      // The icon and count elements are cached once and reused for every label the card shows.
       await showLabel({ label_id: 100 });
       press('KeyA');
       await flush();
-      expect(echo()).not.toBeNull();
+      const cancel = vi.fn();
+      const icon = q('.label-detail__vote--agree .label-detail__vote-icon');
+      const count = q('.label-detail__vote--agree .label-detail__vote-count');
+      icon.getAnimations = () => [{ cancel }];
+      count.getAnimations = () => [{ cancel }];
 
       await showLabel({ label_id: 101 });
 
-      expect(echo()).toBeNull();
+      expect(cancel).toHaveBeenCalledTimes(2);
     });
 
-    test('it takes itself back out of the markup', async () => {
-      // On a timer rather than animationend: closing the card mid-flight cancels the animation instead of
-      // ending it, and a node left behind on every such vote would accumulate.
+    test('a vote the server refused moves nothing', async () => {
       await showLabel();
+      post.mockImplementation(async () => ({ ok: false, status: 500, json: async () => ({}) }));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       press('KeyA');
       await flush();
-      expect(echo()).not.toBeNull();
 
-      await new Promise((resolve) => { setTimeout(resolve, 800); });
-
-      expect(echo()).toBeNull();
+      expect(animate).not.toHaveBeenCalled();
+      console.error.mockRestore();
     });
   });
 
@@ -695,7 +676,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // A/D/U or arrow into a typed character and end the paging run.
       await showLabel({ user_validation: null });
 
-      press('KeyD');
+      press('KeyA');
       await flush();
 
       expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
@@ -711,7 +692,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // those paths and not the other makes which keys work depend on how the last vote was cast.
       await showLabel({ user_validation: null });
 
-      overlayButton('disagree').dispatchEvent(
+      overlayButton('agree').dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
       );
       await flush();

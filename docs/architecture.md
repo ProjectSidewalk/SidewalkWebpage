@@ -94,7 +94,10 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   Historically the city build cut streets at region borders so the two coincided; the current build heals the short
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
-  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
+  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets. A check
+  constraint (evolution 422, #5691) keeps every street that isn't `disabled` at least 1 m long. Disabled streets can
+  still be shorter, and queries that read every status (the intersection rebuild, route distances) can meet one, so a
+  route must include at least one street that isn't disabled.
 - **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
   pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
   direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our
@@ -789,6 +792,31 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
 `utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
 stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+
+The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
+enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for
+a Disagree and an Unsure vote, in menu order; `main.scala.html` stamps it as `window.validationReasons`, and
+`frontend/js/common/validationReasons.js` is the one frontend reader. Validate's menus, the label detail card and the
+Gallery cards all render their reasons from it, with each reason's text and tooltip in the locale files under its id
+(`common:validation-reason.<id>`), so the stamp stays language-free. On the label card and the Gallery cards the
+question is asked by the reason pop-up (`ReasonPopover.js`, mobile Validate's notched panel generalised): it hangs
+off whichever control cast the vote once the server has it, offers the reasons as `ReasonChips` (whose "Other…"
+turns into a text field and Save in place, for a typed reason), and leaves on a pick or a save, Escape, its close
+control, a click outside (unless "Other…" holds unsaved words), or the next vote, never on mouse-leave. It shows in
+the top layer but sits inside the host's `<dialog>` when there is one, since a modal (the LabelMap card) leaves
+everything outside it inert. There is no separate way back: the next Disagree or Unsure asks again (clicking the
+standing vote clears it, so a second click recasts it). The card's comment box holds still while the pop-up is up,
+then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal.
+A pick is stored as the validator's comment on the label with the id in
+`validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
+marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
+semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
+the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
+on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
+new vote), and dropped, with the vote and text kept, on the Validate batch. Changing a vote from a card keeps the
+validator's typed words, which describe the label rather than the vote, under the new vote, and archives a canned
+reason the new vote doesn't offer; clearing a vote, or Validate's redo (an undo and a fresh vote), still takes the
+comment with it.
 
 ## Where to go next
 

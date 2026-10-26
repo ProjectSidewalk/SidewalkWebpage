@@ -73,12 +73,12 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       """{"mission_id":2,"label_id":3,"comment":"c","pano_id":"p","heading":1.5,"pitch":2.5,"zoom":3.5,"lat":4.5,
         |"lng":5.5}""".stripMargin,
-      ValidationCommentSubmission(2, 3, "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)
+      ValidationCommentSubmission(2, 3, "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)
     )
     check(
       """{"label_id":3,"label_type":"Obstacle","comment":"c","pano_id":"p","heading":1.5,"pitch":2.5,"zoom":3.5,
         |"lat":4.5,"lng":5.5}""".stripMargin,
-      LabelMapValidationCommentSubmission(3, "Obstacle", "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)
+      LabelMapValidationCommentSubmission(3, "Obstacle", "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)
     )
   }
 
@@ -245,7 +245,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         ValidationOption.Agree,
         Some(2),
         List("t"),
-        Some(ValidationCommentSubmission(8, 7, "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)),
+        Some(ValidationCommentSubmission(8, 7, "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)),
         Some(1),
         Some(2),
         1.5,
