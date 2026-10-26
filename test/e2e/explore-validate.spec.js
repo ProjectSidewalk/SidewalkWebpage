@@ -24,7 +24,8 @@
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
  * orientations with the layout viewport pinned to the device width (#4891).
  *
- * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
+ * Both are landing-state checks: the page reaches its ready state and the console. Labeling in the tutorial is
+ * explore-tutorial-labeling.spec.js.
  */
 const {
   test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE,
@@ -82,8 +83,7 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
   await page.evaluate(() => document.getElementById('validate-control-buttons-toggle').click());
   await expect(chevron).toHaveAttribute('aria-expanded', 'true');
   await expect(pill).toBeVisible();
-  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill, and
-  // dismissing it is pano interaction this suite stays out of.
+  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill.
   await page.evaluate(() => window.svv.imageAdjustmentsPopover.open());
   await expect(panel).toBeVisible();
   await expect(pill).toHaveAttribute('aria-expanded', 'true');
@@ -101,8 +101,8 @@ test('/validate enters and leaves immersive mode on F', async ({page, consoleErr
   // Under the mission-start tutorial the key is for the tutorial, like every other shortcut.
   await page.keyboard.press('f');
   await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
-  // Its Done is clicked from the page: the overlay covers the toggle, and the key is the route that stays out of pano
-  // interaction; it lands on the body, where KeyboardManager listens (#5560).
+  // Its Done is clicked from the page because the overlay covers the toggle; the key lands on the body, where
+  // KeyboardManager listens (#5560).
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
   await page.keyboard.press('f');
   await expect(page.locator('body')).toHaveClass(/svv-immersive/);

@@ -218,7 +218,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
 
 ## File map
@@ -244,5 +244,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
+| `explore-tutorial-labeling.spec.js` | Places, rates and tags a curb ramp in Explore's tutorial and reads the saved label back (#4777) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

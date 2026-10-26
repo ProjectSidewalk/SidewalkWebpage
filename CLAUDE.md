@@ -55,9 +55,11 @@ file, and this table says which doc to read first:
 - Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference. Exact
   dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
   versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
-- Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
-  checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
-  state; don't extend it into pano interaction.
+- Never cause a billable Google pano or map: Google charges for every `StreetViewPanorama` and `Map` created,
+  local tiles or not. The `test/e2e/` suite runs on a Maps stub that fails any request reaching Google, so pano
+  interaction there is fine (`explore-tutorial-labeling.spec.js` places a tutorial label). Outside that suite, never
+  browser-test anything that needs live street-view imagery (labeling or validating real panos); hand the developer a
+  checklist or console snippet instead.
 
 ## Before a change is done
 
