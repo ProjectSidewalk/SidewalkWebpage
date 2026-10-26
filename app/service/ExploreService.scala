@@ -257,18 +257,24 @@ class ExploreServiceImpl @Inject() (
       (region: Option[Region], regionFinished: Boolean) <- {
         (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
           // If user is exploring a specific street, get the region associated with that street and assign it to them.
+          // A street that is not open (or is the tutorial's) is turned away. In a region the user has finished, it adds
+          // nothing to the mission, so the user would be moved to another region but still sent to it (#5824).
           case (Some(streetId), _, _, _, _) =>
-            streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId).flatMap {
-              case Some(region) =>
-                for {
-                  _ <- userCurrentRegionTable.insertOrUpdate(userId, region.regionId)
-                  _ <- closeMissionIfRegionFinished(userId, region.regionId)
-                } yield (Some(region), false)
-              case None =>
-                DBIO.failed(
-                  new NoSuchElementException(s"Either street edge $streetId has no region, or it is not a valid id.")
-                )
-            }
+            for {
+              served: Option[Double] <- streetEdgeTable.getServedStreetLength(streetId)
+              region: Option[Region] <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId)
+              assigned               <- (served, region) match {
+                case (Some(_), Some(r)) =>
+                  for {
+                    _ <- userCurrentRegionTable.insertOrUpdate(userId, r.regionId)
+                    _ <- closeMissionIfRegionFinished(userId, r.regionId)
+                  } yield (Some(r), false)
+                case _ =>
+                  DBIO.failed(
+                    new NoSuchElementException(s"Street edge $streetId is not open, has no region, or isn't valid.")
+                  )
+              }
+            } yield assigned
           // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
             regionTable.getRegion(r).flatMap {

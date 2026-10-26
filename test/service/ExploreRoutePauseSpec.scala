@@ -13,7 +13,7 @@ import models.route.{
   UserRoute,
   UserRouteTableDef
 }
-import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeStatus, StreetEdgeTable}
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
@@ -42,6 +42,7 @@ import scala.concurrent.duration.*
  *   - Entering a different route pauses (not discards) the walk being left behind.
  *   - A `?regionId=` or `?streetEdgeId=` visit pauses the active walk too, so a later bare reload stays out of it
  *     (#5437).
+ *   - A `?streetEdgeId=` visit to a street that isn't open is refused, as an unknown id is (#5824).
  *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been submitted, which
  *     is what separates a walk in progress from one entered and abandoned before anything was recorded.
  *
@@ -100,6 +101,18 @@ class ExploreRoutePauseSpec
       .join(TableQuery[RegionTableDef].filterNot(_.deleted))
       .on(_._1.regionId === _.regionId)
       .map { case ((streetEdgeRegion, _), _) => (streetEdgeRegion.streetEdgeId, streetEdgeRegion.regionId) }
+      .result
+      .headOption
+  )
+
+  /** A street that isn't open but sits in an open region; None if the DB has none. */
+  private lazy val unopenedStreet: Option[Int] = run(
+    TableQuery[StreetEdgeRegionTableDef]
+      .join(streetEdgeTable.streetsUnfiltered.filter(_.status =!= StreetEdgeStatus.Open))
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .join(TableQuery[RegionTableDef].filterNot(_.deleted))
+      .on(_._1.regionId === _.regionId)
+      .map(_._1._1.streetEdgeId)
       .result
       .headOption
   )
@@ -360,6 +373,15 @@ class ExploreRoutePauseSpec
           pageData(user.userId).userRoute mustBe None
 
           pageData(user.userId, routeId = Some(routeId)).userRoute.value.userRouteId mustBe walkId
+      }
+    }
+
+    "refuse a ?streetEdgeId= visit to a street that isn't open" in {
+      unopenedStreet match {
+        case None               => cancel("No unopened street in an open region; nothing to exercise.")
+        case Some(streetEdgeId) =>
+          val user = newTutorialGraduate()
+          a[NoSuchElementException] must be thrownBy pageData(user.userId, streetEdgeId = Some(streetEdgeId))
       }
     }
   }
