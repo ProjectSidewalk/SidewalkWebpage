@@ -16,8 +16,7 @@ and the import keeps such a street's recorded ways without positions.
 The ways come from the public Overpass server in small, well-spaced requests (``overpass.py`` says why): the ground
 the streets stand on is cut into tiles of at most ``--tile-km2``, each fetched on its own, so a sprawling city asks
 for its towns and not the countryside between them. ``--dry-run`` prints the request count and area and fetches
-nothing. When Overpass keeps refusing, the exit code is 75 and nothing is written: stop and resume later rather than
-send more.
+nothing. When Overpass keeps refusing, nothing is written and the exit code is 75: stop and resume later.
 """
 import argparse
 import csv
@@ -93,11 +92,11 @@ def tiles_for(lines, buffer_m, tile_km2=300.0, cell_m=1000.0):
     """
     Cuts the ground the streets stand on into fetch areas of at most about ``tile_km2`` each.
 
-    The streets are laid on a grid of ``cell_m`` squares, and the occupied squares are grouped by a coarser grid of
+    The streets are laid on a grid of ``cell_m`` squares and the occupied squares are grouped by a coarser grid of
     ``tile_km2``, so a city that is really a few towns far apart (a validation study, a county) fetches the towns and
-    not the countryside between them, and a big city becomes many small requests a busy server still admits rather
-    than a few huge ones. Each group goes to the server as its convex hull, since osmnx sends a hull anyway, widened
-    by ``buffer_m`` so a way just outside a cell still comes back.
+    not the countryside between, and a big city becomes many small requests a busy server still admits. Each group
+    goes to the server as its convex hull (osmnx sends a hull anyway), widened by ``buffer_m`` so a way just outside
+    a cell still comes back.
 
     Args:
         lines:    Shapely LineStrings in lon/lat.

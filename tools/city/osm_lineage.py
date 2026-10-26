@@ -185,13 +185,12 @@ def along_way(street, way, positions, street_from_m, street_to_m, tol_m=LATERAL_
     """
     Where the two ends of a stretch of ``street`` fall along ``way``, in metres from the way's start.
 
-    The ends themselves are the one place the way's nearest point is ambiguous: a loop street starts and ends on the
-    node where a cul-de-sac's bulb meets its stem, a way the street was cut from passes twice, and a closed way has its
-    start node at both 0 and its full length. So the samples strictly inside the stretch anchor it, and the ends are
-    read off the nearest inside sample by the distance to them along the street. Which way the street runs the way is
-    the sign of the summed steps between samples, with a step that crosses a closed way's start node unwrapped and
-    one that leaps between two branches of a way left out; on a closed way the end is unwrapped past the start node
-    when the stretch ran across it.
+    The ends are the one place the way's nearest point is ambiguous: a loop street starts and ends on the node where
+    a cul-de-sac's bulb meets its stem, a way the street was cut from passes it twice, and a closed way has its start
+    node at both 0 and its full length. So the samples strictly inside the stretch anchor it, and each end is read off
+    the nearest inside sample by its distance along the street. The street's direction along the way is the sign of
+    the summed steps between samples, with a step across a closed way's start node unwrapped and a step that leaps
+    between two branches of the way left out.
 
     Returns:
         ``(start_m, end_m)``: ``end_m`` is past ``start_m`` when the street runs the way's drawn direction. Either can
@@ -233,9 +232,8 @@ def locate_on_way(street, way, positions, street_from_m, street_to_m, tol_m=LATE
     Where a stretch of ``street`` falls along ``way``, as ascending fractions of the way's length.
 
     Returns:
-        A list of ``(street_from_m, street_to_m, way_from, way_to)``: one entry, or two when the stretch runs across
-        a closed way's start node, where the way's fractions start over. Empty when the stretch collapses to a point
-        on the way.
+        A list of ``(street_from_m, street_to_m, way_from, way_to)``: one entry, or two when the stretch crosses a
+        closed way's start node and the way's fractions start over. Empty when the stretch is one point of the way.
     """
     start_m, end_m = along_way(street, way, positions, street_from_m, street_to_m, tol_m)
     way_length = way.length

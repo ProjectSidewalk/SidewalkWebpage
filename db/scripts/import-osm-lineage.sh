@@ -40,10 +40,9 @@ fi
 # hold the rows to the invariants the matcher is meant to produce, and one bad row fails the whole transaction.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<EOSQL
     BEGIN;
-    -- The re-rank trigger keeps the first plan its change check gets in this session (evolution 424 plans it per
-    -- statement; a stage not yet on it does not), and the DELETE's re-rank below touches no row, which would leave
-    -- a nested loop that is quadratic on the INSERT's. With nested loops off for this transaction, the first plan is
-    -- a hash join whatever the row count.
+    -- Before evolution 424 the re-rank trigger's change check keeps the plan from its first run in the session, and
+    -- the DELETE below fires it on no rows, which would fix a plan that is quadratic on the INSERT's rows. With nested
+    -- loops off for this transaction, the plan is a hash join whatever the row count.
     SET LOCAL enable_nestloop = off;
 
     CREATE TEMP TABLE osm_lineage_import (

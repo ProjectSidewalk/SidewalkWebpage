@@ -2,26 +2,25 @@
 How the city tools talk to the public Overpass server (overpass-api.de) without getting our network blocked (#5741).
 
 Overpass is a shared, volunteer-run service. It admits a query only while it has the server time and memory the query
-declares, it budgets each client by the server time it uses, and it blocks the IP (the whole network behind a NAT) of a
-client that keeps sending after being refused; it has blocked ours once (#5741). What this module does is what
-streetscape-tracker, which queries Overpass every night and has also been blocked once, settled on:
+declares, and it blocks the address of a client that keeps sending after being refused, for hours; behind our NAT that
+is the whole network, and it has happened to us (#5741). So, as streetscape-tracker settled on after its own block:
 
-- say who we are (the app's own User-Agent), since a bare Python client is answered with a 406;
-- ask for small areas and declare small limits, so a query gets in while the server is busy;
-- keep osmnx's cache, by day, so a rerun after a failure downloads only what it has not fetched today;
-- after any refusal wait at least 30 s, then 60, 120, 240 (plus jitter that only ever adds), and give up after about
-  10 minutes. A refused connection waits on the same schedule as a 502, since only how long it lasts tells a brief
-  flap from a block, and nothing fails over to a mirror, which has its own usage policy;
+- say who we are (the app's User-Agent; a bare Python client is answered with a 406);
+- ask for small areas with small declared limits, so a query gets in while the server is busy;
+- keep osmnx's cache by day, so a rerun after a failure fetches only what it has not got today;
+- after any refusal wait 30 s, then 60, 120, 240 (jitter only adds), and give up after about ten minutes. A refused
+  connection is waited out like a 502, since only its length tells a flap from a block, and nothing fails over to a
+  mirror, which has its own usage policy;
 - pause between requests, and never run two Overpass clients from one network at once (the fleet driver checks).
 
 ``python3.13 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
-does not; the fleet driver runs it before starting and before resuming. Everything else is imported. Stdlib and
-``requests`` only, so it runs under both interpreters (``.claude/rules/python-scripts.md``).
+does not; the fleet driver runs it before starting. Everything else is imported. Stdlib and ``requests`` only, so it
+runs under both interpreters (``.claude/rules/python-scripts.md``).
 
-Every entry point takes the instance's base URL (``--url`` / ``--overpass-url``), since the main one has days when it
-admits nothing and the other public instances are run by other people, each with their own usage policy and their own
-copy of the data (a minute or two behind OSM on a healthy one, months on a neglected one). Pick one on purpose, after
-reading its policy, never by failing over on a refusal: a client that has been refused should not move its traffic.
+Every entry point takes the instance's base URL, since the main one has days when it admits nothing and the other
+public instances are run by other people, with their own usage policy and their own copy of the data (minutes behind
+OSM on a healthy one, months on a neglected one). Pick one on purpose, after reading its policy, never by failing over
+on a refusal: a client that has been refused should not move its traffic.
 """
 import argparse
 import logging
@@ -69,10 +68,10 @@ class Refused(Exception):
 @dataclass(frozen=True)
 class RetryPolicy:
     """
-    How long to keep asking after a refusal: failure ``k`` waits ``min(max_wait_s, initial_wait_s * 2 ** (k - 1))``,
-    times ``1 + jitter * u`` for a random ``u`` in [0, 1), so the floor holds at every step. The attempt after a wait
-    that would end more than ``window_s`` after the first attempt started is not made. The attempts themselves are
-    unbounded here; a fetcher that knows one call is one request wraps it in :func:`with_deadline`.
+    How long to keep asking after a refusal: the wait doubles from ``initial_wait_s`` up to ``max_wait_s``, times
+    ``1 + jitter * u`` for a random ``u`` in [0, 1), so it never goes under the floor. No attempt starts if its wait
+    would end more than ``window_s`` after the first one began. An attempt itself is unbounded here; a fetcher that
+    knows one call is one request wraps it in :func:`with_deadline`.
     """
     initial_wait_s: float = 30.0
     max_wait_s: float = 240.0
@@ -101,10 +100,10 @@ def with_deadline(attempt, seconds):
     """
     Runs ``attempt()``, raising :class:`Refused` if it has not returned after ``seconds``.
 
-    What it bounds is osmnx's own retry of a 429 or 504, a fixed 55 s sleep and a recursive resend with no limit, so
-    a server that throttles for an hour costs the retry window, not the night. Only for a call that is one Overpass
-    request (osmnx cuts a polygon over 2,500 km² into several, and a street graph fetch is many); ``seconds`` None
-    runs it unbounded, as does any thread but the main one, since it uses SIGALRM.
+    This bounds osmnx's own retry of a 429 or 504 (a fixed 55 s sleep and a resend, with no limit), so a server that
+    throttles for an hour costs the retry window, not the night. Only for a call that is one Overpass request (osmnx
+    cuts a polygon over 2,500 km² into several, and a street graph fetch is many). ``seconds`` None runs it unbounded,
+    as does any thread but the main one, since this uses SIGALRM.
     """
     if seconds is None or threading.current_thread() is not threading.main_thread():
         return attempt()
@@ -215,9 +214,9 @@ def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.
                            folders older than :data:`CACHE_KEEP_DAYS` are removed. A rerun on the same day re-reads
                            what it already fetched, and a later one sees what OSM holds then.
         request_timeout_s: The ``[timeout:]`` every query declares, and the HTTP timeout. Overpass admits a query
-                           only while it has that much server time to spare, so a small area should declare a small
-                           number (the backfill's tiles ask for a minute) and get in while the server is busy; a
-                           whole city's street graph needs osmnx's default.
+                           only while it has that much server time spare, so a small area should declare a small
+                           number (the backfill's tiles ask for a minute); a whole city's street graph needs
+                           osmnx's default.
         memory_mb:         The ``[maxsize:]`` declared, in MB; None leaves it to the server's default (512 MB).
         today:             ``date.today`` unless a test fakes it.
     """
@@ -238,8 +237,8 @@ class RemarkWatch(logging.Handler):
     """
     Listens to osmnx's log for the server's remarks. A query the server cuts short, out of the time or memory it
     declared, comes back as a 200 with a ``remark`` and whatever the server had got to, and osmnx only logs that; a
-    tile would quietly lose its ways without someone reading the log. osmnx's own warnings (its 55 s retry of a 429)
-    are passed on to our log so an operator sees why an attempt is slow.
+    tile would quietly lose its ways with no one reading the log. osmnx's own warnings (its 55 s retry of a 429) are
+    passed on to our log, so an operator sees why an attempt is slow.
     """
 
     def __init__(self):
