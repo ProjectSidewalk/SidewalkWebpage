@@ -185,22 +185,22 @@ def probe(post=requests.post, url=OVERPASS_URL):
         return True, None
 
 
-def is_answering(post=requests.post, url=OVERPASS_URL):
-    """Whether the interpreter answers a tiny query right now."""
-    return probe(post, url)[0]
-
-
 def wait_until_answering(policy=RetryPolicy(), url=OVERPASS_URL, **retry_kwargs):
     """
     Waits for the interpreter to answer the probe, on the retry schedule, before a run sends anything heavier.
 
+    Returns:
+        How current its copy of OSM is, as :func:`probe` reports it.
+
     Raises:
         OverpassUnavailable: when it does not answer within the window.
     """
-    def probe():
-        if not is_answering(url=url):
+    def attempt():
+        answered, data_timestamp = probe(url=url)
+        if not answered:
             raise Refused('the probe query was not answered')
-    call_with_retry(probe, 'Overpass probe', policy, **retry_kwargs)
+        return data_timestamp
+    return call_with_retry(attempt, 'Overpass probe', policy, **retry_kwargs)
 
 
 def configure(ox, cache_root, request_timeout_s=180, memory_mb=None, today=date.today, url=OVERPASS_URL):
@@ -329,21 +329,25 @@ def fetch_each(polygons, fetch_one, pause_s=7.0, policy=RetryPolicy(), sleep=tim
 
 
 def main(argv=None):
-    """``--check``: is Overpass answering? Exit 0 when it is, :data:`EXIT_UNAVAILABLE` when it is not."""
+    """
+    ``--check``: is Overpass answering? Waits out a refusal on the retry schedule, as a run would, so a passing
+    moment of 502s does not read as a block. Exit 0 once it answers, :data:`EXIT_UNAVAILABLE` when the window closes.
+    """
     parser = argparse.ArgumentParser(description='Asks an Overpass instance one tiny question.')
     parser.add_argument('--check', action='store_true', required=True,
-                        help='Exit 0 if the interpreter answers, 75 if not.')
+                        help='Exit 0 once the interpreter answers (waiting up to the retry window), 75 if it does not.')
     parser.add_argument('--url', default=OVERPASS_URL,
                         help=f'The instance, without /interpreter (default {OVERPASS_URL}).')
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    answered, data_timestamp = probe(url=args.url)
-    if answered:
-        print(f'Overpass is answering at {args.url}; its data is from {data_timestamp or "a time it did not state"}.')
-        return 0
-    print(f'Overpass at {args.url} is not answering; wait before sending it anything (a block lifts on its own, '
-          'after a while).')
-    return EXIT_UNAVAILABLE
+    try:
+        data_timestamp = wait_until_answering(url=args.url)
+    except OverpassUnavailable:
+        print(f'Overpass at {args.url} is not answering; wait before sending it anything (a block lifts on its own, '
+              'after a while).')
+        return EXIT_UNAVAILABLE
+    print(f'Overpass is answering at {args.url}; its data is from {data_timestamp or "a time it did not state"}.')
+    return 0
 
 
 if __name__ == '__main__':
