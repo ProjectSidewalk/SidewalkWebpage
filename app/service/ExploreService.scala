@@ -31,6 +31,7 @@ import scala.util.control.NoStackTrace
  *
  * @param routeUnavailable Whether a ?routeId= named no live route and was dropped, so the page tells the user rather
  *                         than passing the visit off as an ordinary session (#5156).
+ * @param streetUnavailable Whether a ?streetEdgeId= named no street Explore can hand out and was dropped (#5824).
  * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
  */
 case class ExplorePageData(
@@ -41,6 +42,7 @@ case class ExplorePageData(
     route: Option[Route],
     routeResumed: Boolean,
     routeUnavailable: Boolean,
+    streetUnavailable: Boolean,
     regionFinished: Boolean,
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int
@@ -252,29 +254,23 @@ class ExploreServiceImpl @Inject() (
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
 
+      // A ?streetEdgeId= naming a street Explore can't hand out (not open, or no such street) is dropped, and the visit
+      // otherwise runs as a bare /explore would (#5824).
+      streetRegion: Option[Region] <- streetEdgeId
+        .map(streetEdgeRegionTable.getServedRegionFromStreetId)
+        .getOrElse(DBIO.successful(None))
+      servedStreetId: Option[Int] = streetEdgeId.filter(_ => streetRegion.isDefined)
+
       // Get the appropriate region the user is going to explore, and update their user_current_region entry.
       currRegion: Option[Region]                        <- userCurrentRegionTable.getCurrentRegion(userId)
       (region: Option[Region], regionFinished: Boolean) <- {
-        (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
-          // If user is exploring a specific street, get the region associated with that street and assign it to them.
-          // A street that is not open (or is the tutorial's) is turned away. In a region the user has finished, it adds
-          // nothing to the mission, so the user would be moved to another region but still sent to it (#5824).
-          case (Some(streetId), _, _, _, _) =>
+        (streetRegion, regionId, routeOption, newRegion, currRegion) match {
+          // If user is exploring a specific street, assign them the street's region.
+          case (Some(streetReg), _, _, _, _) =>
             for {
-              served: Option[Double] <- streetEdgeTable.getServedStreetLength(streetId)
-              region: Option[Region] <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId)
-              assigned               <- (served, region) match {
-                case (Some(_), Some(r)) =>
-                  for {
-                    _ <- userCurrentRegionTable.insertOrUpdate(userId, r.regionId)
-                    _ <- closeMissionIfRegionFinished(userId, r.regionId)
-                  } yield (Some(r), false)
-                case _ =>
-                  DBIO.failed(
-                    new NoSuchElementException(s"Street edge $streetId is not open, has no region, or isn't valid.")
-                  )
-              }
-            } yield assigned
+              _ <- userCurrentRegionTable.insertOrUpdate(userId, streetReg.regionId)
+              _ <- closeMissionIfRegionFinished(userId, streetReg.regionId)
+            } yield (Some(streetReg), false)
           // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
             regionTable.getRegion(r).flatMap {
@@ -322,7 +318,7 @@ class ExploreServiceImpl @Inject() (
           missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, startRegion))
         } else {
           missionService
-            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
+            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = servedStreetId)
             .flatMap {
               case Some(m) => DBIO.successful((m, startRegion))
               case None    => missionInFreshRegion(userId, s"region $regionId had no distance left for a mission")
@@ -330,13 +326,16 @@ class ExploreServiceImpl @Inject() (
         }
       }
       sessionRegionId: Int = sessionRegion.regionId
+      // The street itself counts as distance left, so a street visit shouldn't move the session to another region. If
+      // it does anyway, the street is dropped rather than handed out under another region's mission.
+      streetToServe: Option[Int] = servedStreetId.filter(_ => sessionRegionId == regionId)
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
         if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
-        } else if (streetEdgeId.isDefined) {
-          auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
+        } else if (streetToServe.isDefined) {
+          auditTaskTable.selectANewTask(streetToServe.get, userId, mission.missionId).map(Some(_))
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
@@ -394,6 +393,7 @@ class ExploreServiceImpl @Inject() (
         pageRoute,
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
         routeSetup.routeUnavailable,
+        streetUnavailable = streetEdgeId.isDefined && streetToServe.isEmpty,
         regionFinished,
         hasCompletedAMission,
         nextTempLabelId
@@ -433,7 +433,8 @@ class ExploreServiceImpl @Inject() (
               } yield {
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
-                    routeUnavailable = false, regionFinished = false, hasCompletedAMission, nextTempLabelId)
+                    routeUnavailable = false, streetUnavailable = false, regionFinished = false, hasCompletedAMission,
+                    nextTempLabelId)
                 )
               }
           }

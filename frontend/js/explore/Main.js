@@ -805,9 +805,9 @@ export class Main {
     }, this.#config.language);
 
     // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
-    // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so
-    // they aren't hidden under it, and only one shows; "didn't go where asked" wins over a resume note. `Toast`
-    // queues the re-audit notice (#4895) behind whichever one shows.
+    // open (#5156), a street that couldn't be handed out (#5824), or a neighborhood already done (#5692). They wait
+    // for the mission-start screen to close so they aren't hidden under it, and only one shows; "didn't go where
+    // asked" wins over a resume note. `Toast` queues the re-audit notice (#4895) behind whichever one shows.
     const toastOnDone = (event, options) => {
       document.addEventListener('ps:mission-start-tutorial:done', () => {
         m.tracker.push(event);
@@ -816,6 +816,8 @@ export class Main {
     };
     if (this.#takeRouteUnavailableNotice()) {
       toastOnDone('RouteUnavailableToast_Shown', { message: i18next.t('right-ui.route-unavailable.message') });
+    } else if (this.#session.street_unavailable) {
+      toastOnDone('StreetUnavailableToast_Shown', { message: i18next.t('right-ui.street-unavailable.message') });
     } else if (this.#session.region_finished) {
       toastOnDone('RegionFinishedToast_Shown', {
         message: i18next.t('right-ui.region-finished.message', { regionName: currentRegion.getProperty('name') }),
