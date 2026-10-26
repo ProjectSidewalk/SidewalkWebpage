@@ -1038,6 +1038,19 @@ object ConfigService {
     sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
 
   /**
+   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
+   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   *
+   * @param perCity One city's contributor `user_id`s per element.
+   * @param aiIds   The AI accounts' `user_id`s.
+   * @return        Each person counted once, and those in two or more cities.
+   */
+  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+    CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+  }
+
+  /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
    * very differently from one that never took off:
    *   - "active"       — activity within [[ActiveWithinDays]].
@@ -1931,11 +1944,8 @@ class ConfigServiceImpl @Inject() (
             )
             idsF
           }
-          // Each city's ids are already distinct (the query UNIONs), so an id's occurrence count is its city count.
           Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            val aiIdSet   = aiIds.toSet
-            val cityCount = perCity.flatten.filterNot(aiIdSet).groupMapReduce(identity)(_ => 1)(_ + _)
-            CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+            ConfigService.contributorCounts(perCity, aiIds.toSet)
           }
         }
       }

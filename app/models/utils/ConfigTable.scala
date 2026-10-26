@@ -311,8 +311,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
    * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
    * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
-   * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
-   * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
+   * within this city; cross-city dedup (by the global `user_id`) is done by the callers, which union these id sets
+   * across schemas or count the cities each id appears in ([[service.ConfigService.contributorCounts]]). Returns ids
+   * (not a count) precisely so that caller-side cross-schema dedup is possible.
    *
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
