@@ -581,6 +581,14 @@ The details are in the **Backups** section of the README in the private ops repo
 ([`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools)). To restore from a backup, contact UW
 CSE IT.
 
+The **Database backups** panel on `/admin/health` is the ongoing check that the nightly job is still running. Point
+`SIDEWALK_BACKUP_DIR` (config key `backups.dir`) at the directory the job writes to, on the host that holds it, and
+the panel reports the newest file of each kind (SQL dump, file-level copy) by modification time, with its age and size;
+it goes yellow or red when either kind stops landing, when a newest file is far smaller than the others of its kind,
+or when the directory itself disappears. The app only lists that one directory, so it needs read access to it and
+nothing more. Left unset, which is right everywhere but production, the panel says "not configured" rather than
+raising an alarm.
+
 ## Runtime configuration contract
 
 At runtime the app is configured almost entirely through **environment variables** (values are injected by the
@@ -592,7 +600,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | Group | Variables (names only) |
 |-------|------------------------|
 | **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
-| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
+| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)), `SIDEWALK_BACKUP_DIR` (the nightly backup directory the Health page checks, [above](#backups); unset shows "not configured") |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
