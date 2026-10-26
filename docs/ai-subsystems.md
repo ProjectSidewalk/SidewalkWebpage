@@ -39,7 +39,10 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    when known, finite and within ±30°, with the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
-   service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
+   service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace). How that service is deployed, tested
+   against production and handed between accounts is in its README under "How production is deployed"
+   ([link](https://github.com/ProjectSidewalk/sidewalk-ai-api#how-production-is-deployed)); it has no deploy
+   webhook, so a new version only reaches production when someone runs the steps there.
    `coord_frame` is `level` for human labels, whose `pano_x/pano_y` are in the gravity-levelled viewer frame; the API
    uses the pitch and roll to centre its crop on the clicked point rather than the tilt-shifted stored pixel
    (#4784/#5788), and must skip that for `rig`-frame coordinates (AI-labeler submissions, #5790). The API rejects
