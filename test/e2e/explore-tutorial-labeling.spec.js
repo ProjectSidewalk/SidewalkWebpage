@@ -1,23 +1,17 @@
 /**
- * Explore's data-collection write path end to end (#4777 Phase B): a fresh user walks the first labeling steps of the
- * tutorial, and the label they place comes back out of the server with what they gave it. The backend specs
- * (ExploreSubmissionSpec) cover the endpoint; this covers the half they can't, the UI that builds the payload.
+ * Explore's write path end to end (#4777): a fresh user labels a curb ramp in the tutorial, and the server hands back
+ * what they gave it. ExploreSubmissionSpec covers the endpoint; this covers the UI that builds the payload.
  *
- * The tutorial is the one labeling flow a browser test can drive deterministically: every fresh anonymous user gets
- * the same pano at the same POV, and its imagery is local. It runs on the Google Maps stub like the rest of the suite,
- * so nothing is billed (#5129); the stub never draws the pano, but Explore takes clicks on its own drawing layer and
- * projects them through the POV, which the stub keeps.
- *
- * Tutorial labels are left out of /v3/api/rawLabels, so the label is read back through GET /label/id/:id, the
- * endpoint behind the label card.
+ * The tutorial gives every new user the same pano and POV, and runs on the Maps stub, so nothing is billed (#5129).
+ * The stub draws no pano, but Explore takes clicks on its own layer and projects them through the POV, which the stub
+ * keeps. rawLabels omits tutorial labels, so the label is read back from GET /label/id/:id.
  */
 const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
 
-// The tutorial pano's size and camera heading, as served by GsvViewer's custom-pano provider and evolution 360.
+// The tutorial pano, as GsvViewer's custom-pano provider and evolution 360 serve it.
 const TUTORIAL_PANO = {width: 4096, height: 2048, cameraHeading: 50.3866};
 
-// Where the 'label-attribute-1' step in OnboardingStates.js wants the curb ramp, in its own units: the tutorial's
-// coordinates are 3.25x the pano's.
+// The curb ramp the 'label-attribute-1' step in OnboardingStates.js asks for; its coordinates are 3.25x the pano's.
 const CURB_RAMP_TARGET = {x: 1170 / 3.25, y: 3800 / 3.25};
 
 test('a curb ramp labeled in the Explore tutorial is saved with its severity and tag', async ({page, context,
@@ -33,26 +27,26 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
   await page.locator('#onboarding-ok-button').click();
   await page.locator('#mode-switch-button-curb-ramp').click();
 
-  // The label is submitted as soon as it's placed, and the response pairs its temporary id with the saved one.
+  // The label is saved as soon as it's placed; the response maps its temporary id to the saved one.
   const placed = page.waitForResponse(async (r) => r.request().method() === 'POST'
     && new URL(r.url()).pathname === '/task' && (await r.json()).label_ids?.length > 0);
   const layer = await page.locator('#label-drawing-layer').boundingBox();
   const pov = await page.evaluate(() => window.svl.panoManager.getPov());
   const target = povToCanvas(panoCoordToPov(CURB_RAMP_TARGET), pov, layer.width, layer.height);
   await page.mouse.click(layer.x + target.x, layer.y + target.y);
-  // Only a click the tutorial accepts leads to the rating step and the save; a miss asks for the label to be deleted.
+  // Only an accepted click reaches the rating step and the save; a miss asks the user to delete the label.
   await expect(page.locator('#severity-menu'), 'the tutorial rejected the click as off target').toBeVisible();
   const labelIds = (await (await placed).json()).label_ids;
   expect(labelIds).toHaveLength(1);
   const labelId = labelIds[0].label_id;
 
-  // The rating and tag the tutorial asks for, so it moves on rather than asking for a redo.
+  // The rating and tag the tutorial asks for, so it doesn't ask for a redo.
   await page.locator('label[for="explore-severity-radio-2"]').click();
   const tag = page.locator('#context-menu-tag-section .context-menu-tag[data-tag-id="2"]');
   await tag.click();
   await expect(tag).toHaveClass(/tag-pill--active/);
 
-  // Leaving the page flushes the edits made since the label was placed, as it does for a real user.
+  // Leaving the page saves the later edits, as it does for a real user.
   await page.goto('/');
   let label;
   await expect.poll(async () => {
@@ -64,7 +58,7 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
     };
   }).toEqual({type: 'CurbRamp', severity: 2, tags: ['points into traffic'], tutorial: true, pano: 'tutorial'});
 
-  // Where the label sits: the view it was placed from, and the click within the canvas it was placed on.
+  // Where the label sits: the view it was placed from, and the click on its canvas.
   expect({heading: label.heading, pitch: label.pitch, zoom: label.zoom}).toEqual(pov);
   const scale = label.canvas_width / layer.width;
   expect(Math.abs(label.canvas_x - target.x * scale)).toBeLessThan(2);
@@ -83,8 +77,8 @@ function panoCoordToPov(coord) {
 }
 
 /**
- * Copy of util.pano.centeredPovToCanvasCoord with the zoomToFov field of view, which is what Explore's 3:2 canvas
- * renders. A copy because the page's bundle doesn't expose `util`, and its module can't load outside a browser.
+ * Copy of util.pano.centeredPovToCanvasCoord at the zoomToFov field of view, which Explore's 3:2 canvas renders. A
+ * copy because the bundle doesn't expose `util`, and its module can't load outside a browser.
  * @param {{heading: number, pitch: number}} centered - The POV that centers the point.
  * @param {{heading: number, pitch: number, zoom: number}} pov - The viewer's current POV.
  * @param {number} width - Canvas width in CSS px.

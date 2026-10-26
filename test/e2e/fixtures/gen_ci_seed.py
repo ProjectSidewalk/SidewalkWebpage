@@ -146,10 +146,9 @@ VALUES ({tn['region']['region_id']}, {q(tn['region']['data_source'])}, {q(tn['re
         FALSE)
 ON CONFLICT (region_id) DO NOTHING;
 
--- The template's own street 1 is the tutorial street. Region completion excludes it, so a region holding only it
--- counts as complete for everyone and is never assigned -- the same 500 as having no region at all. It joins the
--- region below beside the real streets instead, as it does in every real city: the label card's query only finds
--- a label whose street is in a region, and the tutorial-labeling spec reads its label back through it.""")
+-- Street 1 is the tutorial street. Region completion excludes it, so a region holding only it is complete for
+-- everyone and never assigned (the same 500 as no region). It joins the region beside the real streets instead, as
+-- in every real city: the label card's query needs a region, and the tutorial-labeling spec reads through it.""")
 
 street_rows = [
     f"  ({s['street_edge_id']}, ST_GeomFromText({q(s['geom_wkt'])}, 4326),\n"

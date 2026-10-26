@@ -24,8 +24,7 @@
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
  * orientations with the layout viewport pinned to the device width (#4891).
  *
- * Both are landing-state checks: the page reaches its ready state and the console. Labeling in the tutorial is
- * explore-tutorial-labeling.spec.js.
+ * Both are landing-state checks; labeling in the tutorial is in explore-tutorial-labeling.spec.js.
  */
 const {
   test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE,
@@ -101,8 +100,7 @@ test('/validate enters and leaves immersive mode on F', async ({page, consoleErr
   // Under the mission-start tutorial the key is for the tutorial, like every other shortcut.
   await page.keyboard.press('f');
   await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
-  // Its Done is clicked from the page because the overlay covers the toggle; the key lands on the body, where
-  // KeyboardManager listens (#5560).
+  // Done is clicked from the page, as the overlay covers the toggle; the key reaches KeyboardManager (#5560).
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
   await page.keyboard.press('f');
   await expect(page.locator('body')).toHaveClass(/svv-immersive/);

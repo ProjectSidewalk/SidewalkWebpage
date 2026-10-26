@@ -47,10 +47,9 @@ VALUES (18, 'https://njogis-newjersey.opendata.arcgis.com/datasets/764362ac87254
         FALSE)
 ON CONFLICT (region_id) DO NOTHING;
 
--- The template's own street 1 is the tutorial street. Region completion excludes it, so a region holding only it
--- counts as complete for everyone and is never assigned -- the same 500 as having no region at all. It joins the
--- region below beside the real streets instead, as it does in every real city: the label card's query only finds
--- a label whose street is in a region, and the tutorial-labeling spec reads its label back through it.
+-- Street 1 is the tutorial street. Region completion excludes it, so a region holding only it is complete for
+-- everyone and never assigned (the same 500 as no region). It joins the region beside the real streets instead, as
+-- in every real city: the label card's query needs a region, and the tutorial-labeling spec reads through it.
 INSERT INTO sidewalk_teaneck.street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
 VALUES
   (479, ST_GeomFromText('LINESTRING(-73.99309 40.90276,-73.9922537 40.9038259)', 4326),

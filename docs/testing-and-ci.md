@@ -335,16 +335,16 @@ time they were set. Measure with `make test-js args=--coverage`.
 - **Phase 4 — coverage + E2E:** scoverage with a **low, ratcheting** threshold (start near current %, raise over time) —
   **landed with #4743**, see [Coverage](#coverage); Playwright thin smoke suite. **The E2E half landed with #4504**
   ([`test/e2e/`](../test/e2e), the `e2e-smoke` PR job, Mapbox stubbed via `page.route`); Explore/Validate followed with
-  the restricted GSV key and #5115's label seed, and a tutorial labeling flow with #4777; later phases add per-page
-  interactions and a few more end-to-end flows.
+  the restricted GSV key and #5115's label seed, then tutorial labeling with #4777; later phases add per-page
+  interactions and more end-to-end flows.
 
 ## Key decisions
 
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
   covers the build files) auto-formats before pushing.
 - **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
-  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, apart from labeling in Explore's
-  tutorial, whose pano is local and runs on the Maps stub (#4777).
+  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, except
+  labeling in Explore's tutorial (#4777).
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is

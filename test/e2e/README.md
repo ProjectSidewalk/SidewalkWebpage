@@ -8,8 +8,8 @@ plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the res
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
-(#5060). One spec goes further: `explore-tutorial-labeling.spec.js` places a label in Explore's tutorial and reads
-it back (#4777). Other canvas/imagery testing stays manual.
+(#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
+Explore's tutorial and reads the label back (#4777).
 
 ## Running locally
 
@@ -245,6 +245,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
-| `explore-tutorial-labeling.spec.js` | Places, rates and tags a curb ramp in Explore's tutorial and reads the saved label back (#4777) |
+| `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
