@@ -146,8 +146,10 @@ class ExploreSubmissionSpec
    * @param labels           Labels to submit with this task.
    * @param auditTaskId      The task's server-side id; defaults to whatever the bootstrap handed out, as the client
    *                         echoes it. Pass explicitly to continue a task whose id was learned from a response.
-   * @param taskCompleted    Whether the user finished walking the street. Only a completed Audit task moves the
-   *                         street's priority and flips `audit_task.completed`.
+   * @param taskCompleted    The client's own "finished walking" flag, which the server ignores: only the coverage
+   *                         posted as `coveredRanges` credits the street, moves its priority and flips
+   *                         `audit_task.completed` (#5669).
+   * @param coveredRanges    The stretches of the street seen, in meters from its start, when the walk saw any.
    * @param missionCompleted Whether the mission is finished, which is what makes the server hand out the next one.
    * @param missionSkipped   Whether the mission was skipped rather than worked through.
    */
@@ -156,6 +158,7 @@ class ExploreSubmissionSpec
       labels: Seq[JsObject] = Seq.empty,
       auditTaskId: Option[Int] = None,
       taskCompleted: Boolean = false,
+      coveredRanges: Option[Seq[(Double, Double)]] = None,
       missionCompleted: Boolean = false,
       missionSkipped: Boolean = false
   ): JsObject = {
@@ -183,6 +186,7 @@ class ExploreSubmissionSpec
         "last_priority_update_time"       -> now,
         "request_updated_street_priority" -> false,
         "audited_distance_m"              -> 0.0,
+        "covered_ranges"                  -> coveredRanges.map(r => Json.toJson(r.map(p => Json.arr(p._1, p._2)))),
         "route_street_id"                 -> JsNull
       ),
       "labels"       -> labels,
@@ -476,15 +480,23 @@ class ExploreSubmissionSpec
         sql"SELECT canvas_width, canvas_height FROM label_point WHERE label_id = ${rows.head.labelId}".as[(Int, Int)]
       ).headOption mustBe Some((720, 480))
 
-      // An incomplete task leaves the street's priority untouched.
+      // An incomplete task leaves the street's priority untouched, and so does the client's flag on its own: the
+      // street is credited from what was seen, never from the flag (#5669).
       streetPriority(b2.streetEdgeId) mustBe priorityBefore
+      val flagged = postTask(session, submission(b2, auditTaskId = Some(auditTaskId), taskCompleted = true))
+      status(flagged) mustBe OK
+      streetPriority(b2.streetEdgeId) mustBe priorityBefore
+      run(sql"SELECT completed FROM audit_task WHERE audit_task_id = $auditTaskId".as[Boolean]).head mustBe false
 
-      // Finishing the street is what moves it: a high-quality audit divides the priority down (1/(1 + 1/p)), and the
-      // task is marked completed. Asserting both sides is what makes the "incomplete leaves it alone" check above
-      // mean something — without it, a `updateStreetPriority` that never ran would satisfy the pair.
+      // Seeing the whole street is what moves it: a high-quality audit divides the priority down (1/(1 + 1/p)), and
+      // the task is marked completed. Asserting both sides is what makes the "leaves it alone" checks above mean
+      // something — without it, a `updateStreetPriority` that never ran would satisfy the pair.
+      val lengthM = run(
+        sql"SELECT ST_Length(geom::geography) FROM street_edge WHERE street_edge_id = ${b2.streetEdgeId}".as[Double]
+      ).head
       val finished = postTask(
         session,
-        submission(b2, auditTaskId = Some(auditTaskId), taskCompleted = true)
+        submission(b2, auditTaskId = Some(auditTaskId), coveredRanges = Some(Seq((0d, lengthM))))
       )
       status(finished) mustBe OK
       val priorityAfter = streetPriority(b2.streetEdgeId)

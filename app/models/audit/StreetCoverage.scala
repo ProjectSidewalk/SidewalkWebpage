@@ -2,6 +2,10 @@ package models.audit
 
 import play.api.libs.json.*
 
+import java.io.InputStream
+import scala.io.Source
+import scala.util.Using
+
 /**
  * One stretch of a street a labeler has seen, in meters along the street's stored geometry.
  *
@@ -26,40 +30,52 @@ object CoveredRange {
   )
 }
 
+/** The numbers of the street-coverage rule, as `conf/street-coverage.json` holds them. */
+case class StreetCoverageRule(maxUncoveredM: Double, minCoveredFrac: Double, panoWindowM: Double, maxHopM: Double)
+
 /**
- * When a free-exploration session has seen enough of a street for it to count as audited (#5733).
+ * When enough of a street has been seen for it to count as walked: what is left unseen is at most half the street
+ * and at most 50 m. Both limits were fitted to the pano trails of regular audits fleet-wide (#5733): an end-to-end
+ * walk leaves up to 30 m unseen at its ends, so a 90% floor fails 40% of real walks, and under 100 m the cap alone
+ * would let one pano at a corner earn the street.
  *
- * Free exploration has no direction and no fixed start: people arrive mid-street, leave, and come back from the
- * other end. So each task keeps the stretches of the street its panos covered, and the street is done when what is
- * left unseen is at most half the street and at most 50 m. Both limits were fitted to the pano trails of regular
- * audits fleet-wide: an end-to-end walk leaves up to 30 m unseen at its ends, so a 90% floor fails 40% of real
- * walks, and under 100 m the cap alone would let one pano at a corner earn the street.
- *
- * The client builds the ranges; this object owns the numbers and the arithmetic, so the page reads them from
- * `asJson` and the one-off backfill of older sessions applies the same rule.
+ * The numbers live in `conf/street-coverage.json` because three consumers must agree on them (#5669): the client
+ * ends a street by them (`Task.isCoveredEnough`), this object decides `audit_task.completed`, and
+ * `tools/city/check_streets_for_imagery.py` decides whether a street has imagery at all.
  */
 object StreetCoverage {
+  private val ResourcePath: String = "/street-coverage.json"
 
-  /**
-   * Most of a street that may stay unseen; the limit that matters above 100 m. Also how near the end a regular
-   * mission's imagery may run out and still count the street walked (StreetSweep).
-   */
-  val MaxUncoveredM: Double = 50d
+  private given ruleReads: Reads[StreetCoverageRule] = Json.reads[StreetCoverageRule]
+
+  /** The rule as parsed from the file; a missing or malformed file fails here, loudly, rather than as a `NaN` later. */
+  lazy val rule: StreetCoverageRule = {
+    val stream: InputStream = Option(getClass.getResourceAsStream(ResourcePath))
+      .getOrElse(throw IllegalStateException(s"$ResourcePath is missing from the classpath"))
+    val raw: String = Using.resource(stream)(Source.fromInputStream(_, "UTF-8").mkString)
+    Json.parse(raw).validate[StreetCoverageRule] match {
+      case JsSuccess(parsed, _) => parsed
+      case JsError(errors)      => throw IllegalStateException(s"$ResourcePath is malformed: $errors")
+    }
+  }
+
+  /** Most of a street that may stay unseen; the limit that matters above 100 m. */
+  def MaxUncoveredM: Double = rule.maxUncoveredM
 
   /** Least share of a street that must have been seen; the limit that matters under 100 m. */
-  val MinCoveredFrac: Double = 0.5d
+  def MinCoveredFrac: Double = rule.minCoveredFrac
 
   /**
    * How far either side of a pano counts as seen: roughly GSV's pano spacing, and about as far as a curb ramp or
    * surface problem can still be judged well enough to label.
    */
-  val PanoWindowM: Double = 10d
+  def PanoWindowM: Double = rule.panoWindowM
 
   /** Longest step between consecutive on-street panos whose in-between stretch counts as walked. */
-  val MaxHopM: Double = 50d
+  def MaxHopM: Double = rule.maxHopM
 
   /** The rule's numbers for the Explore page, so the client's copy of the arithmetic can never drift from this one. */
-  val asJson: JsObject = Json.obj(
+  lazy val asJson: JsObject = Json.obj(
     "max_uncovered_m"  -> MaxUncoveredM,
     "min_covered_frac" -> MinCoveredFrac,
     "pano_window_m"    -> PanoWindowM,

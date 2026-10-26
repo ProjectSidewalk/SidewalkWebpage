@@ -73,6 +73,8 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
       isComplete: () => false,
       getMissionStart: () => null,
       getAuditedDistance: () => 0.9,
+      getCoveredDistanceM: () => 900,
+      getCoveredRanges: () => [[0, 900]],
       lineDistance: () => 1,
       setProperty: vi.fn(),
     };

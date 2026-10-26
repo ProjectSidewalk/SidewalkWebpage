@@ -44,9 +44,9 @@ export class Task {
   #missionStarts = {};
   #status = {
     isComplete: false,
-    // Set when an imagery sweep ran out here and moved the labeler on, either in this session or earlier in this
-    // walk of the route (the server reports the latter as reported_no_imagery). Deliberately not isComplete: that
-    // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
+    // Set when the labeler gave the street up for lack of imagery, in this session or before (the server reports the
+    // latter as reported_no_imagery, #5017). Deliberately not isComplete: that flag is submitted as
+    // audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
     givenUpOnImagery: false,
     // Set when the server hands this street back as unfinished work rather than as a fresh street (#5370). Anything
     // that would restart the street — flipping its direction, restamping task_start, drawing it as untouched — has to
@@ -420,7 +420,7 @@ export class Task {
   }
 
   /**
-   * Mirrors the server's StreetCoverage.coveredEnough, so the minimap can show the street as done the moment it is.
+   * Mirrors the server's StreetCoverage.coveredEnough, so the street ends and is drawn done the moment it counts.
    * @returns {boolean}
    */
   isCoveredEnough() {

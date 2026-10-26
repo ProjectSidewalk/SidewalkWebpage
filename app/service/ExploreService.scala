@@ -345,7 +345,8 @@ class ExploreServiceImpl @Inject() (
           // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
           // so resuming it would hand back the street whose imagery would not load, on this load and every reload
           // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
-          // declines to serve it to the labeler who just bounced off it.
+          // declines to serve it to the labeler who just bounced off it, as selectANewTaskInARegion declines to pick
+          // a street they ever reported (#5017).
           // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
           // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
           auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
@@ -630,11 +631,12 @@ class ExploreServiceImpl @Inject() (
   /**
    * Insert or update the submitted audit task in the database.
    *
-   * Free exploration (#5733) resolves its own row, since the posted id can be one of the user's regular audits. A
-   * street the user already has an up-to-date audit of takes no write (a second completed task would count it
-   * twice); an outdated one is not reopened, so new imagery earns a fresh task, as a regular re-audit does.
+   * Every walk posts the stretches of the street its panos covered, and the row keeps their union (#5733, #5669).
+   * Free exploration resolves its own row, since the posted id can be one of the user's regular audits. A street the
+   * user already has an up-to-date audit of takes no write (a second completed task would count it twice); an
+   * outdated one is not reopened, so new imagery earns a fresh task, as a regular re-audit does.
    *
-   * @return The audit_task_id, and for a free-exploration task that is still open its merged coverage.
+   * @return The audit_task_id, and for a task that is still open its merged coverage.
    */
   private def updateAuditTaskTable(
       userId: String,
@@ -657,9 +659,11 @@ class ExploreServiceImpl @Inject() (
           }
         } else DBIO.successful((task.auditTaskId, false))
 
+      // The tutorial's task is never written to, and the coverage it posts is of a street no walk credits.
+      val tracksCoverage: Boolean = isFreeExploration || missionType.contains(MissionType.Audit)
       target.flatMap {
-        case (Some(id), true)                   => DBIO.successful((id, None))
-        case (Some(id), _) if isFreeExploration =>
+        case (Some(id), true)                => DBIO.successful((id, None))
+        case (Some(id), _) if tracksCoverage =>
           for {
             stored: Option[JsValue]   <- auditTaskTable.getCoveredRanges(id)
             merged: Seq[CoveredRange] <- mergedCoverage(task, stored)
@@ -667,37 +671,24 @@ class ExploreServiceImpl @Inject() (
               task.currentMissionStart, Some(StreetCoverage.coveredM(merged)))
             _ <- auditTaskTable.updateTaskCoverage(id, StreetCoverage.toJson(merged), StreetCoverage.coveredM(merged))
           } yield (id, Some(merged))
-        case (Some(id), _) =>
-          // Update the existing audit task row (don't update if they are in the tutorial).
-          val update: DBIO[Unit] =
-            if (missionType.contains(MissionType.Audit)) {
-              auditTaskTable
-                .updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
-                  task.currentMissionStart, task.auditedDistanceM)
-                .map(_ => ())
-            } else DBIO.successful(())
-          update.map(_ => (id, None))
-        case (None, _) if isFreeExploration =>
+        case (Some(id), _) => DBIO.successful((id, None)) // The tutorial's row is never written to.
+        case (None, _)     =>
           mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>
-            // start_offset_m keeps the task out of the regular-mission resume paths, which measure from the start.
-            val startOffsetM: Double = merged.headOption.map(_.startM).getOrElse(0d)
+            // A drop-in has no direction or mission start, and start_offset_m keeps it out of the regular-mission
+            // resume paths, which measure from the start; a regular task starts at the street's start and has none.
+            val reversed: Boolean            = task.startPointReversed && !isFreeExploration
+            val missionStart: Option[Point]  = task.currentMissionStart.filter(_ => !isFreeExploration)
+            val startOffsetM: Option[Double] =
+              if (isFreeExploration) Some(merged.headOption.map(_.startM).getOrElse(0d)) else None
             auditTaskTable
               .insert(
                 AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false,
-                  task.currentLat, task.currentLng, startPointReversed = false, Some(missionId), None,
-                  lowQuality = false, incomplete = false, stale = false, Some(StreetCoverage.coveredM(merged)),
-                  startOffsetM = Some(startOffsetM), coveredRanges = Some(StreetCoverage.toJson(merged)))
+                  task.currentLat, task.currentLng, reversed, Some(missionId), missionStart, lowQuality = false,
+                  incomplete = false, stale = false, Some(StreetCoverage.coveredM(merged)), startOffsetM = startOffsetM,
+                  coveredRanges = Some(StreetCoverage.toJson(merged)))
               )
               .map(id => (id, Some(merged)))
           }
-        case (None, _) =>
-          auditTaskTable
-            .insert(
-              AuditTask(0, None, userId, task.streetEdgeId, task.taskStart, timestamp, completed = false,
-                task.currentLat, task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart,
-                lowQuality = false, incomplete = false, stale = false, task.auditedDistanceM)
-            )
-            .map(id => (id, None))
       }
     }
   }
@@ -710,10 +701,11 @@ class ExploreServiceImpl @Inject() (
     }
 
   /**
-   * Whether a free-exploration task has seen enough of its street ([[StreetCoverage]], #5733). Decided here, not
-   * from the client's completed flag, so a forged one can't credit a street.
+   * Whether a task has seen enough of its street ([[StreetCoverage]]). Decided here, not from the client's completed
+   * flag, so a forged one can't credit a street (#5733) and a walk cut short by missing imagery is credited exactly
+   * when it saw enough (#5669).
    *
-   * @param merged The task's coverage with this submission merged in; None for a regular audit.
+   * @param merged The task's coverage with this submission merged in; None when the task tracks none.
    * @return `false` with no coverage or no geometry.
    */
   private def streetCoveredEnough(merged: Option[Seq[CoveredRange]], streetEdgeId: Int): DBIO[Boolean] =
@@ -1088,17 +1080,17 @@ class ExploreServiceImpl @Inject() (
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
       .flatMap { case (auditTaskId: Int, coveredRanges: Option[Seq[CoveredRange]]) =>
         missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
-          // A regular audit is completed by the client; free exploration has no such signal, so the server derives it
-          // from the task's coverage (#5733), which also stops a forged completed=true. Order matters: the priority
-          // update skips streets the user already completed, so it must run before the completed flag flips.
+          // A street is completed from the task's coverage, never from the client's completed flag (#5733, #5669):
+          // that stops a forged completed=true, and credits a walk that ran out of imagery exactly when it saw enough.
+          // Order matters: the priority update skips streets the user already completed, so it must run before the
+          // completed flag flips.
           val completeTaskAction: DBIO[Int] = for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
           } yield atRowsUpdated
 
           val taskCompletedAction: DBIO[Int] = missionType match {
-            case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
-            case Some(MissionType.ExploreAddress)                                     =>
+            case Some(MissionType.Audit) | Some(MissionType.ExploreAddress) =>
               streetCoveredEnough(coveredRanges, streetEdgeId).flatMap { (coveredEnough: Boolean) =>
                 if (coveredEnough) completeTaskAction else DBIO.successful(0)
               }
