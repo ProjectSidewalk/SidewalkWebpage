@@ -195,9 +195,9 @@ def test_candidate_runs_rejects_a_run_that_merely_touches_the_way():
     stub = LineString([(48, 0), (52, 0)])
     assert ol.candidate_runs(street, stub, ol.sample_positions(street, 1.0), tol_m=0.5) == []
     along = LineString([(0, 0), (100, 0)])
-    assert ol.candidate_runs(street, along, positions) == [(0.0, 100.0, True)]
+    assert ol.candidate_runs(street, along, positions) == [(0.0, 100.0, True, 0.0)]
     backwards = LineString([(100, 0), (0, 0)])
-    assert ol.candidate_runs(street, backwards, positions) == [(0.0, 100.0, False)]
+    assert ol.candidate_runs(street, backwards, positions) == [(0.0, 100.0, False, 0.0)]
 
 
 def test_snap_fraction_takes_rounding_noise_off_the_ends_only():
@@ -207,11 +207,89 @@ def test_snap_fraction_takes_rounding_noise_off_the_ends_only():
     assert ol.snap_fraction(0.1 + 0.2) == 0.3
 
 
-def test_locate_on_way_is_none_when_the_stretch_collapses_to_a_point():
+def test_locate_on_way_is_empty_when_the_stretch_collapses_to_a_point():
     street = LineString([(0, 0), (100, 0)])
     way = LineString([(0, 0), (50, 0)])
-    assert ol.locate_on_way(street, way, 0, 25) == pytest.approx((0.0, 0.5))
-    assert ol.locate_on_way(street, way, 60, 80) is None
+    positions = ol.sample_positions(street, 5.0)
+    assert ol.locate_on_way(street, way, positions, 0, 25) == [(0, 25, 0.0, 0.5)]
+    assert ol.locate_on_way(street, way, positions, 60, 80) == []
+
+
+def test_a_loop_street_on_a_way_that_touches_itself_is_matched_round_the_loop():
+    # A cul-de-sac drawn as one way: in along the stem, round the bulb and back to the stem's end. The bulb is its own
+    # street, starting and ending at the point the way passes twice.
+    stem, bulb = [(0, 0), (100, 0)], [(100, 0), (120, 20), (140, 0), (120, -20), (100, 0)]
+    way = lonlat(*stem, *bulb[1:])
+    lineages = ol.compute_lineage([(1, lonlat(*bulb), [10])], {10: way})
+    assert lineages[0].status == 'matched'
+    (way_id, s_from, s_to, w_from, w_to, same), = links_of(lineages)
+    assert (way_id, s_from, s_to, same) == (10, 0.0, 1.0, True)
+    assert (w_from, w_to) == pytest.approx((100 / way.length * M, 1.0), abs=0.01)
+
+
+def test_a_loop_street_drawn_against_its_way_is_still_placed_on_the_loop_not_the_stem():
+    stem, bulb = [(0, 0), (100, 0)], [(100, 0), (120, 20), (140, 0), (120, -20), (100, 0)]
+    way = lonlat(*stem, *bulb[1:])
+    lineages = ol.compute_lineage([(1, lonlat(*reversed(bulb)), [10])], {10: way})
+    assert lineages[0].status == 'matched'
+    (way_id, s_from, s_to, w_from, w_to, same), = links_of(lineages)
+    assert (way_id, s_from, s_to, same) == (10, 0.0, 1.0, False)
+    assert (w_from, w_to) == pytest.approx((100 / way.length * M, 1.0), abs=0.01)
+
+
+def test_a_spike_in_the_way_does_not_shorten_the_stretch_the_street_covers():
+    spiked = lonlat((0, 0), (50, 0), (50, 30), (50, 0), (100, 0))
+    lineages = ol.compute_lineage([(1, lonlat((0, 0), (100, 0)), [10])], {10: spiked})
+    (way_id, s_from, s_to, w_from, w_to, same), = links_of(lineages)
+    assert (way_id, s_from, s_to, w_from, w_to, same) == (10, 0.0, 1.0, 0.0, 1.0, True)
+
+
+def test_a_street_ending_just_past_a_closed_way_start_node_keeps_that_stretch():
+    roundabout = lonlat((0, 0), (20, 20), (40, 0), (20, -20), (0, 0))
+    lineages = ol.compute_lineage([(1, lonlat((40, 0), (20, -20), (0, 0), (2, 2)), [10])], {10: roundabout})
+    assert lineages[0].status == 'matched' and lineages[0].coverage == pytest.approx(1.0)
+
+
+def test_the_closest_way_wins_a_tie_so_a_sidewalk_beside_the_road_does_not_take_it():
+    road, sidewalk = lonlat((0, 0), (100, 0)), lonlat((0, 4), (100, 4))
+    assert [link.way_id for link in ol.compute_lineage([(1, road, [])], {20: sidewalk, 30: road})[0].links] == [30]
+    halves = {20: sidewalk, 30: lonlat((0, 0), (60, 0)), 31: lonlat((60, 0), (100, 0))}
+    assert [link.way_id for link in ol.compute_lineage([(1, road, [])], halves)[0].links] == [30, 31]
+
+
+def test_a_street_round_most_of_a_closed_way_reaches_the_way_end_it_started_from():
+    roundabout = lonlat((0, 0), (20, 20), (40, 0), (20, -20), (0, 0))
+    street = lonlat((0, 0), (20, 20), (40, 0), (20, -20))
+    lineages = ol.compute_lineage([(1, street, [10])], {10: roundabout})
+    assert lineages[0].status == 'matched'
+    (way_id, s_from, s_to, w_from, w_to, same), = links_of(lineages)
+    assert (way_id, s_from, s_to, same) == (10, 0.0, 1.0, True)
+    assert (w_from, w_to) == pytest.approx((0.0, 0.75), abs=0.01)
+
+
+def test_a_street_across_a_closed_way_start_node_gets_one_link_each_side_of_it():
+    roundabout = lonlat((0, 0), (20, 20), (40, 0), (20, -20), (0, 0))
+    forwards = lonlat((20, -20), (0, 0), (20, 20))
+    lineages = ol.compute_lineage([(1, forwards, [10])], {10: roundabout})
+    assert lineages[0].status == 'matched'
+    first, second = links_of(lineages)
+    assert first[:3] == (10, 0.0, pytest.approx(0.5, abs=0.05)) and first[3:] == (pytest.approx(0.75), 1.0, True)
+    assert second[:3] == (10, first[2], 1.0) and second[3:] == (0.0, pytest.approx(0.25), True)
+    backwards = lonlat((20, 20), (0, 0), (20, -20))
+    lineages = ol.compute_lineage([(1, backwards, [10])], {10: roundabout})
+    first, second = links_of(lineages)
+    assert first[3:] == (0.0, pytest.approx(0.25), False)
+    assert second[3:] == (pytest.approx(0.75), 1.0, False)
+
+
+def test_along_way_reads_the_ends_off_the_inside_samples_or_the_ends_themselves_when_there_are_none():
+    street = LineString([(0, 0), (30, 0)])
+    way = LineString([(-10, 0), (50, 0)])
+    positions = ol.sample_positions(street, 5.0)
+    assert ol.along_way(street, way, positions, 0, 30) == pytest.approx((10.0, 40.0))
+    assert ol.along_way(street, way, positions, 0, 3) == pytest.approx((10.0, 13.0))   # No sample strictly inside.
+    cross = LineString([(15, -50), (15, 50)])
+    assert ol.along_way(street, cross, positions, 0, 30) == pytest.approx((50.0, 50.0))   # Goes nowhere along it.
 
 
 def test_ways_from_features_keeps_linestring_ways_only():
