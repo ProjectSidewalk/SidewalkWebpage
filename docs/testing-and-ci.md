@@ -176,7 +176,8 @@ Parallel jobs:
   the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits
   statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325,
   see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic,
-  no DB. (Applying evolutions, and rolling the new ones back, is `backend-tests`' job, below.)
+  no DB. A second step fails if an evolution already in the newest `v*` tag was edited. (Applying evolutions, and
+  rolling the new ones back, is `backend-tests`' job, below.)
 - **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
   included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
   Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
@@ -212,12 +213,14 @@ Parallel jobs:
   suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
   the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and
   roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in
-  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`: it takes the highest
-  evolution in the newest `v*` tag and, for each evolution past it, newest first, runs its Downs and then its Ups on the
-  seeded schema, asserting both succeed and the schema and data come back unchanged; then it re-applies them all in one
-  batch, as the next deploy would. It only covers what's new since the release because replaying all history from
-  scratch would re-insert the `sidewalk_login` rows the `db` image already seeds. It needs `LAST_RELEASE_EVOLUTION` set
-  and otherwise has no tests, since it rolls back whatever database it's connected to. The spec steps run under
+  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`, skipped when no
+  evolution is newer than the newest `v*` tag (`db/scripts/last-release.sh`). For each newer one, newest first, it
+  runs the Downs and the Ups in both orders, on the seeded city and on a `pg_dump` copy of it, and then rolls them all
+  back and forward again in one batch; what it asserts is in [`evolutions.md`](evolutions.md) → "Downs have to work".
+  It only covers what's new since the release because the committed template can't replay all history (see
+  `evolutions.md`, "It also breaks replay"). It needs `LAST_RELEASE_EVOLUTION` set and otherwise has no tests, since
+  it rolls back whatever database it's connected to, and the step fails unless exactly one test ran. The spec steps
+  run under
   **scoverage**, and a final `coverageReport` step enforces the
   **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
 - **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`

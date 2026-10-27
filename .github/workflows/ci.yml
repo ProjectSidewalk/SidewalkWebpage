@@ -156,6 +156,23 @@ jobs:
       - name: Lint evolution files
         run: bash db/scripts/lint-evolutions.sh
 
+      # Play hashes each evolution's text, so editing a released one, even a comment, makes every city run the Downs
+      # back to it and re-apply everything after it on the next deploy (#5839).
+      - name: Released evolutions are unchanged
+        run: |
+          set -euo pipefail
+          release=$(bash db/scripts/last-release.sh)
+          tag=${release% *}
+          released=${release#* }
+          changed=$(git diff --name-only "$tag" HEAD -- conf/evolutions/default/ \
+            | sed -n 's#^conf/evolutions/default/\([0-9]*\)\.sql$#\1#p' | awk -v max="$released" '$1 <= max')
+          if [ -n "$changed" ]; then
+            echo "::error::Evolutions already released in $tag were edited: $(echo $changed | tr ' ' ',')." \
+              "Put the change in a new evolution instead."
+            exit 1
+          fi
+          echo "No evolution up to $released (released in $tag) was edited."
+
   shell-lint:
     name: Shell script lint
     runs-on: ubuntu-latest
@@ -321,18 +338,26 @@ jobs:
         run: sbt coverage test
 
       # The rollback gate (#5839, docs/evolutions.md). After the suite because it churns the seeded data, but runs even
-      # when the suite fails. Needs `coverage`, or sbt recompiles and empties the ratchet's data. The checkout has no
-      # tags, so it fetches the one it needs.
+      # when the suite fails. Needs `coverage`, or sbt recompiles and empties the ratchet's data. The second city is a
+      # copy of the first because the template can't replay to HEAD. The final grep catches a renamed spec or a lost
+      # env var, which would otherwise run zero tests and pass.
       - name: Round-trip the evolutions newer than the last release
         if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
         run: |
           set -euo pipefail
-          tag=$(git ls-remote --tags --refs origin 'v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
-          git fetch --depth=1 --no-tags origin "refs/tags/$tag:refs/tags/$tag"
-          LAST_RELEASE_EVOLUTION=$(git ls-tree --name-only "$tag" conf/evolutions/default/ \
-            | sed 's#.*/##; s#\.sql$##' | sort -n | tail -1)
-          echo "Last release: $tag, up to evolution $LAST_RELEASE_EVOLUTION"
-          LAST_RELEASE_EVOLUTION=$LAST_RELEASE_EVOLUTION sbt coverage "testOnly models.utils.EvolutionsRoundTripSpec"
+          release=$(bash db/scripts/last-release.sh)
+          released=${release#* }
+          head=$(ls conf/evolutions/default | sed 's#\.sql$##' | sort -n | tail -1)
+          if [ "$head" -le "$released" ]; then
+            echo "Nothing to check: no evolution past $released (released in ${release% *})."; exit 0
+          fi
+          docker compose exec -T db bash -c "set -o pipefail
+            pg_dump -U sidewalk -n sidewalk_teaneck sidewalk | sed 's/\bsidewalk_teaneck\b/sidewalk_rollback_twin/g' \
+              | psql -q -o /dev/null -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk"
+          LAST_RELEASE_EVOLUTION=$released sbt coverage "testOnly models.utils.EvolutionsRoundTripSpec" \
+            | tee roundtrip.log
+          grep -q 'Tests: succeeded 1, failed 0' roundtrip.log \
+            || { echo "::error::EvolutionsRoundTripSpec didn't run its test"; exit 1; }
 
       # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
       # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec

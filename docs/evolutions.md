@@ -36,14 +36,27 @@ someone else's file on the number yours is using. Renumber yours (never theirs; 
 ## Downs have to work: CI rolls them back
 
 Rolling back a release deploys an older tag, and every city then runs the Downs of each newer evolution on its own
-(see [deployment-and-stages.md](deployment-and-stages.md) → "Rolling back a release"). So `backend-tests` runs the
-Downs and then the Ups of every evolution newer than the last release tag, on the seeded test city
-(`EvolutionsRoundTripSpec`, #5839). It fails if either errors, or if the schema or the data isn't the same afterward.
-A re-run Up gets new sequence ids and timestamps, so those columns aren't compared.
+(see [deployment-and-stages.md](deployment-and-stages.md) → "Rolling back a release"). So `backend-tests` checks every
+evolution newer than the last release tag (`EvolutionsRoundTripSpec`, #5839), on the seeded test city plus a copy of
+it, so each Down and Up also runs where `sidewalk_login` has already moved, as in cities 2 to 54. It fails when:
 
-Some Downs can't keep data, like one that drops a column the Ups added, whose values the Ups can't recompute. Mark
-those with a comment in the Downs, `-- lossy-downs: <why>`, and the check skips their data and compares only the
-schema.
+- a Down or an Up errors, in either city, one evolution at a time or all of them in one batch;
+- Downs then Ups don't come back to the same schema and data (sequence ids and dates/times aside, since a re-run Up
+  rewrites them);
+- Ups then Downs don't come back to the same schema and data (only sequence ids aside);
+- a Down changes nothing at all.
+
+A Down that deliberately doesn't undo everything — keeps an enum value Postgres can't drop (413), leaves `NOT NULL`
+off rather than lock a big table (411), is empty on purpose (410) — says so with a comment in its Downs,
+`-- partial-downs: <why>`. That evolution is then checked on schema only, after Downs then Ups.
+
+The check has blind spots. It sees only the seed's data, which never fills a column an unreleased evolution just
+added. And it starts the Ups-then-Downs check from what the Down left, so a Down that undoes only part of its Ups
+can still pass.
+
+**Never edit a released evolution.** Play hashes each one's text, so even a comment edit makes every city run the
+Downs back to it and re-apply everything after it on the next deploy. The `evolutions-lint` job fails on an edit to
+any file at or below the last release tag's highest.
 
 ## Every `CREATE TABLE` needs `ALTER TABLE <name> OWNER TO sidewalk;`
 

@@ -237,8 +237,8 @@ A hotfix that changes no schema *still* needs step 4 for the displayed version t
 Deploying an older tag rolls the **schema** back too: `autoApplyDowns=true` (`conf/application.conf`, no stage
 override) means each city instance runs the `Downs` of every evolution above the target version at startup,
 unattended. CI runs the Downs of every evolution newer than the last release before it ships (#5839,
-[`evolutions.md`](evolutions.md) → "Downs have to work"), on test data, so it can't rule out a conflict with real
-data. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
+[`evolutions.md`](evolutions.md) → "Downs have to work"), but on test data, so it can't rule out a conflict with
+real data. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
