@@ -571,8 +571,9 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 
 ## QA
 
-Validate cannot be browser-automated (it needs live street-view panoramas), so this is a manual checklist. Run the app
-locally against your dev schema — `make dev` then `npm start`, or `make qa-worktree wt=<name>` for a worktree — then:
+Validate needs live street-view panoramas, which are never browser-automated (each is billed), so this is a manual
+checklist. Run the app on your dev schema (`make dev` then `npm start`, or `make qa-worktree wt=<name>` in a worktree)
+and work through these steps:
 
 1. Sign in as an admin and open `/expertValidate`. In devtools, `svv.validateParams.triage === true`. The labels
    served should be ties, unsure-heavy, or high-vote-count labels (the admin panel lists each label's votes).
