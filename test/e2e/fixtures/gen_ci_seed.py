@@ -161,7 +161,7 @@ w("\nINSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)
   f"{tn['region']['region_id']}\nFROM (VALUES " + ", ".join(f"({s})" for s in sorted(STREETS)) +
   ") AS s(street_edge_id)\nWHERE NOT EXISTS (\n  SELECT 1 FROM sidewalk_teaneck.street_edge_region "
   "WHERE street_edge_id = s.street_edge_id\n);\n")
-w("\nINSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)\n"
+w("INSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)\n"
   f"SELECT config.tutorial_street_edge_id, {tn['region']['region_id']}\nFROM sidewalk_teaneck.config\n"
   "WHERE NOT EXISTS (\n  SELECT 1 FROM sidewalk_teaneck.street_edge_region "
   "WHERE street_edge_id = config.tutorial_street_edge_id\n);\n")

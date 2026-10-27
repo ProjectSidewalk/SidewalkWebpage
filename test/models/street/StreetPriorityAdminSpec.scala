@@ -2,6 +2,7 @@ package models.street
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.UserStatTableDef
+import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api.{given, *}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -35,6 +36,7 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
   private val userStats    = TableQuery[UserStatTableDef]
   private val streetEdges  = TableQuery[StreetEdgeTableDef]
   private val streetRegion = TableQuery[StreetEdgeRegionTableDef]
+  private val configs      = TableQuery[ConfigTableDef]
 
   private val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 
@@ -48,9 +50,11 @@ class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with
   private lazy val someRoutableStreet: Option[Int] = run(
     streetEdges
       .filter(_.status === StreetEdgeStatus.Open)
+      .filterNot(_.streetEdgeId in configs.map(_.tutorialStreetEdgeID))
       .join(streetRegion)
       .on(_.streetEdgeId === _.streetEdgeId)
       .map(_._1.streetEdgeId)
+      .sorted
       .result
       .headOption
   )

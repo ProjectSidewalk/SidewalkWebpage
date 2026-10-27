@@ -23,18 +23,21 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
 
   const intro = page.locator('#tutorial-intro-next-btn');
   await intro.waitFor();
-  while (await intro.isVisible()) await intro.click();
+  for (let i = 0; i < 10 && await intro.isVisible(); i++) await intro.click();
+  await expect(intro).toBeHidden();
   await page.locator('#onboarding-ok-button').click();
   await page.locator('#mode-switch-button-curb-ramp').click();
 
   // The label is saved as soon as it's placed; the response maps its temporary id to the saved one.
-  const placed = page.waitForResponse(async (r) => r.request().method() === 'POST'
+  const placed = page.waitForResponse(async (r) => r.request().method() === 'POST' && r.ok()
     && new URL(r.url()).pathname === '/task' && (await r.json()).label_ids?.length > 0);
-  const layer = await page.locator('#label-drawing-layer').boundingBox();
+  const drawingLayer = page.locator('#label-drawing-layer');
+  await expect(drawingLayer).toBeVisible();
+  const layer = await drawingLayer.boundingBox();
   const pov = await page.evaluate(() => window.svl.panoManager.getPov());
   const target = povToCanvas(panoCoordToPov(CURB_RAMP_TARGET), pov, layer.width, layer.height);
   await page.mouse.click(layer.x + target.x, layer.y + target.y);
-  // Only an accepted click reaches the rating step and the save; a miss asks the user to delete the label.
+  // Only an accepted click reaches the rating step; a miss asks the user to delete the label.
   await expect(page.locator('#severity-menu'), 'the tutorial rejected the click as off target').toBeVisible();
   const labelIds = (await (await placed).json()).label_ids;
   expect(labelIds).toHaveLength(1);
@@ -58,7 +61,7 @@ test('a curb ramp labeled in the Explore tutorial is saved with its severity and
     };
   }).toEqual({type: 'CurbRamp', severity: 2, tags: ['points into traffic'], tutorial: true, pano: 'tutorial'});
 
-  // Where the label sits: the view it was placed from, and the click on its canvas.
+  // Placement is the part the UI computes, so it's what the backend specs can't vouch for.
   expect({heading: label.heading, pitch: label.pitch, zoom: label.zoom}).toEqual(pov);
   const scale = label.canvas_width / layer.width;
   expect(Math.abs(label.canvas_x - target.x * scale)).toBeLessThan(2);
@@ -87,7 +90,7 @@ function panoCoordToPov(coord) {
  */
 function povToCanvas(centered, pov, width, height) {
   const rad = Math.PI / 180;
-  const fov = (126.5 - pov.zoom * 36.75) * rad;
+  const fov = (pov.zoom <= 2 ? 126.5 - pov.zoom * 36.75 : 195.93 / Math.pow(1.92, pov.zoom)) * rad;
   const f = (width / 2) / Math.tan(fov / 2);
   const [h, p, h0, p0] = [centered.heading * rad, centered.pitch * rad, pov.heading * rad, pov.pitch * rad];
   const [x, y, z] = [f * Math.cos(p) * Math.sin(h), f * Math.cos(p) * Math.cos(h), f * Math.sin(p)];
