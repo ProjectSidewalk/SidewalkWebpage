@@ -233,22 +233,15 @@ async function loadValidate(page, path) {
 }
 
 /**
- * Waits for Validate to settle into either of its two legitimate end states. Terminal state is
- * path-dependent: the mission path hides #page-loading (visibility, not display); the no-mission path un-hides the
- * modal holder instead — and may hide the overlay too, when a mission was assigned but every label's imagery failed
- * (#4810), so the modal is checked first. Callers let the console assertion judge whichever ran.
+ * Waits for Validate to settle into either of its two legitimate end states: a mission, or the "no new mission"
+ * modal, which also covers a mission whose labels all lacked imagery (#4810). Callers let the console assertion
+ * judge whichever ran.
  * @param {import('@playwright/test').Page} page The page under test.
  * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
  */
 async function waitForValidateTerminalState(page) {
-  const handle = await page.waitForFunction(() => {
-    const loading = document.querySelector('#page-loading');
-    const missionUiReady = loading && getComputedStyle(loading).visibility === 'hidden';
-    const modal = document.querySelector('#modal-mission-holder');
-    const noMissionShown = modal && !modal.classList.contains('ps-hidden');
-    return noMissionShown ? 'no-mission' : (missionUiReady ? 'mission' : false);
-  });
-  return (await handle.jsonValue()) === 'mission';
+  await page.waitForFunction(() => window.svv);
+  return page.evaluate(() => !window.svv.modalNoNewMission.isShowing());
 }
 
 /**
