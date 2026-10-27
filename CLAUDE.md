@@ -79,6 +79,8 @@ file, and this table says which doc to read first:
 
 - **ES2022.** As you touch code, modernize it: constructor functions → `class` with `#private` fields (defer a
   refactor that would ripple through many callers). Build HTML with template literals, never `+` concatenation.
+- **Don't engineer for the deploy's edge** (a tab on the old client, a row from before a new column). Note it in
+  the PR and move on; fix it only if it leaves a wrong durable record or breaks the page for everyone.
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".
