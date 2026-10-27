@@ -274,6 +274,9 @@ class ExploreAddressServiceSpec
           val task = data.task.value
           task.auditTaskId mustBe data.mission.currentAuditTaskId
           task.completed mustBe false
+          // Served as nothing seen, never as a bare row: the client would read that as a walk from the street's start
+          // to the address, and credit a stretch nobody saw (#5669).
+          task.coveredRanges.value mustBe Json.arr()
           val row = taskRow(task.auditTaskId.get)
           row.completed mustBe false
           // The drop-in point's along-street offset must be recorded at creation: completion subtracts it so the

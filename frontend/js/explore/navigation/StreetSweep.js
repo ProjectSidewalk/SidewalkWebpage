@@ -77,7 +77,7 @@ export class StreetSweep {
   }
 
   /**
-   * Told when imagery runs out near a street's end (or the whole street is in view), so it counts as walked.
+   * Told when imagery runs out on a street the labeler has seen enough of, so it counts as walked (#5669).
    * @param {(task: Task) => void} listener
    */
   onStreetWalkedOut(listener) {
@@ -255,25 +255,6 @@ export class StreetSweep {
     this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
     // Carries on inside this move: a fresh moveForward() would be refused, stranding the labeler (#4921).
     return 'nextStreet';
-  }
-
-  /**
-   * Gives up a street reached without seeing enough of it (#5669), as one the search ran out on. The street is marked
-   * given up before this returns, so the caller can hand over the next one without waiting for the network.
-   * @param {Task} task - The street being left.
-   * @returns {Promise<void>} Settles once the report and the submission are sent.
-   */
-  async giveUpOnStreet(task) {
-    if (task.wasGivenUpOnImagery()) return;
-    this.#tracker.push('NoImagery_StreetEndedShort', {
-      coveredM: Math.round(task.getCoveredDistanceM()), lengthM: Math.round(task.lineDistance({ units: 'meters' })),
-    });
-    const reported = this.#reportStreet(task);
-    this.#markGivenUp(task);
-    // The report first: a route's completeness is judged on the submission, and counts a reported street only once
-    // the report is on file.
-    await reported;
-    await this.#submitGivenUp(task);
   }
 
   /**

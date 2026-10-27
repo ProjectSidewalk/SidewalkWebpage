@@ -11,11 +11,11 @@ import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{ConfigTableDef, FilteredTables, LiftedRow, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import service.TimeInterval
 import slick.lifted.{FlatShapeLevel, Shape}
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,7 +39,8 @@ case class AuditTask(
     startOffsetM: Option[Double] = None, // Meters from the street's start to where a free-exploration drop-in began.
     outdatedImagery: Boolean = false,    // Machine-managed (#4384); mirrors the column's DEFAULT FALSE.
     outdatedImageryAt: Option[OffsetDateTime] = None, // When the sync last flipped the flag on; NULL while unflagged.
-    // Merged [start_m, end_m] pairs along the street a free-exploration session has seen (#5733); NULL otherwise.
+    // Merged [start_m, end_m] pairs along the street the task's walk has seen (#5733, #5669); NULL on a row from
+    // before coverage was tracked.
     coveredRanges: Option[JsValue] = None
 )
 case class NewTask(
@@ -641,10 +642,12 @@ class AuditTaskTable @Inject() (
       .map { case (task, street) => (task, street.geom.lengthGeodesic) }
 
   /**
-   * Get the sum of the line distance of all streets in the region that the user has not audited.
+   * Meters of street the region can still hand the user: not audited by them, and not reported by them as imagery-less
+   * (#5017). Sized from anything more, a mission could never reach its end.
    */
   def getUnauditedDistance(userId: String, regionId: Int): DBIO[Double] = {
-    getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
+    streetEdgeRegionsLeftToPick(userId)
+      .filter(_.regionId === regionId)
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .map { case (_, street) => street.geom.lengthGeodesic }
@@ -836,11 +839,19 @@ class AuditTaskTable @Inject() (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart,
       sc.completedByAnyUser, sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart,
       routeStreetId, routeStreetPosition, maxSpeed, false, // reportedNoImagery is route-scoped; see NewTask.
-      sc.needsReaudit, sc.mappedByThisUser, sc.lastMappedAt, sc.newImageryDate, at.coveredRanges
+      sc.needsReaudit, sc.mappedByThisUser, sc.lastMappedAt, sc.newImageryDate, servedCoverage(at)
     ).mapTo[NewTask]
 
     newTask.result.headOption
   }
+
+  /**
+   * A task's coverage as served to the client, which reads a bare open row as a walk from the street's start to the
+   * saved position (#5669). A drop-in began at the address, so one from before coverage was tracked has seen nothing
+   * it can vouch for.
+   */
+  private def servedCoverage(task: AuditTaskTableDef): Rep[Option[JsValue]] =
+    Case.If(task.startOffsetM.isDefined).Then(LiteralColumn[Option[JsValue]](Some(Json.arr()))).Else(task.coveredRanges)
 
   /**
    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
@@ -936,11 +947,24 @@ class AuditTaskTable @Inject() (
       )
       .map(_.streetEdgeId)
 
-  /** `syncOutdatedImageryFlags`'s date rule, for what that flag never reaches (an open walk, a report). */
+  /**
+   * `syncOutdatedImageryFlags`'s date rule (UTC dates, a future capture date ignored as bad data), for what that flag
+   * never reaches: an open walk, a report.
+   */
   private def predatesStreetImagery(streetEdgeId: Rep[Int], at: Rep[OffsetDateTime]): Rep[Boolean] =
     streetImagery
-      .filter(si => si.streetEdgeId === streetEdgeId && at.asColumnOf[LocalDate] < si.medianNewestCapture)
+      .filter(si =>
+        si.streetEdgeId === streetEdgeId && si.medianNewestCapture <= LocalDate.now(ZoneOffset.UTC).bind &&
+          utcDate(at) < si.medianNewestCapture
+      )
       .exists
+
+  private val utcDate = SimpleExpression.unary[OffsetDateTime, LocalDate] { (timestamp, queryBuilder) =>
+    queryBuilder.sqlBuilder += "("
+    queryBuilder.expr(timestamp)
+    queryBuilder.sqlBuilder += " AT TIME ZONE 'UTC')::date"
+    ()
+  }
 
   /**
    * Streets the route's labeler reported as imagery-less during *this* walk of it.
@@ -1004,11 +1028,8 @@ class AuditTaskTable @Inject() (
    * walked metres are recorded on it, so handing the street back from its start makes them re-walk and re-label what
    * they already did. The region-audit counterpart of [[resumableRouteTask]].
    *
-   * The no-imagery exclusion below uses the same StreetEdgeIssueTable.reportedNoImageryDuringTask test that
-   * ExploreService's page-load resume applies to the mission's current task. Only that test is shared: the other two
-   * exclusions here would change that path's behaviour if it adopted them.
-   *
-   * Three exclusions, each for a reason the street is not really resumable:
+   * Three exclusions, each for a reason the street is not really resumable; [[isStillResumable]] applies the same
+   * ones to the mission's current task on page load:
    *   - Drop-in tasks (`start_offset_m` set) cover only the stretch from where free exploration began (#4451).
    *     Resuming one as a region task would draw the un-walked stretch before the drop-in as audited and let the
    *     labeler complete a street they never covered.
@@ -1094,6 +1115,10 @@ class AuditTaskTable @Inject() (
 
     stillResumable(newestOpenTask, userId).map(_.auditTaskId).result.headOption
   }
+
+  /** @return Whether the task may be handed back, by [[resumableTasksForUser]]'s rules. */
+  def isStillResumable(auditTaskId: Int, userId: String): DBIO[Boolean] =
+    stillResumable(auditTasks.filter(_.auditTaskId === auditTaskId), userId).exists.result
 
   /**
    * Gets a list of tasks associated with a user's route.

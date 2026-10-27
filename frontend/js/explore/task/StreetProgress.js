@@ -159,7 +159,10 @@ export class StreetProgress {
       } else if (!this.#config.isOnboarding && this.#taskContainer.tasksLoaded()) {
         const task = this.#taskContainer.getCurrentTask();
         if (task) task.recordVisit(position);
-        if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD)) {
+        // Reaching the end is not enough on its own (#5669): a short street's first pano can sit within the threshold,
+        // and a hole in the imagery leaves the end reached with most of it unseen. Walking on finds what is left, or
+        // the search runs out and the sweep reports the street.
+        if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD) && task.isCoveredEnough()) {
           // On a route's short last street, the end threshold can end the route well before its last pano (#4640),
           // so wait until most of it is walked; running out of imagery ends it otherwise.
           const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
@@ -179,20 +182,13 @@ export class StreetProgress {
   }
 
   /**
-   * Ends a street: credited if enough was seen, else reported as missing imagery and left unfinished (#5669). A
-   * joining next street is handed over now; otherwise the labeler is asked to finish here first.
+   * Ends a street the labeler has seen enough of. A joining next street is handed over now; otherwise the labeler is
+   * asked to finish here first.
    * @param {Task} task - The street being ended.
    * @param {Mission} mission - The mission it's filed under.
    */
   #endStreet(task, mission) {
     if (this.#labelBeforeJumpArmed) return;
-
-    // A street reached across a gap in its imagery is still one nobody saw enough of: the report is what the checker
-    // retires it on, the give-up what keeps it from coming back (#4922). Not awaited, as endTask's submission isn't:
-    // the hand-off below must finish before the views read it.
-    if (!task.isCoveredEnough()) {
-      this.#streetSweep.giveUpOnStreet(task).catch((err) => console.warn('Failed to file the street as empty:', err));
-    }
 
     this.#missionJump = mission;
     const nextTask = this.#taskContainer.nextTask(task);

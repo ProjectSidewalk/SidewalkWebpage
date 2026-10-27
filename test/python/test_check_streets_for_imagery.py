@@ -783,6 +783,23 @@ def test_coverage_walk_settles_no_imagery_once_the_rest_could_not_be_enough():
     assert walk.verdict(remaining_from_m=120.0) == cs.NO_IMAGERY
 
 
+def test_coverage_walk_waits_for_a_pano_a_later_point_could_still_find_behind_it():
+    # A 40 m hole early on, then panos up to 105 m. At the 180 m point, measured from the point itself the stretch
+    # back to 130 m is lost and the street is flagged; but that point's 25 m search can find a pano at 155 m, a hop
+    # from the last one, which keeps the street at 40 m unseen.
+    def walk_to_105(reach_m: float) -> cs.CoverageWalk:
+        walk = cs.CoverageWalk(300.0, reach_m=reach_m)
+        for along in (0.0, 15.0, 75.0, 90.0, 105.0):
+            walk.visit(along)
+        return walk
+
+    assert walk_to_105(0.0).verdict(remaining_from_m=180.0) == cs.NO_IMAGERY
+    walk = walk_to_105(25.0)
+    assert walk.verdict(remaining_from_m=180.0) is None
+    walk.visit(155.0)
+    assert walk.merged() == [(0.0, 25.0), (65.0, 165.0)]
+
+
 def test_coverage_walk_flags_a_hole_longer_than_the_cap_even_with_both_ends_covered():
     # Explore would hop the hole, but nobody could look at the sidewalk in it (#5669).
     walk = cs.CoverageWalk(200.0)

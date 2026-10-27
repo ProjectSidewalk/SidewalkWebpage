@@ -60,6 +60,20 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       picked.value.edgeId mustBe streetEdgeId
     }
 
+    "keep passing over a reported street whose newest capture date lies in the future" in {
+      // A future capture date is bad data, not new imagery; the nightly sync ignores it too.
+      val picked = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- reportNoImagery(streetEdgeId, userId, now.minusDays(30))
+        _            <- setNewestImagery(streetEdgeId, LocalDate.now.plusYears(1))
+        picked       <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
+      } yield picked)
+
+      picked mustBe None
+    }
+
     "hand out nothing when the only street left is one the labeler reported" in {
       val picked = runRolledBack(for {
         userId       <- insertUser()
@@ -113,6 +127,20 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
 
       left mustBe false
       exhausted must contain(regionId)
+    }
+
+    "size no mission, so the labeler is never set a distance the region can't hand out" in {
+      val (distance, before) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        before       <- auditTaskTable.getUnauditedDistance(userId, regionId)
+        _            <- reportNoImagery(streetEdgeId, userId)
+        distance     <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      } yield (distance, before))
+
+      before must be > 0d
+      distance mustBe 0d
     }
 
     "still have streets left while one is unreported" in {
@@ -183,6 +211,28 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
 
       fresh.coveredRanges.value mustBe stored
       stale.coveredRanges mustBe None
+    }
+  }
+
+  "isStillResumable" should {
+    "pass over the mission's task once it is reported or its street re-imaged, as the next-street pick does" in {
+      val (open, reported, stale) = runRolledBack(for {
+        userId     <- insertUser()
+        regionId   <- insertRegion()
+        streets    <- insertStreets(regionId, 3, withPriority = true)
+        openId     <- abandonedAudit(streets.head, userId)
+        reportedId <- abandonedAudit(streets(1), userId)
+        _          <- reportNoImagery(streets(1), userId)
+        staleId    <- abandonedAudit(streets(2), userId, taskStart = now.minusDays(30))
+        _          <- setNewestImagery(streets(2), LocalDate.now.minusDays(10))
+        open       <- auditTaskTable.isStillResumable(openId, userId)
+        reported   <- auditTaskTable.isStillResumable(reportedId, userId)
+        stale      <- auditTaskTable.isStillResumable(staleId, userId)
+      } yield (open, reported, stale))
+
+      open mustBe true
+      reported mustBe false
+      stale mustBe false
     }
   }
 

@@ -947,37 +947,20 @@ describe('Explore, when the imagery search runs out along a street', () => {
       expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
     });
 
-    it('reports a street reached across a hole in its imagery instead of crediting it (#5669)', async () => {
-      // Explore hops a gap of any size, but a street with more than the cap unseen is one nobody could look at
-      // enough of: it is filed as missing imagery and handed over unfinished, as a street the sweep ran out on is.
+    it('leaves a street open at its end while too little of it was seen (#5669)', async () => {
+      // A short street's first pano can land within the end threshold, and a hole hopped mid-street leaves the end
+      // reached with most of it unseen. Neither is credited nor reported here: the labeler walks on, and the sweep
+      // reports the street if its search then runs out.
       const [holed, next] = [makeTask(101, { atEnd: true, seenEnough: false }), makeTask(102)];
       assignStreets(holed, next);
 
       await nav.moveForward();
 
-      expect(reportNoImagery).toHaveBeenCalledTimes(1);
-      expect(holed.wasGivenUpOnImagery()).toBe(true);
-      expect(svl.form.submitData).toHaveBeenCalledWith(holed);
-      // The route's completeness is judged on the submission, so the report has to be on file first.
-      expect(reportNoImagery.mock.invocationCallOrder[0]).toBeLessThan(svl.form.submitData.mock.invocationCallOrder[0]);
+      expect(reportNoImagery).not.toHaveBeenCalled();
+      expect(holed.wasGivenUpOnImagery()).toBe(false);
       expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
-      expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
-    });
-
-    it('jumps away from a holed street without crediting it either', async () => {
-      const [holed, next] = [makeTask(101, { atEnd: true, seenEnough: false }), makeTask(102)];
-      holed.isConnectedTo = () => false;
-      assignStreets(holed, next);
-
-      await nav.moveForward();
-      expect(svl.taskContainer.setNextTaskAfterJump).toHaveBeenCalledWith(next);
-      svl.taskContainer.getNextTaskAfterJump = () => next;
-      vi.advanceTimersByTime(1000); // Past the walking cooldown a landing starts (#5765).
-      await progress.jumpToANewTask();
-
-      expect(reportNoImagery).toHaveBeenCalledTimes(1);
-      expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
-      expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
+      expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
+      expect(svl.taskContainer.setNextTaskAfterJump).not.toHaveBeenCalled();
     });
 
     it('keeps a route\'s short last street open until most of it is walked (#4640)', async () => {

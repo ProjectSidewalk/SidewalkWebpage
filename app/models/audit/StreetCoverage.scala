@@ -1,10 +1,7 @@
 package models.audit
 
+import models.utils.JsonResource
 import play.api.libs.json.*
-
-import java.io.InputStream
-import scala.io.Source
-import scala.util.Using
 
 /**
  * One stretch of a street a labeler has seen, in meters along the street's stored geometry.
@@ -16,7 +13,7 @@ case class CoveredRange(startM: Double, endM: Double)
 
 object CoveredRange {
   // A bare `[start, end]` pair rather than an object: the list rides on every Explore submission and sits on every
-  // free-exploration audit_task row, so the keys would be dead weight.
+  // audit_task row, so the keys would be dead weight.
   given format: Format[CoveredRange] = Format(
     Reads {
       case JsArray(pair) if pair.length == 2 =>
@@ -49,15 +46,7 @@ object StreetCoverage {
   private given ruleReads: Reads[StreetCoverageRule] = Json.reads[StreetCoverageRule]
 
   /** The rule as parsed from the file; a missing or malformed file fails here, loudly, rather than as a `NaN` later. */
-  lazy val rule: StreetCoverageRule = {
-    val stream: InputStream = Option(getClass.getResourceAsStream(ResourcePath))
-      .getOrElse(throw IllegalStateException(s"$ResourcePath is missing from the classpath"))
-    val raw: String = Using.resource(stream)(Source.fromInputStream(_, "UTF-8").mkString)
-    Json.parse(raw).validate[StreetCoverageRule] match {
-      case JsSuccess(parsed, _) => parsed
-      case JsError(errors)      => throw IllegalStateException(s"$ResourcePath is malformed: $errors")
-    }
-  }
+  lazy val rule: StreetCoverageRule = JsonResource.load[StreetCoverageRule](ResourcePath)
 
   /** Most of a street that may stay unseen; the limit that matters above 100 m. */
   def MaxUncoveredM: Double = rule.maxUncoveredM

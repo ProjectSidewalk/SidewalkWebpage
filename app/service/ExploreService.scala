@@ -341,22 +341,21 @@ class ExploreServiceImpl @Inject() (
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
-          // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
-          // so resuming it would hand back the street whose imagery would not load, on this load and every reload
-          // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
-          // declines to serve it to the labeler who just bounced off it, as selectANewTaskInARegion declines to pick
-          // a street they ever reported (#5017).
-          // AuditTaskTable.resumableTasksForUser holds a second copy of this same no-imagery test, for the next-street
-          // pick (#5370). Nothing links them, so a change to what counts as a give-up has to be made in both places.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get, userId).flatMap {
-            case Some(currTask) =>
-              streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
-                case true  => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
-                case false => DBIO.successful(Some(currTask))
-              }
-            case None => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
-          }
+          // The mission's task is resumed by the next-street pick's rules (resumableTasksForUser), or a new task in
+          // the region is picked instead: a task the labeler reported for missing imagery stays incomplete (#4922), so
+          // resuming it would hand the street back on every reload; one whose street was re-imaged since saw the old
+          // panos (#4384). The street keeps its place in the pool for the offline checker to settle (#4918).
+          val taskId: Int = mission.currentAuditTaskId.get
+          auditTaskTable
+            .isStillResumable(taskId, userId)
+            .flatMap {
+              case true  => auditTaskTable.selectTaskFromTaskId(taskId, userId)
+              case false => DBIO.successful(None)
+            }
+            .flatMap {
+              case Some(currTask) => DBIO.successful(Some(currTask))
+              case None           => auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
+            }
         } else {
           auditTaskTable.selectANewTaskInARegion(sessionRegionId, userId, mission.missionId)
         }

@@ -1074,9 +1074,14 @@ class CoverageWalk:
         'no_imagery'
     """
 
-    def __init__(self, length_m: float):
-        """``length_m`` is the street's geodesic length in metres."""
+    def __init__(self, length_m: float, reach_m: float = 0.0):
+        """
+        ``length_m`` is the street's geodesic length in metres; ``reach_m`` how far back along the street a pano found
+        at a point can sit (the search radius), so a verdict never counts a stretch as lost that a later point could
+        still reach.
+        """
         self.length_m = length_m
+        self.reach_m = reach_m
         self._ranges: list[tuple[float, float]] = []
         self._last_along_m: float | None = None
 
@@ -1110,12 +1115,13 @@ class CoverageWalk:
             return HAS_IMAGERY
         if remaining_from_m is None:
             return NO_IMAGERY
-        best_case = merge_ranges(merged + [(remaining_from_m - STREET_COVERAGE['maxHopM'], self.length_m)],
-                                 self.length_m)
+        reach_back_m = remaining_from_m - self.reach_m - STREET_COVERAGE['maxHopM']
+        best_case = merge_ranges(merged + [(reach_back_m, self.length_m)], self.length_m)
         return None if covered_enough(best_case, self.length_m) else NO_IMAGERY
 
 
-def street_has_no_imagery(points: Iterable[tuple[bool, float, float]], length_m: float) -> bool:
+def street_has_no_imagery(points: Iterable[tuple[bool, float, float]], length_m: float,
+                          reach_m: float = 0.0) -> bool:
     """
     Decides whether a street should be flagged as missing imagery, from the walk's points in order.
 
@@ -1127,11 +1133,12 @@ def street_has_no_imagery(points: Iterable[tuple[bool, float, float]], length_m:
                   (metres from the first coordinate; the point's own position when no pano has one), and where the
                   point itself sits.
         length_m: The street's geodesic length in metres.
+        reach_m:  The search radius in metres, within which a point's pano may sit behind it.
 
     Returns:
         ``True`` if the street should be flagged as missing imagery, else ``False``.
     """
-    walk = CoverageWalk(length_m)
+    walk = CoverageWalk(length_m, reach_m)
     for counted, pano_along_m, point_along_m in points:
         if counted:
             walk.visit(pano_along_m)
@@ -1441,7 +1448,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
                     known = settle(coord[1], coord[0], info, False)
                 yield (*known, point_along_m)
 
-        no_imagery = street_has_no_imagery(answer_stream(), length_m)
+        no_imagery = street_has_no_imagery(answer_stream(), length_m, reach_m=radius_km * 1000)
         outcome = NO_IMAGERY if no_imagery else HAS_IMAGERY
         oldest, newest, n_panos = summarize_dates(dates)
         # The largest offset, not the mean: the question a threshold answers is whether a street has *any* point whose
