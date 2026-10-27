@@ -21,10 +21,16 @@ function lookup(key) {
   return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), EN_COMMON);
 }
 
-// An i18next stand-in over the real English common.json, so `exists` answers like the real thing.
+/** @returns {string} A `common:` key's English string with its `$t(...)` references filled in, as i18next does. */
+function translate(key) {
+  const value = lookup(key);
+  return typeof value === 'string' ? value.replace(/\$t\(([^)]+)\)/g, (_, ref) => translate(ref)) : key;
+}
+
+// An i18next stand-in over the real English common.json, so `exists` and `t` answer like the real thing.
 mockModule('i18next', () => ({
   default: {
-    t: (key) => (typeof lookup(key) === 'string' ? lookup(key) : key),
+    t: translate,
     exists: (key) => typeof lookup(key) === 'string',
   },
 }));
@@ -72,7 +78,20 @@ describe('validationReasons', () => {
     expect(validationReasons.tooltip('wrong-type', 'CurbRamp'))
       .toBe(EN_COMMON['validation-reason']['wrong-type']['tooltip-curb-ramp']);
     expect(validationReasons.tooltip('wrong-type', 'Crosswalk')).toBe(EN_COMMON['validation-reason']['wrong-type'].tooltip);
-    expect(validationReasons.tooltip('driveway', 'CurbRamp')).toBeNull();
+  });
+
+  test('every stamped reason has a tooltip, and one shared with the tutorial reads its slide (#5845)', () => {
+    const missing = [];
+    for (const labelType of validationReasons.labelTypes()) {
+      for (const vote of ['Disagree', 'Unsure']) {
+        for (const id of validationReasons.idsFor(labelType, vote)) {
+          if (validationReasons.tooltip(id, labelType) === null) missing.push(`${labelType}/${vote}/${id}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+    expect(validationReasons.tooltip('driveway', 'CurbRamp'))
+      .toBe(EN_COMMON['mission-start-tutorial']['curb-ramp']['slide-2'].description);
   });
 
   test('an unknown id resolves to no text rather than a key, and leaves the list rather than joining it', () => {
