@@ -9,7 +9,8 @@ phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
 (#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
-Explore's tutorial and reads the label back (#4777).
+Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
+Validate and reads the votes back (#4948).
 
 ## Running locally
 
@@ -202,7 +203,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   so it draws over a plain background. A reload counter
   turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
-  CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
+  CI must take the mission branch (`expectMissionInCi`; locally either is fine) — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
   the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
   that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
   alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
@@ -213,13 +214,13 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Phase 2b:** make CI exercise `/validate`'s real mission path. ✅ via #5115's seed — ten validatable labels
   on panos with committed backup imagery. The `GOOGLE_MAPS_SECRET` #4948 called for
   turned out not to be needed: the seeded panoramas are expired, so the server-side imagery check reads the
-  backup files on disk instead of asking a provider. Still open under #4948 is coverage of the mission's
-  *interactions* (menu handlers, keyboard shortcuts, undo), not reaching a mission at all. Also open: gallery
-  expanded-card view and api-docs preview content asserts.
+  backup files on disk instead of asking a provider. The mission's interactions (menu, keyboard shortcuts, undo)
+  ✅ `validate-interactions.spec.js`, #4948: it calls `serveAnyPano`, so a dev database's live panos load in the
+  stub and the spec runs locally too. Still open: gallery expanded-card view and api-docs preview content asserts.
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label); admin
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label: ✅ `validate-interactions.spec.js`, #4948); admin
   pages (promote the setup user via a superuser `UPDATE user_role` in CI).
 
 ## File map
@@ -228,7 +229,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `expectMissionInCi`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
@@ -246,5 +247,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
+| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

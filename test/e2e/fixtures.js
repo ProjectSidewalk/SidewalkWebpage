@@ -218,6 +218,50 @@ async function loadAndSettle(page, context, p) {
 }
 
 /**
+ * Loads `/validate` or `/mobile` and settles it.
+ * @param {import('@playwright/test').Page} page The test's page.
+ * @param {string} path The page to load.
+ * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
+ */
+async function loadValidate(page, path) {
+  const response = await page.goto(path);
+  base.expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
+  await waitForAppReady(page);
+  const onMission = await waitForValidateTerminalState(page);
+  await page.waitForTimeout(1000);
+  return onMission;
+}
+
+/**
+ * Waits for Validate to settle into either of its two legitimate end states. Terminal state is
+ * path-dependent: the mission path hides #page-loading (visibility, not display); the no-mission path un-hides the
+ * modal holder instead — and may hide the overlay too, when a mission was assigned but every label's imagery failed
+ * (#4810), so the modal is checked first. Callers let the console assertion judge whichever ran.
+ * @param {import('@playwright/test').Page} page The page under test.
+ * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
+ */
+async function waitForValidateTerminalState(page) {
+  const handle = await page.waitForFunction(() => {
+    const loading = document.querySelector('#page-loading');
+    const missionUiReady = loading && getComputedStyle(loading).visibility === 'hidden';
+    const modal = document.querySelector('#modal-mission-holder');
+    const noMissionShown = modal && !modal.classList.contains('ps-hidden');
+    return noMissionShown ? 'no-mission' : (missionUiReady ? 'mission' : false);
+  });
+  return (await handle.jsonValue()) === 'mission';
+}
+
+/**
+ * Fails on CI when Validate settled without a mission (#4948). CI's seed always makes one, so there a missing mission
+ * means the seed broke, and the mission-only checks would otherwise skip and stay green. A local database may have
+ * no labels to validate, so locally either state is fine.
+ * @param {boolean} onMission What loadValidate returned.
+ */
+function expectMissionInCi(onMission) {
+  if (process.env.CI) base.expect(onMission, 'CI\'s seed gives Validate a mission, but none was assigned').toBe(true);
+}
+
+/**
  * Measures horizontal overflow at the current viewport width (issue #4883): every element whose border box
  * extends past the right edge of the layout viewport, except content inside an `overflow-x: auto|scroll`
  * ancestor — a horizontal scroller is the sanctioned way to present wide content (tables, code) on a phone.
@@ -351,6 +395,8 @@ module.exports = {
   stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
+  loadValidate,
+  expectMissionInCi,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
