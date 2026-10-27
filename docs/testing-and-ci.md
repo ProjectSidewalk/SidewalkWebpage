@@ -344,7 +344,7 @@ time they were set. Measure with `make test-js args=--coverage`.
   covers the build files) auto-formats before pushing.
 - **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
   specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, except
-  labeling in Explore's tutorial (#4777).
+  labeling in Explore's tutorial (#4777) and voting on labels in Validate (#4948).
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is

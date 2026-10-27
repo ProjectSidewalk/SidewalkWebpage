@@ -26,6 +26,6 @@ window.appManager.ready(async () => {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ validate_params: param.validateParams }),
   });
-  // Console and e2e handle (test/e2e/explore-validate.spec.js, docs/validation-queue.md); nothing in the app reads it.
+  // Console and e2e handle (test/e2e/, docs/validation-queue.md); nothing in the app reads it.
   window.svv = await new Main(param, firstMission).start();
 });
