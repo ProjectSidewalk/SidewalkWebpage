@@ -113,6 +113,8 @@ class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       val (label1, label2) = (targets(0)._1, targets(1)._1)
       val (v1, v2)         = (validators(0), validators(1))
       val result           = runRolledBack(for {
+        // A label with no votes can still carry stale counts that another spec left behind.
+        before2     <- countsOf(label2)
         _           <- vote(label1, v1, "Agree")
         _           <- vote(label1, v2, "Disagree")
         _           <- vote(label2, v1, "Agree")
@@ -122,8 +124,9 @@ class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
         scoped2     <- countsOf(label2)
         _           <- labelTable.recalculateValidationCounts(None)
         everywhere2 <- countsOf(label2)
-      } yield (scoped1, scoped2, everywhere2))
-      result mustBe (((1, 0, 0, Some(true)), (0, 0, 0, None), (1, 0, 0, Some(true))))
+      } yield (before2, (scoped1, scoped2, everywhere2)))
+      val (before2, counts) = result
+      counts mustBe (((1, 0, 0, Some(true)), before2, (1, 0, 0, Some(true))))
     }
   }
 
