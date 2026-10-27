@@ -86,17 +86,17 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       picked.value.edgeId mustBe streetEdgeId
     }
 
-    "leave the labeler's finished-region count alone" in {
+    "leave the not-audited streets, which size missions and finish regions, alone" in {
       // The exclusion lives at the pick, not in the shared not-audited query: a reported street is not a finished one.
-      val (completedRegions, regionId) = runRolledBack(for {
+      val (notAudited, streetEdgeId) = runRolledBack(for {
         userId       <- insertUser()
         regionId     <- insertRegion()
         streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         _            <- reportNoImagery(streetEdgeId, userId)
-        completed    <- auditTaskTable.getRegionsCompletedByUser(userId)
-      } yield (completed, regionId))
+        notAudited   <- auditTaskTable.getStreetEdgeIdsNotAudited(userId, regionId)
+      } yield (notAudited, streetEdgeId))
 
-      completedRegions must not contain regionId
+      notAudited must contain(streetEdgeId)
     }
   }
 
@@ -147,19 +147,25 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       untouched.reportedNoImagery mustBe false
     }
 
-    "hand a part-walked street's coverage back with it" in {
-      val stored = Json.arr(Json.arr(0d, 25.5d), Json.arr(40d, 61d))
-      val task   = runRolledBack(for {
-        userId       <- insertUser()
-        regionId     <- insertRegion()
-        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
-        auditTaskId  <- abandonedAudit(streetEdgeId, userId, currentLng = 0.3)
-        _            <- storeCoverage(auditTaskId, stored)
-        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
-      } yield taskFor(tasks, streetEdgeId))
+    "hand a part-walked street's coverage back with it, unless the street has newer imagery since" in {
+      val stored        = Json.arr(Json.arr(0d, 25.5d), Json.arr(40d, 61d))
+      val (task, stale) = runRolledBack(for {
+        userId      <- insertUser()
+        regionId    <- insertRegion()
+        streets     <- insertStreets(regionId, 2, withPriority = true)
+        auditTaskId <- abandonedAudit(streets.head, userId, currentLng = 0.3)
+        _           <- storeCoverage(auditTaskId, stored)
+        staleTaskId <- abandonedAudit(streets(1), userId, currentLng = 0.3, taskStart = now.minusDays(30))
+        _           <- storeCoverage(staleTaskId, stored)
+        _           <- setNewestImagery(streets(1), LocalDate.now.minusDays(10))
+        tasks       <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streets.head), taskFor(tasks, streets(1))))
 
       task.auditTaskId mustBe defined
       task.coveredRanges.value mustBe stored
+      // Not handed back at all: its panos were the old imagery, so the street starts over as a re-audit would.
+      stale.auditTaskId mustBe None
+      stale.coveredRanges mustBe None
     }
 
     "hand a free-exploration walk's coverage back only while it postdates the street's newest imagery" in {

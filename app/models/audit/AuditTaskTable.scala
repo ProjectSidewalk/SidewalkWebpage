@@ -360,6 +360,10 @@ class AuditTaskTable @Inject() (
   ): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] =
     streetEdgeRegionsNotAudited(userId).filter(_.regionId === regionId)
 
+  /** @return The ids of the streets in the region that the user has not audited with up-to-date imagery. */
+  def getStreetEdgeIdsNotAudited(userId: String, regionId: Int): DBIO[Seq[Int]] =
+    getStreetEdgeRegionsNotAuditedQuery(userId, regionId).map(_.streetEdgeId).result
+
   /**
    * The not-audited streets minus those the user reported as imagery-less (#5017). Kept apart from the not-audited
    * query, which also decides which regions the user has finished: a report is evidence, not a finished street (#4922).
@@ -373,30 +377,15 @@ class AuditTaskTable @Inject() (
     streetEdgeRegionsLeftToPick(userId).filter(_.regionId === regionId).exists.result
 
   /**
-   * Gets the list of streets in the specified region that the user has not audited with up-to-date imagery.
+   * Regions with no street left to hand the user: finished, or down to streets they reported as imagery-less. A
+   * region re-opens when new imagery lands on a street they audited (#4384); one down to reported streets still reads
+   * as unfinished, but assigning it would hand out no street and reload the user back into it forever (#5017).
    */
-  def getStreetEdgeIdsNotAudited(user: String, regionId: Int): DBIO[Seq[Int]] = {
-    getStreetEdgeRegionsNotAuditedQuery(user, regionId).map(_.streetEdgeId).result
-  }
-
-  /**
-   * Get a set of regions where the user has explored all the street edges (with up-to-date imagery).
-   *
-   * A region re-opens for the user when new imagery lands on a street they audited (#4384).
-   */
-  def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] =
-    regionsWithNoneOf(streetEdgeRegionsNotAudited(userId))
-
-  /**
-   * Regions finished, or down to streets the user reported as imagery-less: the latter still read as unfinished, but
-   * assigning one would hand out no street and reload the user back into it forever (#5017).
-   */
-  def getRegionsWithNothingLeftToPick(userId: String): DBIO[Seq[Int]] =
-    regionsWithNoneOf(streetEdgeRegionsLeftToPick(userId))
-
-  /** @return The regions holding none of the given streets. */
-  private def regionsWithNoneOf(streets: Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq]): DBIO[Seq[Int]] = {
-    val regionIdsWithOne = streets.map(_.regionId).groupBy(regionId => regionId).map { case (regionId, _) => regionId }
+  def getRegionsWithNothingLeftToPick(userId: String): DBIO[Seq[Int]] = {
+    val regionIdsWithOne = streetEdgeRegionsLeftToPick(userId)
+      .map(_.regionId)
+      .groupBy(regionId => regionId)
+      .map { case (regionId, _) => regionId }
     regionsWithoutDeleted
       .joinLeft(regionIdsWithOne)
       .on(_.regionId === _)
@@ -1081,6 +1070,8 @@ class AuditTaskTable @Inject() (
           .filter(StreetEdgeIssueTable.reportedNoImageryDuringTask(_, task.streetEdgeId, userId.bind, task.taskStart))
           .exists
       )
+      // What the walk saw was the old panos, so resuming it would credit a re-audit with them (#4384).
+      .filterNot(task => predatesStreetImagery(task.streetEdgeId, task.taskEnd))
   }
 
   /**
@@ -1224,9 +1215,12 @@ class AuditTaskTable @Inject() (
     )
   }
 
-  /** @return A task's stored coverage as written (#5733); None for a row from before it was tracked or an unknown id. */
-  def getCoveredRanges(auditTaskId: Int): DBIO[Option[JsValue]] =
-    auditTasks.filter(_.auditTaskId === auditTaskId).map(_.coveredRanges).result.headOption.map(_.flatten)
+  /**
+   * @return A task's stored coverage (#5733), None on a row from before it was tracked, and whether the task is
+   *         already completed; None for an unknown id.
+   */
+  def getCoverageState(auditTaskId: Int): DBIO[Option[(Option[JsValue], Boolean)]] =
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(t => (t.coveredRanges, t.completed)).result.headOption
 
   /**
    * Update a single task's flag given the flag type and the status to change to.

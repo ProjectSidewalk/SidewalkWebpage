@@ -139,6 +139,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, seenEnough = at
     isConnectedTo: () => true,
     getMidpoint: () => ({ lat: FIXTURE_LAT, lng: (start[0] + end[0]) / 2 }),
     lineDistance: () => lengthKm * 1000,
+    getCoveredDistanceM: () => 0,
     getDistanceFromStart: () => 0,
     headingAlongRoute: () => streetEdgeId,
   };
@@ -957,6 +958,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
       expect(reportNoImagery).toHaveBeenCalledTimes(1);
       expect(holed.wasGivenUpOnImagery()).toBe(true);
       expect(svl.form.submitData).toHaveBeenCalledWith(holed);
+      // The route's completeness is judged on the submission, so the report has to be on file first.
+      expect(reportNoImagery.mock.invocationCallOrder[0]).toBeLessThan(svl.form.submitData.mock.invocationCallOrder[0]);
       expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
       expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
     });

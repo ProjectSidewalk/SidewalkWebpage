@@ -159,7 +159,6 @@ export class Form {
         // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
         request_updated_street_priority: !this.#config.isOnboarding && !this.#config.userRouteId
           && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
-        audited_distance_m: task.getCoveredDistanceM(),
         // The server credits the street from these, never from the completed flag (#5733, #5669).
         covered_ranges: task.getCoveredRanges(),
         // Which route_street row this task was served for. An out-and-back route walks one street twice, so the

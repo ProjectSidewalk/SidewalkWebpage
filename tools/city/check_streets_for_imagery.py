@@ -103,7 +103,7 @@ derived from the checkpoint, so its schema is unchanged.
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
 ``best_pano``, ``mapillary_pano_info``, ``parse_iso_instant_ms``, ``panoramax_pano_info``, ``cross_track_m``,
-``endpoint_distance_m``, ``within_search_radius``, ``pano_counts``, ``imagery_verdict``,
+``endpoint_distance_m``, ``within_search_radius``, ``pano_counts``, ``along_street_m``, ``CoverageWalk``,
 ``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 

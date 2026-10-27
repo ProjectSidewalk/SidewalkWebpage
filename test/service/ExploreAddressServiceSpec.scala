@@ -211,7 +211,6 @@ class ExploreAddressServiceSpec
       streetEdgeId: Int,
       regionId: Int,
       completed: Boolean,
-      auditedDistanceM: Option[Double],
       labels: Seq[LabelSubmission] = Seq.empty,
       coveredRanges: Option[Seq[CoveredRange]] = None,
       omitTaskId: Boolean = false,
@@ -222,8 +221,8 @@ class ExploreAddressServiceSpec
     AuditTaskSubmission(
       missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, postedTaskId, false),
       auditTask = TaskSubmission(streetEdgeId, now, postedTaskId, Some(taskCompleted.getOrElse(completed)), 0d, 0d,
-        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM,
-        routeStreetId = None, coveredRanges = coveredRanges),
+        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, routeStreetId = None,
+        coveredRanges = coveredRanges),
       labels = labels,
       interactions = Seq.empty,
       environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
@@ -354,7 +353,7 @@ class ExploreAddressServiceSpec
           // The client's own distance is ignored for a free-exploration task: with no coverage posted, none is stored.
           val result = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, Some(12.3),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false,
                 coveredRanges = Some(Seq.empty)),
               testUser.userId
             )
@@ -386,7 +385,7 @@ class ExploreAddressServiceSpec
 
           val result = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = true, None),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = true),
               testUser.userId
             )
           )
@@ -422,7 +421,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(0d, 5d))),
                 omitTaskId = true
               ),
@@ -466,7 +464,6 @@ class ExploreAddressServiceSpec
                   streetEdgeId,
                   data.region.regionId,
                   completed = false,
-                  None,
                   coveredRanges = Some(Seq(CoveredRange(0d, len))),
                   omitTaskId = true
                 ),
@@ -536,7 +533,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(len - StreetCoverage.PanoWindowM, len)))
               ),
               completionUser.userId
@@ -571,7 +567,7 @@ class ExploreAddressServiceSpec
           val firstHalf      = CoveredRange(0d, len / 2)
           val firstRes       = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, None,
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false,
                 coveredRanges = Some(Seq(firstHalf))),
               completionUser.userId
             )
@@ -589,7 +585,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(len / 2 - 1d, len)))
               ),
               completionUser.userId
@@ -630,7 +625,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(0d, len)))
               ),
               completionUser.userId
@@ -668,8 +662,8 @@ class ExploreAddressServiceSpec
     }
   }
 
-  "insertNoImagery for an exploreAddress mission" should {
-    "credit a regular audit mission's street from its coverage too, never from the posted flag (#5669)" in {
+  "server-derived street completion for an audit mission" should {
+    "credit the street from its coverage, never from the posted flag (#5669)" in {
       completionLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
         case Some((lat, lng)) =>
@@ -694,8 +688,8 @@ class ExploreAddressServiceSpec
           val sliver   = CoveredRange(0d, 5d)
           val firstRes = await(
             exploreService.submitExploreData(
-              submission(missionId, 0, streetEdgeId, regionId, completed = false, None,
-                coveredRanges = Some(Seq(sliver)), omitTaskId = true, taskCompleted = Some(true)),
+              submission(missionId, 0, streetEdgeId, regionId, completed = false, coveredRanges = Some(Seq(sliver)),
+                omitTaskId = true, taskCompleted = Some(true)),
               regularUser.userId
             )
           )
@@ -715,7 +709,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(4d, len)))
               ),
               regularUser.userId
@@ -731,7 +724,9 @@ class ExploreAddressServiceSpec
           }
       }
     }
+  }
 
+  "insertNoImagery for an exploreAddress mission" should {
     "record the street_edge_issue without completing the task or moving street priority" in {
       addressLatLng match {
         case None             => cancel("No streets in the connected DB; nothing to exercise.")
@@ -773,7 +768,7 @@ class ExploreAddressServiceSpec
           val _            = await(
             exploreService.submitExploreData(
               submission(data.mission.missionId, auditTaskId, streetEdgeId, data.region.regionId, completed = false,
-                auditedDistanceM = None, labels = Seq(labelSubmission(data.nextTempLabelId))),
+                labels = Seq(labelSubmission(data.nextTempLabelId))),
               testUser.userId
             )
           )

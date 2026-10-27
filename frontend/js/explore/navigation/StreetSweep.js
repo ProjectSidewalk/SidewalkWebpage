@@ -265,9 +265,15 @@ export class StreetSweep {
    */
   async giveUpOnStreet(task) {
     if (task.wasGivenUpOnImagery()) return;
+    this.#tracker.push('NoImagery_StreetEndedShort', {
+      coveredM: Math.round(task.getCoveredDistanceM()), lengthM: Math.round(task.lineDistance({ units: 'meters' })),
+    });
     const reported = this.#reportStreet(task);
     this.#markGivenUp(task);
-    await Promise.all([reported, this.#submitGivenUp(task)]);
+    // The report first: a route's completeness is judged on the submission, and counts a reported street only once
+    // the report is on file.
+    await reported;
+    await this.#submitGivenUp(task);
   }
 
   /**

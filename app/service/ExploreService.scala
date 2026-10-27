@@ -632,7 +632,7 @@ class ExploreServiceImpl @Inject() (
    * user already has an up-to-date audit of takes no write (a second completed task would count it twice); an
    * outdated one is not reopened, so new imagery earns a fresh task, as a regular re-audit does.
    *
-   * @return The audit_task_id, and for a task that is still open its merged coverage.
+   * @return The audit_task_id, and for a task that is still open its merged coverage, which decides its completion.
    */
   private def updateAuditTaskTable(
       userId: String,
@@ -661,11 +661,13 @@ class ExploreServiceImpl @Inject() (
         case (Some(id), true)                => DBIO.successful((id, None))
         case (Some(id), _) if tracksCoverage =>
           for {
-            stored: Option[JsValue]   <- auditTaskTable.getCoveredRanges(id)
+            state: Option[(Option[JsValue], Boolean)] <- auditTaskTable.getCoverageState(id)
+            (stored: Option[JsValue], done: Boolean) = state.getOrElse((None, false))
             merged: Seq[CoveredRange] <- mergedCoverage(task, stored)
             _ <- auditTaskTable.updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
               task.currentMissionStart, merged)
-          } yield (id, Some(merged))
+            // A completed task's later saves keep its coverage current, but must not re-run its completion.
+          } yield (id, if (done) None else Some(merged))
         case (Some(id), _) => DBIO.successful((id, None)) // The tutorial's row is never written to.
         case (None, _)     =>
           mergedCoverage(task, stored = None).flatMap { (merged: Seq[CoveredRange]) =>

@@ -185,7 +185,6 @@ class ExploreSubmissionSpec
         "current_mission_start"           -> JsNull,
         "last_priority_update_time"       -> now,
         "request_updated_street_priority" -> false,
-        "audited_distance_m"              -> 0.0,
         "covered_ranges"                  -> coveredRanges.map(r => Json.toJson(r.map(p => Json.arr(p._1, p._2)))),
         "route_street_id"                 -> JsNull
       ),
