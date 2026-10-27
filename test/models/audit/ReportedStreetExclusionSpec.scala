@@ -1,16 +1,20 @@
 package models.audit
 
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
+
+import java.time.LocalDate
 
 /**
  * DB-backed tests pinning what a labeler's own no-imagery report does to the streets a neighborhood hands them (#5017,
- * #5669): the server-side pick passes the street over, the region task list marks it so the client's next-street
- * chooser does too, and neither touches anyone else or the neighborhood's completion. Also pins that a regular walk's
- * stored coverage rides back on the region task list, so a reload redraws and resumes a part-walked street.
+ * #5669): the pick passes the street over, a region down to such streets stops being assigned, the region task list
+ * marks them for the client's chooser, and none of it touches anyone else or the neighborhood's completion. Also pins
+ * which coverage rides back on the task list: a regular walk's own, never a free-exploration walk's from before newer
+ * imagery.
  *
  * Every case builds its own world with [[StreetFixtures]] inside a rolled-back transaction, so the assertions are
  * exact against a full dev dump and CI's near-empty schema alike. Requires a Postgres+PostGIS database.
@@ -30,16 +34,30 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
 
   "selectANewTaskInARegion" should {
     "pass over a street the labeler reported as having no imagery, whenever they reported it" in {
-      val (picked, reported) = runRolledBack(for {
+      // The reported street outranks the other, so without the exclusion the pick would always take it.
+      val (picked, other) = runRolledBack(for {
         userId   <- insertUser()
         regionId <- insertRegion()
-        streets  <- insertStreets(regionId, 2, withPriority = true)
-        (reported, other) = (streets.head, streets(1))
-        _      <- reportNoImagery(reported, userId, now.minusDays(30))
-        picked <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
-      } yield (picked, reported))
+        reported <- insertStreet(Some(regionId), withPriority = true, priority = 1.0)
+        other    <- insertStreet(Some(regionId), withPriority = true, priority = 0.5)
+        _        <- reportNoImagery(reported, userId, now.minusDays(30))
+        picked   <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
+      } yield (picked, other))
 
-      picked.value.edgeId must not be reported
+      picked.value.edgeId mustBe other
+    }
+
+    "hand a reported street back once the street has imagery newer than the report" in {
+      val (picked, streetEdgeId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- reportNoImagery(streetEdgeId, userId, now.minusDays(30))
+        _            <- setNewestImagery(streetEdgeId, LocalDate.now.minusDays(10))
+        picked       <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
+      } yield (picked, streetEdgeId))
+
+      picked.value.edgeId mustBe streetEdgeId
     }
 
     "hand out nothing when the only street left is one the labeler reported" in {
@@ -82,6 +100,36 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
     }
   }
 
+  "a region down to streets the labeler reported" should {
+    "have nothing left to pick, so the session moves on instead of reloading into it" in {
+      val (left, exhausted, regionId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- reportNoImagery(streetEdgeId, userId)
+        left         <- auditTaskTable.hasStreetsLeftToPick(userId, regionId)
+        exhausted    <- auditTaskTable.getRegionsWithNothingLeftToPick(userId)
+      } yield (left, exhausted, regionId))
+
+      left mustBe false
+      exhausted must contain(regionId)
+    }
+
+    "still have streets left while one is unreported" in {
+      val (left, exhausted, regionId) = runRolledBack(for {
+        userId    <- insertUser()
+        regionId  <- insertRegion()
+        streets   <- insertStreets(regionId, 2, withPriority = true)
+        _         <- reportNoImagery(streets.head, userId)
+        left      <- auditTaskTable.hasStreetsLeftToPick(userId, regionId)
+        exhausted <- auditTaskTable.getRegionsWithNothingLeftToPick(userId)
+      } yield (left, exhausted, regionId))
+
+      left mustBe true
+      exhausted must not contain regionId
+    }
+  }
+
   "selectTasksInARegion" should {
     "flag the streets this labeler reported, and only those" in {
       val (mine, theirs, untouched) = runRolledBack(for {
@@ -106,12 +154,37 @@ class ReportedStreetExclusionSpec extends SidewalkSpec with GuiceOneAppPerSuite 
         regionId     <- insertRegion()
         streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
         auditTaskId  <- abandonedAudit(streetEdgeId, userId, currentLng = 0.3)
-        _            <- auditTaskTable.updateTaskCoverage(auditTaskId, stored, 46.5d)
+        _            <- storeCoverage(auditTaskId, stored)
         tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
       } yield taskFor(tasks, streetEdgeId))
 
       task.auditTaskId mustBe defined
       task.coveredRanges.value mustBe stored
     }
+
+    "hand a free-exploration walk's coverage back only while it postdates the street's newest imagery" in {
+      // Seeding a regular task with what an older walk saw would let the first save credit a re-audit (#4384).
+      val stored         = Json.arr(Json.arr(0d, 80d))
+      val (fresh, stale) = runRolledBack(for {
+        userId   <- insertUser()
+        regionId <- insertRegion()
+        streets  <- insertStreets(regionId, 2, withPriority = true)
+        _        <- storeExploration(streets.head, userId, stored)
+        _        <- storeExploration(streets(1), userId, stored)
+        _        <- setNewestImagery(streets(1), LocalDate.now.minusDays(10))
+        tasks    <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streets.head), taskFor(tasks, streets(1))))
+
+      fresh.coveredRanges.value mustBe stored
+      stale.coveredRanges mustBe None
+    }
   }
+
+  private def storeCoverage(auditTaskId: Int, stored: JsValue): DBIO[Int] =
+    auditTaskTable.auditTasks.filter(_.auditTaskId === auditTaskId).map(_.coveredRanges).update(Some(stored))
+
+  /** A free-exploration walk of the street from a month ago, as the drop-in leaves one (#5733). */
+  private def storeExploration(streetEdgeId: Int, userId: String, stored: JsValue): DBIO[Int] =
+    abandonedAudit(streetEdgeId, userId, startOffsetM = Some(0d), taskStart = now.minusDays(30))
+      .flatMap(auditTaskId => storeCoverage(auditTaskId, stored))
 }

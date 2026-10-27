@@ -336,26 +336,41 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Gets the list of streets in the specified region that the user has not audited with up-to-date imagery.
+   * The streets, in every region, that the user has not audited with up-to-date imagery.
    *
    * A street whose only audits by this user predate newer imagery counts as not audited, so the user can be routed
    * down it again (#4384).
    */
-  def getStreetEdgeRegionsNotAuditedQuery(
-      userId: String,
-      regionId: Int
-  ): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
+  private def streetEdgeRegionsNotAudited(userId: String): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
     val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
       case (streetEdgeId, _) => streetEdgeId
     }
 
     nonDeletedStreetEdgeRegions
-      .filter(_.regionId === regionId)
       .joinLeft(edgesAuditedByUser)
       .on(_.streetEdgeId === _)
       .filter { case (_, audited) => audited.isEmpty }
       .map { case (streetEdgeRegion, _) => streetEdgeRegion }
   }
+
+  /** Gets the list of streets in the specified region that the user has not audited with up-to-date imagery. */
+  def getStreetEdgeRegionsNotAuditedQuery(
+      userId: String,
+      regionId: Int
+  ): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] =
+    streetEdgeRegionsNotAudited(userId).filter(_.regionId === regionId)
+
+  /**
+   * The not-audited streets minus those the user reported as imagery-less (#5017). Kept apart from the not-audited
+   * query, which also decides which regions the user has finished: a report is evidence, not a finished street (#4922).
+   */
+  private def streetEdgeRegionsLeftToPick(userId: String): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] =
+    streetEdgeRegionsNotAudited(userId)
+      .filterNot(ser => streetsReportedNoImageryByUser(userId).filter(_ === ser.streetEdgeId).exists)
+
+  /** @return Whether the region has a street left that the pick could hand this user. */
+  def hasStreetsLeftToPick(userId: String, regionId: Int): DBIO[Boolean] =
+    streetEdgeRegionsLeftToPick(userId).filter(_.regionId === regionId).exists.result
 
   /**
    * Gets the list of streets in the specified region that the user has not audited with up-to-date imagery.
@@ -369,25 +384,23 @@ class AuditTaskTable @Inject() (
    *
    * A region re-opens for the user when new imagery lands on a street they audited (#4384).
    */
-  def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] = {
-    val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
-      case (streetEdgeId, _) => streetEdgeId
-    }
+  def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] =
+    regionsWithNoneOf(streetEdgeRegionsNotAudited(userId))
 
-    // Get regions that the user _hasn't_ finished.
-    val incompleteRegionIds = nonDeletedStreetEdgeRegions
-      .joinLeft(edgesAuditedByUser)
-      .on(_.streetEdgeId === _)
-      .filter { case (_, audited) => audited.isEmpty }
-      .map { case (streetEdgeRegion, _) => streetEdgeRegion.regionId }
-      .groupBy(regionId => regionId)
-      .map { case (regionId, _) => regionId }
+  /**
+   * Regions finished, or down to streets the user reported as imagery-less: the latter still read as unfinished, but
+   * assigning one would hand out no street and reload the user back into it forever (#5017).
+   */
+  def getRegionsWithNothingLeftToPick(userId: String): DBIO[Seq[Int]] =
+    regionsWithNoneOf(streetEdgeRegionsLeftToPick(userId))
 
-    // Any region that is not in the incompleteRegionIds list is a region that the user has completed.
+  /** @return The regions holding none of the given streets. */
+  private def regionsWithNoneOf(streets: Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq]): DBIO[Seq[Int]] = {
+    val regionIdsWithOne = streets.map(_.regionId).groupBy(regionId => regionId).map { case (regionId, _) => regionId }
     regionsWithoutDeleted
-      .joinLeft(incompleteRegionIds)
+      .joinLeft(regionIdsWithOne)
       .on(_.regionId === _)
-      .filter { case (_, incomplete) => incomplete.isEmpty }
+      .filter { case (_, withOne) => withOne.isEmpty }
       .map { case (region, _) => region.regionId }
       .result
   }
@@ -726,7 +739,7 @@ class AuditTaskTable @Inject() (
           None: Option[Int],                   // routeStreetId is None for the tutorial task.
           None: Option[Int],                   // routeStreetPosition is None for the tutorial task.
           None: Option[String],                // maxSpeed isn't shown during the tutorial.
-          false,                               // reportedNoImagery is route-scoped; see NewTask.
+          false,                               // reportedNoImagery: the tutorial street is never reported.
           false,                               // needsReaudit: the tutorial street is never a re-audit.
           false,                               // mappedByThisUser: no notice to phrase, so nothing to attribute.
           None: Option[OffsetDateTime],        // lastMappedAt
@@ -749,12 +762,8 @@ class AuditTaskTable @Inject() (
    * TODO this isn't a simple CRUD operation, so it should probably go in a Service file.
    */
   def selectANewTaskInARegion(regionId: Int, userId: String, missionId: Int): DBIO[Option[NewTask]] = {
-    // The report exclusion lives at the pick, not in getStreetEdgeRegionsNotAuditedQuery: that query also decides
-    // which regions the user has finished, and a report is evidence, not a finished street (#4922, #5017).
-    val unreported = getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
-      .filterNot(ser => streetsReportedNoImageryByUser(userId).filter(_ === ser.streetEdgeId).exists)
     val candidates = for {
-      ser                   <- unreported
+      ser                   <- streetEdgeRegionsLeftToPick(userId) if ser.regionId === regionId
       se                    <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sp                    <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc                    <- streetAuditState(userId) if se.streetEdgeId === sc.streetEdgeId
@@ -786,7 +795,7 @@ class AuditTaskTable @Inject() (
               None: Option[Int],                  // routeStreetId
               None: Option[Int],                  // routeStreetPosition
               maxSpeed,
-              false, // reportedNoImagery is route-scoped; see NewTask.
+              false, // reportedNoImagery: the pick already passed over streets they reported.
               sc.needsReaudit,
               sc.mappedByThisUser,
               sc.lastMappedAt,
@@ -869,12 +878,15 @@ class AuditTaskTable @Inject() (
     val userResumableStreets = resumableTasksForUser(userId, Some(regionId))
 
     // The user's free-exploration coverage per street (#5733), without the task id: with it, a regular mission would
-    // post its distance onto a free-exploration row. A resumed regular task carries its own coverage below.
+    // post its distance onto a free-exploration row. A resumed regular task carries its own coverage below. A walk from
+    // before the street's imagery was renewed saw the old panos, so it must not credit a re-audit (#4384).
     val edgesInRegion         = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
     val userExploredStreetIds = auditTasks
-      .filter(task =>
-        task.userId === userId && task.startOffsetM.isDefined && task.streetEdgeId.in(edgesInRegion.map(_.streetEdgeId))
-      )
+      .filter { task =>
+        val inRegion = task.streetEdgeId.in(edgesInRegion.map(_.streetEdgeId))
+        val current  = !predatesStreetImagery(task.streetEdgeId, task.taskEnd)
+        task.userId === userId && task.startOffsetM.isDefined && inRegion && current
+      }
       .groupBy(_.streetEdgeId)
       .map { case (_, tasks) => tasks.map(_.auditTaskId).max }
     val userExploredStreets = auditTasks.filter(_.auditTaskId.? in userExploredStreetIds)
@@ -922,13 +934,24 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Streets this user has ever reported as having no imagery (#5017). A report is one session's verdict (#4922): it
-   * hides the street from its reporter only, and the offline checker is what retires it for everyone.
+   * Streets this user reported as having no imagery (#5017). A report is one session's verdict (#4922): it hides the
+   * street from its reporter only, the offline checker retires it for everyone, and newer imagery makes it lapse.
+   *
+   * @return A query of street edge ids, for use as an `in` subquery.
    */
   private def streetsReportedNoImageryByUser(userId: String): Query[Rep[Int], Int, Seq] =
     streetEdgeIssues
-      .filter(issue => issue.userId === userId.bind && issue.issue === StreetEdgeIssueType.PanoNotAvailable)
+      .filter(issue =>
+        issue.userId === userId.bind && issue.issue === StreetEdgeIssueType.PanoNotAvailable &&
+          !predatesStreetImagery(issue.streetEdgeId, issue.timestamp)
+      )
       .map(_.streetEdgeId)
+
+  /** `syncOutdatedImageryFlags`'s date rule, for what that flag never reaches (an open walk, a report). */
+  private def predatesStreetImagery(streetEdgeId: Rep[Int], at: Rep[OffsetDateTime]): Rep[Boolean] =
+    streetImagery
+      .filter(si => si.streetEdgeId === streetEdgeId && at.asColumnOf[LocalDate] < si.medianNewestCapture)
+      .exists
 
   /**
    * Streets the route's labeler reported as imagery-less during *this* walk of it.
@@ -1179,9 +1202,7 @@ class AuditTaskTable @Inject() (
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.completed).update(completed)
   }
 
-  /**
-   * Update the progress columns (task_end, position, mission, audited_distance_m) of the specified audit task row.
-   */
+  /** Writes a save's progress, keeping `audited_distance_m` equal to the coverage's total (#5733). */
   def updateTaskProgress(
       auditTaskId: Int,
       timestamp: OffsetDateTime,
@@ -1189,25 +1210,23 @@ class AuditTaskTable @Inject() (
       lng: Double,
       missionId: Int,
       currMissionStart: Option[Point],
-      auditedDistanceM: Option[Double]
+      coveredRanges: Seq[CoveredRange]
   ): DBIO[Int] = {
     val q = auditTasks
       .filter(_.auditTaskId === auditTaskId)
-      .map(t => (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart, t.auditedDistanceM))
-    q.update((timestamp, lat, lng, Some(missionId), currMissionStart, auditedDistanceM))
+      .map(t =>
+        (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart, t.auditedDistanceM,
+          t.coveredRanges)
+      )
+    q.update(
+      (timestamp, lat, lng, Some(missionId), currMissionStart, Some(StreetCoverage.coveredM(coveredRanges)),
+        Some(StreetCoverage.toJson(coveredRanges)))
+    )
   }
 
-  /** @return A task's stored coverage as written (#5733); None for a regular audit or an unknown id. */
+  /** @return A task's stored coverage as written (#5733); None for a row from before it was tracked or an unknown id. */
   def getCoveredRanges(auditTaskId: Int): DBIO[Option[JsValue]] =
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.coveredRanges).result.headOption.map(_.flatten)
-
-  /** Stores a free-exploration task's merged coverage and keeps `audited_distance_m` equal to its total (#5733). */
-  def updateTaskCoverage(auditTaskId: Int, coveredRanges: JsValue, coveredM: Double): DBIO[Int] = {
-    auditTasks
-      .filter(_.auditTaskId === auditTaskId)
-      .map(t => (t.coveredRanges, t.auditedDistanceM))
-      .update((Some(coveredRanges), Some(coveredM)))
-  }
 
   /**
    * Update a single task's flag given the flag type and the status to change to.

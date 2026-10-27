@@ -171,11 +171,12 @@ class ExploreAddressServiceSpec
   override def afterAll(): Unit = {
     try {
       // Restores run first because they are the ones that must not be skipped: they put shared city state back,
-      // where everything below only drops rows this suite created.
-      priorityRestores.foreach { case (streetEdgeId, p) =>
+      // where everything below only drops rows this suite created. Two tests move the same street, so only the first
+      // capture of each is the original.
+      priorityRestores.distinctBy(_._1).foreach { case (streetEdgeId, p) =>
         val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
       }
-      auditedDistanceRestores.foreach { case (regionId, d) =>
+      auditedDistanceRestores.distinctBy(_._1).foreach { case (regionId, d) =>
         val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
       }
 

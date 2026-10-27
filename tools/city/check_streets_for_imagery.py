@@ -982,18 +982,35 @@ def street_length_m(street_geom: LineString) -> float:
 def along_street_m(street_geom: LineString, length_m: float, lat: float, lng: float) -> float:
     """
     Where a point sits along a street, in metres from the street's first coordinate, as ``Task.recordVisit`` measures
-    a pano: the nearest point of the centerline, scaled from the degree-space fraction to the geodesic length.
+    a pano: the geodesic length of the centerline up to the point's nearest point on it.
+
+    The nearest point is found with longitude scaled by cos(latitude), so a degree east counts the same as a degree
+    north; projecting in raw degrees would pull the nearest point sideways on any street that bends.
 
     Args:
         street_geom: The street's centerline, in lat/lng degrees.
-        length_m:    Its geodesic length (``street_length_m``), so the scaling isn't repeated per point.
+        length_m:    Its geodesic length (``street_length_m``), which the answer never exceeds.
         lat:         Latitude of the point.
         lng:         Longitude of the point.
 
     Returns:
         Metres along the street, in ``[0, length_m]``.
     """
-    return street_geom.project(Point(lng, lat), normalized=True) * length_m
+    coords = list(street_geom.coords)
+    scale = math.cos(math.radians(lat))
+    scaled = LineString([(x * scale, y) for x, y in coords])
+    target = scaled.project(Point(lng * scale, lat))
+    walked_scaled = 0.0
+    walked_m = 0.0
+    for (x1, y1), (x2, y2) in zip(coords, coords[1:]):
+        segment_scaled = math.hypot((x2 - x1) * scale, y2 - y1)
+        if walked_scaled + segment_scaled >= target:
+            frac = (target - walked_scaled) / segment_scaled if segment_scaled else 0.0
+            x, y = x1 + frac * (x2 - x1), y1 + frac * (y2 - y1)
+            return min(walked_m + geodesic((y1, x1), (y, x)).meters, length_m)
+        walked_scaled += segment_scaled
+        walked_m += geodesic((y1, x1), (y2, x2)).meters
+    return length_m
 
 
 def merge_ranges(ranges: Iterable[tuple[float, float]], length_m: float) -> list[tuple[float, float]]:

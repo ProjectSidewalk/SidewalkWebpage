@@ -190,7 +190,9 @@ export class StreetProgress {
     // A street reached across a gap in its imagery is still one nobody saw enough of: the report is what the checker
     // retires it on, the give-up what keeps it from coming back (#4922). Not awaited, as endTask's submission isn't:
     // the hand-off below must finish before the views read it.
-    if (!task.isCoveredEnough()) this.#streetSweep.giveUpOnStreet(task);
+    if (!task.isCoveredEnough()) {
+      this.#streetSweep.giveUpOnStreet(task).catch((err) => console.warn('Failed to file the street as empty:', err));
+    }
 
     this.#missionJump = mission;
     const nextTask = this.#taskContainer.nextTask(task);
@@ -217,6 +219,8 @@ export class StreetProgress {
         mission.pushATaskToTheRoute(task);
       }
       this.#taskContainer.setCurrentTask(nextTask);
+      // The pano at the junction shows the next street's start too; the first landing on it is a window further on.
+      nextTask.recordVisit(this.#panoManager.getPosition());
     }
   }
 

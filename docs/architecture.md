@@ -139,7 +139,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   was seen, else reported as missing imagery and left unfinished (`StreetProgress`, `StreetSweep`): a hole of more
   than 50 m is a stretch nobody could look at, so the street waits for better imagery. A report is evidence for
   the checker, not a verdict (#4922); it only stops the neighborhood handing that street back to the labeler who
-  bounced off it (`selectANewTaskInARegion`, `reported_no_imagery` on the region task list, #5017).
+  bounced off it (`selectANewTaskInARegion`, `reported_no_imagery` on the region task list, #5017), until the
+  street has imagery newer than the report. A region down to such streets is skipped by region assignment
+  (`getRegionsWithNothingLeftToPick`) but still reads as unfinished.
   The `?lat&lng` drop-in (#4451) has no route or direction, so there the client credits each pano to whichever
   loaded street it is on, switching tasks as the labeler wanders (`TaskContainer.recordExploreMove`), and the
   server finds the task by user, street and mission, never by the posted id. A street the user already has an

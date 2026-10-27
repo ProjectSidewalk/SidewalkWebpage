@@ -590,13 +590,11 @@ class ExploreServiceImpl @Inject() (
         }
     }
 
-  /**
-   * Picks one of the regions with the highest average priority out of those that the user has not completed.
-   */
+  /** Picks one of the highest-priority regions with a street left to hand the user (#5017). */
   private def selectAHighPriorityRegion(userId: String): DBIO[Option[Region]] = {
     for {
-      finishedRegions: Seq[Int] <- auditTaskTable.getRegionsCompletedByUser(userId)
-      highPriorityRegion        <- regionTable.selectAHighPriorityRegion(finishedRegions)
+      exhaustedRegions: Seq[Int] <- auditTaskTable.getRegionsWithNothingLeftToPick(userId)
+      highPriorityRegion         <- regionTable.selectAHighPriorityRegion(exhaustedRegions)
     } yield highPriorityRegion
   }
 
@@ -614,11 +612,9 @@ class ExploreServiceImpl @Inject() (
     } yield newRegion
   }
 
-  /**
-   * Check if there are tasks available for the user in the given region.
-   */
+  /** Streets the user reported as imagery-less don't count: the pick passes them over (#5017). */
   private def isTaskAvailable(user: String, regionId: Int): DBIO[Boolean] =
-    auditTaskTable.getStreetEdgeIdsNotAudited(user, regionId).map(_.nonEmpty)
+    auditTaskTable.hasStreetsLeftToPick(user, regionId)
 
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]] =
     db.run(auditTaskTable.selectTasksInARegion(regionId, userId))
@@ -668,8 +664,7 @@ class ExploreServiceImpl @Inject() (
             stored: Option[JsValue]   <- auditTaskTable.getCoveredRanges(id)
             merged: Seq[CoveredRange] <- mergedCoverage(task, stored)
             _ <- auditTaskTable.updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
-              task.currentMissionStart, Some(StreetCoverage.coveredM(merged)))
-            _ <- auditTaskTable.updateTaskCoverage(id, StreetCoverage.toJson(merged), StreetCoverage.coveredM(merged))
+              task.currentMissionStart, merged)
           } yield (id, Some(merged))
         case (Some(id), _) => DBIO.successful((id, None)) // The tutorial's row is never written to.
         case (None, _)     =>

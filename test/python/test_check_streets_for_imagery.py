@@ -824,6 +824,19 @@ def test_street_length_and_along_street_measure_geodesically():
     assert cs.along_street_m(_LINE_60, length, 47.60, -122.298) == pytest.approx(length, abs=0.01)
 
 
+def test_along_street_measures_a_bend_in_metres_not_degrees():
+    # 100 m north then 100 m east: a degree of longitude is two thirds of a degree of latitude at this latitude, so the
+    # corner sits at 60% of the degree-space length but halfway along the street.
+    corner = _offset(_LAT, _LNG, north_m=100)
+    end = _offset(corner[1], corner[0], east_m=100)
+    bent = LineString([(_LNG, _LAT), corner, end])
+    length = cs.street_length_m(bent)
+    assert length == pytest.approx(200, abs=0.5)
+    assert cs.along_street_m(bent, length, corner[1], corner[0]) == pytest.approx(100, abs=0.5)
+    beside_east_leg = _offset(corner[1], corner[0], east_m=30, north_m=5)
+    assert cs.along_street_m(bent, length, beside_east_leg[1], beside_east_leg[0]) == pytest.approx(130, abs=0.5)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # make_fetch (retry) + rate limiter
 # --------------------------------------------------------------------------------------------------------------------
