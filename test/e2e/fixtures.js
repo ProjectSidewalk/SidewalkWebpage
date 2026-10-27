@@ -218,6 +218,44 @@ async function loadAndSettle(page, context, p) {
 }
 
 /**
+ * Loads `/validate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the seed always makes
+ * one, so the mission-only checks would otherwise skip and stay green. A local database may have none to give.
+ * @param {import('@playwright/test').Page} page The test's page.
+ * @param {string} path The page to load.
+ * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
+ */
+async function loadValidate(page, path) {
+  const response = await page.goto(path);
+  base.expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
+  // Checked before waiting, as in loadAndSettle: /mobile under a desktop UA lands on / and would otherwise time out.
+  base.expect(page.url(), `${path} landed on ${page.url()}`).toContain(path);
+  await waitForAppReady(page);
+  const onMission = await waitForValidateTerminalState(page);
+  await page.waitForTimeout(1000);
+  if (process.env.CI) {
+    base.expect(onMission, 'CI got no mission: the seed no longer makes one, or none of its labels\' imagery loaded '
+      + '(#4810)').toBe(true);
+  }
+  return onMission;
+}
+
+/**
+ * Waits for Validate to settle into either of its two legitimate end states: a mission, or the "no new mission"
+ * modal, which also covers a mission whose labels all lacked imagery (#4810). Callers let the console assertion
+ * judge whichever ran.
+ * @param {import('@playwright/test').Page} page The page under test.
+ * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
+ */
+async function waitForValidateTerminalState(page) {
+  await page.waitForFunction(() => window.svv);
+  // Both end states take the loading overlay down, so a stuck one is a failure on either path.
+  await base.expect(page.locator('#page-loading')).toBeHidden();
+  const noMission = await page.evaluate(() => window.svv.modalNoNewMission.isShowing());
+  if (noMission) await base.expect(page.locator('#modal-mission-foreground')).toBeVisible();
+  return !noMission;
+}
+
+/**
  * Measures horizontal overflow at the current viewport width (issue #4883): every element whose border box
  * extends past the right edge of the layout viewport, except content inside an `overflow-x: auto|scroll`
  * ancestor — a horizontal scroller is the sanctioned way to present wide content (tables, code) on a phone.
@@ -351,6 +389,7 @@ module.exports = {
   stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
+  loadValidate,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
