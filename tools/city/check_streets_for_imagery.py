@@ -1076,9 +1076,8 @@ class CoverageWalk:
 
     def __init__(self, length_m: float, reach_m: float = 0.0):
         """
-        ``length_m`` is the street's geodesic length in metres; ``reach_m`` how far back along the street a pano found
-        at a point can sit (the search radius), so a verdict never counts a stretch as lost that a later point could
-        still reach.
+        ``length_m`` is the street's geodesic length in metres. ``reach_m`` is how far behind a point its pano can sit
+        (the search radius), so a stretch a later point could still reach is never counted as lost.
         """
         self.length_m = length_m
         self.reach_m = reach_m

@@ -39,8 +39,7 @@ case class AuditTask(
     startOffsetM: Option[Double] = None, // Meters from the street's start to where a free-exploration drop-in began.
     outdatedImagery: Boolean = false,    // Machine-managed (#4384); mirrors the column's DEFAULT FALSE.
     outdatedImageryAt: Option[OffsetDateTime] = None, // When the sync last flipped the flag on; NULL while unflagged.
-    // Merged [start_m, end_m] pairs along the street the task's walk has seen (#5733, #5669); NULL on a row from
-    // before coverage was tracked.
+    // Merged [start_m, end_m] pairs of the street the walk has seen (#5733, #5669); NULL on rows older than that.
     coveredRanges: Option[JsValue] = None
 )
 case class NewTask(
@@ -337,10 +336,8 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * The streets, in every region, that the user has not audited with up-to-date imagery.
-   *
-   * A street whose only audits by this user predate newer imagery counts as not audited, so the user can be routed
-   * down it again (#4384).
+   * The streets, in every region, the user has no up-to-date audit of: one whose audits all predate newer imagery
+   * counts as not audited, so the user can be routed down it again (#4384).
    */
   private def streetEdgeRegionsNotAudited(userId: String): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
     val edgesAuditedByUser = upToDateCompletedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map {
@@ -367,7 +364,7 @@ class AuditTaskTable @Inject() (
 
   /**
    * The not-audited streets minus those the user reported as imagery-less (#5017). Kept apart from the not-audited
-   * query, which also decides which regions the user has finished: a report is evidence, not a finished street (#4922).
+   * query, which also says which regions are finished: a report is evidence, not a finished street (#4922).
    */
   private def streetEdgeRegionsLeftToPick(userId: String): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] =
     streetEdgeRegionsNotAudited(userId)
@@ -378,9 +375,9 @@ class AuditTaskTable @Inject() (
     streetEdgeRegionsLeftToPick(userId).filter(_.regionId === regionId).exists.result
 
   /**
-   * Regions with no street left to hand the user: finished, or down to streets they reported as imagery-less. A
-   * region re-opens when new imagery lands on a street they audited (#4384); one down to reported streets still reads
-   * as unfinished, but assigning it would hand out no street and reload the user back into it forever (#5017).
+   * Regions with no street left to hand the user: finished, or down to streets they reported as imagery-less. New
+   * imagery on an audited street re-opens a region (#4384); one down to reported streets stays unfinished, but
+   * assigning it would hand out nothing and reload the user back into it forever (#5017).
    */
   def getRegionsWithNothingLeftToPick(userId: String): DBIO[Seq[Int]] = {
     val regionIdsWithOne = streetEdgeRegionsLeftToPick(userId)
@@ -846,9 +843,8 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * A task's coverage as served to the client, which reads a bare open row as a walk from the street's start to the
-   * saved position (#5669). A drop-in began at the address, so one from before coverage was tracked has seen nothing
-   * it can vouch for.
+   * A task's coverage as the client gets it. The client reads a bare open row as a walk from the street's start to
+   * the saved position (#5669), which a drop-in never made: it began at the address, so its bare row reads as empty.
    */
   private def servedCoverage(task: AuditTaskTableDef): Rep[Option[JsValue]] =
     Case.If(task.startOffsetM.isDefined).Then(LiteralColumn[Option[JsValue]](Some(Json.arr()))).Else(task.coveredRanges)
@@ -948,8 +944,8 @@ class AuditTaskTable @Inject() (
       .map(_.streetEdgeId)
 
   /**
-   * `syncOutdatedImageryFlags`'s date rule (UTC dates, a future capture date ignored as bad data), for what that flag
-   * never reaches: an open walk, a report.
+   * `syncOutdatedImageryFlags`'s date rule (UTC dates; a future capture date is bad data, not new imagery), for what
+   * that flag never reaches: an open walk, a report.
    */
   private def predatesStreetImagery(streetEdgeId: Rep[Int], at: Rep[OffsetDateTime]): Rep[Boolean] =
     streetImagery

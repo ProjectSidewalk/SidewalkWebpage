@@ -341,10 +341,10 @@ class ExploreServiceImpl @Inject() (
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // The mission's task is resumed by the next-street pick's rules (resumableTasksForUser), or a new task in
-          // the region is picked instead: a task the labeler reported for missing imagery stays incomplete (#4922), so
-          // resuming it would hand the street back on every reload; one whose street was re-imaged since saw the old
-          // panos (#4384). The street keeps its place in the pool for the offline checker to settle (#4918).
+          // Resumed by the next-street pick's rules (resumableTasksForUser), else a new task in the region is picked:
+          // a task the labeler reported for missing imagery stays incomplete (#4922), so resuming it would hand the
+          // street back on every reload, and one whose street was re-imaged since saw the old panos (#4384). The
+          // street stays in the pool for the offline checker to settle (#4918).
           val taskId: Int = mission.currentAuditTaskId.get
           auditTaskTable
             .isStillResumable(taskId, userId)
@@ -1077,9 +1077,8 @@ class ExploreServiceImpl @Inject() (
       .flatMap { case (auditTaskId: Int, coveredRanges: Option[Seq[CoveredRange]]) =>
         missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
           // A street is completed from the task's coverage, never from the client's completed flag (#5733, #5669):
-          // that stops a forged completed=true, and credits a walk that ran out of imagery exactly when it saw enough.
-          // Order matters: the priority update skips streets the user already completed, so it must run before the
-          // completed flag flips.
+          // that stops a forged completed=true, and credits a walk that ran out of imagery once it saw enough. The
+          // priority update skips streets the user already completed, so it has to run before the flag flips.
           val completeTaskAction: DBIO[Int] = for {
             newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
             atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)

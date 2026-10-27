@@ -159,8 +159,8 @@ export class StreetProgress {
       } else if (!this.#config.isOnboarding && this.#taskContainer.tasksLoaded()) {
         const task = this.#taskContainer.getCurrentTask();
         if (task) task.recordVisit(position);
-        // Reaching the end is not enough on its own (#5669): a short street's first pano can sit within the threshold,
-        // and a hole in the imagery leaves the end reached with most of it unseen. Walking on finds what is left, or
+        // Reaching the end alone doesn't end a street (#5669): a short street's first pano can already be within the
+        // threshold, and a hopped hole leaves the end reached with most of it unseen. Walking on finds the rest, or
         // the search runs out and the sweep reports the street.
         if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD) && task.isCoveredEnough()) {
           // On a route's short last street, the end threshold can end the route well before its last pano (#4640),
