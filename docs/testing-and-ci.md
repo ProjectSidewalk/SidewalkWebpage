@@ -176,10 +176,7 @@ Parallel jobs:
   the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits
   statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325,
   see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic,
-  no DB. (Forward *application* of new evolutions is already exercised by `backend-tests`, which boots the app and
-  auto-applies pending evolutions. A from-scratch up→down→up round-trip was prototyped and dropped: applying the full
-  history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB
-  would be needed, not worth it for an advisory check.)
+  no DB. (Applying evolutions, and rolling the new ones back, is `backend-tests`' job, below.)
 - **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
   included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
   Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
@@ -215,7 +212,13 @@ Parallel jobs:
   suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
   the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and
   roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in
-  `build.sbt`. Both spec steps run under **scoverage**, and a final `coverageReport` step enforces the
+  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`: it takes the highest
+  evolution in the newest `v*` tag and, for each evolution past it, newest first, runs its Downs and then its Ups on the
+  seeded schema, asserting both succeed and the schema and data come back unchanged; then it re-applies them all in one
+  batch, as the next deploy would. It only covers what's new since the release because replaying all history from
+  scratch would re-insert the `sidewalk_login` rows the `db` image already seeds. It needs `LAST_RELEASE_EVOLUTION` set
+  and otherwise has no tests, since it rolls back whatever database it's connected to. The spec steps run under
+  **scoverage**, and a final `coverageReport` step enforces the
   **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
 - **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
   and `scalafmtSbtCheck` (the build files: `build.sbt` and `project/*.scala`) as separate steps, each under `if:

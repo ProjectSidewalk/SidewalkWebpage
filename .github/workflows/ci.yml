@@ -10,8 +10,8 @@ name: CI
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.
 #   - backend-tests:   the whole of test/ against a real Postgres+PostGIS. Boots the app, which auto-applies pending
-#                      evolutions, so it doubles as the forward-apply gate. Also carries the statement-coverage
-#                      ratchet (#4743).
+#                      evolutions, so it doubles as the forward-apply gate. Also the rollback gate (#5839) and the
+#                      statement-coverage ratchet (#4743).
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
 #                      core page in headless Chromium and fails on uncaught console/page errors; also carries the
 #                      axe-core accessibility gate (a11y.spec.js, #5060).
@@ -308,6 +308,7 @@ jobs:
       # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
       # one definition of the test city.
       - name: Seed the test city
+        id: seed
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
       # Keeps this job's media dirs identical to e2e-smoke's; the script's header says why they're needed at all.
@@ -318,6 +319,20 @@ jobs:
       # means the seed stopped covering something.
       - name: Run the backend suite
         run: sbt coverage test
+
+      # The rollback gate (#5839, docs/evolutions.md). After the suite because it churns the seeded data, but runs even
+      # when the suite fails. Needs `coverage`, or sbt recompiles and empties the ratchet's data. The checkout has no
+      # tags, so it fetches the one it needs.
+      - name: Round-trip the evolutions newer than the last release
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          tag=$(git ls-remote --tags --refs origin 'v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
+          git fetch --depth=1 --no-tags origin "refs/tags/$tag:refs/tags/$tag"
+          LAST_RELEASE_EVOLUTION=$(git ls-tree --name-only "$tag" conf/evolutions/default/ \
+            | sed 's#.*/##; s#\.sql$##' | sort -n | tail -1)
+          echo "Last release: $tag, up to evolution $LAST_RELEASE_EVOLUTION"
+          LAST_RELEASE_EVOLUTION=$LAST_RELEASE_EVOLUTION sbt coverage "testOnly models.utils.EvolutionsRoundTripSpec"
 
       # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
       # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec

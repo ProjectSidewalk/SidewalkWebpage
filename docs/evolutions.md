@@ -33,6 +33,18 @@ someone else's file on the number yours is using. Renumber yours (never theirs; 
    **your Down has to actually work**: a broken one fails here and leaves the row in `applying_down`, which is the
    state behind Play's "inconsistent state" error and does need hand-fixing.
 
+## Downs have to work: CI rolls them back
+
+Rolling back a release deploys an older tag, and every city then runs the Downs of each newer evolution on its own
+(see [deployment-and-stages.md](deployment-and-stages.md) → "Rolling back a release"). So `backend-tests` runs the
+Downs and then the Ups of every evolution newer than the last release tag, on the seeded test city
+(`EvolutionsRoundTripSpec`, #5839). It fails if either errors, or if the schema or the data isn't the same afterward.
+A re-run Up gets new sequence ids and timestamps, so those columns aren't compared.
+
+Some Downs can't keep data, like one that drops a column the Ups added, whose values the Ups can't recompute. Mark
+those with a comment in the Downs, `-- lossy-downs: <why>`, and the check skips their data and compares only the
+schema.
+
 ## Every `CREATE TABLE` needs `ALTER TABLE <name> OWNER TO sidewalk;`
 
 Put it in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a
