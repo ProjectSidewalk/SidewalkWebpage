@@ -9,14 +9,13 @@
  * Counts are compared with a reading taken just before each vote, not fixed numbers, because other users (and a CI
  * retry) vote on the same labels.
  */
-const {test, expect, serveAnyPano, loadValidate, expectMissionInCi} = require('./fixtures');
+const {test, expect, serveAnyPano, loadValidate} = require('./fixtures');
 
 const COUNT_FIELD = {Agree: 'num_agree', Disagree: 'num_disagree', Unsure: 'num_unsure'};
 
 test.beforeEach(async ({page, context}) => {
   await serveAnyPano(context);
   const onMission = await loadValidate(page, '/validate');
-  expectMissionInCi(onMission);
   test.skip(!onMission, 'Validate settled on the no-mission modal, so there is nothing to validate');
   // The mission-start tutorial holds the keyboard until closed; clicked from the page, as its own overlay covers it.
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
@@ -71,6 +70,7 @@ test('undo takes back a saved verdict and lets it be changed', async ({page, con
     await expect(page.locator('#validate-yes-button')).toHaveClass(/is-chosen/);
     await expectSaved(page, label, null);
 
+    await pastDoubleTapGuard(page);
     await page.keyboard.press('n');
     await page.keyboard.press('Enter');
     await nextLabel(page, label.id);
@@ -84,10 +84,20 @@ test('undo takes back a saved verdict and lets it be changed', async ({page, con
  * @returns {Promise<{id: number, counts: Record<string, number>}>} The current label and its counts before the vote.
  */
 async function startVote(page) {
-  // A verdict within LabelContainer.VERDICT_GRACE_MS of the label appearing is dropped as a double tap.
-  await page.waitForTimeout(500);
+  await pastDoubleTapGuard(page);
   const id = await currentLabelId(page);
   return {id, counts: countsOf(await readLabel(page, id))};
+}
+
+/**
+ * Waits out LabelContainer.VERDICT_GRACE_MS from the label appearing, inside which a verdict is a dropped double tap.
+ * @param {import('@playwright/test').Page} page
+ */
+async function pastDoubleTapGuard(page) {
+  await page.waitForFunction(() => {
+    const labelContainer = window.svv.labelContainer;
+    return Date.now() - labelContainer.getProperty('renderedTimestamp') > labelContainer.constructor.VERDICT_GRACE_MS;
+  });
 }
 
 /**
@@ -96,9 +106,11 @@ async function startVote(page) {
  * @param {number} fromId The label just validated.
  */
 async function nextLabel(page, fromId) {
-  await expect.poll(() => currentLabelId(page), 'the verdict did not move Validate to the next label')
-    .not.toBe(fromId);
-  await expect(page.locator('#svv-application-holder')).not.toHaveClass(/validate-disabled/);
+  // A Pannellum load averages under 2 s but can run several times that on a slow runner.
+  const timeout = 15_000;
+  await expect.poll(() => currentLabelId(page), {message: 'the verdict did not move Validate to the next label',
+    timeout}).not.toBe(fromId);
+  await expect(page.locator('#svv-application-holder')).not.toHaveClass(/validate-disabled/, {timeout});
 }
 
 /**

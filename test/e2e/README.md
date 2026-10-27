@@ -203,8 +203,9 @@ read, not a second city dump to maintain. Three things about it shape this suite
   so it draws over a plain background. A reload counter
   turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
-  CI must take the mission branch (`expectMissionInCi`; locally either is fine) — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
-  the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
+  CI must take the mission branch (`loadValidate` fails without one there; locally either is fine) — the seed carries
+  the ≥ 10 validatable labels of one type a mission needs, and the server resolves their imagery from the committed
+  backups rather than a provider (#5115) — and on it asserts
   that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
   alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
   tutorial. `/mobile`
@@ -220,8 +221,9 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label: ✅ `validate-interactions.spec.js`, #4948); admin
-  pages (promote the setup user via a superuser `UPDATE user_role` in CI).
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
+  ✅ `validate-interactions.spec.js`, #4948); admin pages (promote the setup user via a superuser `UPDATE user_role`
+  in CI).
 
 ## File map
 
@@ -229,7 +231,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `expectMissionInCi`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |

@@ -126,8 +126,8 @@ import './util/throttle.js';
  * The console and e2e handle start.js puts on `window.svv`: the few live objects a test or a developer inspects.
  * @typedef {object} ValidateHandle
  * @property {Record<string, any>} validateParams
- * @property {ModalNoNewMission} modalNoNewMission - Whether Validate hit a dead end: the mission modal's CSS can't
- *     say, since on the phone the same modal also briefs each mission.
+ * @property {ModalNoNewMission} modalNoNewMission - Its isShowing() says whether Validate hit a dead end, which the
+ *     mission modal's CSS can't: on the phone the same modal also briefs each mission.
  * @property {LabelContainer} [labelContainer]
  * @property {PanoManager} [panoManager]
  * @property {PanoImageAdjustmentsPopover} [imageAdjustmentsPopover] - Desktop only.

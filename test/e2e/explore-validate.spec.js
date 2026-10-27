@@ -27,7 +27,7 @@
  * Both are landing-state checks; labeling in the tutorial is in explore-tutorial-labeling.spec.js.
  */
 const {
-  test, expect, stubMapbox, serveAnyPano, waitForAppReady, loadValidate, expectMissionInCi, PHONE_DEVICE,
+  test, expect, stubMapbox, serveAnyPano, waitForAppReady, loadValidate, PHONE_DEVICE,
 } = require('./fixtures');
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
@@ -55,7 +55,6 @@ test('/explore loads the tutorial without console errors', async ({page, context
 test('/validate falls back to Pannellum and the backup image for an expired pano', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
   expect(consoleErrors).toEqual([]);
-  expectMissionInCi(onMission);
   if (onMission) await expectPanoRendered(page, '/validate', await expectedValidateViewer(page));
 });
 
@@ -66,7 +65,6 @@ test('/validate trusts the expired flag over a provider that still answers (#556
     await serveAnyPano(context);
     const onMission = await loadValidate(page, '/validate');
     expect(consoleErrors).toEqual([]);
-    expectMissionInCi(onMission);
     if (onMission) await expectPanoRendered(page, '/validate', await expectedValidateViewer(page));
   });
 
@@ -74,7 +72,6 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
   const onMission = await loadValidate(page, '/validate');
   // False covers both no-mission outcomes: no mission was assigned, so the tool was never built, or one was but none
   // of its labels had imagery (#4810) and only the modal shows. Neither leaves a label to adjust.
-  expectMissionInCi(onMission);
   test.skip(!onMission, 'Validate settled on the no-mission modal, so there is no label to adjust');
   const chevron = page.locator('#validate-control-buttons-toggle');
   const pill = page.locator('#validate-control-image');
@@ -98,7 +95,6 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
 
 test('/validate enters and leaves immersive mode on F', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
-  expectMissionInCi(onMission);
   test.skip(!onMission, 'Validate settled on the no-mission modal, so the tool was never built');
   await expect(page.locator('#immersive-toggle-holder')).toBeAttached();
   // Under the mission-start tutorial the key is for the tutorial, like every other shortcut.
@@ -168,10 +164,8 @@ test.describe('/mobile', () => {
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(expectedWidth);
     expect(consoleErrors).toEqual([]);
     // Same #4810 check the desktop test makes: /mobile shares LabelContainer#loadPanoForCurrentLabel and has no
-    // separate guard, so without this an empty pano area passes in both orientations. Expired-pano path only: the
-    // primary-viewer path doesn't differ by viewport, and the desktop test has it.
-    expectMissionInCi(onMission);
-    if (onMission) await expectPanoRendered(page, '/mobile', 'pannellum');
+    // separate guard, so without this an empty pano area passes in both orientations.
+    if (onMission) await expectPanoRendered(page, '/mobile', await expectedValidateViewer(page));
   }
 
   test('loads in portrait without console errors', async ({page, consoleErrors}) => {

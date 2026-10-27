@@ -218,7 +218,8 @@ async function loadAndSettle(page, context, p) {
 }
 
 /**
- * Loads `/validate` or `/mobile` and settles it.
+ * Loads `/validate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the seed always makes
+ * one, so the mission-only checks would otherwise skip and stay green. A local database may have none to give.
  * @param {import('@playwright/test').Page} page The test's page.
  * @param {string} path The page to load.
  * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
@@ -226,9 +227,15 @@ async function loadAndSettle(page, context, p) {
 async function loadValidate(page, path) {
   const response = await page.goto(path);
   base.expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
+  // Checked before waiting, as in loadAndSettle: /mobile under a desktop UA lands on / and would otherwise time out.
+  base.expect(page.url(), `${path} landed on ${page.url()}`).toContain(path);
   await waitForAppReady(page);
   const onMission = await waitForValidateTerminalState(page);
   await page.waitForTimeout(1000);
+  if (process.env.CI) {
+    base.expect(onMission, 'CI got no mission: the seed no longer makes one, or none of its labels\' imagery loaded '
+      + '(#4810)').toBe(true);
+  }
   return onMission;
 }
 
@@ -241,17 +248,11 @@ async function loadValidate(page, path) {
  */
 async function waitForValidateTerminalState(page) {
   await page.waitForFunction(() => window.svv);
-  return page.evaluate(() => !window.svv.modalNoNewMission.isShowing());
-}
-
-/**
- * Fails on CI when Validate settled without a mission (#4948). CI's seed always makes one, so there a missing mission
- * means the seed broke, and the mission-only checks would otherwise skip and stay green. A local database may have
- * no labels to validate, so locally either state is fine.
- * @param {boolean} onMission What loadValidate returned.
- */
-function expectMissionInCi(onMission) {
-  if (process.env.CI) base.expect(onMission, 'CI\'s seed gives Validate a mission, but none was assigned').toBe(true);
+  // Both end states take the loading overlay down, so a stuck one is a failure on either path.
+  await base.expect(page.locator('#page-loading')).toBeHidden();
+  const noMission = await page.evaluate(() => window.svv.modalNoNewMission.isShowing());
+  if (noMission) await base.expect(page.locator('#modal-mission-foreground')).toBeVisible();
+  return !noMission;
 }
 
 /**
@@ -389,7 +390,6 @@ module.exports = {
   waitForAppReady,
   loadAndSettle,
   loadValidate,
-  expectMissionInCi,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
