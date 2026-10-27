@@ -21,7 +21,10 @@ function lookup(key) {
   return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), EN_COMMON);
 }
 
-/** @returns {string} A `common:` key's English string with its `$t(...)` references filled in, as i18next does. */
+/**
+ * @param {string} key - An i18next key.
+ * @returns {string} A `common:` key's English string with its `$t(...)` references filled in, as i18next does.
+ */
 function translate(key) {
   const value = lookup(key);
   return typeof value === 'string' ? value.replace(/\$t\(([^)]+)\)/g, (_, ref) => translate(ref)) : key;
@@ -97,6 +100,7 @@ describe('validationReasons', () => {
   test('an unknown id resolves to no text rather than a key, and leaves the list rather than joining it', () => {
     window.validationReasons.CurbRamp.Disagree.push('brand-new-reason');
     expect(validationReasons.text('brand-new-reason')).toBeNull();
+    expect(validationReasons.tooltip('brand-new-reason', 'CurbRamp')).toBeNull();
     expect(validationReasons.forLabel('CurbRamp', 'Disagree').map((r) => r.id))
       .toEqual(['wrong-type', 'driveway', 'driveway-transition']);
   });

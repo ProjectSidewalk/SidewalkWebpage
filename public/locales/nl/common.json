@@ -431,7 +431,7 @@
     },
     "driveway": {
       "text": "Dit is een oprit.",
-      "tooltip": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "Dit is een overgang van trottoir naar oprit.",
@@ -439,11 +439,11 @@
     },
     "residential-walkway": {
       "text": "Dit is een wandelpad in een woonwijk.",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
       "text": "Er is hier geen trottoir.",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "Het is hier niet veilig om over te steken.",
@@ -460,39 +460,39 @@
     },
     "normal-tiles": {
       "text": "Dit zijn gewone stoeptegels.",
-      "tooltip": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
       "text": "Hier is een trottoir.",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
       "text": "Dit is een middenberm voor verkeer.",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
       "text": "Er is hier geen zichtbaar zebrapad.",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
       "text": "Dit is een stoplijn voor auto's.",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
       "text": "Dit is een verkeersdrempel.",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
       "text": "Dit is slechts een verkeerslicht voor voertuigen.",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
       "text": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
       "text": "Dit is een paal zonder verkeerslicht of -knop.",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Een betere afbeelding nodig",

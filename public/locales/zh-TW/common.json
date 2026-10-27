@@ -429,7 +429,7 @@
     },
     "driveway": {
       "text": "這是一條車道",
-      "tooltip": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "這是人行道到車道的過渡段。",
@@ -437,11 +437,11 @@
     },
     "residential-walkway": {
       "text": "這是一條住宅人行道。",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
       "text": "這裡沒有人行道。",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "在這裡穿越並不安全。",
@@ -458,39 +458,39 @@
     },
     "normal-tiles": {
       "text": "這些是普通的人行道地磚。",
-      "tooltip": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
       "text": "這裡有人行道。",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
       "text": "這是交通中央隔離帶。",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
       "text": "這裡沒有明顯的斑馬線。",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
       "text": "這是車輛停車線。",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
       "text": "這是一個減速帶",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
       "text": "這只是車輛的交通號誌。",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
       "text": "這是一個沒有燈光指示安全過馬路的標誌。",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
       "text": "這是一根沒有行人號誌或按鈕的電線桿",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "需要更好的圖片",

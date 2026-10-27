@@ -431,7 +431,7 @@
     },
     "driveway": {
       "text": "Isto é uma entrada de garagem",
-      "tooltip": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "Isto é uma transição entre calçada e entrada de garagem",
@@ -439,11 +439,11 @@
     },
     "residential-walkway": {
       "text": "Isto é um passagem residencial",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
       "text": "Não há calçada aqui",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "Não é seguro atravessar aqui",
@@ -460,39 +460,39 @@
     },
     "normal-tiles": {
       "text": "Estas são placas normais de calçada",
-      "tooltip": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
       "text": "Há uma calçada aqui",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
       "text": "Isto é um canteiro central de tráfego",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
       "text": "Não há faixa de pedestres visível aqui",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
       "text": "Isto é uma linha de parada para carros",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
       "text": "Isto é uma lombada",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
       "text": "Isto é apenas um semáforo para veículos",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
-      "text": "Isto é uma placa indicando travessia segura",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+      "text": "Isto é uma placa sem luz que indique travessia segura",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
       "text": "Isto é um poste sem sinal ou botão de pedestres",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Preciso de uma imagem melhor",

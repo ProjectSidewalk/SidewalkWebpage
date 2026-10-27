@@ -431,7 +431,7 @@
     },
     "driveway": {
       "text": "This is a driveway",
-      "tooltip": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "This is a sidewalk to driveway transition",
@@ -439,11 +439,11 @@
     },
     "residential-walkway": {
       "text": "This is a residential walkway",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
       "text": "There is no sidewalk here",
-      "tooltip": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "It is not safe to cross here",
@@ -460,39 +460,39 @@
     },
     "normal-tiles": {
       "text": "These are normal sidewalk tiles",
-      "tooltip": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
       "text": "There is a sidewalk here",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
       "text": "This is a traffic median",
-      "tooltip": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
       "text": "There is no visible crosswalk here",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
       "text": "This is a stop line for cars",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
       "text": "This is a speed bump",
-      "tooltip": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
       "text": "This is only a traffic light for vehicles",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
       "text": "This is a sign with no light to indicate safe crossing",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
       "text": "This is a pole with no pedestrian signal or button",
-      "tooltip": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Need a better image",
