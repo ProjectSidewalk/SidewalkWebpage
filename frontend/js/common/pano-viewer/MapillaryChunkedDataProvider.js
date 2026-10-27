@@ -2,11 +2,13 @@
  * Workaround: Mapillary's GraphDataProvider fails when getSpatialImages is called with more than 30 image IDs at once.
  * This subclass chunks requests into batches of 30 to avoid that limit.
  *
- * Implemented as a factory function so that the `mapillary` global is not accessed at bundle-load time — it's only
- * needed when actually using Mapillary, and other imagery providers don't load that library at all.
+ * A factory taking the base class rather than a subclass declared at module level, because the SDK only arrives
+ * when MapillaryViewer fetches it (sdk/mapillary.js).
+ * @param {typeof import('mapillary-js').GraphDataProvider} GraphDataProvider
+ * @param {object} options - The provider's options, e.g. `accessToken`.
+ * @returns {import('mapillary-js').GraphDataProvider}
  */
-export function createMapillaryChunkedDataProvider(options) {
-  const { GraphDataProvider } = mapillary;
+export function createMapillaryChunkedDataProvider(GraphDataProvider, options) {
   class MapillaryChunkedDataProvider extends GraphDataProvider {
     async getSpatialImages(imageIds) {
       const CHUNK_SIZE = 30;

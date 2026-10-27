@@ -6,7 +6,9 @@
  * state, share-intent URLs, activity logging, and setTarget's stale-popover guard.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key.replace(/^common:/, '') } }));
 
 const TARGET = {
   url: 'https://sidewalk-test.example.org/label/123',
@@ -41,9 +43,6 @@ describe('ShareWidget', () => {
       '<div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>';
     trigger = document.querySelector('.label-detail__share-trigger');
 
-    // i18next mock: labels render as their namespace-stripped keys (the widget prefixes "common:"), so
-    // assertions are locale-independent and readable.
-    window.i18next = { t: (key) => key.replace(/^common:/, '') };
     // The widget reserves the native share sheet for touch-primary devices, which jsdom can't answer for —
     // it has no matchMedia at all. Default to a desktop pointer; the touch tests override per-case.
     window.matchMedia = vi.fn().mockReturnValue({ matches: false });

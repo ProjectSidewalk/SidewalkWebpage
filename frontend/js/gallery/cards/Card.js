@@ -2,10 +2,12 @@
  * A Card module.
  */
 
+import i18next from 'i18next';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
+import { validationReasons } from '../../common/validationReasons.js';
 import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
 import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
@@ -560,8 +562,12 @@ export class Card {
    * Updates metadata and visuals on the small card based on a new validation from the user.
    * @param {?('Agree'|'Disagree'|'Unsure')} newUserValidation - The user's new vote, or null when they cleared it
    *     (#4653). Either end can be null, so both count adjustments are guarded.
+   * @param {object} [opts]
+   * @param {boolean} [opts.dropOwnComment=true] - Whether the change reaches the user's comment, as a vote cleared
+   *     or changed from a card does (#5475). An admin's delete files its Disagree without touching the comment, so
+   *     that path passes false.
    */
-  updateUserValidation(newUserValidation) {
+  updateUserValidation(newUserValidation, { dropOwnComment = true } = {}) {
     const properties = this.#properties;
     if (newUserValidation !== properties.user_validation) {
       // Update the metadata.
@@ -569,6 +575,21 @@ export class Card {
         properties.val_counts[properties.user_validation] = Math.max(
           0, properties.val_counts[properties.user_validation] - 1,
         );
+      }
+      // Follows the server (#5475), or the pop-up and expanded view would show a comment it no longer holds. A first
+      // vote counts too: a comment that predates clear-deletes-comment (#4653) can outlive its vote, and the server
+      // treats that vote as a change. In place: the expanded view's card shares this very array.
+      if (dropOwnComment && Array.isArray(properties.comments)) {
+        for (let i = properties.comments.length - 1; i >= 0; i -= 1) {
+          const c = properties.comments[i];
+          if (!c || typeof c !== 'object' || !c.mine) continue;
+          if (newUserValidation && validationReasons.survivesVoteChange(properties.label_type, c.reason,
+            newUserValidation)) {
+            c.validation = newUserValidation;
+          } else {
+            properties.comments.splice(i, 1);
+          }
+        }
       }
       if (newUserValidation) properties.val_counts[newUserValidation] += 1;
       properties.user_validation = newUserValidation;

@@ -10,7 +10,7 @@
  * anywhere silently resolves to whatever the platform supplies, and it does so page by page — the kind of gap that
  * shows up as one page's monospace looking nothing like another's, with nothing in the CSS to explain it.
  *
- * Third-party libraries under public/vendor/ are out of scope by convention — we neither edit nor lint them.
+ * Third-party libraries come from npm and are bundled (#5734); we neither edit nor lint them, so they are out of scope.
  */
 
 import fs from 'fs';
@@ -229,9 +229,9 @@ describe('the design system ships the faces its font tokens name', () => {
  * A `<script src>` or `<link rel=stylesheet>` pointing at another host makes that host part of our render path:
  * its availability becomes our availability, its outage our outage, and every visitor's IP goes to it. Subresource
  * integrity does not change that — it protects the bytes, not the delivery, and a legitimate upstream repack turns
- * into a hard failure rather than a soft one. Libraries are vendored under public/vendor/ instead.
+ * into a hard failure rather than a soft one. Libraries are installed from npm and bundled instead (#5734).
  *
- * A handful of third parties genuinely cannot be vendored, because what they serve is a live service rather than a
+ * A handful of third parties genuinely cannot be bundled, because what they serve is a live service rather than a
  * library. Those are named below, and the CSP has to know about them — which is the second half of this: an origin
  * the policy allows that nothing actually loads is a hole left open in a policy we intend to enforce (#4793).
  */
@@ -276,7 +276,7 @@ describe('nothing in the render path comes from a third party we have not chosen
   });
 
   test('every origin the CSP allows for scripts, styles, or fonts is one something actually loads', () => {
-    // The direction that rots silently: a library gets vendored or deleted and its allowlist entry outlives it.
+    // The direction that rots silently: a library gets bundled or deleted and its allowlist entry outlives it.
     const conf = fs.readFileSync(path.join(REPO_ROOT, 'conf', 'application.conf'), 'utf8');
     const origins = new Set();
     for (const directive of ['script-src', 'style-src', 'font-src']) {
@@ -287,26 +287,31 @@ describe('nothing in the render path comes from a third party we have not chosen
     }
     expect(origins.size).toBeGreaterThan(0);
 
-    // Anywhere we ship: views, our own JS/CSS, and vendored libraries (which declare their own remote assets).
-    // Only the file types that can name an origin — public/vendor/ also carries fonts, images and source maps,
-    // and reading those in as text is megabytes of work per run for something that could never match.
+    // Anywhere we ship: views, our own JS/CSS, and the libraries the bundle carries (infra3d's viewer names a Google
+    // font). Only the file types that can name an origin: a package's fonts, images, sources and maps are megabytes
+    // of reading per run for something that could never match.
     const TEXT = /\.(js|mjs|cjs|css|html|scala\.html|json|svg)$/;
-    const haystack = ['app/views', 'frontend/js', 'frontend/css', 'public/vendor']
+    const SKIPPED = new Set(['node_modules', 'src', 'test', 'tests', 'types']);
+    const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+    const libraries = Object.keys(manifest.dependencies).map((name) => path.join('node_modules', name));
+    expect(libraries.length).toBeGreaterThan(10);
+    const haystack = ['app/views', 'frontend/js', 'frontend/css', ...libraries]
       .flatMap(function walk(rel) {
         const full = path.join(REPO_ROOT, rel);
         return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {
-          if (entry.isDirectory()) return walk(path.join(rel, entry.name));
-          if (!TEXT.test(entry.name)) return [];
+          if (entry.isDirectory()) return SKIPPED.has(entry.name) ? [] : walk(path.join(rel, entry.name));
+          if (!TEXT.test(entry.name) || entry.name.endsWith('.d.ts')) return [];
           return [fs.readFileSync(path.join(full, entry.name), 'utf8')];
         });
       })
       .join('\n');
 
-    // Google's Maps bootstrap assembles its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"),
-    // so the literal origin appears nowhere to be found. Pin the loader that builds it rather than exempting the
-    // origin outright, so the exemption dies the day the loader does.
+    // Google's Maps bootstrap builds its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"), so the
+    // literal origin appears nowhere, and the API it loads adds a Google Fonts stylesheet of its own. Pin the loader
+    // rather than exempting the origins outright, so the exemption dies with the loader.
     const ASSEMBLED_AT_RUNTIME = {
       'maps.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
+      'fonts.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
     };
     for (const [origin, { file, fragment }] of Object.entries(ASSEMBLED_AT_RUNTIME)) {
       expect(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).toContain(fragment);
@@ -321,9 +326,9 @@ describe('nothing in the render path comes from a third party we have not chosen
     // The opposite direction from the test above: an origin the policy is missing. Report-only hides that today,
     // but once #4793 enforces the policy every Mapillary city's panos would go blank (#5534). The CDN host never
     // appears in shipped code -- the Graph API hands its URLs back at runtime in the thumbnail fields -- so pin
-    // the vendored viewer's use of both instead, and a MapillaryJS upgrade that moves either fails here first.
+    // the viewer's use of both instead, and a MapillaryJS upgrade that moves either fails here first.
     const mapillaryJs = fs.readFileSync(
-      path.join(REPO_ROOT, 'public', 'vendor', 'mapillary', 'mapillary-4.1.2.min.js'), 'utf8');
+      path.join(REPO_ROOT, 'node_modules', 'mapillary-js', 'dist', 'mapillary.module.js'), 'utf8');
     expect(mapillaryJs).toContain('https://graph.mapillary.com');
     expect(mapillaryJs).toContain('thumb_2048_url');
 

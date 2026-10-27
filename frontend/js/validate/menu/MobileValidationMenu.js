@@ -379,14 +379,18 @@ export class MobileValidationMenu {
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
 
-    // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
+    // Fill in the comment based on the disagree options they picked or one of the free form text boxes. A canned
+    // reason also travels as its id (#5475), so it is stored as one rather than only as the text shown.
     let comment = '';
+    let reasonId = null;
+    const reasons = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))] ?? {};
     if (action === 'Disagree') {
       const disagreeReason = currLabel.getProperty('disagreeOption');
       if (disagreeReason === 'other') {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
         comment = this.#reasonButton(disagreeReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[disagreeReason]?.reasonId ?? null;
       }
     } else if (action === 'Unsure') {
       const unsureReason = currLabel.getProperty('unsureOption');
@@ -394,9 +398,11 @@ export class MobileValidationMenu {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
         comment = this.#reasonButton(unsureReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[unsureReason]?.reasonId ?? null;
       }
     }
     currLabel.setProperty('comment', comment);
+    currLabel.setProperty('reasonId', reasonId);
 
     // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.

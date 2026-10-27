@@ -3,6 +3,7 @@
  * thresholds are in miles and converted for metric users.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../common/BadgeAchievements.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesMath.js';

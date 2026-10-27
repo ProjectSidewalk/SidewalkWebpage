@@ -3,8 +3,10 @@
  * with the context menu open aren't also handled as menu-closed shortcuts.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('Explore shortcut keys', () => {
   const tracker = fakeTracker();
@@ -13,7 +15,6 @@ describe('Explore shortcut keys', () => {
   let menuOpen = false;
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     const { KeyboardManager } = await loadModules('frontend/js/explore/keyboard/KeyboardManager.js');
     // One instance for the file: the constructor adds window listeners that are never removed.
     const contextMenu = {

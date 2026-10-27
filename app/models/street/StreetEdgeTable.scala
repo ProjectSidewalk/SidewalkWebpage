@@ -51,6 +51,7 @@ case class StreetEdge(
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
+// CHECK in the DB: geom is at least 1 m long unless the street is disabled (#5691).
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id", O.PrimaryKey)
   def geom                          = column[LineString]("geom")

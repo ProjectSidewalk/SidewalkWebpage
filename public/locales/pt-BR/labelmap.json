@@ -179,7 +179,6 @@
   },
   "edit-type-changed": "Alterado para {{labelType}}",
   "edit-undo": "Desfazer",
-  "edit-conflict-short": "Tipo de rótulo alterado em outro lugar",
   "edit-conflict": "O tipo deste rótulo foi alterado em outro lugar, então o cartão agora mostra seu estado atual.",
   "delete-label": "Excluir rótulo",
   "delete-label-confirm": "Tem certeza de que deseja excluir este rótulo?",

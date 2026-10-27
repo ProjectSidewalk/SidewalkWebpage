@@ -6,6 +6,7 @@
  * whose message is shown inline without applying anything.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
 import { util } from '../common/utilities.js';
 

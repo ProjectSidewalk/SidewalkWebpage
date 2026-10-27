@@ -135,14 +135,19 @@ object ExploreFormats {
   )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
-  // Includes a list of labels found on a single panorama.
+  /**
+   * The labels an AI model found on a single panorama, all of one type.
+   * @param overwrite Whether to replace the AI user's live labels of this type already on the pano rather than be
+   *                  refused for duplicating them (#5382). Absent means false, so an older payload fails closed.
+   */
   case class AiLabelsSubmission(
       labelType: LabelType,
       modelId: String,
       modelTrainingDate: String,
       apiVersion: String,
       pano: PanoSubmission,
-      labels: Seq[AiLabelDetection]
+      labels: Seq[AiLabelDetection],
+      overwrite: Option[Boolean]
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
 
@@ -150,8 +155,8 @@ object ExploreFormats {
    * What /explore/session hands the page (#5650): the task and mission to start on, the region and route they sit in,
    * and the pano the page should open at when the URL asked for one. `task` is None once the region is fully mapped.
    * @param routeResumed     Whether a walk already in progress was picked back up, so the page can say so.
-   * @param routeUnavailable Whether a route was dropped from the session: a `?routeId=` named no live route (#5156),
-   *                         or the walk's route has no walkable distance (#5167). `routeId` is then absent.
+   * @param routeUnavailable Whether a `?routeId=` named no live route and was dropped (#5156).
+   * @param streetUnavailable Whether a `?streetEdgeId=` named no street Explore can hand out and was dropped (#5824).
    * @param regionFinished   Whether the user had already finished the `?regionId=` they asked for, so `regionId` is
    *                         where they were moved instead (#5692).
    * @param startPov         A heading, pitch and zoom to open the pano at; only ever set alongside a pano or lat/lng.
@@ -168,6 +173,7 @@ object ExploreFormats {
       routeName: Option[String],
       routeResumed: Boolean,
       routeUnavailable: Boolean,
+      streetUnavailable: Boolean,
       regionFinished: Boolean,
       startLat: Option[Double],
       startLng: Option[Double],
@@ -344,5 +350,15 @@ object ExploreFormats {
 
   given aiLabelDetectionReads: Reads[AiLabelDetection] = Json.reads[AiLabelDetection]
 
-  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = Json.reads[AiLabelsSubmission]
+  // A label's lat/lng and POV are computed from the pano's size, heading and position, so a submission with labels
+  // that lacks any of them is refused here with a 400 rather than failing a `.get` deep in the write (#4808). They
+  // stay optional on a label-less (pano-only) submission.
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = {
+    val placementError =
+      JsonValidationError("A submission with labels needs the pano's width, height, lat, lng and camera_heading")
+    Json.reads[AiLabelsSubmission].filter(placementError) { s =>
+      val pano = s.pano
+      s.labels.isEmpty || Seq(pano.width, pano.height, pano.lat, pano.lng, pano.cameraHeading).forall(_.isDefined)
+    }
+  }
 }

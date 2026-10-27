@@ -11,6 +11,7 @@
  * state — nothing may survive behind a display:none.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import './utilitiesSidewalk.js';
 import '../../css/components/label-anchored-panel.css';

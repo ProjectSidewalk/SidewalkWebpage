@@ -8,7 +8,10 @@
  * failed request — collapses the section to a note without disturbing the already-rendered page.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+
+useUtil(metricDistanceUtil);
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
 function makeCity(id) {

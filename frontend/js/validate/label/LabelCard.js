@@ -17,6 +17,7 @@
  * would open on top of it.
  */
 
+import i18next from 'i18next';
 import { LabelCardView } from '../../common/LabelCardView.js';
 import { LabelTypeDropdown } from '../../common/LabelTypePicker.js';
 import { ShareWidget } from '../../common/share/ShareWidget.js';

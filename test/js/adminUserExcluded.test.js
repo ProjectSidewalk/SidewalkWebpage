@@ -3,9 +3,10 @@
  * check-and-uncheck restores the admin's earlier choice.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
-window.i18next = { language: 'en' };
+mockModule('i18next', () => ({ default: { language: 'en' } }));
+
 const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**

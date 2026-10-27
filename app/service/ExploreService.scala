@@ -29,9 +29,10 @@ import scala.util.control.NoStackTrace
 /**
  * An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits.
  *
- * @param routeUnavailable Whether a route the visit would have been in was dropped, so the page tells the user rather
- *                         than passing the visit off as an ordinary session. Either a ?routeId= named no live route
- *                         (#5156), or the walk's route has no walkable distance and so yields no mission (#5167).
+ * @param routeUnavailable Whether a ?routeId= named no live route and was dropped, so the page tells the user rather
+ *                         than passing the visit off as an ordinary session (#5156).
+ * @param servedStreetId   The ?streetEdgeId= the session was started on; None if none was asked for or it was dropped.
+ * @param streetUnavailable Whether a ?streetEdgeId= named no street Explore can hand out and was dropped (#5824).
  * @param regionFinished   Whether the ?regionId= asked for was already finished, so the user was moved (#5692).
  */
 case class ExplorePageData(
@@ -42,10 +43,22 @@ case class ExplorePageData(
     route: Option[Route],
     routeResumed: Boolean,
     routeUnavailable: Boolean,
+    servedStreetId: Option[Int],
+    streetUnavailable: Boolean,
     regionFinished: Boolean,
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int
 )
+
+/**
+ * An AI submission was refused because the pano already carries live AI labels of its type and it didn't ask to
+ * overwrite them (#5382). Nothing from the submission was written.
+ * @param panoId        The pano the submission was for.
+ * @param labelType     The submission's label type.
+ * @param existingCount How many live labels of that type the AI user already has on the pano.
+ */
+case class AiLabelsConflict(panoId: String, labelType: LabelType, existingCount: Int)
+    extends Exception(s"Pano $panoId already has $existingCount ${labelType.name} label(s) from the AI labeler")
 
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
 case class NewLabelData(
@@ -142,8 +155,12 @@ trait ExploreService {
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
+   *
+   * A pano that already holds live AI labels of the submission's type is refused with [[AiLabelsConflict]] unless the
+   * submission sets `overwrite`, which retires those labels in the same transaction as the new inserts (#5382).
    * @param data The AiLabelsSubmission object submitted through a POST request.
-   * @return A Future containing a sequence of Unit values, one for each label submitted.
+   * @return A Future containing a sequence of Unit values, one for each label submitted. Fails with
+   *         [[AiLabelsConflict]] when the submission would duplicate labels, having written nothing.
    */
   def submitAiLabelData(data: AiLabelsSubmission): Future[Seq[Unit]]
 
@@ -203,7 +220,8 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
+    userStatTable: UserStatTable
 )(using ec: ExecutionContext)
     extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -222,13 +240,20 @@ class ExploreServiceImpl @Inject() (
       streetEdgeId: Option[Int]
   ): Future[Option[ExplorePageData]] = {
     def getExploreDataAction = for {
+      // A ?streetEdgeId= naming a street Explore can't hand out (not open, or no such street) is dropped, and the visit
+      // otherwise runs as a bare /explore would, so it must not pause a route walk either (#5824).
+      streetRegion: Option[Region] <- streetEdgeId
+        .map(streetEdgeRegionTable.getServedRegionFromStreetId)
+        .getOrElse(DBIO.successful(None))
+      servedStreetId: Option[Int] = streetEdgeId.filter(_ => streetRegion.isDefined)
+
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
       // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
       // precedence over all of it, and pause any active route: the page strips those params from the URL, so a
       // still-active route would otherwise pull the user into its region on their next reload (#5437).
       routeSetup: RouteWalkSetup <-
-        if (regionId.isEmpty && streetEdgeId.isEmpty) {
+        if (regionId.isEmpty && servedStreetId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
           setUpPossibleUserRoute(routeId = None, userId, resumeRoute = false)
@@ -241,20 +266,13 @@ class ExploreServiceImpl @Inject() (
       // Get the appropriate region the user is going to explore, and update their user_current_region entry.
       currRegion: Option[Region]                        <- userCurrentRegionTable.getCurrentRegion(userId)
       (region: Option[Region], regionFinished: Boolean) <- {
-        (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
-          // If user is exploring a specific street, get the region associated with that street and assign it to them.
-          case (Some(streetId), _, _, _, _) =>
-            streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId).flatMap {
-              case Some(region) =>
-                for {
-                  _ <- userCurrentRegionTable.insertOrUpdate(userId, region.regionId)
-                  _ <- closeMissionIfRegionFinished(userId, region.regionId)
-                } yield (Some(region), false)
-              case None =>
-                DBIO.failed(
-                  new NoSuchElementException(s"Either street edge $streetId has no region, or it is not a valid id.")
-                )
-            }
+        (streetRegion, regionId, routeOption, newRegion, currRegion) match {
+          // If user is exploring a specific street, assign them the street's region.
+          case (Some(streetReg), _, _, _, _) =>
+            for {
+              _ <- userCurrentRegionTable.insertOrUpdate(userId, streetReg.regionId)
+              _ <- closeMissionIfRegionFinished(userId, streetReg.regionId)
+            } yield (Some(streetReg), false)
           // If user is exploring a specific region, assign it to them, unless they've already finished it (#5692).
           case (_, Some(r), _, _, _) =>
             regionTable.getRegion(r).flatMap {
@@ -296,50 +314,32 @@ class ExploreServiceImpl @Inject() (
       }
       regionId: Int = startRegion.regionId
 
-      // A walk whose route measures zero length (a degenerate street geom, #4670) gets no route-scoped mission, and
-      // there is no route left to walk anyway. It is dropped for this request exactly like an unresolvable
-      // ?routeId= (#5156): the page is told, and it stops claiming to be in a route whose mission it doesn't have
-      // (#5167). The walk is paused too, since setUpPossibleUserRoute left it active, and an active walk would be
-      // re-picked — and the toast re-shown — by every bare /explore after this one. Pausing rather than discarding
-      // keeps the one-way door reserved for ?resumeRoute=false (#4833). Only this walk can still be active here:
-      // setUpPossibleUserRoute paused every other one before resuming or creating it. The session then runs in the
-      // route's start region, or in a freshly picked one if the user has nothing left there.
-      (mission: Mission, walkDropped: Boolean, sessionRegion: Region) <- {
+      // A region with nothing left to size a mission from moves the session to a freshly picked one.
+      (mission: Mission, sessionRegion: Region) <- {
         if (retakingTutorial) {
-          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, false, startRegion))
+          missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(m => (m.get, startRegion))
         } else {
           missionService
-            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = streetEdgeId)
+            .resumeOrCreateNewAuditMission(userId, regionId, userRoute, revisitStreetId = servedStreetId)
             .flatMap {
-              case Some(m)                     => DBIO.successful((m, false, startRegion))
-              case None if userRoute.isDefined =>
-                logger.warn(
-                  s"Route ${userRoute.get.routeId} (walk ${userRoute.get.userRouteId}) has no walkable distance for " +
-                    s"user $userId; dropping the walk and pausing it."
-                )
-                for {
-                  _        <- userRouteTable.pauseAllActiveRoutes(userId)
-                  fallback <- regionFallbackAfterDroppedWalk(userId, startRegion)
-                } yield (fallback._1, true, fallback._2)
-              // Work was left, but none a mission can be sized from: the only streets left are zero length (#4670).
-              case None =>
-                missionInFreshRegion(userId, s"region $regionId had only zero-length streets left")
-                  .map((m, newRegion) => (m, false, newRegion))
+              case Some(m) => DBIO.successful((m, startRegion))
+              case None    => missionInFreshRegion(userId, s"region $regionId had no distance left for a mission")
             }
         }
       }
-      sessionRegionId: Int             = sessionRegion.regionId
-      liveUserRoute: Option[UserRoute] = if (walkDropped) None else userRoute
-      liveRoute: Option[Route]         = if (walkDropped) None else routeOption
+      sessionRegionId: Int = sessionRegion.regionId
+      // The street itself counts as distance left, so a street visit shouldn't move the session to another region. If
+      // it does anyway, the street is dropped rather than handed out under another region's mission.
+      streetToServe: Option[Int] = servedStreetId.filter(_ => sessionRegionId == regionId)
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
         if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
-        } else if (streetEdgeId.isDefined) {
-          auditTaskTable.selectANewTask(streetEdgeId.get, userId, mission.missionId).map(Some(_))
-        } else if (liveRoute.isDefined) {
-          userRouteTable.getRouteTask(liveUserRoute.get, mission.missionId)
+        } else if (streetToServe.isDefined) {
+          auditTaskTable.selectANewTask(streetToServe.get, userId, mission.missionId).map(Some(_))
+        } else if (routeOption.isDefined) {
+          userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
           // If we find no task with the given ID, try to get any new task in the region. A task the labeler has
           // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
@@ -386,7 +386,7 @@ class ExploreServiceImpl @Inject() (
       // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
-        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (liveUserRoute, liveRoute)
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
       ExplorePageData(
         task,
         updatedMission,
@@ -394,7 +394,9 @@ class ExploreServiceImpl @Inject() (
         pageUserRoute,
         pageRoute,
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
-        routeUnavailable = routeSetup.routeUnavailable || walkDropped,
+        routeSetup.routeUnavailable,
+        servedStreetId = streetToServe,
+        streetUnavailable = streetEdgeId.isDefined && streetToServe.isEmpty,
         regionFinished,
         hasCompletedAMission,
         nextTempLabelId
@@ -434,7 +436,8 @@ class ExploreServiceImpl @Inject() (
               } yield {
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
-                    routeUnavailable = false, regionFinished = false, hasCompletedAMission, nextTempLabelId)
+                    routeUnavailable = false, servedStreetId = None, streetUnavailable = false, regionFinished = false,
+                    hasCompletedAMission, nextTempLabelId)
                 )
               }
           }
@@ -557,22 +560,6 @@ class ExploreServiceImpl @Inject() (
       setup.map(_.copy(routeUnavailable = routeId.isDefined && !routeExists))
     }
   }
-
-  /**
-   * The region session a visit falls back to once its zero-length walk is dropped (#5167): the route's start region
-   * while it still has distance left for the user, else a region picked the way a bare /explore picks one. The second
-   * step is what keeps a user who finished the start region out of an error on every load: a failed request rolls
-   * back the pause with everything else, so the walk would stay active and be re-picked by the next /explore.
-   *
-   * @param userId      The user whose walk was dropped.
-   * @param routeRegion The region the route starts in, where the session was headed.
-   * @return The region mission to start on, paired with the region it sits in.
-   */
-  private def regionFallbackAfterDroppedWalk(userId: String, routeRegion: Region): DBIO[(Mission, Region)] =
-    missionService.resumeOrCreateNewAuditMission(userId, routeRegion.regionId, None).flatMap {
-      case Some(m) => DBIO.successful((m, routeRegion))
-      case None    => missionInFreshRegion(userId, "dropping their walk")
-    }
 
   /**
    * Moves the user to a top-priority region they haven't finished, as a bare /explore does.
@@ -1012,7 +999,8 @@ class ExploreServiceImpl @Inject() (
 
     val labelSubmitActions = DBIO.sequence {
       data.labels.map { label =>
-        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
+        // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates. The
+        // `.get`s are safe: aiLabelSubmissionReads refuses a submission with labels that lacks any of them (#4808).
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
@@ -1024,10 +1012,13 @@ class ExploreServiceImpl @Inject() (
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
-          regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
-          missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
-          auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
-          tempLabelId  <- labelTable.nextTempLabelId(aiUserId)
+          // A street with no live region is a data-integrity fault, not a bad request, so it stays a 500.
+          regionId <- streetEdgeRegionTable
+            .getNonDeletedRegionFromStreetId(streetEdgeId)
+            .map(_.getOrElse(throw IllegalStateException(s"Street $streetEdgeId has no non-deleted region")).regionId)
+          missionId   <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
+          auditTaskId <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
+          tempLabelId <- labelTable.nextTempLabelId(aiUserId)
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
@@ -1055,9 +1046,31 @@ class ExploreServiceImpl @Inject() (
         } yield ()
       }
     }
+
+    // A re-run of the labeler re-POSTs panos it has already submitted, so refuse to duplicate their labels unless the
+    // caller asked to replace them (#5382). Only the submission's own label type is considered: a model for another
+    // type must neither be refused by these labels nor wipe them. A label-less submission without the flag is a pano
+    // upsert only, so it never conflicts. Two concurrent first submissions of one pano could both count zero under
+    // READ COMMITTED; the labeler submits sequentially, so that isn't worth a lock.
+    val overwrite                        = data.overwrite.contains(true)
+    val retireExistingAction: DBIO[Unit] =
+      labelTable.countLiveLabelsOnPano(pano.panoId, aiUserId, data.labelType).flatMap { (existingCount: Int) =>
+        if (overwrite && existingCount > 0) {
+          labelTable
+            .softDeleteLabelsOnPano(pano.panoId, aiUserId, data.labelType, aiUserId, UiSource.SidewalkAI)
+            .andThen(userStatTable.updateAccuracy(Seq(aiUserId)))
+        } else if (!overwrite && existingCount > 0 && data.labels.nonEmpty) {
+          DBIO.failed(AiLabelsConflict(pano.panoId, data.labelType, existingCount))
+        } else {
+          DBIO.successful(())
+        }
+      }
+
     // The pano's metadata is integral to its labels (#4587): writing it in the same transaction means a label can
-    // never be committed without its pano_data row, and a failed pano write fails the whole request.
-    db.run(savePanoAction(pano, currTime).andThen(labelSubmitActions).transactionally)
+    // never be committed without its pano_data row, and a failed pano write fails the whole request. The conflict
+    // check runs first in that transaction, so a refused submission writes nothing, and a replacement can never be
+    // left half done.
+    db.run(retireExistingAction.andThen(savePanoAction(pano, currTime)).andThen(labelSubmitActions).transactionally)
   }
 
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {

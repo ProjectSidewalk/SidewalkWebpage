@@ -5,9 +5,11 @@
  * backend's label-type table rather than a copy of it.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
 import { makeContextMenuUi } from './contextMenuUiStub.js';
 import { fakeGate, fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /**
  * @param {string} labelType
@@ -38,7 +40,6 @@ describe('Explore severity shortcuts', () => {
   let keyboardDisabled;
 
   beforeEach(async () => {
-    window.i18next = { t: (key) => key };
     // Never resolves, so the severity tooltips (which need real DOM) are never built.
     useUtil({ getImage: () => new Promise(() => {}) });
     const canvas = { clear: () => canvas, render: () => canvas };

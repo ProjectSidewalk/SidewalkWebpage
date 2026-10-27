@@ -17,7 +17,9 @@
  * derived; don't adjust one here to make a test pass.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: () => '' } }));
 
 describe('Label lat/lng estimation', () => {
   let Label;
@@ -42,20 +44,21 @@ describe('Label lat/lng estimation', () => {
     return label;
   }
 
+  const turf = {
+    point: (coords) => ({ geometry: { coordinates: coords } }),
+    destination: vi.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
+  };
+
   beforeEach(async () => {
+    mockModule('@turf/turf', () => turf);
     ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
-    window.i18next = { t: () => '' };
     Label.styleMinimapMarker = () => {};
-    window.turf = {
-      point: (coords) => ({ geometry: { coordinates: coords } }),
-      destination: vi.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
-    };
   });
 
   /** The [distanceKm, bearing] the estimator handed to turf.destination for the label's single placement. */
   function destinationArgs() {
-    expect(window.turf.destination).toHaveBeenCalledTimes(1);
-    const [, distKm, bearing] = window.turf.destination.mock.calls[0];
+    expect(turf.destination).toHaveBeenCalledTimes(1);
+    const [, distKm, bearing] = turf.destination.mock.calls[0];
     return [distKm, bearing];
   }
 
@@ -90,6 +93,6 @@ describe('Label lat/lng estimation', () => {
 
     // A second call returns the cache without re-estimating.
     expect(label.toLatLng().latLngComputationMethod).toBe('approximation3');
-    expect(window.turf.destination).toHaveBeenCalledTimes(1);
+    expect(turf.destination).toHaveBeenCalledTimes(1);
   });
 });

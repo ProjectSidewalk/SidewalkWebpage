@@ -6,7 +6,15 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
+
+// Echoes the key with any interpolated values, so a test can see what was handed to a string.
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  // A string that names its own fallback is one this locale may not have, and here it doesn't.
+  t: (key, values = {}) => values.defaultValue
+                ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
+} }));
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -51,13 +59,6 @@ describe('slope in the AccessScore scoring controls', () => {
   let AccessScoreUrlSync;
 
   beforeAll(async () => {
-    // Echoes the key with any interpolated values, so a test can see what was handed to a string.
-    window.i18next = {
-      language: 'en',
-      // A string that names its own fallback is one this locale may not have, and here it doesn't.
-      t: (key, values = {}) => values.defaultValue
-                ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
-    };
     ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = await loadModules(
       'frontend/js/access-score/AccessScoreModel.js', 'frontend/js/access-score/AccessScoreSlopePanel.js',
       'frontend/js/access-score/AccessScoreUrlSync.js'));

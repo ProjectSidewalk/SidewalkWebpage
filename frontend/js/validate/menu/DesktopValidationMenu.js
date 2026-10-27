@@ -2,11 +2,14 @@
  * Initializes the primary validation UI on the right side, including validation of tags/severity.
  */
 
+import TomSelect from 'tom-select/base';
+import i18next from 'i18next';
 import { LabelTypePicker } from '../../common/LabelTypePicker.js';
 import { util } from '../../common/utilities.js';
 import { LabelContainer } from '../label/LabelContainer.js';
 import '../../common/utilitiesSidewalk.js';
 import '../../../css/components/tag-pills.css';
+import 'tom-select/dist/css/tom-select.css';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../label/LabelCard.js').LabelCard} LabelCard */
 /** @typedef {import('../Main.js').ValidateConfig} ValidateConfig */
@@ -129,7 +132,7 @@ export class DesktopValidationMenu {
         refreshThrottle: 0, // Filter on every keystroke, so a quick Enter picks from the current list.
         labelField: 'tag_name',
         valueField: 'tag_name',
-        searchField: 'tag_name',
+        searchField: ['tag_name'],
         sortField: 'popularity', // TODO include data abt frequency of use on this server.
         onFocus: () => {
           this.#tracker.push('Click=TagSearch');
@@ -799,8 +802,11 @@ export class DesktopValidationMenu {
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
 
-    // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
+    // Fill in the comment based on the disagree options they picked or one of the free form text boxes. A canned
+    // reason also travels as its id (#5475), so it is stored as one rather than only as the text shown.
     let comment = '';
+    let reasonId = null;
+    const reasons = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))] ?? {};
     if (action === 'Agree') {
       comment = currLabel.getProperty('agreeComment');
     } else if (action === 'Disagree') {
@@ -809,6 +815,7 @@ export class DesktopValidationMenu {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
         comment = this.#reasonButton(disagreeReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[disagreeReason]?.reasonId ?? null;
       }
     } else if (action === 'Unsure') {
       const unsureReason = currLabel.getProperty('unsureOption');
@@ -816,9 +823,11 @@ export class DesktopValidationMenu {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
         comment = this.#reasonButton(unsureReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[unsureReason]?.reasonId ?? null;
       }
     }
     currLabel.setProperty('comment', comment);
+    currLabel.setProperty('reasonId', reasonId);
 
     // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.

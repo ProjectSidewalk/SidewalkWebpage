@@ -67,7 +67,8 @@ object StreetImagerySource extends PgEnumCompanion[StreetImagerySource]("street_
  *                            poll (`None` until a street has been polled); drives the outdated_imagery flag (#4384).
  * @param nPanos              Number of distinct dated panos observed on the street.
  * @param dataSource          Which feeder created this row.
- * @param updatedAt           When this row was last written.
+ * @param updatedAt           When this row was last written, by any feeder.
+ * @param polledAt            When the imagery-age poll last answered conclusively; the poll rotation's key (#5403).
  */
 case class StreetImagery(
     streetEdgeId: Int,
@@ -76,7 +77,8 @@ case class StreetImagery(
     medianNewestCapture: Option[LocalDate],
     nPanos: Int,
     dataSource: StreetImagerySource,
-    updatedAt: OffsetDateTime
+    updatedAt: OffsetDateTime,
+    polledAt: Option[OffsetDateTime]
 )
 
 class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_imagery") {
@@ -88,9 +90,10 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
   def dataSource: Rep[StreetImagerySource]        = column[StreetImagerySource]("data_source")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
+  def updatedAt: Rep[OffsetDateTime]        = column[OffsetDateTime]("updated_at")
+  def polledAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("polled_at")
 
-  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt)
+  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt, polledAt)
     .mapTo[StreetImagery]
 
   def streetEdge =
@@ -151,11 +154,12 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * Picks the streets most in need of an imagery-age poll (#4384).
    *
    * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the
-   * poll exists to feed) and, within each group, streets whose imagery knowledge is oldest (no street_imagery row at
-   * all first, then stale updated_at). The poller bumps updated_at on every street it successfully polls -- even when
-   * the dates don't change -- which is what advances this rotation. The tiering is strict: in a city with more than
-   * `limit` audited streets, the batch is all audited streets and unaudited ones are never reached -- accepted,
-   * since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
+   * poll exists to feed) and, within each group, least recently *polled* first: no street_imagery row or a NULL
+   * polled_at first, then the oldest polled_at. polled_at is the rotation key, not updated_at, because only the poll
+   * writes it (#5403); it is stamped on every conclusive poll, so a street the poll can never answer for (a sample
+   * point that always fails) stays NULL and holds one batch slot every night. The tiering is strict: in a city with
+   * more than `limit` audited streets, the batch is all audited streets and unaudited ones are never reached --
+   * accepted, since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
    *
    * Sample points sit at the street's 20%/50%/80% marks -- see StreetToPoll for why interior points, not endpoints.
    *
@@ -186,7 +190,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
                    SELECT FROM audit_task
                    WHERE audit_task.street_edge_id = street_edge.street_edge_id AND audit_task.completed = TRUE
                ) DESC,
-               street_imagery.updated_at ASC NULLS FIRST,
+               street_imagery.polled_at ASC NULLS FIRST,
                street_edge.street_edge_id
       LIMIT $limit;
     """.as[StreetToPoll]
@@ -197,8 +201,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    *
    * A separate, slower rotation from streetsToPoll on purpose: no_imagery streets are never audited, so folding them
    * into that query's audited-first ordering would place them dead last and they would never be reached. Ordering is
-   * purely least-recently-polled (no street_imagery row first), and the poller bumps updated_at on every conclusive
-   * poll -- empty results included -- which is what advances this rotation.
+   * purely least-recently-polled: polled_at ASC NULLS FIRST, the same rotation key as streetsToPoll (#5403).
    *
    * Side effect worth knowing: neither syncOutdatedImageryFlags nor km_needs_reaudit filters by street status, so a
    * regained street's pre-retirement audits get flagged as outdated_imagery while it still sits in the review queue.
@@ -226,7 +229,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
       LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
       WHERE street_edge.status = 'no_imagery'
           AND #${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
-      ORDER BY street_imagery.updated_at ASC NULLS FIRST,
+      ORDER BY street_imagery.polled_at ASC NULLS FIRST,
                street_edge.street_edge_id
       LIMIT $limit;
     """.as[StreetToPoll]
@@ -234,7 +237,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
 
   /**
    * Records one poll's result for a street: snapshots median_newest_capture, widens the min/max capture range, and
-   * always bumps updated_at (#4384).
+   * always stamps updated_at and polled_at (#4384, #5403).
    *
    * Each observation is attributed only if the polled street is the NEAREST street (within
    * PanoStreetToleranceMeters) to the observation's position -- the same nearest-street rule as refreshFromPanoData,
@@ -252,7 +255,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * alone -- a poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street where
    * nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), recording "checked,
    * nothing there" and advancing the streetsToPoll rotation -- and NULLing the median, since that is this poll's
-   * honest snapshot.
+   * honest snapshot. Only this method writes polled_at, the rotation key (#5403).
    *
    * @param streetEdgeId   The polled street.
    * @param nPointsSampled How many sample points the poll conclusively answered for (the median's denominator).
@@ -263,11 +266,12 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     if (panos.isEmpty) {
       sqlu"""
         INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
-                                    data_source, updated_at)
-        VALUES ($streetEdgeId, NULL, NULL, NULL, 0, 'imagery_poll', now())
+                                    data_source, updated_at, polled_at)
+        VALUES ($streetEdgeId, NULL, NULL, NULL, 0, 'imagery_poll', now(), now())
         ON CONFLICT (street_edge_id) DO UPDATE
         SET median_newest_capture = NULL,
-            updated_at            = EXCLUDED.updated_at;
+            updated_at            = EXCLUDED.updated_at,
+            polled_at             = EXCLUDED.polled_at;
       """
     } else {
       // The (offset+1)-th newest per-point date is the youngest date that at least ceil(n/2) sampled points reach.
@@ -290,19 +294,20 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
             OFFSET $medianOffset LIMIT 1
         )
         INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
-                                    data_source, updated_at)
+                                    data_source, updated_at, polled_at)
         SELECT $streetEdgeId, MIN(kept.capture), MAX(kept.capture),
                (SELECT median.capture_at_median_point FROM median),
                -- Distinct positions stand in for distinct panos: a pano seen from two sample points appears once per
                -- point in `kept`, at the identical provider-reported position.
                COUNT(DISTINCT (kept.lat, kept.lng)) FILTER (WHERE kept.capture IS NOT NULL),
-               'imagery_poll', now()
+               'imagery_poll', now(), now()
         FROM kept
         ON CONFLICT (street_edge_id) DO UPDATE
         SET oldest_capture        = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
             newest_capture        = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
             median_newest_capture = EXCLUDED.median_newest_capture,
-            updated_at            = EXCLUDED.updated_at;
+            updated_at            = EXCLUDED.updated_at,
+            polled_at             = EXCLUDED.polled_at;
       """
     }
   }
@@ -391,10 +396,10 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * On conflict, capture dates only ever widen (LEAST/GREATEST, which ignore NULLs in Postgres) and n_panos /
    * data_source / median_newest_capture are left alone -- a scan's full-street pano count is richer than the
    * labeling-observed subset, and labeling-observed panos are too positionally biased to support the median's
-   * "half the street" claim (only the fixed-sample-point poll writes it). The
-   * seven-day last_viewed lookback overlaps nightly runs, so a missed run self-heals. Panos without a stored position
-   * (lat/lng are nullable) contribute nothing, the tutorial pano is skipped, and a pano whose nearest street is the
-   * tutorial street is dropped rather than reattributed.
+   * "half the street" claim (only the fixed-sample-point poll writes it). polled_at, the poll rotation's key, is left
+   * alone too (#5403). The seven-day last_viewed lookback overlaps nightly runs, so a missed run self-heals. Panos
+   * without a stored position (lat/lng are nullable) contribute nothing, the tutorial pano is skipped, and a pano
+   * whose nearest street is the tutorial street is dropped rather than reattributed.
    *
    * @return Number of street rows inserted or updated.
    */

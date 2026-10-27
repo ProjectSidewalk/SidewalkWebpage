@@ -4,8 +4,10 @@
  * would read the previous pano's coverage and could finish the route the moment the labeler steps onto the last pano.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoManager } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('MissionController finishing a route on its own', () => {
   let controller;
@@ -16,7 +18,6 @@ describe('MissionController finishing a route on its own', () => {
   beforeEach(async () => {
     settling = false;
     fractionObserved = 0;
-    window.i18next = { t: (key) => key };
     const { MissionController } = await loadModules('frontend/js/explore/mission/MissionController.js');
     const navigationService = {
       isHeadingSettling: () => settling,

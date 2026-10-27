@@ -2,6 +2,7 @@
  * The Admin Info popover on /expertValidate: who placed the current label, its id, and its previous validations.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../label/Label.js').Label} Label */
 

@@ -11,8 +11,27 @@
 import fs from 'fs';
 import path from 'path';
 
-import { REPO_ROOT, loadModules, loadVendored, useUtil } from './loader.js';
+import { loadModules, mockModule, useUtil, REPO_ROOT } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
+
+/** @returns {?string} The English string a `common:` i18next key resolves to, or null when the key is missing. */
+function resolve(key) {
+  const [ns, rest] = key.split(':');
+  if (ns !== 'common') return 'not checked here';
+  const hit = rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN_COMMON);
+  return typeof hit === 'string' ? hit : null;
+}
+
+// i18next echoes its key so assertions can name the key they expect rather than an English string. `exists`
+// answers from the real English file, since the reason vocabulary (#5475) drops a reason whose text is missing.
+mockModule('i18next', () => ({
+  default: {
+    t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key),
+    exists: (key) => resolve(key) !== null,
+  },
+}));
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }, { tag_name: 'trash/recycling can' }],
@@ -30,8 +49,6 @@ let util;
 
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  // i18next echoes its key so assertions can name the key they expect rather than an English string.
-  window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
   ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util } =
     await loadModules(
       'frontend/js/common/LabelTypePicker.js',
@@ -452,15 +469,6 @@ describe('LabelTypeDropdown', () => {
 });
 
 describe('the disagree reasons (#5409)', () => {
-  const EN = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/validate.json'), 'utf8'));
-
-  /** @returns {?string} The English string an i18next key resolves to, or null when the key is missing. */
-  function resolve(key) {
-    const [ns, rest] = key.split(':');
-    if (ns !== 'validate') return 'not checked here';
-    return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN) ?? null;
-  }
-
   let reasonButtonInfo;
 
   beforeEach(() => {
@@ -474,7 +482,7 @@ describe('the disagree reasons (#5409)', () => {
     }
   });
 
-  it('every reason still points at a string that exists, so the renumbering left nothing dangling', () => {
+  it('every reason still points at a string that exists, so the move to the shared vocabulary left nothing dangling', () => {
     const missing = [];
     for (const [type, reasons] of Object.entries(reasonButtonInfo)) {
       for (const [id, info] of Object.entries(reasons)) {
@@ -486,6 +494,20 @@ describe('the disagree reasons (#5409)', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it('every button carries the id its reason is stored as, and the same id wherever the reason recurs (#5475)', () => {
+    expect(reasonButtonInfo['curb-ramp']['no-button-2'].reasonId).toBe('driveway');
+    expect(reasonButtonInfo['obstacle']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    expect(reasonButtonInfo['surface-problem']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    for (const reasons of Object.values(reasonButtonInfo)) {
+      expect(reasons['unsure-button-1'].reasonId).toBe('better-image');
+      for (const button of Object.values(reasons)) expect(typeof button.reasonId).toBe('string');
+    }
+    // Every type Validate serves has its buttons, in the backend's order.
+    expect(Object.keys(reasonButtonInfo)).toEqual(
+      Object.keys(window.validationReasons).map((type) => type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()),
+    );
   });
 
   it('there are never more disagree reasons than the four buttons the menu has', () => {
@@ -503,7 +525,6 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   let panoManager;
 
   beforeAll(() => {
-    loadVendored('tom-select');
     // No image ever loads in jsdom, and the menu only needs the promise to settle.
     useUtil({ getImage: () => Promise.resolve('img') });
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.

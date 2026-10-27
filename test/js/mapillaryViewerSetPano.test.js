@@ -59,7 +59,7 @@ function makeSdk(moveTo) {
     off: vi.fn((event, fn) => { listeners[event] = (listeners[event] ?? []).filter((f) => f !== fn); }),
     getCenter: vi.fn(() => Promise.resolve([0.5, 0.5])),
     getFieldOfView: vi.fn(() => Promise.resolve(70)),
-    // MapillaryJS 4.1.2 returns undefined from both, whatever its API docs say (measured in the vendored bundle).
+    // MapillaryJS 4.1.2 returns undefined from both, whatever its API docs say (measured in the package's bundle).
     setCenter: vi.fn(() => undefined),
     setFieldOfView: vi.fn(() => undefined),
     _navigator: {
@@ -97,7 +97,6 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     sdk = makeSdk(moveTo);
     viewer = new classes.MapillaryViewer();
     viewer.viewer = sdk;
-    viewer.extractPitchRoll = () => ({ pitch: 0, roll: 0 }); // THREE isn't loaded; the angles don't matter here.
   }
 
   /** A move that never settles, like one stuck on a slow CDN. */

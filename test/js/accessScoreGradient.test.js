@@ -9,7 +9,15 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
+
+// The legend's copy comes through i18next, so `t` echoes the key and whatever was interpolated into it.
+mockModule('i18next', () => ({ default: {
+  language: 'en',
+  exists: (key) => key.startsWith('accessscore:slope-statistic-'),
+  t: (key, values = {}) => [key, ...Object.entries(values)
+    .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
+} }));
 
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
@@ -59,13 +67,6 @@ describe('street slope in the AccessScore tool', () => {
   let AccessScoreUrlSync;
 
   beforeAll(async () => {
-    // The legend's copy comes through i18next, so `t` echoes the key and whatever was interpolated into it.
-    window.i18next = {
-      language: 'en',
-      exists: (key) => key.startsWith('accessscore:slope-statistic-'),
-      t: (key, values = {}) => [key, ...Object.entries(values)
-        .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
-    };
     ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreMapLegend,
       AccessScoreUrlSync }
       = await loadModules('frontend/js/access-score/AccessScoreModel.js',

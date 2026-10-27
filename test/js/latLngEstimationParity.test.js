@@ -8,20 +8,19 @@
  * of this contract is test/service/LatLngEstimationParitySpec.scala; both suites are blocking CI steps. The SQL
  * port was checked against the fixture once, by hand, during the sign-off.
  *
- * The client runs the real vendored turf for the destination step, so this also pins that turf's sphere
+ * The client runs the real turf for the destination step, so this also pins that turf's sphere
  * (6371.0088 km) is close enough to the app's 6371 km: the 1.4 ppm radius gap moves a label under a tenth of a
  * millimetre, far inside the 1e-8 degree (~1 mm) tolerance used here. The fixture's own 1e-9 degree tolerance is
  * what the Scala path is held to; the client tolerance is 9e-9 degrees looser, comfortably more than the ~3e-10
  * degrees the radius gap costs.
  *
  * The client takes a POV rather than a pano pixel: the fixture's expected heading/pitch are what
- * `calculatePovFromPanoXY` produces for the pixel, so the test feeds those in and checks the distance and the
- * destination.
+ * `calculatePovFromPanoXY` produces for the pixel, so the test feeds those in and checks distance and destination.
  */
 
 import fs from 'fs';
 import path from 'path';
-import { loadVendored, loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, REPO_ROOT } from './loader.js';
 
 const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'test/fixtures/latLngEstimationParity.json'), 'utf8'));
 const CLIENT_TOL_DEG = 1e-8;
@@ -35,9 +34,8 @@ describe('Label lat/lng estimation parity with the server and the SQL backfill (
   };
 
   beforeEach(async () => {
+    // The real turf, not a stub: the destination step is part of what is being pinned.
     ({ Label } = await loadModules('frontend/js/explore/label/Label.js'));
-    // The real vendored turf (UMD), not a stub: the destination step is part of what is being pinned.
-    loadVendored('turf');
   });
 
   test('the fixture was generated for the constants this test injects', () => {

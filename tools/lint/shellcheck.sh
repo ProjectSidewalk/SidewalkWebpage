@@ -5,7 +5,7 @@
 # ShellCheck runs from its official Docker image so everyone gets the same version, with nothing to install. The
 # version is pinned in docker/shellcheck/Dockerfile, where Dependabot can see it.
 #
-# Usage: tools/lint/shellcheck.sh [file ...]    (no files = every .sh file outside public/vendor/ that git sees,
+# Usage: tools/lint/shellcheck.sh [file ...]    (no files = every .sh file that git sees,
 #                                                 tracked or not, minus ignored ones)
 #
 # Exit code: 0 if clean, 1 if ShellCheck finds anything, 2 if a file is missing or the tool couldn't be found.
@@ -33,7 +33,7 @@ else
   # Untracked scripts count too, so a new file is checked before it's staged; a deleted one is skipped until then.
   while IFS= read -r f; do
     [[ -e "$f" ]] && files+=("$f")
-  done < <(git ls-files --cached --others --exclude-standard '*.sh' ':!public/vendor/')
+  done < <(git ls-files --cached --others --exclude-standard '*.sh')
 fi
 [[ ${#files[@]} -gt 0 ]] || { echo "shellcheck: no shell scripts found" >&2; exit 2; }
 

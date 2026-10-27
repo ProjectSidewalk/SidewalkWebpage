@@ -10,6 +10,9 @@
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
 // GalleryFilter is the page's only writer of the address bar, so it reads the open label off LabelDetail to carry
 // the ?labelId= deep link through its rewrite (#5446).
 mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
@@ -142,7 +145,7 @@ describe('GalleryFilter', () => {
   }
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key, language: 'en' };
+    Object.assign(i18next, { t: (key) => key, language: 'en' });
     ({ GalleryFilter } = await loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
   });
 
@@ -413,7 +416,7 @@ describe('GalleryFilter', () => {
     }
 
     beforeEach(() => {
-      window.i18next = { t: (key, opts) => (opts ? `${key}:${JSON.stringify(opts)}` : key), language: 'en' };
+      Object.assign(i18next, { t: (key, opts) => (opts ? `${key}:${JSON.stringify(opts)}` : key), language: 'en' });
       filter = buildAsAdmin();
     });
 

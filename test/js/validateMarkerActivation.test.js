@@ -15,6 +15,8 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
+mockModule('i18next', () => ({ default: {t: (key) => key} }));
+
 // The card's contents and the toggle's state are their own suites' business; here only the marker's activation is.
 mockModule('frontend/js/validate/label/LabelCard.js', () => ({
   LabelCard: class { closePopovers() {} isPopoverOpen() { return false; } },
@@ -67,7 +69,6 @@ describe('Validate pano marker activation', () => {
     // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant
     // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-    vi.stubGlobal('i18next', {t: (key) => key});
     let LabelVisibilityControl;
     ({ PanoMarker, LabelVisibilityControl } = await loadModules('frontend/js/common/PanoMarker.js',
       'frontend/js/validate/label/LabelVisibilityControl.js'));

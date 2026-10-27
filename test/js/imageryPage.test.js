@@ -12,7 +12,11 @@
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
+
+useUtil(metricDistanceUtil);
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
@@ -20,17 +24,21 @@ const charts = [];
 mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
   MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
 }));
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  window.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
+    LngLatBounds: FakeLngLatBounds,
     Map: class {
       constructor(options) {
-        // Mapbox rejects a non-finite bounds box, which is what a FeatureCollection with no features produces.
-        if (!options.bounds.flat().every(Number.isFinite)) throw new Error('Invalid LngLat object');
+        // Mapbox rejects empty bounds, which is what a FeatureCollection with no features produces.
+        if (options.bounds.isEmpty()) throw new Error('Invalid LngLat object');
         state.options = options;
       }
 
@@ -59,7 +67,7 @@ function stubMapbox() {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 
@@ -101,6 +109,7 @@ const street = (overrides = {}) => ({
   last_audit_date: null,
   median_newest_capture: null,
   imagery_updated_at: null,
+  polled_at: null,
   length_m: 1609.34,
   ...overrides,
 });
@@ -110,12 +119,13 @@ const CITY = [
   street({ street_edge_id: 1, priority: 1 }),
   street({ street_edge_id: 2, priority: 0.667, outdated_good_count: 1, outdated: true,
     last_audit_date: '2021-05-04', median_newest_capture: '2025-06-01',
-    imagery_updated_at: '2026-08-15T00:45:00Z' }),
+    imagery_updated_at: '2026-08-15T00:45:00Z', polled_at: '2026-08-15T00:45:00Z' }),
   street({ street_edge_id: 3, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10',
-    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z' }),
+    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z',
+    polled_at: '2026-02-01T00:45:00Z' }),
   street({ street_edge_id: 4, region_id: 11, region_name: 'Downtown', priority: 0.333, fresh_good_count: 2,
     last_audit_date: '2026-07-01', median_newest_capture: '2026-07-20',
-    imagery_updated_at: '2024-03-01T00:45:00Z' }),
+    imagery_updated_at: '2024-03-01T00:45:00Z', polled_at: '2024-03-01T00:45:00Z' }),
 ];
 
 /** GeoJSON for the given street ids, in the shape /v3/api/streets serves. */
@@ -188,9 +198,6 @@ const streetRows = () => [...document.querySelectorAll('#imagery-street-table tb
 
 beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
-afterEach(() => {
-  delete window.mapboxgl;
-});
 
 describe('ImageryPage KPIs', () => {
   test('counts re-audits with the site-wide flag, so the number matches Overview and Coverage', async () => {
@@ -198,7 +205,7 @@ describe('ImageryPage KPIs', () => {
     // Street 2 is the only one carrying `outdated`; the tier count would agree here, and the case below is the one
     // where they diverge.
     expect(text('kpi-needs-reaudit')).toBe('1');
-    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi with newer imagery');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.6 km with newer imagery');
   });
 
   test('counts never-audited streets out of every routable street', async () => {
@@ -207,29 +214,37 @@ describe('ImageryPage KPIs', () => {
     expect(text('kpi-unaudited-note')).toBe('of 4 routable streets');
   });
 
-  test('reports how much of the audited city the rotation has actually reached', async () => {
+  test('reports how much of the city the rotation has actually reached, and how far back it goes', async () => {
     await renderPage();
-    // Three streets have been audited; all three carry a polled capture date.
-    expect(text('kpi-rotation')).toBe('100%');
-    expect(text('kpi-rotation-note')).toContain('3 of 3 audited streets');
+    // Three of the four routable streets carry a poll stamp; the oldest is 2024-03-01T00:45Z, 902 whole days before
+    // the pinned clock.
+    expect(text('kpi-rotation')).toBe('75%');
+    expect(text('kpi-rotation-note')).toContain('3 of 4 routable streets polled at least once');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 902 days ago');
   });
 
-  test('reports an unmeasured audited street as unmeasured rather than as up to date', async () => {
+  test('counts a street as polled by its poll stamp, not by whether the poll found dated imagery', async () => {
     await renderPage({
       streets: [
-        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01' }),
+        // A conclusive poll that attributed nothing dated: polled, with no median.
+        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01',
+          polled_at: '2026-08-10T00:45:00Z' }),
+        // A harvest-only record: an imagery timestamp, but never polled.
         street({ street_edge_id: 2, fresh_good_count: 1, last_audit_date: '2026-01-01',
-          median_newest_capture: '2026-02-02' }),
+          imagery_updated_at: '2026-08-19T00:45:00Z' }),
       ],
       features: geojson([1, 2]),
     });
     expect(text('kpi-rotation')).toBe('50%');
+    expect(text('kpi-rotation-note')).toContain('1 of 2 routable streets');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 10 days ago');
   });
 
-  test('renders the rotation share as an em dash rather than 0% when nothing has been audited', async () => {
+  test('says no street has been polled rather than inventing an oldest poll', async () => {
     await renderPage({ streets: [street({ street_edge_id: 1 })], features: geojson([1]) });
     expect(text('kpi-rotation')).toBe('0%');
-    expect(text('kpi-rotation-note')).toContain('0 of 0 audited streets');
+    expect(text('kpi-rotation-note'))
+      .toContain('0 of 1 routable streets polled at least once; no street has been polled yet');
   });
 
   test('reports the last poll from the pipeline report', async () => {
@@ -315,11 +330,11 @@ describe('ImageryPage legend', () => {
     expect(shares).toContainEqual(['Needs re-audit', '0%']);
   });
 
-  test('carries each tier\u2019s mileage so the work has a size, not just a count', async () => {
+  test('carries each tier\u2019s distance so the work has a size, not just a count', async () => {
     await renderPage();
-    const miles = [...document.querySelectorAll('#imagery-legend tbody tr')]
+    const distances = [...document.querySelectorAll('#imagery-legend tbody tr')]
       .map((row) => row.querySelectorAll('td')[5].textContent.trim());
-    expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
+    expect(distances).toEqual(['1.6', '1.6', '1.6', '1.6']);
   });
 
   test('gives every tier its own swatch class, so the legend reads the same palette the map does', async () => {
@@ -395,7 +410,7 @@ describe('ImageryPage tables', () => {
     expect(rows[0].cells[1].textContent).toBe('0.722');
     expect(rows[0].cells[2].textContent).toBe('1');
     expect(rows[0].cells[3].textContent).toBe('1');
-    expect(rows[0].cells[4].textContent).toBe('1.0');
+    expect(rows[0].cells[4].textContent).toBe('1.6');
     expect(rows[1].cells[0].textContent).toBe('Downtown');
   });
 
@@ -488,7 +503,7 @@ describe('ImageryPage rotation roll-up', () => {
     await renderPage();
     expect(rollupRow('Routable streets').cells[1].textContent).toBe('4');
     expect(rollupRow('With any imagery record').cells[1].textContent).toBe('3');
-    expect(rollupRow('With a polled capture date').cells[1].textContent).toBe('3');
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('3');
     expect(rollupRow('Audited and polled').cells[2].textContent).toContain('100% of audited streets');
   });
 
@@ -521,6 +536,20 @@ describe('ImageryPage rotation roll-up', () => {
     });
     // The second instant is 2026-01-01T22:00Z — earlier — but sorts later as a string.
     expect(rollupRow('Oldest imagery record').cells[1].textContent).toBe('2026-01-02');
+  });
+
+  test('counts a conclusive poll that found nothing, and not a harvest-only record, as polled', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z',
+          imagery_updated_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01', imagery_updated_at: '2026-08-01T00:45:00Z' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('1');
+    expect(rollupRow('Audited and polled').cells[2].textContent).toContain('50% of audited streets');
+    expect(rollupRow('With any imagery record').cells[1].textContent).toBe('2');
   });
 });
 
@@ -591,7 +620,7 @@ describe('ImageryPage loading states', () => {
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
-    // A bounds box built from no features is a box of infinities, which takes the whole page down on construction.
+    // Bounds built from no features are empty, which takes the whole page down on construction.
     await renderPage({ features: geojson([9999]) });
     expect(text('imagery-status')).toContain('the map is empty');
     expect(regionRows()).toHaveLength(2);
@@ -621,7 +650,7 @@ describe('ImageryPage join', () => {
     const { mapState } = await renderPage({ streets: [CITY[0]], features: geojson([1, 2, 3]) });
     // The GeoJSON carries every street including retired ones; only the priority rows say what is routable, so a
     // retired street joined in would render as "never audited, highest priority".
-    expect(mapState.options.bounds).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
+    expect(mapState.options.bounds.toArray()).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
   });
 
   test('stamps the tier onto the rows the tables and roll-ups read, not only onto the map features', async () => {

@@ -16,7 +16,7 @@
     <div class="ps-kpis" id="imagery-kpis">
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-needs-reaudit">—</span><span class="ps-kpi-label">Streets needing re-audit</span><span class="ps-kpi-note" id="kpi-needs-reaudit-note"></span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-unaudited">—</span><span class="ps-kpi-label">Streets never audited</span><span class="ps-kpi-note" id="kpi-unaudited-note"></span></div>
-      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-rotation">—</span><span class="ps-kpi-label">Audited streets ever polled</span><span class="ps-kpi-note" id="kpi-rotation-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-rotation">—</span><span class="ps-kpi-label">Streets ever polled</span><span class="ps-kpi-note" id="kpi-rotation-note"></span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-last-poll">—</span><span class="ps-kpi-label">Last imagery-age poll</span><span class="ps-kpi-note" id="kpi-last-poll-note"></span></div>
     </div>
     <div class="coverage-status" id="imagery-status" role="status" aria-live="polite">Loading street priority…</div>
@@ -90,10 +90,6 @@
     <div class="mini-host" id="imagery-freshness-chart"></div>
     <p class="ac-note" id="imagery-freshness-note"></p>
   </div>
-
-    <!-- Page-specific library: Mapbox for the segment map. -->
-  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
-  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
 
   @* The endpoints come from the router, so a renamed route fails the view's compile rather than the page. *@
   @ViteAssets.stylesheets("admin/imagery", alreadyLinked = "admin/shell")

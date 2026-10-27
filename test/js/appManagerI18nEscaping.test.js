@@ -6,10 +6,13 @@
  * (the `ps/i18n-escape-in-markup` ESLint rule makes them). These cases pin the init option and then run the real
  * i18next with it, so what is asserted is what a reader sees rather than what the options object says.
  *
- * i18next is not an npm dependency, so the library under test is the vendored bundle the page loads.
+ * The library under test is the i18next package the page bundles.
  */
 
-import { loadModules, loadVendored } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+const fakeI18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: fakeI18next }));
 
 /** What a labeler-facing string interpolates, in the shapes that broke: an apostrophe, a slash, an ampersand. */
 const RESOURCES = {
@@ -25,8 +28,8 @@ describe('AppManager i18next interpolation', () => {
 
   beforeEach(async () => {
     initOptions = null;
-    window.i18next = {
-      use: () => window.i18next,
+    Object.assign(fakeI18next, {
+      use: () => fakeI18next,
       init: (options, callback) => {
         initOptions = options;
         if (callback) callback(null);
@@ -36,8 +39,7 @@ describe('AppManager i18next interpolation', () => {
       languages: [],
       addResourceBundle: () => {},
       services: { formatter: { add: () => {} } },
-    };
-    window.i18nextHttpBackend = {};
+    });
     await loadModules('frontend/js/common/AppManager.js');
     window.appManager._setupI18next({
       language: 'en', defaultNS: 'common', namespaces: ['common'], countryId: 'usa', unitWords: {},
@@ -46,8 +48,6 @@ describe('AppManager i18next interpolation', () => {
 
   afterEach(() => {
     delete window.appManager;
-    delete window.i18next;
-    delete window.i18nextHttpBackend;
   });
 
   test('turns off HTML-escaping of interpolated values', () => {
@@ -59,16 +59,11 @@ describe('AppManager i18next interpolation', () => {
   });
 });
 
-describe('the vendored i18next under that configuration', () => {
+describe('i18next under that configuration', () => {
   let i18next;
 
-  beforeAll(() => {
-    loadVendored('i18next');
-    i18next = window.i18next;
-  });
-
-  afterAll(() => {
-    delete window.i18next;
+  beforeAll(async () => {
+    ({ default: i18next } = await vi.importActual('i18next'));
   });
 
   /** A fresh instance per test keeps one test's options from leaking into the next. */

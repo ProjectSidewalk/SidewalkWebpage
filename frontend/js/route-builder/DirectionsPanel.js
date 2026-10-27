@@ -5,6 +5,8 @@
  * panel renders no markers of its own; the route's start/end flags are the only endpoint markers.
  */
 
+import { MapboxSearchBox } from '@mapbox/search-js-web';
+import i18next from 'i18next';
 import { RouteGraph } from './RouteGraph.js';
 
 export class DirectionsPanel {

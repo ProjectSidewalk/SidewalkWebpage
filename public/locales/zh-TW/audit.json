@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "找不到這條路線，可能已被刪除。"
     },
+    "street-unavailable": {
+      "message": "無法探索這條街道，可能沒有街景影像，或已被移除。"
+    },
     "region-finished": {
       "message": "你已經探索過那個社區的每一條街道，所以我們把你移到了{{regionName}}。"
     },

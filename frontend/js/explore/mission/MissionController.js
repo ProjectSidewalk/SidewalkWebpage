@@ -4,6 +4,7 @@
  * is the mission controller; visuals handled in sidebar/MissionPanel.js and the shared common/ProgressBar.js.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
 /** @typedef {import('../navigation/Compass.js').Compass} Compass */

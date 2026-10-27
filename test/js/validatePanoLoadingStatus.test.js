@@ -12,7 +12,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
+
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
@@ -53,7 +56,7 @@ describe.each([
 
   beforeEach(() => {
     vi.useFakeTimers();
-    window.i18next = {t: vi.fn((key) => `t(${key})`)};
+    Object.assign(i18next, {t: vi.fn((key) => `t(${key})`)});
     document.body.innerHTML = `<div id="svv-panorama-holder">${statusMarkup(viewPath)}</div>`;
     region = document.getElementById('svv-pano-loading');
     box = region.querySelector('.svv-pano-loading__box');
@@ -64,7 +67,6 @@ describe.each([
 
   afterEach(() => {
     document.body.innerHTML = '';
-    delete window.i18next;
   });
 
   test('is a polite status region that is always rendered, with only its box hidden at rest', () => {
@@ -193,7 +195,7 @@ describe('the pano loading status degrades quietly without its markup', () => {
 
 describe('the pano loading status degrades quietly with its markup half there', () => {
   test('a box without its text element is treated as no status, rather than throwing mid-render', () => {
-    window.i18next = {t: vi.fn((key) => key)};
+    Object.assign(i18next, {t: vi.fn((key) => key)});
     document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
     const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
     expect(() => {
@@ -203,7 +205,6 @@ describe('the pano loading status degrades quietly with its markup half there', 
     }).not.toThrow();
     expect(status.isShowing()).toBe(false);
     document.body.innerHTML = '';
-    delete window.i18next;
   });
 });
 

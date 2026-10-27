@@ -3,6 +3,7 @@
  * state. TaskContainer decides how it is drawn on the minimap; this only says what its lines are.
  */
 
+import * as turf from '@turf/turf';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';
@@ -32,7 +33,7 @@ export class Task {
   #streetCoverage;
   #geojson;
 
-  /* @type {turf.Point} */
+  /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
 
   /** @type {Array<[number, number]>} Merged [start_m, end_m] pairs seen, in the server's frame (#5733). */
@@ -330,7 +331,7 @@ export class Task {
   }
 
   /**
-   * @param {{units: string}} [units={units: 'kilometers'}] - Can be degrees, radians, miles, or kilometers
+   * @param {{units: import('@turf/turf').Units}} [units={units: 'kilometers'}] - The distance unit
    * @returns {number}
    */
   getAuditedDistance(units = { units: 'kilometers' }) {
@@ -449,7 +450,7 @@ export class Task {
    * Get the cumulative distance.
    *
    * @param {{lat: number, lng: number}} latLng - The point to measure the distance from the start
-   * @param {{units: string}} [units] - String can be degrees, radians, miles, or kilometers
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {number} Distance in meters
    */
   getDistanceFromStart(latLng, units) {
@@ -582,7 +583,7 @@ export class Task {
    *
    * @param {Task} task - The task to check if this task is close to
    * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
    */
   isConnectedTo(task, threshold, units) {
@@ -601,7 +602,7 @@ export class Task {
 
   /**
    * Get the line distance of the task street edge
-   * @param {{units: string}} [units] - Object with field 'units' holding distance unit, default to 'kilometers'
+   * @param {{units: import('@turf/turf').Units}} [units] - The distance unit, default 'kilometers'
    * @returns {number} The length of the street in the given units
    */
   lineDistance(units) {
@@ -674,7 +675,7 @@ export class Task {
   /**
    * The unwalked part of the street: from the furthest point the user has reached to the street's end. Shared by
    * the forward walk, the compass, and the minimap's forward crumbs so they agree on what "ahead" means.
-   * @returns {turf.Feature<turf.LineString>}
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>}
    */
   unwalkedRemainder() {
     const from = turf.point(this.getFurthestPointReached().geometry.coordinates);

@@ -7,7 +7,9 @@
  * descriptor carries — so the Gallery adoption can't silently redefine them.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
 
 /** Label types the fixture renders, mirroring the real sidebar's ids (`<LabelType>-checkbox`). */
 const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle'];
@@ -125,8 +127,6 @@ describe('FilterSidebar', () => {
   }
 
   beforeAll(() => {
-    // i18next is a page-level global in the app; the controller only reads t() and language.
-    window.i18next = { t: (key) => key, language: 'en' };
   });
 
   beforeEach(async () => {

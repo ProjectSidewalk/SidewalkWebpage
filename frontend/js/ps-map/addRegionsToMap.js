@@ -1,3 +1,6 @@
+import mapboxgl from '../common/mapboxgl.js';
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { logPopupLinkClicks } from './psMapUtilities.js';
 
@@ -30,12 +33,12 @@ export function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
     region.properties.completed_distance_m = compRate.completed_distance_m;
     region.properties.total_distance_m = compRate.total_distance_m;
     region.properties.outdated_distance_m = compRate.outdated_distance_m || 0;
-    region.dist_remaining_m = compRate.total_distance_m - compRate.completed_distance_m;
+    const distRemainingM = compRate.total_distance_m - compRate.completed_distance_m;
     if (isMetric) {
-      region.properties.dist_remaining_converted = region.dist_remaining_m * 0.001; // Kilometers.
+      region.properties.dist_remaining_converted = distRemainingM * 0.001; // Kilometers.
       region.properties.outdated_dist_converted = region.properties.outdated_distance_m * 0.001;
     } else {
-      region.properties.dist_remaining_converted = region.dist_remaining_m * 0.000621371; // Miles.
+      region.properties.dist_remaining_converted = distRemainingM * 0.000621371; // Miles.
       region.properties.outdated_dist_converted = region.properties.outdated_distance_m * 0.000621371;
     }
 

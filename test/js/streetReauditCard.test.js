@@ -8,7 +8,9 @@
  * icon/type-name helpers rather than reinventing either.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { language: 'en', t: (key) => key } }));
 
 const STREET_ID = 776;
 
@@ -39,9 +41,8 @@ describe('the street re-audit hover card', () => {
   let StreetReauditCard;
 
   beforeAll(async () => {
-    window.i18next = { language: 'en', t: (key) => key };
     // A Popup stub that renders into the document the way Mapbox does, so :hover and listeners are testable.
-    window.mapboxgl = {
+    const mapboxgl = {
       Popup: class {
         setDOMContent(content) {
           popupElement = document.createElement('div');
@@ -59,6 +60,7 @@ describe('the street re-audit hover card', () => {
         remove() { popupElement.remove(); }
       },
     };
+    mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
     ({ StreetReauditCard } = await loadModules('frontend/js/ps-map/StreetReauditCard.js'));
   });
 

@@ -7,7 +7,10 @@
  * and the attention item counts only visible stories, so hiding one there clears it.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <div id="ac-attention"></div>

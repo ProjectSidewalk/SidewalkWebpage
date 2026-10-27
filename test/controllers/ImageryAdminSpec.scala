@@ -242,7 +242,7 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       streets.foreach { street =>
         street.as[JsObject].keys mustBe Set("street_edge_id", "region_id", "region_name", "priority",
           "fresh_good_count", "outdated_good_count", "bad_count", "outdated", "last_audit_date",
-          "median_newest_capture", "imagery_updated_at", "length_m")
+          "median_newest_capture", "imagery_updated_at", "polled_at", "length_m")
       }
       succeed
     }

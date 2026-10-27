@@ -27,12 +27,20 @@
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
  */
 
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { Protocol } from 'pmtiles';
+import i18next from 'i18next';
 import { MinimapStyle } from './MinimapStyle.js';
 import { MinimapBasemapStyle } from './MinimapBasemapStyle.js';
 /** @typedef {import('../Main.js').MinimapUi} MinimapUi */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+
+// MapLibre looks for its worker beside its own file, which in the bundle is this chunk; this is the one Vite built.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 export class Minimap {
   // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
@@ -56,6 +64,9 @@ export class Minimap {
   // MapLibre refuses a second registration of the same protocol.
   static #archiveProtocolAdded = false;
 
+  // How many different map errors one page load sends to the interaction log; a lost connection fails every tile.
+  static #MAX_LOGGED_ERRORS = 10;
+
   #ui;
   #panoManager;
   #tracker;
@@ -66,8 +77,7 @@ export class Minimap {
   /** @type {() => Task[]} What the overview fits; nothing until setOverviewStreets names it. */
   #overviewStreets = () => [];
 
-  /** The map, or null when it couldn't be created (no WebGL2, or MapLibre failed to load); see create(). */
-  /** @type {?maplibregl.Map} */
+  /** @type {?import('maplibre-gl').Map} The map, or null when it couldn't be created (no WebGL2); see create(). */
   #map = null;
 
   /** The street-level zoom the map is at or animating to, so a recenter mid-animation can't strand a fraction. */
@@ -123,12 +133,13 @@ export class Minimap {
    * @returns {Promise<void>}
    */
   async #init(initialLocation, basemap) {
+    if (basemap.tilesUrl) Minimap.#addArchiveProtocol();
     // pmtiles' protocol handler wants an absolute URL after its prefix.
-    const canReadArchive = basemap.tilesUrl && Minimap.#addArchiveProtocol();
-    const tilesUrl = canReadArchive ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
+    const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
     this.#map = new maplibregl.Map({
       container: 'minimap',
-      style: MinimapBasemapStyle.build(initialLocation.lat, i18next.language, tilesUrl, basemap.glyphsUrl),
+      style: /** @type {import('maplibre-gl').StyleSpecification} */ (
+        MinimapBasemapStyle.build(initialLocation.lat, i18next.language, tilesUrl, basemap.glyphsUrl)),
       center: Minimap.#lngLat(initialLocation),
       zoom: Minimap.#DEFAULT_ZOOM,
       minZoom: Minimap.#MIN_ZOOM,
@@ -167,14 +178,50 @@ export class Minimap {
       this.#moveListeners.forEach((listener) => listener());
     });
 
-    await new Promise((resolve) => this.#map.once('style.load', resolve));
+    // An error this early means the style will never be ready (rejected, or no worker), and waiting would stall
+    // Explore's start; create() turns the rejection into the can't-draw note. Tile errors only come after this.
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
+      const fail = (event) => reject(event.error);
+      this.#map.once('error', fail);
+      this.#map.once('style.load', () => {
+        this.#map.off('error', fail);
+        resolve();
+      });
+    }));
+    this.#reportMapErrors();
 
     const pixelRatio = window.devicePixelRatio || 1;
     this.#map.addImage(MinimapStyle.CHEVRON_IMAGE_ID, MinimapStyle.chevronImage(pixelRatio), { pixelRatio });
     this.#map.addSource(Minimap.#STREETS_SOURCE, { type: 'geojson', data: this.#streetFeatureCollection() });
     // Over the road names: with roads at real width a name runs down the middle of its street, where it would hide
     // the route line. The route matters more than the name, which shows wherever the street isn't on the route.
-    for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) this.#map.addLayer(layer);
+    for (const layer of MinimapStyle.streetLayers(Minimap.#STREETS_SOURCE)) {
+      this.#map.addLayer(/** @type {import('maplibre-gl').AddLayerObject} */ (layer));
+    }
+  }
+
+  /**
+   * Logs the map's errors once it's ready, such as failed tiles or (from MapLibre 6.11) a worker that never started.
+   * URLs are stripped so a failing source logs once, not once per tile. The console gets every error, since MapLibre
+   * stops printing them once anything listens.
+   */
+  #reportMapErrors() {
+    const logged = new Set();
+    this.#map.on('error', (event) => {
+      console.error('Minimap:', event.error);
+      const message = Minimap.#errorMessage(event.error).replace(/\b[a-z]+:\/\/\S+/gi, '<url>');
+      if (logged.has(message) || logged.size >= Minimap.#MAX_LOGGED_ERRORS) return;
+      logged.add(message);
+      this.#tracker.push('Minimap_Error', { error: message });
+    });
+  }
+
+  /**
+   * @param {unknown} error
+   * @returns {string} Its message, or the error as text when it has none.
+   */
+  static #errorMessage(error) {
+    return error instanceof Error && error.message ? error.message : String(error);
   }
 
   /**
@@ -373,13 +420,13 @@ export class Minimap {
 
   /**
    * Bounds framing the overview's streets (setOverviewStreets).
-   * @returns {?maplibregl.LngLatBounds} Null if no street geometry is available yet.
+   * @returns {?import('maplibre-gl').LngLatBounds} Null if no street geometry is available yet.
    */
   #streetBounds() {
     const bounds = new maplibregl.LngLatBounds();
     for (const task of this.#overviewStreets()) {
       for (const coord of task.getGeoJSON().geometry.coordinates) {
-        bounds.extend(coord);
+        bounds.extend(/** @type {[number, number]} */ (coord));
       }
     }
     return bounds.isEmpty() ? null : bounds;
@@ -534,7 +581,7 @@ export class Minimap {
     this.#scheduleStreetFlush();
   }
 
-  /** @returns {object} Every street's lines as one GeoJSON FeatureCollection. */
+  /** @returns {GeoJSON.FeatureCollection} Every street's lines as one GeoJSON FeatureCollection. */
   #streetFeatureCollection() {
     return { type: 'FeatureCollection', features: [...this.#streetFeatures.values()].flat() };
   }
@@ -544,7 +591,8 @@ export class Minimap {
     if (!this.#map || this.#streetFlushHandle !== null) return;
     this.#streetFlushHandle = window.requestAnimationFrame(() => {
       this.#streetFlushHandle = null;
-      this.#map.getSource(Minimap.#STREETS_SOURCE).setData(this.#streetFeatureCollection());
+      const source = /** @type {import('maplibre-gl').GeoJSONSource} */ (this.#map.getSource(Minimap.#STREETS_SOURCE));
+      source.setData(this.#streetFeatureCollection());
     });
   }
 
@@ -606,33 +654,12 @@ export class Minimap {
     this.#map.jumpTo({ center: Minimap.#lngLat(latLng), zoom: this.#targetZoom });
   }
 
-  /**
-   * Makes MapLibre available as the `maplibregl` global the rest of this class names. It is served as its own files,
-   * not bundled (docs/upgrading-libraries.md), so the URL comes from the view's preload link, the one place a vendor
-   * file gets its fingerprinted URL. A global already present (the jsdom tests' stand-in) is kept.
-   * @returns {Promise<void>}
-   */
-  static async #loadLibrary() {
-    if (typeof maplibregl !== 'undefined') return;
-    const link = /** @type {?HTMLLinkElement} */ (document.getElementById('maplibre-module'));
-    if (!link) throw new Error('Minimap: no #maplibre-module link on the page to load MapLibre from');
-    window.maplibregl = await import(link.href);
-  }
-
-  /**
-   * Teaches MapLibre to read `pmtiles://` archives.
-   * @returns {boolean} False when the pmtiles script didn't load, so only the basemap is left out.
-   */
+  /** Teaches MapLibre to read `pmtiles://` archives, once per page. */
   static #addArchiveProtocol() {
-    if (Minimap.#archiveProtocolAdded) return true;
-    if (typeof pmtiles === 'undefined') {
-      console.error('Minimap: the pmtiles script did not load, so the basemap is left out.');
-      return false;
-    }
+    if (Minimap.#archiveProtocolAdded) return;
     // `metadata` carries the archive's OpenStreetMap credit to the attribution control.
-    maplibregl.addProtocol('pmtiles', new pmtiles.Protocol({ metadata: true }).tile);
+    maplibregl.addProtocol('pmtiles', new Protocol({ metadata: true }).tile);
     Minimap.#archiveProtocolAdded = true;
-    return true;
   }
 
   /**
@@ -653,15 +680,15 @@ export class Minimap {
     this.#ui.holder.classList.add('minimap-unavailable');
     const message = document.getElementById('minimap-unavailable-message');
     if (message) message.hidden = false;
-    this.#tracker.push('Minimap_Unavailable', { error: String(error && error.message ? error.message : error) });
+    this.#tracker.push('Minimap_Unavailable', { error: Minimap.#errorMessage(error) });
   }
 
   /**
    * Factory function that creates the minimap in the bottom-right of the UI.
    *
    * Never rejects. MapLibre needs WebGL2 and throws without it (hardware acceleration off, a GPU the browser
-   * blocklists, some remote desktops); a minimap that can't draw must not stop the rest of Explore from starting, so
-   * that and any failure to load the library leave a minimap that draws nothing and says so.
+   * blocklists, some remote desktops); a minimap that can't draw must not stop Explore from starting, so that, a
+   * library that fails to load, or an error before the style is ready leaves a minimap that says it can't draw.
    * @param {MinimapUi} ui
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
    * @param {PanoManager} panoManager
@@ -672,7 +699,6 @@ export class Minimap {
   static async create(ui, initialLocation, panoManager, tracker, basemap) {
     const newMinimap = new Minimap(ui, panoManager, tracker);
     try {
-      await Minimap.#loadLibrary();
       await newMinimap.#init(initialLocation, basemap);
     } catch (error) {
       newMinimap.#showUnavailable(error);

@@ -27,5 +27,8 @@ and `test/python/README.md`.
   must agree).
 - `osm_lineage.py` matches streets to the OSM ways they lie on (#5741); `onboard_city.py` calls it on a build and
   `backfill_osm_lineage.py` on a live city. Both 3.13-only, with their own `--ignore` and `COVERAGE_OMIT4`/`5` slots.
+- `overpass.py` is how both fetchers talk to the public Overpass server (identity, tiled requests, 30 s-and-doubling
+  retries, exit 75 for "stop and resume later"). Stdlib + `requests` on purpose, so it runs and is tested in both halves;
+  anything needing shapely stays in the 3.13-only scripts (the tiling is in `backfill_osm_lineage.py`).
 - `street_gradient.py` fills the `street_gradient` table from a bare-earth elevation model (`docs/street-gradient.md`).
   Also 3.13-only (rasterio), so it takes the same `--ignore` plus the 3.8 half's third `COVERAGE_OMIT3` slot.

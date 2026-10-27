@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "Esa ruta no está disponible. Es posible que se haya eliminado."
     },
+    "street-unavailable": {
+      "message": "Esa calle no está disponible para explorar. Es posible que no tenga imágenes o que se haya eliminado."
+    },
     "region-finished": {
       "message": "Ya exploraste todas las calles de ese vecindario, así que te llevamos a {{regionName}}."
     },

@@ -2,6 +2,7 @@
 @import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
+@import models.validation.ValidationReason
 @import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
@@ -49,10 +50,6 @@
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
-       execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
 
     <script>
@@ -64,10 +61,6 @@
 
     @ViteAssets.stylesheets("main")
 
-    @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
-    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
-    @* Cleans HTML from outside sources before it's shown (psTooltip's cards, the About page's citation). *@
-    <script src='@assets.path("vendor/dompurify/purify-3.4.16.min.js")' defer></script>
     @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
        util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
        /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.
@@ -80,11 +73,18 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
+    @* The tilt past which a Mapillary pose is a failed reconstruction. MapillaryViewer.extractPitchRoll must agree
+       with the server's copy, so the server supplies it; a page that never stamps it applies no limit. *@
+    <script>window.mapillaryMaxPoseTiltDeg = @service.PanoDataService.MapillaryMaxPoseTiltDeg;</script>
     @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
     <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
+    @* The canned reasons each label type offers for a Disagree or Unsure vote, in menu order (#5475).
+       ValidationReason owns it; validationReasons.js builds every reason list from it, for the Validate menus, the
+       label detail card and the Gallery cards alike, with the text for each id coming from the locale files. *@
+    <script>window.validationReasons = @Html(ValidationReason.pageStampJson);</script>
     @* What frontend/js/pages/main.js needs from the server, then the bundle itself (shared helpers, app manager, navbar,
        auth dialog, test-server banner). A module script runs after parsing and before the page's own entry below. *@
     <script type="application/json" id="page-config">{

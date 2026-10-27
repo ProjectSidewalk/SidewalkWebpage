@@ -70,7 +70,7 @@ export class TeamPage {
     AdminShell.setText('kpi-team-members', AdminShell.num(totals.members || 0));
     AdminShell.setText('kpi-team-labels', AdminShell.num(totals.labels || 0));
     AdminShell.setText('kpi-team-validations', AdminShell.num(totals.validations || 0));
-    AdminShell.setText('kpi-team-distance', TeamPage.#km(totals.distance_meters));
+    AdminShell.setText('kpi-team-distance', util.metersToLongDistanceString(totals.distance_meters, 1));
     AdminShell.setText('kpi-team-accuracy', TeamPage.#pct(totals.labels_agreed, totals.labels_validated));
     AdminShell.setText('kpi-team-accuracy-note', totals.labels_validated
       ? `of ${AdminShell.num(totals.labels_validated)} judged labels`
@@ -145,7 +145,7 @@ export class TeamPage {
         cell(util.escapeHTML(m.role), 'left'),
         cell(AdminShell.num(m.labels || 0), 'right'),
         cell(AdminShell.num(m.validations || 0), 'right'),
-        cell(TeamPage.#km(m.distance_meters), 'right'),
+        cell(util.escapeHTML(util.metersToLongDistanceString(m.distance_meters, 1)), 'right'),
         cell(TeamPage.#accuracyCell(m), 'right'),
         cell(m.last_active ? util.escapeHTML(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
           'right'),
@@ -358,14 +358,6 @@ export class TeamPage {
    */
   static #defaultDir(key) {
     return ['username', 'role'].includes(key) ? 'asc' : 'desc';
-  }
-
-  /**
-   * @param {number} meters - A distance.
-   * @returns {string} The distance in km with one decimal, matching the rest of the admin dashboard.
-   */
-  static #km(meters) {
-    return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
 
   /**

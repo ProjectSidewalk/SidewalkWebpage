@@ -1,3 +1,6 @@
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { featureCollectionBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
 import { MapSidebarDrawer } from './MapSidebarDrawer.js';
@@ -222,7 +225,8 @@ export function createPSMap(params) {
     });
     newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     const navPosition = params.navigationControlPosition || 'top-left';
-    newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
+    newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }),
+      /** @type {mapboxgl.ControlPosition} */ (navPosition));
 
     // Move the Mapbox logo if necessary.
     if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {

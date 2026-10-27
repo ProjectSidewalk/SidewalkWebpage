@@ -6,8 +6,10 @@
  * on it leaves the user stuck behind the overlay with the keyboard off.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 
 /** The markup the tutorial fills in, reduced to the elements it reaches for. */
@@ -45,7 +47,6 @@ describe('the mission-start tutorial closing', () => {
   let hooks;
 
   beforeAll(async () => {
-    window.i18next = { t: (key) => key };
     ({ MissionStartTutorial } = await loadModules('frontend/js/common/MissionStartTutorial.js'));
   });
 

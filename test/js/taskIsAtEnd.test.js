@@ -10,15 +10,13 @@
  * Richmond stub and the panos the labeler was bounced between — plus the #4640 shape, so a change to either rule
  * has to answer for the other.
  *
- * Real vendored turf and the real `util.math.haversine`: the question is about projection onto real geometry, and a
+ * Real turf and the real `util.math.haversine`: the question is about projection onto real geometry, and a
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 
-import { loadVendored, loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { loadModules } from './loader.js';
 
-// Loaded once, up front: the fixtures below are built while the suite is collected, before any beforeEach runs.
-loadVendored('turf');
-const turf = window.turf;
 
 let Task;
 
@@ -54,7 +52,6 @@ function positionOn(street, alongM, offsetM = 0) {
 
 describe('Task.isAtEnd', () => {
   beforeEach(async () => {
-    window.turf = turf;
     ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
   });
 

@@ -12,7 +12,7 @@
  * assertions read the URLs it was handed, in order.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
 const NATIVE_URL = '/backupImage/p1';
 const NEXT_URL = '/backupImage/p2';
@@ -25,7 +25,7 @@ const NEXT_URL = '/backupImage/p2';
 function installFakePannellum(failingUrls = new Set()) {
   const attempted = [];
   const loaded = [];
-  vi.stubGlobal('pannellum', {
+  mockModule('frontend/js/common/pano-viewer/sdk/pannellum.js', () => ({ pannellum: {
     viewer: vi.fn((_el, config) => {
       const handlers = { load: new Set(), error: new Set() };
       const scenes = { ...config.scenes };
@@ -55,7 +55,7 @@ function installFakePannellum(failingUrls = new Set()) {
         setHfov: vi.fn(),
       };
     }),
-  });
+  } }));
   return { attempted, loaded };
 }
 

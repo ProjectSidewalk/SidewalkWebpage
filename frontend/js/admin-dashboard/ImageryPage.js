@@ -160,7 +160,7 @@ export class ImageryPage {
           reaudit: 0,
           audited_once: 0,
           audited_multi: 0,
-          reaudit_miles: 0,
+          reaudit_m: 0,
           priority_sum: 0,
         };
         byRegion.set(regionId, row);
@@ -169,7 +169,7 @@ export class ImageryPage {
       row.streets += 1;
       row[street.priority_tier] += 1;
       row.priority_sum += street.priority;
-      if (street.priority_tier === 'reaudit') row.reaudit_miles += ImageryPage.#miles(street.length_m);
+      if (street.priority_tier === 'reaudit') row.reaudit_m += street.length_m || 0;
       this.#streetsByRegion.get(regionId).push(Number(street.street_edge_id));
     }
     this.#regions = Array.from(byRegion.values())
@@ -187,7 +187,8 @@ export class ImageryPage {
         { key: 'mean_priority', label: 'Mean priority', format: (r) => r.mean_priority.toFixed(3) },
         { key: 'unaudited', label: 'Never audited', format: (r) => AdminShell.num(r.unaudited) },
         { key: 'reaudit', label: 'Needs re-audit', format: (r) => ImageryPage.#tierCell(r.reaudit, 'reaudit') },
-        { key: 'reaudit_miles', label: 'Re-audit miles', format: (r) => r.reaudit_miles.toFixed(1) },
+        { key: 'reaudit_m', label: `Re-audit ${util.unitWords().unitName}`,
+          format: (r) => util.metersToLongDistanceString(r.reaudit_m, 1, false) },
         { key: 'audited_once', label: 'Audited once', format: (r) => AdminShell.num(r.audited_once) },
         { key: 'audited_multi', label: 'Audited 2+', format: (r) => AdminShell.num(r.audited_multi) },
         { key: 'streets', label: 'Streets', format: (r) => AdminShell.num(r.streets) },
@@ -307,19 +308,24 @@ export class ImageryPage {
     // it reads the same as the Overview and Coverage pages. The two differ slightly -- the tier counts only audits
     // that carry weight in the priority formula -- and the map note below says so when they do.
     const flagged = this.#streets.filter((street) => street.outdated);
-    const reauditMiles = flagged.reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
+    const reauditM = flagged.reduce((sum, street) => sum + (street.length_m || 0), 0);
 
     AdminShell.setText('kpi-needs-reaudit', flagged.length.toLocaleString());
-    AdminShell.setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi with newer imagery`);
+    AdminShell.setText('kpi-needs-reaudit-note', `${util.metersToLongDistanceString(reauditM, 1)} with newer imagery`);
     AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
     AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
-    const audited = this.#streets.filter((street) => street.last_audit_date);
-    const polled = audited.filter((street) => street.median_newest_capture);
-    const share = audited.length ? Math.round((polled.length / audited.length) * 100) : 0;
+    // polled_at is the poll rotation's key (#5403); the median is NULL after a conclusive poll that found nothing.
+    const polled = this.#streets.filter((street) => street.polled_at);
+    const share = this.#streets.length ? Math.round((polled.length / this.#streets.length) * 100) : 0;
+    const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
+    // Clamped: a browser clock behind the server's would otherwise read "-1 days ago".
+    const oldestAge = oldestPoll === null
+      ? 'no street has been polled yet'
+      : `oldest poll ${Math.max(0, Math.floor((Date.now() - Date.parse(oldestPoll)) / 86400000))} days ago`;
     AdminShell.setText('kpi-rotation', `${share}%`);
     AdminShell.setText('kpi-rotation-note', `${polled.length.toLocaleString()} of `
-    + `${audited.length.toLocaleString()} audited streets have a polled capture date`);
+    + `${this.#streets.length.toLocaleString()} routable streets polled at least once; ${oldestAge}`);
   }
 
   /** The last-poll KPI, which needs the pipeline report rather than the street rows. */
@@ -365,7 +371,7 @@ export class ImageryPage {
           <td class="imagery-tier-num">${range}</td>
           <td class="imagery-tier-num">${AdminShell.num(stat.count)}</td>
           <td class="imagery-tier-num">${ImageryPage.#share(stat.count, total)}</td>
-          <td class="imagery-tier-num">${stat.miles.toFixed(1)}</td>
+          <td class="imagery-tier-num">${util.escapeHTML(util.metersToLongDistanceString(stat.meters, 1, false))}</td>
         </tr>`;
     }).join('');
     legend.innerHTML = `
@@ -379,7 +385,7 @@ export class ImageryPage {
             <th scope="col" class="imagery-tier-num">Priority</th>
             <th scope="col" class="imagery-tier-num">Streets</th>
             <th scope="col" class="imagery-tier-num">Share</th>
-            <th scope="col" class="imagery-tier-num">Miles</th>
+            <th scope="col" class="imagery-tier-num">Distance (${util.escapeHTML(util.unitWords().unitAbbr)})</th>
           </tr>
         </thead>
           <tbody>${rows}</tbody>
@@ -422,19 +428,19 @@ export class ImageryPage {
   }
 
   /**
-   * Count, mileage, and observed priority range per tier.
+   * Count, length in meters, and observed priority range per tier.
    *
-   * @returns {Record<string, {count: number, miles: number, min: number, max: number}>} Keyed by tier key; an empty
+   * @returns {Record<string, {count: number, meters: number, min: number, max: number}>} Keyed by tier key; an empty
    *   tier reports min/max of 0 rather than the +/-Infinity the fold would otherwise leave behind.
    */
   #tierStats() {
     const stats = Object.fromEntries(StreetPriorityTiers.TIERS.map((tier) =>
-      [tier.key, { count: 0, miles: 0, min: Infinity, max: -Infinity }]));
+      [tier.key, { count: 0, meters: 0, min: Infinity, max: -Infinity }]));
     for (const street of this.#streets) {
       const stat = stats[street.priority_tier];
       if (!stat) continue;
       stat.count += 1;
-      stat.miles += ImageryPage.#miles(street.length_m);
+      stat.meters += street.length_m || 0;
       stat.min = Math.min(stat.min, street.priority);
       stat.max = Math.max(stat.max, street.priority);
     }
@@ -457,19 +463,15 @@ export class ImageryPage {
 
     const audited = this.#streets.filter((street) => street.last_audit_date);
     const withRow = this.#streets.filter((street) => street.imagery_updated_at);
-    const withMedian = this.#streets.filter((street) => street.median_newest_capture);
+    const polled = this.#streets.filter((street) => street.polled_at);
+    const auditedPolled = audited.filter((street) => street.polled_at);
     const auditedWithMedian = audited.filter((street) => street.median_newest_capture);
     const behind = auditedWithMedian.filter((street) =>
       ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture) > 0).length;
     const stillCurrent = auditedWithMedian.length - behind;
     const recent = ImageryPage.#refreshedWithin(this.#streets, 30);
-    // Compared as instants, not as strings: these timestamps carry the server's UTC offset, so "2026-01-01T23:00Z"
-    // and "2026-01-02T00:00+02:00" sort the wrong way round lexically.
-    const oldest = withRow.length
-      ? withRow.reduce((min, street) =>
-          (Date.parse(street.imagery_updated_at) < Date.parse(min) ? street.imagery_updated_at : min),
-        withRow[0].imagery_updated_at)
-      : null;
+    const oldest = ImageryPage.#oldestInstant(withRow, 'imagery_updated_at');
+    const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
 
     const nights = (this.#report?.run_days || []).filter((day) => day.streets_polled > 0);
     const perNight = nights.length
@@ -496,10 +498,11 @@ export class ImageryPage {
               `${audited.length.toLocaleString()} of them audited at least once`)}
             ${row('With any imagery record', withRow.length.toLocaleString(),
               `${pct(withRow.length, this.#streets.length)} of routable streets, from any source`)}
-            ${row('With a polled capture date', withMedian.length.toLocaleString(),
-              'written only by the nightly poll, the only source of re-audit flags')}
-            ${row('Audited and polled', auditedWithMedian.length.toLocaleString(),
-              `${pct(auditedWithMedian.length, audited.length)} of audited streets; the rest are unmeasured`)}
+            ${row('Polled at least once', polled.length.toLocaleString(),
+              'conclusively answered by the nightly poll, the only source of re-audit flags; a poll that found '
+              + 'nothing counts')}
+            ${row('Audited and polled', auditedPolled.length.toLocaleString(),
+              `${pct(auditedPolled.length, audited.length)} of audited streets; the rest are unmeasured`)}
             ${row('Audits still current', stillCurrent.toLocaleString(),
               'imagery no newer than the last audit')}
             ${row('Audits behind the imagery', behind.toLocaleString(),
@@ -512,7 +515,9 @@ export class ImageryPage {
                   (batchSize || 0).toLocaleString()})`
                 : 'no street polled in this window; the rotation is stalled')}
             ${row('Oldest imagery record', oldest ? util.escapeHTML(oldest.slice(0, 10)) : '—',
-              'the street checked longest ago')}
+              'the record written longest ago, by any feeder')}
+            ${row('Oldest poll', oldestPoll ? util.escapeHTML(oldestPoll.slice(0, 10)) : '—',
+              'the oldest poll stamp in the table; never-polled streets sort ahead of it')}
           </tbody>
         </table>
       </div>`;
@@ -561,6 +566,22 @@ export class ImageryPage {
       .length;
   }
 
+  /**
+   * The earliest of a timestamp field across streets, compared as instants: these carry the server's UTC offset, so
+   * "2026-01-01T23:00Z" and "2026-01-02T00:00+02:00" sort the wrong way round as strings.
+   *
+   * @param {Array<Record<string, any>>} streets - Rows that may carry the field.
+   * @param {string} field - Timestamp field name.
+   * @returns {string|null} The ISO string of the earliest instant, or null when no row carries the field.
+   */
+  static #oldestInstant(streets, field) {
+    let oldest = null;
+    for (const street of streets) {
+      if (street[field] && (oldest === null || Date.parse(street[field]) < Date.parse(oldest))) oldest = street[field];
+    }
+    return oldest;
+  }
+
   /** Whole days from `from` to `to`, both YYYY-MM-DD; negative when `to` is the earlier date. */
   static #daysBetween(from, to) {
     return Math.round((Date.parse(to) - Date.parse(from)) / 86400000);
@@ -579,11 +600,6 @@ export class ImageryPage {
     const pct = (count / total) * 100;
     if (count > 0 && pct < 0.5) return '<1%';
     return `${Math.round(pct)}%`;
-  }
-
-  /** Meters to miles, matching the units the Overview page reports re-audit distance in. */
-  static #miles(meters) {
-    return (meters || 0) * 0.000621371;
   }
 
   /** A count or label carrying its tier's color, used in both tables. */

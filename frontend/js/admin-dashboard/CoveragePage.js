@@ -10,6 +10,7 @@
  * brushing falls out naturally — a histogram bucket selects every region in that coverage range at once.
  */
 
+import { util } from '../common/utilities.js';
 import { CoverageBars } from './CoverageBars.js';
 import { CoverageHistogram } from './CoverageHistogram.js';
 import { CoverageColors, CoverageFormat, CoverageMap } from './CoverageMap.js';
@@ -93,6 +94,9 @@ export class CoveragePage {
       completion_rate: f.properties.completion_rate,
       audited_distance_m: f.properties.audited_distance_m,
       total_distance_m: f.properties.total_distance_m,
+      // Preformatted for the bar tooltips, which can't call the reader's distance formatter themselves.
+      audited_distance_text: util.metersToLongDistanceString(f.properties.audited_distance_m, 1),
+      total_distance_text: util.metersToLongDistanceString(f.properties.total_distance_m, 1),
       street_count: f.properties.street_count,
       audit_count: f.properties.audit_count,
       label_count: f.properties.label_count,
@@ -130,14 +134,19 @@ export class CoveragePage {
       b.setAttribute('aria-pressed', String(active));
     });
 
-    if (mode === 'bars' && !this.#bars) {
-      this.#bars = new CoverageBars('coverage-bars', {
-        onBarClick: (id) => this.#pin([id]),
-        onBarHover: (id) => this.#hover([id]),
-        onBarHoverEnd: () => this.#hoverEnd(),
-      });
+    // Each chart is redrawn whenever its view is shown. A window resize while the view is hidden sets the chart's
+    // width to zero, and Vega's own watch on the chart's box ignores hidden boxes and sizes it has already seen, so
+    // without a redraw the chart would stay blank.
+    if (mode === 'bars') {
+      if (!this.#bars) {
+        this.#bars = new CoverageBars('coverage-bars', {
+          onBarClick: (id) => this.#pin([id]),
+          onBarHover: (id) => this.#hover([id]),
+          onBarHoverEnd: () => this.#hoverEnd(),
+        });
+        this.#wireSortButtons();
+      }
       await this.#bars.render(this.#barData);
-      this.#wireSortButtons();
     } else if (mode === 'distribution') {
       if (!this.#histogram) {
         this.#histogram = new CoverageHistogram('coverage-histogram', {
@@ -145,8 +154,8 @@ export class CoveragePage {
           onBinHover: (idx) => this.#hover(this.#bucketRegionIds[idx]),
           onBinHoverEnd: () => this.#hoverEnd(),
         });
-        await this.#histogram.render(this.#buckets);
       }
+      await this.#histogram.render(this.#buckets);
       if (!this.#table) {
         this.#table = new CoverageTable('coverage-table', 'coverage-table-search', {
           onRowClick: (id) => this.#pin([id]),
@@ -199,7 +208,11 @@ export class CoveragePage {
   #wireViewToggle() {
     document.querySelectorAll('.coverage-toggle-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.dataset.view !== this.#mode) this.#activateMode(btn.dataset.view);
+        if (btn.dataset.view === this.#mode) return;
+        this.#activateMode(btn.dataset.view).then(() => this.#setStatus('', false, true), (err) => {
+          console.error('Coverage chart failed to draw:', err);
+          this.#setStatus('Could not draw the chart. Please try again.', true);
+        });
       });
     });
   }
@@ -230,9 +243,11 @@ export class CoveragePage {
     const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 
     document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
+    document.getElementById('kpi-city-coverage-note').textContent
+      = `${util.metersToLongDistanceString(auditedM, 1)} of ${util.metersToLongDistanceString(totalM, 1)}`;
     document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
     document.getElementById('kpi-fully-audited').textContent = fullyAudited.toLocaleString();
-    document.getElementById('kpi-needs-reaudit').textContent = CoverageFormat.km(outdatedM);
+    document.getElementById('kpi-needs-reaudit').textContent = util.metersToLongDistanceString(outdatedM, 1);
   }
 
   #renderLegend() {

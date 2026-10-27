@@ -8,6 +8,7 @@ import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -139,16 +140,17 @@ class AdminController @Inject() (
     adminService.getActivityByDay.map { series =>
       Ok(Json.obj("series" -> JsArray(series.map { r =>
         Json.obj(
-          "date"               -> r.date.toString,
-          "labels"             -> r.labels,
-          "validations"        -> r.validations,
-          "audits"             -> r.audits,
-          "missions"           -> r.missions,
-          "signins_registered" -> r.signinsRegistered,
-          "signins_anon"       -> r.signinsAnon,
-          "active_registered"  -> r.activeRegistered,
-          "active_anon"        -> r.activeAnon,
-          "new_users"          -> r.newUsers
+          "date"                -> r.date.toString,
+          "labels"              -> r.labels,
+          "validations"         -> r.validations,
+          "audits"              -> r.audits,
+          "explored_distance_m" -> r.exploredDistanceM,
+          "missions"            -> r.missions,
+          "signins_registered"  -> r.signinsRegistered,
+          "signins_anon"        -> r.signinsAnon,
+          "active_registered"   -> r.activeRegistered,
+          "active_anon"         -> r.activeAnon,
+          "new_users"           -> r.newUsers
         )
       })))
     }
@@ -471,7 +473,7 @@ class AdminController @Inject() (
         panoDataService
           .cropUrl(id, labelType)
           .orElse(metaById.get(id).flatMap { m =>
-            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
+            panoDataService.getBrowserImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
           })
       case _ => None
@@ -586,9 +588,9 @@ class AdminController @Inject() (
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
           "reaudit_streets"            -> s.reauditStreets,
-          "total_distance_mi"          -> s.totalDistanceMi,
-          "audited_distance_mi"        -> s.auditedDistanceMi,
-          "reaudit_distance_mi"        -> s.reauditDistanceMi,
+          "total_distance_m"           -> s.totalDistanceM,
+          "audited_distance_m"         -> s.auditedDistanceM,
+          "reaudit_distance_m"         -> s.reauditDistanceM,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,
@@ -692,6 +694,8 @@ class AdminController @Inject() (
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
+    // People active in several cities count once here, unlike a sum of each city's contributors.
+    val contributorCountsF = configService.getCrossCityContributorCounts()
 
     for {
       withFlags     <- scorecardsF
@@ -701,6 +705,7 @@ class AdminController @Inject() (
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
+      contributors  <- contributorCountsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -740,7 +745,7 @@ class AdminController @Inject() (
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),
-          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+          "summary" -> crossCitySummaryJson(scorecards, cityInfoById, contributors)
         )
       )
     }
@@ -797,6 +802,9 @@ class AdminController @Inject() (
       "total_km"          -> sc.totalKm,
       "audited_km"        -> sc.auditedKm,
       "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+      "walked_km"         -> sc.walkedKm,
+      "mapped_km"         -> sc.mappedKm,
+      "reaudit_km"        -> ConfigService.reauditKm(sc),
       // Data + quality lens.
       "total_labels"             -> sc.totalLabels,
       "ai_labels"                -> sc.aiLabels,
@@ -953,36 +961,45 @@ class AdminController @Inject() (
     })
 
   /**
-   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
-   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
+   * The page's headline totals, summed from the cities shown so they match the table, except `total_users` and
+   * `multi_city_users`, which count each person once across those cities. The anomaly thresholds ride along so the
    * page can flag the "needs attention" items.
    *
-   * @return The summary block.
+   * @param contributorCounts People who contributed across the cities; None if they couldn't be read.
+   * @return                  The summary block.
    */
-  private def crossCitySummaryJson(scorecards: Seq[CityScorecard], cityInfoById: Map[String, CityInfo]): JsObject = {
-    val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-    val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
-    val totalContributors = scorecards.map(_.activeContributors).sum
-    val totalKm           = scorecards.map(_.auditedKm).sum
-    val totalLabels       = scorecards.map(_.totalLabels).sum
-    val totalValidations  = scorecards.map(_.totalValidations).sum
-    val sumAgree          = scorecards.map(_.validationsAgree).sum
-    val sumDisagree       = scorecards.map(_.validationsDisagree).sum
-    val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+  private def crossCitySummaryJson(
+      scorecards: Seq[CityScorecard],
+      cityInfoById: Map[String, CityInfo],
+      contributorCounts: Option[CrossCityContributorCounts]
+  ): JsObject = {
+    val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+    val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+    val totalLabels      = scorecards.map(_.totalLabels).sum
+    val totalValidations = scorecards.map(_.totalValidations).sum
+    val sumAgree         = scorecards.map(_.validationsAgree).sum
+    val sumDisagree      = scorecards.map(_.validationsDisagree).sum
+    val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
     Json.obj(
-      "num_cities"                -> scorecards.length,
-      "num_countries"             -> numCountries,
-      "num_languages"             -> numLanguages,
-      "total_users"               -> totalContributors,
-      "total_km"                  -> totalKm,
-      "total_labels"              -> totalLabels,
-      "total_validations"         -> totalValidations,
-      "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
-      "global_agreement"          -> globalAgreement,
-      "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
-      "active_within_days"        -> ConfigService.ActiveWithinDays,
-      "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-      "low_traction_contributors" -> ConfigService.LowTractionContributors
+      "num_cities"                     -> scorecards.length,
+      "num_countries"                  -> numCountries,
+      "num_languages"                  -> numLanguages,
+      "total_users"                    -> contributorCounts.map(_.distinct),
+      "multi_city_users"               -> contributorCounts.map(_.multiCity),
+      "total_walked_km"                -> scorecards.map(_.walkedKm).sum,
+      "total_mapped_km"                -> scorecards.map(_.mappedKm).sum,
+      "total_current_km"               -> scorecards.map(_.auditedKm).sum,
+      "total_reaudit_km"               -> scorecards.map(ConfigService.reauditKm).sum,
+      "total_labels"                   -> totalLabels,
+      "total_validations"              -> totalValidations,
+      "total_datapoints"               -> (totalLabels.toLong + totalValidations.toLong),
+      "global_agreement"               -> globalAgreement,
+      "median_disagreement_rate"       -> ConfigService.medianDisagreementRate(scorecards),
+      "active_within_days"             -> ConfigService.ActiveWithinDays,
+      "wrapped_up_coverage"            -> ConfigService.WrappedUpCoverage,
+      "low_traction_contributors"      -> ConfigService.LowTractionContributors,
+      "reaudit_backlog_share"          -> ConfigService.ReauditBacklogShare,
+      "min_mapped_km_for_reaudit_flag" -> ConfigService.MinMappedKmForReauditFlag
     )
   }
 
@@ -1122,10 +1139,10 @@ class AdminController @Inject() (
   }
 
   /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
-  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+  private def runStreetPriorityRecalc(): Future[StreetPriorityRecalc] =
     jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
       streetService.recalculateStreetPriority
-    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+    )(RecalculateStreetPriorityActor.runDetails(_, None))
 
   /** Recalculates street priority without making the caller wait, since it rewrites every street. */
   private def recalculateStreetPriorityInBackground(): Unit =

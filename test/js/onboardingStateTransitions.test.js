@@ -7,15 +7,16 @@
  * their source.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
+
+// Message text doesn't matter here; only the state list is read.
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 describe('OnboardingStates transitions', () => {
   let states;
   let ids;
 
   beforeAll(async () => {
-    // Message text doesn't matter here; only the state list is read.
-    window.i18next = { t: (key) => key };
     const { OnboardingStates } = await loadModules('frontend/js/explore/onboarding/OnboardingStates.js');
     const stub = new Proxy({}, { get: () => () => undefined });
     states = new OnboardingStates(stub, stub, stub).get();

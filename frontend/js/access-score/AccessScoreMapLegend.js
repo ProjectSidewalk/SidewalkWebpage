@@ -20,6 +20,7 @@
  * toggles one in or out, Shift extends a contiguous run, and Escape clears.
  */
 
+import i18next from 'i18next';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';

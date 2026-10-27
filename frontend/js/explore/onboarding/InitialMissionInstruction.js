@@ -2,6 +2,7 @@
  * Creates pop up messages during your first mission or two with instructions to improve labeling.
  */
 
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../alert/AiGuidance.js').AiGuidance} AiGuidance */
 /** @typedef {import('../navigation/Compass.js').Compass} Compass */

@@ -7,7 +7,7 @@
  * the projection needs.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 
 /** Puts a drawing layer of the given on-screen size in the document (jsdom's real rect is all zeroes). */
 function layerOfSize(width, height) {
@@ -21,8 +21,9 @@ describe('util.exploreCanvasFrame', () => {
   let util;
 
   beforeEach(async () => {
-    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
-      getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
+    mockModule('bowser', () => ({ default: { getParser: () => ({
+      getBrowserName: () => 'Chrome', getBrowserVersion: () => '1', getOSName: () => 'Linux', getPlatformType: () => 'desktop',
+    }) } }));
     ({ util } = await loadModules('frontend/js/common/utilities.js'));
   });
 

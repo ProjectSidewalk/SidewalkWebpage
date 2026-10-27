@@ -4,6 +4,8 @@
  * way: `ready` says when there is a viewer, so only what needs the first pano waits for it.
  */
 
+import * as turf from '@turf/turf';
+import i18next from 'i18next';
 import { Gate } from '../../common/Gate.js';
 import { GsvViewer } from '../../common/pano-viewer/GsvViewer.js';
 import { MapillaryViewer } from '../../common/pano-viewer/MapillaryViewer.js';
@@ -150,10 +152,9 @@ export class PanoManager {
    * Otherwise a seed rejected for having no imagery within the radius, or a pano beyond it (#5114), would send the
    * user to whichever end of the street the samples started from, however far that is from where they asked to go.
    * Points are spaced at moveForward()'s increment and include the street's endpoint, so the whole street is checked
-   * before we give up and report it as having no imagery. With a seed at the street's start, the order is start to
-   * end.
+   * before we give up and report it as having no imagery; with a seed at the street's start, that is start to end.
    *
-   * @param {turf.Feature<turf.LineString>} street - The street geometry, oriented start to end.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} street - The street geometry, oriented start to end.
    * @param {{lat: number, lng: number}} end - The street's end coordinate, sampled last among equals.
    * @param {{lat: number, lng: number}} [seed] - Where the load was asked to start; omitted, the order is start to end.
    * @returns {Array<{lat: number, lng: number}>} Points on the street, nearest the seed (along the street) first.

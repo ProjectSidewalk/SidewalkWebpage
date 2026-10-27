@@ -3,6 +3,7 @@
  * the user dashboard and are seeded from /userapi/basicStats, then kept live as the user labels and explores.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesMath.js';

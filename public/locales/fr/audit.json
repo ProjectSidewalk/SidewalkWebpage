@@ -158,6 +158,9 @@
     "route-unavailable": {
       "message": "Cet itinéraire n'est pas disponible. Il a peut-être été supprimé."
     },
+    "street-unavailable": {
+      "message": "Cette rue n'est pas disponible à l'exploration. Elle n'a peut-être pas d'images, ou elle a été supprimée."
+    },
     "region-finished": {
       "message": "Vous avez déjà exploré toutes les rues de ce quartier, nous vous avons donc déplacé vers {{regionName}}."
     },

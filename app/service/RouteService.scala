@@ -324,10 +324,15 @@ class RouteServiceImpl @Inject() (
 
   private val UnknownStreetRejection: RouteRejection = RouteRejection("routebuilder.streets.error.unknown")
 
-  /** Whether every submitted street exists, so a stale or forged id is a localized 400 rather than an FK 500. */
+  /**
+   * Whether every submitted street exists and at least one isn't disabled, so a stale or forged list is a localized
+   * 400 rather than an FK 500 or a route with nothing to walk.
+   */
   private def allStreetsKnown(streets: Seq[NewRouteStreet]): Future[Boolean] = {
     val ids: Set[Int] = streets.map(_.streetId).toSet
-    db.run(routeTable.countKnownStreets(ids)).map(_ == ids.size)
+    db.run(routeTable.countKnownStreets(ids).zip(routeTable.countLiveStreets(ids))).map { case (known, live) =>
+      known == ids.size && live > 0
+    }
   }
 
   private def updateRouteAction(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =

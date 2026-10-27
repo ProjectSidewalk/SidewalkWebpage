@@ -126,7 +126,7 @@ class ExploreController @Inject() (
             Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
         case (_, Some(streetEdgeId), _, _, _) =>
           exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
-            resumeRoute = false, regionId = None, Some(streetEdgeId))
+            resumeRoute, regionId = None, Some(streetEdgeId))
         case (_, _, Some(regionId), _, _) =>
           exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
             routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
@@ -160,8 +160,9 @@ class ExploreController @Inject() (
         // Log the visit.
         val activityStr: String =
           if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
-          else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
-          else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
+          else if (exploreData.servedStreetId.isDefined) s"Visit_Audit_StreetEdgeId=${exploreData.servedStreetId.get}"
+          else if (regionId.isDefined && routeId.isEmpty && streetEdgeId.isEmpty)
+            s"Visit_Audit_RegionId=${regionId.get}"
           else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${seedLat.get}_Lng=${seedLng.get}"
           else if (newRegion) "Visit_Audit_NewRegionSelected"
           else "Visit_Audit"
@@ -170,11 +171,14 @@ class ExploreController @Inject() (
         // The id that failed is logged separately, because it reaches neither the activity string above (which names
         // the route the session ended up in, if any) nor the page (which is told only that something was dropped).
         // Without it, a stale share link can't be told apart from a typo, or traced back to what was shared (#5156).
-        // The same line covers a route that resolved but has no walkable distance (#5167): the id is real there, so
-        // the server's warn line, which names it as zero-length, is what tells the two causes apart.
         if (exploreData.routeUnavailable) {
           routeId.foreach { rId =>
             cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableRouteId=$rId")
+          }
+        }
+        if (exploreData.streetUnavailable) {
+          streetEdgeId.foreach { sId =>
+            cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableStreetEdgeId=$sId")
           }
         }
 
@@ -183,7 +187,7 @@ class ExploreController @Inject() (
         // pano wins when it loads, with the lat/lng as its fallback (#4635) -- or for the owner of a live URL's mission
         // (#5480). A POV needs a heading; pitch and zoom just refine it.
         val (startLat, startLng, startPanoId, startPlaceName) =
-          (streetEdgeId, isAdmin(user), panoId, seedLat, seedLng) match {
+          (exploreData.servedStreetId, isAdmin(user), panoId, seedLat, seedLng) match {
             case (Some(_), true, Some(p), _, _)         => (None, None, Some(p), None)
             case (Some(_), true, _, Some(lt), Some(lg)) => (Some(lt), Some(lg), None, None)
             // placeName rides along only on the drop-in path -- it names the searched place in the landing greeting.
@@ -202,8 +206,8 @@ class ExploreController @Inject() (
                 exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
                 exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
                 exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
-                exploreData.routeUnavailable, exploreData.regionFinished, startLat, startLng, startPanoId, startPov,
-                startPlaceName
+                exploreData.routeUnavailable, exploreData.streetUnavailable, exploreData.regionFinished, startLat,
+                startLng, startPanoId, startPov, startPlaceName
               )
             )
           )

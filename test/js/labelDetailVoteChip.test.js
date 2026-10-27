@@ -15,16 +15,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadModules, REPO_ROOT } from './loader.js';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
+
+mockModule('i18next', () => ({ default: {
+  t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
+} }));
 
 describe('LabelDetail.voteChipFor', () => {
   let LabelDetail;
 
   beforeEach(async () => {
-    // Echoes the keys, so the assertions read against known strings rather than the English copy.
-    window.i18next = {
-      t: (key, opts) => (key === 'labelmap:commenter-voted' ? `Commenter voted ${opts.vote}` : `t(${key})`)
-    };
     ({ LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js'));
   });
 
