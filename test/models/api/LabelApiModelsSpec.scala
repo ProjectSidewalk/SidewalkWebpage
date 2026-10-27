@@ -25,7 +25,8 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
       heading: Option[Double] = Some(94.3114318847656),
       pitch: Option[Double] = Some(-24.6774997711182),
       streetSide: Option[StreetSide] = Some(StreetSide.Left),
-      centerlineOffsetM: Option[Double] = Some(4.25)
+      centerlineOffsetM: Option[Double] = Some(4.25),
+      comments: Seq[LabelCommentForApi] = Seq.empty
   ): LabelDataForApi = LabelDataForApi(
     labelId = 8,
     userId = "user-uuid",
@@ -50,6 +51,7 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     disagreeCount = 0,
     unsureCount = 0,
     validations = Seq.empty,
+    comments = comments,
     auditTaskId = Some(6),
     missionId = Some(3),
     imageCaptureDate = Some("2012-08"),
@@ -144,5 +146,21 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     val unpositioned = sampleLabel(PanoSource.Gsv, streetSide = None, centerlineOffsetM = None)
     (unpositioned.toJson \ "properties" \ "centerline_offset_m").toOption.map(_.toString) shouldBe Some("null")
     unpositioned.toCsvRow.split(",", -1)(offsetIndex) shouldBe ""
+  }
+
+  test("comments reach GeoJSON as an array and CSV as one JSON-string column, empty as []") {
+    val comment = LabelCommentForApi("u-1", "not a curb ramp, \"driveway\"", Some("driveway"), None, None)
+    val label   = sampleLabel(PanoSource.Gsv, comments = Seq(comment))
+
+    val fromJson = (label.toJson \ "properties" \ "comments").as[Seq[JsObject]]
+    fromJson.map(c => (c \ "user_id").as[String]) shouldBe Seq("u-1")
+
+    // The comment carries a comma and quotes, so read the cell back through the escaping, not by splitting on commas.
+    val columnIndex = LabelDataForApi.csvHeader.trim.split(",").indexOf("comments")
+    columnIndex should be >= 0
+    LabelDataForApi.csvHeader.trim.split(",")(columnIndex - 1) shouldBe "validations"
+    label.toCsvRow should include(ApiModelUtils.escapeCsvField(play.api.libs.json.Json.stringify(label.commentsJson)))
+
+    (sampleLabel(PanoSource.Gsv).toJson \ "properties" \ "comments").as[Seq[JsObject]] shouldBe empty
   }
 }

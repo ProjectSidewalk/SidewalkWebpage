@@ -216,6 +216,7 @@
             "validator_type": "Human"
           }
         ],
+        "comments": [],
         "audit_task_id": 6,
         "mission_id": 3,
         "image_capture_date": "2012-08",
@@ -277,6 +278,15 @@
             "user_id": "be481045-4448-42ae-bbac-3455ce914202",
             "validation": "Disagree",
             "validator_type": "Human"
+          }
+        ],
+        "comments": [
+          {
+            "user_id": "be481045-4448-42ae-bbac-3455ce914202",
+            "comment": "No painted markings here, this is not a marked crosswalk",
+            "reason": null,
+            "validation": "Disagree",
+            "time_created": "2023-09-02T18:12:40.512Z"
           }
         ],
         "audit_task_id": 6,
@@ -421,6 +431,11 @@
             <td><code>array</code></td>
             <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user), <code>validation</code> (<code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>), and <code>validator_type</code> (<code>Human</code> or <code>AI</code>). Matches the three counts above: validations cast before the label's type was changed are left out, as they are from the counts (the <a href="@routes.ApiDocsController.validations">Validations API</a> still lists them).</td>
           </tr>
+          <tr>
+            <td><code>properties.comments</code></td>
+            <td><code>array</code></td>
+            <td>Comments validators left on this label, oldest first; an empty array when there are none. Each object contains: <code>user_id</code> (anonymized identifier of the commenter, the same one used in <code>properties.validations</code>), <code>comment</code> (the text, as written), <code>reason</code> (the id of a canned reason such as <code>ample-space</code> or <code>wrong-type</code> when the validator picked one, otherwise <code>null</code>), <code>validation</code> (the commenter's current vote on this label, or <code>null</code> if they have none), and <code>time_created</code>. A validator can comment more than once on a label, or comment without voting, so this is a separate list rather than a field on each validation. Not included in the Shapefile download.</td>
+          </tr>
 
             <!-- Task Information -->
           <tr>
@@ -563,10 +578,10 @@
 116,...,...,gsv,Obstacle,4,"[""construction""]","Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated, so validator <code>comments</code> are left out; use GeoJSON, CSV or GeoPackage for them. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, with the same field names as the GeoJSON properties. Array and object fields (<code>tags</code>, <code>validations</code>) are written out as JSON text. CRS is typically WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, with the same field names as the GeoJSON properties. Array and object fields (<code>tags</code>, <code>validations</code>, <code>comments</code>) are written out as JSON text. CRS is typically WGS84 (EPSG:4326).</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

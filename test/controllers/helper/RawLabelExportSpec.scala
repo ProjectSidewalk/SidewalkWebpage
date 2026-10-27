@@ -83,6 +83,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
     disagreeCount = 0,
     unsureCount = 0,
     validations = Seq.empty,
+    comments = Seq.empty,
     auditTaskId = Some(6),
     missionId = Some(3),
     imageCaptureDate = Some("2012-08"),

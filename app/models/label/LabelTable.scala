@@ -6,6 +6,7 @@ import models.api.{
   DailyLabelStat,
   LabelAccuracy,
   LabelCVMetadata,
+  LabelCommentForApi,
   LabelDataForApi,
   LabelSevStats,
   LabelValidationSummaryForApi,
@@ -790,6 +791,25 @@ object LabelTable {
     }
   }
 
+  /**
+   * Parses the label_comments_agg view's JSON as the Raw Labels API reports it: by `user_id` rather than the
+   * `username` the label card shows. Kept apart from parseCommentsJson so user_ids stay out of the card's payload.
+   *
+   * @param json One label's `comments` aggregate from label_comments_agg.
+   * @return The label's comments, in the view's oldest-first order.
+   */
+  private[label] def parseCommentsForApiJson(json: String): Seq[LabelCommentForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelCommentForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "comment").as[String],
+        (obj \ "reason").asOpt[String],
+        (obj \ "validation").asOpt[String],
+        (obj \ "time_created").asOpt[OffsetDateTime]
+      )
+    }
+  }
+
   /** @return The votes in one label's `validations` aggregate, each as the Raw Labels API reports it. */
   private def parseValidationsJson(json: String): Seq[LabelValidationSummaryForApi] = {
     play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
@@ -835,6 +855,7 @@ object LabelTable {
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
       validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
+      comments = r.nextStringOption().map(parseCommentsForApiJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -871,7 +892,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Slick mapping for the label_comments_agg VIEW, which pre-aggregates validation comments per label via json_agg.
-   * Each row contains a label_id and a JSON array string of {username, comment} objects.
+   * Each row contains a label_id and a JSON array string of comment objects (see evolution 426 for the keys).
    */
   private class LabelCommentsAggTableDef(tag: Tag) extends Table[(Int, Option[String])](tag, "label_comments_agg") {
     def labelId: Rep[Int]             = column[Int]("label_id")
@@ -2721,6 +2742,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.disagree_count,
              label.unsure_count,
              vals.validations,
+             label_comments_agg.comments,
              label.audit_task_id,
              label.mission_id,
              pano_data.capture_date,
@@ -2764,6 +2786,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM #${FilteredTables.verdictVotes()}
           GROUP BY label_validation.label_id
       ) AS "vals" ON label.label_id = vals.label_id
+      -- The same aggregate the label card reads, so the two can't disagree (#5849).
+      LEFT JOIN label_comments_agg ON label.label_id = label_comments_agg.label_id
       WHERE """
       .concat(SqlFragments.allOf(whereConditions))
       .concat(sql"""
