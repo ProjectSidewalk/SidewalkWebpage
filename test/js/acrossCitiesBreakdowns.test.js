@@ -511,6 +511,15 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         expect(card.querySelector('.ac-tip-hint')).toBeNull();
       });
 
+      it('leaves a name as plain text when its city\'s URL is malformed, rather than breaking the card', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0, 'not a url')])] })] });
+        const card = parse(barCard(0));
+
+        expect(card.querySelector('a')).toBeNull();
+        expect(card.querySelector('.ac-tip-where').closest('.ac-tip-row').firstElementChild.textContent).toBe('a · SEA');
+      });
+
       it('says how to reach the links on a card that has them', async () => {
         await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
           contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });

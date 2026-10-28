@@ -249,6 +249,12 @@ describe('Across Cities — traffic section', () => {
     expect(status).toContain('1 could not be fetched this round.');
   });
 
+  it('shows an empty state when GA is configured but no city has a property yet', async () => {
+    await render([makeCity('alpha')], { available: true, traffic_by_city: {} });
+    expect(document.getElementById('ac-traffic-tbody').textContent).toBe('No traffic data to show.');
+    expect(document.getElementById('ac-traffic-status').textContent).toBe('');
+  });
+
   it('collapses to an unavailable note when the deployment has no GA configured', async () => {
     await render([makeCity('alpha')], { available: false });
     expect(document.getElementById('ac-traffic-wrap').style.display).toBe('none');
