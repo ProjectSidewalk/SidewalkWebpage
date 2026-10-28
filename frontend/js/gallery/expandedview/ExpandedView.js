@@ -198,15 +198,16 @@ export class ExpandedView {
 
   /**
    * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card, including the votes, which a
-   * type change swaps for the new type's (#5853).
+   * type change swaps for the new type's (#5853). Looked up by id, like #handleDelete.
    * @param {Record<string, any>} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
-    if (this.refCard) {
-      this.refCard.updateLabelType(meta.label_type);
-      this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
-      this.refCard.setVotes(meta);
-    }
+    const card = this.#cardContainer.findCardByLabelId(meta.label_id);
+    if (!card) return;
+    const typeChanged = card.getLabelType() !== meta.label_type;
+    card.updateLabelType(meta.label_type);
+    card.updateSeverityAndTags(meta.severity, meta.tags);
+    if (typeChanged) card.setVotes(meta);
   };
 
   /**

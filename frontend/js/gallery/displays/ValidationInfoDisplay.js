@@ -123,7 +123,7 @@ export class ValidationInfoDisplay {
    */
   setAiValidation(aiValidation) {
     this.#aiValidation = aiValidation;
-    for (const action of ['Agree', 'Disagree']) this.setVoteIconFilled(action, false);
+    for (const action of Object.keys(this.#voteTallies)) this.setVoteIconFilled(action, false);
     this.#renderTooltips();
   }
 

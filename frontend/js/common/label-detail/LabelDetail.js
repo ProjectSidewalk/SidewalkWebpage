@@ -139,6 +139,8 @@ export class LabelDetail {
    */
   static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+  /** How long a vote refresh may take; edits queued behind it wait this long at most. */
+  static #REFRESH_TIMEOUT_MS = 10000;
   // A type change's status carries the Undo, which needs time to be read and hit.
   static #EDIT_STATUS_HOLD_UNDO_MS = 8000;
 
@@ -2594,8 +2596,14 @@ export class LabelDetail {
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
+    // A vote cast now would be overwritten by the older counts on their way back.
+    this.#setVoteButtonsDisabled(true);
     try {
-      const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(LabelDetail.#REFRESH_TIMEOUT_MS),
+      });
       if (!response.ok) return;
       const fresh = await response.json();
       if (this.#currentLabelMeta !== meta) return;
@@ -2617,6 +2625,8 @@ export class LabelDetail {
       this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
+    } finally {
+      if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(false);
     }
   }
 

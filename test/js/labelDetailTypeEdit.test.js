@@ -322,6 +322,23 @@ describe('changing a label\'s type from the card (#3671)', () => {
     }));
   });
 
+  test('voting waits while the votes are re-read after a type change (#5853)', async () => {
+    let answer;
+    window.fetch = vi.fn((url) => {
+      if (String(url).includes('/label/id/')) return new Promise((res) => { answer = res; });
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    await showLabel({ user_validation: 'Disagree' });
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+
+    expect(q('.label-detail__vote--agree').disabled).toBe(true);
+    answer({ ok: true, json: async () => meta() });
+    await flush();
+    expect(q('.label-detail__vote--agree').disabled).toBe(false);
+  });
+
   test('a 409 redraws the card from the reply and says the label was changed elsewhere', async () => {
     await showLabel({ severity: 2, tags: ['pole'] });
     typeButton().click();

@@ -65,6 +65,7 @@ class ValidationServiceImpl @Inject() (
     labelTable: LabelTable,
     labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
+    labelEditTable: LabelEditTable,
     missionService: MissionService,
     userStatTable: UserStatTable
 )(using ec: ExecutionContext)
@@ -297,24 +298,30 @@ class ValidationServiceImpl @Inject() (
 
       // A vote on a deleted label is dropped (#3591): a mission batch or stale card must not hand a verdict to a label
       // its labeler deleted before it had one. An admin's delete files its Disagree first, so that one lands.
-      val labelState: DBIO[Option[(Boolean, LabelType)]] =
-        labelsUnfiltered.filter(_.labelId === validation.labelId).map(l => (l.deleted, l.labelType)).result.headOption
+      val deleted: DBIO[Boolean] =
+        labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
       // A redo replaces the vote just cast, which sits on another type when it was an admin's type-changing Agree: the
-      // redo is filed on the type the validator saw, so the same-type lookup below would miss it. A vote on the label's
-      // current type is never that redo, so the user's vote on another type stays (#5853).
-      def redoneOtherType(currentType: Option[LabelType]): DBIO[Option[LabelValidation]] =
-        if (valSubmission.redone && !currentType.contains(validation.labelType))
+      // redo is filed on the type the validator saw, so the same-type lookup below would miss it. Only a vote that made
+      // that type change qualifies; the user's own vote on another type stays (#5853).
+      val redoneOtherType: DBIO[Option[LabelValidation]] =
+        if (valSubmission.redone)
           labelValidationTable
             .lockNewestValidation(validation.labelId, validation.userId)
-            .map(_.filter(_.labelType != validation.labelType))
+            .flatMap {
+              case Some(v) if v.labelType != validation.labelType =>
+                labelEditTable
+                  .findByLabelValidationId(v.labelValidationId)
+                  .map(_.filter(e => e.oldLabelType != e.newLabelType).map(_ => v))
+              case _ => DBIO.successful(None)
+            }
         else DBIO.successful(None)
 
-      labelState.flatMap(state =>
-        if (state.exists(_._1)) DBIO.successful(0)
+      deleted.flatMap(
+        if (_) DBIO.successful(0)
         else
           // Locked before the comment is archived, as `replaceComment` does, so a reason filed from another tab is
           // either archived here or finds its vote gone. The redo's lock goes first so two vote paths can't deadlock.
-          redoneOtherType(state.map(_._2))
+          redoneOtherType
             .zip(labelValidationTable.lockValidation(validation.labelId, validation.userId, validation.labelType))
             .flatMap { case (redoneVal, existingVal) =>
               // Removed first, and as a retraction: the redo names the old type, so keeping the type change would
