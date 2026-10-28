@@ -40,25 +40,26 @@ class RoleCheckRoutesSpec
 
   given mat: Materializer = app.materializer
 
-  private val TeamNamePrefix = "spec-5841-"
+  // Unique per run, so cleanup can't touch the team of another run on the same database.
+  private val TeamName = s"spec-5841-${System.nanoTime()}"
 
   private lazy val adminCookies: Seq[Cookie]      = sessionAs(Role.Administrator)
   private lazy val registeredCookies: Seq[Cookie] = sessionAs(Role.Registered)
   private lazy val registeredId: String           = userIdOf(registeredCookies)
   private lazy val otherCookies: Seq[Cookie]      = sessionAs(Role.Registered)
   private lazy val otherId: String                = userIdOf(otherCookies)
-  private lazy val anonCookies: Seq[Cookie]       = freshAnonSession()
+  private lazy val anonCookies: Seq[Cookie]       = sessionAs(Role.Anonymous)
   private lazy val anonId: String                 = userIdOf(anonCookies)
 
-  // Closed and hidden so it never shows up in a real team list while the suite runs on a shared database.
+  // Open, since users may only join open teams; hidden, so it stays off the leaderboard while the suite runs.
   private lazy val teamId: Int = run(
     sql"""INSERT INTO team (name, description, open, visible)
-          VALUES (${TeamNamePrefix + System.nanoTime()}, '', FALSE, FALSE)
+          VALUES ($TeamName, '', TRUE, FALSE)
           RETURNING team_id""".as[Int].head
   )
 
-  /** A street the registered user has audited, so the streets route has something to tell users apart by. */
-  private lazy val auditedStreetId: Int = run(
+  /** @return The street of a completed audit seeded for the registered user, for the streets route to return. */
+  private def seedAudit(): Int = run(
     sql"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
           SELECT $registeredId, street_edge.street_edge_id, TRUE, 0, 0
           FROM street_edge
@@ -74,10 +75,8 @@ class RoleCheckRoutesSpec
     // In a finally, so a failed delete can't skip RoleSession's demotion and leave an admin account behind.
     try {
       val _ = run(
-        sqlu"""DELETE FROM user_team
-                WHERE team_id IN (SELECT team_id FROM team WHERE name LIKE ${TeamNamePrefix + "%"})"""
-          .andThen(sqlu"DELETE FROM team WHERE name LIKE ${TeamNamePrefix + "%"}")
-          .andThen(sqlu"DELETE FROM audit_task WHERE user_id = $registeredId")
+        sqlu"DELETE FROM user_team WHERE team_id IN (SELECT team_id FROM team WHERE name = $TeamName)"
+          .andThen(sqlu"DELETE FROM team WHERE name = $TeamName")
       )
     } finally super.afterAll()
   }
@@ -128,12 +127,19 @@ class RoleCheckRoutesSpec
 
   "GET /contribution/streets" should {
     "return the streets of the user in the URL, not the caller's" in {
-      val streetId = auditedStreetId // Seeds the audit before any request is sent.
-      Seq(adminCookies, registeredCookies).foreach { cookies =>
-        val resp = get(s"/contribution/streets?userId=$registeredId", cookies)
-        status(resp) mustBe OK
-        (contentAsJson(resp) \ "features").as[Seq[JsValue]].map(f => (f \ "properties" \ "street_edge_id").as[Int]) must
-          contain(streetId)
+      // Deleted again straight away, so other tests and other runs on the database never see it.
+      val streetId = seedAudit()
+      try {
+        Seq(adminCookies, registeredCookies).foreach { cookies =>
+          val resp = get(s"/contribution/streets?userId=$registeredId", cookies)
+          status(resp) mustBe OK
+          (contentAsJson(resp) \ "features")
+            .as[Seq[JsValue]]
+            .map(f => (f \ "properties" \ "street_edge_id").as[Int]) must
+            contain(streetId)
+        }
+      } finally {
+        val _ = run(sqlu"DELETE FROM audit_task WHERE user_id = $registeredId")
       }
     }
   }
@@ -182,23 +188,23 @@ class RoleCheckRoutesSpec
   }
 
   /**
-   * The routes guarded by `WithSignedIn`, with what a signed-in user gets back from an empty request. Signing out
-   * other devices gets an account of its own, since it revokes the cookies the other tests share.
+   * The routes guarded by `WithSignedIn`, with what a signed-in user gets back from an empty request, and whether it
+   * needs an account of its own (signing out other devices revokes the cookies the other tests share).
    */
-  private val signedInRoutes: Seq[(String, String, Int)] = Seq(
-    (GET, "/dashboard", OK),
-    (GET, "/dashboard/settings", OK),
-    (POST, "/dashboard/settings", BAD_REQUEST),
-    (POST, "/dashboard/settings/password", BAD_REQUEST),
-    (POST, "/dashboard/settings/signOutOtherDevices", OK),
-    (GET, "/userapi/crossCityStats", OK),
-    (GET, "/timeCheck", OK)
+  private val signedInRoutes: Seq[(String, String, Int, Boolean)] = Seq(
+    (GET, "/dashboard", OK, false),
+    (GET, "/dashboard/settings", OK, false),
+    (POST, "/dashboard/settings", BAD_REQUEST, false),
+    (POST, "/dashboard/settings/password", BAD_REQUEST, false),
+    (POST, "/dashboard/settings/signOutOtherDevices", OK, true),
+    (GET, "/userapi/crossCityStats", OK, false),
+    (GET, "/timeCheck", OK, false)
   )
 
-  signedInRoutes.foreach { case (method, path, signedInStatus) =>
+  signedInRoutes.foreach { case (method, path, signedInStatus, ownAccount) =>
     s"$method $path" should {
       "let a registered user through" in {
-        val cookies = if (path.endsWith("signOutOtherDevices")) sessionAs(Role.Registered) else registeredCookies
+        val cookies = if (ownAccount) sessionAs(Role.Registered) else registeredCookies
         val req     = FakeRequest(method, path).withCookies(cookies*).withJsonBody(Json.obj())
         status(route(app, req.withCSRFToken).get) mustBe signedInStatus
       }
