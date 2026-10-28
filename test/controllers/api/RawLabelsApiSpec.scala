@@ -192,6 +192,12 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
               INNER JOIN label ON validation_task_comment.label_id = label.label_id
                   AND validation_task_comment.label_type = label.label_type
               WHERE validation_task_comment.label_id = $labelId
+                -- The same commenters as the votes in validations: not the labeler, not excluded.
+                AND validation_task_comment.user_id <> label.user_id
+                AND NOT EXISTS (
+                  SELECT 1 FROM user_stat
+                  WHERE user_stat.user_id = validation_task_comment.user_id AND user_stat.excluded
+                )
               ORDER BY validation_task_comment.timestamp""".as[(String, String)]
       )
 
@@ -206,6 +212,12 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
       val comments = (feature.get \ "comments").as[Seq[play.api.libs.json.JsObject]]
       comments.map(c => ((c \ "user_id").as[String], (c \ "comment").as[String])) mustBe expected
       comments.foreach(c => (c \ "username").toOption mustBe None)
+      // A commenter's vote is one of the label's counted votes.
+      val voters =
+        (feature.get \ "validations").as[Seq[play.api.libs.json.JsObject]].map(v => (v \ "user_id").as[String])
+      comments.filter(c => (c \ "validation").asOpt[String].isDefined).map(c => (c \ "user_id").as[String]).foreach {
+        voters must contain(_)
+      }
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {

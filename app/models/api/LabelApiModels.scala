@@ -171,21 +171,21 @@ case class LabelValidationSummaryForApi(userId: String, validationType: String, 
 }
 
 /**
- * One comment in a Raw Labels entry's `comments` array. A separate list from `validations` because comments are keyed
- * per (label, user), not per vote: a validator can comment several times on one label, or comment without voting.
+ * One comment in a Raw Labels entry's `comments` array. A separate list from `validations` because a validator can
+ * comment without voting; each validator has at most one comment per label (a re-comment replaces it).
  *
  * @param userId The anonymized identifier of the user who left the comment
  * @param comment The comment text
  * @param reason The canned reason's id (`ValidationReason`) when the comment is one, `None` for free text
  * @param validation The commenter's current vote on the label ("Agree", "Disagree", or "Unsure"), `None` without one
- * @param timeCreated When the comment was left
+ * @param timeCreated When the comment was left, in UTC
  */
 case class LabelCommentForApi(
     userId: String,
     comment: String,
     reason: Option[String],
     validation: Option[String],
-    timeCreated: Option[OffsetDateTime]
+    timeCreated: OffsetDateTime
 ) {
 
   def toJson: JsObject = Json.obj(
