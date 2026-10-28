@@ -132,7 +132,7 @@ class OfficialContactAdminSpec extends SidewalkSpec with RoleSession with GuiceO
         val html = body(path)
         html must include("partners-official-contact")
         html must include("Project Sidewalk is a research tool.")
-        html must include(s"""<a href="${burnaby.url}" data-partner-source="official-contact">""")
+        html must include(s"""<a href="${burnaby.url}" data-partner-source="official-contact" target="_blank"""")
         html must include("the City of &lt;b&gt;Burnaby&lt;/b&gt;")
         html must not include "the City of <b>Burnaby</b>"
       }
