@@ -41,10 +41,17 @@ export default defineConfig({
       // figure off CI, or `make test-js args=--coverage`, before raising one.
       // Applies to any `--coverage` run, so add `--coverage.thresholds=false` to measure a single file.
       thresholds: {
-        statements: 52,
-        branches: 47,
-        functions: 48,
-        lines: 52,
+        statements: 55,
+        branches: 50,
+        functions: 51,
+        lines: 55,
+        // The largest modules get floors of their own (#5840), so a drop in one can't hide behind gains elsewhere.
+        'frontend/js/route-builder/RouteBuilder.js': {
+          statements: 89,
+          branches: 78,
+          functions: 90,
+          lines: 91,
+        },
       },
     },
   },
