@@ -26,6 +26,7 @@
   "other": "Autre",
   "surface-problems": "Problèmes de surface",
   "close": "Fermer",
+  "dont-show-again": "Ne plus afficher",
   "cancel": "Annuler",
   "continue": "Continuer",
   "delete": "Supprimer",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Voir dans Mapillary",
     "view-in-panoramax": "Voir dans Panoramax",
     "city": "Ville",
-    "copy-to-clipboard": "Copier dans le presse-papiers",
-    "copied-to-clipboard": "Données copiées dans votre presse-papiers !"
+    "copy-to-clipboard": "Copier dans le presse-papiers"
   },
   "pano-attribution": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Copié !",
+    "failed": "Échec de la copie",
+    "section-link": "Copier le lien vers cette section"
+  },
   "share": {
     "button": "Partager",
     "heading": "Partager cette étiquette",
     "text": "Découvrez cette étiquette {{labelType}} sur Project Sidewalk",
     "story-text": "« {{excerpt}} » — un témoignage de la communauté sur Project Sidewalk",
     "copy-link": "Copier le lien",
-    "copied": "Copié !",
     "on-bluesky": "Partager sur Bluesky",
     "on-x": "Partager sur X",
     "on-facebook": "Partager sur Facebook",

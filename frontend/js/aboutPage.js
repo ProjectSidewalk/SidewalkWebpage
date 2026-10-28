@@ -8,6 +8,7 @@
  */
 
 import { util } from './common/utilities.js';
+import { copyToClipboard } from './common/copyToClipboard.js';
 
 export class AboutPage {
   static #ML_API_BASE = 'https://makeabilitylab.cs.washington.edu/api/v1';
@@ -390,18 +391,8 @@ export class AboutPage {
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
     block.querySelectorAll('.about-cite-copy').forEach((button) => {
-      const original = button.textContent;
-      button.addEventListener('click', async () => {
-        const text = document.getElementById(button.dataset.copyTarget).textContent;
-        try {
-          await navigator.clipboard.writeText(text);
-          button.textContent = button.dataset.copiedLabel;
-          setTimeout(() => {
-            button.textContent = original;
-          }, 2000);
-        } catch (e) {
-          console.warn('About page: copy to clipboard failed.', e);
-        }
+      button.addEventListener('click', () => {
+        copyToClipboard(button, document.getElementById(button.dataset.copyTarget).textContent);
       });
     });
     block.hidden = false;

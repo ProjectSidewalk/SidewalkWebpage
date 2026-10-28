@@ -26,6 +26,7 @@
   "surface-problems": "鋪面問題",
   "sign-up": "註冊",
   "close": "關閉",
+  "dont-show-again": "不再顯示",
   "cancel": "取消",
   "continue": "繼續",
   "delete": "刪除",
@@ -206,8 +207,7 @@
     "view-in-mapillary": "在Mapillary街景圖裡查看",
     "view-in-panoramax": "在Panoramax街景圖裡查看",
     "city": "城市",
-    "copy-to-clipboard": "複製到剪貼簿",
-    "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
+    "copy-to-clipboard": "複製到剪貼簿"
   },
   "pano-attribution": {
     "opens-new-tab": "(在新分頁中開啟)"
@@ -344,13 +344,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "已複製！",
+    "failed": "複製失敗",
+    "section-link": "複製此段落的連結"
+  },
   "share": {
     "button": "分享",
     "heading": "分享此標註",
     "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
     "story-text": "「{{excerpt}}」——Project Sidewalk 上的社群故事",
     "copy-link": "複製連結",
-    "copied": "已複製！",
     "on-bluesky": "分享到 Bluesky",
     "on-x": "分享到 X",
     "on-facebook": "分享到 Facebook",

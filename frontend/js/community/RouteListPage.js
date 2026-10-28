@@ -1,5 +1,4 @@
-import i18next from 'i18next';
-import { Toast } from '../common/Toast.js';
+import { copyToClipboard } from '../common/copyToClipboard.js';
 import { CommunityListPage } from './CommunityListPage.js';
 
 /**
@@ -35,7 +34,7 @@ export class RouteListPage {
   }
 
   /**
-   * Copies the route's shareable link to the clipboard and confirms with a toast. The slug URL (/r/<slug>) is
+   * Copies the route's shareable link to the clipboard, confirming on the button. The slug URL (/r/<slug>) is
    * preferred; cards without one fall back to the routeId link, which also keeps working.
    * @param {HTMLElement} btn - The clicked copy button (carries data-route-id).
    */
@@ -44,12 +43,7 @@ export class RouteListPage {
     const url = slug
       ? `${window.location.origin}/r/${slug}`
       : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
-    navigator.clipboard.writeText(url);
-    Toast.show({
-      message: i18next.t('dashboard:routes-link-copied'),
-      reference: btn,
-      duration: Toast.CONFIRMATION_MS,
-    });
+    copyToClipboard(btn, url);
     window.logWebpageActivity(`Click_module=RouteListPage_Copy_RouteId=${btn.dataset.routeId}`);
   }
 }

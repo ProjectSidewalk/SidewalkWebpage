@@ -1,105 +1,64 @@
 /**
- * Owns the shared alert banner (`#alert-holder`) and its show/hide lifecycle, plus the user's "don't show again"
+ * Shows Explore's tips and notices as toasts over the pano, one at a time, and keeps the user's "don't show again"
  * opt-out list. There is a single instance; the individual alert types (subclasses of Alert) delegate to it rather
- * than touching the alert DOM themselves.
+ * than showing toasts themselves.
  */
+
+import i18next from 'i18next';
+import { Toast } from '../../common/Toast.js';
 
 /** @typedef {import('../data/Storage.js').TemporaryStorage} TemporaryStorage */
 
 export class AlertController {
   #storage;
-  #ui;
   #dontShowList;
-  #lastMessageType;
-  #hideTimeout;
+  #toast = null;
 
-  // Fade duration (ms) for showing/hiding the banner.
-  static #FADE_DURATION = 300;
-  // The banner auto-dismisses after this long (ms).
-  static #AUTO_HIDE_DELAY = 15000;
+  // Long enough to read a tip with a key name in it, and still gone before it reads as part of the tool.
+  static #DURATION_MS = 15000;
 
   /**
    * @param {TemporaryStorage} storage - Remembers the opt-outs across sessions.
    */
   constructor(storage) {
     this.#storage = storage;
-    this.#ui = {
-      holder: document.getElementById('alert-holder'),
-      message: document.getElementById('alert-message'),
-      close: document.getElementById('alert-close'),
-      dontShow: document.getElementById('alert-dont-show'),
-    };
-
-    this.#ui.close.addEventListener('click', () => this.hideAlert());
-    this.#ui.dontShow.addEventListener('click', () => this.dontShowClicked());
-
     this.#dontShowList = storage.get('alertDontShowList') || [];
   }
 
   /**
-   * Fades an element in, then invokes an optional callback once the animation settles.
-   * @param {HTMLElement} el - Element to reveal.
-   * @param {Function} [callback] - Called after the fade completes.
-   */
-  #fadeIn(el, callback) {
-    el.classList.remove('ps-hidden');
-    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: AlertController.#FADE_DURATION })
-      .addEventListener('finish', () => {
-        el.style.opacity = '';
-        if (callback) callback();
-      });
-  }
-
-  /**
-   * Fades an element out, hides it, then invokes an optional callback once the animation settles.
-   * @param {HTMLElement} el - Element to hide.
-   * @param {Function} [callback] - Called after the fade completes.
-   */
-  #fadeOut(el, callback) {
-    el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: AlertController.#FADE_DURATION })
-      .addEventListener('finish', () => {
-        el.classList.add('ps-hidden');
-        el.style.opacity = '';
-        if (callback) callback();
-      });
-  }
-
-  /**
-   * Shows the alert banner unless the user has opted out of this message type.
-   * @param {string} msg - The message to display (HTML).
+   * Shows a toast over the pano unless the user has opted out of this message type. It replaces any alert still
+   * showing, since a newer tip or notice makes the older one stale.
+   * @param {string} msg - The message to display (HTML; escape any outside values in it).
    * @param {string} type - Identifies the message type; suppressed when the user has opted out of it.
-   * @param {boolean} [dontShow=false] - Whether the "don't show again" link is offered.
-   * @param {Function} [callback] - Called once the banner has finished fading in.
+   * @param {boolean} [dontShow=false] - Whether the "don't show again" button is offered.
    */
-  showAlert(msg, type, dontShow = false, callback) {
-    // An opt-out binds only while the opt-out is still on offer. A message shown without the link is one the labeler
-    // is meant to see, so a choice made back when it was optional is discarded rather than honored forever — which
-    // matters because these are stored per browser and never expire (#4918).
+  showAlert(msg, type, dontShow = false) {
+    // An opt-out binds only while the opt-out is still on offer. A message shown without the button is one the
+    // labeler is meant to see, so a choice made back when it was optional is discarded rather than honored forever —
+    // which matters because these are stored per browser and never expire (#4918).
     if (!dontShow) this.#reofferMessageType(type);
     if (type !== null && type !== undefined && this.#dontShowList.includes(type)) return;
 
-    this.#ui.dontShow.style.display = dontShow ? '' : 'none';
-
-    this.hideAlert(() => {
-      this.#ui.message.innerHTML = msg;
-      this.#lastMessageType = type;
-      this.#fadeIn(this.#ui.holder, callback);
+    this.hideAlert();
+    this.#toast = Toast.show({
+      messageHtml: msg,
+      reference: document.getElementById('pano'),
+      dark: true, // It floats over street imagery, where a white card glares.
+      duration: AlertController.#DURATION_MS,
+      button: dontShow
+        ? { label: i18next.t('common:dont-show-again'), secondary: true, onClick: () => this.#dontShow(type) }
+        : undefined,
     });
+  }
 
-    this.#hideTimeout = setTimeout(() => this.hideAlert(), AlertController.#AUTO_HIDE_DELAY);
+  /** Takes down the alert showing, if any. */
+  hideAlert() {
+    this.#toast?.dismiss();
+    this.#toast = null;
   }
 
   /**
-   * Hides the alert banner.
-   * @param {Function} [callback] - Called once the banner has finished fading out.
-   */
-  hideAlert(callback) {
-    this.#fadeOut(this.#ui.holder, callback);
-    clearTimeout(this.#hideTimeout);
-  }
-
-  /**
-   * Drops a stored opt-out for a message type, so a message shown without the opt-out link reaches a labeler who
+   * Drops a stored opt-out for a message type, so a message shown without the opt-out button reaches a labeler who
    * had silenced it.
    * @param {string} type - Message type identifier.
    */
@@ -110,13 +69,14 @@ export class AlertController {
   }
 
   /**
-   * Records the current message type on the "don't show again" list and hides the banner.
+   * Records a message type on the "don't show again" list and takes its toast down.
+   * @param {string} type - Message type identifier.
    */
-  dontShowClicked() {
-    if (this.#lastMessageType !== null && this.#lastMessageType !== undefined) {
-      this.#dontShowList.push(this.#lastMessageType);
+  #dontShow(type) {
+    if (type !== null && type !== undefined) {
+      this.#dontShowList.push(type);
       this.#storage.set('alertDontShowList', this.#dontShowList);
-      this.hideAlert();
     }
+    this.hideAlert();
   }
 }

@@ -65,7 +65,6 @@ test.server.warning.message = <strong>Vous êtes sur un serveur de test.</strong
 test.server.warning.label = Avis de serveur de test
 test.server.warning.close = Fermer l''avis
 dont.show.again = Ne plus afficher
-explore.alert.close = Fermer
 
 press.key = Appuyez sur la touche « {0} »
 press.keys = Appuyez sur les touches « {0} »
@@ -242,7 +241,6 @@ about.pubs.showAll = Afficher les {0} publications
 about.pubs.cite.title = Comment citer Project Sidewalk
 about.pubs.cite.plain = Citation
 about.pubs.cite.copy = Copier
-about.pubs.cite.copied = Copié
 about.data.title = Données ouvertes &amp; code ouvert
 about.data.body = Tout ce que nous collectons est ouvert. Téléchargez les étiquettes brutes, les groupes d''étiquettes, les rues et les scores d''accessibilité via nos <a href="/api">API publiques</a>, du CSV au GeoJSON — le tout publié sous licence CC0 ; consultez la <a href="/api">documentation de l''API</a> pour les détails et les consignes de citation. Notre <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code est également ouvert</a>.
 about.partners.title = Partenaires locaux

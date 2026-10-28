@@ -27,6 +27,7 @@
   "surface-problems": "Problemas en superficie",
   "sign-up": "Regístrate",
   "close": "Cerrar",
+  "dont-show-again": "No mostrar de nuevo",
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Eliminar",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Ver en Mapillary",
     "view-in-panoramax": "Ver en Panoramax",
     "city": "Ciudad",
-    "copy-to-clipboard": "Copiar al portapapeles",
-    "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
+    "copy-to-clipboard": "Copiar al portapapeles"
   },
   "pano-attribution": {
     "opens-new-tab": "(se abre en una pestaña nueva)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "¡Copiado!",
+    "failed": "No se pudo copiar",
+    "section-link": "Copiar enlace a esta sección"
+  },
   "share": {
     "button": "Compartir",
     "heading": "Compartir esta etiqueta",
     "text": "Mira esta {{labelType}} en Project Sidewalk",
     "story-text": "«{{excerpt}}»: una historia de la comunidad en Project Sidewalk",
     "copy-link": "Copiar enlace",
-    "copied": "¡Copiado!",
     "on-bluesky": "Compartir en Bluesky",
     "on-x": "Compartir en X",
     "on-facebook": "Compartir en Facebook",
