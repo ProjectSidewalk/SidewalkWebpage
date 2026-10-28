@@ -163,7 +163,9 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   `Cannot read properties of undefined (reading 'paint')` once that state changes
   ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)). Take 3.25+ (and drop the entry) once the
   fix ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
-  feature-state paint expression first.
+  feature-state paint expression first. The same file opens the map credits in a new tab by their
+  `.mapboxgl-ctrl-attrib` class (#5856), which mapbox-gl doesn't promise to keep; `test/e2e/map-attribution.spec.js`
+  fails if a bump renames it.
 - **mapillary-js** (loaded through `sdk/mapillary.js`) — Explore and Validate leave the
   SDK's `.mapillary-attribution-container` where it renders it and override its position from `svl.css` and
   `svv-panorama.css` (#5600), keyed on that class, and Explore's `PanoManager.#liftAboveMapillaryAttribution` finds the

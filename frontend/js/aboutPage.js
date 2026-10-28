@@ -54,14 +54,16 @@ export class AboutPage {
   }
 
   /**
-   * An ML API link, escaped for an `href`, or `#` if it isn't http(s).
+   * The attributes for an ML API link, opening in a new tab since every such link leads off the site. A link that
+   * isn't http(s) becomes a bare `#`, which would only open a second copy of this page.
    *
    * @param {?string} url - The link from the API.
-   * @returns {string} The escaped link, or `#`.
+   * @returns {string} The `href`, `target`, and `rel` attributes.
    */
-  static #safeHref(url) {
+  static #linkAttrs(url) {
     const trimmed = String(url ?? '').trim();
-    return AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
+    const href = AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
+    return href === '#' ? 'href="#"' : `href="${href}" target="_blank" rel="noopener"`;
   }
 
   /**
@@ -243,7 +245,7 @@ export class AboutPage {
       (text ? `<span class="${className}">${util.escapeHTML(text)}</span>` : '');
     document.getElementById('about-team-current').innerHTML = current.map((p) => `
         <li class="about-team-member">
-          <a href="${AboutPage.#safeHref(p.person.url)}">
+          <a ${AboutPage.#linkAttrs(p.person.url)}>
             ${photoTag(p)}
             <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
@@ -268,7 +270,7 @@ export class AboutPage {
       const blurb = blurbFor(p);
       return `
         <li class="about-team-member">
-          <a href="${AboutPage.#safeHref(p.person.url)}">
+          <a ${AboutPage.#linkAttrs(p.person.url)}>
             ${photoTag(p)}
             <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
@@ -289,7 +291,7 @@ export class AboutPage {
         .filter(Boolean).join(', ');
       return `
         <li>
-          <a href="${AboutPage.#safeHref(p.person.url)}">${util.escapeHTML(p.person.name)}</a>${credential
+          <a ${AboutPage.#linkAttrs(p.person.url)}>${util.escapeHTML(p.person.name)}</a>${credential
             ? `, <span class="about-team-credential">${util.escapeHTML(credential)}</span>`
             : ''}
         </li>`;
@@ -321,7 +323,7 @@ export class AboutPage {
         ['DOI', pub.official_url, 'link'],
         ['Code', pub.code_repo_url, 'code'],
       ].filter(([, url]) => url).map(([label, url, icon]) => `
-              <a class="about-pub-link" href="${AboutPage.#safeHref(url)}">
+              <a class="about-pub-link" ${AboutPage.#linkAttrs(url)}>
                 <img class="about-pub-link-icon" src="${util.assetPath(`images/icons/${icon}-feather.svg`)}" alt=""
                      aria-hidden="true">
                 ${util.escapeHTML(label)}
@@ -335,11 +337,11 @@ export class AboutPage {
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
           ${thumb && titleUrl
-            ? `<a href="${AboutPage.#safeHref(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
+            ? `<a ${AboutPage.#linkAttrs(titleUrl)} tabindex="-1" aria-hidden="true">${thumb}</a>`
             : thumb}
           <div>
             <h3>${titleUrl
-              ? `<a href="${AboutPage.#safeHref(titleUrl)}">${util.escapeHTML(pub.title)}</a>`
+              ? `<a ${AboutPage.#linkAttrs(titleUrl)}>${util.escapeHTML(pub.title)}</a>`
               : util.escapeHTML(pub.title)}</h3>
             <p class="about-pub-authors">${pub.authors.map((a) => util.escapeHTML(a.name)).join(', ')}</p>
             <p class="about-pub-venue">${util.escapeHTML(venue)}${pub.award
@@ -387,6 +389,8 @@ export class AboutPage {
     // From a separate app with its own admin UI, so held to the inline formatting a citation needs.
     const citation = util.sanitizeHtml(detail.citation_html, { ALLOWED_TAGS: AboutPage.#CITATION_TAGS,
       ALLOWED_ATTR: ['href'] });
+    // The ML citation's own links carry no `target`.
+    citation.querySelectorAll('a[href]').forEach((a) => Object.assign(a, { target: '_blank', rel: 'noopener' }));
     document.getElementById('about-cite-plain').replaceChildren(citation);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
@@ -416,7 +420,7 @@ export class AboutPage {
       const grantId = hasId ? ` (#${util.escapeHTML(grant.grant_id)})` : '';
       return `
         <li>
-          ${grant.grant_url ? `<a href="${AboutPage.#safeHref(grant.grant_url)}">${title}</a>` : title}
+          ${grant.grant_url ? `<a ${AboutPage.#linkAttrs(grant.grant_url)}>${title}</a>` : title}
           — ${util.escapeHTML(grant.sponsor.name)}${grantId}
         </li>`;
     }).join('');

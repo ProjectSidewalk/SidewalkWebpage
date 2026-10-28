@@ -860,6 +860,49 @@ describe('AboutPage', () => {
     });
   });
 
+  test('opens every link from the ML API in a new tab, so following one does not leave the page', async () => {
+    stubFetch({
+      '/people/?format=json': page([
+        personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
+        personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', lead_project_role: 'Student Lead', is_active: false,
+          end_date: '2016-12-31' }),
+        personRow({ urlName: 'chuli', name: 'Chu Li', is_active: false, end_date: '2024-12-31' }),
+      ]),
+      // Before the list's key, which the detail URL would otherwise match too.
+      '/publications/605/': { citation_html: 'Saha, M. <a href="https://doi.org/10.1145/3290605.3300292">doi</a>',
+        bibtex: '@inproceedings{x}' },
+      '/publications/': page([{ title: 'Paper', date: '2025-01-01', year: 2025, forum_name: 'CHI',
+        authors: [{ name: 'Jon E. Froehlich' }], thumbnail: 'https://example.org/t.png',
+        pdf_url: 'https://example.org/paper.pdf', official_url: 'https://doi.org/10.1145/3290605.3300292',
+        arxiv_url: '', code_repo_url: '', forum_url: '', award: null, id: 605 }]),
+      '/grants/': page([{ title: 'Grant', start_date: '2019-01-01', grant_id: '1', grant_url: 'https://nsf.gov/a',
+        sponsor: { name: 'NSF' } }]),
+    });
+    await loadModules('frontend/js/pages/about.js');
+    await hydrate();
+
+    const links = [...document.querySelectorAll('#about-team-live a, #about-pubs-list a, #about-cite a, '
+      + '#about-funding-grants a')];
+    // Current member, past lead, contributor; thumbnail, title, two pills; citation; grant.
+    expect(links).toHaveLength(9);
+    links.forEach((link) => {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener');
+    });
+  });
+
+  test('leaves a link with no usable ML API URL in this tab, since it only points back at the page', async () => {
+    const row = personRow({ urlName: 'nourl', name: 'No Url', lead_project_role: 'PI' });
+    row.person.url = 'javascript:alert(1)';
+    stubFetch({ '/people/?format=json': page([row]), '/publications/': page([]), '/grants/': page([]) });
+    await loadModules('frontend/js/pages/about.js');
+    await hydrate();
+
+    const link = document.querySelector('#about-team-current a');
+    expect(link.getAttribute('href')).toBe('#');
+    expect(link.hasAttribute('target')).toBe(false);
+  });
+
   describe('section nav', () => {
     /** Replaces the fixture with a page of bands, since the nav is built from the sections it points at. */
     function renderSections() {
