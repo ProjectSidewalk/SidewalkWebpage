@@ -20,6 +20,7 @@ import mapboxgl from '../common/mapboxgl.js';
 import * as turf from '@turf/turf';
 import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
+import { KeyboardShortcuts } from '../common/KeyboardShortcuts.js';
 import { Toast } from '../common/Toast.js';
 import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard.js';
 import { util } from '../common/utilities.js';
@@ -224,9 +225,12 @@ export class RouteBuilder {
       this.#undo();
     });
     document.addEventListener('keydown', (e) => {
-      // Ctrl/Cmd+Z undoes the last route edit, except while typing in a form field.
+      // Ctrl/Cmd+Z undoes the last route edit, except while typing in a form field, or while a dialog is open: the
+      // save dialog would then store the route as it was cut back behind it.
       const { tagName } = /** @type {Element} */ (e.target);
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/^(input|textarea|select)$/i.test(tagName)) {
+      const dialogOpen = this.#saveModal.isOpen() || this.#deleteRouteModal.style.visibility === 'visible';
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && KeyboardShortcuts.keyOf(e) === 'KeyZ'
+        && !/^(input|textarea|select)$/i.test(tagName) && !dialogOpen) {
         e.preventDefault();
         window.logWebpageActivity('RouteBuilder_KeyboardShortcut=Undo');
         this.#undo();
@@ -381,6 +385,14 @@ export class RouteBuilder {
    */
   #routeStarted() {
     return this.#waypoints.length > 0;
+  }
+
+  /**
+   * Whether the route has any streets yet; a lone start point has none.
+   * @returns {boolean}
+   */
+  #routeDrawn() {
+    return (this.#streetsInRoute?.features.length ?? 0) > 0;
   }
 
   /**
@@ -715,13 +727,16 @@ export class RouteBuilder {
     // click); clicking opens it immediately, with keyboard focus.
     let routeHoverTimer = null;
     map.on('mousemove', 'streets-chosen', (event) => {
+      // The map keeps drawing a cleared route for a frame or two, and a route has no menu once it's gone.
+      if (!this.#routeDrawn()) return;
       map.getCanvas().style.cursor = 'pointer';
+      this.#routePopover.cancelHoverClose();
       if (this.#routePopover.isOpen()) return;
       clearTimeout(routeHoverTimer);
       const lngLat = event.lngLat;
       routeHoverTimer = setTimeout(() => {
-        // The route may have been cleared while the pointer rested on it.
-        if (this.#routePopover.isOpen() || this.#waypoints.length === 0) return;
+        // The route may have been cleared, or undone back to its start, while the pointer rested on it.
+        if (this.#routePopover.isOpen() || !this.#routeDrawn()) return;
         window.logWebpageActivity('RouteBuilder_Hover=RouteMenu_Open');
         this.#routePopover.open(lngLat);
       }, RouteBuilder.ROUTE_MENU_HOVER_MS);
@@ -729,6 +744,7 @@ export class RouteBuilder {
     map.on('mouseleave', 'streets-chosen', () => {
       clearTimeout(routeHoverTimer);
       map.getCanvas().style.cursor = '';
+      this.#routePopover.scheduleHoverClose();
     });
     map.on('mousemove', (event) => this.#onMapPointerMove(event.lngLat));
     map.on('mouseout', () => {
@@ -741,8 +757,9 @@ export class RouteBuilder {
     // under the click. Otherwise the click is a point — the start, then each extension of the route.
     map.on('click', (event) => {
       const { x, y } = event.point;
-      const routeHits = map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] });
-      if (routeHits.length > 0) {
+      const onRoute = this.#routeDrawn()
+        && map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] }).length > 0;
+      if (onRoute) {
         window.logWebpageActivity('RouteBuilder_Click=RouteMenu_Open');
         this.#routePopover.open(event.lngLat, true);
         return;
@@ -827,7 +844,7 @@ export class RouteBuilder {
    */
   #updateCursorGuide(hoverRegionId, snapped, point) {
     let text = null;
-    const overRoute = this.#streetsInRoute !== null && this.#streetsInRoute.features.length > 0
+    const overRoute = this.#routeDrawn()
       && this.#map.queryRenderedFeatures([[point.x - 6, point.y - 6], [point.x + 6, point.y + 6]],
         { layers: ['streets-chosen'] }).length > 0;
     if (!overRoute && !this.#routePopover.isOpen()) {
@@ -1013,8 +1030,8 @@ export class RouteBuilder {
   }
 
   /**
-   * Mirrors the route's endpoints into the Start/End address fields (reverse-geocoded); a lone start fills just Start.
-   * Only called while the route has a start: emptying it clears the fields through #resetUI.
+   * Mirrors the route's current endpoints into the Start/End address fields (reverse-geocoded), or clears them.
+   * A lone start point (first click, no segments yet) fills just the Start field.
    */
   #syncDirectionsFields() {
     const feats = this.#streetsInRoute.features;
@@ -1022,8 +1039,10 @@ export class RouteBuilder {
       const startCoord = feats[0].geometry.coordinates[0];
       const endCoord = feats[feats.length - 1].geometry.coordinates.slice(-1)[0];
       this.#directionsPanel.updateFromRoute(startCoord, endCoord);
-    } else {
+    } else if (this.#waypoints.length === 1) {
       this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
+    } else {
+      this.#directionsPanel.clearFields();
     }
   }
 
@@ -1096,7 +1115,7 @@ export class RouteBuilder {
    */
   #updateSaveButton() {
     this.#panel.dataset.editing = this.#editingRouteId !== null;
-    const hasRoute = (this.#streetsInRoute?.features.length ?? 0) > 0;
+    const hasRoute = this.#routeDrawn();
     this.#previewButton.disabled = !hasRoute;
     if (this.#editingRouteId === null) {
       this.#saveButton.textContent = this.#defaultSaveLabel;
@@ -1451,7 +1470,7 @@ export class RouteBuilder {
   #hasUnsavedWork() {
     return this.#editingRouteId !== null
       ? this.#isDirty()
-      : (this.#streetsInRoute?.features.length ?? 0) > 0;
+      : this.#routeDrawn();
   }
 
   /**

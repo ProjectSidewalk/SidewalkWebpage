@@ -205,7 +205,7 @@ describe('RouteBuilder', () => {
 
       map.fire('mousemove', { lngLat: NOWHERE });
       map.fire('mousemove', { lngLat: A });
-      expect(world.frames).toHaveLength(1);
+      expect(world.frames.size).toBe(1);
       world.frame();
 
       expect(map.getSource('ghost-start').data.features[0].geometry.coordinates).toEqual(at(A));
@@ -241,17 +241,41 @@ describe('RouteBuilder', () => {
       expect(logged()).toContain('RouteBuilder_Hover=RouteMenu_Open');
     });
 
-    test('a route cleared while the pointer rests on it opens no menu', async () => {
+    test('a route undone back to its start while the pointer rests on it opens no menu', async () => {
       const { map } = await setupRouteBuilder();
       buildRoute(map, A, D);
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
       map.fire('mousemove', { lngLat: B }, 'streets-chosen');
       click('undo-button');
-      click('undo-button');
       vi.advanceTimersByTime(RouteBuilder.ROUTE_MENU_HOVER_MS);
 
       expect(world.popover.open).not.toHaveBeenCalled();
+    });
+
+    test('a cleared route the map is still drawing gets neither the pointer cursor nor its menu', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      click('undo-button');
+      // The map renders a frame or two behind, so the old route is still there to be hit.
+      map.rendered['streets-chosen'] = [{}];
+
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      clickMap(map, D);
+
+      expect(map.getCanvas().style.cursor).toBe('');
+      expect(world.popover.open).not.toHaveBeenCalled();
+      expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
+    });
+
+    test('a hover-opened menu is told when the pointer leaves the route and when it comes back', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+
+      map.fire('mouseleave', {}, 'streets-chosen');
+      expect(world.popover.scheduleHoverClose).toHaveBeenCalledTimes(1);
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      expect(world.popover.cancelHoverClose).toHaveBeenCalledTimes(1);
     });
 
     test('the first click plants a start flag at the nearest intersection and eases in to street level', async () => {
@@ -456,6 +480,36 @@ describe('RouteBuilder', () => {
       expect(logged()).toContain('RouteBuilder_KeyboardShortcut=Undo');
     });
 
+    test('Ctrl+Z still undoes with Caps Lock on, but Ctrl+Shift+Z does not', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D, E);
+      const press = (init) => document.body.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, bubbles: true, ...init }));
+
+      press({ key: 'Z', shiftKey: true });
+      expect(drawnRoute(map)).toHaveLength(3);
+      press({ key: 'Z' });
+      expect(drawnRoute(map)).toHaveLength(2);
+    });
+
+    test('Ctrl+Z does nothing while the save or delete dialog is open over the route', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      const ctrlZ = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+
+      click('save-button');
+      ctrlZ();
+      expect(drawnRoute(map)).toHaveLength(2);
+      world.saveModal.hide();
+
+      click('cancel-button');
+      ctrlZ();
+      expect(drawnRoute(map)).toHaveLength(2);
+      click('cancel-delete-route-button');
+
+      ctrlZ();
+      expect(drawnRoute(map)).toEqual([]);
+    });
+
     test('reverse swaps the start and end along the same streets, and undo puts it back exactly', async () => {
       const { map } = await setupRouteBuilder();
       buildRoute(map, A, D);
@@ -565,7 +619,7 @@ describe('RouteBuilder', () => {
       click('cancel-button');
       click('delete-route-button');
 
-      expect(world.frames).toEqual([]);
+      expect(world.frames.size).toBe(0);
       expect(map.getSource('route-explorer').data.features).toEqual([]);
     });
 
@@ -912,6 +966,16 @@ describe('RouteBuilder', () => {
       expect(map.camera.at(-1)[0]).toBe('fitBounds');
       expect(map.camera.at(-1)[1].bounds).toEqual([0, 0, 0.001, 0.001]);
     });
+
+    test('a reloaded draft whose streets are all gone fills no address field for a flag that isn\'t there',
+      async () => {
+        const gone = { ...storedDraft, segments: [[{ streetId: 404, flip: false }]] };
+        const { map } = await setupRouteBuilder({ reload: true, storedDraft: gone });
+
+        expect(flags(map)).toEqual([]);
+        expect(world.directions.updateStart).not.toHaveBeenCalled();
+        expect(world.directions.clearFields).toHaveBeenCalled();
+      });
 
     test('a draft whose legs don\'t match its points is dropped rather than restored inconsistent', async () => {
       const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, segments: [] } });

@@ -42,9 +42,9 @@ export default defineConfig({
       // Applies to any `--coverage` run, so add `--coverage.thresholds=false` to measure a single file.
       thresholds: {
         statements: 55,
-        branches: 50,
+        branches: 51,
         functions: 51,
-        lines: 55,
+        lines: 56,
       },
     },
   },

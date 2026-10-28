@@ -83,6 +83,7 @@ class FakeMap {
     this.options = options;
     this.zoom = options.zoom;
     this.center = { lng: options.center[0], lat: options.center[1] };
+    this.loaded = false; // Until 'load' fires, the style can't take sources, layers or images, as with the real map.
     this.handlers = [];
     this.sources = {};
     this.layers = {};
@@ -126,10 +127,17 @@ class FakeMap {
    * @param {?string} [layer] - The layer for a layer-scoped handler; null for the map-wide ones.
    */
   fire(event, payload = {}, layer = null) {
+    if (event === 'load') this.loaded = true;
     this.handlers.filter((h) => h.event === event && h.layer === layer).forEach((h) => h.handler(payload));
   }
 
+  /** Throws what mapbox-gl throws when the style is changed before it has loaded. */
+  #requireLoaded() {
+    if (!this.loaded) throw new Error('Style is not done loading.');
+  }
+
   addSource(id, source) {
+    this.#requireLoaded();
     this.sources[id] = new FakeSource(source.data);
   }
 
@@ -138,6 +146,7 @@ class FakeMap {
   }
 
   addLayer(layer) {
+    this.#requireLoaded();
     this.layers[layer.id] = layer;
   }
 
@@ -150,6 +159,7 @@ class FakeMap {
   }
 
   addImage(id) {
+    this.#requireLoaded();
     this.images[id] = true;
   }
 
@@ -331,8 +341,10 @@ mockModule('frontend/js/route-builder/SaveModal.js', () => ({
 
     constructor(opts) {
       this.opts = opts;
-      this.open = vi.fn();
-      this.hide = vi.fn();
+      this.shown = false;
+      this.open = vi.fn(() => { this.shown = true; });
+      this.hide = vi.fn(() => { this.shown = false; });
+      this.isOpen = () => this.shown;
       world.saveModal = this;
     }
   },
@@ -369,6 +381,8 @@ mockModule('frontend/js/route-builder/RoutePopover.js', () => ({
       this.isOpen = () => false;
       this.open = vi.fn();
       this.close = vi.fn();
+      this.scheduleHoverClose = vi.fn();
+      this.cancelHoverClose = vi.fn();
       world.popover = this;
     }
   },
@@ -411,6 +425,24 @@ const MAP_PARAMS = {
   northeast_boundary: { lng: 0.05, lat: 0.05 },
 };
 
+/** Every listener added to the document or window since the last setup, as [target, ...addEventListener args]. */
+const pageListeners = [];
+
+/**
+ * Takes the previous test's page listeners off and records this test's. Each RouteBuilder listens on the shared
+ * document and window, so an earlier test's instance would otherwise still answer this test's key presses.
+ */
+function trackPageListeners() {
+  pageListeners.splice(0).forEach(([target, ...args]) => target.removeEventListener(...args));
+  for (const target of [document, window]) {
+    const add = target.addEventListener;
+    vi.spyOn(target, 'addEventListener').mockImplementation(function (...args) {
+      pageListeners.push([target, ...args]);
+      return add.apply(this, args);
+    });
+  }
+}
+
 /** Lets pending promise chains (fetches, confirms, icon rasterizing) run to completion. */
 export const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -446,15 +478,24 @@ export async function setupRouteBuilder({
   window.logWebpageActivity = vi.fn();
   // jsdom has no Navigation Timing entries to spy on.
   performance.getEntriesByType = () => [{ type: reload ? 'reload' : 'navigate' }];
-  // Runs the next animation frame only when the test calls `world.frame()`, so throttled work is steppable.
-  world.frames = [];
-  vi.stubGlobal('requestAnimationFrame', (cb) => world.frames.push(cb));
-  vi.stubGlobal('cancelAnimationFrame', () => { world.frames = []; });
-  world.frame = (now = 0) => world.frames.splice(0).forEach((cb) => cb(now));
+  // Runs the queued animation frames only when the test calls `world.frame()`, so throttled work is steppable.
+  world.frames = new Map();
+  let nextFrameId = 1;
+  vi.stubGlobal('requestAnimationFrame', (cb) => {
+    world.frames.set(nextFrameId, cb);
+    return nextFrameId++;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id) => world.frames.delete(id));
+  world.frame = (now = 0) => {
+    const due = [...world.frames.values()];
+    world.frames.clear();
+    due.forEach((cb) => cb(now));
+  };
   // The flag icons rasterize through an <img> and a canvas, neither of which jsdom can draw.
   HTMLImageElement.prototype.decode = () => Promise.resolve();
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage() {}, getImageData: () => ({}) });
 
+  trackPageListeners();
   const rb = new RouteBuilder('pk.test', MAP_PARAMS, signedIn, minutesPer100m);
   const map = world.map;
   if (!dataBeforeMap) map.fire('load');
