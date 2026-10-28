@@ -111,6 +111,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
   every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
   plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
+  `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
+  tampered, or expired session cookie counting as logged out.
   **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5
   extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
   stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load
