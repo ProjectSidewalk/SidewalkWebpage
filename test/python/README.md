@@ -13,7 +13,7 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   clustering (`cluster`), global cluster-id offsetting (`offset_and_combine`), and JSON assembly (`build_output_json`).
 - `test_check_streets_for_imagery.py` — bounding-box math (`create_bounding_box`), vertex interpolation
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
-  imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
+  street-coverage verdict (`CoverageWalk`, `street_has_no_imagery`), and the CSV writer (`write_output`).
 - `test_onboard_city.py` — the city-onboarding pipeline (#4291): the OSM filter builder and tag normalization,
   geodesic measures, the street-healing stack (gap bridging, boundary-tail restore, fragment healing, rider merging),
   region prep/merging/validation, COPY/EWKB serialization, and the I/O layer — fetch wrappers (osmnx and the TIGERweb

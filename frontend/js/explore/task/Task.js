@@ -10,7 +10,7 @@ import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
 
 /**
- * Free exploration's street-credit rule (#5733), as the backend (StreetCoverage) states it.
+ * The street-credit rule (#5733, #5669), as the backend (StreetCoverage) states it.
  * @typedef {object} StreetCoverage
  * @property {number} pano_window_m - Meters either side of a pano that count as seen.
  * @property {number} max_hop_m - The longest hop between on-street panos that still counts as walked.
@@ -44,10 +44,11 @@ export class Task {
   #missionStarts = {};
   #status = {
     isComplete: false,
-    // Set when an imagery sweep ran out here and moved the labeler on, either in this session or earlier in this
-    // walk of the route (the server reports the latter as reported_no_imagery). Deliberately not isComplete: that
-    // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
+    // Set when this session gave the street up for lack of imagery. Deliberately not isComplete: that flag is
+    // submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
     givenUpOnImagery: false,
+    // Reported in an earlier session (#5017): skipped like a give-up, but that session's progress was already banked.
+    reportedNoImagery: false,
     // Set when the server hands this street back as unfinished work rather than as a fresh street (#5370). Anything
     // that would restart the street — flipping its direction, restamping task_start, drawing it as untouched — has to
     // leave such a task alone, or the labeler re-walks and re-labels what they already did.
@@ -81,7 +82,7 @@ export class Task {
 
   /**
    * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson
-   * @param {StreetCoverage} streetCoverage - Free exploration's credit rule, for recordVisit and isCoveredEnough.
+   * @param {StreetCoverage} streetCoverage - The credit rule, for recordVisit and isCoveredEnough.
    * @param {boolean} tutorialTask
    * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming.
    */
@@ -123,7 +124,7 @@ export class Task {
       this.#status.isComplete = true;
     }
     if (this.#geojson.properties.reported_no_imagery) {
-      this.#status.givenUpOnImagery = true;
+      this.#status.reportedNoImagery = true;
     }
     // An audit_task row that isn't complete is work in progress: this street was left part-walked (#5370).
     if (this.#geojson.properties.audit_task_id && !this.#geojson.properties.completed) {
@@ -136,9 +137,18 @@ export class Task {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
     // Clipped to turf's length: the server's can run a few decimeters longer, which the minimap slicing can't take.
-    this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
-      ? Task.mergeRanges(this.#geojson.properties.covered_ranges, this.lineDistance({ units: 'meters' }))
-      : [];
+    const lengthM = this.lineDistance({ units: 'meters' });
+    if (Array.isArray(this.#geojson.properties.covered_ranges)) {
+      this.#coveredRanges = Task.mergeRanges(this.#geojson.properties.covered_ranges, lengthM);
+    } else if (this.#status.resumed) {
+      // An open row from before coverage was tracked (#5669): the walk from the start to where they stopped is
+      // credited, or the rest alone would fail the rule and file the street as imagery-less.
+      const { current_lat: lat, current_lng: lng } = this.#geojson.properties;
+      const walkedM = this.getDistanceFromStart({ lat, lng }, { units: 'meters' });
+      /** @type {[number, number]} */
+      const walked = this.#properties.startPointReversed ? [lengthM - walkedM, lengthM] : [0, walkedM];
+      this.#coveredRanges = Task.mergeRanges([walked], lengthM);
+    }
     // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
     // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
     if (currentLatLng) {
@@ -420,7 +430,7 @@ export class Task {
   }
 
   /**
-   * Mirrors the server's StreetCoverage.coveredEnough, so the minimap can show the street as done the moment it is.
+   * Mirrors the server's StreetCoverage.coveredEnough, so the street ends and is drawn done the moment it counts.
    * @returns {boolean}
    */
   isCoveredEnough() {
@@ -520,6 +530,11 @@ export class Task {
    */
   wasGivenUpOnImagery() {
     return this.#status.givenUpOnImagery;
+  }
+
+  /** @returns {boolean} Whether the labeler still has something to do here. */
+  isLeftToWalk() {
+    return !this.#status.isComplete && !this.#status.givenUpOnImagery && !this.#status.reportedNoImagery;
   }
 
   /**

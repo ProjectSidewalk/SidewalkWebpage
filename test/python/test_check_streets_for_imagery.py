@@ -2,7 +2,7 @@
 Unit tests for tools/city/check_streets_for_imagery.py.
 
 Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, Mapillary
-pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the
+pano ranking, the coverage rule), the retry/fetch and per-street worker (including imagery-age capture), the
 checkpoint/output persistence (no-imagery list + imagery summary), and the `main` scan end-to-end with the HTTP layer
 mocked (happy path, no-imagery flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
@@ -125,6 +125,13 @@ def _pnx_feature(picture_id, datetime, lat=_PNX_LAT, lng=_PNX_LNG, width=None):
     if width is not None:
         properties['pers:interior_orientation'] = {'sensor_array_dimensions': [width, width // 2]}
     return {'id': picture_id, 'geometry': {'type': 'Point', 'coordinates': [lng, lat]}, 'properties': properties}
+
+
+def _image_near(url, meters=0, **kwargs):
+    """A Mapillary image `meters` due north of the centre of the box the search `url` asked about."""
+    west, south, east, north = (float(v) for v in url.split('&bbox=')[1].split(','))
+    pano = geodesic(meters=meters).destination(GeoPoint((south + north) / 2, (west + east) / 2), bearing=0)
+    return _image(lat=pano.latitude, lng=pano.longitude, **kwargs)
 
 
 def _pnx_feature_near(url, meters, picture_id, datetime, **kwargs):
@@ -710,52 +717,141 @@ def test_summarize_dates():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# imagery_verdict / street_has_no_imagery
+# The coverage rule: merge_ranges / covered_enough / CoverageWalk / street_has_no_imagery
 # --------------------------------------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize('n_fail, n_success, n_coords, endpoint_failed, expected', [
-    (5, 0, 10, False, cs.NO_IMAGERY),
-    (3, 0, 10, True, cs.NO_IMAGERY),
-    (3, 0, 10, False, None),
-    (0, 8, 10, True, cs.HAS_IMAGERY),
-    (0, 6, 10, False, cs.HAS_IMAGERY),
-    (0, 6, 10, True, None),
-])
-def test_imagery_verdict(n_fail, n_success, n_coords, endpoint_failed, expected):
-    assert cs.imagery_verdict(n_fail, n_success, n_coords, endpoint_failed) == expected
+def test_street_coverage_is_read_from_the_shared_file():
+    # The same four numbers Explore and the server read, so the three can never drift apart (#5669).
+    with open(os.path.join(cs.REPO_ROOT, cs.STREET_COVERAGE_FILE), encoding='utf-8') as handle:
+        raw = json.load(handle)
+    assert cs.STREET_COVERAGE == {key: float(raw[key]) for key in cs.STREET_COVERAGE_KEYS}
+    assert cs.COVERAGE_RULE_ID == 'unseen<=50m,seen>=50%,window10m,hop50m'
 
 
-def test_street_has_no_imagery_both_endpoints_missing():
-    assert cs.street_has_no_imagery(True, True, [True, True, True]) is True
+def test_load_street_coverage_names_a_missing_key(tmp_path, monkeypatch):
+    (tmp_path / 'conf').mkdir()
+    (tmp_path / 'conf' / 'street-coverage.json').write_text(json.dumps({'maxUncoveredM': 50}))
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    with pytest.raises(KeyError, match='minCoveredFrac, panoWindowM, maxHopM'):
+        cs._load_street_coverage()
 
 
-def test_street_has_no_imagery_all_points_have_imagery():
-    assert cs.street_has_no_imagery(False, False, [True] * 10) is False
+def test_merge_ranges_clips_sorts_joins_and_rounds_like_the_server():
+    # The cases StreetCoverageSpec pins, so the scan's arithmetic is the server's.
+    assert cs.merge_ranges([(-5, 12), (95, 130), (140, 150)], 100) == [(0.0, 12.0), (95.0, 100.0)]
+    assert cs.merge_ranges([(40, 60), (0, 20), (20, 30), (55, 70)], 100) == [(0.0, 30.0), (40.0, 70.0)]
+    assert cs.merge_ranges([(1.23, 4.56)], 100) == [(1.2, 4.6)]
+    assert cs.merge_ranges([], 100) == []
+    assert cs.merge_ranges([(10, 10)], 100) == []
 
 
-def test_street_has_no_imagery_all_points_missing():
-    assert cs.street_has_no_imagery(False, False, [False] * 10) is True
+def test_covered_enough_needs_something_seen_and_holds_the_cap_and_the_floor():
+    assert cs.covered_enough([], 10) is False
+    assert cs.covered_enough([(0, 10)], 10) is True
+    assert cs.covered_enough([(0, 100)], 150) is True
+    assert cs.covered_enough([(0, 100)], 150.1) is False
+    # One pano window at a corner of a 60 m street: 50 m unseen is within the cap, but a sixth is not half.
+    assert cs.covered_enough([(0, 10)], 60) is False
+    assert cs.covered_enough([(0, 30)], 60) is True
 
 
-def test_street_has_no_imagery_quarter_missing_with_failed_endpoint():
-    assert cs.street_has_no_imagery(True, False, [False, False, False] + [True] * 7) is True
+def test_coverage_walk_credits_windows_and_short_hops_only():
+    walk = cs.CoverageWalk(200.0)
+    walk.visit(10.0)
+    walk.visit(40.0)    # a 30 m hop: the stretch between counts
+    walk.visit(120.0)   # an 80 m hop: only the window counts
+    assert walk.merged() == [(0.0, 50.0), (110.0, 130.0)]
 
 
-def test_street_has_no_imagery_never_settles_returns_false():
-    assert cs.street_has_no_imagery(False, False, []) is False
+def test_coverage_walk_settles_has_imagery_as_soon_as_enough_is_seen():
+    walk = cs.CoverageWalk(150.0)
+    for along in (0.0, 15.0, 30.0, 45.0, 60.0):
+        walk.visit(along)
+    assert walk.verdict(remaining_from_m=60.0) is None               # 70 of 150 seen: 80 m unseen is too much yet
+    walk.visit(75.0)
+    walk.visit(90.0)
+    assert walk.verdict(remaining_from_m=90.0) == cs.HAS_IMAGERY     # 100 seen, 50 unseen: settled whatever follows
 
 
-def test_street_has_no_imagery_lazy_iterable_stops_early():
+def test_coverage_walk_settles_no_imagery_once_the_rest_could_not_be_enough():
+    # A 300 m street with imagery only at its start. Until the walk is a hop past the first 50 m, imagery at every
+    # remaining point could still cover all but that; from 120 m on, the stretch between is already lost.
+    walk = cs.CoverageWalk(300.0)
+    walk.visit(0.0)
+    assert walk.verdict(remaining_from_m=15.0) is None
+    assert walk.verdict(remaining_from_m=60.0) is None
+    assert walk.verdict(remaining_from_m=120.0) == cs.NO_IMAGERY
+
+
+def test_coverage_walk_waits_for_a_pano_a_later_point_could_still_find_behind_it():
+    # A 40 m hole early on, then panos up to 105 m. At the 180 m point, measured from the point itself the stretch
+    # back to 130 m is lost and the street is flagged; but that point's 25 m search can find a pano at 155 m, a hop
+    # from the last one, which keeps the street at 40 m unseen.
+    def walk_to_105(reach_m: float) -> cs.CoverageWalk:
+        walk = cs.CoverageWalk(300.0, reach_m=reach_m)
+        for along in (0.0, 15.0, 75.0, 90.0, 105.0):
+            walk.visit(along)
+        return walk
+
+    assert walk_to_105(0.0).verdict(remaining_from_m=180.0) == cs.NO_IMAGERY
+    walk = walk_to_105(25.0)
+    assert walk.verdict(remaining_from_m=180.0) is None
+    walk.visit(155.0)
+    assert walk.merged() == [(0.0, 25.0), (65.0, 165.0)]
+
+
+def test_coverage_walk_flags_a_hole_longer_than_the_cap_even_with_both_ends_covered():
+    # Explore would hop the hole, but nobody could look at the sidewalk in it (#5669).
+    walk = cs.CoverageWalk(200.0)
+    for along in (0.0, 15.0, 30.0, 45.0):
+        walk.visit(along)
+    for along in (125.0, 140.0, 155.0, 170.0, 185.0, 200.0):
+        walk.visit(along)
+    assert walk.verdict() == cs.NO_IMAGERY
+    assert walk.merged() == [(0.0, 55.0), (115.0, 200.0)]
+
+
+def test_street_has_no_imagery_walks_points_in_order_and_stops_early():
     fetched = []
 
     def lazy_points():
-        for value in [False, False, False, False, False]:
-            fetched.append(value)
-            yield value
+        # A 300 m street with no imagery anywhere: the 15 m sampling reaches 120 m before the rest can't save it.
+        for along in range(0, 301, 15):
+            fetched.append(along)
+            yield (False, float(along), float(along))
 
-    # 5 points, both endpoints ok, all missing -> NO_IMAGERY once n_fail >= 0.5*5 = 2.5 (at the 3rd point).
-    assert cs.street_has_no_imagery(False, False, lazy_points(), n_coords=5) is True
-    assert len(fetched) == 3  # stopped consuming (and fetching) early
+    assert cs.street_has_no_imagery(lazy_points(), 300.0) is True
+    assert fetched[-1] < 300
+    assert cs.street_has_no_imagery(((True, float(a), float(a)) for a in range(0, 301, 15)), 300.0) is False
+    assert cs.street_has_no_imagery([], 300.0) is True
+
+
+def test_street_has_no_imagery_credits_the_pano_where_it_sits_not_where_it_was_asked_for():
+    # Every query answered with the one pano at the street's start: it covers 10 m, not the whole street.
+    points = [(True, 0.0, float(a)) for a in range(0, 76, 15)]
+    assert cs.street_has_no_imagery(points, 75.0) is True
+    assert cs.street_has_no_imagery([(True, float(a), float(a)) for a in range(0, 76, 15)], 75.0) is False
+
+
+def test_street_length_and_along_street_measure_geodesically():
+    assert cs.street_length_m(_LINE_60) == pytest.approx(75.1, abs=0.5)
+    length = cs.street_length_m(_LINE_60)
+    assert cs.along_street_m(_LINE_60, length, 47.60, -122.300) == pytest.approx(0.0, abs=0.01)
+    assert cs.along_street_m(_LINE_60, length, 47.60, -122.2995) == pytest.approx(length / 2, abs=0.1)
+    assert cs.along_street_m(_LINE_60, length, 47.60, -122.298) == pytest.approx(length, abs=0.01)
+
+
+def test_along_street_measures_a_bend_in_metres_not_degrees():
+    # 100 m north then 100 m east: a degree of longitude is two thirds of a degree of latitude at this latitude, so the
+    # corner sits at 60% of the degree-space length but halfway along the street.
+    corner = _offset(_LAT, _LNG, north_m=100)
+    end = _offset(corner[1], corner[0], east_m=100)
+    bent = LineString([(_LNG, _LAT), corner, end])
+    length = cs.street_length_m(bent)
+    assert length == pytest.approx(200, abs=0.5)
+    assert cs.along_street_m(bent, length, corner[1], corner[0]) == pytest.approx(100, abs=0.5)
+    beside_east_leg = _offset(corner[1], corner[0], east_m=30, north_m=5)
+    assert cs.along_street_m(bent, length, beside_east_leg[1], beside_east_leg[0]) == pytest.approx(130, abs=0.5)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -927,7 +1023,12 @@ def test_process_street_gsv_points_missing_imagery():
 
 
 def test_process_street_mapillary_has_imagery():
-    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [_image()]}).outcome == cs.HAS_IMAGERY
+    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [_image_near(url)]}).outcome == cs.HAS_IMAGERY
+
+
+def test_process_street_mapillary_credits_a_pano_where_it_sits():
+    # One picture at the street's start, however many boxes it falls in, covers 10 m of a 75 m street (#5669).
+    assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': [_image()]}).outcome == cs.NO_IMAGERY
 
 
 def test_process_street_mapillary_no_imagery():
@@ -941,7 +1042,7 @@ def test_process_street_mapillary_captures_date_range():
     def fetch(url):
         calls['n'] += 1
         captured_at = _JUN_2019_MS if calls['n'] <= 2 else _JUL_2021_MS
-        return {'data': [_image(image_id=calls['n'], captured_at=captured_at)]}
+        return {'data': [_image_near(url, image_id=calls['n'], captured_at=captured_at)]}
 
     result = _run_process(_LINE_60, 'Mapillary', fetch)
     assert result.outcome == cs.HAS_IMAGERY
@@ -1075,8 +1176,8 @@ def test_process_street_point_error_is_failed():
 def _checkpoint_at(path, outcomes, radius_m=25.0, limit_m=0.0):
     """Writes a current-schema checkpoint holding one row per outcome, each checked at ``radius_m`` and ``limit_m``."""
     for street_edge_id, outcome in enumerate(outcomes, start=1):
-        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, outcome, None, None, 0, None, radius_m, limit_m),
-                            str(path))
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, outcome, None, None, 0, None, radius_m, limit_m,
+                                             cs.COVERAGE_RULE_ID), str(path))
 
 
 def test_load_processed_no_file(tmp_path):
@@ -1098,12 +1199,24 @@ def test_load_processed_refuses_a_checkpoint_from_an_older_scan(tmp_path):
         cs.load_processed(str(checkpoint), 25)
 
 
+def test_load_processed_refuses_a_checkpoint_settled_under_another_coverage_rule(tmp_path):
+    # Rows reached under other numbers carry another definition of "has imagery" (#5669).
+    checkpoint = tmp_path / 'cp.csv'
+    _checkpoint_at(checkpoint, [cs.HAS_IMAGERY])
+    rows = pd.read_csv(checkpoint)
+    rows['coverage_rule'] = ['unseen<=25m,seen>=90%,window10m,hop50m']
+    rows.to_csv(checkpoint, index=False)
+    with pytest.raises(cs.CheckpointMismatchError, match='coverage rule unseen<=25m'):
+        cs.load_processed(str(checkpoint), 25, 0.0)
+
+
 @pytest.mark.parametrize('radii', [[15.0], [25.0, 15.0], [None]])
 def test_load_processed_refuses_a_checkpoint_from_another_radius(tmp_path, radii):
     # Resuming across a radius change would mix two definitions of "has imagery" into one set of outputs.
     checkpoint = tmp_path / 'cp.csv'
     for street_edge_id, radius in enumerate(radii, start=1):
-        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, cs.HAS_IMAGERY, None, None, 0, None, radius, 0.0),
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, cs.HAS_IMAGERY, None, None, 0, None, radius, 0.0,
+                                             cs.COVERAGE_RULE_ID),
                              str(checkpoint))
     with pytest.raises(cs.CheckpointMismatchError, match='search radius'):
         cs.load_processed(str(checkpoint), 25)
@@ -1111,8 +1224,10 @@ def test_load_processed_refuses_a_checkpoint_from_another_radius(tmp_path, radii
 
 def test_append_checkpoint_writes_header_then_appends(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None, 25.0, 15.0), checkpoint)
-    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4, 25.0, 15.0),
+    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None, 25.0, 15.0, cs.COVERAGE_RULE_ID),
+                         checkpoint)
+    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4, 25.0, 15.0,
+                                         cs.COVERAGE_RULE_ID),
                          checkpoint)
     written = pd.read_csv(checkpoint)
     assert list(written.columns) == cs.CHECKPOINT_COLUMNS
@@ -1133,10 +1248,10 @@ def test_write_ids_csv_coerces_to_int(tmp_path):
 
 
 def _settled_checkpoint(rows):
-    """Build a checkpoint DataFrame from row tuples, padding omitted columns with None, the radius with 25 m and the
-    cross-track limit with the default a GSV run applies."""
-    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - 2 - len(row))
-              + (25.0, cs.DEFAULT_CROSS_TRACK_LIMIT_M) for row in rows]
+    """Build a checkpoint DataFrame from row tuples, padding omitted columns with None, the radius with 25 m, the
+    cross-track limit with the default a GSV run applies and the coverage rule with the one in force."""
+    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - 3 - len(row))
+              + (25.0, cs.DEFAULT_CROSS_TRACK_LIMIT_M, cs.COVERAGE_RULE_ID) for row in rows]
     return pd.DataFrame(padded, columns=cs.CHECKPOINT_COLUMNS)
 
 
@@ -1377,7 +1492,7 @@ def test_main_mapillary_requests_and_records_capture_dates(monkeypatch, tmp_path
 
     def fake_get_json(url):
         urls.append(url)
-        return {'data': [_image()]}
+        return {'data': [_image_near(url)]}
 
     monkeypatch.setattr(cs, '_get_json', fake_get_json)
     assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
@@ -1759,8 +1874,10 @@ def test_process_street_logs_each_visited_point_once():
 def test_process_street_logs_a_point_without_imagery_with_no_position():
     points = []
     _run_process_limited(lambda url: {'status': 'ZERO_RESULTS'}, 15.0, points)
-    assert [(p.has_imagery, p.pano_lat, p.point_distance_m, p.cross_track_m, p.counted) for p in points] == [
-        (False, None, None, None, False)] * 2
+    # The two endpoints and then the walk, which on a 75 m street can't settle before its last point (#5669).
+    assert len(points) > 2
+    assert {(p.has_imagery, p.pano_lat, p.point_distance_m, p.cross_track_m, p.counted) for p in points} == {
+        (False, None, None, None, False)}
 
 
 def test_load_processed_refuses_a_checkpoint_from_another_cross_track_limit(tmp_path):
@@ -1801,7 +1918,7 @@ def test_main_limit_of_zero_turns_it_off(monkeypatch, tmp_path):
 
 def test_main_limit_does_not_apply_to_other_providers(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [_image(lat=_lat_north_of_origin(20))]})
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [_image_near(url, 20)]})
     assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
     assert _output(tmp_path).empty
     checkpoint = pd.read_csv(tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'mapillary'))
@@ -1878,11 +1995,14 @@ def _gsv_pano_at(lng, lat):
 
 
 def test_process_street_measures_a_bend_from_the_stored_geometry():
-    # Every point is answered by the pano on the real corner: 0 m off the street, but metres off the resampled chord.
+    # Every point is answered by the pano on the real corner: 0 m off the street, but metres off the resampled chord,
+    # so it counts under even a 0.5 m limit. One pano covers 10 m either side of the corner, not the 80 m street.
+    points = []
     result = cs.process_street(_street(_L_STREET), 'GSV', lambda url: _gsv_pano_at(*_CORNER), 'gsv&radius=25',
-                               'mapillary', cross_track_limit_m=0.5)
-    assert result.outcome == cs.HAS_IMAGERY
+                               'mapillary', cross_track_limit_m=0.5, points=points)
+    assert all(p.counted for p in points)
     assert result.max_cross_track_m == pytest.approx(0, abs=0.01)
+    assert result.outcome == cs.NO_IMAGERY
 
 
 def test_process_street_counts_a_pano_on_the_crossing_street_at_an_endpoint():

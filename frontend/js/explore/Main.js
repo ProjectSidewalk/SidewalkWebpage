@@ -93,7 +93,7 @@ import '../common/utilitiesSidewalk.js';
  * @property {boolean} makeCrops - Whether a placed label's imagery is cropped and uploaded.
  * @property {import('./label/Label.js').LatLngEstimation} latLngEstimation - The label lat/lng estimator's
  *   constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
- * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
+ * @property {import('./task/Task.js').StreetCoverage} streetCoverage - The street-credit rule (StreetCoverage.asJson)
  *   (#5733), owned by the backend (StreetCoverage).
  * @property {string} mapboxApiKey
  * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - The minimap's tile and glyph URLs.
@@ -355,8 +355,7 @@ export class Main {
     }
     const currLatLng = panoManager.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
-    // The drop-in pano is the first one seen of its street (#5733).
-    if (config.isExploreAddressMode) newTask.recordVisit(currLatLng);
+    newTask.recordVisit(currLatLng);
     minimap.setMinimapLocation(currLatLng);
     const peg = new Peg(minimap, panoManager);
 
