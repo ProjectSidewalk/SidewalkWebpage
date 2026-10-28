@@ -80,8 +80,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't
   tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
   keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
-  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an
-  Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists`, and
+  after the role check an Infra3D access check, so a signed-in `sessionAs` account gets that access (never an
+  anonymous one, which is sent to sign in on those cities).
 - `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
   route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
   account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows
@@ -111,6 +112,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
   every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
   plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
+  `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
+  tampered, or expired session cookie counting as logged out.
   **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5
   extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
   stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load

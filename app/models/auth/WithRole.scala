@@ -63,6 +63,8 @@ case class WithAdminOrRegisteredAndIsUser(userId: String)
     Future.successful {
       if (Role.ADMIN_ROLES.contains(identity.role) || (identity.role != Role.Anonymous && identity.userId == userId))
         Authorized
+      // On their own data, signing in is all they need, and the sign-in prompt names the role it asks for.
+      else if (identity.userId == userId) NotAuthorized(currRole = identity.role, requiredRole = Role.Registered)
       else NotAuthorized(currRole = identity.role, requiredRole = Role.Administrator)
     }
   }
