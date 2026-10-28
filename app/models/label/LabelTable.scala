@@ -2789,7 +2789,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ) AS "vals" ON label.label_id = vals.label_id
       LEFT JOIN (
           -- Only commenters whose votes count, like vals above, so every user_id here could appear there (#5849).
-          -- The label card's label_comments_agg view shows everyone, so this is its own aggregate.
+          -- The label card's label_comments_agg view shows everyone, so this is its own aggregate. Comments are
+          -- unique per (label, user, label_type), so the current-type join below is what makes it one per user.
           SELECT validation_task_comment.label_id,
                  json_agg(json_build_object(
                    'user_id', validation_task_comment.user_id,

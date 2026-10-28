@@ -212,12 +212,13 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
       val comments = (feature.get \ "comments").as[Seq[play.api.libs.json.JsObject]]
       comments.map(c => ((c \ "user_id").as[String], (c \ "comment").as[String])) mustBe expected
       comments.foreach(c => (c \ "username").toOption mustBe None)
-      // A commenter's vote is one of the label's counted votes.
-      val voters =
-        (feature.get \ "validations").as[Seq[play.api.libs.json.JsObject]].map(v => (v \ "user_id").as[String])
-      comments.filter(c => (c \ "validation").asOpt[String].isDefined).map(c => (c \ "user_id").as[String]).foreach {
-        voters must contain(_)
-      }
+      // A commenter's vote is one of the label's counted votes, with the same value.
+      val votes = (feature.get \ "validations")
+        .as[Seq[play.api.libs.json.JsObject]]
+        .map(v => ((v \ "user_id").as[String], (v \ "validation").as[String]))
+      comments
+        .flatMap(c => (c \ "validation").asOpt[String].map(vote => ((c \ "user_id").as[String], vote)))
+        .foreach(votes must contain(_))
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {
