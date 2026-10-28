@@ -394,11 +394,11 @@ export class RouteBuilder {
   }
 
   /**
-   * Whether any route content exists yet (clicked/seeded waypoints, or a restored drawn route with no waypoints).
+   * Whether the user has placed (or restored) at least the route's start point.
    * @returns {boolean}
    */
   #routeStarted() {
-    return this.#waypoints.length > 0 || (this.#streetsInRoute?.features.length ?? 0) > 0;
+    return this.#waypoints.length > 0;
   }
 
   /**
@@ -735,13 +735,12 @@ export class RouteBuilder {
     // click); clicking opens it immediately, with keyboard focus.
     let routeHoverTimer = null;
     map.on('mousemove', 'streets-chosen', (event) => {
-      // The menu edits the in-progress route; a previewed/restored saved route (no waypoints) has no menu.
-      if (this.#waypoints.length === 0) return;
       map.getCanvas().style.cursor = 'pointer';
       if (this.#routePopover.isOpen()) return;
       clearTimeout(routeHoverTimer);
       const lngLat = event.lngLat;
       routeHoverTimer = setTimeout(() => {
+        // The route may have been cleared while the pointer rested on it.
         if (this.#routePopover.isOpen() || this.#waypoints.length === 0) return;
         window.logWebpageActivity('RouteBuilder_Hover=RouteMenu_Open');
         this.#routePopover.open(lngLat);
@@ -762,9 +761,8 @@ export class RouteBuilder {
     // under the click. Otherwise the click is a point — the start, then each extension of the route.
     map.on('click', (event) => {
       const { x, y } = event.point;
-      const onRoute = this.#waypoints.length > 0
-        && map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] }).length > 0;
-      if (onRoute) {
+      const routeHits = map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] });
+      if (routeHits.length > 0) {
         window.logWebpageActivity('RouteBuilder_Click=RouteMenu_Open');
         this.#routePopover.open(event.lngLat, true);
         return;
@@ -922,9 +920,6 @@ export class RouteBuilder {
    */
   #addWaypoint(lngLat, source) {
     if (!this.#status.regionsRendered || this.#streetData === null || this.#streetsInRoute === null) return;
-    // A route restored for the post-sign-in save flow is drawn but has no waypoints; a fresh click starts over
-    // rather than leaving the (waypoint-derived) route and the drawn streets out of sync.
-    if (this.#waypoints.length === 0 && this.#streetsInRoute.features.length > 0) this.#emptyRoute();
     const graph = this.#getRouteGraph();
 
     // Capped: an address the geocoder places past the edge of the street network would otherwise snap to whatever
@@ -1040,8 +1035,8 @@ export class RouteBuilder {
   }
 
   /**
-   * Mirrors the route's current endpoints into the Start/End address fields (reverse-geocoded), or clears them.
-   * A lone start point (first click, no segments yet) fills just the Start field.
+   * Mirrors the route's endpoints into the Start/End address fields (reverse-geocoded); a lone start fills just Start.
+   * Only called while the route has a start: emptying it clears the fields through #resetUI.
    */
   #syncDirectionsFields() {
     const feats = this.#streetsInRoute.features;
@@ -1049,10 +1044,8 @@ export class RouteBuilder {
       const startCoord = feats[0].geometry.coordinates[0];
       const endCoord = feats[feats.length - 1].geometry.coordinates.slice(-1)[0];
       this.#directionsPanel.updateFromRoute(startCoord, endCoord);
-    } else if (this.#waypoints.length === 1) {
-      this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
     } else {
-      this.#directionsPanel.clearFields();
+      this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
     }
   }
 
