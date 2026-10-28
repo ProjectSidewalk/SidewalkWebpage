@@ -55,7 +55,8 @@ test.describe('map credit links', () => {
 
       const [newTab] = await Promise.all([context.waitForEvent('page'), link.click()]);
 
-      expect(newTab).not.toBe(page);
+      await newTab.waitForLoadState();
+      expect(new URL(newTab.url()).host).toBe(new URL(await link.getAttribute('href')).host);
       expect(new URL(page.url()).pathname).toBe('/labelMap');
       await newTab.close();
     });

@@ -321,7 +321,7 @@ footer.api = API Sidewalk
 footer.connect = CONTACT
 footer.email = Nous écrire
 footer.funding = NOUS SOMMES FIÈREMENT FINANCÉS PAR
-footer.award = Subventions <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">n° 1302338</a> <br> et <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">n° 2125087</a>
+footer.award = Subventions <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">n° 1302338</a> <br> et <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">n° 2125087</a>
 footer.designed.operated = Project Sidewalk est conçu et exploité par le <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> de l''<a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">Université de Washington</a>
 footer.version = Version {0} | Dernière mise à jour : {1}
 

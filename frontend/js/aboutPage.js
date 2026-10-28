@@ -54,7 +54,8 @@ export class AboutPage {
   }
 
   /**
-   * The attributes for an ML API link, opening in a new tab since every such link leads off the site.
+   * The attributes for an ML API link, opening in a new tab since every such link leads off the site. A link that
+   * isn't http(s) becomes a bare `#`, which would only open a second copy of this page.
    *
    * @param {?string} url - The link from the API.
    * @returns {string} The `href`, `target`, and `rel` attributes.
@@ -62,7 +63,7 @@ export class AboutPage {
   static #linkAttrs(url) {
     const trimmed = String(url ?? '').trim();
     const href = AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
-    return `href="${href}" target="_blank" rel="noopener"`;
+    return href === '#' ? 'href="#"' : `href="${href}" target="_blank" rel="noopener"`;
   }
 
   /**
@@ -388,8 +389,8 @@ export class AboutPage {
     // From a separate app with its own admin UI, so held to the inline formatting a citation needs.
     const citation = util.sanitizeHtml(detail.citation_html, { ALLOWED_TAGS: AboutPage.#CITATION_TAGS,
       ALLOWED_ATTR: ['href'] });
-    // Set after sanitizing, since a narrowed ALLOWED_ATTR drops `target`.
-    citation.querySelectorAll('a').forEach((a) => Object.assign(a, { target: '_blank', rel: 'noopener' }));
+    // The ML citation's own links carry no `target`.
+    citation.querySelectorAll('a[href]').forEach((a) => Object.assign(a, { target: '_blank', rel: 'noopener' }));
     document.getElementById('about-cite-plain').replaceChildren(citation);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 

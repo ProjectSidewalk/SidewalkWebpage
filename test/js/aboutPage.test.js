@@ -891,6 +891,18 @@ describe('AboutPage', () => {
     });
   });
 
+  test('leaves a link with no usable ML API URL in this tab, since it only points back at the page', async () => {
+    const row = personRow({ urlName: 'nourl', name: 'No Url', lead_project_role: 'PI' });
+    row.person.url = 'javascript:alert(1)';
+    stubFetch({ '/people/?format=json': page([row]), '/publications/': page([]), '/grants/': page([]) });
+    await loadModules('frontend/js/pages/about.js');
+    await hydrate();
+
+    const link = document.querySelector('#about-team-current a');
+    expect(link.getAttribute('href')).toBe('#');
+    expect(link.hasAttribute('target')).toBe(false);
+  });
+
   describe('section nav', () => {
     /** Replaces the fixture with a page of bands, since the nav is built from the sections it points at. */
     function renderSections() {
