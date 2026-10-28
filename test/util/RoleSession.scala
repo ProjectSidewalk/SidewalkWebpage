@@ -11,6 +11,8 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.silhouette.api.Silhouette
+import play.silhouette.api.services.AuthenticatorService
+import play.silhouette.impl.authenticators.CookieAuthenticator
 import service.AuthenticationService
 
 import scala.concurrent.Await
@@ -49,14 +51,20 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
     cookies
   }
 
-  /** The user id behind a session's cookies, read back through Silhouette from the authenticator they carry. */
-  protected def userIdOf(cookies: Seq[Cookie]): String = {
+  /** The app's cookie authenticator service, for specs that read or forge session cookies. */
+  protected lazy val authenticatorService: AuthenticatorService[CookieAuthenticator] =
     // Resolved through Guice's TypeLiteral rather than injector.instanceOf: the latter takes a ClassTag, so the
     // DefaultEnv parameter erases and Guice looks for a raw Silhouette binding that does not exist.
-    val silhouetteKey = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
-    val env           = app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env
+    app.injector
+      .instanceOf[GuiceInjector]
+      .getInstance(Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {}))
+      .env
+      .authenticatorService
+
+  /** The user id behind a session's cookies, read back through Silhouette from the authenticator they carry. */
+  protected def userIdOf(cookies: Seq[Cookie]): String = {
     val authenticator =
-      Await.result(env.authenticatorService.retrieve(using FakeRequest().withCookies(cookies*)), 30.seconds)
+      Await.result(authenticatorService.retrieve(using FakeRequest().withCookies(cookies*)), 30.seconds)
     val user = authenticator.flatMap { auth =>
       Await.result(app.injector.instanceOf[AuthenticationService].retrieve(auth.loginInfo), 30.seconds)
     }

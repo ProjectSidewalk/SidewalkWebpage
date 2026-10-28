@@ -7,7 +7,7 @@ import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Cookie, Result}
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
@@ -17,9 +17,10 @@ import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec}
 import scala.concurrent.Future
 
 /**
- * Checks that each "your own data" route and each signed-in-only route is wired to the right role check (#5841). The
- * checks themselves are tested in `WithRoleSpec`; this spec catches a controller that drops its check, swaps it for a
- * looser one, or checks a different user id than the one it acts on.
+ * Checks that each "your own data" route and each signed-in-only route is wired to the right role check (#5841), so a
+ * controller that drops its check or swaps in a looser one fails here. The checks themselves are in `WithRoleSpec`.
+ * Where a route acts on a user (the team routes, and the streets read with seeded data), it also checks that it acts
+ * on the user in the URL, not the caller.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
@@ -49,19 +50,36 @@ class RoleCheckRoutesSpec
   private lazy val anonCookies: Seq[Cookie]       = freshAnonSession()
   private lazy val anonId: String                 = userIdOf(anonCookies)
 
-  private lazy val teamId: Int =
-    run(
-      sql"INSERT INTO team (name, description) VALUES (${TeamNamePrefix + System.nanoTime()}, '') RETURNING team_id"
-        .as[Int]
-        .head
-    )
+  // Closed and hidden so it never shows up in a real team list while the suite runs on a shared database.
+  private lazy val teamId: Int = run(
+    sql"""INSERT INTO team (name, description, open, visible)
+          VALUES (${TeamNamePrefix + System.nanoTime()}, '', FALSE, FALSE)
+          RETURNING team_id""".as[Int].head
+  )
+
+  /** A street the registered user has audited, so the streets route has something to tell users apart by. */
+  private lazy val auditedStreetId: Int = run(
+    sql"""INSERT INTO audit_task (user_id, street_edge_id, completed, current_lat, current_lng)
+          SELECT $registeredId, street_edge.street_edge_id, TRUE, 0, 0
+          FROM street_edge
+          INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+          INNER JOIN region ON street_edge_region.region_id = region.region_id
+          WHERE street_edge.status = 'open' AND NOT region.deleted
+              AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)
+          LIMIT 1
+          RETURNING street_edge_id""".as[Int].head
+  )
 
   override def afterAll(): Unit = {
-    run(
-      sqlu"""DELETE FROM user_team WHERE team_id IN (SELECT team_id FROM team WHERE name LIKE ${TeamNamePrefix + "%"})"""
-        .andThen(sqlu"DELETE FROM team WHERE name LIKE ${TeamNamePrefix + "%"}")
-    )
-    super.afterAll()
+    // In a finally, so a failed delete can't skip RoleSession's demotion and leave an admin account behind.
+    try {
+      val _ = run(
+        sqlu"""DELETE FROM user_team
+                WHERE team_id IN (SELECT team_id FROM team WHERE name LIKE ${TeamNamePrefix + "%"})"""
+          .andThen(sqlu"DELETE FROM team WHERE name LIKE ${TeamNamePrefix + "%"}")
+          .andThen(sqlu"DELETE FROM audit_task WHERE user_id = $registeredId")
+      )
+    } finally super.afterAll()
   }
 
   private def get(path: String, cookies: Seq[Cookie]): Future[Result] =
@@ -70,8 +88,10 @@ class RoleCheckRoutesSpec
   private def put(path: String, cookies: Seq[Cookie]): Future[Result] =
     route(app, FakeRequest(PUT, path).withCookies(cookies*).withCSRFToken).get
 
+  /** Passes on the refusal a signed-in user gets: a 403, since signing in again wouldn't help. */
   private def mustBeForbidden(resp: Future[Result]): Assertion = status(resp) mustBe FORBIDDEN
 
+  /** Passes on the refusal an anonymous user gets: a redirect to sign in. */
   private def mustBeSentToSignIn(resp: Future[Result]): Assertion = {
     status(resp) mustBe SEE_OTHER
     redirectLocation(resp).getOrElse("") must startWith("/signIn")
@@ -106,6 +126,18 @@ class RoleCheckRoutesSpec
     }
   }
 
+  "GET /contribution/streets" should {
+    "return the streets of the user in the URL, not the caller's" in {
+      val streetId = auditedStreetId // Seeds the audit before any request is sent.
+      Seq(adminCookies, registeredCookies).foreach { cookies =>
+        val resp = get(s"/contribution/streets?userId=$registeredId", cookies)
+        status(resp) mustBe OK
+        (contentAsJson(resp) \ "features").as[Seq[JsValue]].map(f => (f \ "properties" \ "street_edge_id").as[Int]) must
+          contain(streetId)
+      }
+    }
+  }
+
   "PUT /userapi/setUserTeam" should {
     "let an admin move someone else onto a team" in {
       status(put(s"/userapi/setUserTeam?userId=$otherId&teamId=$teamId", adminCookies)) mustBe OK
@@ -121,8 +153,10 @@ class RoleCheckRoutesSpec
       teamOf(anonId) mustBe before
     }
     "send an anonymous user to sign in, even for their own team" in {
-      mustBeSentToSignIn(put(s"/userapi/setUserTeam?userId=$anonId&teamId=$teamId", anonCookies))
-      teamOf(anonId) mustBe None
+      val cookies = freshAnonSession()
+      val userId  = userIdOf(cookies)
+      mustBeSentToSignIn(put(s"/userapi/setUserTeam?userId=$userId&teamId=$teamId", cookies))
+      teamOf(userId) mustBe None
     }
   }
 
@@ -147,7 +181,10 @@ class RoleCheckRoutesSpec
     }
   }
 
-  /** The routes guarded by `WithSignedIn`, with what a signed-in user gets back from an empty request. */
+  /**
+   * The routes guarded by `WithSignedIn`, with what a signed-in user gets back from an empty request. Signing out
+   * other devices gets an account of its own, since it revokes the cookies the other tests share.
+   */
   private val signedInRoutes: Seq[(String, String, Int)] = Seq(
     (GET, "/dashboard", OK),
     (GET, "/dashboard/settings", OK),
@@ -161,7 +198,8 @@ class RoleCheckRoutesSpec
   signedInRoutes.foreach { case (method, path, signedInStatus) =>
     s"$method $path" should {
       "let a registered user through" in {
-        val req = FakeRequest(method, path).withCookies(sessionAs(Role.Registered)*).withJsonBody(Json.obj())
+        val cookies = if (path.endsWith("signOutOtherDevices")) sessionAs(Role.Registered) else registeredCookies
+        val req     = FakeRequest(method, path).withCookies(cookies*).withJsonBody(Json.obj())
         status(route(app, req.withCSRFToken).get) mustBe signedInStatus
       }
       "send an anonymous user to sign in" in {

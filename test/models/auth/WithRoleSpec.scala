@@ -37,10 +37,18 @@ class WithRoleSpec extends SidewalkSpec {
     None
   )
 
-  private def allows(check: RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A], role: Role): Boolean = {
+  /** @return What `check` says to a user with `role`. */
+  private def result(
+      check: RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A],
+      role: Role
+  ): AuthorizationResult = {
     given request: FakeRequest[?] = FakeRequest()
-    Await.result(check.checkAuthorization(user(role), authenticator), 5.seconds) == Authorized
+    Await.result(check.checkAuthorization(user(role), authenticator), 5.seconds)
   }
+
+  /** @return Whether `check` lets a user with `role` through. */
+  private def allows(check: RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A], role: Role): Boolean =
+    result(check, role) == Authorized
 
   private def verb(allowed: Boolean): String = if (allowed) "allow" else "refuse"
 
@@ -93,6 +101,16 @@ class WithRoleSpec extends SidewalkSpec {
       s"${verb(otherExpected)} the ${role.name} role on someone else's data" in {
         allows(WithAdminOrRegisteredAndIsUser(OtherId), role) mustBe otherExpected
       }
+    }
+
+    // The sign-in prompt names the required role, and an anonymous user on their own data only needs to sign in.
+    "ask an anonymous user on their own data to sign in, not to be an admin" in {
+      result(WithAdminOrRegisteredAndIsUser(SelfId), Role.Anonymous) mustBe
+        NotAuthorized(currRole = Role.Anonymous, requiredRole = Role.Registered)
+    }
+    "ask an anonymous user on someone else's data to be an admin" in {
+      result(WithAdminOrRegisteredAndIsUser(OtherId), Role.Anonymous) mustBe
+        NotAuthorized(currRole = Role.Anonymous, requiredRole = Role.Administrator)
     }
   }
 }

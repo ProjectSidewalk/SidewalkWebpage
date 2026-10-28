@@ -1,7 +1,5 @@
 package controllers
 
-import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
-import models.auth.DefaultEnv
 import models.user.Role
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
@@ -11,7 +9,6 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{Cookie, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import play.silhouette.api.Silhouette
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import java.time.ZonedDateTime
@@ -38,19 +35,11 @@ class StaleSessionSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
   private val cookieName: String = app.configuration.get[String]("silhouette.authenticator.cookieName")
 
-  // Resolved through Guice's TypeLiteral for the same reason as in RoleSession: a ClassTag would erase DefaultEnv.
-  private lazy val authenticatorService =
-    app.injector
-      .instanceOf[GuiceInjector]
-      .getInstance(Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {}))
-      .env
-      .authenticatorService
-
   /** An admin, so a cookie wrongly accepted would open someone else's data, not just a page. */
   private lazy val adminCookies: Seq[Cookie] = sessionAs(Role.Administrator)
 
   /** Another user's labels: only an admin may read them, and without a session the request gets a 401. */
-  private lazy val someoneElsesLabels: String = s"/userapi/labels?userId=${userIdOf(sessionAs(Role.Registered))}"
+  private lazy val someoneElsesLabels: String = s"/userapi/labels?userId=${userIdOf(freshAnonSession())}"
 
   private def withAuthenticator(cookies: Seq[Cookie], value: String): Seq[Cookie] =
     cookies.map(c => if (c.name == cookieName) c.copy(value = value) else c)
@@ -58,10 +47,11 @@ class StaleSessionSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
   private def authenticatorValue(cookies: Seq[Cookie]): String =
     cookies.find(_.name == cookieName).map(_.value).getOrElse(fail(s"No $cookieName cookie in the session."))
 
-  /** A fetch, which gets a 401 without a session instead of being redirected to make an anonymous account. */
+  /** @return The response to a fetch, which gets a 401 without a session rather than a new anonymous account. */
   private def fetch(path: String, cookies: Seq[Cookie]): Future[Result] =
     route(app, FakeRequest(GET, path).withCookies(cookies*).withHeaders("Sec-Fetch-Mode" -> "cors")).get
 
+  /** Passes if the cookies act as no session: refused another user's data, and sent off to make an anonymous one. */
   private def mustBeLoggedOut(cookies: Seq[Cookie]): Assertion = {
     status(fetch(someoneElsesLabels, cookies)) mustBe UNAUTHORIZED
     val page = route(app, FakeRequest(GET, "/dashboard").withCookies(cookies*)).get
