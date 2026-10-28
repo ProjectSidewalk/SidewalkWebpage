@@ -18,7 +18,7 @@
     </div>
     <p>The Sidewalk Presence API says, for each side of each street, whether Project Sidewalk's labels indicate a sidewalk is there. The unit is a <strong>block face</strong>: one side of one street segment. Every street segment yields two records, <code>left</code> and <code>right</code>, both carrying the segment's geometry, so a consumer can draw the two verdicts side by side or roll them up however suits.</p>
     <p>The verdict comes from the <a href="/v3/api-docs/labelTypes">NoSidewalk</a> labels our contributors place, resolved to a side of the street using each label's position relative to the street's centerline. It is inferred, not surveyed: treat it as a strong prior with a stated confidence rather than ground truth, and see <a href="#how-it-is-inferred">how it is inferred</a> for what the confidence means.</p>
-    <p>Street geometry and <code>way_type</code> come from <a href="https://www.openstreetmap.org/">OpenStreetMap</a> and are &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/">Open Database License</a>.</p>
+    <p>Street geometry and <code>way_type</code> come from <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a> and are &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License</a>.</p>
   </div>
 
   <div class="page-section" id="how-it-is-inferred-section">
@@ -316,7 +316,7 @@
           <tr>
             <td><code>properties.osm_way_id</code></td>
             <td><code>integer</code></td>
-            <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment: the way covering most of it, when it spans several (see <code>osm_ways</code>).</td>
+            <td><a href="https://wiki.openstreetmap.org/wiki/Way" target="_blank" rel="noopener">OpenStreetMap Way ID</a> for the street segment: the way covering most of it, when it spans several (see <code>osm_ways</code>).</td>
           </tr>
           <tr>
             <td><code>properties.osm_ways</code></td>

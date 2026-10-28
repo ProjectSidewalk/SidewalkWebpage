@@ -449,7 +449,6 @@ export class LabelDetail {
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
-    els.panHint = this.#q('.label-detail__pan-hint');
     els.hideLabelButton = this.#q('.label-detail__hide-label');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.exploreHereLink = this.#q('.label-detail__explore-link');
@@ -2115,22 +2114,20 @@ export class LabelDetail {
    * that the pano is pannable until the cursor is already over it.
    */
   #showPanHintOnce() {
-    const hint = this.#els.panHint;
-    if (!hint) return;
+    if (this.#deleted) return; // The deleted notice sits over the imagery instead, and the pano can't be judged.
     try {
       if (sessionStorage.getItem('psLabelDetailPanHintShown')) return;
       sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
     } catch {
       return; // Storage access throws under "block all site data" settings; skip the hint rather than reject.
     }
-    hint.hidden = false;
-    requestAnimationFrame(() => hint.classList.add('is-visible'));
-    setTimeout(() => {
-      hint.classList.remove('is-visible');
-      setTimeout(() => {
-        hint.hidden = true;
-      }, 400); // Matches the CSS opacity transition.
-    }, 5500);
+    Toast.show({
+      message: i18next.t('common:drag-to-look-around'),
+      reference: this.#els.panoWrap,
+      top: 14,       // Clear of the validation buttons along the bottom of the imagery.
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
+    });
   }
 
   /**

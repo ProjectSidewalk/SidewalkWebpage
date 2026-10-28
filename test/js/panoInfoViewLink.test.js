@@ -18,7 +18,6 @@ const POPOVER_MARKUP = `
 <div id="pano-info-popover" popover="manual">
   <button type="button" class="pano-info-popover__clipboard"></button>
   <button type="button" class="pano-info-popover__close"></button>
-  <span class="pano-info-popover__copied" hidden></span>
   <dl>
     <div><dd class="pano-info-popover__val" data-field="image-id">-</dd></div>
     <div><dd class="pano-info-popover__val" data-field="latitude">-</dd></div>

@@ -80,8 +80,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't
   tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
   keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
-  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an
-  Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists`, and
+  after the role check an Infra3D access check, so a signed-in `sessionAs` account gets that access (never an
+  anonymous one, which is sent to sign in on those cities).
 - `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
   route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
   account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows
@@ -111,6 +112,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
   every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
   plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
+  `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
+  tampered, or expired session cookie counting as logged out.
   **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5
   extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
   stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load
@@ -176,10 +180,8 @@ Parallel jobs:
   the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits
   statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325,
   see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic,
-  no DB. (Forward *application* of new evolutions is already exercised by `backend-tests`, which boots the app and
-  auto-applies pending evolutions. A from-scratch up→down→up round-trip was prototyped and dropped: applying the full
-  history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB
-  would be needed, not worth it for an advisory check.)
+  no DB. A second step fails if an evolution already in the newest `v*` tag was edited. (Applying evolutions, and
+  rolling the new ones back, is `backend-tests`' job, below.)
 - **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
   included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
   Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
@@ -215,7 +217,15 @@ Parallel jobs:
   suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
   the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and
   roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in
-  `build.sbt`. Both spec steps run under **scoverage**, and a final `coverageReport` step enforces the
+  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`, skipped when no
+  evolution is newer than the newest `v*` tag (`db/scripts/last-release.sh`). For each newer one, newest first, it
+  runs the Downs and the Ups in both orders, on the seeded city and on a `pg_dump` copy of it, and then rolls them all
+  back and forward again in one batch; what it asserts is in [`evolutions.md`](evolutions.md) → "Downs have to work".
+  It only covers what's new since the release because the committed template can't replay all history (see
+  `evolutions.md`, "It also breaks replay"). It needs `LAST_RELEASE_EVOLUTION` set and otherwise has no tests, since
+  it rolls back whatever database it's connected to, and the step fails unless exactly one test ran. The spec steps
+  run under
+  **scoverage**, and a final `coverageReport` step enforces the
   **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
 - **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
   and `scalafmtSbtCheck` (the build files: `build.sbt` and `project/*.scala`) as separate steps, each under `if:

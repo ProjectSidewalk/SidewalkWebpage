@@ -27,7 +27,6 @@
   "street-count-in-region_one": "{{count}} street in {{region}}",
   "street-count-in-region_other": "{{count}} streets in {{region}}",
   "see-all-routes_other": "See all {{count}} routes in your dashboard",
-  "copied-to-clipboard": "Copied to clipboard!",
   "street-count-across-regions": "{{streets}} streets across {{regions}} neighborhoods",
   "region-and-more": "{{region}} + {{more}} more",
   "route-name-default": "Route in {{region}}",

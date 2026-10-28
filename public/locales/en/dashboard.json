@@ -86,7 +86,6 @@
   "stories": {
     "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
   },
-  "routes-link-copied": "Link copied!",
   "routes-rename-aria": "New route name",
   "routes-rename-save": "Save",
   "routes-rename-cancel": "Cancel",

@@ -117,10 +117,6 @@ body.svl-immersive .mission-start-tutorial-overlay {
   height: 100%;
 }
 
-body.svl-immersive #alert-holder {
-  top: calc(var(--ribbon-height) + 8px * var(--ui-scale));
-}
-
 /* The sidebar shrinks to the minimap alone in the bottom-right: lifetime stats, badges, the mission header, the
    custom-route exit link and the progress bars are between-bursts content and return on exit. --sidebar-width is
    deliberately kept, so the minimap is the boxed sidebar's width and --minimap-base-size (svl-minimap.css) stays true

@@ -26,6 +26,7 @@
   "other": "Outro",
   "surface-problems": "Problemas de Superfície",
   "close": "Fechar",
+  "dont-show-again": "Não mostrar novamente",
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Excluir",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Ver no Mapillary",
     "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
-    "copy-to-clipboard": "Copiar para a área de transferência",
-    "copied-to-clipboard": "Dados copiados para a área de transferência!"
+    "copy-to-clipboard": "Copiar para a área de transferência"
   },
   "pano-attribution": {
     "opens-new-tab": "(abre em uma nova aba)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Copiado!",
+    "failed": "Falha ao copiar",
+    "section-link": "Copiar link para esta seção"
+  },
   "share": {
     "button": "Compartilhar",
     "heading": "Compartilhar este rótulo",
     "text": "Veja este(a) {{labelType}} no Project Sidewalk",
     "story-text": "“{{excerpt}}” — uma história da comunidade no Project Sidewalk",
     "copy-link": "Copiar link",
-    "copied": "Copiado!",
     "on-bluesky": "Compartilhar no Bluesky",
     "on-x": "Compartilhar no X",
     "on-facebook": "Compartilhar no Facebook",
