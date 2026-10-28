@@ -1,7 +1,7 @@
 package formats.json
 
 import formats.json.ExploreFormats.{given, *}
-import models.audit.AuditTask
+import models.audit.{AuditTask, CoveredRange}
 import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -30,18 +30,18 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
       |  "start_point_reversed": false,
       |  "last_priority_update_time": "2026-07-19T10:00:00Z",
       |  "request_updated_street_priority": false,
-      |  "audited_distance_m": 123.4
+      |  "covered_ranges": [[0, 123.4]]
       |}""".stripMargin
 
-  test("TaskSubmission parses audited_distance_m") {
+  test("TaskSubmission parses covered_ranges") {
     val sub = Json.parse(taskSubmissionJson).as[TaskSubmission]
     sub.streetEdgeId shouldBe 42
-    sub.auditedDistanceM shouldBe Some(123.4)
+    sub.coveredRanges shouldBe Some(Seq(CoveredRange(0d, 123.4d)))
   }
 
-  test("TaskSubmission tolerates a missing audited_distance_m (older clients)") {
-    val withoutDistance = Json.parse(taskSubmissionJson).as[play.api.libs.json.JsObject] - "audited_distance_m"
-    withoutDistance.as[TaskSubmission].auditedDistanceM shouldBe None
+  test("TaskSubmission tolerates missing covered_ranges (older clients)") {
+    val withoutCoverage = Json.parse(taskSubmissionJson).as[play.api.libs.json.JsObject] - "covered_ranges"
+    withoutCoverage.as[TaskSubmission].coveredRanges shouldBe None
   }
 
   private val labelPointJson = Json.obj(

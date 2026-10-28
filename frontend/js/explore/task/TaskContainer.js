@@ -154,6 +154,9 @@ export class TaskContainer {
             task = new Task(result.features[i], this.#config.streetCoverage, false, resumeAt);
             task.markFromTaskList();
             if ((result.features[i].properties.completed)) task.complete();
+            // A route's flag covers this walk only, so it is this walk's give-up (#5008); a region's covers every
+            // earlier session (#5017), so it is only skipped.
+            if (props.reported_no_imagery && this.#regionModel.isRoute) task.giveUpOnImagery();
             this._tasks.push(task);
 
             // If the street was part of the curr mission, add it to the list!
@@ -196,7 +199,7 @@ export class TaskContainer {
 
     const connectedTasks = [];
     if (taskIn && tasks) {
-      tasks = tasks.filter((t) => !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
+      tasks = tasks.filter((t) => t.isLeftToWalk() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
 
       for (let i = 0, len = tasks.length; i < len; i++) {
         if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -288,12 +291,11 @@ export class TaskContainer {
   }
 
   /**
-   * The complement of getWalkedTasks: streets the labeler still has something to do on. Distinct from
-   * getIncompleteTasks, which is server-side completion and so still counts a give-up as outstanding.
+   * Distinct from getIncompleteTasks, which is server-side completion and so still counts give-ups and reports.
    * @returns {Task[]}
    */
   getUnwalkedTasks() {
-    return this._tasks.filter((task) => !task.isComplete() && !task.wasGivenUpOnImagery());
+    return this._tasks.filter((task) => task.isLeftToWalk());
   }
 
   /**

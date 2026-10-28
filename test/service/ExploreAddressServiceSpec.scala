@@ -100,9 +100,12 @@ class ExploreAddressServiceSpec
   /** A second throwaway user for the completion tests, so their completed street can't leak into the shared tests. */
   private lazy val completionUser: SidewalkUserWithRole = newAnonUser()
 
+  /** A third throwaway user for the regular-mission test, so its completed street can't leak into the others. */
+  private lazy val regularUser: SidewalkUserWithRole = newAnonUser()
+
   // Street state the completion tests move and afterAll must put back (the dev DB is shared).
-  private var priorityRestore: Option[(Int, Double)]        = None
-  private var auditedDistanceRestore: Option[(Int, Double)] = None
+  private val priorityRestores        = scala.collection.mutable.ListBuffer[(Int, Double)]()
+  private val auditedDistanceRestores = scala.collection.mutable.ListBuffer[(Int, Double)]()
 
   /** A real street start point to use as the "searched address" (whichever open street is nearest gets the task). */
   private lazy val addressLatLng: Option[(Double, Double)] =
@@ -168,11 +171,12 @@ class ExploreAddressServiceSpec
   override def afterAll(): Unit = {
     try {
       // Restores run first because they are the ones that must not be skipped: they put shared city state back,
-      // where everything below only drops rows this suite created.
-      priorityRestore.foreach { case (streetEdgeId, p) =>
+      // where everything below only drops rows this suite created. Two tests move the same street, so only the first
+      // capture of each is the original.
+      priorityRestores.distinctBy(_._1).foreach { case (streetEdgeId, p) =>
         val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
       }
-      auditedDistanceRestore.foreach { case (regionId, d) =>
+      auditedDistanceRestores.distinctBy(_._1).foreach { case (regionId, d) =>
         val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
       }
 
@@ -198,7 +202,8 @@ class ExploreAddressServiceSpec
 
   /**
    * A minimal explore submission for the given session state, label-free unless labels are passed.
-   * @param omitTaskId Post the street with no task id, as the client does for a street it has not heard back about.
+   * @param omitTaskId    Post the street with no task id, as the client does for a street it has not heard back about.
+   * @param taskCompleted The task's own completed flag, when it should differ from the mission's.
    */
   private def submission(
       missionId: Int,
@@ -206,17 +211,17 @@ class ExploreAddressServiceSpec
       streetEdgeId: Int,
       regionId: Int,
       completed: Boolean,
-      auditedDistanceM: Option[Double],
       labels: Seq[LabelSubmission] = Seq.empty,
       coveredRanges: Option[Seq[CoveredRange]] = None,
-      omitTaskId: Boolean = false
+      omitTaskId: Boolean = false,
+      taskCompleted: Option[Boolean] = None
   ): AuditTaskSubmission = {
     val now                       = OffsetDateTime.now
     val postedTaskId: Option[Int] = if (omitTaskId) None else Some(auditTaskId)
     AuditTaskSubmission(
       missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, postedTaskId, false),
-      auditTask = TaskSubmission(streetEdgeId, now, postedTaskId, Some(completed), 0d, 0d, startPointReversed = false,
-        None, now, requestUpdatedStreetPriority = false, auditedDistanceM, routeStreetId = None,
+      auditTask = TaskSubmission(streetEdgeId, now, postedTaskId, Some(taskCompleted.getOrElse(completed)), 0d, 0d,
+        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, routeStreetId = None,
         coveredRanges = coveredRanges),
       labels = labels,
       interactions = Seq.empty,
@@ -269,6 +274,9 @@ class ExploreAddressServiceSpec
           val task = data.task.value
           task.auditTaskId mustBe data.mission.currentAuditTaskId
           task.completed mustBe false
+          // Served as nothing seen, never as a bare row: the client would read that as a walk from the street's start
+          // to the address, and credit a stretch nobody saw (#5669).
+          task.coveredRanges.value mustBe Json.arr()
           val row = taskRow(task.auditTaskId.get)
           row.completed mustBe false
           // The drop-in point's along-street offset must be recorded at creation: completion subtracts it so the
@@ -348,7 +356,7 @@ class ExploreAddressServiceSpec
           // The client's own distance is ignored for a free-exploration task: with no coverage posted, none is stored.
           val result = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, Some(12.3),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false,
                 coveredRanges = Some(Seq.empty)),
               testUser.userId
             )
@@ -380,7 +388,7 @@ class ExploreAddressServiceSpec
 
           val result = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = true, None),
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = true),
               testUser.userId
             )
           )
@@ -416,7 +424,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(0d, 5d))),
                 omitTaskId = true
               ),
@@ -460,7 +467,6 @@ class ExploreAddressServiceSpec
                   streetEdgeId,
                   data.region.regionId,
                   completed = false,
-                  None,
                   coveredRanges = Some(Seq(CoveredRange(0d, len))),
                   omitTaskId = true
                 ),
@@ -530,7 +536,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(len - StreetCoverage.PanoWindowM, len)))
               ),
               completionUser.userId
@@ -556,8 +561,8 @@ class ExploreAddressServiceSpec
           val priorityBefore   = priorityOf(streetEdgeId)
           val completionBefore = auditedDistanceOf(regionId)
           // Remember what to put back: this test deliberately shifts shared street/region state.
-          priorityRestore = priorityBefore.map(streetEdgeId -> _)
-          auditedDistanceRestore = completionBefore.map(regionId -> _)
+          priorityRestores ++= priorityBefore.map(streetEdgeId -> _)
+          auditedDistanceRestores ++= completionBefore.map(regionId -> _)
 
           // First visit: the street's first half, on top of whatever the earlier tests left on the task. Completes it
           // only if what is still unseen is within the rule.
@@ -565,7 +570,7 @@ class ExploreAddressServiceSpec
           val firstHalf      = CoveredRange(0d, len / 2)
           val firstRes       = await(
             exploreService.submitExploreData(
-              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false, None,
+              submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, completed = false,
                 coveredRanges = Some(Seq(firstHalf))),
               completionUser.userId
             )
@@ -583,7 +588,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(len / 2 - 1d, len)))
               ),
               completionUser.userId
@@ -624,7 +628,6 @@ class ExploreAddressServiceSpec
                 streetEdgeId,
                 data.region.regionId,
                 completed = false,
-                None,
                 coveredRanges = Some(Seq(CoveredRange(0d, len)))
               ),
               completionUser.userId
@@ -658,6 +661,70 @@ class ExploreAddressServiceSpec
           run(
             auditTaskTable.selectTaskFromTaskId(auditTaskId, completionUser.userId, includeCompleted = true)
           ) mustBe defined
+      }
+    }
+  }
+
+  "server-derived street completion for an audit mission" should {
+    "credit the street from its coverage, never from the posted flag (#5669)" in {
+      completionLatLng match {
+        case None             => cancel("No streets in the connected DB; nothing to exercise.")
+        case Some((lat, lng)) =>
+          // The drop-in only picks the street and region; the walk below is a regular audit mission on that street.
+          val data         = await(exploreService.getDataForExploreAddressPage(regularUser.userId, lat, lng)).value
+          val streetEdgeId = data.task.value.edgeId
+          val regionId     = data.region.regionId
+          val len          = streetLengthM(streetEdgeId)
+          val missionId    = run(sql"""INSERT INTO mission
+                                         (mission_type, user_id, mission_start, mission_end, completed, pay, paid,
+                                          skipped, region_id, distance_meters, distance_progress)
+                                       VALUES ('audit', ${regularUser.userId}, now(), now(), FALSE, 0, FALSE, FALSE,
+                                               $regionId, 1000, 0)
+                                       RETURNING mission_id""".as[Int].head)
+
+          val priorityBefore   = priorityOf(streetEdgeId)
+          val completionBefore = auditedDistanceOf(regionId)
+          priorityRestores ++= priorityBefore.map(streetEdgeId -> _)
+          auditedDistanceRestores ++= completionBefore.map(regionId -> _)
+
+          // A forged completed=true with a sliver of the street seen: the row is created, open, with the sliver.
+          val sliver   = CoveredRange(0d, 5d)
+          val firstRes = await(
+            exploreService.submitExploreData(
+              submission(missionId, 0, streetEdgeId, regionId, completed = false, coveredRanges = Some(Seq(sliver)),
+                omitTaskId = true, taskCompleted = Some(true)),
+              regularUser.userId
+            )
+          )
+          val auditTaskId = firstRes.auditTaskId
+          firstRes.coveredRanges.value mustBe StreetCoverage.merge(Seq(sliver), len)
+          taskRow(auditTaskId).completed mustBe false
+          taskRow(auditTaskId).startOffsetM mustBe None
+          taskRow(auditTaskId).auditedDistanceM.value mustBe 5d
+          priorityOf(streetEdgeId) mustBe priorityBefore
+
+          // The rest of the street, posted without the flag: the union is enough, so the street is credited.
+          val secondRes = await(
+            exploreService.submitExploreData(
+              submission(
+                missionId,
+                auditTaskId,
+                streetEdgeId,
+                regionId,
+                completed = false,
+                coveredRanges = Some(Seq(CoveredRange(4d, len)))
+              ),
+              regularUser.userId
+            )
+          )
+          secondRes.auditTaskId mustBe auditTaskId
+          secondRes.coveredRanges.value mustBe StreetCoverage.merge(Seq(CoveredRange(0d, len)), len)
+          taskRow(auditTaskId).completed mustBe true
+          if (priorityBefore.exists(_ > 0d)) {
+            priorityOf(streetEdgeId).value must be < priorityBefore.value
+          } else {
+            priorityOf(streetEdgeId) mustBe priorityBefore
+          }
       }
     }
   }
@@ -704,7 +771,7 @@ class ExploreAddressServiceSpec
           val _            = await(
             exploreService.submitExploreData(
               submission(data.mission.missionId, auditTaskId, streetEdgeId, data.region.regionId, completed = false,
-                auditedDistanceM = None, labels = Seq(labelSubmission(data.nextTempLabelId))),
+                labels = Seq(labelSubmission(data.nextTempLabelId))),
               testUser.userId
             )
           )

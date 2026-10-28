@@ -84,11 +84,10 @@ object ExploreFormats {
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
       requestUpdatedStreetPriority: Boolean,
-      auditedDistanceM: Option[Double],
       // Which route_street row this task was served for, when auditing along a route. A route may traverse one
       // street twice (out-and-back), so street_edge_id alone can't say which traversal this is.
       routeStreetId: Option[Int],
-      // Free exploration only (#5733): the server unions these into the task's stored coverage.
+      // The server unions these into the task's stored coverage and credits the street from it (#5733, #5669).
       coveredRanges: Option[Seq[CoveredRange]] = None
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)

@@ -2,6 +2,9 @@
  * The small action menu for the drawn route: two labeled rows, "Reverse route direction" and "Delete route". It
  * opens on click or after a short hover on the route (so it's discoverable), anchored where the pointer is. These
  * act on the whole route (auto-routed routes are edited by adding/undoing points, not street-by-street).
+ *
+ * A menu opened by clicking stays until a click elsewhere, like any menu. One opened by hovering closes again once the
+ * pointer has left both the route and the menu, so passing over the route doesn't leave a menu behind.
  */
 
 import mapboxgl from '../common/mapboxgl.js';
@@ -9,10 +12,15 @@ import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class RoutePopover {
+  // Grace period before a hover-opened menu closes, long enough to cross the gap from the route into the menu.
+  static HOVER_CLOSE_MS = 300;
+
   #map;
   #popup;
   #onReverse;
   #onDelete;
+  #openedByHover = false;
+  #closeTimer = null;
 
   /**
    * @param {mapboxgl.Map} map - The Mapbox map.
@@ -48,6 +56,8 @@ export class RoutePopover {
    *   steal focus from whatever the user is doing).
    */
   open(lngLat, focus = false) {
+    this.cancelHoverClose();
+    this.#openedByHover = !focus;
     const container = document.createElement('div');
     container.className = 'route-popover';
     container.setAttribute('role', 'menu');
@@ -75,12 +85,33 @@ export class RoutePopover {
       this.#onDelete();
     });
 
+    container.addEventListener('mouseenter', () => this.cancelHoverClose());
+    container.addEventListener('mouseleave', () => this.scheduleHoverClose());
+
     this.#popup.setLngLat(lngLat).setDOMContent(container).addTo(this.#map);
     if (focus) container.querySelector('.route-popover-reverse').focus();
   }
 
   /** Closes the menu (no-op if it isn't open). */
   close() {
+    this.cancelHoverClose();
     this.#popup.remove();
+  }
+
+  /** The pointer left the route or the menu: a hover-opened menu closes unless it comes back in time. */
+  scheduleHoverClose() {
+    if (!this.#openedByHover || !this.isOpen()) return;
+    this.cancelHoverClose();
+    this.#closeTimer = setTimeout(() => {
+      this.#closeTimer = null;
+      window.logWebpageActivity('RouteBuilder_Hover=RouteMenu_Close');
+      this.close();
+    }, RoutePopover.HOVER_CLOSE_MS);
+  }
+
+  /** The pointer is back on the route or the menu, so a pending hover close is called off. */
+  cancelHoverClose() {
+    clearTimeout(this.#closeTimer);
+    this.#closeTimer = null;
   }
 }
