@@ -7,8 +7,8 @@
  * anywhere in the city: regions organize missions, not routes, so a route is free to cross from one into the next
  * (#3488). Routes are contiguous by construction. Clicking the drawn route opens a small action menu (RoutePopover:
  * reverse / delete). A slim Start/End address seed (DirectionsPanel) can plant the first two points.
- * The save flow lives in SaveModal; saved routes surface as cards on the intro panel (SavedRoutesPanel). The
- * in-progress route is drafted to sessionStorage so reloads (e.g. the sign-in round-trip) can't lose it.
+ * The save flow lives in SaveModal; saved routes surface as cards on the intro panel (SavedRoutesPanel). Leaving with
+ * unsaved work is caught by UnsavedChangesGuard; only the sign-in round trip carries a route across a page load.
  *
  * The route is defined entirely by #waypoints (ordered snapped points); the drawn streets, endpoint flags, and
  * stats are all derived from them by #recompute, so add / undo / reverse are just edits to that list followed by a
@@ -58,9 +58,6 @@ export class RouteBuilder {
   static ROUTE_MENU_HOVER_MS = 500;
   // How long the co-located next-step hint stays anchored to the newest flag.
   static HINT_DURATION_MS = 7000;
-  // Storage key for the in-progress route draft. Resumed only on a page reload (see #isPageReload); a fresh visit
-  // starts blank and clears it.
-  static DRAFT_KEY = 'rb-route-draft';
 
   // Muted categorical tints cycled by region id, so adjacent regions read as visually distinct choices.
   static REGION_FILL_COLORS = ['#78C9AB', '#FBD98C', '#F29173', '#9F9DB1', '#78B0EA'];
@@ -205,8 +202,6 @@ export class RouteBuilder {
         this.#signingIn = true;
       },
     });
-    // The draft stash brings an in-progress route back on a same-tab return, but it dies with the tab and never
-    // reaches the user's account — so leaving still warrants the offer to save it properly first.
     new UnsavedChangesGuard({
       isDirty: () => !this.#signingIn && this.#hasUnsavedWork(),
       save: () => this.#saveForLeaving(),
@@ -293,10 +288,6 @@ export class RouteBuilder {
       window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${checked}`);
       this.#setPoiVisibility(checked);
     });
-
-    // The draft is written on route edits, but the camera moves without edits — rewrite it as the page unloads
-    // so a reload restores the exact view the user left.
-    window.addEventListener('pagehide', () => this.#saveDraft());
 
     this.#updateCta();
   }
@@ -998,7 +989,6 @@ export class RouteBuilder {
     this.#directionsPanel.setEndVisible(this.#routeStarted());
     this.#syncStage(); // A first point leaves the overview (and clearing the route may return to it) at any zoom.
     this.#updateCta();
-    this.#saveDraft();
   }
 
   /**
@@ -1030,8 +1020,8 @@ export class RouteBuilder {
   }
 
   /**
-   * Mirrors the route's current endpoints into the Start/End address fields (reverse-geocoded), or clears them.
-   * A lone start point (first click, no segments yet) fills just the Start field.
+   * Mirrors the route's endpoints into the Start/End address fields (reverse-geocoded); a lone start fills just Start.
+   * Only called while the route has a start: emptying it clears the fields through #resetUI.
    */
   #syncDirectionsFields() {
     const feats = this.#streetsInRoute.features;
@@ -1039,10 +1029,8 @@ export class RouteBuilder {
       const startCoord = feats[0].geometry.coordinates[0];
       const endCoord = feats[feats.length - 1].geometry.coordinates.slice(-1)[0];
       this.#directionsPanel.updateFromRoute(startCoord, endCoord);
-    } else if (this.#waypoints.length === 1) {
-      this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
     } else {
-      this.#directionsPanel.clearFields();
+      this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
     }
   }
 
@@ -1338,13 +1326,12 @@ export class RouteBuilder {
     this.#editingRouteId = null;
     this.#savedBaseline = null;
     this.#updateStats();
-    this.#saveDraft();
     this.#savedRoutes.markActive(null);
   }
 
   /**
    * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal. With no
-   * stash, falls back to the in-progress draft (#restoreDraft) so a plain reload doesn't lose work either.
+   * stash, opens the saved route a ?preview= deep link names, if any.
    *
    * Runs once, after the map, regions, and streets have all *rendered* — the streets-rendered gate matters:
    * drawing the route needs the 'streets-chosen' source, which doesn't exist while the street GeoJSON has merely
@@ -1359,27 +1346,7 @@ export class RouteBuilder {
     if (!pending) {
       // Deep link from the dashboard's route cards: /routeBuilder?preview=<id> opens the route in the editor.
       const previewParam = new URLSearchParams(window.location.search).get('preview');
-      const previewId = previewParam !== null && /^\d+$/.test(previewParam) ? Number(previewParam) : null;
-      // A reload keeps the ?preview in the URL, so refreshing after editing the previewed route would refetch
-      // the saved version and lose the edits — silently, since the unsaved-work check has nothing in memory to
-      // notice yet, and re-loading destroys the draft before it's read. An edited draft for the same route wins.
-      if (previewId !== null && RouteBuilder.#isPageReload() && this.#draftEditingRouteId() === previewId) {
-        this.#restoreDraft();
-      } else if (previewId !== null) {
-        this.#loadRouteForEditing(previewId);
-      } else if (RouteBuilder.#isPageReload()) {
-        // Only a genuine reload (e.g. an accidental refresh) resumes the in-progress draft. Arriving fresh —
-        // Tools -> RouteBuilder, a link, or returning after finishing a route — must start blank so the user never
-        // unknowingly edits the route they just worked on. Drop the stale same-tab draft so a later reload of this
-        // fresh page can't resurrect it either.
-        this.#restoreDraft();
-      } else {
-        try {
-          sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
-        } catch {
-          // Storage unavailable; nothing to clear.
-        }
-      }
+      if (previewParam !== null && /^\d+$/.test(previewParam)) this.#loadRouteForEditing(Number(previewParam));
       return;
     }
 
@@ -1546,7 +1513,6 @@ export class RouteBuilder {
         this.#editingRouteId = routeId;
         // The baseline is what's actually drawn, so an untouched load reads as clean.
         this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
-        this.#saveDraft();
         this.#savedRoutes.markActive(routeId);
         this.#updateSaveButton();
         const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
@@ -1578,7 +1544,6 @@ export class RouteBuilder {
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${response.status}`))))
       .then((updated) => {
         this.#savedBaseline = JSON.stringify(payload);
-        this.#saveDraft();
         this.#updateSaveButton();
         // A guest's card list is localStorage, so refresh() alone would re-render the first save's numbers.
         if (!this.#isSignedIn) this.#recordGuestRoute(updated);
@@ -1597,7 +1562,7 @@ export class RouteBuilder {
   }
 
   /**
-   * The current map camera pose, in the shape mapbox-gl's jumpTo accepts (JSON-safe for the draft stash).
+   * The current map camera pose, in the shape mapbox-gl's jumpTo accepts (JSON-safe for the sign-in stash).
    * @returns {{center: Array<number>, zoom: number, bearing: number, pitch: number}}
    */
   #cameraSnapshot() {
@@ -1611,123 +1576,21 @@ export class RouteBuilder {
   }
 
   /**
-   * Restores a camera pose captured by #cameraSnapshot, so a reload puts the user back at the exact view they
-   * left rather than a recomputed one.
+   * Restores a camera pose captured by #cameraSnapshot, so the sign-in round trip puts the user back at the exact
+   * view they left. An unusable pose leaves the camera where it is.
    *
    * @param {Record<string, any>} [camera] - A stashed #cameraSnapshot, possibly absent or corrupt.
-   * @returns {boolean} False when the pose was unusable, so the caller can fall back (e.g. to a fitBounds).
    */
   #applyCamera(camera) {
     const usable = Array.isArray(camera?.center) && camera.center.length === 2
       && camera.center.every(Number.isFinite) && Number.isFinite(camera.zoom);
-    if (!usable) return false;
+    if (!usable) return;
     this.#map.jumpTo({
       center: camera.center,
       zoom: camera.zoom,
       bearing: Number.isFinite(camera.bearing) ? camera.bearing : 0,
       pitch: Number.isFinite(camera.pitch) ? camera.pitch : 0,
     });
-    return true;
-  }
-
-  /**
-   * Persists the in-progress route (waypoints + resolved legs) to this tab's storage so a reload — including the
-   * sign-in round-trip — can restore it. Cleared when the route empties.
-   */
-  #saveDraft() {
-    try {
-      if (this.#waypoints.length > 0) {
-        sessionStorage.setItem(
-          RouteBuilder.DRAFT_KEY,
-          JSON.stringify({
-            waypoints: this.#waypoints,
-            // The resolved legs, not just the waypoints: the route is never re-derived by routing, so a draft
-            // that only stored waypoints would restore as an empty route.
-            segments: this.#segments,
-            // The editing session too, so a reload resumes updating the same route instead of saving a copy.
-            editingRouteId: this.#editingRouteId,
-            savedBaseline: this.#savedBaseline,
-            camera: this.#cameraSnapshot(), // Refreshed on pagehide, so a reload keeps the user's exact view.
-          }),
-        );
-      } else {
-        sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
-      }
-    } catch {
-      // Storage unavailable (e.g. private browsing): building still works, it just won't survive a reload.
-    }
-  }
-
-  /**
-   * True when the Navigation Timing type is 'reload' (a refresh). Gates draft resume: resume on reload, start blank
-   * on a navigate/back-forward. Returns false (start blank) when the Navigation Timing API is unavailable — the safer
-   * default, since it never silently reopens an old route.
-   * @returns {boolean}
-   */
-  static #isPageReload() {
-    const nav = /** @type {PerformanceNavigationTiming} */ (performance.getEntriesByType('navigation')[0]);
-    return nav ? nav.type === 'reload' : false;
-  }
-
-  /**
-   * The saved route this tab's draft is an edit of, if any.
-   *
-   * @returns {?number} null when there's no draft, it isn't editing a saved route, or storage is unavailable.
-   */
-  #draftEditingRouteId() {
-    try {
-      const draft = JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
-      return Number.isInteger(draft?.editingRouteId) ? draft.editingRouteId : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Restores an unsaved in-progress route from this tab's draft stash: its waypoints and resolved legs.
-   * The camera returns to the stashed view, falling back to fitting the restored route when the draft predates
-   * the camera field or it's corrupt.
-   */
-  #restoreDraft() {
-    let draft;
-    try {
-      draft = JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
-    } catch {
-      return; // Storage unavailable or a corrupted draft: start fresh.
-    }
-    if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return;
-    // waypoints.length === segments.length + 1 is the invariant the editing actions rely on; a draft that
-    // doesn't satisfy it (corrupt, or written by an older build) is dropped rather than restored inconsistent.
-    if (!Array.isArray(draft.segments) || draft.segments.length !== draft.waypoints.length - 1) return;
-
-    // A draft must never be able to break page init — on any failure, drop it and start fresh.
-    try {
-      this.#waypoints = draft.waypoints;
-      this.#segments = draft.segments;
-      if (Number.isInteger(draft.editingRouteId)) {
-        this.#editingRouteId = draft.editingRouteId;
-        this.#savedBaseline = typeof draft.savedBaseline === 'string' ? draft.savedBaseline : null;
-        this.#savedRoutes.markActive(draft.editingRouteId);
-      }
-      this.#setPanelState('building');
-      this.#recompute();
-      this.#updateSaveButton();
-      if (!this.#applyCamera(draft.camera)) {
-        const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
-        const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
-        this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
-          { padding: 80, maxZoom: 16, duration: 800 });
-      }
-    } catch (e) {
-      console.error('Failed to restore the route draft:', e);
-      try {
-        sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
-      } catch {
-        // Storage unavailable; nothing further to clean up.
-      }
-      this.#emptyRoute();
-      this.#resetUI();
-    }
   }
 
   /**
@@ -1814,7 +1677,6 @@ export class RouteBuilder {
     if (!this.#isSignedIn) this.#recordGuestRoute(saved);
     this.#editingRouteId = routeId;
     this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
-    this.#saveDraft();
     this.#savedRoutes.markActive(routeId);
     this.#savedRoutes.refresh(routeId);
     this.#updateSaveButton();

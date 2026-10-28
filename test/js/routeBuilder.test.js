@@ -1,7 +1,7 @@
 /**
  * Tests for RouteBuilder (frontend/js/route-builder/RouteBuilder.js, #5840), the /routeBuilder page: the staged
  * overview-then-place flow, clicking out a route over the street network, the derived stats and flags, undo and
- * reverse, saving and updating, loading a saved route into the editor, and the reload draft.
+ * reverse, saving and updating, loading a saved route into the editor, and the sign-in round trip.
  *
  * Everything runs through what the page's user touches (map clicks, buttons, the address fields) and reads back what
  * they would see (drawn streets, flags, stats, toasts, the save button). The map and the page's other parts are
@@ -9,7 +9,7 @@
  */
 
 import {
-  A, B, D, E, F, NOWHERE, RouteBuilder, buildRoute, clickMap, draft, drawnRoute, flags, flush, logged, openPopups,
+  A, B, D, E, F, NOWHERE, RouteBuilder, buildRoute, clickMap, drawnRoute, flags, flush, logged, openPopups,
   setupRouteBuilder, world,
 } from './support/routeBuilderHarness.js';
 
@@ -543,10 +543,9 @@ describe('RouteBuilder', () => {
       expect(flags(map)).toEqual([]);
     });
 
-    test('delete asks first, and confirming clears the route, the undo history, and the draft', async () => {
+    test('delete asks first, and confirming clears the route and the undo history', async () => {
       const { map } = await setupRouteBuilder();
       buildRoute(map, A, D);
-      expect(draft().waypoints).toHaveLength(2);
 
       click('cancel-button');
       expect($('delete-route-modal-backdrop').style.visibility).toBe('visible');
@@ -558,7 +557,6 @@ describe('RouteBuilder', () => {
       expect(panelState()).toBe('empty');
       expect($('delete-route-modal-backdrop').style.visibility).toBe('hidden');
       expect($('undo-button').disabled).toBe(true);
-      expect(draft()).toBeNull();
       expect(map.stateOf('streets', 1)).toEqual({ chosen: false });
     });
 
@@ -672,7 +670,6 @@ describe('RouteBuilder', () => {
       expect(world.savedRoutes.refresh).toHaveBeenLastCalledWith(7);
       expect($('save-button')).toMatchObject({ textContent: 'save-saved', disabled: true });
       expect($('routebuilder-panel').dataset.editing).toBe('true');
-      expect(draft().editingRouteId).toBe(7);
 
       clickMap(map, E);
       expect($('save-button')).toMatchObject({ textContent: 'save-update', disabled: false });
@@ -919,128 +916,7 @@ describe('RouteBuilder', () => {
     });
   });
 
-  describe('the draft', () => {
-    const storedDraft = {
-      waypoints: [A, D],
-      segments: [[{ streetId: 1, flip: false }, { streetId: 2, flip: false }]],
-      editingRouteId: null,
-      savedBaseline: null,
-      camera: { center: [0.001, 0.0005], zoom: 16.5, bearing: 10, pitch: 20 },
-    };
-
-    test('every edit is drafted to the tab, with the camera', async () => {
-      const { map } = await setupRouteBuilder();
-
-      buildRoute(map, A, D);
-
-      expect(draft()).toEqual({
-        waypoints: [A, D],
-        segments: [[{ streetId: 1, flip: false }, { streetId: 2, flip: false }]],
-        editingRouteId: null,
-        savedBaseline: null,
-        camera: { center: at(A), zoom: RouteBuilder.BUILD_ZOOM, bearing: 0, pitch: 0 },
-      });
-    });
-
-    test('leaving the page refreshes the drafted camera, which moves without edits', async () => {
-      const { map } = await setupRouteBuilder();
-      buildRoute(map, A, D);
-      map.zoomTo(18);
-
-      window.dispatchEvent(new Event('pagehide'));
-
-      expect(draft().camera.zoom).toBe(18);
-    });
-
-    test('a reload brings the draft back where the user left it', async () => {
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft });
-
-      expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
-      expect(panelState()).toBe('building');
-      expect(map.camera.at(-1)).toEqual(['jumpTo', { center: [0.001, 0.0005], zoom: 16.5, bearing: 10, pitch: 20 }]);
-    });
-
-    test('a reload with no usable camera in the draft fits the route instead', async () => {
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, camera: { zoom: 'x' } } });
-
-      expect(map.camera.at(-1)[0]).toBe('fitBounds');
-      expect(map.camera.at(-1)[1].bounds).toEqual([0, 0, 0.001, 0.001]);
-    });
-
-    test('a reloaded draft whose streets are all gone fills no address field for a flag that isn\'t there',
-      async () => {
-        const gone = { ...storedDraft, segments: [[{ streetId: 404, flip: false }]] };
-        const { map } = await setupRouteBuilder({ reload: true, storedDraft: gone });
-
-        expect(flags(map)).toEqual([]);
-        expect(world.directions.updateStart).not.toHaveBeenCalled();
-        expect(world.directions.clearFields).toHaveBeenCalled();
-      });
-
-    test('a draft whose legs don\'t match its points is dropped rather than restored inconsistent', async () => {
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, segments: [] } });
-
-      expect(drawnRoute(map)).toEqual([]);
-      expect(panelState()).toBe('empty');
-    });
-
-    test('arriving fresh starts blank and throws the old draft away', async () => {
-      const { map } = await setupRouteBuilder({ reload: false, storedDraft });
-
-      expect(drawnRoute(map)).toEqual([]);
-      expect(draft()).toBeNull();
-    });
-
-    test('a reload resumes the editing session its draft was part of', async () => {
-      const editingDraft = { ...storedDraft, editingRouteId: 5, savedBaseline: '[{"street_id":1,"reverse":false}]' };
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft: editingDraft });
-
-      expect(world.savedRoutes.markActive).toHaveBeenCalledWith(5);
-      expect($('save-button').textContent).toBe('save-update');
-
-      const fetch = stubFetch(() => ({ route_id: 5 }));
-      click('save-button');
-      expect(fetch.mock.calls[0][0]).toBe('/userapi/routes/5');
-      expect(drawnRoute(map)).toHaveLength(2);
-    });
-
-    test('reloading a ?preview= page keeps the draft\'s edits rather than refetching the saved route', async () => {
-      const fetch = stubFetch(() => storedStreets([3, false]));
-      const { map } = await setupRouteBuilder({
-        reload: true, url: '/routeBuilder?preview=5', storedDraft: { ...storedDraft, editingRouteId: 5 },
-      });
-
-      expect(fetch).not.toHaveBeenCalled();
-      expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
-    });
-
-    test('a draft that isn\'t valid JSON is ignored', async () => {
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft: '{not json' });
-
-      expect(drawnRoute(map)).toEqual([]);
-      expect(panelState()).toBe('empty');
-    });
-
-    test('a draft that breaks partway through restoring is thrown away, leaving an empty planner', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-      const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, segments: [null] } });
-
-      expect(console.error).toHaveBeenCalledWith('Failed to restore the route draft:', expect.any(Error));
-      expect(drawnRoute(map)).toEqual([]);
-      expect(flags(map)).toEqual([]);
-      expect(panelState()).toBe('empty');
-      expect(draft()).toBeNull();
-    });
-
-    test('a reload with just a start point in the draft fits the camera to that point', async () => {
-      const { map } = await setupRouteBuilder({
-        reload: true, storedDraft: { waypoints: [D], segments: [], camera: null },
-      });
-
-      expect(flags(map)).toEqual([['start', at(D)]]);
-      expect(map.camera.at(-1)[1].bounds).toEqual([D.lng, D.lat, D.lng, D.lat]);
-    });
-
+  describe('the sign-in round trip', () => {
     test('back from signing in to a route whose streets are all gone, the planner starts empty', async () => {
       const { map } = await setupRouteBuilder({
         pendingRoute: { streets: [{ street_id: 404, reverse: false }], name: 'Loop', camera: null },

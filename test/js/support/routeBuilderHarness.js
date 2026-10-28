@@ -453,22 +453,14 @@ export const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
  * @param {object} [opts]
  * @param {boolean} [opts.signedIn=true]
  * @param {number} [opts.minutesPer100m=2]
- * @param {boolean} [opts.reload=false] - Whether this page load is a browser reload (gates the draft resume).
  * @param {string} [opts.url='/routeBuilder'] - The page's address, e.g. with a `?preview=` deep link.
  * @param {?object} [opts.pendingRoute=null] - What SaveModal.consumePendingRoute hands back.
- * @param {?(object|string)} [opts.storedDraft=null] - A draft already in the tab's storage; a string is stored raw.
  * @param {boolean} [opts.dataBeforeMap=false] - Whether the regions and streets arrive before the map has loaded.
  * @returns {Promise<{rb: object, map: FakeMap}>}
  */
 export async function setupRouteBuilder({
-  signedIn = true, minutesPer100m = 2, reload = false, url = '/routeBuilder', pendingRoute = null, storedDraft = null,
-  dataBeforeMap = false,
+  signedIn = true, minutesPer100m = 2, url = '/routeBuilder', pendingRoute = null, dataBeforeMap = false,
 } = {}) {
-  sessionStorage.clear();
-  if (storedDraft) {
-    const raw = typeof storedDraft === 'string' ? storedDraft : JSON.stringify(storedDraft);
-    sessionStorage.setItem(RouteBuilder.DRAFT_KEY, raw);
-  }
   for (const key of Object.keys(world)) delete world[key];
   Object.assign(world, {
     toasts: [], confirms: [], popups: [], confirmAnswer: true, pendingRoute, streetNames: { start: null, end: null },
@@ -476,8 +468,6 @@ export async function setupRouteBuilder({
   document.body.innerHTML = PAGE;
   window.history.replaceState(null, '', url);
   window.logWebpageActivity = vi.fn();
-  // jsdom has no Navigation Timing entries to spy on.
-  performance.getEntriesByType = () => [{ type: reload ? 'reload' : 'navigate' }];
   // Runs the queued animation frames only when the test calls `world.frame()`, so throttled work is steppable.
   world.frames = new Map();
   let nextFrameId = 1;
@@ -533,11 +523,6 @@ export function drawnRoute(map) {
 /** @returns {Array<[string, number[]]>} The endpoint flags as [kind, coordinate] pairs. */
 export function flags(map) {
   return map.getSource('route-endpoints').data.features.map((f) => [f.properties.kind, f.geometry.coordinates]);
-}
-
-/** @returns {?object} The parsed in-progress route draft in sessionStorage. */
-export function draft() {
-  return JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
 }
 
 /** @returns {string[]} The activity-log lines the page wrote, in order. */
