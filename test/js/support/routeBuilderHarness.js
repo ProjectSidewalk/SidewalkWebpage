@@ -94,6 +94,7 @@ class FakeMap {
     this.camera = []; // Every easeTo/flyTo/jumpTo/fitBounds call, in order: [method, options].
     this.framed = null; // What cameraForBounds answers.
     this.styleLayers = [];
+    this.layerOrder = []; // Layer ids in the order moveLayer brought each to the top.
     this.container = document.createElement('div');
     this.canvas = document.createElement('canvas');
     world.map = this;
@@ -136,7 +137,9 @@ class FakeMap {
     return this.layers[id];
   }
 
-  moveLayer() {}
+  moveLayer(id) {
+    this.layerOrder.push(id);
+  }
 
   addImage(id) {
     this.images[id] = true;
@@ -413,14 +416,19 @@ export const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
  * @param {boolean} [opts.reload=false] - Whether this page load is a browser reload (gates the draft resume).
  * @param {string} [opts.url='/routeBuilder'] - The page's address, e.g. with a `?preview=` deep link.
  * @param {?object} [opts.pendingRoute=null] - What SaveModal.consumePendingRoute hands back.
- * @param {?object} [opts.storedDraft=null] - A route draft left in sessionStorage by an earlier load of the tab.
+ * @param {?(object|string)} [opts.storedDraft=null] - A draft already in the tab's storage; a string is stored raw.
+ * @param {boolean} [opts.dataBeforeMap=false] - Whether the regions and streets arrive before the map has loaded.
  * @returns {Promise<{rb: object, map: FakeMap}>}
  */
 export async function setupRouteBuilder({
   signedIn = true, minutesPer100m = 2, reload = false, url = '/routeBuilder', pendingRoute = null, storedDraft = null,
+  dataBeforeMap = false,
 } = {}) {
   sessionStorage.clear();
-  if (storedDraft) sessionStorage.setItem(RouteBuilder.DRAFT_KEY, JSON.stringify(storedDraft));
+  if (storedDraft) {
+    const raw = typeof storedDraft === 'string' ? storedDraft : JSON.stringify(storedDraft);
+    sessionStorage.setItem(RouteBuilder.DRAFT_KEY, raw);
+  }
   for (const key of Object.keys(world)) delete world[key];
   Object.assign(world, {
     toasts: [], confirms: [], popups: [], confirmAnswer: true, pendingRoute, streetNames: { start: null, end: null },
@@ -441,9 +449,10 @@ export async function setupRouteBuilder({
 
   const rb = new RouteBuilder('pk.test', MAP_PARAMS, signedIn, minutesPer100m);
   const map = world.map;
-  map.fire('load');
+  if (!dataBeforeMap) map.fire('load');
   rb.renderRegions(regionData());
   rb.renderStreets(streetData());
+  if (dataBeforeMap) map.fire('load');
   await flush();
   return { rb, map };
 }

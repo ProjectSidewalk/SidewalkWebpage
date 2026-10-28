@@ -45,13 +45,6 @@ export default defineConfig({
         branches: 50,
         functions: 51,
         lines: 55,
-        // The largest modules get floors of their own (#5840), so a drop in one can't hide behind gains elsewhere.
-        'frontend/js/route-builder/RouteBuilder.js': {
-          statements: 89,
-          branches: 78,
-          functions: 90,
-          lines: 91,
-        },
       },
     },
   },

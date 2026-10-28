@@ -127,6 +127,39 @@ describe('RouteBuilder', () => {
       expect(map.stateOf('regions', 2)).toEqual({ hover: false });
       expect(openPopups('rb-cursor-guide')).toEqual([]);
     });
+    test('moving off a region drops its tint, and hovering one past the overview never tints it', async () => {
+      const { map } = await setupRouteBuilder();
+      const hover = (regionId) => map.fire('mousemove', { features: [{ properties: { region_id: regionId } }] },
+        'regions-fill');
+
+      hover(1);
+      map.fire('mouseleave', {}, 'regions-fill');
+      expect(map.stateOf('regions', 1)).toEqual({ hover: false });
+
+      map.zoomTo(RouteBuilder.PLACE_ZOOM);
+      hover(2);
+      expect(map.stateOf('regions', 2)).toEqual({});
+    });
+
+    test('regions and streets that arrive before the map has loaded are drawn once it does', async () => {
+      const { map } = await setupRouteBuilder({ dataBeforeMap: true });
+
+      expect(map.layers).toHaveProperty('regions-fill');
+      expect(map.layers).toHaveProperty('streets-chosen');
+      buildRoute(map, A, D);
+      expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
+    });
+
+    test('once its layers exist, the map stacks them regions, streets, route, then flags, and stops listening',
+      async () => {
+        const { map } = await setupRouteBuilder();
+
+        map.fire('sourcedataloading');
+        map.fire('sourcedataloading');
+
+        expect(map.layerOrder).toEqual(['regions-fill', 'regions-outline', 'streets', 'streets-chosen', 'regions-label',
+          'ghost-start', 'route-endpoints', 'route-explorer']);
+      });
   });
 
   describe('placing points', () => {
@@ -146,6 +179,79 @@ describe('RouteBuilder', () => {
       world.frame();
       expect(map.getSource('ghost-start').data.features).toEqual([]);
       expect(openPopups('rb-cursor-guide')).toEqual([]);
+    });
+
+    test('after the start, the pointer previews the end flag, and the guide retires once the end is down',
+      async () => {
+        const { map } = await setupRouteBuilder();
+        buildRoute(map, A);
+        const hoverAt = (lngLat) => {
+          map.fire('mousemove', { lngLat });
+          world.frame();
+        };
+
+        hoverAt(D);
+        expect(map.getSource('ghost-start').data.features[0].properties.kind).toBe('end');
+        expect(openPopups('rb-cursor-guide').map((p) => p.text)).toEqual(['guide-pick-end']);
+
+        clickMap(map, D);
+        hoverAt(E);
+        expect(openPopups('rb-cursor-guide')).toEqual([]);
+      });
+
+    test('pointer moves within one frame are handled once, at the latest position', async () => {
+      const { map } = await setupRouteBuilder();
+      map.zoomTo(RouteBuilder.PLACE_ZOOM);
+
+      map.fire('mousemove', { lngLat: NOWHERE });
+      map.fire('mousemove', { lngLat: A });
+      expect(world.frames).toHaveLength(1);
+      world.frame();
+
+      expect(map.getSource('ghost-start').data.features[0].geometry.coordinates).toEqual(at(A));
+    });
+
+    test('the pointer leaving the map takes the ghost flag and the guide with it', async () => {
+      const { map } = await setupRouteBuilder();
+      map.zoomTo(RouteBuilder.PLACE_ZOOM);
+      map.fire('mousemove', { lngLat: A });
+      world.frame();
+
+      map.fire('mouseout');
+
+      expect(map.getSource('ghost-start').data.features).toEqual([]);
+      expect(openPopups('rb-cursor-guide')).toEqual([]);
+    });
+
+    test('resting the pointer on the route opens its menu after a beat; passing over it does not', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      expect(map.getCanvas().style.cursor).toBe('pointer');
+      map.fire('mouseleave', {}, 'streets-chosen');
+      vi.advanceTimersByTime(RouteBuilder.ROUTE_MENU_HOVER_MS);
+      expect(world.popover.open).not.toHaveBeenCalled();
+      expect(map.getCanvas().style.cursor).toBe('');
+
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      vi.advanceTimersByTime(RouteBuilder.ROUTE_MENU_HOVER_MS);
+      expect(world.popover.open).toHaveBeenCalledWith(B);
+      expect(logged()).toContain('RouteBuilder_Hover=RouteMenu_Open');
+    });
+
+    test('a route cleared while the pointer rests on it opens no menu', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      click('undo-button');
+      click('undo-button');
+      vi.advanceTimersByTime(RouteBuilder.ROUTE_MENU_HOVER_MS);
+
+      expect(world.popover.open).not.toHaveBeenCalled();
     });
 
     test('the first click plants a start flag at the nearest intersection and eases in to street level', async () => {
@@ -301,6 +407,21 @@ describe('RouteBuilder', () => {
       document.body.click();
       expect(tip.hidden).toBe(true);
     });
+
+    test('the estimate\'s tip opens from the keyboard with Enter or Space', async () => {
+      await setupRouteBuilder();
+      const val = $('route-time-val');
+      const tip = $('route-time-tip');
+
+      for (const key of ['Enter', ' ']) {
+        const press = new KeyboardEvent('keydown', { key, cancelable: true });
+        val.dispatchEvent(press);
+        expect(tip.hidden).toBe(false);
+        expect(press.defaultPrevented).toBe(true);
+        val.dispatchEvent(new FocusEvent('blur'));
+        expect(tip.hidden).toBe(true);
+      }
+    });
   });
 
   describe('editing', () => {
@@ -433,6 +554,19 @@ describe('RouteBuilder', () => {
 
       vi.advanceTimersByTime(500);
       expect(explorerAt()).toEqual([]);
+    });
+
+    test('clearing the route mid-preview stops the explorer and takes it off the map', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      click('preview-button');
+      world.frame(0);
+
+      click('cancel-button');
+      click('delete-route-button');
+
+      expect(world.frames).toEqual([]);
+      expect(map.getSource('route-explorer').data.features).toEqual([]);
     });
 
     test('the points-of-interest toggle shows and hides only the basemap\'s POI labels', async () => {
@@ -814,6 +948,43 @@ describe('RouteBuilder', () => {
 
       expect(fetch).not.toHaveBeenCalled();
       expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
+    });
+
+    test('a draft that isn\'t valid JSON is ignored', async () => {
+      const { map } = await setupRouteBuilder({ reload: true, storedDraft: '{not json' });
+
+      expect(drawnRoute(map)).toEqual([]);
+      expect(panelState()).toBe('empty');
+    });
+
+    test('a draft that breaks partway through restoring is thrown away, leaving an empty planner', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, segments: [null] } });
+
+      expect(console.error).toHaveBeenCalledWith('Failed to restore the route draft:', expect.any(Error));
+      expect(drawnRoute(map)).toEqual([]);
+      expect(flags(map)).toEqual([]);
+      expect(panelState()).toBe('empty');
+      expect(draft()).toBeNull();
+    });
+
+    test('a reload with just a start point in the draft fits the camera to that point', async () => {
+      const { map } = await setupRouteBuilder({
+        reload: true, storedDraft: { waypoints: [D], segments: [], camera: null },
+      });
+
+      expect(flags(map)).toEqual([['start', at(D)]]);
+      expect(map.camera.at(-1)[1].bounds).toEqual([D.lng, D.lat, D.lng, D.lat]);
+    });
+
+    test('back from signing in to a route whose streets are all gone, the planner starts empty', async () => {
+      const { map } = await setupRouteBuilder({
+        pendingRoute: { streets: [{ street_id: 404, reverse: false }], name: 'Loop', camera: null },
+      });
+
+      expect(drawnRoute(map)).toEqual([]);
+      expect(panelState()).toBe('empty');
+      expect(world.saveModal.open).not.toHaveBeenCalled();
     });
 
     test('back from signing in, the stashed route is redrawn and the save modal reopens with what was typed',
