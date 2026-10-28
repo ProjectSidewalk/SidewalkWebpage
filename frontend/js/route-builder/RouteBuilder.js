@@ -1702,6 +1702,12 @@ export class RouteBuilder {
 
     // A draft must never be able to break page init — on any failure, drop it and start fresh.
     try {
+      // Its streets can be hidden between the edit and the reload; with none left there's no route to bring back.
+      const streetIds = draft.segments.flat().map(({ streetId }) => streetId);
+      if (streetIds.length > 0 && !streetIds.some((id) => this.#getRouteGraph().getFeature(id) !== undefined)) {
+        sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
+        return;
+      }
       this.#waypoints = draft.waypoints;
       this.#segments = draft.segments;
       if (Number.isInteger(draft.editingRouteId)) {

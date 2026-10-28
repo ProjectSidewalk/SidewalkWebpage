@@ -967,15 +967,15 @@ describe('RouteBuilder', () => {
       expect(map.camera.at(-1)[1].bounds).toEqual([0, 0, 0.001, 0.001]);
     });
 
-    test('a reloaded draft whose streets are all gone fills no address field for a flag that isn\'t there',
-      async () => {
-        const gone = { ...storedDraft, segments: [[{ streetId: 404, flip: false }]] };
-        const { map } = await setupRouteBuilder({ reload: true, storedDraft: gone });
+    test('a reloaded draft whose streets are all gone is thrown away, leaving an empty planner', async () => {
+      const gone = { ...storedDraft, segments: [[{ streetId: 404, flip: false }]] };
+      const { map } = await setupRouteBuilder({ reload: true, storedDraft: gone });
 
-        expect(flags(map)).toEqual([]);
-        expect(world.directions.updateStart).not.toHaveBeenCalled();
-        expect(world.directions.clearFields).toHaveBeenCalled();
-      });
+      expect(flags(map)).toEqual([]);
+      expect(panelState()).toBe('empty');
+      expect(world.toasts.map((t) => t.title)).toEqual(['cta-select-region']);
+      expect(draft()).toBeNull();
+    });
 
     test('a draft whose legs don\'t match its points is dropped rather than restored inconsistent', async () => {
       const { map } = await setupRouteBuilder({ reload: true, storedDraft: { ...storedDraft, segments: [] } });
