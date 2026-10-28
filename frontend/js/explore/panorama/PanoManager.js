@@ -214,20 +214,11 @@ export class PanoManager {
   }
 
   /**
-   * Makes a message readable on a load that ends without a panorama.
-   *
-   * Explore's chrome — the alert banner included — sits inside `.tool-ui`, which stays `visibility: hidden` until
-   * Main finishes revealing it, and Main stops as soon as there is no viewer. So a message shown from here would
-   * otherwise render inside a hidden container, behind a loading animation that never goes away: the labeler sees a
-   * page that looks stuck forever and is told nothing (#4918).
-   *
-   * Only the banner is un-hidden, not the whole tool: `visibility` is the one property a descendant can override
-   * against an inherited `hidden`, and revealing the rest would show a half-initialized UI whose controls are wired
-   * to a viewer that does not exist. The navbar is outside `.tool-ui`, so the labeler still has somewhere to go.
+   * Takes the loading animation down on a load that ends without a panorama, or the page looks stuck forever (#4918).
+   * The tool stays hidden, since its controls need a viewer; the toast saying why is on <body>, so it still shows.
    */
-  static #revealMessageOnStoppedLoad() {
+  static #endLoadingOnStoppedLoad() {
     document.getElementById('page-loading')?.style.setProperty('visibility', 'hidden');
-    document.getElementById('alert-holder')?.style.setProperty('visibility', 'visible');
   }
 
   /**
@@ -265,7 +256,7 @@ export class PanoManager {
       // bounds runs that Explore drives on its own; a labeler who reads this and chooses to reload is not that loop,
       // and the per-user server limit is what bounds the writing whatever they choose (#4918).
       if (streetLooksEmpty) NoImageryFlagGuard.reset();
-      PanoManager.#revealMessageOnStoppedLoad();
+      PanoManager.#endLoadingOnStoppedLoad();
       this.#alertController.showAlert(i18next.t(message), type, false);
       return;
     }

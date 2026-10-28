@@ -75,6 +75,10 @@ describe('i18n-escape-in-markup', () => {
       // `data-ps-tooltip-html` is read back into the tooltip card's innerHTML, so it is a markup sink.
       { code: 'el.setAttribute("data-ps-tooltip-html", i18next.t("ns:key", { count }));', errors },
 
+      // So is a toast's `messageHtml`, directly or through a variable.
+      { code: 'Toast.show({ messageHtml: i18next.t("ns:key", { name }) });', errors },
+      { code: 'function f() { const msg = i18next.t("ns:key", { name }); Toast.show({ messageHtml: msg }); }', errors },
+
       // Carried there by a template literal, a concatenation, a ternary, or an array that is joined.
       { code: 'el.innerHTML = `<b>${i18next.t("ns:key", { name })}</b>`;', errors },
       { code: 'el.innerHTML = "<b>" + i18next.t("ns:key", { name }) + "</b>";', errors },

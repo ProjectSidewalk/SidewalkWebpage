@@ -87,8 +87,8 @@ row.querySelector('.region-name').innerHTML = `<b>${util.escapeHTML(label)}</b>`
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
 the **`data-ps-tooltip-html` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
-escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
-onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
+escape still shows as markup). Helpers count too: `AlertController.showAlert`, `Toast`'s `messageHtml` option,
+`PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
 `confirm`, a share sheet, and any other attribute, `title` and the plain `data-ps-tooltip` included.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`

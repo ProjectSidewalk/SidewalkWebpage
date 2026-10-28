@@ -65,7 +65,6 @@ test.server.warning.message = <strong>U bevindt zich op een testserver.</strong>
 test.server.warning.label = Testservermelding
 test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
-explore.alert.close = Sluiten
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -229,7 +228,6 @@ about.pubs.showAll = Toon alle {0} publicaties
 about.pubs.cite.title = Project Sidewalk citeren
 about.pubs.cite.plain = Citatie
 about.pubs.cite.copy = Kopiëren
-about.pubs.cite.copied = Gekopieerd
 about.data.title = Open data en open source
 about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>.
 about.partners.title = Maatschappelijke partners
