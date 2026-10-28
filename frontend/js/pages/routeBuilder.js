@@ -13,7 +13,7 @@ window.appManager.ready(async () => {
   const routeBuilder = new RouteBuilder(data.mapboxApiKey, mapParams, data.signedIn === 'true',
     Number(data.minutesPerHundredM));
   loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
-    .catch((err) => console.error('Failed to load regions:', err));
+    .catch((err) => console.error('Failed to load or draw regions:', err));
   loadStreets.then((streetData) => routeBuilder.renderStreets(streetData))
-    .catch((err) => console.error('Failed to load streets:', err));
+    .catch((err) => console.error('Failed to load or draw streets:', err));
 });
