@@ -2,6 +2,7 @@ package controllers
 
 import models.user.Role
 import models.utils.MyPostgresProfile.api.given
+import models.pano.PanoSource
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -12,6 +13,7 @@ import play.api.mvc.{Cookie, Result}
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import service.ConfigService
 import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec}
 
 import scala.concurrent.Future
@@ -51,12 +53,15 @@ class RoleCheckRoutesSpec
   private lazy val anonCookies: Seq[Cookie]       = sessionAs(Role.Anonymous)
   private lazy val anonId: String                 = userIdOf(anonCookies)
 
-  // Open, since users may only join open teams; hidden, so it stays off the leaderboard while the suite runs.
-  private lazy val teamId: Int = run(
+  // Hidden, so the teams stay off the leaderboard while the suite runs.
+  private def createTeam(name: String, open: Boolean): Int = run(
     sql"""INSERT INTO team (name, description, open, visible)
-          VALUES ($TeamName, '', TRUE, FALSE)
+          VALUES ($name, '', $open, FALSE)
           RETURNING team_id""".as[Int].head
   )
+
+  private lazy val teamId: Int       = createTeam(TeamName, open = true)
+  private lazy val closedTeamId: Int = createTeam(s"$TeamName-closed", open = false)
 
   /** @return The street of a completed audit seeded for the registered user, for the streets route to return. */
   private def seedAudit(): Int = run(
@@ -75,11 +80,13 @@ class RoleCheckRoutesSpec
     // In a finally, so a failed delete can't skip RoleSession's demotion and leave an admin account behind.
     try {
       val _ = run(
-        sqlu"DELETE FROM user_team WHERE team_id IN (SELECT team_id FROM team WHERE name = $TeamName)"
-          .andThen(sqlu"DELETE FROM team WHERE name = $TeamName")
+        sqlu"DELETE FROM user_team WHERE team_id IN (SELECT team_id FROM team WHERE name LIKE ${TeamName + "%"})"
+          .andThen(sqlu"DELETE FROM team WHERE name LIKE ${TeamName + "%"}")
       )
     } finally super.afterAll()
   }
+
+  private lazy val isInfra3dCity: Boolean = app.injector.instanceOf[ConfigService].getPanoSource == PanoSource.Infra3d
 
   private def get(path: String, cookies: Seq[Cookie]): Future[Result] =
     route(app, FakeRequest(GET, path).withCookies(cookies*)).get
@@ -113,8 +120,9 @@ class RoleCheckRoutesSpec
       "let a user see their own data" in {
         status(get(path(registeredId), registeredCookies)) mustBe OK
       }
-      "let an anonymous user see their own data" in {
-        status(get(path(anonId), anonCookies)) mustBe OK
+      "let an anonymous user see their own data, except on Infra3D cities, which need a signed-in account" in {
+        if (isInfra3dCity) mustBeSentToSignIn(get(path(anonId), anonCookies))
+        else status(get(path(anonId), anonCookies)) mustBe OK
       }
       "refuse a user asking for someone else's data" in {
         mustBeForbidden(get(path(otherId), registeredCookies))
@@ -163,6 +171,35 @@ class RoleCheckRoutesSpec
       val userId  = userIdOf(cookies)
       mustBeSentToSignIn(put(s"/userapi/setUserTeam?userId=$userId&teamId=$teamId", cookies))
       teamOf(userId) mustBe None
+    }
+  }
+
+  "Joining a team" should {
+    "refuse a user a closed team, and leave their team alone" in {
+      val cookies = sessionAs(Role.Registered)
+      mustBeForbidden(put(s"/userapi/setUserTeam?userId=${userIdOf(cookies)}&teamId=$closedTeamId", cookies))
+      teamOf(userIdOf(cookies)) mustBe None
+    }
+    "let an admin put someone on a closed team, which they can then re-save" in {
+      val cookies = sessionAs(Role.Registered)
+      val userId  = userIdOf(cookies)
+      status(put(s"/userapi/setUserTeam?userId=$userId&teamId=$closedTeamId", adminCookies)) mustBe OK
+      status(put(s"/userapi/setUserTeam?userId=$userId&teamId=$closedTeamId", cookies)) mustBe OK
+      teamOf(userId) mustBe Some(closedTeamId)
+    }
+    "join an open team from Settings, but not a closed one" in {
+      val cookies           = sessionAs(Role.Registered)
+      def saveTeam(id: Int) = route(
+        app,
+        FakeRequest(POST, "/dashboard/settings")
+          .withCookies(cookies*)
+          .withJsonBody(Json.obj("on_leaderboard" -> true, "public_profile" -> false, "team_id" -> id))
+          .withCSRFToken
+      ).get
+      status(saveTeam(closedTeamId)) mustBe OK
+      teamOf(userIdOf(cookies)) mustBe None
+      status(saveTeam(teamId)) mustBe OK
+      teamOf(userIdOf(cookies)) mustBe Some(teamId)
     }
   }
 

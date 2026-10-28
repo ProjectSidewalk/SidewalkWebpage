@@ -512,6 +512,14 @@ trait UserService {
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+
+  /**
+   * Puts a user on a team of their own choosing. Only admins may put someone on a closed team, but a user an admin
+   * put on one can still re-save it (Settings posts the current team).
+   *
+   * @return Whether the user is on the team now; false if it's closed or doesn't exist.
+   */
+  def joinTeam(userId: String, teamId: Int): Future[Boolean]
   def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
@@ -808,6 +816,13 @@ class UserServiceImpl @Inject() (
     }
     db.run(updateTeamAction)
   }
+
+  def joinTeam(userId: String, teamId: Int): Future[Boolean] =
+    db.run(teamTable.find(teamId).zip(userTeamTable.getTeam(userId))).flatMap {
+      case (Some(team), current) if team.open || current.exists(_.teamId == teamId) =>
+        setUserTeam(userId, teamId).map(_ => true)
+      case _ => Future.successful(false)
+    }
 
   def leaveTeam(userId: String): Future[Int] = {
     val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {

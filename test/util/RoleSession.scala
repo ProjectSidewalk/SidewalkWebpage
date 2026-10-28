@@ -72,9 +72,8 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
   }
 
   /**
-   * Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. It also
-   * gets Infra3D access, whatever the role: on an Infra3D city, a request that passes its role check is refused
-   * without that access, and these specs are about the role check.
+   * Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. A signed-in
+   * role also gets Infra3D access, as a real one would be granted it; anonymous users can never have it.
    */
   protected def setRole(userId: String, role: Role): Unit = {
     val _ = Await.result(
@@ -85,7 +84,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
       ),
       60.seconds
     )
-    setInfra3dAccess(userId, access = true)
+    setInfra3dAccess(userId, access = role != Role.Anonymous)
   }
 
   private def setInfra3dAccess(userId: String, access: Boolean): Unit = {
@@ -93,10 +92,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
   }
 
   override def afterAll(): Unit = {
-    promotedUserIds.foreach { id =>
-      setRole(id, Role.Anonymous)
-      setInfra3dAccess(id, access = false)
-    }
+    promotedUserIds.foreach(id => setRole(id, Role.Anonymous))
     super.afterAll()
   }
 }

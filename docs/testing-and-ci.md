@@ -81,7 +81,8 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
   keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
   **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists`, and
-  after the role check an Infra3D access check, so every `sessionAs` account (Anonymous included) gets that access.
+  after the role check an Infra3D access check, so a signed-in `sessionAs` account gets that access (never an
+  anonymous one, which is sent to sign in on those cities).
 - `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
   route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
   account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows
