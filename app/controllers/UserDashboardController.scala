@@ -228,8 +228,8 @@ class UserDashboardController @Inject() (
             for {
               _ <- userService.updatePrivacySettings(user.userId, s.onLeaderboard, s.publicProfile)
               _ <- teamId
-                .map(id => userService.setUserTeam(user.userId, id))
-                .getOrElse(Future.successful(0))
+                .map(id => userService.joinTeam(user.userId, id))
+                .getOrElse(Future.successful(false))
               _ <- serviceEdit
                 .map(cs => userService.setCommunityService(user.userId, cs))
                 .getOrElse(Future.successful(0))
