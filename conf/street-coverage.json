@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "When enough of a street has been seen for it to count as walked. Three consumers must agree on these numbers,",
+    "which is why they live here rather than in any one of them: Explore credits a street from the stretches its",
+    "panos covered (Task.recordVisit, StreetProgress), the server decides audit_task.completed from the same",
+    "stretches (models.audit.StreetCoverage), and tools/city/check_streets_for_imagery.py decides whether a street",
+    "has imagery at all. If they disagreed, the scan would keep a street open that Explore can never finish, and",
+    "labelers would be sent down it again and again (#5669, #5091).",
+    "Fitted to the pano trails of 115k regular audits fleet-wide (#5733): an end-to-end walk leaves up to 30 m",
+    "unseen at its ends, so a 90% floor fails 40% of real walks, and under 100 m the cap alone would let one pano",
+    "at a corner earn the street.",
+    "maxUncoveredM: most of a street that may stay unseen; the limit that matters above 100 m.",
+    "minCoveredFrac: least share of a street that must have been seen; the limit that matters under 100 m.",
+    "panoWindowM: how far either side of a pano counts as seen, roughly GSV's pano spacing.",
+    "maxHopM: longest step between consecutive on-street panos whose in-between stretch counts as walked."
+  ],
+
+  "maxUncoveredM": 50,
+  "minCoveredFrac": 0.5,
+  "panoWindowM": 10,
+  "maxHopM": 50
+}

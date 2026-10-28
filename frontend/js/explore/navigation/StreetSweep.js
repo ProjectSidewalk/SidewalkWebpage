@@ -77,7 +77,7 @@ export class StreetSweep {
   }
 
   /**
-   * Told when imagery runs out near a street's end (or the whole street is in view), so it counts as walked.
+   * Told when imagery runs out on a street the labeler has seen enough of, so it counts as walked (#5669).
    * @param {(task: Task) => void} listener
    */
   onStreetWalkedOut(listener) {
@@ -212,16 +212,9 @@ export class StreetSweep {
       return 'stopped';
     }
 
-    // Near the end (where they stand, or the furthest they got, #5350), the street counts as walked. Checked before
-    // the provider-failure case: a failed lookup at the far end shouldn't cost credit for work really done. "Near"
-    // matches what free exploration may leave unseen (StreetCoverage.MaxUncoveredM).
-    const nearEndM = this.#config.streetCoverage.max_uncovered_m;
-    const furthest = task.getFurthestPointReached().geometry.coordinates;
-    const nearEnd = task.isAtEnd(this.#panoManager.getPosition(), nearEndM)
-      || task.isAtEnd({ lat: furthest[1], lng: furthest[0] }, nearEndM);
-    const inView = !nearEnd && this.#isWholeStreetInView(task);
-    if (inView) this.#tracker.push('NoImagery_StreetInView');
-    if (nearEnd || inView) {
+    // Enough seen counts as walked, by the rule the server credits by and the imagery checker keeps streets open by
+    // (#5669). Checked before the provider-failure case: a failed lookup at the far end shouldn't cost real credit.
+    if (task.isCoveredEnough()) {
       this.#streetWalkedOutListeners.forEach((listener) => listener(task));
       return 'walkedOut';
     }
@@ -236,15 +229,7 @@ export class StreetSweep {
     // One give-up per street: a labeler left standing on one could otherwise report it again.
     if (task.wasGivenUpOnImagery()) return 'stopped';
 
-    // The street looks empty. A report is only evidence for the offline imagery checker (#4922), and a long run of
-    // them more likely means a broken session, so reporting stops at MAX_CONSECUTIVE_FLAGS; moving on continues.
-    const mayFlag = NoImageryFlagGuard.canFlag();
-    NoImageryFlagGuard.recordStreetGivenUp();
-    if (mayFlag) {
-      await util.misc.reportNoImagery(task, this.#missionContainer.getCurrentMission().getProperty('missionId'));
-    } else {
-      this.#tracker.push('NoImageryFlagLimitReached');
-    }
+    await this.#reportStreet(task);
 
     // A long run of empty streets more likely means a broken session than an empty region, so stop.
     if (!NoImageryFlagGuard.canAdvance()) {
@@ -260,14 +245,11 @@ export class StreetSweep {
     const newTask = this.#taskContainer.nextTask(task);
 
     // Only once they're really leaving: the flag reads as "done with this street" everywhere on the page (#4922).
-    task.giveUpOnImagery();
-    this.#taskContainer.renderTask(task);
+    this.#markGivenUp(task);
 
     if (!newTask) return 'ranOut';
 
-    // Send what was logged here first, or the server would file it under the next street. A plain submit, not
-    // endTask(), which would credit a full audit (#4922).
-    await this.#form.submitData(task);
+    await this.#submitGivenUp(task);
     this.#taskContainer.setCurrentTask(newTask);
     // Not awaited: naming the street takes a network call, and the move shouldn't wait on it.
     this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
@@ -276,15 +258,38 @@ export class StreetSweep {
   }
 
   /**
-   * Whether the whole street is in sight. Short streets often can't be walked at all, so seeing them counts (#5474).
+   * Files the street as missing imagery: evidence for the offline checker (#4922). A long run of reports more likely
+   * means a broken session, so reporting stops at MAX_CONSECUTIVE_FLAGS while moving on continues.
    * @param {Task} task
-   * @returns {boolean}
+   * @returns {Promise<void>}
    */
-  #isWholeStreetInView(task) {
-    const position = this.#panoManager.getPosition();
-    const here = turf.point([position.lng, position.lat]);
-    return task.getFeature().geometry.coordinates.every((coord) =>
-      turf.distance(here, turf.point(coord), { units: 'meters' }) <= PanoViewer.SEARCH_RADIUS_M);
+  async #reportStreet(task) {
+    const mayFlag = NoImageryFlagGuard.canFlag();
+    NoImageryFlagGuard.recordStreetGivenUp();
+    if (mayFlag) {
+      await util.misc.reportNoImagery(task, this.#missionContainer.getCurrentMission().getProperty('missionId'));
+    } else {
+      this.#tracker.push('NoImageryFlagLimitReached');
+    }
+  }
+
+  /**
+   * Marks the street as given up on, which reads as "done with this street" everywhere on the page (#4922).
+   * @param {Task} task
+   */
+  #markGivenUp(task) {
+    task.giveUpOnImagery();
+    this.#taskContainer.renderTask(task);
+  }
+
+  /**
+   * Sends what was logged on the street before the next one starts, or the server would file it under that one. Not
+   * endTask(), which would credit a full audit (#4922).
+   * @param {Task} task
+   * @returns {Promise<void>}
+   */
+  async #submitGivenUp(task) {
+    await this.#form.submitData(task);
   }
 
   /**
