@@ -80,8 +80,8 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't
   tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
   keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
-  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an
-  Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+  Every `SecuredAction` also runs an Infra3D access check (`app/service/CustomSecurityService.scala`), so a promoted
+  account gets that access too, and the specs hold on the Infra3D cities.
 - `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
   route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
   account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows

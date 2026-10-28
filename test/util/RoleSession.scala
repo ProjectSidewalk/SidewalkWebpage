@@ -71,12 +71,16 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
     user.map(_.userId).getOrElse(fail("The minted session's cookies resolve to no user."))
   }
 
-  /** Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. */
+  /**
+   * Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. A signed-in
+   * role also gets Infra3D access, or every request on an Infra3D city is refused before its role is even checked.
+   */
   protected def setRole(userId: String, role: Role): Unit = {
-    val _ = Await.result(
+    val infra3dAccess = role != Role.Anonymous
+    val _             = Await.result(
       roleSessionDbConfig.db.run(
         sqlu"""UPDATE sidewalk_login.user_role
-               SET role = $role
+               SET role = $role, zurich_infra3d_access = $infra3dAccess, winterthur_infra3d_access = $infra3dAccess
                WHERE user_id = $userId"""
       ),
       60.seconds
