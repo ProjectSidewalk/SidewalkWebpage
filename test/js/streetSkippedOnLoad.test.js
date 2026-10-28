@@ -42,16 +42,12 @@ describe('a street given up on at page load', () => {
 
   beforeEach(async () => {
     window.sessionStorage.clear();
-    // Mirrors explore.scala.html: the alert banner lives inside `.tool-ui`, which the page ships hidden and
-    // Main.init() reveals — and init bails long before that whenever there is no viewer. The loading animation
-    // it also hides is what the labeler stares at meanwhile.
+    // Mirrors explore.scala.html: the tool ships hidden and Main.init() reveals it — and init bails long before that
+    // whenever there is no viewer. The loading animation is what the labeler stares at meanwhile.
     document.body.innerHTML = `
             <div id="page-loading"></div>
             <div class="container tool-ui ps-invisible">
               <div id="pano"></div>
-              <div id="interaction-area-holder">
-                <div id="alert-holder"></div>
-              </div>
             </div>`;
     const style = document.createElement('style');
     style.textContent = '.ps-invisible { visibility: hidden !important; }';
@@ -126,17 +122,7 @@ describe('a street given up on at page load', () => {
   });
 
   describe('when the load stops instead of reloading', () => {
-    // A message nobody can read is the same as no message, and this is the exact spot where that happens: the
-    // banner is inside `.tool-ui`, which only Main.init() reveals, and init returns as soon as it sees there is
-    // no viewer. Asserting that showAlert was called is not enough to know the labeler was told (#4918).
-    it('makes the banner readable rather than leaving it inside the hidden tool', async () => {
-      expect(isVisible('alert-holder')).toBe(false);
-
-      await loadAndFail(new Error('the maps library never loaded'));
-
-      expect(isVisible('alert-holder')).toBe(true);
-    });
-
+    // The message itself is a toast on <body>, outside the hidden tool (alertController.test.js holds that).
     it('stops the loading animation, which would otherwise say the page is still working', async () => {
       await loadAndFail(new Error('the maps library never loaded'));
 
@@ -156,7 +142,6 @@ describe('a street given up on at page load', () => {
 
       await loadAndFail(new NoImageryError('nothing usable here'));
 
-      expect(isVisible('alert-holder')).toBe(true);
       expect(isVisible('page-loading')).toBe(false);
     });
   });

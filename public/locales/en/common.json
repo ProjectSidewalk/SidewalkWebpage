@@ -26,6 +26,7 @@
   "other": "Other",
   "surface-problems": "Surface Problems",
   "close": "Close",
+  "dont-show-again": "Don't show again",
   "cancel": "Cancel",
   "continue": "Continue",
   "delete": "Delete",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "View in Mapillary",
     "view-in-panoramax": "View in Panoramax",
     "city": "City",
-    "copy-to-clipboard": "Copy to clipboard",
-    "copied-to-clipboard": "Data copied to your clipboard!"
+    "copy-to-clipboard": "Copy to clipboard"
   },
   "pano-attribution": {
     "opens-new-tab": "(opens in a new tab)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Copied!",
+    "failed": "Copy failed",
+    "section-link": "Copy link to this section"
+  },
   "share": {
     "button": "Share",
     "heading": "Share this label",
     "text": "Check out this {{labelType}} on Project Sidewalk",
     "story-text": "“{{excerpt}}” — a community story on Project Sidewalk",
     "copy-link": "Copy link",
-    "copied": "Copied!",
     "on-bluesky": "Share on Bluesky",
     "on-x": "Share on X",
     "on-facebook": "Share on Facebook",

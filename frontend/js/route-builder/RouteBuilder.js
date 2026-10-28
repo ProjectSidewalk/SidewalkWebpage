@@ -214,7 +214,6 @@ export class RouteBuilder {
     this.#savedRoutes = new SavedRoutesPanel({
       isSignedIn: this.#isSignedIn,
       formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
-      setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
       onView: (routeId) => this.#loadRouteForEditing(routeId),
     });
     this.#savedRoutes.refresh();
@@ -346,11 +345,6 @@ export class RouteBuilder {
   /*
    * Function definitions.
    */
-
-  // Confirms a copy-link click with a transient toast over the button (same pattern as the dashboard).
-  #setTemporaryTooltip(btn, message) {
-    Toast.show({ message, reference: btn, duration: Toast.CONFIRMATION_MS });
-  }
 
   /**
    * Wires the estimate's info tooltip to show on hover, keyboard focus, and click/tap, dismissing on mouse-out,

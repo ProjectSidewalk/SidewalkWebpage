@@ -9,6 +9,8 @@
 
 import { loadModules, mockModule, unmockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
 
 // jsdom implements neither AbortSignal.timeout() nor CSS.escape(), both of which the module calls and both of which
@@ -140,9 +142,9 @@ describe('AboutPage', () => {
       <div id="about-pubs-list"></div>
       <button id="about-pubs-show-all" hidden data-label-template="Show all {0} publications"></button>
       <div id="about-cite" hidden>
-        <button class="about-cite-copy" data-copy-target="about-cite-plain" data-copied-label="Copied">Copy</button>
+        <button class="about-cite-copy" data-copy-target="about-cite-plain">Copy</button>
         <p id="about-cite-plain"></p>
-        <button class="about-cite-copy" data-copy-target="about-cite-bibtex" data-copied-label="Copied">Copy</button>
+        <button class="about-cite-copy" data-copy-target="about-cite-bibtex">Copy</button>
         <pre id="about-cite-bibtex"></pre>
       </div>
       <ul id="about-funding-grants" hidden></ul>`;
@@ -796,7 +798,7 @@ describe('AboutPage', () => {
       bibtexButton.click();
       await Promise.resolve();
       expect(writeText).toHaveBeenCalledWith(DETAIL.bibtex);
-      expect(bibtexButton.textContent).toBe('Copied');
+      expect(bibtexButton.textContent).toBe('common:copy.copied');
     });
 
     test('stays hidden when the cited paper is not in the project list', async () => {

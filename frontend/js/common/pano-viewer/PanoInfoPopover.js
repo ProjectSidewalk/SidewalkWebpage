@@ -7,6 +7,7 @@
 
 import i18next from 'i18next';
 import { util } from '../utilities.js';
+import { copyToClipboard } from '../copyToClipboard.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
 
@@ -280,14 +281,7 @@ export class PanoInfoPopover {
       if (currLabelDate) text += `${i18next.t('common:pano-info.label-date')}: ${currLabelDate}\n`;
       if (link) text += `Pano URL: ${link.url}`;
 
-      navigator.clipboard.writeText(text);
-
-      // Briefly show the "copied" confirmation message.
-      const copied = this.#popoverEl.querySelector('.pano-info-popover__copied');
-      copied.hidden = false;
-      setTimeout(() => {
-        copied.hidden = true;
-      }, 1500);
+      copyToClipboard(clipboardBtn, text);
     };
   }
 }

@@ -65,7 +65,6 @@ test.server.warning.message = <strong>You''re on a test server.</strong> Your wo
 test.server.warning.label = Test server notice
 test.server.warning.close = Dismiss notice
 dont.show.again = Don''t show again
-explore.alert.close = Close
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -235,7 +234,6 @@ about.pubs.showAll = Show all {0} publications
 about.pubs.cite.title = How to cite Project Sidewalk
 about.pubs.cite.plain = Citation
 about.pubs.cite.copy = Copy
-about.pubs.cite.copied = Copied
 about.data.title = Open data &amp; open source
 about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">code is open source</a>, too.
 about.partners.title = Community partners

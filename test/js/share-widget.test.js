@@ -223,7 +223,7 @@ describe('ShareWidget', () => {
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
       expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
-      const copyButton = item('share.copied');
+      const copyButton = item('copy.copied');
       expect(copyButton.classList.contains('is-copied')).toBe(true);
 
       vi.advanceTimersByTime(1500);

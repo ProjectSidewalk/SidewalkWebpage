@@ -27,7 +27,6 @@
   "street-count-in-region_one": "{{count}} straat in {{region}}",
   "street-count-in-region_other": "{{count}} straten in {{region}}",
   "see-all-routes_other": "Bekijk alle {{count}} routes in je dashboard",
-  "copied-to-clipboard": "Gekopieerd naar het klembord!",
   "street-count-across-regions": "{{streets}} straten in {{regions}} buurten",
   "region-and-more": "{{region}} + {{more}} meer",
   "route-name-default": "Route in {{region}}",

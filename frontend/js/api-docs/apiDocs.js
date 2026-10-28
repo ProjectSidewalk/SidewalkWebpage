@@ -8,18 +8,10 @@
  * - Mobile responsiveness
  * - Permalink copying
  * - Smooth scrolling
- *
- * In July 16, 2025, we also added industry standard behavior where clicking on permalink anchors (#) copies the full
- * URL to the clipboard with visual feedback.
- *
- * Features:
- * - Uses modern Clipboard API with fallback
- * - Provides visual feedback (toast notification)
- * - Accessible with keyboard support
- * - Follows web standards and best practices
  */
 
 import i18next from 'i18next';
+import { copyToClipboard } from '../common/copyToClipboard.js';
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import '../../css/components/page-shell.css';
 import '../../css/components/progress-bar.css';
@@ -47,9 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Initialize download buttons functionality with feedback.
   setupDownloadButtons();
-
-  // 6. Initialize permalink clipboard functionality.
-  initPermalinkClipboard();
 });
 
 /**
@@ -422,52 +411,29 @@ function setupSmoothScrolling() {
 }
 
 /**
- * Sets up click functionality for permalink icons to copy the URL.
+ * Makes each heading's "#" permalink copy its section's URL rather than jump to it. Delegated, so the headings
+ * labelTagsPreview.js renders later work too; it labels its own the same way.
  * @returns {void}
  */
 function setupPermalinkCopying() {
-  // Use event delegation on the content area for potentially dynamic headings.
   const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
 
-  contentArea.addEventListener('click', (event) => {
-    const permalink = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (event.target).closest('a.permalink'));
-    if (permalink) {
-      event.preventDefault();
-      const urlToCopy = permalink.href; // The browser resolves the full URL in href.
-
-      navigator.clipboard.writeText(urlToCopy).then(() => {
-        showPermalinkTooltip(permalink, 'URL copied!');
-      }).catch((err) => {
-        console.error('Failed to copy URL:', err);
-        showPermalinkTooltip(permalink, 'Copy failed!');
-      });
-    }
+  // Translations load after DOMContentLoaded.
+  window.appManager.ready(() => {
+    contentArea.querySelectorAll('a.permalink').forEach((permalink) => {
+      const label = i18next.t('common:copy.section-link');
+      permalink.setAttribute('aria-label', label);
+      permalink.setAttribute('data-ps-tooltip', label);
+    });
   });
 
-  // Function to show tooltip.
-  function showPermalinkTooltip(anchorElement, message) {
-    // Remove existing tooltips first.
-    document.querySelectorAll('.permalink-tooltip').forEach((tip) => tip.remove());
-
-    const tooltip = document.createElement('div');
-    tooltip.className = 'permalink-tooltip';
-    tooltip.textContent = message;
-    document.body.appendChild(tooltip);
-
-    // Position near the clicked link.
-    const rect = anchorElement.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + window.scrollX}px`;
-    tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 5}px`; // Position above
-
-    // Fade out and remove.
-    tooltip.style.opacity = '1'; // Ensure visible
-    setTimeout(() => {
-      tooltip.style.transition = 'opacity 0.5s ease-out';
-      tooltip.style.opacity = '0';
-      setTimeout(() => tooltip.remove(), 500); // Remove after fade
-    }, 1500); // Tooltip visible duration
-  }
+  contentArea.addEventListener('click', (event) => {
+    const permalink = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (event.target).closest('a.permalink'));
+    if (!permalink) return;
+    event.preventDefault();
+    copyToClipboard(permalink, permalink.href); // The browser resolves href to the full URL.
+  });
 }
 
 /**
@@ -708,145 +674,4 @@ function filenameFromDisposition(disposition) {
   } catch {
     return match[1];
   }
-}
-
-/**
- * Initialize permalink clipboard functionality. Call this function when the DOM is ready.
- */
-function initPermalinkClipboard() {
-  // Find all permalink anchors (# links).
-  const permalinks = document.querySelectorAll('.permalink');
-
-  permalinks.forEach((permalink) => {
-    // Make permalinks focusable and accessible.
-    permalink.setAttribute('tabindex', '0');
-    permalink.setAttribute('role', 'button');
-    permalink.setAttribute('aria-label', 'Copy link to this section');
-    permalink.setAttribute('data-ps-tooltip', 'Click to copy link');
-
-    // Add click event listener.
-    permalink.addEventListener('click', function (e) {
-      e.preventDefault(); // Prevent default anchor behavior
-      copyPermalinkToClipboard(this);
-    });
-
-    // Add keyboard support (Enter and Space)
-    permalink.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        copyPermalinkToClipboard(this);
-      }
-    });
-
-    // Add hover effect.
-    permalink.addEventListener('mouseenter', function () {
-      this.style.cursor = 'pointer';
-    });
-  });
-}
-
-/**
- * Copy permalink URL to clipboard with modern API and fallback.
- * @param {HTMLElement} permalinkElement - The clicked permalink anchor
- */
-function copyPermalinkToClipboard(permalinkElement) {
-  // Get the full URL including the hash.
-  const currentUrl = window.location.href.split('#')[0];
-  const hash = permalinkElement.getAttribute('href');
-  const fullUrl = currentUrl + hash;
-
-  // Try modern Clipboard API first.
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(fullUrl)
-      .then(() => {
-        showCopyFeedback(permalinkElement, 'success');
-      })
-      .catch((err) => {
-        console.warn('Clipboard API failed, trying fallback:', err);
-        fallbackCopyToClipboard(fullUrl, permalinkElement);
-      });
-  } else {
-    // Fallback for older browsers or non-HTTPS.
-    fallbackCopyToClipboard(fullUrl, permalinkElement);
-  }
-}
-
-/**
- * Fallback copy method for older browsers.
- * @param {string} text - Text to copy
- * @param {HTMLElement} permalinkElement - The permalink element for feedback
- */
-function fallbackCopyToClipboard(text, permalinkElement) {
-  // Create temporary textarea.
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-999999px';
-  textArea.style.top = '-999999px';
-  document.body.appendChild(textArea);
-
-  try {
-    textArea.focus();
-    textArea.select();
-    const successful = document.execCommand('copy');
-
-    if (successful) {
-      showCopyFeedback(permalinkElement, 'success');
-    } else {
-      showCopyFeedback(permalinkElement, 'error');
-    }
-  } catch (err) {
-    console.error('Fallback copy failed:', err);
-    showCopyFeedback(permalinkElement, 'error');
-  } finally {
-    document.body.removeChild(textArea);
-  }
-}
-
-/**
- * Show visual feedback when copy succeeds or fails.
- * @param {HTMLElement} permalinkElement - The permalink element
- * @param {string} status - 'success' or 'error'
- */
-function showCopyFeedback(permalinkElement, status) {
-  // Create toast notification.
-  const toast = document.createElement('div');
-  toast.className = `copy-toast copy-toast-${status}`;
-
-  if (status === 'success') {
-    toast.textContent = 'Link copied to clipboard!';
-    toast.setAttribute('aria-live', 'polite');
-  } else {
-    toast.textContent = 'Failed to copy link';
-    toast.setAttribute('aria-live', 'assertive');
-  }
-
-  // Position toast near the permalink.
-  const rect = permalinkElement.getBoundingClientRect();
-  toast.style.position = 'fixed';
-  toast.style.left = `${rect.right + 10}px`;
-  toast.style.top = `${rect.top - 5}px`;
-  toast.style.zIndex = '10000';
-
-  document.body.appendChild(toast);
-
-  // Animate in.
-  requestAnimationFrame(() => {
-    toast.classList.add('copy-toast-visible');
-  });
-
-  // Remove after 2 seconds.
-  setTimeout(() => {
-    toast.classList.remove('copy-toast-visible');
-    setTimeout(() => {
-      if (toast.parentNode) {
-        document.body.removeChild(toast);
-      }
-    }, 300); // Wait for fade out animation
-  }, 2000);
-
-  // Add brief visual feedback to the permalink itself.
-  const feedbackClass = status === 'success' ? 'permalink--copied' : 'permalink--failed';
-  permalinkElement.classList.add(feedbackClass);
-  setTimeout(() => permalinkElement.classList.remove(feedbackClass), 500);
 }

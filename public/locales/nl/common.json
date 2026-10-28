@@ -27,6 +27,7 @@
   "surface-problems": "Oppervlakte problemen",
   "sign-up": "Een account maken",
   "close": "Sluiten",
+  "dont-show-again": "Laat niet opnieuw zien",
   "cancel": "Annuleren",
   "continue": "Doorgaan",
   "delete": "Verwijderen",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Bekijken in Mapillary",
     "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
-    "copy-to-clipboard": "Kopiëren naar klembord",
-    "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
+    "copy-to-clipboard": "Kopiëren naar klembord"
   },
   "pano-attribution": {
     "opens-new-tab": "(opent in een nieuw tabblad)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Gekopieerd!",
+    "failed": "Kopiëren mislukt",
+    "section-link": "Link naar deze sectie kopiëren"
+  },
   "share": {
     "button": "Delen",
     "heading": "Deel dit label",
     "text": "Bekijk deze {{labelType}} op Project Sidewalk",
     "story-text": "‘{{excerpt}}’ – een verhaal uit de community op Project Sidewalk",
     "copy-link": "Link kopiëren",
-    "copied": "Gekopieerd!",
     "on-bluesky": "Delen op Bluesky",
     "on-x": "Delen op X",
     "on-facebook": "Delen op Facebook",
