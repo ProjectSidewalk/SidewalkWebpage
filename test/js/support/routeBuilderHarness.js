@@ -107,6 +107,14 @@ class FakeMap {
     this.handlers.push({ event, layer, handler });
   }
 
+  once(event, handler) {
+    const wrapped = (payload) => {
+      this.off(event, wrapped);
+      handler(payload);
+    };
+    this.on(event, wrapped);
+  }
+
   off(event, handler) {
     this.handlers = this.handlers.filter((h) => !(h.event === event && h.handler === handler));
   }

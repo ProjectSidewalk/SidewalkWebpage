@@ -78,7 +78,6 @@ export class RouteBuilder {
   };
 
   #status = {
-    mapLoaded: false,
     regionsRendered: false, // Region source/layers have been added to the map.
     streetsRendered: false, // Street source/layers/handlers have been added to the map.
     pendingRouteRestored: false,
@@ -88,6 +87,7 @@ export class RouteBuilder {
 
   #mapboxApiKey;
   #map;
+  #mapLoaded; // Resolves on the map's first 'load'; regions and streets are drawn only after it, whenever they arrive.
   #cityView; // The city's default {center, zoom}, for resetting the camera when starting over.
   #isSignedIn;
 
@@ -251,25 +251,7 @@ export class RouteBuilder {
     });
     this.#map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
-    this.#map.on('load', () => {
-      // If the streets and/or regions loaded before the map, render them now that the map has loaded.
-      // Each render is isolated so a failure in one can't silently block the other from ever wiring up.
-      this.#status.mapLoaded = true;
-      if (this.#regionData !== null) {
-        try {
-          this.#renderRegionsHelper();
-        } catch (e) {
-          console.error('Failed to render regions:', e);
-        }
-      }
-      if (this.#streetData !== null) {
-        try {
-          this.#renderStreetsHelper();
-        } catch (e) {
-          console.error('Failed to render streets:', e);
-        }
-      }
-    });
+    this.#mapLoaded = new Promise((resolve) => this.#map.once('load', resolve));
 
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
@@ -606,13 +588,11 @@ export class RouteBuilder {
 
   /**
    * @param {GeoJSON.FeatureCollection} regionDataIn - GeoJSON of the city's regions.
+   * @returns {Promise<void>} Settles once the regions are drawn; rejects if drawing them fails.
    */
   renderRegions(regionDataIn) {
     this.#regionData = regionDataIn;
-    // If the map already loaded, it's safe to render regions now. O/w they will load after the map does.
-    if (this.#status.mapLoaded) {
-      this.#renderRegionsHelper();
-    }
+    return this.#mapLoaded.then(() => this.#renderRegionsHelper());
   }
 
   /**
@@ -893,13 +873,11 @@ export class RouteBuilder {
 
   /**
    * @param {GeoJSON.FeatureCollection} streetDataIn - GeoJSON of the city's streets.
+   * @returns {Promise<void>} Settles once the streets are drawn; rejects if drawing them fails.
    */
   renderStreets(streetDataIn) {
     this.#streetData = streetDataIn;
-    // If the map already loaded, it's safe to render streets now. O/w they will load after the map does.
-    if (this.#status.mapLoaded) {
-      this.#renderStreetsHelper();
-    }
+    return this.#mapLoaded.then(() => this.#renderStreetsHelper());
   }
 
   /**
