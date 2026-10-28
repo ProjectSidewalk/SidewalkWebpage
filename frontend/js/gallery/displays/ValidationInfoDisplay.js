@@ -118,6 +118,16 @@ export class ValidationInfoDisplay {
   }
 
   /**
+   * Swaps the AI's vote, which a type change replaces with the new type's (#5853).
+   * @param {?string} aiValidation - 'Agree', 'Disagree', or null when the AI hasn't voted.
+   */
+  setAiValidation(aiValidation) {
+    this.#aiValidation = aiValidation;
+    for (const action of ['Agree', 'Disagree']) this.setVoteIconFilled(action, false);
+    this.#renderTooltips();
+  }
+
+  /**
    * Ties a vote cast on this card to the count it changed (util.misc.animateVoteChange). The thumb stays outline,
    * since the filled icon matches a voted card's band and would vanish.
    *

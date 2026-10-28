@@ -197,13 +197,15 @@ export class ExpandedView {
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card.
-   * @param {{label_type: string, severity: ?number, tags: string[]}} meta - The label's metadata as it now stands.
+   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card, including the votes, which a
+   * type change swaps for the new type's (#5853).
+   * @param {Record<string, any>} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {
       this.refCard.updateLabelType(meta.label_type);
       this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
+      this.refCard.setVotes(meta);
     }
   };
 

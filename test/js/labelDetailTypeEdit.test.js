@@ -300,6 +300,28 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(q('.label-detail__vote--agree .label-detail__vote-count').textContent).toBe('1');
   });
 
+  test('a type change clears the user\'s vote from the pano when it was cast on the old type (#5853)', async () => {
+    await showLabel({ num_disagree: 1, user_validation: 'Disagree' });
+    const wrap = q('.label-detail__pano-wrap');
+    const overlayDisagree = q('.label-detail__pano-overlay-button--disagree');
+    expect(wrap.classList.contains('is-disagree')).toBe(true);
+    expect(overlayDisagree.classList.contains('is-selected')).toBe(true);
+    typeButton().click();
+
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    expect(wrap.classList.contains('is-disagree')).toBe(false);
+    expect(overlayDisagree.classList.contains('is-selected')).toBe(false);
+    expect(overlayDisagree.getAttribute('aria-pressed')).toBe('false');
+    expect(q('.label-detail__vote--disagree').getAttribute('aria-pressed')).toBe('false');
+    // Gallery's small card is redrawn from what the host is handed, so it must carry the new type's votes.
+    expect(onEdit).toHaveBeenLastCalledWith(expect.objectContaining({
+      label_type: 'SurfaceProblem', user_validation: null, num_agree: 1, num_disagree: 0,
+    }));
+  });
+
   test('a 409 redraws the card from the reply and says the label was changed elsewhere', async () => {
     await showLabel({ severity: 2, tags: ['pole'] });
     typeButton().click();

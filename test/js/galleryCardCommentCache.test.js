@@ -12,7 +12,7 @@ import { loadModules, mockModule } from './loader.js';
 mockModule('i18next', () => ({ default: { t: (key) => key, language: 'en' } }));
 mockModule('frontend/js/gallery/displays/SeverityDisplay.js', () => ({ SeverityDisplay: class {} }));
 mockModule('frontend/js/gallery/displays/ValidationInfoDisplay.js', () => ({
-  ValidationInfoDisplay: class { updateValCounts() {} },
+  ValidationInfoDisplay: class { updateValCounts() {} setAiValidation() {} },
 }));
 mockModule('frontend/js/gallery/validation/ValidationMenu.js', () => ({
   ValidationMenu: class { showValidationOnCard() {} },
@@ -98,5 +98,15 @@ describe('the own-comment cache on a Gallery card (#5475)', () => {
     const card = makeCard(null);
     card.updateUserValidation('Unsure');
     expect(card.getProperty('comments')).toEqual([theirs]);
+  });
+});
+
+describe('re-read votes on a Gallery card (#5853)', () => {
+  test('replace the counts and both votes outright, since a type change counts only the new type\'s', () => {
+    const card = makeCard('Disagree');
+    card.setVotes({ num_agree: 4, num_disagree: 0, num_unsure: 2, user_validation: null, ai_validation: 'Agree' });
+    expect(card.getProperty('val_counts')).toEqual({ Agree: 4, Disagree: 0, Unsure: 2 });
+    expect(card.getProperty('user_validation')).toBeNull();
+    expect(card.getProperty('ai_validation')).toBe('Agree');
   });
 });

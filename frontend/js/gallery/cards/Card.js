@@ -545,6 +545,21 @@ export class Card {
   }
 
   /**
+   * Replaces the votes outright, since a type change counts only the new type's (#5853).
+   * @param {{num_agree: number, num_disagree: number, num_unsure: number, user_validation: ?string,
+   *     ai_validation: ?string}} votes - The label's votes as `/label/id/:id` serves them.
+   */
+  setVotes(votes) {
+    const properties = this.#properties;
+    properties.val_counts = { Agree: votes.num_agree, Disagree: votes.num_disagree, Unsure: votes.num_unsure };
+    properties.user_validation = votes.user_validation ?? null;
+    properties.ai_validation = votes.ai_validation ?? null;
+    this.validationInfoDisplay.setAiValidation(properties.ai_validation);
+    this.validationInfoDisplay.updateValCounts(votes.num_agree, votes.num_disagree, properties.user_validation);
+    this.validationMenu.showValidationOnCard(properties.user_validation);
+  }
+
+  /**
    * Set aspect of status.
    *
    * @param {string} key - Status name.

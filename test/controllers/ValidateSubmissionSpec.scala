@@ -1110,5 +1110,28 @@ class ValidateSubmissionSpec
       commentsOn(labelId, b.userId) mustBe empty
       commentVersionsOn(labelId, b.userId) mustBe Seq(("It is really this.", "validation_change"))
     }
+
+    "keep the user's vote on a label's old type when they vote again after its type changes (#5853)" in {
+      val session  = freshAnonSession()
+      val b        = fetchValidateBootstrap(session)
+      val label    = b.labels.head
+      val labelId  = (label \ "label_id").as[Int]
+      val origType = (label \ "label_type").as[String]
+      val newType  = if (origType == "Obstacle") "SurfaceProblem" else "Obstacle"
+      backupLabel(labelId)
+      labelTypeBackup += (labelId -> origType)
+
+      // The card flags a first vote as a redo, so the server tidies a comment that outlived its old vote.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Disagree", redone = true))) mustBe OK
+      val _       = run(sqlu"UPDATE label SET label_type = $newType::label_type WHERE label_id = $labelId")
+      val retyped = label ++ Json.obj("label_type" -> newType)
+      status(postLabelMapValidation(session, labelMapValidationJson(retyped, "Agree", redone = true))) mustBe OK
+
+      run(
+        sql"""SELECT label_type::text, validation_result::text FROM label_validation
+                WHERE label_id = $labelId AND user_id = ${b.userId} ORDER BY label_type::text""".as[(String, String)]
+      ) mustBe
+        Seq((origType, "Disagree"), (newType, "Agree")).sortBy(_._1)
+    }
   }
 }

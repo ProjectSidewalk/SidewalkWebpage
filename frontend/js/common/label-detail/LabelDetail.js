@@ -2546,8 +2546,8 @@ export class LabelDetail {
       if (conflict) {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
+          await this.#refreshVotes(meta);
           if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-          this.#refreshVotes(meta);
         }
         return;
       }
@@ -2572,8 +2572,9 @@ export class LabelDetail {
         this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
       }
       if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
+      if (typeChange) await this.#refreshVotes(meta);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-      if (typeChange) this.#refreshVotes(meta);
     } catch (err) {
       console.error(err);
       if (this.#currentLabelMeta !== meta) return;
@@ -2607,7 +2608,8 @@ export class LabelDetail {
       this.#prevAction = meta.user_validation;
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
-      this.#renderVoteIcons();
+      // The border and pressed button show the user's own vote, which may be gone under the new type.
+      this.#highlightVote(this.#readonly ? null : meta.user_validation);
       if (this.#commentWrites === commentWrites) {
         this.#loadComments(fresh.comments);
         this.#commentsChanged(meta);
