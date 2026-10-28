@@ -434,17 +434,20 @@
       "tooltip-no-sidewalk": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir"
     },
     "driveway": {
-      "text": "C'est une entrée charretière"
+      "text": "C'est une entrée charretière",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "C'est une transition trottoir–entrée charretière",
       "tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée"
     },
     "residential-walkway": {
-      "text": "C'est une allée privée"
+      "text": "C'est une allée privée",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
-      "text": "Il n'y a pas de trottoir ici"
+      "text": "Il n'y a pas de trottoir ici",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "Il n'est pas sûr de traverser ici",
@@ -460,31 +463,40 @@
       "tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles"
     },
     "normal-tiles": {
-      "text": "Ce sont des dalles de trottoir normales"
+      "text": "Ce sont des dalles de trottoir normales",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
-      "text": "Il y a un trottoir ici"
+      "text": "Il y a un trottoir ici",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
-      "text": "C'est un terre-plein central"
+      "text": "C'est un terre-plein central",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
-      "text": "Il n'y a aucun passage piéton visible ici"
+      "text": "Il n'y a aucun passage piéton visible ici",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
-      "text": "C'est une ligne d'arrêt pour les voitures"
+      "text": "C'est une ligne d'arrêt pour les voitures",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
-      "text": "C'est un ralentisseur"
+      "text": "C'est un ralentisseur",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
-      "text": "Ce n'est qu'un feu de circulation pour véhicules"
+      "text": "Ce n'est qu'un feu de circulation pour véhicules",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
-      "text": "C'est un panneau sans feu indiquant quand traverser"
+      "text": "C'est un panneau sans feu indiquant quand traverser",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
-      "text": "C'est un poteau sans feu ni bouton piéton"
+      "text": "C'est un poteau sans feu ni bouton piéton",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Il faudrait une meilleure image",

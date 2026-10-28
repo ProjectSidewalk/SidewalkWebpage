@@ -434,17 +434,20 @@
       "tooltip-no-sidewalk": "Los problemas u obstáculos en la superficie pueden etiquetarse erróneamente como Sin Banqueta"
     },
     "driveway": {
-      "text": "Este es un camino de entrada"
+      "text": "Este es un camino de entrada",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "Esta es una transición de banqueta a camino de entrada.",
       "tooltip": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales a menos que se haya agregado una rampa dedicada"
     },
     "residential-walkway": {
-      "text": "Esta es una pasarela residencial."
+      "text": "Esta es una pasarela residencial.",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
-      "text": "No hay banqueta aquí"
+      "text": "No hay banqueta aquí",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "No es seguro cruzar aquí",
@@ -460,31 +463,40 @@
       "tooltip": "En banquetas muy anchas, los objetos fácilmente evitables no deben etiquetarse como obstáculos."
     },
     "normal-tiles": {
-      "text": "Estas son baldosas de banqueta normales."
+      "text": "Estas son baldosas de banqueta normales.",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
-      "text": "Hay una banqueta aquí"
+      "text": "Hay una banqueta aquí",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
-      "text": "Esta es una mediana de tráfico"
+      "text": "Esta es una mediana de tráfico",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
-      "text": "No hay ningún paso de peatones visible aquí"
+      "text": "No hay ningún paso de peatones visible aquí",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
-      "text": "Esta es una línea de parada para coches."
+      "text": "Esta es una línea de parada para coches.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
-      "text": "Esto es un obstáculo"
+      "text": "Esto es un tope de velocidad",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
-      "text": "Esto es solo un semáforo para vehículos."
+      "text": "Esto es solo un semáforo para vehículos.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
-      "text": "Esta es una señal sin luz para indicar un cruce seguro."
+      "text": "Esta es una señal sin luz para indicar un cruce seguro.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
-      "text": "Este es un poste sin señal para peatones ni botón."
+      "text": "Este es un poste sin señal para peatones ni botón.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Necesita una mejor imagen",
