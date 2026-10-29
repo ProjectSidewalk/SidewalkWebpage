@@ -2539,11 +2539,16 @@ export class LabelDetail {
       const conflict = res.status === 409;
       if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
-      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
-      if (this.#currentLabelMeta !== meta) return;
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
+      // Paged on: nothing is drawn over the newer label, but the host still hears, so its map dot or gallery card
+      // for this label doesn't keep the old values until a reload.
+      if (this.#currentLabelMeta !== meta) {
+        if (meta.label_type !== prev.labelType) await this.#refreshVotes(meta);
+        if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+        return;
+      }
       render();
       if (conflict) {
         this.#showTypeConflictToast();
@@ -2579,10 +2584,11 @@ export class LabelDetail {
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
     } catch (err) {
       console.error(err);
-      if (this.#currentLabelMeta !== meta) return;
+      // Rolled back even after paging, or a host caching this label's data would show the values the server refused.
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
+      if (this.#currentLabelMeta !== meta) return;
       render();
       this.#showEditFailure(columns);
     }
@@ -2606,9 +2612,14 @@ export class LabelDetail {
       });
       if (!response.ok) return;
       const fresh = await response.json();
-      if (this.#currentLabelMeta !== meta) return;
       for (const key of ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation']) {
         meta[key] = fresh[key];
+      }
+      // Paged on: the label's data still takes the new type's votes and comments, which its host may show later.
+      if (this.#currentLabelMeta !== meta) {
+        meta.comments = fresh.comments ?? [];
+        if (typeof this.#onComments === 'function') this.#onComments(meta);
+        return;
       }
       this.#validationCounts.Agree = meta.num_agree;
       this.#validationCounts.Disagree = meta.num_disagree;
