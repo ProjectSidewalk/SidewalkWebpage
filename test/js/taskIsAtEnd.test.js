@@ -10,7 +10,7 @@
  * Richmond stub and the panos the labeler was bounced between — plus the #4640 shape, so a change to either rule
  * has to answer for the other.
  *
- * Real turf and the real `util.math.haversine`: the question is about projection onto real geometry, and a
+ * Real turf: the question is about projection onto real geometry, and a
  * stub that got the geometry slightly wrong would pass for the wrong reason.
  */
 

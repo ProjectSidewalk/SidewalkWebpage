@@ -8,7 +8,7 @@
  * `isResumed()` guard, and each guard is a place where over-reaching would break a fresh street instead — so the
  * fresh-street behavior is pinned beside every one of them.
  *
- * Real turf and the real `util.math.haversine` for the geometry cases: the questions are about distance
+ * Real turf for the geometry cases: the questions are about distance
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 

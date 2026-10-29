@@ -95,7 +95,9 @@ const turfStub = {
   along: (line, distKm) => pointFeature(interpolate(line.geometry.coordinates, distKm)),
   cleanCoords: (line) => line,
   distance: (from, to, options = {}) => {
-    const km = kmBetween(from.geometry.coordinates, to.geometry.coordinates);
+    // Real turf takes a point feature or a bare [lng, lat]; GsvViewer passes the latter.
+    const coords = (p) => (Array.isArray(p) ? p : p.geometry.coordinates);
+    const km = kmBetween(coords(from), coords(to));
     return options.units === 'meters' ? km * 1000 : km;
   },
   lineSlice: (startPoint, _stopPoint, line) =>

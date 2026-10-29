@@ -175,12 +175,10 @@ export class Task {
    * @param {{lat: number, lng: number}} currentLatLng - User's current position
    */
   setStreetEdgeDirection(currentLatLng) {
-    const lat1 = this.#geojson.geometry.coordinates[0][1];
-    const lng1 = this.#geojson.geometry.coordinates[0][0];
-    const lat2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][1];
-    const lng2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][0];
-    const d1 = util.math.haversine({ lat: lat1, lng: lng1 }, currentLatLng);
-    const d2 = util.math.haversine({ lat: lat2, lng: lng2 }, currentLatLng);
+    const coords = this.#geojson.geometry.coordinates;
+    const here = turf.point([currentLatLng.lng, currentLatLng.lat]);
+    const d1 = turf.distance(coords[0], here, { units: 'meters' });
+    const d2 = turf.distance(coords[coords.length - 1], here, { units: 'meters' });
 
     // If current position is closer to the end point than the start point, reverse the street direction.
     if (d2 < d1) {
@@ -544,15 +542,14 @@ export class Task {
   isAtEnd(latLng, threshold = 10) {
     if (!this.#geojson) return false;
     const coords = this.#geojson.geometry.coordinates;
-    const end = { lat: coords[coords.length - 1][1], lng: coords[coords.length - 1][0] };
     const streetLengthM = this.lineDistance({ units: 'meters' });
     const effectiveThreshold = streetLengthM > 0
       ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
       : threshold;
-    const distToEnd = util.math.haversine(latLng, end);
+    const point = turf.point([latLng.lng, latLng.lat]);
+    const distToEnd = turf.distance(point, coords[coords.length - 1], { units: 'meters' });
     if (distToEnd < effectiveThreshold) return true;
     if (distToEnd >= threshold) return false;
-    const point = turf.point([latLng.lng, latLng.lat]);
     return turf.pointToLineDistance(point, this.#geojson, { units: 'meters' }) < Task.ON_STREET_MAX_DISTANCE_M
       && this.getDistanceFromStart(latLng, { units: 'meters' }) >= streetLengthM - effectiveThreshold;
   }
