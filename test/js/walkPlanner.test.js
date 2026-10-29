@@ -529,9 +529,11 @@ describe('WalkPlanner', () => {
     expect(elapsed).toBeLessThan(500);
   });
 
-  it('plans a 1,800-street comb of dead-end teeth in under 500 ms', () => {
+  it('plans a 1,800-street comb of dead-end teeth in under 2 s', () => {
     // A 600-street spine with a dead-end tooth on each side of every spine node: every tooth is a bridge and the
     // tier is the whole region, the shape that makes bridge searches and jump scans grow with the street count.
+    // The bound is loose on purpose: it catches a scan going quadratic (seconds), not a slow CI runner sharing its
+    // cores with the rest of the suite, where this takes ~150 ms warm locally and over 600 ms has been seen.
     const streets = [];
     let id = 1;
     for (let x = 0; x < 600; x++) {
@@ -542,6 +544,6 @@ describe('WalkPlanner', () => {
     const elapsed = performance.now() - t0;
     expect(steps).toHaveLength(1800);
     expect(stats.jumps).toBeLessThanOrEqual(stats.lowerBoundJumps + 1);
-    expect(elapsed).toBeLessThan(500);
+    expect(elapsed).toBeLessThan(2000);
   });
 });
