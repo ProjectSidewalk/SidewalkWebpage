@@ -1,20 +1,19 @@
 /**
- * Tests for WalkPlanner (public/js/common/WalkPlanner.js, #5526): the planner that orders a neighborhood's remaining
- * streets into one walk up front.
+ * Tests for WalkPlanner (frontend/js/common/WalkPlanner.js, #5526): the planner that orders a neighborhood's
+ * remaining streets into one walk up front.
  *
- * WalkPlanner is a top-level `class` written for the Grunt-concatenation world, so the source is evaled into the
- * jsdom global scope. It is pure graph logic, so every test builds a small synthetic street network. Coordinates sit
- * on the equator at 0.001° spacing, so one grid step is ~111 m in both directions and the node merge (10 m) never
- * joins two distinct grid points.
+ * It is pure graph logic, so every test builds a small synthetic street network. Coordinates sit on the equator at
+ * 0.001° spacing, so one grid step is ~111 m in both directions and the node merge (10 m) never joins two distinct
+ * grid points.
  */
 
-/* global WalkPlanner */
+import { loadModules } from './loader.js';
 
-const fs = require('fs');
-const path = require('path');
+let WalkPlanner;
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/common/WalkPlanner.js'), 'utf8');
-window.eval(`${SRC}\nwindow.WalkPlanner = WalkPlanner;`);
+beforeAll(async () => {
+  ({ WalkPlanner } = await loadModules('frontend/js/common/WalkPlanner.js'));
+});
 
 const STEP = 0.001;
 

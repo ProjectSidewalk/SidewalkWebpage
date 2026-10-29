@@ -1,7 +1,8 @@
 /**
- * The streets of the region or route being explored, which one is being walked, and how they are drawn on the
- * minimap. A street changing or ending is announced (onCurrentTaskChanged, onTaskEnded, onTaskLeft) rather than acted
- * on here, since the compass, the crumbs, the mission and the Form are built after this.
+ * The streets of the region or route being explored, which one is being walked, how they are drawn on the minimap,
+ * and, on a neighborhood mission, the planned order they are walked in (#5526). A street changing or ending, or the
+ * plan being rebuilt, is announced (onCurrentTaskChanged, onTaskEnded, onTaskLeft, onWalkPlanChanged) rather than
+ * acted on here, since the compass, the crumbs, the mission, the Form and the plan's preview are built after this.
  *
  * TODO Split the responsibilities: storing tasks stays here, fetching from the server could go to a TaskModel.
  */
@@ -9,6 +10,7 @@
 import * as turf from '@turf/turf';
 import { util } from '../../common/utilities.js';
 import { Task } from './Task.js';
+import { WalkPlanner } from '../../common/WalkPlanner.js';
 import '../../common/utilitiesMath.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../navigation/Minimap.js').Minimap} Minimap */
@@ -34,8 +36,29 @@ export class TaskContainer {
   #nextTaskAfterJump = null;
   #tasksFinishedLoading = false;
 
+  /**
+   * The neighborhood mission's planned walk (#5526): the planner's steps and stats, why it was (re)built, and when.
+   * Null on a route (whose order is saved server-side), in free exploration and the tutorial, and whenever planning
+   * failed, which is what sends nextTask back to the greedy rule.
+   * @type {?{steps: import('../../common/WalkPlanner.js').PlanStep[], stats: object, reason: string,
+   *   createdAt: number}}
+   */
+  #walkPlan = null;
+  // Applying a plan re-renders tasks, and none of that may start a second plan over the half-applied first.
+  #planning = false;
+  /**
+   * Why a replan was asked for while a jump was armed, or null. The armed target was chosen and prefetched from the
+   * plan as it stood, so replanning under it could turn or reorder the street the labeler is about to land on; the
+   * replan runs once the jump lands instead (see setCurrentTask).
+   * @type {?string}
+   */
+  #deferredReplanReason = null;
+
   /** @type {Array<(task: Task) => void>} */
   #currentTaskListeners = [];
+
+  /** @type {Array<() => void>} */
+  #walkPlanListeners = [];
 
   /** @type {Array<(task: Task) => void>} */
   #taskEndedListeners = [];
@@ -90,6 +113,14 @@ export class TaskContainer {
    */
   onTaskLeft(listener) {
     this.#taskLeftListeners.push(listener);
+  }
+
+  /**
+   * Told when the planned walk is built, rebuilt or dropped (#5526), so its minimap preview can follow.
+   * @param {() => void} listener
+   */
+  onWalkPlanChanged(listener) {
+    this.#walkPlanListeners.push(listener);
   }
 
   tasksLoaded() {
@@ -166,6 +197,9 @@ export class TaskContainer {
           }
         }
         this.#tasksFinishedLoading = true;
+        // Planned before the first move, so the first end of street already follows the plan and the minimap shows
+        // where the walk goes from the moment the page appears (#5526).
+        this.planWalk('load');
       })
       .catch((error) => {
         console.error(error);
@@ -173,16 +207,221 @@ export class TaskContainer {
   }
 
   /**
+   * Whether this session plans its own walk: a neighborhood mission does, a route already has its order, and free
+   * exploration and the tutorial walk no sequence of streets at all.
+   * @returns {boolean}
+   */
+  #walksAPlannedRoute() {
+    return !this.#regionModel.isRoute && !this.#config.isExploreAddressMode && !this.#config.isOnboarding;
+  }
+
+  /**
+   * Plans the walk over every street still to be walked, starting from the current street, and stamps the order and
+   * each street's direction onto its task (#5526). The thresholds are the backend's (config.walkPlanner), not literals
+   * here. While a jump is armed the replan is only recorded, and runs once the jump lands (#deferredReplanReason).
+   * Never throws: a failing planner leaves no plan and nextTask falls back to the greedy rule, because a planning bug
+   * must never be what stops someone labeling.
+   *
+   * @param {string} reason - Why a plan is being built, for the log: 'load', 'giveUp', 'priority', or 'switch'.
+   * @param {{exclude?: Task}} [options] - `exclude` is a street being given up on right now: it is still unwalked,
+   *     since the give-up is recorded only once the labeler has been moved, but it must not be planned back in.
+   * @returns {boolean} Whether a plan now exists.
+   */
+  planWalk(reason, { exclude = null } = {}) {
+    if (this.#planning || !this.#tasksFinishedLoading || !this.#walksAPlannedRoute()) return false;
+    if (this.#nextTaskAfterJump) {
+      this.#deferredReplanReason ??= reason;
+      return this.hasWalkPlan();
+    }
+    this.#deferredReplanReason = null;
+    this.#planning = true;
+    try {
+      const current = this.#currentTask;
+      const startsOnCurrent = Boolean(current) && current !== exclude
+        && !current.isComplete() && !current.wasGivenUpOnImagery();
+      const toPlan = this.getUnwalkedTasks().filter((t) => t !== exclude && t !== current);
+      if (startsOnCurrent) toPlan.unshift(current);
+      if (toPlan.length === 0) {
+        this.#clearWalkPlan();
+        return false;
+      }
+
+      const streets = toPlan.map((task) => {
+        const coords = TaskContainer.#unwalkedCoords(task);
+        return {
+          id: task.getStreetEdgeId(),
+          coords,
+          priority: task.getStreetPriority(),
+          lengthM: turf.length(turf.lineString(coords), { units: 'meters' }),
+          fixedDirection: task.isResumed(),
+        };
+      });
+      const { priorityTolerance, tinyStreetM } = this.#config.walkPlanner ?? {};
+      const plan = new WalkPlanner(streets, { priorityTolerance, tinyStreetM }).plan(startsOnCurrent
+        ? { streetId: current.getStreetEdgeId() }
+        : { from: this.#currentPositionLngLat() });
+      this.#applyWalkPlan(plan, toPlan, reason);
+
+      // A summary rather than the steps: the tracker buffer holds 200 actions, and a full region's plan would crowd
+      // out the interactions it is flushed with. The plan itself can be rebuilt from the same inputs.
+      const { stats } = plan;
+      this.#tracker.push('WalkPlan_Created', {
+        reason,
+        tolerance: priorityTolerance,
+        streets: stats.streets,
+        jumps: stats.jumps,
+        plannedM: Math.round(stats.totalM),
+        lowerBoundJumps: stats.lowerBoundJumps,
+        ms: Math.round(stats.ms),
+      });
+      return true;
+    } catch (error) {
+      console.error(error);
+      this.#clearWalkPlan();
+      // The tracker writes notes as `key:value,` pairs, so a free-text message has its separators stripped.
+      this.#tracker.push('WalkPlan_Failed', {
+        reason,
+        error: error?.name ?? 'Error',
+        message: String(error?.message ?? error).replace(/[,:]/g, ''),
+      });
+      return false;
+    } finally {
+      this.#planning = false;
+      this.#walkPlanListeners.forEach((listener) => listener());
+    }
+  }
+
+  /**
+   * The part of a street still to walk, as [lng, lat] coordinates in walking order. A part-walked street (#5370) is
+   * entered where the labeler left it, its furthest point reached, not at its start: planning it whole would call a
+   * step "connected" that Explore turns into a mid-street jump.
+   *
+   * @param {Task} task - A street to be planned.
+   * @returns {number[][]} The whole street, or for a resumed one its unwalked remainder (whole if that has collapsed).
+   */
+  static #unwalkedCoords(task) {
+    const coords = task.getGeoJSON().geometry.coordinates;
+    if (!task.isResumed()) return coords;
+    const remainder = task.unwalkedRemainder().geometry.coordinates;
+    return remainder.length >= 2 ? remainder : coords;
+  }
+
+  /**
+   * Where the labeler stands, as the planner's [lng, lat], for a plan that cannot start on the current street.
+   * @returns {number[]}
+   */
+  #currentPositionLngLat() {
+    const position = this.#panoManager.getPosition() ?? this.#currentTask.getEndCoordinate();
+    return [position.lng, position.lat];
+  }
+
+  /**
+   * Stamps a plan onto its tasks: each step's position, and each street's walking direction.
+   *
+   * Direction goes through setStreetEdgeDirection, which only ever turns a street to start at the given end, so
+   * applying the same plan twice changes nothing. The current street keeps its orientation (the labeler is already
+   * walking it), a part-walked street keeps its own, since its audit_task row fixes it (#5370), and so does an armed
+   * jump's target, which was chosen and prefetched as it stands.
+   *
+   * @param {{steps: import('../../common/WalkPlanner.js').PlanStep[], stats: object}} plan
+   * @param {Task[]} plannedTasks - The tasks the plan was built over.
+   * @param {string} reason - Why the plan was built.
+   */
+  #applyWalkPlan(plan, plannedTasks, reason) {
+    for (const task of this._tasks) task.setPlannedPosition(null);
+    // Street ids are unique on a region audit, which is the only place a walk is planned.
+    const byStreetId = new Map(plannedTasks.map((task) => [task.getStreetEdgeId(), task]));
+    plan.steps.forEach((step, position) => {
+      const task = byStreetId.get(step.id);
+      if (!task) return;
+      task.setPlannedPosition(position);
+      if (task !== this.#currentTask && task !== this.#nextTaskAfterJump && !task.isResumed()) {
+        const coords = task.getGeoJSON().geometry.coordinates;
+        const [lng, lat] = step.reverse ? coords[coords.length - 1] : coords[0];
+        task.setStreetEdgeDirection({ lat, lng });
+      }
+    });
+    this.#walkPlan = { steps: plan.steps, stats: plan.stats, reason, createdAt: Date.now() };
+  }
+
+  /** Drops the plan: nextTask goes back to the greedy rule and the minimap stops previewing. */
+  #clearWalkPlan() {
+    this.#walkPlan = null;
+    for (const task of this._tasks) task.setPlannedPosition(null);
+  }
+
+  /** @returns {boolean} Whether a planned walk is being followed. */
+  hasWalkPlan() {
+    return this.#walkPlan !== null;
+  }
+
+  /**
+   * @returns {?{steps: import('../../common/WalkPlanner.js').PlanStep[], stats: object, reason: string,
+   *   createdAt: number}} The planned walk, or null.
+   */
+  getWalkPlan() {
+    return this.#walkPlan;
+  }
+
+  /**
+   * The streets still to walk after the current one, in plan order, each with its plan step. Steps already walked or
+   * given up on are skipped rather than ending the list, as nextTask skips them.
+   *
+   * @param {number} [limit=Infinity] - At most this many entries.
+   * @returns {{task: Task, step: import('../../common/WalkPlanner.js').PlanStep}[]} [] with no plan.
+   */
+  getPlannedStepsAhead(limit = Infinity) {
+    if (!this.#walkPlan) return [];
+    const current = this.#currentTask;
+    const currentPosition = current?.getPlannedPosition() ?? -1;
+    const ahead = this.getUnwalkedTasks()
+      .filter((task) => task !== current && task.getPlannedPosition() !== null
+        && task.getPlannedPosition() > currentPosition)
+      .sort((t1, t2) => t1.getPlannedPosition() - t2.getPlannedPosition());
+    return ahead.slice(0, limit).map((task) => ({ task, step: this.#walkPlan.steps[task.getPlannedPosition()] }));
+  }
+
+  /**
    * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
    * @param {Array<{street_edge_id: number, priority: number}>} updatedPriorities - Any streets with a new priority
    */
   updateTaskPriorities(updatedPriorities) {
+    // Another labeler finishing streets here changes what is most worth walking, but with several labelers in one
+    // region nearly every submission brings a change, and a replan each time would reshuffle the preview under the
+    // labeler. So the plan is rebuilt only when the change can matter to it: a street the minimap is previewing, or
+    // which streets are in the planner's top tier (#5526).
+    const tierBefore = this.hasWalkPlan() ? this.#topTierTasks() : null;
+    let previewedChanged = false;
     // The server reports every street of the region whose priority changed, which need not be one that is loaded
     // here (a hidden street, say), so an unknown id is skipped rather than assumed present.
     updatedPriorities.forEach((newPriority) => {
       const task = this._tasks.find((s) => s.getStreetEdgeId() === newPriority.street_edge_id);
-      task?.setProperty('priority', newPriority.priority);
+      if (!task) return;
+      if (tierBefore && task.isPlannedAhead() && task.getStreetPriority() !== newPriority.priority) {
+        previewedChanged = true;
+      }
+      task.setProperty('priority', newPriority.priority);
     });
+    if (!tierBefore) return;
+    const tierAfter = this.#topTierTasks();
+    const tierChanged = tierAfter.size !== tierBefore.size || [...tierAfter].some((task) => !tierBefore.has(task));
+    if (previewedChanged || tierChanged) this.planWalk('priority');
+  }
+
+  /**
+   * The unwalked streets the planner treats as the top tier: priority within the configured tolerance
+   * (config.walkPlanner.priorityTolerance, the same value the plan was built with) of the best one left. A street
+   * entering or leaving it changes which streets the walk may take before a jump, so a change to this set is one a
+   * replan has to see.
+   *
+   * @returns {Set<Task>} Empty when nothing is left to walk.
+   */
+  #topTierTasks() {
+    const unwalked = this.getUnwalkedTasks();
+    if (unwalked.length === 0) return new Set();
+    const best = Math.max(...unwalked.map((task) => task.getStreetPriority()));
+    const cutoff = best - (this.#config.walkPlanner?.priorityTolerance ?? 0);
+    return new Set(unwalked.filter((task) => task.getStreetPriority() >= cutoff));
   }
 
   /**
@@ -315,8 +554,9 @@ export class TaskContainer {
   }
 
   /**
-   * Store the task to jump to once the current intersection is complete.
-   * @param {Task} task
+   * Store the task to jump to once the current intersection is complete. While one is set, a planned walk holds its
+   * replans until the labeler lands there (planWalk, setCurrentTask).
+   * @param {?Task} task
    */
   setNextTaskAfterJump(task) {
     this.#nextTaskAfterJump = task;
@@ -402,7 +642,8 @@ export class TaskContainer {
    *
    * TODO It's not immediately obvious how much this function handles. Some things should likely be separated.
    *
-   * Procedure:
+   * On a route, the next street is the next in its saved order; on a neighborhood mission with a planned walk
+   * (#5526), the next in the plan. Without a plan (the planner failed):
    * Get the list of the highest priority streets that this user has not audited
    * - If the street you just audited connects to any of those, pick the highest priority one
    * - O/w jump to the highest priority street
@@ -434,6 +675,16 @@ export class TaskContainer {
       // For a route, the user walks the streets in the route's saved order.
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return current.getWalkOrder() < min.getWalkOrder() ? current : min;
+      }, tasksNotCompletedByUser[0]);
+    } else if (this.hasWalkPlan()) {
+      // The earliest unwalked step of the plan. A street the plan left out sorts last rather than first: null compares
+      // as 0, which would put it ahead of the whole plan. No direction correction follows, unlike the greedy rule
+      // below: the plan already chose each street's direction, including a jump target entered at its far end, and
+      // turning one toward the finished street would land the labeler where the minimap connector does not point. A
+      // labeler who leaves the plan gets a replan from the street they took (setCurrentTask), which orients the rest.
+      const position = (t) => t.getPlannedPosition() ?? Infinity;
+      newTask = tasksNotCompletedByUser.reduce((min, current) => {
+        return position(current) < position(min) ? current : min;
       }, tasksNotCompletedByUser[0]);
     } else {
       // If not part of a route, check for a connected task with a high priority. If none, jump to the highest
@@ -504,6 +755,18 @@ export class TaskContainer {
    */
   setCurrentTask(task) {
     this.#currentTask = task;
+    // Landing on the armed target is what ends a jump, so from here a replan may run again.
+    if (task === this.#nextTaskAfterJump) this.#nextTaskAfterJump = null;
+    // Taking a street other than the plan's next one (picking an abandoned street back up, #5370) leaves the plan
+    // describing a walk from somewhere the labeler isn't, so it is rebuilt from here. Otherwise a replan held back
+    // while a jump was armed runs now, from the street the jump landed on. Before the listeners, so the preview they
+    // redraw is of the plan as it now stands.
+    if (this.hasWalkPlan() && !task.isComplete() && !task.wasGivenUpOnImagery()) {
+      const position = task.getPlannedPosition();
+      const earliest = Math.min(...this.getUnwalkedTasks().map((t) => t.getPlannedPosition() ?? Infinity));
+      if (position === null || position > earliest) this.planWalk('switch');
+      else if (this.#deferredReplanReason !== null) this.planWalk(this.#deferredReplanReason);
+    }
     this.#recordTaskStart(task);
     this.#currentTaskListeners.forEach((listener) => listener(task));
   }

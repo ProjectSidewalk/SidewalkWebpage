@@ -2,7 +2,7 @@
 
 Explore picks each neighborhood street greedily after the last one (`TaskContainer.nextTask`). Issue
 [#5526](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5526) replaces that with a walk planned up front,
-`public/js/common/WalkPlanner.js`, and keeps the greedy rule as the fallback. This experiment replays both, and a few
+`frontend/js/common/WalkPlanner.js`, and keeps the greedy rule as the fallback. This experiment replays both, and a few
 variants, over every region of the three dev-DB cities, so the planner's defaults rest on numbers rather than
 intuition.
 

@@ -106,9 +106,15 @@ export class MinimapStyle {
    *    separates this line from the pine one.
    *  - `completed`: a street, or part of one, already walked that isn't the current street.
    *  - `other`: a street in the region that isn't part of the current task: quiet context.
+   *  - `jump`: an upcoming jump in a neighborhood mission's planned walk (#5526), from the end of one street to where
+   *    the labeler lands on the next, a stretch they will be moved across rather than walk. A thin dashed hairline in
+   *    the chevrons' deep blue (the legend's "Jump to next street" row): no casing, since the deep blue holds against
+   *    the light basemap on its own and a casing would thicken it back into something that competes with the streets;
+   *    4px dashes with 4px gaps, finer than the route-ahead's 5-on/7-off, which is a street to walk.
    *
    * The white casing is what keeps the route legible over parks and roads regardless of hue. Layers are listed bottom
-   * to top, so context streets sit under the route and the chevrons sit over everything.
+   * to top, so context streets sit under the route, a jump connector sits under the casing (where it meets a street
+   * the street wins), and the chevrons sit over everything.
    * @param {string} source - Id of the GeoJSON source holding the street lines.
    * @returns {object[]} MapLibre layer specifications, in drawing order.
    */
@@ -135,6 +141,19 @@ export class MinimapStyle {
         filter: kindIs('completed'),
         layout: round,
         paint: { 'line-color': MinimapStyle.auditedColor(), 'line-opacity': 0.95, 'line-width': 3 },
+      },
+      {
+        id: 'street-jump',
+        type: 'line',
+        source,
+        filter: kindIs('jump'),
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: {
+          'line-color': MinimapStyle.chevronColor(),
+          'line-width': 2,
+          // In units of the line width: 4px on, 4px off.
+          'line-dasharray': [2, 2],
+        },
       },
       {
         id: 'street-casing',

@@ -241,6 +241,9 @@ export class StreetSweep {
       return 'stopped';
     }
 
+    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler
+    // would walk out of this one's far end, which they now never reach.
+    if (this.#taskContainer.hasWalkPlan()) this.#taskContainer.planWalk('giveUp', { exclude: task });
     // The street is left unfinished: finishing it would credit a full audit nobody did (#4922).
     const newTask = this.#taskContainer.nextTask(task);
 
@@ -249,6 +252,9 @@ export class StreetSweep {
 
     if (!newTask) return 'ranOut';
 
+    // Held as an armed jump until setCurrentTask lands on it: the submission awaited below is the window in which a
+    // priority refresh arrives, and a replan there could turn or reorder the street already chosen and prefetched.
+    this.#taskContainer.setNextTaskAfterJump(newTask);
     await this.#submitGivenUp(task);
     this.#taskContainer.setCurrentTask(newTask);
     // Not awaited: naming the street takes a network call, and the move shouldn't wait on it.

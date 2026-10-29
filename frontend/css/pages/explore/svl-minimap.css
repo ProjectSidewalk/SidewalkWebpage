@@ -366,7 +366,7 @@
   stroke-dasharray: 5 7;
 }
 
-/* A planned walk's jump connector (MinimapStyle.plannedJump): a dashed hairline, 4 on / 4 off like the map's. */
+/* A planned walk's jump connector (MinimapStyle.streetLayers' street-jump): a dashed hairline, 4 on / 4 off. */
 .minimap-legend-sample-jump {
   stroke: var(--color-link-200);
   stroke-width: 2;

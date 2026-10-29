@@ -8,22 +8,18 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+// The real module, not a copy: the benchmark is only evidence for the code that ships if it runs that code.
+import { WalkPlanner } from '../../../frontend/js/common/WalkPlanner.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..', '..');
-// The real module, not a copy: the benchmark is only evidence for the code that ships if it runs that code.
-const WalkPlanner = vm.runInThisContext(
-  `${fs.readFileSync(path.join(ROOT, 'public/js/common/WalkPlanner.js'), 'utf8')}\nWalkPlanner;`
-);
-
 // The planner's thresholds are owned by application.conf (walk-planner.*), so the tiny-street length is read from
 // there rather than repeated here; the priority tolerance is what the sweep varies, with the shipped value marked.
 const TINY_STREET_M = readConf('walk-planner.tiny-street-m');
 const SHIPPED_TOLERANCE = readConf('walk-planner.priority-tolerance');
-// Explore's own thresholds (Main.js): connected within 25 m, "near the route" within 1.5 × 50 m.
+// Explore's own thresholds (TaskContainer.js, Task.js): connected within 25 m, "near the route" within 1.5 × 50 m.
 const CONNECTED_M = 25;
 const NEARBY_LINE_M = 75;
 const CONNECT_RADII_M = [5, 10, 25];

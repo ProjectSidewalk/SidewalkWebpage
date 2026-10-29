@@ -33,6 +33,12 @@ export class Task {
   #streetCoverage;
   #geojson;
 
+  // This street's step in a neighborhood mission's planned walk (#5526), and whether the minimap is previewing it as
+  // one of the next streets. Kept off #properties because neither is the street's own data: both are rewritten on
+  // every replan, and nothing that serializes a task's properties should ever see them.
+  #plannedPosition = null;
+  #plannedAhead = false;
+
   /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
 
@@ -323,6 +329,37 @@ export class Task {
    */
   getWalkOrder() {
     return this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+  }
+
+  /**
+   * Stamps this street's step in the neighborhood mission's planned walk, which TaskContainer.nextTask follows the
+   * way it follows a route's saved order (#5526). Kept apart from getWalkOrder: a route's order names a walk for good,
+   * while a planned position changes on every replan, and the stuck-pano set and the crumbs memo key on the former.
+   *
+   * @param {?number} position - The step index in the plan, or null to take the street out of the plan.
+   */
+  setPlannedPosition(position) {
+    this.#plannedPosition = position;
+  }
+
+  /** @returns {?number} This street's step in the current planned walk, or null when it is not in one. */
+  getPlannedPosition() {
+    return this.#plannedPosition;
+  }
+
+  /**
+   * Marks whether the minimap previews this street as one of the next few of the planned walk. WalkPlanLayer owns
+   * the choice; the task only remembers it so minimapLines can draw the street as part of the path ahead.
+   *
+   * @param {boolean} plannedAhead - True to draw the street as the route ahead, false for quiet context.
+   */
+  setPlannedAhead(plannedAhead) {
+    this.#plannedAhead = plannedAhead;
+  }
+
+  /** @returns {boolean} Whether the minimap is previewing this street as part of the planned walk ahead. */
+  isPlannedAhead() {
+    return this.#plannedAhead;
   }
 
   /**
@@ -683,8 +720,10 @@ export class Task {
     }
     // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
     // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
-    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
-    return wholeStreet(route ? 'remaining' : 'other');
+    // route reads as one arrowed path. A neighborhood mission's planned walk gets the same treatment only for the next
+    // few streets WalkPlanLayer previews (#5526): the rest of the region would bury the path ahead in chevrons, so it
+    // stays quiet context.
+    return wholeStreet(route || this.#plannedAhead ? 'remaining' : 'other');
   }
 
   /**

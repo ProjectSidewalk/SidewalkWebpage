@@ -55,7 +55,7 @@
  * `priorityTolerance` of the best remaining priority, so an out-of-tier street forces a jump rather than merely
  * ranking last; a jump goes to the nearest street in that tier. Both thresholds are domain values, so the planner has
  * no defaults for them: Explore passes the backend's (`walk-planner.*` in application.conf, via the page's
- * `mainParam.walkPlanner`), and the benchmark and tests name their own. The shipped values were chosen by the replay
+ * `walkPlanner` data), and the benchmark and tests name their own. The shipped values were chosen by the replay
  * benchmark in `tools/experiments/5526-mission-walk-planner/README.md`.
  *
  * Pure and deterministic: no DOM, no map, no turf, its own haversine. The input is sorted by id, every tie falls to
@@ -73,7 +73,7 @@
  * const planner = new WalkPlanner(streets, { priorityTolerance: 0.15, tinyStreetM: 20 });
  * const { steps, stats } = planner.plan({ streetId: currentTask.getStreetEdgeId() });
  */
-class WalkPlanner {
+export class WalkPlanner {
   /** Endpoints within this many metres are one node (the same value as RouteGraph.NODE_TOLERANCE_M). */
   static NODE_TOLERANCE_M = 10;
   /**
@@ -108,8 +108,7 @@ class WalkPlanner {
    */
   #priorityTolerance;
   /**
-   * @type {number} A street is tiny when `lengthM < tinyStreetM` (strictly less). Explore's tiny-street auto-complete
-   * reads the same setting with the same comparison, so the two can't drift apart.
+   * @type {number} A street is tiny when `lengthM < tinyStreetM` (strictly less).
    */
   #tinyStreetM;
   /** @type {number} */
