@@ -2,9 +2,8 @@
  * Tests for WalkPlanner (frontend/js/common/WalkPlanner.js, #5526): the planner that orders a neighborhood's
  * remaining streets into one walk up front.
  *
- * It is pure graph logic, so every test builds a small synthetic street network. Coordinates sit on the equator at
- * 0.001° spacing, so one grid step is ~111 m in both directions and the node merge (10 m) never joins two distinct
- * grid points.
+ * It is pure graph logic, so every test builds a small synthetic street network on the equator at 0.001° spacing:
+ * one grid step is ~111 m in both directions, so the 10 m node merge never joins two distinct grid points.
  */
 
 import { loadModules } from './loader.js';
@@ -532,8 +531,8 @@ describe('WalkPlanner', () => {
   it('plans a 1,800-street comb of dead-end teeth in under 2 s', () => {
     // A 600-street spine with a dead-end tooth on each side of every spine node: every tooth is a bridge and the
     // tier is the whole region, the shape that makes bridge searches and jump scans grow with the street count.
-    // The bound is loose on purpose: it catches a scan going quadratic (seconds), not a slow CI runner sharing its
-    // cores with the rest of the suite, where this takes ~150 ms warm locally and over 600 ms has been seen.
+    // The bound is loose on purpose: it catches a scan going quadratic (seconds), not a CI runner sharing its cores
+    // with the rest of the suite, where this ~150 ms case has taken over 600 ms.
     const streets = [];
     let id = 1;
     for (let x = 0; x < 600; x++) {

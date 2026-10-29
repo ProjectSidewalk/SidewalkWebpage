@@ -155,18 +155,17 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   given up for lack of imagery, when another labeler changes the priority of a street still ahead, and when the
   labeler switches to a street other than the plan's next; a replan asked for while a jump is armed waits until the
   jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
-  deterministic: the same streets, priorities and start street give the same plan, and a reload that resumes the
-  same street replans the same remaining walk. If planning fails, the greedy next-street rule takes over.
-  - *Why the client, and what would move it.* The next-street choice was client-side before the planner (the greedy
-    rule it replaces), the client already holds every street with its live priority and receives priority deltas
-    on every task POST, and both consumers (the next-street pick and the minimap preview) are on the client, so a
-    server plan would add a table, an endpoint and an invalidation story for no consumer. The server's part is the
-    first street of a session and the thresholds: `walk-planner.priority-tolerance` and `walk-planner.tiny-street-m`
-    in `application.conf` (env-overridable per deployment) reach the page as its `walkPlanner` data, and the planner
-    has no defaults for them. Move the planning itself to the server only if a need appears that a client can't
-    meet: coordinating several labelers in one region (reservations, which today's planner would consume as excluded
-    streets), a plan that must survive a device switch, or a planned route shown outside Explore. `WalkPlanner` has
-    no DOM or map dependency so that such a port is a transcription.
+  deterministic, so a reload that resumes the same street replans the same remaining walk. If planning fails, the
+  greedy next-street rule takes over.
+  - *Why the client, and what would move it.* The next-street choice was already client-side (the greedy rule), the
+    client holds every street with its live priority and gets priority deltas on every task POST, and both consumers
+    (the next-street pick and the minimap preview) are on the client, so a server plan would add a table, an
+    endpoint and an invalidation story for no consumer. The server's part is the first street of a session and the
+    thresholds (`walk-planner.*` in `application.conf`, env-overridable per deployment), which reach the page as its
+    `walkPlanner` data. Move the planning itself only for a need a client can't meet: coordinating several labelers
+    in one region (reservations, which the planner would consume as excluded streets), a plan that must survive a
+    device switch, or a planned route shown outside Explore. `WalkPlanner` has no DOM or map dependency, so such a
+    port would be a transcription.
 
 ### Media storage
 

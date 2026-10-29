@@ -7,7 +7,7 @@
  * is rebuilt (and when that waits for an armed jump to land), and that a failing planner falls back to the greedy rule
  * rather than breaking the tool.
  *
- * Real Task, TaskContainer, turf and `util.math`: direction is decided by distances along real geometry.
+ * Real Task, TaskContainer and turf: direction is decided by distances along real geometry.
  */
 
 import * as turf from '@turf/turf';
@@ -111,8 +111,8 @@ describe('A neighborhood mission\'s planned walk', () => {
 
   /**
    * Loads the page's street and then the region's other streets, as Main and fetchTasks do.
-   * @param {object} [options] - `isRoute`, `exploreAddress`, `onboarding`, `features` (the /tasks payload besides
-   *     street 1).
+   * @param {object} [options] - `isRoute`, `exploreAddress`, `onboarding`, and `features` (what /tasks returns
+   *     besides street 1, which the page hands over).
    */
   async function load({ isRoute = false, exploreAddress = false, onboarding = false, features } = {}) {
     const config = {

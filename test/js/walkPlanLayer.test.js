@@ -24,8 +24,8 @@ const lngLat = ({ lat, lng }) => [lng, lat];
 /**
  * A planned street, as WalkPlanLayer sees it: a length, its two ends, how far it has been walked, and the preview flag.
  * @param {number} id - Street id; by default also places the street, `id` km east, so every gap is a jump.
- * @param {object} [options] - `lengthM`, `start` and `end` ({lat, lng}), `walkedM`, and `resumedAt` ({lat, lng}) for
- *     a part-walked street.
+ * @param {object} [options] - `lengthM`, `start` and `end` ({lat, lng}), `walkedM`, and `resumedAt` ({lat, lng}),
+ *     which makes the street a part-walked one.
  */
 function makeTask(id, { lengthM = 100, start = pt(id * 1000), end = pt(id * 1000 + lengthM), walkedM = 0,
   resumedAt = null } = {}) {

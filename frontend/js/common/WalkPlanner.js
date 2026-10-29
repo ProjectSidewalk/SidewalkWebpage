@@ -11,8 +11,7 @@ import { NODE_TOLERANCE_M } from './streetNetwork.js';
  * @property {number} priority - In (0, 1]; 1 means nobody has audited it. A missing or non-finite priority is treated
  *   as 0, so the street is still walked (every street given is planned) but never holds a tier open.
  * @property {number} [lengthM] - Geodesic metres; computed from coords when absent.
- * @property {boolean} [fixedDirection] - True for a resumed (part-walked) street: it may not be reversed and its walk
- *   starts at coords[0].
+ * @property {boolean} [fixedDirection] - True for a part-walked street: never reversed, always entered at coords[0].
  */
 
 /**
@@ -46,33 +45,23 @@ import { NODE_TOLERANCE_M } from './streetNetwork.js';
  * going instead of choosing each street greedily after the last (#5526).
  *
  * The walk is built as trails: from the current node it keeps walking onto an unwalked street while one is eligible,
- * and only jumps when none is. Fleury's rule (never take a bridge of the remaining graph while another street will
+ * and jumps only when none is. Fleury's rule (never take a bridge of the remaining graph while another street will
  * do) keeps a trail from stranding the rest of its component, and a jump lands on an odd-degree node when it can,
- * because a component with k odd nodes needs at least k/2 trails and starting anywhere else wastes one.
- * Streets under `tinyStreetM` (border-cut remnants, slivers; #4717, #3488) are eligible regardless of priority, so a
- * tiny street rides along with the street it continues instead of becoming a standalone jump target later; it still
- * yields to Fleury, so a tiny dead-end spur waits until the trail would end there anyway. A tiny street is a jump
- * target only once its tier holds no other street.
+ * because a component with k odd nodes needs at least k/2 trails and starting anywhere else wastes one. A street
+ * under `tinyStreetM` (border-cut remnants, slivers; #4717) is eligible whatever its priority, so it rides along with
+ * the street it continues instead of becoming a jump target later; it still yields to Fleury, so a tiny dead-end spur
+ * waits until the trail would end there anyway.
  *
  * Priority is a gate on continuing, not a weight: a connected street is eligible only when its priority is within
- * `priorityTolerance` of the best remaining priority, so an out-of-tier street forces a jump rather than merely
- * ranking last; a jump goes to the nearest street in that tier. Both thresholds are domain values, so the planner has
- * no defaults for them: Explore passes the backend's (`walk-planner.*` in application.conf, via the page's
- * `walkPlanner` data), and the benchmark and tests name their own. The shipped values were chosen by the replay
- * benchmark in `tools/experiments/5526-mission-walk-planner/README.md`.
+ * `priorityTolerance` of the best remaining, so an out-of-tier street forces a jump rather than ranking last, and a
+ * jump goes to the nearest street in that tier. The planner has no defaults for the two thresholds: Explore passes the
+ * backend's (application.conf), which the benchmark in tools/experiments/5526-mission-walk-planner/ chose.
  *
- * Pure and deterministic: no DOM, no map, no turf, its own haversine. The input is sorted by id, every tie falls to
- * the lower street id, and the graph and every end choice are built from each street's canonical endpoint order
- * (lexicographic [lng, lat]) rather than its stored orientation. So the same street set, priorities and start give the
- * same plan however the streets happen to be oriented, and a replan over re-oriented geometry does not reshuffle the
- * remainder. It has no map or DOM dependency so it can also run in Node (the benchmark) or server-side later. The
- * node-merging follows RouteGraph's (#4579) idiom but stays its own: RouteGraph merges incrementally as the builder
- * edits, while the planner merges in canonical order with the nearest node winning so the same streets always give
- * the same plan.
- *
- * Measured cost (construct + plan, Node 24 in the web container on an M-series Mac; the benchmark README's "Planning
- * time"): the largest Seattle dev region (617 streets) ~10 ms warm / ~36 ms cold, a 25×25 lattice (1,200 streets)
- * ~11 / ~30 ms, and a 1,800-street comb of dead-end teeth, the worst shape found, ~113 / ~157 ms.
+ * Deterministic: streets are sorted by id, every tie falls to the lower id, and the graph and every end choice are
+ * built from each street's canonical endpoint order (lexicographic [lng, lat]) rather than its stored orientation, so
+ * the same streets, priorities and start give the same plan however the streets are oriented. No DOM or map, so it
+ * also runs in Node for the benchmark. Its node merging is its own, not RouteGraph's (#4579): that one merges
+ * incrementally as the builder edits, where this one needs the nearest node to win regardless of scan order.
  *
  * @example
  * const planner = new WalkPlanner(streets, { priorityTolerance: 0.15, tinyStreetM: 20 });
@@ -80,9 +69,8 @@ import { NODE_TOLERANCE_M } from './streetNetwork.js';
  */
 export class WalkPlanner {
   /**
-   * Metres a jump pays for landing on an even-degree node, where starting a trail usually wastes one. 300 m cut
-   * jumps 6–11% against no penalty across the dev cities; 1,000 m bought under 1% more and lengthened jumps (same
-   * README).
+   * Metres a jump pays for landing on an even-degree node, where starting a trail usually wastes one. In the benchmark
+   * 300 m cut jumps 6–11% across the dev cities, and 1,000 m bought under 1% more while lengthening the jumps.
    */
   static ODD_START_PENALTY_M = 300;
 
@@ -103,15 +91,9 @@ export class WalkPlanner {
   #byPriority;
   /** @type {number} */
   #lowerBound;
-  /**
-   * @type {number} A connected street is eligible if its priority is within this of the best remaining priority. The
-   *   unit is the server's reciprocal-normalized priority (`StreetEdgePriorityTable`: `priority = 1 / (1 + goodAudits
-   *   + …)`), so a change to that formula silently re-tunes the tolerance.
-   */
+  /** @type {number} A connected street is eligible when its priority is within this of the best remaining. */
   #priorityTolerance;
-  /**
-   * @type {number} A street is tiny when `lengthM < tinyStreetM` (strictly less).
-   */
+  /** @type {number} A street is tiny when strictly shorter than this (metres). */
   #tinyStreetM;
   /** @type {number} */
   #oddStartPenaltyM;
@@ -127,10 +109,9 @@ export class WalkPlanner {
   /**
    * @param {PlannerStreet[]} streets - The streets still to be walked (already filtered: not complete, not given up).
    * @param {{priorityTolerance: number, tinyStreetM: number, oddStartPenaltyM?: number}} options - The two thresholds
-   *   are required (see the class doc); the penalty is a planner heuristic, exposed for the benchmark's sweep, and
-   *   normally left at its default.
-   * @throws {TypeError} When either threshold is missing or not a finite number, so a page that failed to hand them
-   *   over falls back to the greedy rule (TaskContainer.planWalk) instead of planning with a silent default.
+   *   are required; the penalty is exposed for the benchmark's sweep and normally left at its default.
+   * @throws {TypeError} When either threshold is missing or not finite, so a page that failed to hand them over falls
+   *   back to the greedy rule (TaskContainer.planWalk) instead of planning with a silent default.
    */
   constructor(streets, options) {
     const { priorityTolerance, tinyStreetM, oddStartPenaltyM } = options ?? {};
@@ -336,10 +317,8 @@ export class WalkPlanner {
   }
 
   /**
-   * Whether a street is tiny (see #tinyStreetM for the boundary).
-   *
    * @param {number} index - The street.
-   * @returns {boolean} True when it is strictly shorter than the tiny-street threshold.
+   * @returns {boolean} True when it is strictly shorter than tinyStreetM.
    */
   #isTiny(index) {
     return this.#streets[index].lengthM < this.#tinyStreetM;
@@ -389,7 +368,6 @@ export class WalkPlanner {
    * Two searches run in lockstep, one from each end with the street removed; they are connected the moment one
    * reaches a node the other has stamped, and it is a bridge the moment either side runs out. So the cost is bounded
    * by the smaller side, which keeps a long dead-end spine (the comb case) from making every step search all of it.
-   * The stamp array and queues are reused across calls (an epoch per search) rather than allocated each time.
    *
    * @param {number} index - The street.
    * @param {number} from - The node the walk stands on.
@@ -591,8 +569,7 @@ export class WalkPlanner {
    * order, so reversing a street's stored geometry cannot change which nodes exist.
    *
    * @param {{coords: number[][]}[]} streets - Streets in id order (merging is order-dependent, so the order is fixed).
-   * @returns {{ends: number[][], nodePos: number[][]}} Per street its [coords[0], coords[last]] node indices, and per
-   *   node its [lng, lat].
+   * @returns {{ends: number[][], nodePos: number[][]}} Per street its two end-node indices; per node its [lng, lat].
    */
   static #buildGraph(streets) {
     /** @type {Map<string, number[]>} */

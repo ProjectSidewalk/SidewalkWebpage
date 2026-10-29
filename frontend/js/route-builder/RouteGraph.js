@@ -14,8 +14,7 @@ import { NODE_TOLERANCE_M } from '../common/streetNetwork.js';
  * Client-side street-network graph for auto-routing (#4579): builds an adjacency graph from the city's street
  * GeoJSON (endpoints within NODE_TOLERANCE_M are merged into one node, the same connectivity tolerance the builder's
  * contiguous-section logic uses) and answers shortest-walking-path queries with A*. Routing runs over the whole
- * city's network: regions organize missions, not routes, so a path is free to cross from one region into the next
- * (#3488).
+ * city's network, since regions organize missions, not routes, and a path may cross from one region into the next.
  */
 export class RouteGraph {
   // Metres per degree of latitude, for a cheap "can't be nearer than" prefilter before the real distance is measured.

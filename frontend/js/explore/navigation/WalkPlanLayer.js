@@ -2,11 +2,10 @@
  * Previews the next few streets of a neighborhood mission's planned walk on the minimap, and the jumps between them
  * (#5526).
  *
- * A route shows every street ahead, but a planned walk covers the whole region, and drawing all of it as the route
- * ahead would bury the path the labeler is about to take under the rest of the neighborhood. So only the streets
- * within a horizon are drawn as the route ahead (a task marked planned-ahead draws itself that way), and each place
- * Explore will move the labeler rather than let them walk is drawn as a dashed connector, so a jump is visible before
- * it happens rather than announced after. Everything beyond the horizon stays quiet grey context.
+ * A route shows every street ahead, but a planned walk covers the whole region, and drawing all of it that way would
+ * bury the path the labeler is about to take. So only the streets within a horizon are drawn as the route ahead (a
+ * task marked planned-ahead draws itself that way), with a dashed connector wherever Explore will move the labeler
+ * rather than let them walk, so a jump is visible before it happens. Everything beyond stays quiet grey context.
  */
 
 import { TaskContainer } from '../task/TaskContainer.js';
@@ -81,10 +80,8 @@ export class WalkPlanLayer {
   }
 
   /**
-   * Recomputes which streets are previewed and redraws them and the jump connectors. Cheap enough to run on every
-   * street switch: it touches at most #MAX_STREETS streets plus the ones previewed before. The preview is decoration,
-   * so a drawing error is logged rather than let into the street-switch or submission code that triggered it, whose
-   * own error handling reloads the page.
+   * Recomputes which streets are previewed and redraws them and the jump connectors. The preview is decoration, so a
+   * drawing error is only logged: let into the street switch or submission that triggered it, it would reload the page.
    */
   refresh() {
     try {
@@ -148,15 +145,12 @@ export class WalkPlanLayer {
   }
 
   /**
-   * One connector for each previewed street Explore will jump to: from the end of the street before it to where the
-   * labeler lands on it, its start or, on a part-walked street, where they left it. The street before is the previous
-   * previewed one, or the current street for the first: a step between them that was walked or given up on out of
-   * order is skipped by nextTask, so it does not stand between the labeler and the jump. A current street just given
-   * up on for lack of imagery gets no connector: the labeler leaves it from where they stand, not from its far end.
+   * One connector for each previewed street Explore will jump to, from the end of the street before it (the previous
+   * previewed one, or the current street for the first) to where the labeler lands on it. A current street just given
+   * up on for lack of imagery gets none: the labeler leaves it from where they stand, not from its far end.
    *
-   * Drawn from geometry rather than the plan's own jump flag, with the gap StreetProgress measures at the end of a
-   * street: under TaskContainer.CONNECTED_TASK_KM the streets are switched seamlessly, so a connector there would
-   * promise a jump that never comes.
+   * Drawn from geometry rather than the plan's own jump flag, with the same gap StreetProgress measures at the end of
+   * a street, so a connector never promises a jump that turns out to be a seamless switch.
    *
    * @param {Task[]} previewed - The previewed streets, in walk order.
    * @returns {MinimapStreetLine[]} The connectors, as lines for the minimap.

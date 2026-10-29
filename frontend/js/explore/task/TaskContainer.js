@@ -38,8 +38,8 @@ export class TaskContainer {
 
   /**
    * The neighborhood mission's planned walk (#5526): the planner's steps and stats, why it was (re)built, and when.
-   * Null on a route (whose order is saved server-side), in free exploration and the tutorial, and whenever planning
-   * failed, which is what sends nextTask back to the greedy rule.
+   * Null on a route, in free exploration and the tutorial, and after a planning failure, which sends nextTask back
+   * to the greedy rule.
    * @type {?{steps: import('../../common/WalkPlanner.js').PlanStep[], stats: object, reason: string,
    *   createdAt: number}}
    */
@@ -215,10 +215,9 @@ export class TaskContainer {
 
   /**
    * Plans the walk over every street still to be walked, starting from the current street, and stamps the order and
-   * each street's direction onto its task (#5526). The thresholds are the backend's (config.walkPlanner), not literals
-   * here. While a jump is armed the replan is only recorded, and runs once the jump lands (#deferredReplanReason).
-   * Never throws: a failing planner leaves no plan and nextTask falls back to the greedy rule, because a planning bug
-   * must never be what stops someone labeling.
+   * each street's direction onto its task (#5526). While a jump is armed the replan is only recorded, and runs once
+   * the jump lands. Never throws: a failing planner leaves no plan and nextTask falls back to the greedy rule, because
+   * a planning bug must never be what stops someone labeling.
    *
    * @param {string} reason - Why a plan is being built, for the log: 'load', 'giveUp', 'priority', or 'switch'.
    * @returns {boolean} Whether a plan now exists.
@@ -402,10 +401,8 @@ export class TaskContainer {
   }
 
   /**
-   * The unwalked streets the planner treats as the top tier: priority within the configured tolerance
-   * (config.walkPlanner.priorityTolerance, the same value the plan was built with) of the best one left. A street
-   * entering or leaving it changes which streets the walk may take before a jump, so a change to this set is one a
-   * replan has to see.
+   * The unwalked streets the planner treats as the top tier: priority within the tolerance of the best one left. A
+   * street entering or leaving it changes which streets the walk may take before a jump, so a replan has to see that.
    *
    * @returns {Set<Task>} Empty when nothing is left to walk.
    */
@@ -685,11 +682,10 @@ export class TaskContainer {
         return current.getWalkOrder() < min.getWalkOrder() ? current : min;
       }, tasksNotCompletedByUser[0]);
     } else if (this.hasWalkPlan()) {
-      // The earliest unwalked step of the plan. A street the plan left out sorts last rather than first: null compares
-      // as 0, which would put it ahead of the whole plan. No direction correction follows, unlike the greedy rule
-      // below: the plan already chose each street's direction, including a jump target entered at its far end, and
-      // turning one toward the finished street would land the labeler where the minimap connector does not point. A
-      // labeler who leaves the plan gets a replan from the street they took (setCurrentTask), which orients the rest.
+      // The earliest unwalked step of the plan; a street the plan left out sorts last (null would compare as 0). No
+      // direction correction, unlike the greedy rule below: the plan chose each street's direction, including a jump
+      // target entered at its far end, and turning one toward the finished street would land the labeler where the
+      // minimap connector does not point.
       const position = (t) => t.getPlannedPosition() ?? Infinity;
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return position(current) < position(min) ? current : min;

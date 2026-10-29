@@ -293,7 +293,7 @@ function prepareRegion(streets) {
 
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '–');
 
-/** Streets of an n×n lattice on the equator at 0.001° (~111 m), oriented east/north, as in the jest perf guard. */
+/** Streets of an n×n lattice on the equator at 0.001° (~111 m), oriented east/north, as in the test perf guard. */
 function latticeStreets(n) {
   const P = (x, y) => [x * 0.001, y * 0.001];
   const out = [];
@@ -306,7 +306,7 @@ function latticeStreets(n) {
   return out;
 }
 
-/** A spine of `n` streets with a dead-end tooth on each side of every spine node, as in the jest perf guard. */
+/** A spine of `n` streets with a dead-end tooth on each side of every spine node, as in the test perf guard. */
 function combStreets(n) {
   const P = (x, y) => [x * 0.001, y * 0.001];
   const out = [];

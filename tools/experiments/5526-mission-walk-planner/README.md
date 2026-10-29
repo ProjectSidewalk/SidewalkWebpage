@@ -1,13 +1,12 @@
 # #5526: a planned walk for neighborhood missions, replayed against the greedy rule
 
-Explore picks each neighborhood street greedily after the last one (`TaskContainer.nextTask`). Issue
+Explore picked each neighborhood street greedily after the last one (`TaskContainer.nextTask`). Issue
 [#5526](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5526) replaces that with a walk planned up front,
 `frontend/js/common/WalkPlanner.js`, and keeps the greedy rule as the fallback. This experiment replays both, and a few
-variants, over every region of the three dev-DB cities, so the planner's defaults rest on numbers rather than
-intuition.
+variants, over every region of the three dev-DB cities, so the planner's defaults rest on numbers, not intuition.
 
-Ran at commit `5bd345d7d` (the review-fix commit; the planner it measures is the one this branch ships), on base `2fbcd5a36`,
-in Node 24 inside the web container, on the dev DB as of 2026-09-27.
+Ran at commit `5bd345d7d` (the review-fix commit; the planner it measures is the one this branch ships), on base
+`2fbcd5a36`, in Node 24 inside the web container, on the dev DB as of 2026-09-27.
 
 ## Running it
 
@@ -18,8 +17,8 @@ node tools/experiments/5526-mission-walk-planner/replay.mjs --city seattle --reg
 node tools/experiments/5526-mission-walk-planner/replay.mjs --perf   # the planning-time table below
 ```
 
-The replay imports the real `WalkPlanner.js`, so it measures the code that ships. The
-whole run takes about 35 s. `results.md` is only written by an unfiltered run.
+The replay imports the real `WalkPlanner.js`, so it measures the code that ships. The whole run takes about 35 s;
+`results.md` is only written by an unfiltered run.
 
 ## What is replayed
 
@@ -49,9 +48,9 @@ All policies are measured by the replay with the same yardsticks, not by their o
   table is given twice:
   - **25 m (the headline).** Explore's own `CONNECTED_TASK_THRESHOLD`: a hop under 25 m is what the greedy rule
     calls connected and what a labeler experiences as walking on, not as a jump.
-  - **10 m.** `NODE_TOLERANCE_M` (frontend/js/common/streetNetwork.js), the graph the planner plans on and the lower bound is computed on. It
-    counts 10–25 m hops as jumps, which the greedy rule makes more of (it treats them as connected), so it flatters
-    the planner: in Seattle `current` makes 4.37 jumps/km at 10 m but 4.15 at 25 m.
+  - **10 m.** `NODE_TOLERANCE_M` (`frontend/js/common/streetNetwork.js`), the graph the planner plans on and the lower
+    bound is computed on. It counts 10–25 m hops as jumps, which the greedy rule makes more of (it treats them as
+    connected), so it flatters the planner: in Seattle `current` makes 4.37 jumps/km at 10 m but 4.15 at 25 m.
 - **jumps/km:** jumps divided by the region's street kilometres. The city figure is the km-weighted mean
   (Σ jumps / Σ km); "median region" is the unweighted median over regions.
 - **median jump m:** the median over every jump in the city, all starts pooled.
@@ -103,19 +102,17 @@ alone, so the last two columns are what the logged `WalkPlan_Created` `ms` repor
 
 The comb is the worst shape found: one priority tier holding every street and 1,200 dead ends, so each of its 600
 jumps scans the whole tier. That scan is linear per jump, so the comb grows roughly quadratically; a street grid does
-not. Cold timings vary by ±30% run to run. Distances are turf's, which cost about twice a hand-written haversine
-per call; that is what the comb's jump scan is made of, so the comb pays for it, while a real region plans in under
-10 ms warm either way. The dev DB's Seattle region 41 had one degenerate node where 318 street ends met, which is
-why the planner counts onward streets once per node rather than per candidate. Production region sizes have not been
-checked against these.
+not. The scan is almost all distance calls, and turf's cost about twice a hand-written haversine, which is why the
+comb is slower than an earlier run while a real region still plans in under 10 ms warm. Cold timings vary by ±30%
+run to run. An earlier dev DB's Seattle region 41 had one node where 318 street ends met, which is why the planner
+counts onward streets once per node rather than per candidate. Production region sizes have not been checked.
 
 ## Reading the numbers
 
 **The choice: `walk-planner.priority-tolerance = 0.15` (application.conf), `ODD_START_PENALTY_M = 300`, unchanged by
-the 25 m re-run.** The
-selection rule was "fewest 25 m jumps per km whose km-weighted priority-AUC is no more than 0.03 below `current` in
-any city". 0.15 is the widest tolerance that passes; 0.2 fails in Seattle (0.889 against a floor of 0.909) and
-Teaneck (0.878 against 0.931). The rule picks the same tolerance at the 10 m yardstick.
+the 25 m re-run.** The selection rule was "fewest 25 m jumps per km whose km-weighted priority-AUC is no more than
+0.03 below `current` in any city". 0.15 is the widest tolerance that passes; 0.2 fails in Seattle (0.889 against a
+floor of 0.909) and Teaneck (0.878 against 0.931). The rule picks the same tolerance at the 10 m yardstick.
 
 **The acceptance criterion was relaxed, and that is a decision for the maintainers.** The plan comment on #5526 said
 priority coverage should be *no worse* than `current`. "Within 0.03" was introduced by this benchmark, and the chosen
@@ -159,9 +156,8 @@ covering the most-needed streets first, 0.25 gives 3.00 / 3.08 / 2.50 jumps/km (
   components and odd nodes; neither the planner's nor the greedy rule's numbers there are measured.
 - **One user, alone.** Priorities are fixed for the whole replay; in production other users finish streets
   meanwhile, which is why Explore replans rather than trusting a plan for a whole session.
-- **Not modelled in Explore's behaviour:** the tiny-street auto-complete at spawn, and the `switch`, `priority` and
-  `giveUp` replans. Each replan starts a new plan from wherever the labeler is, so a session's jumps are those of
-  several shorter plans, not of one whole-region plan.
+- **Not modelled in Explore's behaviour:** the `switch`, `priority` and `giveUp` replans. Each starts a new plan from
+  wherever the labeler is, so a session's jumps are those of several shorter plans, not of one whole-region plan.
 - **Whole-region walks.** A real session is a few 152 m missions, not the whole region. The early part of the walk
   (what AUC weighs most) is what users actually see, but the jump rates are whole-region averages.
 - **Dev-DB snapshot.** The dump's age is unknown, and dev priorities may not match production's distribution.

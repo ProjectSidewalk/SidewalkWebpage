@@ -4,12 +4,11 @@ import play.api.Configuration
 import play.api.libs.json.{Json, Writes}
 
 /**
- * The thresholds the client-side walk planner runs with (WalkPlanner.js, #5526), read from `walk-planner.*` in
- * application.conf. The planner runs on the client because the client already holds every street of the region with
- * its live priority, but these are domain values, so the backend owns them and the page hands them over as JSON.
+ * The client-side walk planner's thresholds (WalkPlanner.js, #5526), read from `walk-planner.*` in application.conf,
+ * which says what each means and why the backend owns them. The Explore page hands them over as JSON.
  *
  * @param priorityTolerance How far below the best remaining priority a connected street may be and still be walked
- *                          next rather than jumped from; in units of the reciprocal-normalized street priority.
+ *                          next rather than jumped from.
  * @param tinyStreetM Streets strictly shorter than this (metres) are walked whenever adjacent, whatever their priority.
  */
 case class WalkPlannerSettings(priorityTolerance: Double, tinyStreetM: Double)
