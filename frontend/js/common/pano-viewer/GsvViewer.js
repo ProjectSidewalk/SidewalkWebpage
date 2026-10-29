@@ -9,7 +9,6 @@ import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
-import '../utilitiesMath.js';
 
 export class GsvViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */

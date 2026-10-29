@@ -219,7 +219,7 @@ export class TaskContainer {
    * the jump lands. Never throws: a failing planner leaves no plan and nextTask falls back to the greedy rule, because
    * a planning bug must never be what stops someone labeling.
    *
-   * @param {string} reason - Why a plan is being built, for the log: 'load', 'giveUp', 'priority', or 'switch'.
+   * @param {string} reason - Why a plan is being built, for the log: 'load', 'giveUp' or 'priority'.
    * @returns {boolean} Whether a plan now exists.
    */
   planWalk(reason) {
@@ -289,13 +289,11 @@ export class TaskContainer {
    * step "connected" that Explore turns into a mid-street jump.
    *
    * @param {Task} task - A street to be planned.
-   * @returns {number[][]} The whole street, or for a resumed one its unwalked remainder (whole if that has collapsed).
+   * @returns {number[][]} The whole street, or for a resumed one its unwalked remainder.
    */
   static #unwalkedCoords(task) {
-    const coords = task.getGeoJSON().geometry.coordinates;
-    if (!task.isResumed()) return coords;
-    const remainder = task.unwalkedRemainder().geometry.coordinates;
-    return remainder.length >= 2 ? remainder : coords;
+    const geometry = task.isResumed() ? task.unwalkedRemainder().geometry : task.getGeoJSON().geometry;
+    return geometry.coordinates;
   }
 
   /**
@@ -312,8 +310,7 @@ export class TaskContainer {
    *
    * Direction goes through setStreetEdgeDirection, which only ever turns a street to start at the given end, so
    * applying the same plan twice changes nothing. The current street keeps its orientation (the labeler is already
-   * walking it), a part-walked street keeps its own, since its audit_task row fixes it (#5370), and so does an armed
-   * jump's target, which was chosen and prefetched as it stands.
+   * walking it), and a part-walked street keeps its own, since its audit_task row fixes it (#5370).
    *
    * @param {{steps: import('../../common/WalkPlanner.js').PlanStep[], stats: object}} plan
    * @param {Task[]} plannedTasks - The tasks the plan was built over.
@@ -327,7 +324,7 @@ export class TaskContainer {
       const task = byStreetId.get(step.id);
       if (!task) return;
       task.setPlannedPosition(position);
-      if (task !== this.#currentTask && task !== this.#nextTaskAfterJump && !task.isResumed()) {
+      if (task !== this.#currentTask && !task.isResumed()) {
         const coords = task.getGeoJSON().geometry.coordinates;
         const [lng, lat] = step.reverse ? coords[coords.length - 1] : coords[0];
         task.setStreetEdgeDirection({ lat, lng });
@@ -383,31 +380,32 @@ export class TaskContainer {
     // labeler. So the plan is rebuilt only when the change can matter to it: a street the minimap is previewing, or
     // which streets are in the planner's top tier (#5526).
     const tierBefore = this.hasWalkPlan() ? this.#topTierTasks() : null;
+    let changed = false;
     let previewedChanged = false;
     // The server reports every street of the region whose priority changed, which need not be one that is loaded
     // here (a hidden street, say), so an unknown id is skipped rather than assumed present.
     updatedPriorities.forEach((newPriority) => {
       const task = this._tasks.find((s) => s.getStreetEdgeId() === newPriority.street_edge_id);
-      if (!task) return;
-      if (tierBefore && task.isPlannedAhead() && task.getStreetPriority() !== newPriority.priority) {
-        previewedChanged = true;
-      }
+      if (!task || task.getStreetPriority() === newPriority.priority) return;
+      changed = true;
+      if (task.isPlannedAhead()) previewedChanged = true;
       task.setProperty('priority', newPriority.priority);
     });
-    if (!tierBefore) return;
+    if (!tierBefore || !changed) return;
     const tierAfter = this.#topTierTasks();
     const tierChanged = tierAfter.size !== tierBefore.size || [...tierAfter].some((task) => !tierBefore.has(task));
     if (previewedChanged || tierChanged) this.planWalk('priority');
   }
 
   /**
-   * The unwalked streets the planner treats as the top tier: priority within the tolerance of the best one left. A
-   * street entering or leaving it changes which streets the walk may take before a jump, so a replan has to see that.
+   * The streets the planner treats as the top tier: the unwalked ones other than the current street (the planner
+   * chooses among what follows it), with a priority within the tolerance of the best of them. A street entering or
+   * leaving the tier changes which streets the walk may take before a jump, so a replan has to see that.
    *
    * @returns {Set<Task>} Empty when nothing is left to walk.
    */
   #topTierTasks() {
-    const unwalked = this.getUnwalkedTasks();
+    const unwalked = this.getUnwalkedTasks().filter((task) => task !== this.#currentTask);
     if (unwalked.length === 0) return new Set();
     const best = Math.max(...unwalked.map((task) => task.getStreetPriority()));
     const cutoff = best - (this.#config.walkPlanner?.priorityTolerance ?? 0);
@@ -762,16 +760,9 @@ export class TaskContainer {
     // Landing on the armed target is what ends a jump, so from here a replan may run again.
     if (task === this.#nextTaskAfterJump) this.#nextTaskAfterJump = null;
     this.#recordTaskStart(task);
-    // Taking a street other than the plan's next one (picking an abandoned street back up, #5370) leaves the plan
-    // describing a walk from somewhere the labeler isn't, so it is rebuilt from here. Otherwise a replan held back
-    // while a jump was armed runs now, from the street the jump landed on. After the task start, so the plan is
-    // logged under this street; before the listeners, so the preview they redraw is of the plan as it now stands.
-    if (this.hasWalkPlan() && task.isLeftToWalk()) {
-      const position = task.getPlannedPosition();
-      const earliest = Math.min(...this.getUnwalkedTasks().map((t) => t.getPlannedPosition() ?? Infinity));
-      if (position === null || position > earliest) this.planWalk('switch');
-      else if (this.#deferredReplanReason !== null) this.planWalk(this.#deferredReplanReason);
-    }
+    // A replan held back while a jump was armed runs now, from the street the jump landed on. After the task start,
+    // so the plan is logged under this street; before the listeners, so the preview they redraw is of the new plan.
+    if (this.#deferredReplanReason !== null && this.hasWalkPlan()) this.planWalk(this.#deferredReplanReason);
     this.#currentTaskListeners.forEach((listener) => listener(task));
   }
 

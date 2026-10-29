@@ -405,35 +405,7 @@ describe('A neighborhood mission\'s planned walk', () => {
       expect(FakeWalkPlanner.instances).toHaveLength(1);
     });
 
-    it('when the labeler takes a street other than the plan\'s next (#5370)', async () => {
-      FakeWalkPlanner.script = scriptSteps([1, 2, 3, 4, 5]);
-      await load();
-      task(1).complete();
-      FakeWalkPlanner.script = scriptSteps([5, 4, 2, 3]);
-
-      container.setCurrentTask(task(5));
-
-      expect(FakeWalkPlanner.instances.at(-1).start).toEqual({ streetId: 5 });
-      expect(container.getWalkPlan().reason).toBe('switch');
-      expect(task(5).getPlannedPosition()).toBe(0);
-    });
-
-    it('logging the replan under the street switched to, not the one left', async () => {
-      await load();
-      task(1).complete();
-      task(5).setProperty('auditTaskId', 55);
-
-      container.setCurrentTask(task(5));
-
-      const planned = tracker.push.mock.calls.findIndex(([name, note]) => name === 'WalkPlan_Created'
-        && note.reason === 'switch');
-      expect(planned).toBeGreaterThan(-1);
-      expect(tracker.setAuditTaskID).toHaveBeenCalledWith(55);
-      expect(tracker.setAuditTaskID.mock.invocationCallOrder[0])
-        .toBeLessThan(tracker.push.mock.invocationCallOrder[planned]);
-    });
-
-    it('but not when the labeler simply takes the plan\'s next street', async () => {
+    it('but not when the labeler takes the plan\'s next street', async () => {
       FakeWalkPlanner.script = scriptSteps([1, 2, 3, 4, 5]);
       await load();
       task(1).complete();
@@ -441,6 +413,24 @@ describe('A neighborhood mission\'s planned walk', () => {
       container.setCurrentTask(container.nextTask(task(1)));
 
       expect(FakeWalkPlanner.instances).toHaveLength(1);
+    });
+
+    it('logging a held replan under the street the jump landed on, not the one left', async () => {
+      FakeWalkPlanner.script = scriptSteps([1, 4, 5, 2, 3], { 4: { jump: true } });
+      await load();
+      container.setNextTaskAfterJump(task(4));
+      task(4).setProperty('auditTaskId', 44);
+      container.updateTaskPriorities([{ street_edge_id: 2, priority: 0.25 }]);
+      task(1).complete();
+
+      container.setCurrentTask(task(4));
+
+      const planned = tracker.push.mock.calls.findIndex(([name, note]) => name === 'WalkPlan_Created'
+        && note.reason === 'priority');
+      expect(planned).toBeGreaterThan(-1);
+      expect(tracker.setAuditTaskID).toHaveBeenCalledWith(44);
+      expect(tracker.setAuditTaskID.mock.invocationCallOrder[0])
+        .toBeLessThan(tracker.push.mock.invocationCallOrder[planned]);
     });
 
     it('only once an armed jump lands, and never turning its target in between', async () => {

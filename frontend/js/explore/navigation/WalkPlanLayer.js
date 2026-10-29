@@ -96,6 +96,7 @@ export class WalkPlanLayer {
     return [...this.#previewed];
   }
 
+  /** Marks the streets within the horizon as previewed, re-renders what changed, and redraws the jump connectors. */
   #redraw() {
     const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS);
     const lengthsM = ahead.map(({ task }) => WalkPlanLayer.#remainderM(task));

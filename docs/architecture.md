@@ -152,9 +152,8 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
 - **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
   region's unwalked streets to `WalkPlanner` (`frontend/js/common/`), stamps each task with its planned position and
   direction, and `nextTask` follows that order the way it follows a route's saved one. It replans when a street is
-  given up for lack of imagery, when another labeler changes the priority of a street still ahead, and when the
-  labeler switches to a street other than the plan's next; a replan asked for while a jump is armed waits until the
-  jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
+  given up for lack of imagery and when another labeler's audit changes the priority of a previewed street or which
+  streets are in the top priority tier; a replan asked for while a jump is armed waits until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
   deterministic, so a reload that resumes the same street replans the same remaining walk. If planning fails, the
   greedy next-street rule takes over.
   - *Why the client, and what would move it.* The next-street choice was already client-side (the greedy rule), the
