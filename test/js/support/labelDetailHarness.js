@@ -129,7 +129,8 @@ export function cardMarkup({ admin = false, withPaging = false, typePicker = tru
         <a class="label-detail__address label-detail__meta-value"></a>
       </div>
       <button type="button" class="label-detail__meta-cell label-detail__meta-cell--details">
-        <span class="label-detail__details-word">Details</span><span class="label-detail__info-button-host"></span>
+        <span><span>Details</span>:</span>
+        <span class="label-detail__info-button-host"></span>
       </button>
     </div>
     <div class="label-detail__columns">
@@ -266,8 +267,9 @@ function routedFetch(routes) {
     let reply = routes[key];
     if (typeof reply === 'function') reply = await reply(url, opts);
     if (reply instanceof Error) throw reply;
-    const { status, body } = reply && Number.isInteger(reply.status) ? reply : { status: 200, body: reply };
-    return { ok: status < 400, status, json: async () => body };
+    const wrapped = reply && Number.isInteger(reply.status) && Object.hasOwn(reply, 'body');
+    const { status, body } = wrapped ? reply : { status: 200, body: reply };
+    return { ok: status >= 200 && status < 300, status, json: async () => body };
   });
 }
 
@@ -294,7 +296,8 @@ export async function mountCard({
   collaborators.recordValidation.mockReset();
   window.logWebpageActivity = vi.fn();
 
-  document.body.innerHTML = `<div id="card" class="label-detail">${cardMarkup({ admin, withPaging, typePicker })}</div>`;
+  const markup = cardMarkup({ admin, withPaging, typePicker });
+  document.body.innerHTML = `<div id="card" class="label-detail">${markup}</div>`;
   const card = document.getElementById('card');
   panoManager = fakePanoManager();
   const allRoutes = { 'GET /label/tags': [], ...routes };

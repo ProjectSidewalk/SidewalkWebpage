@@ -2540,24 +2540,19 @@ export class LabelDetail {
       const conflict = res.status === 409;
       if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
+      // Kept even after paging on, since saves queued behind this one for the same label start from these values.
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
       if (!conflict) this.#logEdit(meta, prev, change, sameTags);
-      // Paged on: nothing is drawn over the newer label, but the host still hears, so its map dot or gallery card
-      // for this label doesn't keep the old values until a reload.
-      if (this.#currentLabelMeta !== meta) {
-        // Not awaited: the saves queued behind this one are for the label on screen, and shouldn't wait on it.
-        if (meta.label_type !== prev.labelType) this.#refreshVotes(meta).then(() => this.#notifyEdit(meta));
-        else this.#notifyEdit(meta);
-        return;
-      }
+      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
+      if (this.#currentLabelMeta !== meta) return;
       render();
       if (conflict) {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
           await this.#refreshVotes(meta);
-          this.#notifyEdit(meta);
+          if (typeof this.#onEdit === 'function') this.#onEdit(meta);
         }
         return;
       }
@@ -2576,13 +2571,14 @@ export class LabelDetail {
       }
       // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
       if (typeChange) await this.#refreshVotes(meta);
-      this.#notifyEdit(meta);
+      if (typeof this.#onEdit === 'function') this.#onEdit(meta);
     } catch (err) {
       console.error(err);
-      if (this.#currentLabelMeta !== meta) return;
+      // Rolled back even after paging on, or saves queued behind this one would resend the values the server refused.
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
+      if (this.#currentLabelMeta !== meta) return;
       render();
       this.#showEditFailure(columns);
     }
@@ -2608,11 +2604,6 @@ export class LabelDetail {
     if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`, false, id);
   }
 
-  /** @param {Record<string, any>} meta - The edited label's metadata, passed to the host's onEdit. */
-  #notifyEdit(meta) {
-    if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-  }
-
   /**
    * Re-reads votes and comments after a change only the server can resolve: a type change (the old type's stop
    * showing, #5510) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
@@ -2621,9 +2612,8 @@ export class LabelDetail {
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
-    // A vote cast now would be overwritten by the older counts on their way back. A re-read for a label paged away
-    // from leaves the shown label's buttons alone.
-    if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(true);
+    // A vote cast now would be overwritten by the older counts on their way back.
+    this.#setVoteButtonsDisabled(true);
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -2632,17 +2622,9 @@ export class LabelDetail {
       });
       if (!response.ok) return;
       const fresh = await response.json();
+      if (this.#currentLabelMeta !== meta) return;
       for (const key of ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation']) {
         meta[key] = fresh[key];
-      }
-      // Paged on: the label's data still takes the new type's votes and comments, which its host may show later.
-      if (this.#currentLabelMeta !== meta) {
-        // A comment saved while this was in flight may be missing from the reply.
-        if (this.#commentWrites === commentWrites) {
-          meta.comments = fresh.comments ?? [];
-          if (typeof this.#onComments === 'function') this.#onComments(meta);
-        }
-        return;
       }
       this.#validationCounts.Agree = meta.num_agree;
       this.#validationCounts.Disagree = meta.num_disagree;

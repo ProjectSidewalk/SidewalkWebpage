@@ -11,7 +11,9 @@ describe('the label card', () => {
   describe('the ?labelId= deep link', () => {
     test('is set for an open label and removed when the card closes, without adding history', async () => {
       const { LabelDetail } = await mountCard();
+      const path = window.location.pathname + window.location.search;
       window.history.replaceState(null, '', '/labelMap?city=seattle');
+      onTestFinished(() => window.history.replaceState(null, '', path));
       const before = window.history.length;
 
       LabelDetail.syncUrlLabelId(42);
@@ -144,15 +146,17 @@ describe('the label card', () => {
       expect(panoManager.setLabelsHidden).toHaveBeenLastCalledWith(true);
       collaborators.toggle.onChange(true, { viaClick: false });
       expect(panoManager.setLabelsHidden).toHaveBeenLastCalledWith(false);
-      expect(logged().filter((e) => e.startsWith('Click_'))).toEqual(['Click_module=LabelDetail_action=HideLabel_labelId=42']);
+      const clicks = logged().filter((e) => e.startsWith('Click_'));
+      expect(clicks).toEqual(['Click_module=LabelDetail_action=HideLabel_labelId=42']);
     });
   });
 
   describe('the Details chip and its popover', () => {
     test('describes the label on screen, and nothing before one is', async () => {
       const { show, panoManager } = await mountCard();
-      const [, viewer, latLng, panoId, streetId, regionId, captureDate, address, pov,, onOpen, onCopy, onView, labelId] =
-        collaborators.infoPopover;
+      const [
+        , viewer, latLng, panoId, streetId, regionId, captureDate, address, pov,, onOpen, onCopy, onView, labelId,
+      ] = collaborators.infoPopover;
 
       expect([latLng(), panoId(), streetId(), regionId(), captureDate(), pov(), labelId()]).toEqual(
         [null, null, null, null, null, null, null]);
@@ -185,9 +189,10 @@ describe('the label card', () => {
       icon.addEventListener('click', iconClicks);
       const outside = vi.fn();
       document.addEventListener('click', outside);
+      onTestFinished(() => document.removeEventListener('click', outside));
 
       expect(icon.alt).toBe('');
-      pointerClick(q('.label-detail__details-word'));
+      pointerClick(q('.label-detail__meta-cell--details > span'));
       expect(iconClicks).toHaveBeenCalledOnce();
       // The chip's own click stops short of the popover's light-dismiss, or it would close what it just opened.
       expect(outside).toHaveBeenCalledOnce();
@@ -195,7 +200,6 @@ describe('the label card', () => {
       // A click on the icon itself is the popover's already, and isn't forwarded a second time.
       pointerClick(icon);
       expect(iconClicks).toHaveBeenCalledTimes(2);
-      document.removeEventListener('click', outside);
     });
   });
 
@@ -316,7 +320,8 @@ describe('the label card', () => {
     test('a label paged away from ignores its imagery settling, either way', async () => {
       const { detail, panoManager, q } = await mountCard();
       const firstTwo = [];
-      panoManager.setPano.mockImplementation(() => new Promise((resolve, reject) => firstTwo.push({ resolve, reject })));
+      panoManager.setPano.mockImplementation(
+        () => new Promise((resolve, reject) => firstTwo.push({ resolve, reject })));
       await detail.showLabel(labelMeta({ label_id: 1 }), 'TestSource');
       await detail.showLabel(labelMeta({ label_id: 2 }), 'TestSource');
       await detail.showLabel(labelMeta({ label_id: 3 }), 'TestSource');
@@ -487,6 +492,7 @@ describe('the label card', () => {
       input.focus();
       const onWindow = vi.fn();
       window.addEventListener('keyup', onWindow);
+      onTestFinished(() => window.removeEventListener('keyup', onWindow));
 
       const down = key(input, 'keydown', { key: 'Escape' });
       expect(down.defaultPrevented).toBe(true);
@@ -494,7 +500,6 @@ describe('the label card', () => {
       key(input, 'keyup', { key: 'Escape' });
       expect(document.activeElement).not.toBe(input);
       expect(onWindow).not.toHaveBeenCalled();
-      window.removeEventListener('keyup', onWindow);
     });
 
     test('other keys type as usual', async () => {
