@@ -309,6 +309,17 @@ export class Task {
   }
 
   /**
+   * Where a walk enters this street: its start, or on a part-walked street (#5370) where the labeler left it, since
+   * the walked part is never walked again.
+   * @returns {{lat: number, lng: number}}
+   */
+  getEntryCoordinate() {
+    if (!this.isResumed() || !this.#furthestPoint) return this.getStartCoordinate();
+    const [lng, lat] = this.#furthestPoint.geometry.coordinates;
+    return { lat, lng };
+  }
+
+  /**
    * Returns the street edge id of the current task.
    */
   getStreetEdgeId() {
@@ -715,7 +726,7 @@ export class Task {
       // street the branch above draws the same split with the route styling.
       return [
         { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
-        { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
+        { kind: this.#plannedAhead ? 'remaining' : 'other', coordinates: this.#getPointsOnUnauditedSegments() },
       ];
     }
     // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with

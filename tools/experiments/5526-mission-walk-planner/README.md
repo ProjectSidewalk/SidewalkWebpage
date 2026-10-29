@@ -18,7 +18,7 @@ node tools/experiments/5526-mission-walk-planner/replay.mjs --city seattle --reg
 node tools/experiments/5526-mission-walk-planner/replay.mjs --perf   # the planning-time table below
 ```
 
-The replay loads the real `WalkPlanner.js` (it evaluates the source file), so it measures the code that ships. The
+The replay imports the real `WalkPlanner.js`, so it measures the code that ships. The
 whole run takes about 35 s. `results.md` is only written by an unfiltered run.
 
 ## What is replayed

@@ -319,9 +319,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
       await nav.moveForward();
 
-      // The plan's next street assumed the labeler would leave by this street's far end; the replan has to see the
-      // street as excluded, since it is only flagged as given up once the labeler has been moved.
-      expect(svl.taskContainer.planWalk).toHaveBeenCalledWith('giveUp', { exclude: dead });
+      // The plan's next street assumed the labeler would leave by this street's far end. The street is flagged as
+      // given up first, so the replan sees it as off the walk and starts from where the labeler stands.
+      expect(svl.taskContainer.planWalk).toHaveBeenCalledWith('giveUp');
+      expect(dead.wasGivenUpOnImagery()).toBe(true);
       expect(svl.taskContainer.planWalk.mock.invocationCallOrder[0])
         .toBeLessThan(svl.taskContainer.nextTask.mock.invocationCallOrder[0]);
     });

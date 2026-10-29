@@ -9,7 +9,6 @@
  * it happens rather than announced after. Everything beyond the horizon stays quiet grey context.
  */
 
-import * as turf from '@turf/turf';
 import { TaskContainer } from '../task/TaskContainer.js';
 /** @typedef {import('../Main.js').MinimapUi} MinimapUi */
 /** @typedef {import('./Minimap.js').Minimap} Minimap */
@@ -102,7 +101,7 @@ export class WalkPlanLayer {
 
   #redraw() {
     const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS);
-    const lengthsM = ahead.map(({ task }) => task.lineDistance({ units: 'meters' }));
+    const lengthsM = ahead.map(({ task }) => WalkPlanLayer.#remainderM(task));
     // The current street's unwalked part is walked before any of these, so it comes out of what they must cover.
     const afterCurrentM = Math.max(this.#remainingMissionM() - this.#currentRemainderM(), 0);
     const previewedSteps = ahead.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM));
@@ -137,36 +136,40 @@ export class WalkPlanLayer {
    */
   #currentRemainderM() {
     const current = this.#taskContainer.getCurrentTask();
-    if (!current) return 0;
-    return Math.max(current.lineDistance({ units: 'meters' }) - current.getAuditedDistance({ units: 'meters' }), 0);
+    return current ? WalkPlanLayer.#remainderM(current) : 0;
+  }
+
+  /**
+   * @param {Task} task
+   * @returns {number} Metres of the street not yet walked: all of it unless it was left part-walked (#5370).
+   */
+  static #remainderM(task) {
+    return Math.max(task.lineDistance({ units: 'meters' }) - task.getAuditedDistance({ units: 'meters' }), 0);
   }
 
   /**
    * One connector for each previewed street Explore will jump to: from the end of the street before it to where the
    * labeler lands on it, its start or, on a part-walked street, where they left it. The street before is the previous
    * previewed one, or the current street for the first: a step between them that was walked or given up on out of
-   * order is skipped by nextTask, so it does not stand between the labeler and the jump.
+   * order is skipped by nextTask, so it does not stand between the labeler and the jump. A current street just given
+   * up on for lack of imagery gets no connector: the labeler leaves it from where they stand, not from its far end.
    *
-   * Drawn from geometry rather than the plan's own jump flag, with the rule StreetProgress applies at the end of a
-   * street: a gap under TaskContainer.CONNECTED_TASK_KM is switched seamlessly, so a connector there would promise a
-   * jump that never comes.
+   * Drawn from geometry rather than the plan's own jump flag, with the gap StreetProgress measures at the end of a
+   * street: under TaskContainer.CONNECTED_TASK_KM the streets are switched seamlessly, so a connector there would
+   * promise a jump that never comes.
    *
    * @param {Task[]} previewed - The previewed streets, in walk order.
    * @returns {MinimapStreetLine[]} The connectors, as lines for the minimap.
    */
   #connectors(previewed) {
     const lines = [];
-    let previous = this.#taskContainer.getCurrentTask();
+    const current = this.#taskContainer.getCurrentTask();
+    let previous = current?.isLeftToWalk() ? current : null;
     for (const task of previewed) {
-      if (previous) {
+      if (previous && TaskContainer.jumpGapKm(previous, task) >= TaskContainer.CONNECTED_TASK_KM) {
         const from = previous.getEndCoordinate();
-        const to = task.isResumed()
-          ? task.getFurthestPointReached().geometry.coordinates
-          : [task.getStartCoordinate().lng, task.getStartCoordinate().lat];
-        const gapKm = turf.distance(turf.point([from.lng, from.lat]), turf.point(to), { units: 'kilometers' });
-        if (gapKm >= TaskContainer.CONNECTED_TASK_KM) {
-          lines.push({ kind: 'jump', coordinates: [[from.lng, from.lat], to] });
-        }
+        const to = task.getEntryCoordinate();
+        lines.push({ kind: 'jump', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] });
       }
       previous = task;
     }

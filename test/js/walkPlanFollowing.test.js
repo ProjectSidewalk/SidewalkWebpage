@@ -73,6 +73,11 @@ class FakeWalkPlanner {
     FakeWalkPlanner.instances.push(this);
   }
 
+  /** The real planner's tier test, which TaskContainer shares. */
+  static inTier(priority, cutoff) {
+    return priority >= cutoff - 1e-9;
+  }
+
   plan(start) {
     this.start = start;
     const script = FakeWalkPlanner.script
@@ -161,7 +166,6 @@ describe('A neighborhood mission\'s planned walk', () => {
         id: 2,
         coords: STREETS[2],
         priority: 0.5,
-        lengthM: expect.closeTo(100, 0),
         fixedDirection: false,
       });
       expect(container.hasWalkPlan()).toBe(true);
@@ -234,7 +238,7 @@ describe('A neighborhood mission\'s planned walk', () => {
       // Only the unwalked 50 m, in the street's own direction, which the planner may not turn.
       expect(planned.coords[0][0]).toBeCloseTo(resumeAt[0], 6);
       expect(planned.coords.at(-1)).toEqual(STREETS[3][1]);
-      expect(planned.lengthM).toBeCloseTo(50, 0);
+      expect(turf.length(turf.lineString(planned.coords), { units: 'meters' })).toBeCloseTo(50, 0);
       expect(planned.fixedDirection).toBe(true);
     });
   });
@@ -338,8 +342,9 @@ describe('A neighborhood mission\'s planned walk', () => {
     it('around a street given up on for lack of imagery, from where the labeler stands', async () => {
       await load();
       position = { lat: STREETS[1][1][1], lng: STREETS[1][1][0] };
+      task(1).giveUpOnImagery();
 
-      expect(container.planWalk('giveUp', { exclude: task(1) })).toBe(true);
+      expect(container.planWalk('giveUp')).toBe(true);
 
       const replan = FakeWalkPlanner.instances.at(-1);
       expect(replan.streets.map((street) => street.id)).toEqual([2, 3, 4, 5]);
@@ -411,6 +416,21 @@ describe('A neighborhood mission\'s planned walk', () => {
       expect(FakeWalkPlanner.instances.at(-1).start).toEqual({ streetId: 5 });
       expect(container.getWalkPlan().reason).toBe('switch');
       expect(task(5).getPlannedPosition()).toBe(0);
+    });
+
+    it('logging the replan under the street switched to, not the one left', async () => {
+      await load();
+      task(1).complete();
+      task(5).setProperty('auditTaskId', 55);
+
+      container.setCurrentTask(task(5));
+
+      const planned = tracker.push.mock.calls.findIndex(([name, note]) => name === 'WalkPlan_Created'
+        && note.reason === 'switch');
+      expect(planned).toBeGreaterThan(-1);
+      expect(tracker.setAuditTaskID).toHaveBeenCalledWith(55);
+      expect(tracker.setAuditTaskID.mock.invocationCallOrder[0])
+        .toBeLessThan(tracker.push.mock.invocationCallOrder[planned]);
     });
 
     it('but not when the labeler simply takes the plan\'s next street', async () => {
@@ -488,24 +508,28 @@ describe('A neighborhood mission\'s planned walk', () => {
     it('when the page did not hand the thresholds over', async () => {
       // The real planner refuses to run without them, so the greedy rule carries on rather than a silent default.
       unmockModule('frontend/js/common/WalkPlanner.js');
-      ({ Task, TaskContainer } = await loadModules(
-        'frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js',
-      ));
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-      const config = { isOnboarding: false, isExploreAddressMode: false, streetCoverage: STREET_COVERAGE };
-      tracker = fakeTracker();
-      container = new TaskContainer(new Task(feature(1), STREET_COVERAGE, false), config,
-        { isRoute: false, currentRegion: () => ({ getRegionId: () => 7 }) }, { setStreetLines: vi.fn() },
-        { getPosition: () => position }, { setRegionAuditedDistance: vi.fn() }, tracker);
-      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
-        json: () => Promise.resolve({ features: [feature(2)] }),
-      })));
-      await container.fetchTasks({ getProperty: () => 1, pushATaskToTheRoute: vi.fn() });
+      try {
+        ({ Task, TaskContainer } = await loadModules(
+          'frontend/js/explore/task/Task.js', 'frontend/js/explore/task/TaskContainer.js',
+        ));
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const config = { isOnboarding: false, isExploreAddressMode: false, streetCoverage: STREET_COVERAGE };
+        tracker = fakeTracker();
+        container = new TaskContainer(new Task(feature(1), STREET_COVERAGE, false), config,
+          { isRoute: false, currentRegion: () => ({ getRegionId: () => 7 }) }, { setStreetLines: vi.fn() },
+          { getPosition: () => position }, { setRegionAuditedDistance: vi.fn() }, tracker);
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+          json: () => Promise.resolve({ features: [feature(2)] }),
+        })));
+        await container.fetchTasks({ getProperty: () => 1, pushATaskToTheRoute: vi.fn() });
 
-      expect(pushed('WalkPlan_Failed')[0][1].error).toBe('TypeError');
-      expect(container.hasWalkPlan()).toBe(false);
-      expect(container.nextTask(task(1))).toBe(task(2));
-      mockModule('frontend/js/common/WalkPlanner.js', () => ({ WalkPlanner: FakeWalkPlanner }));
+        expect(pushed('WalkPlan_Failed')[0][1].error).toBe('TypeError');
+        expect(container.hasWalkPlan()).toBe(false);
+        expect(container.nextTask(task(1))).toBe(task(2));
+      } finally {
+        // On a failure too, or the real planner would run the rest of the file and fail it a second time.
+        mockModule('frontend/js/common/WalkPlanner.js', () => ({ WalkPlanner: FakeWalkPlanner }));
+      }
     });
 
     it('dropping a plan it had, so no stale order outlives the failure', async () => {

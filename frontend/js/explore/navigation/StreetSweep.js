@@ -241,14 +241,13 @@ export class StreetSweep {
       return 'stopped';
     }
 
-    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler
-    // would walk out of this one's far end, which they now never reach.
-    if (this.#taskContainer.hasWalkPlan()) this.#taskContainer.planWalk('giveUp', { exclude: task });
-    // The street is left unfinished: finishing it would credit a full audit nobody did (#4922).
-    const newTask = this.#taskContainer.nextTask(task);
-
     // Only once they're really leaving: the flag reads as "done with this street" everywhere on the page (#4922).
     this.#markGivenUp(task);
+    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler
+    // would walk out of this one's far end, which they now never reach.
+    if (this.#taskContainer.hasWalkPlan()) this.#taskContainer.planWalk('giveUp');
+    // The street is left unfinished: finishing it would credit a full audit nobody did (#4922).
+    const newTask = this.#taskContainer.nextTask(task);
 
     if (!newTask) return 'ranOut';
 

@@ -36,8 +36,9 @@ function makeTask(id, { lengthM = 100, start = pt(id * 1000), end = pt(id * 1000
     getAuditedDistance: () => walkedM,
     getStartCoordinate: () => start,
     getEndCoordinate: () => end,
+    getEntryCoordinate: () => resumedAt ?? start,
     isResumed: () => resumedAt !== null,
-    getFurthestPointReached: () => turf.point(resumedAt ? [resumedAt.lng, resumedAt.lat] : [start.lng, start.lat]),
+    isLeftToWalk: () => true,
     setPlannedAhead: vi.fn(function (value) {
       this.plannedAhead = value;
     }),
@@ -156,6 +157,17 @@ describe('WalkPlanLayer.refresh', () => {
     expect(tasks.filter((task) => task.plannedAhead)).toHaveLength(3);
   });
 
+  it('counts only the unwalked part of a part-walked street ahead against the mission (#5370)', () => {
+    mission = { getDistance: () => 1000, getProperty: () => 450 };
+    const tasks = [1, 2, 3, 4, 5, 6, 7].map((id) => makeTask(id, id === 1 ? { lengthM: 300, walkedM: 250 } : {}));
+    ahead = tasks.map((task) => ({ task, step: step(task.id) }));
+
+    layer.refresh();
+
+    // 450 m past the current street: 50 m of street 1, then four whole streets.
+    expect(tasks.filter((task) => task.plannedAhead)).toHaveLength(5);
+  });
+
   it('draws a connector wherever Explore will jump, from the street before to the jumped-to street', () => {
     const tasks = [
       makeTask(1, { lengthM: 50, start: pt(0, 300), end: pt(50, 300) }), // 300 m from the current street.
@@ -181,6 +193,16 @@ describe('WalkPlanLayer.refresh', () => {
     layer.refresh();
 
     expect(connectors()).toEqual([[lngLat(pt(0)), lngLat(resumedAt)]]);
+  });
+
+  it('draws no connector out of a current street just given up on, which is left from where the labeler stands', () => {
+    current.isLeftToWalk = () => false;
+    const tasks = [makeTask(1, { start: pt(0, 300), end: pt(100, 300) }), makeTask(2, { start: pt(0, 600) })];
+    ahead = tasks.map((task) => ({ task, step: step(task.id, true) }));
+
+    layer.refresh();
+
+    expect(connectors()).toEqual([[lngLat(pt(100, 300)), lngLat(pt(0, 600))]]);
   });
 
   it('draws no connector for a jump beyond the horizon', () => {
@@ -337,6 +359,24 @@ describe('Task.minimapLines for a street of the planned walk', () => {
 
   it('draws a street beyond the preview as quiet context', () => {
     expect(lines()).toEqual([{ kind: 'other', coordinates }]);
+  });
+
+  it('draws the unwalked half of a previewed part-walked street as the route ahead (#5370)', async () => {
+    const { Task } = await loadModules('frontend/js/explore/task/Task.js');
+    const midway = { lng: -122.3295, lat: 47.6 };
+    task = new Task({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: coordinates.map((coord) => [...coord]) },
+      properties: {
+        street_edge_id: 7, priority: 1, task_start: '2026-09-27T12:00:00Z', audit_task_id: 42, completed: false,
+        current_lng: midway.lng, current_lat: midway.lat,
+      },
+    }, { pano_window_m: 10, max_hop_m: 50, max_uncovered_m: 50, min_covered_frac: 0.5 }, false, midway);
+    task.setPlannedAhead(true);
+
+    expect(lines().map((line) => line.kind)).toEqual(['completed', 'remaining']);
+    task.setPlannedAhead(false);
+    expect(lines().map((line) => line.kind)).toEqual(['completed', 'other']);
   });
 
   it('still draws a completed street as walked, previewed or not', () => {

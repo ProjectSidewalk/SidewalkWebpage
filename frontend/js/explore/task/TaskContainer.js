@@ -44,8 +44,6 @@ export class TaskContainer {
    *   createdAt: number}}
    */
   #walkPlan = null;
-  // Applying a plan re-renders tasks, and none of that may start a second plan over the half-applied first.
-  #planning = false;
   /**
    * Why a replan was asked for while a jump was armed, or null. The armed target was chosen and prefetched from the
    * plan as it stood, so replanning under it could turn or reorder the street the labeler is about to land on; the
@@ -223,23 +221,20 @@ export class TaskContainer {
    * must never be what stops someone labeling.
    *
    * @param {string} reason - Why a plan is being built, for the log: 'load', 'giveUp', 'priority', or 'switch'.
-   * @param {{exclude?: Task}} [options] - `exclude` is a street being given up on right now: it is still unwalked,
-   *     since the give-up is recorded only once the labeler has been moved, but it must not be planned back in.
    * @returns {boolean} Whether a plan now exists.
    */
-  planWalk(reason, { exclude = null } = {}) {
-    if (this.#planning || !this.#tasksFinishedLoading || !this.#walksAPlannedRoute()) return false;
+  planWalk(reason) {
+    if (!this.#tasksFinishedLoading || !this.#walksAPlannedRoute()) return false;
     if (this.#nextTaskAfterJump) {
       this.#deferredReplanReason ??= reason;
       return this.hasWalkPlan();
     }
     this.#deferredReplanReason = null;
-    this.#planning = true;
     try {
+      // A street just given up on is already off the unwalked list, so the plan starts from where the labeler stands.
       const current = this.#currentTask;
-      const startsOnCurrent = Boolean(current) && current !== exclude
-        && !current.isComplete() && !current.wasGivenUpOnImagery();
-      const toPlan = this.getUnwalkedTasks().filter((t) => t !== exclude && t !== current);
+      const startsOnCurrent = Boolean(current) && current.isLeftToWalk();
+      const toPlan = this.getUnwalkedTasks().filter((t) => t !== current);
       if (startsOnCurrent) toPlan.unshift(current);
       if (toPlan.length === 0) {
         this.#clearWalkPlan();
@@ -252,7 +247,6 @@ export class TaskContainer {
           id: task.getStreetEdgeId(),
           coords,
           priority: task.getStreetPriority(),
-          lengthM: turf.length(turf.lineString(coords), { units: 'meters' }),
           fixedDirection: task.isResumed(),
         };
       });
@@ -286,7 +280,6 @@ export class TaskContainer {
       });
       return false;
     } finally {
-      this.#planning = false;
       this.#walkPlanListeners.forEach((listener) => listener());
     }
   }
@@ -421,7 +414,22 @@ export class TaskContainer {
     if (unwalked.length === 0) return new Set();
     const best = Math.max(...unwalked.map((task) => task.getStreetPriority()));
     const cutoff = best - (this.#config.walkPlanner?.priorityTolerance ?? 0);
-    return new Set(unwalked.filter((task) => task.getStreetPriority() >= cutoff));
+    return new Set(unwalked.filter((task) => WalkPlanner.inTier(task.getStreetPriority(), cutoff)));
+  }
+
+  /**
+   * How far the labeler has to go from the end of one street to where they enter the next. Under CONNECTED_TASK_KM
+   * the streets are switched seamlessly; from further away it is a jump, which StreetProgress prompts for and the
+   * minimap draws a connector for, so both read the same gap.
+   *
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street that follows it.
+   * @returns {number} Kilometers.
+   */
+  static jumpGapKm(task, nextTask) {
+    const from = task.getEndCoordinate();
+    const to = nextTask.getEntryCoordinate();
+    return turf.distance(turf.point([from.lng, from.lat]), turf.point([to.lng, to.lat]), { units: 'kilometers' });
   }
 
   /**
@@ -757,17 +765,17 @@ export class TaskContainer {
     this.#currentTask = task;
     // Landing on the armed target is what ends a jump, so from here a replan may run again.
     if (task === this.#nextTaskAfterJump) this.#nextTaskAfterJump = null;
+    this.#recordTaskStart(task);
     // Taking a street other than the plan's next one (picking an abandoned street back up, #5370) leaves the plan
     // describing a walk from somewhere the labeler isn't, so it is rebuilt from here. Otherwise a replan held back
-    // while a jump was armed runs now, from the street the jump landed on. Before the listeners, so the preview they
-    // redraw is of the plan as it now stands.
-    if (this.hasWalkPlan() && !task.isComplete() && !task.wasGivenUpOnImagery()) {
+    // while a jump was armed runs now, from the street the jump landed on. After the task start, so the plan is
+    // logged under this street; before the listeners, so the preview they redraw is of the plan as it now stands.
+    if (this.hasWalkPlan() && task.isLeftToWalk()) {
       const position = task.getPlannedPosition();
       const earliest = Math.min(...this.getUnwalkedTasks().map((t) => t.getPlannedPosition() ?? Infinity));
       if (position === null || position > earliest) this.planWalk('switch');
       else if (this.#deferredReplanReason !== null) this.planWalk(this.#deferredReplanReason);
     }
-    this.#recordTaskStart(task);
     this.#currentTaskListeners.forEach((listener) => listener(task));
   }
 

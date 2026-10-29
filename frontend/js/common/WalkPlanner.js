@@ -317,7 +317,20 @@ export class WalkPlanner {
    * @returns {boolean} True when the gate lets the walk continue onto it.
    */
   #isEligible(index, cutoff) {
-    return this.#isTiny(index) || this.#streets[index].priority >= cutoff - 1e-9;
+    return this.#isTiny(index) || WalkPlanner.inTier(this.#streets[index].priority, cutoff);
+  }
+
+  /**
+   * Whether a priority is within the tier a cutoff opens, with a hair of slack so a street exactly at the cutoff is
+   * not thrown out by floating-point rounding. Explore uses the same test to tell when a priority change has moved
+   * a street in or out of the top tier.
+   *
+   * @param {number} priority - The street's priority.
+   * @param {number} cutoff - The lowest priority still in tier (the best remaining minus the tolerance).
+   * @returns {boolean}
+   */
+  static inTier(priority, cutoff) {
+    return priority >= cutoff - 1e-9;
   }
 
   /**
@@ -466,7 +479,7 @@ export class WalkPlanner {
       || (cost === incumbent.cost && this.#streets[index].id < this.#streets[incumbent.index].id);
     for (const i of live.order) {
       const s = this.#streets[i];
-      if (s.priority < cutoff - 1e-9) break;
+      if (!WalkPlanner.inTier(s.priority, cutoff)) break;
       if (walked[i]) continue;
       const tiny = this.#isTiny(i);
       if (tiny && best !== null) continue;
@@ -513,8 +526,8 @@ export class WalkPlanner {
    * @returns {number} Metres.
    */
   static distanceM(a, b) {
-    // One lookup of Math per call: the jump scan calls this per candidate, and in a sandboxed global (jest's vm
-    // context) every global lookup is slow enough to dominate the arithmetic.
+    // One lookup of Math per call: the jump scan calls this per candidate, and in a sandboxed test context every
+    // global lookup is slow enough to dominate the arithmetic.
     const { sin, cos, asin, sqrt, PI } = Math;
     const toRad = PI / 180;
     const dLat = (b[1] - a[1]) * toRad;

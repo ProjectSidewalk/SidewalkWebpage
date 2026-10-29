@@ -18,8 +18,10 @@ object WalkPlannerSettings {
   given walkPlannerSettingsWrites: Writes[WalkPlannerSettings] = Json.writes[WalkPlannerSettings]
 
   /** @return The settings for this deployment; a malformed value fails at startup rather than silently defaulting. */
-  def fromConfig(config: Configuration): WalkPlannerSettings = WalkPlannerSettings(
-    priorityTolerance = config.get[Double]("walk-planner.priority-tolerance"),
-    tinyStreetM = config.get[Double]("walk-planner.tiny-street-m")
-  )
+  def fromConfig(config: Configuration): WalkPlannerSettings = {
+    val tolerance = config.get[Double]("walk-planner.priority-tolerance")
+    // Below zero no street is ever in tier, and the planner has nothing to jump to.
+    require(tolerance >= 0, s"walk-planner.priority-tolerance must be 0 or more, got $tolerance")
+    WalkPlannerSettings(tolerance, tinyStreetM = config.get[Double]("walk-planner.tiny-street-m"))
+  }
 }

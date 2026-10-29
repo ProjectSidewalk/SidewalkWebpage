@@ -4,7 +4,6 @@
  * jump, and says when streets run out.
  */
 
-import * as turf from '@turf/turf';
 import { TaskContainer } from './TaskContainer.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
@@ -226,7 +225,7 @@ export class StreetProgress {
    * On a planned walk (#5526) the plan fixed which end of `nextTask` is its start, so only that end (or, for a
    * part-walked street, where the labeler left it) counts: accepting its far end as well, as isConnectedTo does, would
    * switch seamlessly onto a street that begins a block away, and the first move would teleport the labeler there
-   * unannounced. This is the same gap WalkPlanLayer measures before drawing a jump connector.
+   * unannounced.
    *
    * @param {Task} task - The street being finished.
    * @param {Task} nextTask - The street chosen to follow it.
@@ -236,11 +235,7 @@ export class StreetProgress {
     if (!this.#taskContainer.hasWalkPlan()) {
       return task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
     }
-    const end = task.getEndCoordinate();
-    const start = nextTask.getStartCoordinate();
-    const landing = nextTask.isResumed() ? nextTask.getFurthestPointReached() : turf.point([start.lng, start.lat]);
-    return turf.distance(turf.point([end.lng, end.lat]), landing, { units: 'kilometers' })
-      < TaskContainer.CONNECTED_TASK_KM;
+    return TaskContainer.jumpGapKm(task, nextTask) < TaskContainer.CONNECTED_TASK_KM;
   }
 
   /** The last street had no imagery, so the route or region is done where the labeler stands. */

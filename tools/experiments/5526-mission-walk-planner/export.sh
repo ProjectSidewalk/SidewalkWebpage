@@ -18,19 +18,19 @@ for city in "${cities[@]}"; do
   docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -Atq -c "
     SET search_path = sidewalk_${city}, public;
     SELECT COALESCE(json_agg(json_build_object(
-             'id', se.street_edge_id,
-             'regionId', ser.region_id,
-             'coords', (ST_AsGeoJSON(se.geom, 7)::json)->'coordinates',
-             'priority', sep.priority,
-             'lengthM', round(ST_Length(se.geom::geography)::numeric, 2)
-           ) ORDER BY se.street_edge_id), '[]'::json)
-    FROM street_edge se
-    JOIN street_edge_region ser ON ser.street_edge_id = se.street_edge_id
-    JOIN region ON region.region_id = ser.region_id
-    JOIN street_edge_priority sep ON sep.street_edge_id = se.street_edge_id
-    WHERE se.status = 'open'
+             'id', street_edge.street_edge_id,
+             'regionId', street_edge_region.region_id,
+             'coords', (ST_AsGeoJSON(street_edge.geom, 7)::json)->'coordinates',
+             'priority', street_edge_priority.priority,
+             'lengthM', round(ST_Length(street_edge.geom::geography)::numeric, 2)
+           ) ORDER BY street_edge.street_edge_id), '[]'::json)
+    FROM street_edge
+    JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id
+    JOIN region ON region.region_id = street_edge_region.region_id
+    JOIN street_edge_priority ON street_edge_priority.street_edge_id = street_edge.street_edge_id
+    WHERE street_edge.status = 'open'
       AND NOT region.deleted
-      AND se.street_edge_id NOT IN (
+      AND street_edge.street_edge_id NOT IN (
         SELECT tutorial_street_edge_id FROM config WHERE tutorial_street_edge_id IS NOT NULL
       );
   " > "data/${city}.json"
