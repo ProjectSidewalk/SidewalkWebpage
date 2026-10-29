@@ -25,6 +25,7 @@
  */
 
 import { panoramaUrlFor } from './PannellumViewer.js';
+import { freshBackupImage } from '../utilitiesSidewalk.js';
 
 export class PanoImageCache {
   /**
@@ -133,7 +134,10 @@ export class PanoImageCache {
    */
   async prefetchBackups(backupImages) {
     for (const backupImage of backupImages) {
-      await this.prefetch(panoramaUrlFor(backupImage));
+      // Re-signed the same way the viewer re-signs at load time (#5861). Signatures are stable within a 15-minute
+      // quantum, so both arrive at the same URL and the prefetch is still a hit.
+      const signed = await freshBackupImage(backupImage);
+      if (signed) await this.prefetch(panoramaUrlFor(signed));
     }
   }
 

@@ -16,7 +16,7 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import './utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, signedUrlIsExpired } from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -169,14 +169,43 @@ export class LabelMiniCard {
       this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
     }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
-    // A failed picture falls back to the type icon, as if it never had one; its marker then has nothing to point at.
-    this.#els.image?.addEventListener('error', () => {
-      this.#els.image.replaceWith(LabelMiniCard.placeholder(type));
-      this.#els.marker?.remove();
-    }, { once: true });
+    this.#els.image?.addEventListener('error', () => this.#onImageError(), { once: true });
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));
     }
+  }
+
+  /**
+   * Recovers a picture that failed to load. A backup image whose signature expired while the page sat open (#5861)
+   * is re-signed and tried once more; anything else falls back to the type icon, as if it never had a picture, and
+   * its marker then has nothing to point at.
+   * @returns {Promise<void>}
+   */
+  async #onImageError() {
+    const image = this.#els.image;
+    const label = this.#label;
+    if (!label.crop_url && signedUrlIsExpired(label.backup_image_url)) {
+      const fresh = await fetchBackupImageMetadata(label.pano_id);
+      // A vote re-renders the card, and that render's own picture has its own error handler.
+      if (image !== this.#els.image) return;
+      if (fresh?.image_url) {
+        label.backup_image_url = fresh.image_url;
+        image.addEventListener('error', () => this.#showPlaceholder(image), { once: true });
+        image.src = fresh.image_url;
+        return;
+      }
+    }
+    this.#showPlaceholder(image);
+  }
+
+  /**
+   * Swaps the picture for the type icon and drops the marker that pointed into it, unless a re-render replaced it.
+   * @param {HTMLImageElement} image - The picture that failed.
+   */
+  #showPlaceholder(image) {
+    if (image !== this.#els.image) return;
+    image.replaceWith(LabelMiniCard.placeholder(this.#label.label_type));
+    this.#els.marker?.remove();
   }
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */

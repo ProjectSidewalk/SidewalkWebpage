@@ -17,7 +17,7 @@ import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
-import '../utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, freshBackupImage } from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
   // panoViewer always points at the active viewer (primary or Pannellum). Callers should query it through this
@@ -306,20 +306,6 @@ export class PopupPanoManager {
   }
 
   /**
-   * Fetches backup image metadata from the backend for Pannellum fallback.
-   * @param {string} panoId
-   * @returns {Promise<object|null>} The metadata, or null if none exists.
-   */
-  async #fetchBackupImageMetadata(panoId) {
-    try {
-      const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
-      return res.ok ? await res.json() : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
    *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
    *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
@@ -360,12 +346,14 @@ export class PopupPanoManager {
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
-        if (!backupImage) backupImage = await this.#fetchBackupImageMetadata(panoId);
+        if (!backupImage) backupImage = await fetchBackupImageMetadata(panoId);
       }
     } else if (!backupImage) {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
-      backupImage = await this.#fetchBackupImageMetadata(panoId);
+      backupImage = await fetchBackupImageMetadata(panoId);
     }
+    // A label payload from page load can carry a URL whose signature has since expired (#5861).
+    backupImage = await freshBackupImage(backupImage);
     const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.

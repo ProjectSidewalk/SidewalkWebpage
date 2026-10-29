@@ -912,3 +912,58 @@ export function buildBackupImageData(meta) {
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }
+
+/**
+ * How close to its expiry a signed backup URL is treated as already expired, in seconds. Covers the time between the
+ * check and the request reaching the server, the viewer's smaller-size retries included.
+ */
+util.misc.SIGNED_URL_EXPIRY_MARGIN_SEC = 120;
+
+/**
+ * Whether a signed `/backupImage` URL has expired, or will within `SIGNED_URL_EXPIRY_MARGIN_SEC`.
+ *
+ * The server signs these for about an hour (`ImageSigningService`), but a page goes on using the URLs it got at load
+ * time for as long as the tab stays open, after which every request for one is a 403 (#5861).
+ *
+ * @param {?string} url - A URL carrying `exp=<epoch seconds>`, absolute or path-relative.
+ * @param {number} [nowMs=Date.now()] - The current time, for tests.
+ * @returns {boolean} True when `exp` is past or within the margin. False when there is no `exp`, so a URL that isn't
+ *     signed is left alone.
+ */
+export function signedUrlIsExpired(url, nowMs = Date.now()) {
+  if (!url) return false;
+  const exp = Number(new URL(url, window.location.origin).searchParams.get('exp'));
+  if (!exp) return false;
+  return exp * 1000 <= nowMs + util.misc.SIGNED_URL_EXPIRY_MARGIN_SEC * 1000;
+}
+
+/**
+ * Fetches a pano's backup metadata, with a freshly signed `image_url`, from `/backupImage/:panoId/metadata`.
+ * @param {string} panoId
+ * @returns {Promise<?BackupImage>} The metadata, or null if the pano has no backup or the request failed.
+ */
+export async function fetchBackupImageMetadata(panoId) {
+  try {
+    const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns the backup pano with a usable signed URL, re-signing it only when the one it carries has expired.
+ *
+ * Only `image_url` is replaced: the rest came with the label and is what the caller chose to show (e.g. the label's
+ * own attribution).
+ *
+ * @template {Record<string, any>} T
+ * @param {?T} backupImage - Backup pano metadata, e.g. a {@link BackupImage}.
+ * @returns {Promise<?T>} The same object when its URL is still good, a copy with a new `image_url` when it
+ *     was re-signed, or null when it had expired and could not be re-signed (or `backupImage` was null).
+ */
+export async function freshBackupImage(backupImage) {
+  if (!backupImage || !signedUrlIsExpired(backupImage.image_url)) return backupImage;
+  const fresh = await fetchBackupImageMetadata(backupImage.pano_id);
+  return fresh?.image_url ? { ...backupImage, image_url: fresh.image_url } : null;
+}
