@@ -49,7 +49,7 @@ All policies are measured by the replay with the same yardsticks, not by their o
   table is given twice:
   - **25 m (the headline).** Explore's own `CONNECTED_TASK_THRESHOLD`: a hop under 25 m is what the greedy rule
     calls connected and what a labeler experiences as walking on, not as a jump.
-  - **10 m.** `WalkPlanner.NODE_TOLERANCE_M`, the graph the planner plans on and the lower bound is computed on. It
+  - **10 m.** `NODE_TOLERANCE_M` (frontend/js/common/streetNetwork.js), the graph the planner plans on and the lower bound is computed on. It
     counts 10–25 m hops as jumps, which the greedy rule makes more of (it treats them as connected), so it flatters
     the planner: in Seattle `current` makes 4.37 jumps/km at 10 m but 4.15 at 25 m.
 - **jumps/km:** jumps divided by the region's street kilometres. The city figure is the km-weighted mean
@@ -96,16 +96,18 @@ alone, so the last two columns are what the logged `WalkPlan_Created` `ms` repor
 
 | Case | streets | construct + plan, cold | warm | of which plan(), cold | warm |
 |---|---:|---:|---:|---:|---:|
-| Seattle region 41 (largest dev region) | 773 | 31.4 ms | 9.0 ms | 24.1 ms | 6.7 ms |
-| 25×25 lattice | 1,200 | 24.0 ms | 5.7 ms | 16.9 ms | 3.7 ms |
-| comb, 600-street spine, two dead-end teeth per node | 1,800 | 66.5 ms | 41.4 ms | 56.3 ms | 36.6 ms |
-| comb, 1,000-street spine | 3,000 | 133.6 ms | 107.5 ms | 117.7 ms | 99.6 ms |
+| Seattle region 6 (largest dev region) | 617 | 36.3 ms | 9.5 ms | 31.4 ms | 7.4 ms |
+| 25×25 lattice | 1,200 | 29.6 ms | 10.8 ms | 19.9 ms | 8.0 ms |
+| comb, 600-street spine, two dead-end teeth per node | 1,800 | 157.1 ms | 112.8 ms | 139.5 ms | 107.3 ms |
+| comb, 1,000-street spine | 3,000 | 317.9 ms | 282.8 ms | 297.4 ms | 275.3 ms |
 
 The comb is the worst shape found: one priority tier holding every street and 1,200 dead ends, so each of its 600
 jumps scans the whole tier. That scan is linear per jump, so the comb grows roughly quadratically; a street grid does
-not. Cold timings vary by ±30% run to run. Seattle region 41 has one degenerate node where 318 street ends meet,
-which is why the planner counts onward streets once per node rather than per candidate. Production region sizes have
-not been checked against these.
+not. Cold timings vary by ±30% run to run. Distances are turf's, which cost about twice a hand-written haversine
+per call; that is what the comb's jump scan is made of, so the comb pays for it, while a real region plans in under
+10 ms warm either way. The dev DB's Seattle region 41 had one degenerate node where 318 street ends met, which is
+why the planner counts onward streets once per node rather than per candidate. Production region sizes have not been
+checked against these.
 
 ## Reading the numbers
 

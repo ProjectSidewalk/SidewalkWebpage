@@ -1,3 +1,6 @@
+import * as turf from '@turf/turf';
+import { NODE_TOLERANCE_M } from './streetNetwork.js';
+
 /**
  * A street as the planner sees it.
  * @typedef {object} PlannerStreet
@@ -62,27 +65,26 @@
  * the lower street id, and the graph and every end choice are built from each street's canonical endpoint order
  * (lexicographic [lng, lat]) rather than its stored orientation. So the same street set, priorities and start give the
  * same plan however the streets happen to be oriented, and a replan over re-oriented geometry does not reshuffle the
- * remainder. It is self-contained on purpose so it can also run in Node (the benchmark) or server-side later; the
- * node-merging follows RouteGraph's (#4579), and a later refactor could share one graph builder.
+ * remainder. It has no map or DOM dependency so it can also run in Node (the benchmark) or server-side later. The
+ * node-merging follows RouteGraph's (#4579) idiom but stays its own: RouteGraph merges incrementally as the builder
+ * edits, while the planner merges in canonical order with the nearest node winning so the same streets always give
+ * the same plan.
  *
  * Measured cost (construct + plan, Node 24 in the web container on an M-series Mac; the benchmark README's "Planning
- * time"): the largest Seattle dev region (773 streets) ~9 ms warm / ~31 ms cold, a 25×25 lattice (1,200 streets)
- * ~6 / ~24 ms, and a 1,800-street comb of dead-end teeth, the worst shape found, ~41 / ~67 ms.
+ * time"): the largest Seattle dev region (617 streets) ~10 ms warm / ~36 ms cold, a 25×25 lattice (1,200 streets)
+ * ~11 / ~30 ms, and a 1,800-street comb of dead-end teeth, the worst shape found, ~113 / ~157 ms.
  *
  * @example
  * const planner = new WalkPlanner(streets, { priorityTolerance: 0.15, tinyStreetM: 20 });
  * const { steps, stats } = planner.plan({ streetId: currentTask.getStreetEdgeId() });
  */
 export class WalkPlanner {
-  /** Endpoints within this many metres are one node (the same value as RouteGraph.NODE_TOLERANCE_M). */
-  static NODE_TOLERANCE_M = 10;
   /**
    * Metres a jump pays for landing on an even-degree node, where starting a trail usually wastes one. 300 m cut
    * jumps 6–11% against no penalty across the dev cities; 1,000 m bought under 1% more and lengthened jumps (same
    * README).
    */
   static ODD_START_PENALTY_M = 300;
-  static EARTH_RADIUS_M = 6371008.8;
 
   /**
    * @type {{id: number, coords: number[][], priority: number, lengthM: number, fixed: boolean,
@@ -143,7 +145,7 @@ export class WalkPlanner {
       id: s.id,
       coords: s.coords,
       priority: WalkPlanner.#priorityOf(s),
-      lengthM: s.lengthM ?? WalkPlanner.lineLengthM(s.coords),
+      lengthM: s.lengthM ?? turf.length(turf.lineString(s.coords), { units: 'meters' }),
       fixed: s.fixedDirection === true,
       canonFirst: WalkPlanner.#isCanonicalForward(s.coords),
     }));
@@ -487,7 +489,7 @@ export class WalkPlanner {
       for (let k = 0; k < (s.fixed ? 1 : 2); k++) {
         const reverse = s.fixed ? false : (k === 0) !== s.canonFirst;
         const endNode = this.#ends[i][reverse ? 1 : 0];
-        const distanceM = WalkPlanner.distanceM(pos, s.coords[reverse ? s.coords.length - 1 : 0]);
+        const distanceM = turf.distance(pos, s.coords[reverse ? s.coords.length - 1 : 0], { units: 'meters' });
         const cost = distanceM + (remDeg[endNode] % 2 === 1 ? 0 : evenPenaltyM);
         if (tiny) {
           if (better(cost, i, bestTiny)) bestTiny = { index: i, reverse, distanceM, cost };
@@ -516,38 +518,6 @@ export class WalkPlanner {
       else hi = mid - 1;
     }
     return -1;
-  }
-
-  /**
-   * Haversine metres between two points.
-   *
-   * @param {number[]} a - [lng, lat].
-   * @param {number[]} b - [lng, lat].
-   * @returns {number} Metres.
-   */
-  static distanceM(a, b) {
-    // One lookup of Math per call: the jump scan calls this per candidate, and in a sandboxed test context every
-    // global lookup is slow enough to dominate the arithmetic.
-    const { sin, cos, asin, sqrt, PI } = Math;
-    const toRad = PI / 180;
-    const dLat = (b[1] - a[1]) * toRad;
-    const dLng = (b[0] - a[0]) * toRad;
-    const sinLat = sin(dLat / 2);
-    const sinLng = sin(dLng / 2);
-    const h = sinLat * sinLat + cos(a[1] * toRad) * cos(b[1] * toRad) * sinLng * sinLng;
-    return 2 * WalkPlanner.EARTH_RADIUS_M * asin(sqrt(h));
-  }
-
-  /**
-   * Geodesic metres of a coordinate list.
-   *
-   * @param {number[][]} coords - [[lng, lat], …].
-   * @returns {number} Metres.
-   */
-  static lineLengthM(coords) {
-    let total = 0;
-    for (let i = 1; i < coords.length; i++) total += WalkPlanner.distanceM(coords[i - 1], coords[i]);
-    return total;
   }
 
   /**
@@ -638,12 +608,12 @@ export class WalkPlanner {
       const cellLng = Math.round(coord[0] * 10000);
       const cellLat = Math.round(coord[1] * 10000);
       let nearest = -1;
-      let nearestM = WalkPlanner.NODE_TOLERANCE_M;
+      let nearestM = NODE_TOLERANCE_M;
       // Longitude cells narrow with latitude (~7.6 m at 47°N), so the scan reaches ±2 cells east-west.
       for (let dx = -2; dx <= 2; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           for (const k of cells.get(`${cellLng + dx},${cellLat + dy}`) ?? []) {
-            const d = WalkPlanner.distanceM(coord, nodePos[k]);
+            const d = turf.distance(coord, nodePos[k], { units: 'meters' });
             if (d < nearestM || (d === nearestM && nearest >= 0 && k < nearest)) {
               nearest = k;
               nearestM = d;

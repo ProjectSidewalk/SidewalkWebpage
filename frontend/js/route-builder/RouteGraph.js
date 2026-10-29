@@ -7,20 +7,19 @@
  * @property {number} distanceM - Distance from the point to the street's nearest vertex.
  */
 
+import * as turf from '@turf/turf';
+import { NODE_TOLERANCE_M } from '../common/streetNetwork.js';
+
 /**
  * Client-side street-network graph for auto-routing (#4579): builds an adjacency graph from the city's street
- * GeoJSON (endpoints within ~10 m are merged into one node, the same connectivity tolerance the builder's
- * contiguous-section logic uses) and answers shortest-walking-path queries with A*.
- *
- * All geometry math is self-contained (haversine / equirectangular approximations) so the class stays fast and
- * unit-testable without the map or turf. Routing runs over the whole city's network: regions organize missions, not
- * routes, so a path is free to cross from one region into the next (#3488).
+ * GeoJSON (endpoints within NODE_TOLERANCE_M are merged into one node, the same connectivity tolerance the builder's
+ * contiguous-section logic uses) and answers shortest-walking-path queries with A*. Routing runs over the whole
+ * city's network: regions organize missions, not routes, so a path is free to cross from one region into the next
+ * (#3488).
  */
 export class RouteGraph {
-  // Endpoints within this distance are considered the same intersection (mirrors #computeContiguousRoutes).
-  static NODE_TOLERANCE_M = 10;
-  static EARTH_RADIUS_M = 6371008.8;
-  static M_PER_DEG_LAT = (Math.PI / 180) * RouteGraph.EARTH_RADIUS_M;
+  // Metres per degree of latitude, for a cheap "can't be nearer than" prefilter before the real distance is measured.
+  static M_PER_DEG_LAT = (Math.PI / 180) * turf.earthRadius;
 
   #nodes = new Map(); // key -> { lng, lat, edges: [{ streetId, weightM, otherKey }] }
   #cells = new Map(); // "cellLng,cellLat" -> keys of the nodes whose coordinate falls in that quantized cell
@@ -37,7 +36,7 @@ export class RouteGraph {
       if (!coords || coords.length < 2) return;
       const streetId = feature.properties.street_edge_id;
       this.#features.set(streetId, feature);
-      const lengthM = RouteGraph.lineLengthM(coords);
+      const lengthM = turf.length(turf.lineString(coords), { units: 'meters' });
       this.#featureLengths.set(streetId, lengthM);
 
       const keyA = this.#nodeKeyFor(coords[0]);
@@ -68,30 +67,6 @@ export class RouteGraph {
    */
   getLengthM(streetId) {
     return this.#featureLengths.get(streetId) ?? 0;
-  }
-
-  /**
-   * Great-circle distance between two [lng, lat] points in meters.
-   */
-  static distanceM(a, b) {
-    const toRad = Math.PI / 180;
-    const dLat = (b[1] - a[1]) * toRad;
-    const dLng = (b[0] - a[0]) * toRad;
-    const sinLat = Math.sin(dLat / 2);
-    const sinLng = Math.sin(dLng / 2);
-    const h = sinLat * sinLat + Math.cos(a[1] * toRad) * Math.cos(b[1] * toRad) * sinLng * sinLng;
-    return 2 * RouteGraph.EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
-  }
-
-  /**
-   * Length of a LineString's coordinates in meters.
-   */
-  static lineLengthM(coords) {
-    let total = 0;
-    for (let i = 1; i < coords.length; i++) {
-      total += RouteGraph.distanceM(coords[i - 1], coords[i]);
-    }
-    return total;
   }
 
   /**
@@ -132,7 +107,7 @@ export class RouteGraph {
       for (let dy = -1; dy <= 1; dy++) {
         for (const key of this.#cells.get(`${cellLng + dx},${cellLat + dy}`) ?? []) {
           const node = this.#nodes.get(key);
-          if (RouteGraph.distanceM(coord, [node.lng, node.lat]) < RouteGraph.NODE_TOLERANCE_M) return key;
+          if (turf.distance(coord, [node.lng, node.lat], { units: 'meters' }) < NODE_TOLERANCE_M) return key;
         }
       }
     }
@@ -169,17 +144,17 @@ export class RouteGraph {
       if (best !== null) {
         const reachM = best.distanceM + this.#featureLengths.get(streetId);
         if (Math.abs(coords[0][1] - p[1]) * RouteGraph.M_PER_DEG_LAT > reachM) return;
-        if (RouteGraph.distanceM(p, coords[0]) > reachM) return;
+        if (turf.distance(p, coords[0], { units: 'meters' }) > reachM) return;
       }
       // Nearest vertex is a good-enough proxy for nearest point on the line at street-segment scale.
       let minD = Infinity;
       for (const c of coords) {
-        const d = RouteGraph.distanceM(p, c);
+        const d = turf.distance(p, c, { units: 'meters' });
         if (d < minD) minD = d;
       }
       if (best === null || minD < best.distanceM) {
-        const dStart = RouteGraph.distanceM(p, coords[0]);
-        const dEnd = RouteGraph.distanceM(p, coords[coords.length - 1]);
+        const dStart = turf.distance(p, coords[0], { units: 'meters' });
+        const dEnd = turf.distance(p, coords[coords.length - 1], { units: 'meters' });
         const nearerEnd = dStart <= dEnd ? coords[0] : coords[coords.length - 1];
         best = {
           streetId,
@@ -205,8 +180,8 @@ export class RouteGraph {
     const [keyA, keyB] = this.#streetEnds.get(streetId);
     const nodeA = this.#nodes.get(keyA);
     const nodeB = this.#nodes.get(keyB);
-    const dA = RouteGraph.distanceM(endCoord, [nodeA.lng, nodeA.lat]);
-    const dB = RouteGraph.distanceM(endCoord, [nodeB.lng, nodeB.lat]);
+    const dA = turf.distance(endCoord, [nodeA.lng, nodeA.lat], { units: 'meters' });
+    const dB = turf.distance(endCoord, [nodeB.lng, nodeB.lat], { units: 'meters' });
     return dA <= dB ? keyA : keyB;
   }
 
@@ -237,7 +212,10 @@ export class RouteGraph {
     const cameFrom = new Map(); // nodeKey -> { prevKey, streetId }
     const closed = new Set();
     const startNode = this.#nodes.get(from.nodeKey);
-    const open = [{ key: from.nodeKey, f: RouteGraph.distanceM([startNode.lng, startNode.lat], goalCoord) }];
+    const open = [{
+      key: from.nodeKey,
+      f: turf.distance([startNode.lng, startNode.lat], goalCoord, { units: 'meters' }),
+    }];
 
     while (open.length > 0) {
       const currentKey = RouteGraph.#heapPop(open).key;
@@ -255,7 +233,7 @@ export class RouteGraph {
           const other = this.#nodes.get(edge.otherKey);
           RouteGraph.#heapPush(open, {
             key: edge.otherKey,
-            f: tentativeG + RouteGraph.distanceM([other.lng, other.lat], goalCoord),
+            f: tentativeG + turf.distance([other.lng, other.lat], goalCoord, { units: 'meters' }),
           });
         }
       }
@@ -323,8 +301,8 @@ export class RouteGraph {
       // themselves close together (a hook or crescent can have them 10-15 m apart and still be long), both ends
       // sit inside any fixed tolerance, and the entry point would read as "first" whichever end it really was.
       const entry = [entryNode.lng, entryNode.lat];
-      const enteredAtFirst
-        = RouteGraph.distanceM(entry, coords[0]) <= RouteGraph.distanceM(entry, coords[coords.length - 1]);
+      const enteredAtFirst = turf.distance(entry, coords[0], { units: 'meters' })
+        <= turf.distance(entry, coords[coords.length - 1], { units: 'meters' });
       streets.unshift({ streetId: step.streetId, flip: !enteredAtFirst });
       key = step.prevKey;
     }

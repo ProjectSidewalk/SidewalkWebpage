@@ -8,6 +8,11 @@
  */
 
 import { loadModules } from './loader.js';
+import * as turf from '@turf/turf';
+import { NODE_TOLERANCE_M } from '../../frontend/js/common/streetNetwork.js';
+
+/** Metres between two [lng, lat] points, as the planner measures them. */
+const distanceM = (a, b) => turf.distance(a, b, { units: 'meters' });
 
 let WalkPlanner;
 
@@ -42,10 +47,10 @@ function expectValidWalk(streets, steps) {
     if (k === 0) {
       expect(step.jump).toBe(false);
     } else if (!step.jump) {
-      expect(WalkPlanner.distanceM(prevEnd, start)).toBeLessThanOrEqual(WalkPlanner.NODE_TOLERANCE_M);
+      expect(distanceM(prevEnd, start)).toBeLessThanOrEqual(NODE_TOLERANCE_M);
       expect(step.jumpM).toBe(0);
     } else {
-      expect(step.jumpM).toBeCloseTo(WalkPlanner.distanceM(prevEnd, start), 6);
+      expect(step.jumpM).toBeCloseTo(distanceM(prevEnd, start), 6);
     }
     prevEnd = step.reverse ? c[0] : c[c.length - 1];
   });
@@ -88,7 +93,7 @@ describe('WalkPlanner settings', () => {
     const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 0], [2, 0], 0.5), st(3, [5, 0], [6, 0])];
     const gated = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
     expect(gated.steps.map((s) => s.id)).toEqual([1, 3, 2]);
-    const lengthM = WalkPlanner.distanceM(streets[1].coords[0], streets[1].coords[1]);
+    const lengthM = distanceM(streets[1].coords[0], streets[1].coords[1]);
     const asTiny = new WalkPlanner(streets, { ...SETTINGS, tinyStreetM: lengthM + 0.01 }).plan({ streetId: 1 });
     expect(asTiny.steps.map((s) => s.id)).toEqual([1, 2, 3]);
     const atLength = new WalkPlanner(streets, { ...SETTINGS, tinyStreetM: lengthM }).plan({ streetId: 1 });
@@ -192,7 +197,7 @@ describe('WalkPlanner', () => {
     expect(stats.jumps).toBe(1);
     const jump = steps.find((s) => s.jump);
     expect(jump).toEqual({ id: 3, reverse: true, jump: true, jumpM: expect.any(Number) });
-    expect(jump.jumpM).toBeCloseTo(WalkPlanner.distanceM(P(2, 0), P(4, 0)), 6);
+    expect(jump.jumpM).toBeCloseTo(distanceM(P(2, 0), P(4, 0)), 6);
   });
 
   it('prefers a farther odd node to a nearer even one by the odd-start penalty', () => {
@@ -251,7 +256,7 @@ describe('WalkPlanner', () => {
     const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 2], [1, 0], 1, { fixedDirection: true })];
     const { steps } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
     expect(steps[1]).toEqual({ id: 2, reverse: false, jump: true, jumpM: expect.any(Number) });
-    expect(steps[1].jumpM).toBeCloseTo(WalkPlanner.distanceM(P(1, 0), P(1, 2)), 6);
+    expect(steps[1].jumpM).toBeCloseTo(distanceM(P(1, 0), P(1, 2)), 6);
   });
 
   it('walks a loop street as part of the trail through its node', () => {
@@ -303,12 +308,12 @@ describe('WalkPlanner', () => {
     // A path A-B-C, then a separate street D-E one step north of C: one jump of one step, one dead end at C.
     const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 0], [2, 0]), st(3, [2, 1], [3, 1])];
     const { steps, stats } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
-    const oneStep = WalkPlanner.distanceM(P(0, 0), P(1, 0));
+    const oneStep = distanceM(P(0, 0), P(1, 0));
     expect(ids(steps)).toEqual([1, 2, 3]);
     expect(stats.streets).toBe(3);
     expect(stats.totalM).toBeCloseTo(3 * oneStep, 6);
     expect(stats.jumps).toBe(1);
-    expect(stats.jumpM).toBeCloseTo(WalkPlanner.distanceM(P(2, 0), P(2, 1)), 6);
+    expect(stats.jumpM).toBeCloseTo(distanceM(P(2, 0), P(2, 1)), 6);
     expect(stats.medianJumpM).toBeCloseTo(stats.jumpM, 6);
     expect(stats.deadEnds).toBe(1);
     expect(stats.lowerBoundJumps).toBe(1);
@@ -380,8 +385,8 @@ describe('WalkPlanner', () => {
     const streets = [st(1, [0, 0], [1, 0]), st(2, [2, 0], [3, 0]), st(3, [5, 0], [6, 0])];
     const { steps, stats } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
     expect(ids(steps)).toEqual([1, 2, 3]);
-    const oneStep = WalkPlanner.distanceM(P(1, 0), P(2, 0));
-    const twoSteps = WalkPlanner.distanceM(P(3, 0), P(5, 0));
+    const oneStep = distanceM(P(1, 0), P(2, 0));
+    const twoSteps = distanceM(P(3, 0), P(5, 0));
     expect(stats.jumps).toBe(2);
     expect(stats.medianJumpM).toBeCloseTo((oneStep + twoSteps) / 2, 6);
     expect(stats.deadEnds).toBe(2);

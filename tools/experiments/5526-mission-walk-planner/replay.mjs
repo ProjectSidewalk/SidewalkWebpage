@@ -11,7 +11,9 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 // The real module, not a copy: the benchmark is only evidence for the code that ships if it runs that code.
+import * as turf from '@turf/turf';
 import { WalkPlanner } from '../../../frontend/js/common/WalkPlanner.js';
+import { NODE_TOLERANCE_M } from '../../../frontend/js/common/streetNetwork.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..', '..');
@@ -26,7 +28,7 @@ const CONNECT_RADII_M = [5, 10, 25];
 // Two yardsticks for every policy: a step whose start is more than this from the previous end is a jump. 25 m is
 // the headline because it is Explore's own CONNECTED_TASK_THRESHOLD, i.e. what a labeler experiences as a jump; 10 m
 // is the planner's node tolerance, the graph the jump lower bound is computed on.
-const YARDSTICKS_M = [CONNECTED_M, WalkPlanner.NODE_TOLERANCE_M];
+const YARDSTICKS_M = [CONNECTED_M, NODE_TOLERANCE_M];
 
 const args = parseArgs(process.argv.slice(2));
 const SEEDS = Number(args.seeds ?? 5);
@@ -81,7 +83,7 @@ function mulberry32(seed) {
   };
 }
 
-const dist = WalkPlanner.distanceM;
+const dist = (a, b) => turf.distance(a, b, { units: 'meters' });
 const first = (s) => s.coords[0];
 const last = (s) => s.coords[s.coords.length - 1];
 
