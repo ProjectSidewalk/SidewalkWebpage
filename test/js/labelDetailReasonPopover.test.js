@@ -364,6 +364,29 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(logged()).toContain('Click_module=LabelDetail_action=EditCommentOpen_labelId=42');
     });
 
+    test('with no comment of yours to edit, refused words hold the plain box open', async () => {
+      await reask();
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+      window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: null }) }));
+      const redrawPano = deferred();
+      panoManager.setPano.mockImplementation(() => redrawPano.promise);
+      panoManager.warmUp = vi.fn(async () => true);
+      click(otherSave());
+      await flush();
+      await flush();
+
+      expect(commentRow().classList.contains('is-open')).toBe(true);
+      expect(q('.label-detail__comment-cancel').hidden).toBe(true);
+      expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
+      expect(q('.label-detail__comment-submit').classList.contains('is-active')).toBe(true);
+      redrawPano.resolve(true);
+      await flush();
+      expect(document.activeElement).toBe(q('.label-detail__comment-input'));
+    });
+
     test('unsaved words outlast a click outside; Escape still closes', async () => {
       await reask();
       click(other());
