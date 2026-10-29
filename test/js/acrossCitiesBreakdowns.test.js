@@ -10,8 +10,9 @@
  * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { useUtil } from './loader.js';
 import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
 useUtil(metricDistanceUtil);
 
@@ -115,36 +116,24 @@ function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.
 }
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
-  let AcrossCitiesPage;
   /** The page's own `util`, so a card is sanitized by the same code psTooltip uses. */
   let util;
 
   /**
-   * Renders the page against a fixture and returns the initialized instance.
+   * Renders the page against a fixture.
    *
    * @param {{cities?: Array, daily?: Array, summary?: ?object, baseline?: ?object}} fixture - Any subset of the
    *   endpoint's payload; `baseline` is its `daily_baseline` block, left out of the payload when absent.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
    */
   async function render({ cities = [], daily = [], summary = null, baseline = undefined } = {}) {
-    document.body.innerHTML = MARKUP;
-    const windowByCity = {};
-    cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    window.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: cities.map((c) => c.city),
-        summary: {},
-        over_time_all_time: [],
-        over_time_daily: daily,
-        window_summary: summary,
-        window_by_city: windowByCity,
-        ...(baseline === undefined ? {} : { daily_baseline: baseline }),
-      }),
+    const windowByCity = Object.fromEntries(cities.map((c) => [c.city.city_id, c.window]));
+    ({ modules: { util } } = await renderAcrossCities({
+      markup: MARKUP,
+      scorecards: {
+        cities: cities.map((c) => c.city), over_time_daily: daily, window_summary: summary,
+        window_by_city: windowByCity, ...(baseline === undefined ? {} : { daily_baseline: baseline }),
+      },
     }));
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
-    await page.init();
-    return page;
   }
 
   /** The card trigger inside the nth cell of the first table row (0 = city name). */
@@ -166,11 +155,6 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
   function barCard(index, chart = 'labels') {
     return barTarget(index, chart).getAttribute('data-ps-tooltip-html');
   }
-
-  beforeEach(async () => {
-    ({ AcrossCitiesPage, util } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js',
-      'frontend/js/common/utilities.js'));
-  });
 
   describe('tiles', () => {
     it('counts what people did and reports AI output on its own line', async () => {
@@ -517,7 +501,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         const card = parse(barCard(0));
 
         expect(card.querySelector('a')).toBeNull();
-        expect(card.querySelector('.ac-tip-where').closest('.ac-tip-row').firstElementChild.textContent).toBe('a · SEA');
+        const row = card.querySelector('.ac-tip-where').closest('.ac-tip-row');
+        expect(row.firstElementChild.textContent).toBe('a · SEA');
       });
 
       it('says how to reach the links on a card that has them', async () => {

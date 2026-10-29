@@ -24,7 +24,8 @@ function items() {
 describe('Across Cities — pulse line', () => {
   it('counts cities by lifecycle in a fixed order, leaving out states no city is in', async () => {
     await render([
-      makeCity('a', { lifecycle: 'stalled' }), makeCity('b'), makeCity('c'), makeCity('d', { lifecycle: 'low_traction' }),
+      makeCity('a', { lifecycle: 'stalled' }), makeCity('b'), makeCity('c'),
+      makeCity('d', { lifecycle: 'low_traction' }),
     ]);
     expect(document.getElementById('ac-pulse').textContent)
       .toBe('Comparing 4 cities · 2 active · 1 stalled · 1 low traction.');
@@ -89,15 +90,17 @@ describe('Across Cities — needs attention', () => {
     expect(items().map((a) => a.querySelector('strong').textContent)).toEqual(['bad', 'warn', 'note']);
   });
 
-  it('links each item to its city in a new tab, and to nowhere when the city has no URL', async () => {
+  it('links each item to its city in a new tab, and leaves a city with no URL as plain text', async () => {
     await render([makeCity('a', { lifecycle: 'stalled' }), makeCity('b', { lifecycle: 'stalled', url: null })]);
     const [a, b] = items();
+    expect(a.tagName).toBe('A');
     expect(a.getAttribute('href')).toBe('https://a.example.org');
     expect(a.getAttribute('target')).toBe('_blank');
     expect(a.getAttribute('rel')).toBe('noopener');
-    expect(b.getAttribute('href')).toBe('#');
-    expect(b.hasAttribute('target')).toBe(false);
+    expect(b.tagName).toBe('DIV');
+    expect(b.hasAttribute('href')).toBe(false);
   });
+
 
   it('escapes the city name', async () => {
     await render([makeCity('a', { city_name: '<img src=x onerror=alert(1)>', lifecycle: 'stalled' })]);

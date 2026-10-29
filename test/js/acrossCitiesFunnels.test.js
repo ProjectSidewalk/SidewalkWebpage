@@ -147,12 +147,34 @@ describe('Across Cities — engagement funnels', () => {
     expect(document.getElementById('ac-pulse').textContent).toContain('Comparing 1 city');
   });
 
-  it('keeps the funnels already shown when a window change fails', async () => {
+  it('keeps the funnels shown when a window change fails, with the highlight back on their window', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    await render((win) => (win === '90d' ? new Error('boom') : { funnels: { mapping: MAPPING } }));
+    let fail = true;
+    const { fetch } = await render((win) =>
+      (win === '90d' && fail ? new Error('boom') : { funnels: { mapping: MAPPING } }));
     click('ac-funnel-window', 'window', '90d');
     await vi.waitFor(() =>
       expect(document.getElementById('ac-funnel-status').textContent).toBe('Could not load funnel data.'));
     expect(blocks()[0].querySelector('h3').textContent).toBe('Mapping funnel');
+    expect(document.querySelector('#ac-funnel-window [data-window="30d"]').classList).toContain('is-active');
+    expect(document.querySelector('#ac-funnel-window [data-window="90d"]').classList).not.toContain('is-active');
+    fail = false;
+    click('ac-funnel-window', 'window', '90d');
+    await vi.waitFor(() => expect(funnelRequests(fetch)).toHaveLength(3));
   });
+
+  it('drops a slow response for a window no longer selected', async () => {
+    let release90;
+    const slow90 = new Promise((resolve) => { release90 = resolve; });
+    await render((win) => (win === '90d' ? slow90 : { funnels: { contribution: CONTRIBUTION } }));
+    click('ac-funnel-window', 'window', '90d');
+    click('ac-funnel-window', 'window', '30d');
+    await vi.waitFor(() =>
+      expect(document.getElementById('ac-funnel-status').textContent).toBe('1 city with funnel data.'));
+    release90({ funnels: { mapping: MAPPING } });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(blocks().map((b) => b.querySelector('h3').textContent)).toEqual(['Contribution funnel']);
+    expect(document.querySelector('#ac-funnel-window [data-window="30d"]').classList).toContain('is-active');
+  });
+
 });

@@ -11,18 +11,22 @@ useUtil(metricDistanceUtil);
 
 /** What the fake map was asked to do; reset by each render. */
 let map;
+/** Makes the next map throw on construction, as Mapbox does in a browser without WebGL. */
+let noWebGl = false;
 
+/** Records the options, source, layers and handlers it was given instead of drawing. */
 class FakeMap {
   constructor(options) {
-    map = { options, sources: {}, layers: [], handlers: {}, controls: [], loadCallbacks: [], canvasStyle: {} };
-    map.instance = this;
+    if (noWebGl) throw new Error('Failed to initialize WebGL.');
+    map = { options, sources: {}, layers: [], handlers: {}, loadCallbacks: [], canvasStyle: {} };
   }
 
-  addControl(control, position) { map.controls.push({ control, position }); }
+  addControl() {}
 
+  /** Keys layer handlers by event and layer, so a handler on the wrong layer is never fired. */
   on(event, layerOrHandler, handler) {
     if (event === 'load') map.loadCallbacks.push(layerOrHandler);
-    else map.handlers[event] = handler;
+    else map.handlers[`${event}:${layerOrHandler}`] = handler;
   }
 
   addSource(id, source) { map.sources[id] = source; }
@@ -32,6 +36,7 @@ class FakeMap {
   getCanvas() { return { style: map.canvasStyle }; }
 }
 
+/** Holds the last position and HTML it was given, and whether it is open. */
 class FakePopup {
   constructor() { map.popup = this; this.open = false; }
 
@@ -47,7 +52,7 @@ class FakePopup {
 const mapboxgl = { Map: FakeMap, Popup: FakePopup, NavigationControl: class {} };
 mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
 
-const MARKUP = '<div id="ac-cities-map"></div><div id="ac-map-status"></div>';
+const MARKUP = '<div id="ac-pulse"></div><div id="ac-cities-map"></div><div id="ac-map-status"></div>';
 
 function geo(id, overrides = {}) {
   return { city_id: id, city_name_formatted: `${id} city`, center_lat: 47.6, center_lng: -122.3, ...overrides };
@@ -56,6 +61,7 @@ function geo(id, overrides = {}) {
 /** Renders the page and fires the map's load event, since the source and layer are only added on load. */
 async function render(cities, citiesGeo, mapboxToken = 'pk.test') {
   map = null;
+  mapboxgl.accessToken = null;
   await renderAcrossCities({ markup: MARKUP, scorecards: { cities }, citiesGeo, mapboxToken });
   map?.loadCallbacks.forEach((cb) => cb());
 }
@@ -65,10 +71,12 @@ function features() {
 }
 
 function fire(event, feature) {
-  map.handlers[event]({ features: [feature] });
+  map.handlers[`${event}:ac-cities-circles`]({ features: [feature] });
 }
 
 describe('Across Cities — deployment map', () => {
+  afterEach(() => { noWebGl = false; });
+
   it('degrades to a note without a token', async () => {
     await render([makeCity('a')], { cities: [geo('a')] }, null);
     expect(map).toBeNull();
@@ -80,6 +88,16 @@ describe('Across Cities — deployment map', () => {
     await render([makeCity('a')], new Error('geo down'));
     expect(map).toBeNull();
     expect(document.getElementById('ac-map-status').textContent).toBe('Map unavailable.');
+    expect(document.getElementById('ac-pulse').textContent).toBe('Comparing 1 city · 1 active.');
+  });
+
+  it('degrades to a note without WebGL, leaving the rest of the page drawn', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    noWebGl = true;
+    await render([makeCity('a')], { cities: [geo('a')] });
+    expect(document.getElementById('ac-map-status').textContent).toBe('Map unavailable.');
+    expect(document.getElementById('ac-cities-map').style.display).toBe('none');
+    expect(document.getElementById('ac-pulse').textContent).toBe('Comparing 1 city · 1 active.');
   });
 
   it('says so when no city has a location', async () => {
@@ -144,7 +162,7 @@ describe('Across Cities — deployment map', () => {
     expect(map.popup.html).toBe(feature.properties.popup);
     expect(map.popup.lngLat).toEqual([-122.3, 47.6]);
     expect(map.canvasStyle.cursor).toBe('pointer');
-    map.handlers.mouseleave();
+    map.handlers['mouseleave:ac-cities-circles']();
     expect(map.popup.open).toBe(false);
     expect(map.canvasStyle.cursor).toBe('');
   });

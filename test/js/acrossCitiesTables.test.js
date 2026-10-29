@@ -98,6 +98,12 @@ describe('Across Cities — scorecard table', () => {
     expect(cityOrder('ac-tbody')).toEqual(['alpha', 'bravo', 'charlie', 'delta']);
   });
 
+  it('sorts an accented name with its unaccented letter, not after Z', async () => {
+    await render([makeCity('zurich'), makeCity('Évora'), makeCity('denver')]);
+    sortBy('city_name');
+    expect(cityOrder('ac-tbody')).toEqual(['denver', 'Évora', 'zurich']);
+  });
+
   it('flags rows whose lifecycle or anomalies need attention, and chips each anomaly', async () => {
     await render(FIXTURE);
     const row = (name) => rowFor('ac-tbody', name);
@@ -120,6 +126,11 @@ describe('Across Cities — scorecard table', () => {
     expect(cell('alpha').title).toBe('12,345');
     expect(cell('bravo').textContent).toBe('900');
     expect(cell('charlie').textContent).toBe('2.5M');
+  });
+
+  it('moves to the next unit where the smaller one would round up into it', async () => {
+    await render([makeCity('a', { total_labels: 999_950 })]);
+    expect(rowFor('ac-tbody', 'a').cells[3].textContent).toBe('1M');
   });
 
   it('says "never" for a city with no activity', async () => {
@@ -163,6 +174,13 @@ describe('Across Cities — contributors & effort table', () => {
     expect(slow.cells[5].textContent).toBe('1.3 h');
     // No time recorded is a dash, not "0s", which would read as instant.
     expect(slow.cells[6].textContent).toBe('—');
+  });
+
+  it('moves to the next unit where the smaller one would round up into it', async () => {
+    await render([makeCity('a', { seconds_to_validate_10: 59.6, seconds_per_100m: 3598 })]);
+    const [row] = rows('ac-effort-tbody');
+    expect(row.cells[5].textContent).toBe('1.0 min');
+    expect(row.cells[6].textContent).toBe('1.0 h');
   });
 
   it('shows a dash when no validation time was recorded', async () => {
@@ -215,8 +233,10 @@ describe('Across Cities — label-type mix', () => {
       makeCity('a', { total_labels: 30, by_label_type: byType({ Obstacle: 10, CurbRamp: 20 }) }),
       makeCity('b', { total_labels: 5, by_label_type: byType({ Signal: 5, NoSidewalk: 0 }) }),
     ]);
-    const expected = window.labelTypes.map((lt) => lt.name).filter((n) => ['CurbRamp', 'Obstacle', 'Signal'].includes(n));
-    const shown = [...document.querySelectorAll('#ac-patterns-legend .ac-legend-item')].map((el) => el.textContent.trim());
+    const expected = window.labelTypes.map((lt) => lt.name)
+      .filter((n) => ['CurbRamp', 'Obstacle', 'Signal'].includes(n));
+    const shown = [...document.querySelectorAll('#ac-patterns-legend .ac-legend-item')]
+      .map((el) => el.textContent.trim());
     const names = { CurbRamp: 'Curb ramp', Obstacle: 'Obstacle', Signal: 'Signal' };
     expect(shown).toEqual(expected.map((n) => names[n]));
   });

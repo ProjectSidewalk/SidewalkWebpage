@@ -8,8 +8,9 @@
  * failed request — collapses the section to a note without disturbing the already-rendered page.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { useUtil } from './loader.js';
 import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
 useUtil(metricDistanceUtil);
 
@@ -67,45 +68,14 @@ const MARKUP = `
   <div id="ac-traffic-status"></div>`;
 
 describe('Across Cities — traffic section', () => {
-  let AcrossCitiesPage;
-
-  /**
-   * Renders the page against fixtures and returns the initialized instance.
-   *
-   * @param {Array} cities - Scorecard rows from makeCity().
-   * @param {object|Error} traffic - The /adminapi/cityTraffic response body, or an Error to reject the request with.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
-   */
   async function render(cities, traffic) {
-    document.body.innerHTML = MARKUP;
-    window.fetch = vi.fn((url) => {
-      if (url === '/adminapi/cityScorecards') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            cities, summary: {}, over_time_all_time: [], over_time_daily: [], window_summary: null, window_by_city: {},
-          }),
-        });
-      }
-      if (url === '/adminapi/cityTraffic') {
-        if (traffic instanceof Error) return Promise.reject(traffic);
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(traffic) });
-      }
-      return Promise.reject(new Error(`unexpected fetch: ${url}`));
-    });
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards', trafficUrl: '/adminapi/cityTraffic' });
-    await page.init();
-    return page;
+    await renderAcrossCities({ markup: MARKUP, scorecards: { cities }, traffic });
   }
 
   /** City names in the traffic table, in display order. */
   function trafficCityOrder() {
     return [...document.querySelectorAll('#ac-traffic-tbody tr')].map((tr) => tr.cells[0].textContent.trim());
   }
-
-  beforeEach(async () => {
-    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
-  });
 
   it('rows only cities with traffic data, busiest sessions first', async () => {
     await render([makeCity('alpha'), makeCity('bravo'), makeCity('charlie')], {
@@ -169,35 +139,17 @@ describe('Across Cities — traffic section', () => {
   });
 
   it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
-    document.body.innerHTML = MARKUP;
     let releaseTraffic;
-    window.fetch = vi.fn((url) => {
-      if (url === '/adminapi/cityScorecards') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            cities: [makeCity('alpha')], summary: {}, over_time_all_time: [], over_time_daily: [],
-            window_summary: null, window_by_city: {},
-          }),
-        });
-      }
-      return new Promise((resolve) => { releaseTraffic = resolve; });
-    });
-    const page = new AcrossCitiesPage({
-      scorecardsUrl: '/adminapi/cityScorecards', trafficUrl: '/adminapi/cityTraffic',
-    });
-    const initing = page.init();
-    // init finishes the scorecards fetch and main render first, so wait for the request rather than count microtasks.
-    while (!releaseTraffic) await new Promise((resolve) => { setTimeout(resolve, 0); });
+    const traffic = new Promise((resolve) => { releaseTraffic = resolve; });
+    const rendering = render([makeCity('alpha')], traffic);
+    // init finishes the scorecards fetch and main render first, so wait for the traffic load to start.
+    await vi.waitFor(() => expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…'));
     document.querySelector('#ac-traffic-table th[data-sort="traffic.sessions_7d"]').click();
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…');
     expect(document.querySelectorAll('#ac-traffic-tbody tr')).toHaveLength(0);
 
-    releaseTraffic({
-      ok: true,
-      json: () => Promise.resolve({ available: true, traffic_by_city: { alpha: makeTraffic() } }),
-    });
-    await initing;
+    releaseTraffic({ available: true, traffic_by_city: { alpha: makeTraffic() } });
+    await rendering;
     expect(trafficCityOrder()).toEqual(['alpha']);
   });
 

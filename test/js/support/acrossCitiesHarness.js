@@ -1,9 +1,12 @@
 /**
- * Shared setup for the Across Cities suites (#5840): stubs each endpoint a suite names and refuses any other, so a
- * suite states only the payloads it cares about.
+ * Shared setup for the Across Cities suites (#5840): stubs each endpoint a suite names and fails the test on any other,
+ * so a suite states only the payloads it cares about.
  */
 
-import { loadModules } from '../loader.js';
+import { loadModules, mockModule } from '../loader.js';
+
+// The real library can't draw under jsdom, and loading it trips Vite's file-access check in a worktree.
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: {} }));
 
 const SCORECARDS_URL = '/adminapi/cityScorecards';
 const CITIES_URL = '/v3/api/cities';
@@ -36,18 +39,20 @@ function respond(body) {
  * @param {string} [opts.mapboxToken]
  * @param {string} [opts.storiesPath]
  * @param {(modules: object) => void} [opts.beforeInit] - Runs before `init()` draws, e.g. to spy on MiniLineChart.
- * @returns {Promise<{page: object, fetch: Function, modules: object}>} The page, the fetch stub, and the modules it
- *   loaded (the MiniLineChart instance is the one the page draws with).
+ * @returns {Promise<{fetch: Function, modules: object}>} The fetch stub, and the modules the page was loaded with
+ *   (AcrossCitiesPage, MiniLineChart and `util`, one instance each).
  */
 export async function renderAcrossCities({ markup, scorecards = {}, citiesGeo, funnels, traffic, mapboxToken,
   storiesPath, beforeInit }) {
   const modules = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js',
-    'frontend/js/admin-dashboard/MiniLineChart.js');
+    'frontend/js/admin-dashboard/MiniLineChart.js', 'frontend/js/common/utilities.js');
   document.body.innerHTML = markup;
   const body = scorecards instanceof Error ? scorecards : {
     cities: [], summary: {}, over_time_all_time: [], over_time_daily: [], window_summary: null, window_by_city: {},
     ...scorecards,
   };
+  // The page catches every failed request, so an unexpected one is recorded and failed here instead.
+  const unexpected = [];
   const fetch = vi.fn((url) => {
     const [path, query] = url.split('?');
     if (path === SCORECARDS_URL) return respond(body);
@@ -57,9 +62,10 @@ export async function renderAcrossCities({ markup, scorecards = {}, citiesGeo, f
       const win = new URLSearchParams(query).get('window');
       return respond(typeof funnels === 'function' ? funnels(win) : funnels);
     }
+    unexpected.push(url);
     return Promise.reject(new Error(`unexpected fetch: ${url}`));
   });
-  window.fetch = fetch;
+  vi.stubGlobal('fetch', fetch);
   const page = new modules.AcrossCitiesPage({
     scorecardsUrl: SCORECARDS_URL,
     citiesUrl: citiesGeo === undefined ? undefined : CITIES_URL,
@@ -70,5 +76,6 @@ export async function renderAcrossCities({ markup, scorecards = {}, citiesGeo, f
   });
   beforeInit?.(modules);
   await page.init();
-  return { page, fetch, modules };
+  expect(unexpected, 'requests no stub answers').toEqual([]);
+  return { fetch, modules };
 }
