@@ -6,7 +6,10 @@
 
 import { flush, labelMeta, logged, mountCard } from './support/labelDetailHarness.js';
 
-/** A request the test answers when it chooses. */
+/**
+ * A request the test answers when it chooses.
+ * @returns {{route: Function, answer: Function}} The route to hand mountCard(), and the function that answers it.
+ */
 function held() {
   let answer;
   const reply = new Promise((resolve) => { answer = resolve; });
@@ -18,6 +21,12 @@ describe('the label card, when a reply goes wrong or comes late', () => {
 
   beforeEach(() => {
     error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  // The failures here are logged on purpose, but a crash in the card's own code must still fail the test.
+  afterEach(() => {
+    const crashes = error.mock.calls.flat().filter((arg) => arg instanceof TypeError || arg instanceof ReferenceError);
+    expect(crashes).toEqual([]);
   });
 
   describe('a vote', () => {
@@ -231,7 +240,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(tagsStatus.classList.contains('label-detail__edit-status--error')).toBe(true);
     });
 
-    test('a failed save after paging rolls back the label it was made on, quietly', async () => {
+    test('a failed save after paging says nothing on the new label', async () => {
       const save = held();
       const { show, q } = await mountCard({ routes: { 'POST /label/edit': save.route } });
       const first = await show(editable);
@@ -242,7 +251,6 @@ describe('the label card, when a reply goes wrong or comes late', () => {
 
       save.answer({ status: 500, body: {} });
       await flush();
-      expect(first.severity).toBe(2);
       expect(q('.label-detail__col--severity .label-detail__edit-status').textContent).toBe('');
     });
 
@@ -259,31 +267,72 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(onEdit).toHaveBeenCalledWith(first);
       expect(first).toMatchObject({ severity: 3, tags: [] });
+      expect(logged()).toContain('Click_module=LabelDetail_action=EditSeverity_old=2_new=3_labelId=42');
       expect(q('.label-detail__col--severity .label-detail__edit-status').textContent).toBe('');
     });
 
     test('a type change that lands after paging re-reads the votes before telling the host', async () => {
       const save = held();
+      const reread = held();
       const onEdit = vi.fn();
-      const { show, q } = await mountCard({
+      const { show, q, fetch } = await mountCard({
         routes: {
-          'POST /label/edit': save.route,
-          'GET /label/id/42': labelMeta({ label_type: 'Signal', num_agree: 0 }),
+          'POST /label/edit': (url, opts) => (JSON.parse(opts.body).label_id === 42
+            ? save.route()
+            : { label_type: 'Obstacle', severity: 3, tags: [] }),
+          'GET /label/id/42': reread.route,
         },
         options: { onEdit },
       });
       const first = await show({ ...editable, from_current_user: false, num_agree: 4 });
       typeButton(q).click();
       chip(q, 'Signal').click();
-      await show({ ...editable, label_id: 43 });
+      await show({ ...editable, label_id: 43, from_current_user: false });
 
       save.answer({ label_type: 'Signal', severity: null, tags: [] });
       await flush();
+      expect(logged()).toContain('Click_module=LabelDetail_action=EditLabelType_old=Obstacle_new=Signal_labelId=42');
+      // The shown label's votes and edits don't wait on the old label's re-read.
+      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+      q('.severity-button[data-severity="3"]').click();
       await flush();
-      expect(onEdit).toHaveBeenCalledTimes(1);
-      expect(onEdit.mock.calls[0][0]).toBe(first);
+      const edits = fetch.mock.calls.filter(([url]) => url.startsWith('/label/edit'));
+      expect(edits.map(([, opts]) => JSON.parse(opts.body).label_id)).toEqual([42, 43]);
+      expect(onEdit.mock.calls.map(([meta]) => meta.label_id)).toEqual([43]);
+
+      reread.answer(labelMeta({ label_type: 'Signal', num_agree: 0 }));
+      await flush();
+      expect(onEdit.mock.calls.map(([meta]) => meta)).toEqual([expect.objectContaining({ label_id: 43 }), first]);
       expect(first).toMatchObject({ label_type: 'Signal', num_agree: 0 });
       expect(q('.label-detail__title').textContent).not.toContain('Signal');
+      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+    });
+
+    test('a type change queued before paging leaves the new label\'s tag pick open', async () => {
+      const first = held();
+      let edits = 0;
+      const { show, q } = await mountCard({
+        routes: {
+          'GET /label/tags': [{ label_type: 'Obstacle', tag: 'pole', tag_id: 1 }],
+          'POST /label/edit': () => (++edits === 1 ? first.route() : { label_type: 'Signal', severity: null, tags: [] }),
+          'GET /label/id/42': labelMeta({ label_type: 'Signal' }),
+        },
+      });
+      await show(editable);
+      q('.severity-button[data-severity="3"]').click();
+      typeButton(q).click();
+      chip(q, 'Signal').click();
+      await show({ ...editable, label_id: 43 });
+      q('.label-detail__tags-edit').click();
+      await flush();
+      const picks = () => q('.label-detail__tags').querySelectorAll('.tag-pill--interactive').length;
+      expect(picks()).toBe(1);
+
+      first.answer({ label_type: 'Obstacle', severity: 3, tags: ['pole'] });
+      await flush();
+      await flush();
+      expect(edits).toBe(2);
+      expect(picks()).toBe(1);
     });
 
     test('the type picker won\'t open while the label\'s imagery is still loading', async () => {
@@ -314,6 +363,11 @@ describe('the label card, when a reply goes wrong or comes late', () => {
     });
 
     describe('the vote re-read after a type change', () => {
+      /**
+       * Shows someone else's label 42 and changes its type to Signal.
+       * @param {any} refresh - How the vote re-read answers.
+       * @returns {Promise<object>} The mounted card, the label's metadata, and the onComments spy.
+       */
       async function changeType(refresh) {
         const onComments = vi.fn();
         const mounted = await mountCard({

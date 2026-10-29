@@ -7,7 +7,7 @@
  * share widget, stories, badges, toasts, the confirm) are stand-ins that record what the card asked of them.
  */
 
-import { loadModules, mockModule } from '../loader.js';
+import { loadModules, mockModule, useUtil } from '../loader.js';
 
 /** What the stand-ins were handed; reset by each mountCard(). */
 export const collaborators = {
@@ -69,6 +69,7 @@ let panoManager = null;
 let unexpected = [];
 
 afterEach(() => {
+  useUtil();
   expect(unexpected, 'requests the suite gave no route for').toEqual([]);
 });
 

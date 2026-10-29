@@ -2519,8 +2519,9 @@ export class LabelDetail {
     if (!sameTags) columns.push('tags');
 
     if (typeChange) {
-      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one.
-      if (this.#tagEditor.isOpen) this.#tagEditor.close();
+      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one. A pick
+      // open on a label paged to since is left alone.
+      if (this.#currentLabelMeta === meta && this.#tagEditor.isOpen) this.#tagEditor.close();
     } else {
       meta.severity = severity;
       meta.tags = tags;
@@ -2542,11 +2543,13 @@ export class LabelDetail {
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
+      if (!conflict) this.#logEdit(meta, prev, change, sameTags);
       // Paged on: nothing is drawn over the newer label, but the host still hears, so its map dot or gallery card
       // for this label doesn't keep the old values until a reload.
       if (this.#currentLabelMeta !== meta) {
-        if (meta.label_type !== prev.labelType) await this.#refreshVotes(meta);
-        if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+        // Not awaited: the saves queued behind this one are for the label on screen, and shouldn't wait on it.
+        if (meta.label_type !== prev.labelType) this.#refreshVotes(meta).then(() => this.#notifyEdit(meta));
+        else this.#notifyEdit(meta);
         return;
       }
       render();
@@ -2554,7 +2557,7 @@ export class LabelDetail {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
           await this.#refreshVotes(meta);
-          if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+          this.#notifyEdit(meta);
         }
         return;
       }
@@ -2571,27 +2574,43 @@ export class LabelDetail {
       } else {
         this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       }
-      if (meta.label_type !== prev.labelType) {
-        const undoNote = change.undo ? '_undo=true' : '';
-        this.#logAction(`EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`, !!change.viaKeyboard);
-      }
-      if (meta.severity !== prev.severity) {
-        this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
-      }
-      if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
       // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
       if (typeChange) await this.#refreshVotes(meta);
-      if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+      this.#notifyEdit(meta);
     } catch (err) {
       console.error(err);
-      // Rolled back even after paging, or a host caching this label's data would show the values the server refused.
+      if (this.#currentLabelMeta !== meta) return;
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
-      if (this.#currentLabelMeta !== meta) return;
       render();
       this.#showEditFailure(columns);
     }
+  }
+
+  /**
+   * Logs each field a saved edit changed, under the label it was made on even if the reader has paged on.
+   * @param {Record<string, any>} meta - The label's metadata, holding the saved values.
+   * @param {{labelType: string, severity: ?number, tags: string[]}} prev - The values before the edit.
+   * @param {{undo?: boolean, viaKeyboard?: boolean}} change - The change as submitted.
+   * @param {boolean} sameTags - The edit left the tags as they were.
+   */
+  #logEdit(meta, prev, change, sameTags) {
+    const id = meta.label_id;
+    if (meta.label_type !== prev.labelType) {
+      const undoNote = change.undo ? '_undo=true' : '';
+      const action = `EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`;
+      this.#logAction(action, !!change.viaKeyboard, id);
+    }
+    if (meta.severity !== prev.severity) {
+      this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`, false, id);
+    }
+    if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`, false, id);
+  }
+
+  /** @param {Record<string, any>} meta - The edited label's metadata, passed to the host's onEdit. */
+  #notifyEdit(meta) {
+    if (typeof this.#onEdit === 'function') this.#onEdit(meta);
   }
 
   /**
@@ -2602,8 +2621,9 @@ export class LabelDetail {
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
-    // A vote cast now would be overwritten by the older counts on their way back.
-    this.#setVoteButtonsDisabled(true);
+    // A vote cast now would be overwritten by the older counts on their way back. A re-read for a label paged away
+    // from leaves the shown label's buttons alone.
+    if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(true);
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -2617,8 +2637,11 @@ export class LabelDetail {
       }
       // Paged on: the label's data still takes the new type's votes and comments, which its host may show later.
       if (this.#currentLabelMeta !== meta) {
-        meta.comments = fresh.comments ?? [];
-        if (typeof this.#onComments === 'function') this.#onComments(meta);
+        // A comment saved while this was in flight may be missing from the reply.
+        if (this.#commentWrites === commentWrites) {
+          meta.comments = fresh.comments ?? [];
+          if (typeof this.#onComments === 'function') this.#onComments(meta);
+        }
         return;
       }
       this.#validationCounts.Agree = meta.num_agree;

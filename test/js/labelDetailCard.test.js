@@ -354,9 +354,10 @@ describe('the label card', () => {
       });
 
       test('is skipped, not thrown, when the browser blocks storage', async () => {
-        const { show } = await mountCard();
+        const { show, q } = await mountCard();
         vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
-        await expect(show()).resolves.toBeTruthy();
+        await show();
+        expect(q('.label-detail__vote--agree').disabled).toBe(false);
         expect(collaborators.toast).not.toHaveBeenCalled();
       });
     });
@@ -430,6 +431,11 @@ describe('the label card', () => {
       return e;
     };
 
+    /**
+     * Shows a label the reader voted Disagree on, so the comment box is open.
+     * @param {Record<string, any>} [routes] - Extra routes on top of a comment save that succeeds.
+     * @returns {Promise<object>} The mounted card plus its comment `input`.
+     */
     async function openBox(routes = {}) {
       const mounted = await mountCard({ routes: { 'POST /labelmap/comment': { username: 'tester' }, ...routes } });
       await mounted.show({ user_validation: 'Disagree', num_disagree: 1 });
