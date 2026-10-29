@@ -1,6 +1,6 @@
 package actor
 
-import models.utils.JobRunTrigger
+import models.utils.{BackgroundJobRun, JobRunTrigger}
 import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -10,6 +10,7 @@ import service.CropService.CropRunResult
 import service.{ConfigService, CropService, JobRunService}
 import util.{SidewalkSpec, StubService}
 
+import java.time.OffsetDateTime
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.*
@@ -43,6 +44,8 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
       calls.add((jobName, trigger))
       work
     }
+
+    def interruptOrphanedRuns(bootedAt: OffsetDateTime): Future[Seq[BackgroundJobRun]] = Future.successful(Seq.empty)
   }
 
   /**

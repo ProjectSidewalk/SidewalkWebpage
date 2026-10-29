@@ -49,10 +49,12 @@ class StoryController @Inject() (
   def storiesPage = cc.securityService.SecuredAction { implicit request =>
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      stories    <- storyService.getStoriesForCity(StoryController.ListingMax)
+      // One past the cap, so a city with exactly ListingMax stories isn't told some are hidden.
+      stories <- storyService.getStoriesForCity(StoryController.ListingMax + 1)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Stories")
-      Ok(views.html.apps.storyList(commonData, request.identity, stories))
+      val truncated = stories.size > StoryController.ListingMax
+      Ok(views.html.apps.storyList(commonData, request.identity, stories.take(StoryController.ListingMax), truncated))
     }
   }
 

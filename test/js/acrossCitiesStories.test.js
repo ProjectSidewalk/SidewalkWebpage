@@ -5,26 +5,12 @@
  * unavailable, and when every count failed the summary says so instead of "no stories". Also pinned: rows are only the
  * cities with stories, newest first, each linked to that city's own Stories page (the only place Hide and Delete work),
  * and the attention item counts only visible stories, so hiding one there clears it.
- *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 
-// The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
-
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const src = fs.readFileSync(path.join(JS_DIR, 'AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${src}\nAcrossCitiesPage;`);
-}
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <div id="ac-attention"></div>
@@ -62,7 +48,7 @@ describe('Across Cities — stories', () => {
    */
   async function render(stories) {
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn(() => Promise.resolve({
+    window.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: [], stories, summary: {}, over_time_all_time: [], over_time_daily: [], window_by_city: {},
@@ -74,8 +60,8 @@ describe('Across Cities — stories', () => {
   const summary = () => document.getElementById('ac-stories-summary').textContent;
   const rows = () => [...document.querySelectorAll('#ac-stories-tbody tr')];
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('lists only cities with stories, newest first, linked to their own Stories page', async () => {

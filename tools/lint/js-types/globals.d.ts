@@ -1,90 +1,46 @@
-// Globals that public/js/ code uses but tsc can't find a declaration for, such as vendor libraries and values set with
-// `window.x = ...` (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
+// Globals that frontend/js/ code uses but tsc can't find a declaration for, such as values set with `window.x = ...`
+// (#5278). Loaded by jsconfig.json. Anything typed `any` here is unchecked at every use; swap in a
 // real type as folders get cleaned up.
 
-// The app namespaces. Each page's Twirl view creates its own with `var svl = {}` and the app fills it in.
-declare var svl: any;
-declare var svv: any;
-declare var sg: any;
-// Shared helpers, built up piece by piece across common/ with `window.util = window.util || {}`.
-declare var util: any;
+// The dashboard pages hand their label popup to the contribution map through window: its click adapter resolves the
+// popup lazily, so map setup can't race popup init.
+interface Window {
+  udLabelPopupReady: Promise<any>;
+}
 
-// Set by common/scoreRamp.js, which the api-docs and AccessScore pages load.
-declare var ScoreRamp: any;
-
-// The API docs helpers, and each endpoint's preview object that its Twirl view calls setup() and init() on.
-declare var ApiDocsMap: any;
-declare var ApiDocsTheme: { color(token: string, alpha?: number): string };
-declare var createApiTableWrapper: (table: HTMLTableElement, label: string) => HTMLElement;
-declare var AccessScoreIntersectionsPreview: any;
-declare var PlacesPreview: any;
-declare var AccessScoreRegionsPreview: any;
-declare var AccessScoreStreetsPreview: any;
-declare var StreetGradePreview: any;
-declare var AggregateStatsByDayPreview: any;
-declare var AggregateStatsPreview: any;
-declare var LabelClustersPreview: any;
-declare var LabelTagsPreview: any;
-declare var LabelTypesPreview: any;
-declare var OverallStatsByDayPreview: any;
-declare var OverallStatsPreview: any;
-declare var RawLabelsPreview: any;
-declare var RegionsPreview: any;
-declare var SidewalkPresencePreview: any;
-declare var StreetsPreview: any;
-declare var StreetTypesPreview: any;
-declare var UserStatsPreview: any;
-declare var ValidationResultTypesPreview: any;
-declare var ValidationsPreview: any;
-
-// Libraries loaded from public/vendor/ by <script> tag that have no type package installed.
-declare const AsyncLock: any;
-declare const bowser: any;
-declare const Chart: any;
-declare const FloatingUIDOM: any;
-declare const i18next: any;
-declare const i18nextHttpBackend: any;
-declare const infra3dapi: any;
-declare const mapboxgl: any;
+// mapbox-gl's and GeoJSON's types under the bare names JSDoc uses (`mapboxgl.Map`, `GeoJSON.Feature<GeoJSON.Point>`),
+// so a comment need not spell out an import(). `geojson` is @types/geojson, a devDependency of our own so a library
+// bump can't take it away.
+declare module 'mapbox-gl/dist/mapbox-gl-csp.js' {
+  import mapboxgl from 'mapbox-gl';
+  export default mapboxgl;
+}
 declare namespace mapboxgl {
-  type GeoJSONSource = any;
-  type LngLat = any;
-  type LngLatBounds = any;
-  type LngLatLike = any;
-  type Map = any;
-  type MapMouseEvent = any;
-  type Marker = any;
-  type Popup = any;
+  type ControlPosition = import('mapbox-gl').ControlPosition;
+  type GeoJSONSource = import('mapbox-gl').GeoJSONSource;
+  type LngLat = import('mapbox-gl').LngLat;
+  type LngLatBounds = import('mapbox-gl').LngLatBounds;
+  type LngLatBoundsLike = import('mapbox-gl').LngLatBoundsLike;
+  type LngLatLike = import('mapbox-gl').LngLatLike;
+  type Map = import('mapbox-gl').Map;
+  type MapMouseEvent = import('mapbox-gl').MapMouseEvent;
+  type Marker = import('mapbox-gl').Marker;
+  type NavigationControl = import('mapbox-gl').NavigationControl;
+  type Popup = import('mapbox-gl').Popup;
 }
-declare const MapboxLanguage: any;
-declare const MapboxSearchBox: any;
-// GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
-declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
-declare const pannellum: any;
-declare namespace pannellum {
-  type Viewer = any;
-}
-declare const panzoom: any;
-declare const PhotoSphereViewer: any;
-declare namespace PhotoSphereViewer {
-  type Viewer = any;
-}
-declare const proj4: any;
-declare const THREE: any;
-declare const TomSelect: any;
-declare const turf: any;
-declare namespace turf {
-  type Feature<G = any> = any;
-  type LineString = any;
-  type Point = any;
-}
-declare const vegaEmbed: any;
-// GeoJSON shapes, named in JSDoc only.
 declare namespace GeoJSON {
-  type Feature<G = any> = any;
-  type FeatureCollection<G = any> = any;
-  type Geometry = any;
-  type LineString = any;
+  type Geometry = import('geojson').Geometry;
+  type GeometryCollection = import('geojson').GeometryCollection;
+  type LineString = import('geojson').LineString;
+  type MultiLineString = import('geojson').MultiLineString;
+  type Point = import('geojson').Point;
+  type Polygon = import('geojson').Polygon;
+  type MultiPolygon = import('geojson').MultiPolygon;
+  type Position = import('geojson').Position;
+  type Feature<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
+    import('geojson').Feature<G, P>;
+  type FeatureCollection<G extends Geometry = Geometry, P = import('geojson').GeoJsonProperties> =
+    import('geojson').FeatureCollection<G, P>;
 }
 
 // The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
@@ -94,22 +50,14 @@ interface Navigator {
 
 // Values set on `window` by the site-wide layout (common/main.scala.html) or by AppManager from it.
 interface Window {
-  // The AccessScore tool (access-score/src/main.js): the bootstrap its view calls, and the running app once the map
-  // is scored, which the browser tests read. Both hold the tool's own classes as `any` because those are only
-  // declared in the run that reads access-score/.
-  AccessScoreApp: {
-    start(options: {
-      mapboxApiKey: string;
-      viewerType: typeof PanoViewer;
-      imageryAccessToken: string;
-      username?: string | null;
-    }): Promise<Record<string, any>>;
-    formatScore(score: number): string;
-  };
+  // The running AccessScore app, and the Explore and Validate registries: console and browser-test handles that
+  // each page entry sets. Nothing in the app reads them from window.
   accessScore?: Record<string, any>;
+  svl?: Record<string, any>;
+  svv?: Record<string, any>;
   // The admin dashboard's shell. `any` because AdminShell is only declared in the run that reads admin-dashboard/.
   adminShell?: any;
-  appManager: AppManager;
+  appManager: import('../../../frontend/js/common/AppManager.js').AppManager;
   assetDigests: Record<string, string>;
   cityId: string;
   cityName: string;
@@ -130,15 +78,16 @@ interface Window {
     isPrimary: boolean;
     isPrimaryValidate: boolean;
   }>;
-  localizeElement: (el: Element) => void;
-  localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
+  // Stamped from ValidationReason.pageStampJson (#5475): each label type's canned reasons per vote, in menu order.
+  validationReasons: Record<string, Record<string, string[]>>;
+  // Stamped from PanoDataService.MapillaryMaxPoseTiltDeg; absent in jsdom and the error pages.
+  mapillaryMaxPoseTiltDeg?: number;
+  // Pannellum is a classic script that puts itself here; sdk/pannellum.js reads it back.
+  pannellum: any;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
-  psAuthModal: AuthModal;
-  PsModal: typeof Modal;
+  psAuthModal: import('../../../frontend/js/common/AuthModal.js').AuthModal;
 }
-declare function localizeElement(el: Element): void;
-declare function localizeSubtree(root: ParentNode): void;
 
 // A selector lookup returns HTMLElement rather than TypeScript's plain Element. Every page we query is HTML, so the
 // strict default would only mean a cast at nearly every lookup; a class or id selector that finds SVG needs one.
@@ -156,4 +105,12 @@ interface Element {
   closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K] | null;
   closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K] | null;
   closest<E extends Element = HTMLElement>(selectors: string): E | null;
+}
+
+// A stylesheet import (`import './x.css'`) only tells Vite which styles the module needs (#5651); it has no exports.
+declare module '*.css';
+// Vite's `?worker&url` import: the URL of the file, bundled as a Web Worker (the minimap's MapLibre worker, #5734).
+declare module '*?worker&url' {
+  const url: string;
+  export default url;
 }

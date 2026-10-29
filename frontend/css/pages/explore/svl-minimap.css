@@ -1,0 +1,808 @@
+/* The minimap fills the bottom "region" section of the right sidebar, growing to take remaining vertical space.
+   The minimap overlays (fow, fov, progress; see ObservedArea) read their displayed width/height at render time. */
+#minimap-holder {
+  /* Reference size (px) used by ObservedArea to scale the FOV/progress geometry. Read via getComputedStyle. */
+  --minimap-base-size: var(--sidebar-base-width);
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
+  border-radius: calc(12px * var(--ui-scale));
+  overflow: hidden;
+  background-color: var(--color-map-land);
+}
+
+.minimap-pane {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* During the tutorial the minimap shows a fixed-size square screenshot, so everything inside renders at its native
+   (unscaled) square size and the whole holder is scaled (transform) to fill the column. Onboarding's
+   sizeTutorialMinimap() sets a non-uniform scale at runtime — full width, but height capped to what fits the sidebar —
+   so the screenshot, markers, peg, and fog all stretch together (staying aligned) and the holder isn't clipped.
+   The transform-origin keeps it anchored top-left; the scale() here is just the pre-script default. */
+#minimap-holder.minimap-tutorial {
+  flex: 0 0 auto;
+  width: var(--minimap-base-size);
+  height: var(--minimap-base-size);
+
+  /* Native border sizing; the transform scales it like everything else. */
+  border-width: 1px;
+  border-radius: 12px;
+  background-size: cover;
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
+}
+
+/* Panes render at native size; --ui-scale is reset to 1 so their own calc(... * var(--ui-scale)) values aren't scaled
+   twice (once here and again by the holder's zoom). */
+#minimap-holder.minimap-tutorial .minimap-pane {
+  --ui-scale: 1;
+}
+
+/* The map's markers carry their own z-indexes (the peg's is 1000). Isolating the map keeps those inside it, so a
+   marker stacks against other markers and never above the panes laid over the map (fog, legend card, coach). */
+#minimap {
+  isolation: isolate;
+}
+
+/* No map (Minimap.create: the browser has no WebGL2). The panes drawn to the map's scale go, and a note takes the
+   map's place; the mission progress bar and percent-looked-around chip still work without it. */
+#minimap-holder.minimap-unavailable #minimap,
+#minimap-holder.minimap-unavailable #minimap-fog-of-war-canvas,
+#minimap-holder.minimap-unavailable #minimap-fov-canvas,
+#minimap-holder.minimap-unavailable #minimap-zoom-controls,
+#minimap-holder.minimap-unavailable #minimap-recenter,
+#minimap-holder.minimap-unavailable #minimap-legend-toggle,
+#minimap-holder.minimap-unavailable #minimap-legend-card,
+#minimap-holder.minimap-unavailable #minimap-coach {
+  display: none;
+}
+
+/* Its display would otherwise override the hidden attribute it starts with, covering a working map. */
+#minimap-unavailable-message[hidden] {
+  display: none;
+}
+
+#minimap-unavailable-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: calc(12px * var(--ui-scale));
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  font: var(--text-tiny-regular);
+  text-align: center;
+}
+
+#minimap-overlay {
+  z-index: 2;
+}
+
+/* Stronger than the old 30% wash so "not yet viewed" actually registers; the near-crisp frontier comes from the
+   small blur ObservedArea sets on the canvas context (#4639). */
+#minimap-fog-of-war-canvas {
+  opacity: 0.45;
+}
+
+/* The FOV cone's radial gradient carries its own falloff, so the canvas itself stays mostly opaque. */
+#minimap-fov-canvas {
+  opacity: 0.8;
+}
+
+#minimap-progress-circle-canvas {
+  opacity: 0.85;
+}
+
+/* These full-cover panes are purely visual (the highlight-flash overlay + the fog/FOV/progress canvases). They must not
+   intercept pointer events, or the map's markers stacked below them never receive clicks (e.g. click a label to
+   return to it, #2561). Interactive children appended into the overlay re-enable pointer events. */
+#minimap-overlay,
+#minimap-fog-of-war-canvas,
+#minimap-fov-canvas,
+#minimap-progress-circle-canvas {
+  pointer-events: none;
+}
+
+#minimap-overlay > * {
+  pointer-events: auto;
+}
+
+/* "N% observed" label centered inside the progress-ring chip (ObservedArea). Top-right on a region audit; in
+   route mode it drops below the mission-progress bar (see .minimap-route-mode override below) to clear the overview. */
+#minimap-percent-observed {
+  font: var(--text-tiny-medium);
+  font-size: calc(8px * var(--ui-scale));
+  inset: auto;
+  top: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  width: calc(28px * var(--ui-scale));
+  height: calc(28px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-neutral-800);
+  z-index: 3;
+}
+
+#minimap-percent-observed:empty {
+  display: none;
+}
+
+/* "100%" is wider than "NN%"; shrink it a touch so it stays inside the ring chip (toggled by ObservedArea). */
+#minimap-percent-observed.minimap-percent-full {
+  font-size: calc(7px * var(--ui-scale));
+}
+
+/* Mission-progress chip in the top-left: a fill bar plus "N%  done/total" (Minimap.updateMissionProgress). */
+#minimap-mission-progress {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  left: calc(4px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  max-width: calc(100% - 8px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  color: var(--color-neutral-800);
+  font: var(--text-tiny-medium);
+  z-index: 3;
+}
+
+#minimap-mission-progress-bar {
+  position: relative;
+  flex: none;
+  width: calc(44px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: var(--color-neutral-300);
+  overflow: hidden;
+}
+
+#minimap-mission-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--color-pine-600);
+  border-radius: 999px;
+}
+
+.minimap-mission-progress-labels {
+  white-space: nowrap;
+}
+
+#minimap-mission-progress-distance {
+  color: var(--color-neutral-600);
+}
+
+/* First-run "turn 360°" coach mark; sits above the legend pill / zoom buttons row. Replaces the old permanent
+   banner (#4639); ObservedArea shows it once and dismisses it on "Got it" or the first completed 360°. */
+#minimap-coach {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(34px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-neutral-900);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+.minimap-coach-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#minimap-coach-dismiss {
+  flex: none;
+  font: var(--text-tiny-medium);
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  background: var(--color-pine-700);
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+/* Always-on mini legend in the bottom-left: two labeled marks (Explored / Route ahead). Click to expand the full key
+   card (MinimapLegend.js). */
+#minimap-legend-toggle {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  padding-right: calc(17px * var(--ui-scale));
+  border: 0;
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  cursor: pointer;
+  z-index: 4;
+}
+
+#minimap-legend-toggle:hover .minimap-legend-expand-icon {
+  stroke: var(--color-neutral-700);
+}
+
+.minimap-legend-toggle-hidden {
+  display: none;
+}
+
+.minimap-legend-mini-item {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-mini-icon {
+  display: block;
+  flex: none;
+  width: calc(22px * var(--ui-scale));
+  height: calc(8px * var(--ui-scale));
+}
+
+/* Diagonal expand arrow in the mini legend's upper-right corner, cueing that it opens into the full key card. */
+.minimap-legend-expand-icon {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  width: calc(11px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-500);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Expanded legend card, anchored where the pill was. */
+#minimap-legend-card {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  width: calc(150px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(0 0 0 / 30%);
+  z-index: 5;
+}
+
+.minimap-legend-card-hidden {
+  display: none;
+}
+
+.minimap-legend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: var(--text-tiny-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-700);
+}
+
+/* Chevron button that collapses the full key card back to the mini legend. */
+#minimap-legend-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: calc(2px * var(--ui-scale));
+}
+
+.minimap-legend-collapse-icon {
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-600);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.minimap-legend-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  margin-top: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-row svg {
+  flex: none;
+  width: calc(26px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+}
+
+/* Legend samples are the real map marks, drawn with the same design tokens the map uses. */
+.minimap-legend-sample-audited {
+  stroke: var(--color-pine-600);
+  stroke-width: 6;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-remaining {
+  stroke: var(--color-route-ahead);
+  stroke-width: 6;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-crumb {
+  fill: var(--color-neutral-white);
+  stroke: var(--color-link-200);
+  stroke-width: 1.8;
+}
+
+.minimap-legend-sample-dashed {
+  stroke-dasharray: 5 7;
+}
+
+/* A planned walk's jump connector (MinimapStyle.plannedJump): a dashed hairline, 4 on / 4 off like the map's. */
+.minimap-legend-sample-jump {
+  stroke: var(--color-link-200);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  fill: none;
+}
+
+/* The jump row explains a mark only a planned walk draws, so it is hidden until one exists (#5526). */
+.minimap-legend-row-jump {
+  display: none;
+}
+
+#minimap-holder.minimap-plan-mode .minimap-legend-row-jump {
+  display: flex;
+}
+
+.minimap-legend-sample-chevron {
+  fill: var(--color-link-200);
+}
+
+.minimap-legend-sample-peg {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+}
+
+.minimap-legend-sample-cone {
+  fill: var(--color-pine-600);
+  opacity: 0.35;
+}
+
+/* Label markers on the minimap (Label.createMinimapMarker) — scalable SVG icons sized here so they stay crisp. */
+.minimap-label-icon {
+  width: calc(9px * var(--ui-scale, 1));
+  height: auto;
+  cursor: pointer;
+}
+
+/* Markers from an earlier mission in this region (#4945; Label.styleMinimapMarker) recede so this pass's markers, the
+   route, and the explored line read first. Faded but still fully saturated, so the icon's type color stays
+   recognizable; the marker is informational, not a control, so it has no contrast floor to meet, but 60% keeps it
+   clearly discernible on the basemap. Not clickable: styleMinimapMarker sets gmpClickable only for current markers,
+   since the click only returns to current-mission labels, so the default cursor matches. */
+.minimap-label-icon--prior {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Labels placed on imagery that has since been replaced: the previous era's record during a re-audit. Desaturated
+   as well as faded, so an old and a new marker on the same feature read as two eras rather than as a duplicate. */
+.minimap-label-icon--outdated {
+  opacity: 0.55;
+  filter: grayscale(0.7);
+  cursor: default;
+}
+
+/* The "My earlier labels" checkbox row in the key card. The sample marker is a static copy of the dimmed treatment. */
+.minimap-legend-row-toggle {
+  gap: calc(4px * var(--ui-scale));
+}
+
+.minimap-legend-sample-earlier-label {
+  flex: none;
+  width: calc(11px * var(--ui-scale, 1));
+  margin: 0 calc(8px * var(--ui-scale)) 0 calc(7px * var(--ui-scale));
+  cursor: default;
+}
+
+.minimap-legend-row-toggle input {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  margin: 0;
+  cursor: pointer;
+}
+
+.minimap-legend-row-toggle input:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-700);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+.minimap-legend-row-toggle label {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
+   (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
+   the visible ring is drawn by ::before, centered inside it, and the marker centers the hit area on the pano. */
+.minimap-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
+}
+
+.minimap-breadcrumb::before {
+  content: "";
+  box-sizing: border-box;
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-pine-700);
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+/* Minimap crumbs (ForwardCrumbs.js): where the current pano's arrows lead and where the route continues (#4669,
+   #4655). Every crumb is a ring until the user faces it; the faced one fills in, so a filled disc has one meaning on
+   the whole map: the forward arrow / up key takes you here. Route stops are deep blue (the forward arrow's family,
+   darker than the peg), other directions gold, visited panos pine rings (.minimap-breadcrumb). Same shape as the
+   breadcrumbs: a roomy hit area centered on the pano. */
+.minimap-crumb {
+  --crumb-color: var(--color-link-200);
+  --crumb-fill: var(--color-link-200);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
+}
+
+.minimap-crumb-link {
+  --crumb-color: var(--color-banana-900);
+  --crumb-fill: var(--color-banana-700);
+}
+
+.minimap-crumb::before {
+  content: "";
+  box-sizing: border-box;
+  width: calc(9px * var(--ui-scale, 1));
+  height: calc(9px * var(--ui-scale, 1));
+  border: calc(1.8px * var(--ui-scale, 1)) solid var(--crumb-color);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-neutral-white) 85%, transparent);
+}
+
+/* Route stops are small; only the spacebar's next step (below) is full size, so it stands out. Beyond the next few,
+   stops are also not steppable (#2561): quieter and click-through. */
+.minimap-crumb-small::before,
+.minimap-crumb-far::before {
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  border-width: calc(1.4px * var(--ui-scale, 1));
+}
+
+/* Not steppable, but still hoverable for its tooltip: a hit box no bigger than the dot, so it can't sit over a label
+   marker or breadcrumb and swallow a click meant for them. */
+.minimap-crumb-far {
+  width: calc(8px * var(--ui-scale, 1));
+  height: calc(8px * var(--ui-scale, 1));
+  cursor: default;
+}
+
+.minimap-crumb-far::before {
+  opacity: 0.7;
+}
+
+/* A far crumb over a visited pano acts as that pano's breadcrumb (click peeks back there), so it keeps the pointer. */
+.minimap-crumb-far.minimap-crumb-visited {
+  cursor: pointer;
+}
+
+/* A crumb at a pano the user has already stood on sits exactly over its breadcrumb ring and wears the same pine at the
+   same size, so the two read as one mark; the next-step tint and the faced fill below still apply to it, which is
+   what makes the way forward legible after a backtrack. */
+.minimap-crumb-visited {
+  --crumb-color: var(--color-pine-700);
+}
+
+.minimap-crumb-visited::before {
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border-width: calc(1.4px * var(--ui-scale, 1));
+}
+
+/* The spacebar's next step along the route: tinted the route line's blue whichever way the user looks, so the route's
+   next crumb reads at a glance. The faced fill below still wins when the user turns to it. */
+.minimap-crumb-next {
+  /* The next step is the correct path whatever kind of crumb it is (an arrow's destination included): blue. */
+  --crumb-color: var(--color-link-200);
+  --crumb-fill: var(--color-link-200);
+}
+
+.minimap-crumb-next::before {
+  width: calc(9px * var(--ui-scale, 1));
+  height: calc(9px * var(--ui-scale, 1));
+  border-width: calc(1.8px * var(--ui-scale, 1));
+  background: var(--color-route-ahead);
+}
+
+/* Halos (the faced fill's and the hover outline's) are the crumb's stroke color at 45%: a soft field around the mark
+   rather than a thicker ring of the same color, so the mark itself stays readable inside it. */
+.minimap-crumb-faced::before {
+  border: calc(1.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
+  background: var(--crumb-fill);
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
+}
+
+.minimap-crumb-highlight::before {
+  box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
+}
+
+
+/* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. The marker
+   centers it on the location and it rotates about that center, so the dot stays planted while the triangle swings to
+   --peg-heading (#4639). */
+.minimap-peg {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  transform: rotate(var(--peg-heading, 0deg));
+  transform-origin: center;
+}
+
+/* A marker with no click handler and no tooltip (Minimap.addMarker) is decoration, and must be click-through: the peg
+   sits at z-index 1000 and would otherwise swallow clicks meant for a breadcrumb beneath it (the crumbs nearest you
+   sit inside the peg's box, #2561). */
+.minimap-marker-decorative {
+  pointer-events: none;
+}
+
+/* An <img> marker is inline by default, which leaves descender space under it and pushes it off its anchor. */
+.minimap-marker > img {
+  display: block;
+}
+
+.minimap-peg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A vector shadow under the dot instead of a CSS drop-shadow filter: a filtered SVG is rasterized, and the heading
+   rotation then resamples that bitmap, which is what made the peg look soft. */
+.minimap-peg-shadow {
+  fill: color-mix(in srgb, var(--color-neutral-black) 25%, transparent);
+}
+
+.minimap-peg-dot {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 2.5;
+}
+
+.minimap-peg-heading {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply; the route-overview
+   inset is redundant then too (the whole map is the route). */
+#minimap-holder.minimap-overview #minimap-fog-of-war-canvas,
+#minimap-holder.minimap-overview #minimap-fov-canvas,
+#minimap-holder.minimap-overview #minimap-progress-circle-canvas,
+#minimap-holder.minimap-overview #minimap-percent-observed,
+#minimap-holder.minimap-overview #minimap-coach,
+#minimap-holder.minimap-overview #minimap-route-overview {
+  display: none;
+}
+
+/* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). The wrapper is
+   what goes: it holds the tab stop, so hiding only the crumb inside would leave an invisible focus target. */
+#minimap-holder.minimap-overview .minimap-marker:has(> .minimap-breadcrumb),
+#minimap-holder.minimap-overview .minimap-marker:has(> .minimap-crumb) {
+  display: none;
+}
+
+/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route, in the
+   upper-right corner. Hidden by default; shown only in route mode, alongside the mini-legend/key (which grows
+   street-by-street on region audits, so there's no route to preview there). */
+#minimap-route-overview {
+  display: none;
+  position: absolute;
+  right: calc(4px * var(--ui-scale));
+  top: calc(4px * var(--ui-scale));
+  width: calc(80px * var(--ui-scale));
+  height: calc(60px * var(--ui-scale));
+  padding: 0;
+  border: calc(2px * var(--ui-scale)) solid var(--color-neutral-white);
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(237 239 238 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale)) rgb(0 0 0 / 28%);
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 4;
+}
+
+#minimap-route-overview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#minimap-route-overview:hover {
+  border-color: var(--color-pine-600);
+}
+
+#minimap-route-overview:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+/* Route mode: reveal the overview inset in the upper-right corner. The mini-legend stays in the bottom-left. */
+#minimap-holder.minimap-route-mode #minimap-route-overview {
+  display: block;
+}
+
+/* Route mode: the overview inset owns the top-right, so the view-coverage ring/label drops below the progress bar. */
+#minimap-holder.minimap-route-mode #minimap-percent-observed {
+  top: calc(28px * var(--ui-scale));
+  right: auto;
+  left: calc(4px * var(--ui-scale));
+}
+
+/* Map data attribution (MapLibre's compact "i" that expands), at the foot of the zoom column just to its left: every
+   corner is taken. MapLibre's glyph fills only the middle 12/20 of its 18px box, so the box sits ~4px lower than the
+   zoom buttons to put the drawn circle on their bottom edge, and 28px from the right puts its center 24px from the
+   zoom-out button's, the spacing WCAG 2.5.8 asks of two targets smaller than 24px. */
+#minimap-attribution {
+  right: calc(28px * var(--ui-scale));
+  bottom: calc(7px * var(--ui-scale));
+  z-index: 6;
+}
+
+/* Collapsed: just the icon, sized to the zoom buttons. MapLibre's default white disc draws the eye away from the
+   pano, and outside .maplibregl-map none of its 12px map font applies, so both are set here. */
+#minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact {
+  min-height: calc(18px * var(--ui-scale));
+  max-width: calc(200px * var(--ui-scale));
+  margin: 0;
+  padding: 0 calc(18px * var(--ui-scale)) 0 0;
+  background: transparent;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button {
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  background-color: transparent;
+  background-size: contain;
+  opacity: 0.6;
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button:hover,
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus-visible,
+#minimap-attribution .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  opacity: 1;
+}
+
+/* The button's 0.6 opacity would carry into its outline, leaving a focus ring too faint to see (WCAG 2.4.7/1.4.11),
+   so it goes fully opaque on focus above and takes the route-overview button's outline. It replaces MapLibre's own
+   ring, a box-shadow on every :focus, which also lingered after a mouse click. */
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+#minimap-attribution .maplibregl-ctrl-attrib-button:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+/* As tall as the closed box, so the button stays put when the credits open and the text sits level with it. */
+#minimap-attribution .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: 0 calc(22px * var(--ui-scale, 1)) 0 calc(8px * var(--ui-scale, 1));
+  line-height: calc(18px * var(--ui-scale, 1));
+  border-radius: calc(8px * var(--ui-scale));
+  background: color-mix(in srgb, var(--color-neutral-white) 95%, transparent);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale))
+    color-mix(in srgb, var(--color-neutral-black) 30%, transparent);
+}
+
+/* The +/- buttons take their look from the shared .ps-icon-button styling, with some minor tweaks. */
+#minimap-zoom-controls {
+  position: absolute;
+  inset: auto;
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  z-index: 4;
+}
+
+/* Recenter: a lone button 6px above the zoom column (3 x 18px buttons, 2px gaps, 10px up), so it reads as its own
+   control and rounds on all corners. .ps-icon-button's display: flex would override its hidden attribute. */
+#minimap-recenter {
+  position: absolute;
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(74px * var(--ui-scale));
+  z-index: 4;
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+  border-radius: calc(7px * var(--ui-scale, 1));
+}
+
+#minimap-recenter[hidden] {
+  display: none;
+}
+
+#minimap-recenter .ps-icon-button-icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
+#minimap-recenter:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+#minimap-zoom-controls .ps-icon-button {
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+}
+
+#minimap-zoom-controls .ps-icon-button-icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
+/* The tutorial minimap is a static screenshot; hide the live zoom controls and the live-map chrome there. */
+#minimap-holder.minimap-tutorial #minimap-zoom-controls,
+#minimap-holder.minimap-tutorial #minimap-mission-progress,
+#minimap-holder.minimap-tutorial #minimap-legend-toggle,
+#minimap-holder.minimap-tutorial #minimap-legend-card,
+#minimap-holder.minimap-tutorial #minimap-coach,
+#minimap-holder.minimap-tutorial .maplibregl-ctrl-attrib {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #minimap-coach {
+    transition: none;
+  }
+}

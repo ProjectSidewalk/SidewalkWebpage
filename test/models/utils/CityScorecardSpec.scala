@@ -7,9 +7,11 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api.*
 import models.api.AggregateStats
-import service.CityScorecard
+import service.{CityScorecard, ConfigService}
 import util.SidewalkSpec
 
+import java.time.{LocalDate, ZoneId}
+import java.time.temporal.ChronoUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.*
 
@@ -61,6 +63,14 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       sc.coverage must be >= 0.0
       sc.coverage must be <= 100.0
     }
+
+    "order the distance measures walked >= mapped >= current (#5828)" in {
+      val sc = run(configTable.getCityScorecardBySchema(schema))
+      // The hero's funnel and the re-audit backlog (mapped - current) both rely on each measure containing the next.
+      sc.walkedKm must be >= (sc.mappedKm - 0.001)
+      sc.mappedKm must be >= (sc.auditedKm - 0.001)
+      sc.mappedKm must be <= (sc.totalKm + 0.001)
+    }
   }
 
   // The rest of the cross-city surface runs raw SQL against "#$schema".* and was otherwise untested — the same gap
@@ -76,6 +86,11 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "execute getContributorUserIdsBySchema" in {
       run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[?]]
     }
+
+    "execute getAiUserIds" in {
+      run(configTable.getAiUserIds) mustBe a[Seq[?]]
+    }
+
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
       run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
@@ -89,6 +104,27 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
     "execute getCityDailyActivityByUserBySchema" in {
       run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[?]]
+    }
+    "execute getCityDailyBaselineBySchema" in {
+      run(configTable.getCityDailyBaselineBySchema(schema, 365)) mustBe a[Seq[?]]
+    }
+    // The baseline's SQL collapses anonymous and AI rows that the bars' query keeps per person, so the only proof the
+    // two still count the same things is running both over the same data. A window reaching back to 2010 covers the
+    // whole seeded history, and the guard below keeps an empty schema from passing this vacuously.
+    "count the baseline on exactly the daily bars' basis" in {
+      val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
+      val days  = ChronoUnit.DAYS.between(LocalDate.of(2010, 1, 1), today).toInt
+      val bars  = run(configTable.getCityDailyActivityByUserBySchema(schema, days)).map(currentCityId -> _)
+      val base  = run(configTable.getCityDailyBaselineBySchema(schema, days)).map(currentCityId -> _)
+      bars must not be empty
+
+      val window   = (1 to days).map(i => today.minusDays(i.toLong))
+      val byDay    = bars.groupBy(_._2.day)
+      val points   = window.map(day => ConfigService.summarizeDay(day, byDay.getOrElse(day, Seq.empty)).point)
+      val baseline = ConfigService.summarizeBaseline(today, days, base)
+      baseline.labelsPerDay * days mustBe points.map(_.labels).sum.toDouble +- 1e-6
+      baseline.validationsPerDay * days mustBe points.map(_.validations).sum.toDouble +- 1e-6
+      baseline.contributorsPerDay * days mustBe points.map(_.contributors).sum.toDouble +- 1e-6
     }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple

@@ -14,11 +14,12 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
      ``--panoramax`` needs no credential (the API is public);
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
+     ``--gsv`` needs ``GOOGLE_MAPS_SERVER_KEY`` (else ``GOOGLE_MAPS_API_KEY``);
+     ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
-     need Python >= 3.11.
+     need Python >= 3.12.
   3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
@@ -31,19 +32,25 @@ a few minutes, before the city has a database:
 
          make check-imagery id=newport-ky args="--sample 150 --gsv"
 
-For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
-walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
-``imagery_verdict`` for the exact thresholds).
+For each street it checks both endpoints, then walks points along the street (added roughly every 15 m), and asks of
+the panos it found the question Explore asks of a labeler's walk: was enough of the street seen? Each pano covers a
+window either side of itself plus the stretch back to the previous one when that hop is short, and the street has
+imagery once what is left unseen is at most half the street and at most 50 m. The numbers are read from
+``conf/street-coverage.json``, the same file the server credits a walk from (``models.audit.StreetCoverage``) and
+Explore ends a street by, so a street the scan keeps open is one a labeler can finish (#5669; see ``CoverageWalk``).
+The walk stops early once the verdict can no longer change.
 
 Imagery age: the responses we already fetch also carry a capture date, so for no extra API calls we record each
 street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
 imagery but how old it is. GSV and Infra3d each answer with one pano, so their date is simply that pano's. A Mapillary
-bbox query instead returns every image in the box, and the one whose date we record is the one Explore's pano viewer
-would actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
-``conf/pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street whose
-imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
-(#4411). The formula matches; the candidate set the formula runs over does not, in four ways, so treat the recorded
-date as the viewer's pick at a sampled point rather than as the pano a user will see:
+or Panoramax box query instead returns every picture in the box, and the one whose date we record is the one Explore's
+pano viewer would actually display: ``score_pano`` and ``panoramax_pano_info`` port ``MapillaryViewer.#scorePano``
+and ``PanoramaxViewer.#scorePano``, sharing their weights through ``conf/pano-scoring.json``, whose Panoramax section
+adds that provider's own 12288 px resolution cap and the age an undated picture is scored at. Taking the newest picture
+instead would let us record a fresh date for a street whose imagery the viewer never shows, so we would stop flagging
+it as outdated while users still saw the old panos (#4411, #5284). The formula matches; the candidate set the formula
+runs over does not, in four ways for Mapillary, so treat the recorded date as the viewer's pick at a sampled point
+rather than as the pano a user will see:
 
   * The sequence-continuity term has no offline meaning — there is no current pano when sampling a street cold — so it
     is a uniform 0 here. This one cannot change a ranking, being a constant shift.
@@ -54,9 +61,9 @@ date as the viewer's pick at a sampled point rather than as the pano a user will
   * ``#fetchImages`` narrows its radius and retries when Mapillary reports too many images in the box, so a dense
     location's viewer box can be smaller than 25 m.
 
-Panoramax searches return a box of pictures too, and ``panoramax_capture_date`` takes the newest of them rather than
-the one ``PanoramaxViewer.#scorePano`` would pick, so its dates carry the mismatch this port removes for Mapillary
-(#5284).
+For Panoramax the first three apply as written (its sequence term keys on the STAC ``collection``), and the fourth
+does not: ``PanoramaxViewer.#searchNear`` never shrinks its radius, and it asks for the same newest-first page of 100
+that ``PANORAMAX_SEARCH_URL`` does.
 
 Search area: every sampled point is queried at ``SEARCH_RADIUS_KM``, the same 25 m the viewer searches, so the scan
 and the tool agree on what counts as imagery at a location. A circle is not quite the right shape for the job — it has
@@ -74,7 +81,7 @@ point's pano and distances to ``street_points_<provider>.csv``, which is how the
 provider or city would get its own.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
-``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
+``knn/query``) that the Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
 per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The query returns the single nearest
 frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m
 radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
@@ -95,8 +102,8 @@ derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
-``best_pano``, ``mapillary_pano_info``, ``cross_track_m``, ``endpoint_distance_m``, ``within_search_radius``,
-``pano_counts``, ``imagery_verdict``,
+``best_pano``, ``mapillary_pano_info``, ``parse_iso_instant_ms``, ``panoramax_pano_info``, ``cross_track_m``,
+``endpoint_distance_m``, ``within_search_radius``, ``pano_counts``, ``along_street_m``, ``CoverageWalk``,
 ``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
@@ -191,10 +198,10 @@ DEFAULT_MAX_QPS = 10.0
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
 
-# Weights and decay scales for ranking the Mapillary panos at a point, shared with MapillaryViewer.#scorePano so the
-# date we record for a street is the date of the pano Explore would actually show (see the JSON file's own comment,
-# and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than as a KeyError from
-# inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
+# Weights and decay scales for ranking the Mapillary or Panoramax panos at a point, shared with both viewers'
+# #scorePano so the date we record for a street is the date of the pano Explore would actually show (see the JSON
+# file's own comment, and score_pano below). Loaded at import so a malformed file fails once, at startup, rather than
+# as a KeyError from inside a worker thread forty minutes into a scan; the browser half gets the same guarantee from
 # models.utils.PanoScoring.
 PANO_SCORING_FILE = 'conf/pano-scoring.json'
 PANO_SCORING_KEYS = ('distanceWeight', 'resolutionWeight', 'recencyWeight', 'distanceDecayMeters', 'recencyDecayYears')
@@ -223,13 +230,48 @@ def _load_pano_scoring(provider: str = 'mapillary') -> dict:
 
 
 PANO_SCORING = _load_pano_scoring()
+PANORAMAX_SCORING = _load_pano_scoring('panoramax')
+# Only Panoramax's section has this (its viewer scores an undated picture as this old); read it at import for the
+# same reason the loader checks the shared keys.
+PANORAMAX_SCORING['unknownDateAgeYears']
 
-# Milliseconds in an average (Julian) year, for converting a captured_at delta into the age in years that the recency
-# term decays over. Matches the constant MapillaryViewer.#scorePano uses.
+# Must equal util.pano.MS_PER_JULIAN_YEAR, the divisor both viewers' recency term uses.
 MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 
+# The street-coverage rule, shared with Explore and the server (models.audit.StreetCoverage), so a street this scan
+# keeps open is one a labeler can finish (#5669). Loaded at import for the same reason the scoring file is.
+STREET_COVERAGE_FILE = 'conf/street-coverage.json'
+STREET_COVERAGE_KEYS = ('maxUncoveredM', 'minCoveredFrac', 'panoWindowM', 'maxHopM')
+
+
+def _load_street_coverage() -> dict:
+    """
+    Reads the coverage rule's numbers out of ``conf/street-coverage.json``.
+
+    Returns:
+        ``maxUncoveredM`` (most of a street that may stay unseen), ``minCoveredFrac`` (least share that must have
+        been seen), ``panoWindowM`` (how far either side of a pano counts as seen) and ``maxHopM`` (longest step
+        between consecutive panos whose in-between stretch counts as seen), as floats.
+
+    Raises:
+        KeyError: If the file is missing a key.
+    """
+    with open(os.path.join(REPO_ROOT, STREET_COVERAGE_FILE), encoding='utf-8') as handle:
+        raw = json.load(handle)
+    missing = [key for key in STREET_COVERAGE_KEYS if key not in raw]
+    if missing:
+        raise KeyError('%s is missing %s' % (STREET_COVERAGE_FILE, ', '.join(missing)))
+    return {key: float(raw[key]) for key in STREET_COVERAGE_KEYS}
+
+
+STREET_COVERAGE = _load_street_coverage()
+# Names the rule in every checkpoint row, so a resume refuses rows settled under other numbers (see load_processed).
+COVERAGE_RULE_ID = 'unseen<=%gm,seen>=%g%%,window%gm,hop%gm' % (
+    STREET_COVERAGE['maxUncoveredM'], STREET_COVERAGE['minCoveredFrac'] * 100, STREET_COVERAGE['panoWindowM'],
+    STREET_COVERAGE['maxHopM'])
+
 # Search radius, in km, around every point we sample — street endpoints and along-street points alike. 25 m is what
-# Explore searches (`svl.STREETVIEW_MAX_DISTANCE`), so the scan and the tool agree on what counts as imagery at a
+# Explore searches (`PanoViewer.SEARCH_RADIUS_M`), so the scan and the tool agree on what counts as imagery at a
 # location and a street we hide is one Explore genuinely cannot serve. It also has to clear the providers' capture
 # interval, or the box can straddle a gap and report no imagery where there is some: Mapillary's smart spacing targets
 # 20 m on highways, and 12.6% of Budapest's consecutive captures exceed 20 m (#5091 collects the measurements).
@@ -254,17 +296,17 @@ INTERSECTION_ZONE_M = 25.0
 # geom's vertices and the exported x1/y1 come from the same row but not always the same float formatting.
 ENDPOINT_MATCH_DEG = 1e-7
 
-# Panoramax: the federated meta-catalog's STAC search, filtered to 360° pictures (the only kind the viewer serves),
-# newest first so the capture date read from the first result is the street's newest. No key, no documented limit.
+# Panoramax's STAC search, 360° only, with PanoramaxViewer.#searchNear's exact sort and limit so the ranking runs over
+# the viewer's page of candidates. No key, no documented limit.
 PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_view%3D360&sortby=-ts&limit=100'
 # The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
 PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
-# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
+# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
 INFRA3D_TOKEN_URL = 'https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token'
 INFRA3D_API_URL = 'https://api.infra3d.com/framegate'
-# The SDK's own API-gateway key, baked into the vendored bundle and sent by every browser session alongside the bearer;
+# The SDK's own API-gateway key, baked into its bundle and sent by every browser session alongside the bearer;
 # it identifies the SDK, not us -- the per-city bearer token is what grants access to a tenant's imagery.
 INFRA3D_API_KEY = '6zGSQ8u14j3AqL8myGcP54rbXS9aLCpr6lY99B9F'
 # 360° frames only, matching Infra3dViewer's setFilter: Explore can't label on Infra3d's flat mono/stereo photos.
@@ -275,16 +317,7 @@ INFRA3D_CAMPAIGNS_URL = '%s/campaigns/%s/query'
 # Infra3d access tokens live 60 minutes; refresh this many seconds before expiry so a long scan never sends a stale one.
 INFRA3D_TOKEN_REFRESH_MARGIN = 300
 
-# A street is flagged as missing imagery once the fraction of checked points without imagery reaches FAIL_FRACTION, or
-# reaches FAIL_FRACTION_WITH_ENDPOINT when at least one endpoint already lacked imagery. Conversely the check stops
-# early (street has imagery) once SUCCESS_FRACTION of points have imagery, or SUCCESS_FRACTION_WITH_ENDPOINT when both
-# endpoints had imagery. The asymmetric thresholds make us stricter when an endpoint is already missing imagery.
-FAIL_FRACTION = 0.5
-FAIL_FRACTION_WITH_ENDPOINT = 0.25
-SUCCESS_FRACTION = 0.75
-SUCCESS_FRACTION_WITH_ENDPOINT = 0.5
-
-# Per-point imagery verdicts returned by imagery_verdict.
+# Per-street verdicts returned by CoverageWalk.verdict.
 NO_IMAGERY = 'no_imagery'
 HAS_IMAGERY = 'has_imagery'
 # Additional per-street outcome when a street could not be checked (all retries exhausted).
@@ -294,16 +327,16 @@ FAILED = 'failed'
 CAPTURE_DATE_FORMATS = ('%Y-%m-%d', '%Y-%m', '%Y')
 
 CHECKPOINT_COLUMNS = ['street_edge_id', 'region_id', 'outcome', 'oldest_capture', 'newest_capture', 'n_panos',
-                      'max_cross_track_m', 'search_radius_m', 'cross_track_limit_m']
+                      'max_cross_track_m', 'search_radius_m', 'cross_track_limit_m', 'coverage_rule']
 # Columns of the per-street imagery summary output.
 SUMMARY_COLUMNS = ['street_edge_id', 'region_id', 'has_imagery', 'oldest_capture', 'newest_capture', 'n_panos',
                    'max_cross_track_m', 'cross_track_limit_m']
 
 # Outcome of checking one street: its ids, the outcome (NO_IMAGERY / HAS_IMAGERY / FAILED), the imagery capture-date
 # range observed (oldest/newest ISO dates and the number of dated panos seen; empty/0 when no dated imagery was found),
-# the largest street offset among the panos seen, and the search radius and cross-track limit (0 when none applied) the
-# verdict was reached at. Those two ride along in every checkpoint row so a resume can refuse to mix two definitions of
-# "has imagery" (see load_processed).
+# the largest street offset among the panos seen, and the search radius, cross-track limit (0 when none applied) and
+# coverage rule the verdict was reached under. Those three ride along in every checkpoint row so a resume can refuse
+# to mix two definitions of "has imagery" (see load_processed).
 StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
 
 # One row per point a street's walk actually visited, endpoints included, for --point-log: where the point was and
@@ -550,21 +583,60 @@ def mapillary_has_imagery(response_json: dict) -> bool:
     return not no_imagery
 
 
+def _score(pano_lat: float, pano_lng: float, width: float, captured_at_ms: float | None,
+           lat: float, lng: float, now_ms: float, scoring: dict) -> float:
+    """
+    The ranking ``MapillaryViewer.#scorePano`` and ``PanoramaxViewer.#scorePano`` share, under one provider's
+    parameters from ``conf/pano-scoring.json``.
+
+    Recency is only a quarter of the decision and distance dominates it, so the newest picture at a point is frequently
+    *not* the one the viewer shows, which is the whole reason this port exists (#4411, #5284). One term is deliberately
+    absent: the viewers add ``sequenceWeight`` for staying in the sequence already on screen, and sampling a street cold
+    there is none, so it would be a uniform shift that cannot change which candidate wins. Distance is measured
+    geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two agree to well under a
+    percent, far inside the gaps that decide a ranking.
+
+    Args:
+        pano_lat:       Latitude of the candidate picture.
+        pano_lng:       Longitude of the candidate picture.
+        width:          Its width in pixels, 0 when the provider reports none.
+        captured_at_ms: Its capture instant as a Unix epoch timestamp in milliseconds, or ``None`` if unknown.
+        lat:            Latitude of the sampled point.
+        lng:            Longitude of the sampled point.
+        now_ms:         Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+        scoring:        ``PANO_SCORING`` or ``PANORAMAX_SCORING``.
+
+    Returns:
+        A score in ``[0, 1]``, higher being better.
+    """
+    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
+    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08.
+    distance_m = geodesic((lat, lng), (pano_lat, pano_lng)).meters
+    distance_score = math.exp(-distance_m / scoring['distanceDecayMeters'])
+
+    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
+    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
+    resolution_score = min(width / scoring['maxImageWidthPx'], 1)
+
+    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55. Only
+    # Panoramax passes an unknown instant: its viewer scores one as unknownDateAgeYears old rather than as NaN.
+    if captured_at_ms is None:
+        age_years = scoring['unknownDateAgeYears']
+    else:
+        age_years = (now_ms - captured_at_ms) / MS_PER_YEAR
+    recency_score = math.exp(-age_years / scoring['recencyDecayYears'])
+
+    return (scoring['distanceWeight'] * distance_score
+            + scoring['resolutionWeight'] * resolution_score
+            + scoring['recencyWeight'] * recency_score)
+
+
 def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
     """
     Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
 
-    This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
-    weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
-    quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
-    viewer shows — which is the whole reason this port exists (#4411).
-
-    One term is deliberately absent: the viewer adds ``sequenceWeight`` for staying in the sequence it is already
-    viewing, and sampling a street cold there is no current sequence. Scoring it as 0 for every candidate is a uniform
-    shift, so it cannot change which candidate wins here.
-
-    Distance is measured geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two
-    agree to well under a percent, far inside the gaps that decide a ranking.
+    This is a port of ``MapillaryViewer.#scorePano`` (``frontend/js/common/pano-viewer/MapillaryViewer.js``): the
+    arithmetic is ``_score`` with Mapillary's parameters; this guard is what differs per provider.
 
     Args:
         image:  One entry from the response's ``data`` array.
@@ -586,26 +658,9 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
     # bool is a subclass of int, so it would otherwise pass as a timestamp of 0 or 1.
     if len(coordinates) < 2 or isinstance(captured_at, bool) or not isinstance(captured_at, (int, float)):
         return None
-
-    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
-    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08. GeoJSON positions may carry an altitude the viewer's turf.point also
-    # ignores, so only the first two ordinates are read.
-    image_lng, image_lat = coordinates[0], coordinates[1]
-    distance_m = geodesic((lat, lng), (image_lat, image_lng)).meters
-    distance_score = math.exp(-distance_m / PANO_SCORING['distanceDecayMeters'])
-
-    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
-    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
-    resolution_score = min((image.get('width') or 0) / PANO_SCORING['maxImageWidthPx'], 1)
-
-    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55.
-    # captured_at is a Unix epoch timestamp in milliseconds, UTC.
-    age_years = (now_ms - captured_at) / MS_PER_YEAR
-    recency_score = math.exp(-age_years / PANO_SCORING['recencyDecayYears'])
-
-    return (PANO_SCORING['distanceWeight'] * distance_score
-            + PANO_SCORING['resolutionWeight'] * resolution_score
-            + PANO_SCORING['recencyWeight'] * recency_score)
+    # GeoJSON positions may carry an altitude the viewer's turf.point also ignores, so only the first two ordinates
+    # are read. captured_at is a Unix epoch timestamp in milliseconds, UTC.
+    return _score(coordinates[1], coordinates[0], image.get('width') or 0, captured_at, lat, lng, now_ms, PANO_SCORING)
 
 
 def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dict | None:
@@ -686,48 +741,81 @@ def panoramax_has_imagery(response_json: dict) -> bool:
     return len(response_json['features']) > 0
 
 
-def panoramax_capture_date(response_json: dict) -> str | None:
+def parse_iso_instant_ms(raw: object) -> float | None:
     """
-    Extracts the newest picture's standardized capture date from a Panoramax search response.
+    Parses an ISO 8601 date-time, as a STAC ``datetime`` carries it, into epoch milliseconds.
+
+    Accepts a ``+00:00`` or ``Z`` suffix, any other offset, fractional seconds, and a bare date (midnight UTC). A naive
+    date-time is read as UTC, the zone STAC specifies; the viewer's ``Date.parse`` would read it as browser-local, a
+    sub-day difference a 5-year recency decay cannot feel.
+
+    Args:
+        raw: The value of the item's ``datetime`` property, whatever type it arrived as.
+
+    Returns:
+        Milliseconds since the Unix epoch, or ``None`` if ``raw`` is not a parseable string. ``None`` rather than an
+        exception because the viewer's ``Date.parse`` yields ``NaN`` there and still scores the picture (as
+        ``unknownDateAgeYears`` old), so the scan must keep it as a candidate too.
+    """
+    if not isinstance(raw, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp() * 1000
+
+
+def panoramax_pano_info(response_json: dict, lat: float, lng: float, now_ms: float | None = None) -> PanoInfo:
+    """
+    Interprets a Panoramax STAC search response for the point it was queried at.
+
+    A search returns every 360° picture in the box, so the point is reduced to the one ``PanoramaxViewer.#scorePano``
+    would display there, not the newest (#5284, the Panoramax half of #4411). The date and the position describe that
+    same picture, so ``max_cross_track_m`` measures the pano whose date is recorded. As in the viewer, a picture with no
+    readable ``datetime`` still competes, aged at ``unknownDateAgeYears``, and one with no position is skipped (the
+    viewer would throw on ``turf.point(undefined)``). The date is the UTC calendar day of the capture instant, the rule
+    ``mapillary_pano_info`` and the app's imagery poller use.
 
     Args:
         response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds; defaults to now.
 
     Returns:
-        An ISO ``YYYY-MM-DD`` string, or ``None`` if no picture carries a ``datetime``.
-    """
-    dates = [standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10])
-             for f in response_json.get('features', [])]
-    dates = [d for d in dates if d]
-    return max(dates) if dates else None
-
-
-def panoramax_pano_info(response_json: dict) -> PanoInfo:
-    """
-    Interprets a Panoramax STAC search response as one pano.
-
-    The date is the newest picture's, so the position reported is that same picture's — the two have to describe one
-    pano for ``max_cross_track_m`` to mean anything. A picture with no ``datetime`` still establishes presence, so an
-    all-undated box falls back to the first feature's position.
-
-    Args:
-        response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
-
-    Returns:
-        A ``PanoInfo`` carrying presence, the newest capture date, and that picture's lat/lng.
+        A ``PanoInfo``: imagery presence, plus the winning picture's capture date and position when one was placeable.
 
     Raises:
         ImageryApiError: If the response is not a FeatureCollection.
     """
+    if now_ms is None:
+        now_ms = datetime.now(tz=timezone.utc).timestamp() * 1000
     has_imagery = panoramax_has_imagery(response_json)
-    capture_date = panoramax_capture_date(response_json)
-    features = response_json.get('features', [])
-    chosen = next((f for f in features
-                   if standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10]) == capture_date),
-                  features[0] if features else None)
-    coordinates = ((chosen or {}).get('geometry') or {}).get('coordinates') or []
-    lng, lat = (coordinates[0], coordinates[1]) if len(coordinates) >= 2 else (None, None)
-    return PanoInfo(has_imagery, capture_date, lat, lng)
+    best_score, winner = -1.0, None
+    for feature in response_json['features']:
+        coordinates = (feature.get('geometry') or {}).get('coordinates') or ()
+        if len(coordinates) < 2:
+            continue
+        props = feature.get('properties') or {}
+        dims = (props.get('pers:interior_orientation') or {}).get('sensor_array_dimensions') or ()
+        # The viewer's `?.[0] || 0`: phone and GoPro captures often carry no sensor block. A non-number (bool is an
+        # int subclass) scores 0 too, where JS would coerce a numeric string; the API emits integers.
+        width = dims[0] if dims and isinstance(dims[0], (int, float)) and not isinstance(dims[0], bool) else 0
+        captured_at_ms = parse_iso_instant_ms(props.get('datetime'))
+        score = _score(coordinates[1], coordinates[0], width, captured_at_ms, lat, lng, now_ms, PANORAMAX_SCORING)
+        # Strict, as #selectBestPano's `>` is, so equal scores keep the first of the viewer's newest-first page.
+        if score > best_score:
+            best_score, winner = score, (coordinates[1], coordinates[0], captured_at_ms)
+    if winner is None:
+        return PanoInfo(has_imagery, None)
+    pano_lat, pano_lng, captured_at_ms = winner
+    capture_date = None
+    if captured_at_ms is not None:
+        capture_date = datetime.fromtimestamp(captured_at_ms / 1000, tz=timezone.utc).date().isoformat()
+    return PanoInfo(has_imagery, capture_date, pano_lat, pano_lng)
 
 
 def infra3d_pano_info(response_json: dict, lat: float, lng: float, radius_km: float) -> PanoInfo:
@@ -877,66 +965,186 @@ def pano_counts(info: PanoInfo, offset_m: float | None, limit_m: float | None,
     return endpoint_m is not None and endpoint_m <= INTERSECTION_ZONE_M
 
 
-def imagery_verdict(n_fail: int, n_success: int, n_coords: int, endpoint_failed: bool) -> str | None:
+def street_length_m(street_geom: LineString) -> float:
     """
-    Decides, from running point counts, whether the street's imagery status is settled yet.
+    Measures a street's length, in geodesic metres, as the server does (``ST_Length(geom::geography)``).
 
     Args:
-        n_fail:          Number of checked points so far without imagery.
-        n_success:       Number of checked points so far with imagery.
-        n_coords:        Total number of points along the street.
-        endpoint_failed: Whether at least one street endpoint lacked imagery.
+        street_geom: The street's centerline, in lat/lng degrees.
 
     Returns:
-        ``NO_IMAGERY`` or ``HAS_IMAGERY`` once the thresholds settle it, otherwise ``None`` (keep checking).
+        The sum of its segments' geodesic lengths.
     """
-    if n_fail >= FAIL_FRACTION * n_coords or (n_fail >= FAIL_FRACTION_WITH_ENDPOINT * n_coords and endpoint_failed):
-        return NO_IMAGERY
-    if n_success > SUCCESS_FRACTION * n_coords or (n_success > SUCCESS_FRACTION_WITH_ENDPOINT * n_coords
-                                                   and not endpoint_failed):
-        return HAS_IMAGERY
-    return None
+    coords = list(street_geom.coords)
+    return sum(geodesic((y1, x1), (y2, x2)).meters for (x1, y1), (x2, y2) in zip(coords, coords[1:]))
 
 
-def street_has_no_imagery(first_endpoint_fail: bool, second_endpoint_fail: bool,
-                          point_has_imagery: Iterable[bool], n_coords: int | None = None) -> bool:
+def along_street_m(street_geom: LineString, length_m: float, lat: float, lng: float) -> float:
     """
-    Decides whether a street should be flagged as missing imagery.
+    Where a point sits along a street, in metres from the street's first coordinate, as ``Task.recordVisit`` measures
+    a pano: the geodesic length of the centerline up to the point's nearest point on it.
 
-    Returns ``True`` immediately if both endpoints lack imagery; otherwise walks the per-point results applying
-    ``imagery_verdict`` and returns the settled verdict (defaulting to "has imagery" if never settled). ``point_has_
-    imagery`` may be a lazy iterable (e.g. a generator that fetches each point on demand) so the walk stops fetching as
-    soon as the verdict settles; pass ``n_coords`` in that case since the length can't be taken up front.
+    The nearest point is found with longitude scaled by cos(latitude), so a degree east counts the same as a degree
+    north; projecting in raw degrees would pull the nearest point sideways on any street that bends.
 
     Args:
-        first_endpoint_fail:  Whether the first endpoint lacked imagery.
-        second_endpoint_fail: Whether the second endpoint lacked imagery.
-        point_has_imagery:    Ordered booleans, one per along-street point (``True`` = imagery present).
-        n_coords:             Total number of points; if ``None``, ``point_has_imagery`` is materialized to count it.
+        street_geom: The street's centerline, in lat/lng degrees.
+        length_m:    Its geodesic length (``street_length_m``), which the answer never exceeds.
+        lat:         Latitude of the point.
+        lng:         Longitude of the point.
+
+    Returns:
+        Metres along the street, in ``[0, length_m]``.
+    """
+    coords = list(street_geom.coords)
+    scale = math.cos(math.radians(lat))
+    scaled = LineString([(x * scale, y) for x, y in coords])
+    target = scaled.project(Point(lng * scale, lat))
+    walked_scaled = 0.0
+    walked_m = 0.0
+    for (x1, y1), (x2, y2) in zip(coords, coords[1:]):
+        segment_scaled = math.hypot((x2 - x1) * scale, y2 - y1)
+        if walked_scaled + segment_scaled >= target:
+            frac = (target - walked_scaled) / segment_scaled if segment_scaled else 0.0
+            x, y = x1 + frac * (x2 - x1), y1 + frac * (y2 - y1)
+            return min(walked_m + geodesic((y1, x1), (y, x)).meters, length_m)
+        walked_scaled += segment_scaled
+        walked_m += geodesic((y1, x1), (y2, x2)).meters
+    return length_m
+
+
+def merge_ranges(ranges: Iterable[tuple[float, float]], length_m: float) -> list[tuple[float, float]]:
+    """
+    Unions stretches of a street, as ``StreetCoverage.merge`` does: clipped to the street, sorted, disjoint, to a
+    decimetre.
+
+    Args:
+        ranges:   ``(start_m, end_m)`` pairs, in any order, possibly overlapping or running past the street.
+        length_m: The street's length in metres.
+
+    Returns:
+        The merged pairs. Rounded first, then clipped: rounding after could push an end past the street.
+    """
+    clipped = sorted((min(max(round(start, 1), 0.0), length_m), min(max(round(end, 1), 0.0), length_m))
+                     for start, end in ranges)
+    merged: list[tuple[float, float]] = []
+    for start, end in clipped:
+        if end <= start:
+            continue
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def covered_enough(merged: Iterable[tuple[float, float]], length_m: float) -> bool:
+    """
+    Whether a merged list earns the street, as ``StreetCoverage.coveredEnough`` decides it: something seen, at most
+    ``maxUncoveredM`` unseen, and at least ``minCoveredFrac`` of the street seen.
+
+    Args:
+        merged:   A ``merge_ranges`` result.
+        length_m: The street's length in metres.
+
+    Returns:
+        ``True`` once what is left unseen is small enough.
+    """
+    merged = list(merged)
+    covered = sum(end - start for start, end in merged)
+    return (bool(merged) and max(length_m - covered, 0.0) <= STREET_COVERAGE['maxUncoveredM']
+            and covered >= STREET_COVERAGE['minCoveredFrac'] * length_m)
+
+
+class CoverageWalk:
+    """
+    Builds a street's coverage from the panos a walk along it finds, in walk order, and says when the verdict is
+    settled.
+
+    This is ``Task.recordVisit`` for a scan: a counted pano covers ``panoWindowM`` either side of itself, plus the
+    stretch back to the previous counted pano when that hop is at most ``maxHopM``, which is as far as Explore's
+    sweep carries a labeler between panos and still counts the ground between as walked. A point without imagery
+    adds nothing and breaks nothing: the sweep too just searches on to the next pano, so what decides a gap is the
+    distance between the panos either side of it.
+
+    Example:
+        >>> walk = CoverageWalk(200.0)
+        >>> walk.visit(10.0); walk.visit(40.0); walk.visit(160.0)   # a 120 m hop leaves 100 m unseen
+        >>> walk.verdict(remaining_from_m=180.0)                     # 20 m more could be seen, not enough
+        'no_imagery'
+    """
+
+    def __init__(self, length_m: float, reach_m: float = 0.0):
+        """
+        ``length_m`` is the street's geodesic length in metres. ``reach_m`` is how far behind a point its pano can sit
+        (the search radius), so a stretch a later point could still reach is never counted as lost.
+        """
+        self.length_m = length_m
+        self.reach_m = reach_m
+        self._ranges: list[tuple[float, float]] = []
+        self._last_along_m: float | None = None
+
+    def visit(self, along_m: float) -> None:
+        """Credits a counted pano at ``along_m`` metres from the street's first coordinate."""
+        window = STREET_COVERAGE['panoWindowM']
+        self._ranges.append((along_m - window, along_m + window))
+        if self._last_along_m is not None and abs(along_m - self._last_along_m) <= STREET_COVERAGE['maxHopM']:
+            self._ranges.append((min(along_m, self._last_along_m), max(along_m, self._last_along_m)))
+        self._last_along_m = along_m
+
+    def merged(self) -> list[tuple[float, float]]:
+        """The stretches seen so far, merged."""
+        return merge_ranges(self._ranges, self.length_m)
+
+    def verdict(self, remaining_from_m: float | None = None) -> str | None:
+        """
+        What the panos so far settle.
+
+        Args:
+            remaining_from_m: Where along the street the walk has got to, or ``None`` once it is done. Everything
+                              from a hop short of there to the street's end may still turn out to have imagery, so
+                              the street is only flagged if even that would not be enough.
+
+        Returns:
+            ``HAS_IMAGERY`` once enough is seen whatever follows, ``NO_IMAGERY`` once not even the rest of the walk
+            could make it enough, otherwise ``None`` (keep walking).
+        """
+        merged = self.merged()
+        if covered_enough(merged, self.length_m):
+            return HAS_IMAGERY
+        if remaining_from_m is None:
+            return NO_IMAGERY
+        reach_back_m = remaining_from_m - self.reach_m - STREET_COVERAGE['maxHopM']
+        best_case = merge_ranges(merged + [(reach_back_m, self.length_m)], self.length_m)
+        return None if covered_enough(best_case, self.length_m) else NO_IMAGERY
+
+
+def street_has_no_imagery(points: Iterable[tuple[bool, float, float]], length_m: float,
+                          reach_m: float = 0.0) -> bool:
+    """
+    Decides whether a street should be flagged as missing imagery, from the walk's points in order.
+
+    ``points`` may be a lazy iterable (a generator that fetches each point on demand): the walk stops consuming, and
+    so fetching, as soon as ``CoverageWalk.verdict`` settles.
+
+    Args:
+        points:   Per walked point, in order: whether a pano counted there, where that pano sits along the street
+                  (metres from the first coordinate; the point's own position when no pano has one), and where the
+                  point itself sits.
+        length_m: The street's geodesic length in metres.
+        reach_m:  The search radius in metres, within which a point's pano may sit behind it.
 
     Returns:
         ``True`` if the street should be flagged as missing imagery, else ``False``.
     """
-    if first_endpoint_fail and second_endpoint_fail:
-        return True
-
-    endpoint_failed = first_endpoint_fail or second_endpoint_fail
-    if n_coords is None:
-        point_has_imagery = list(point_has_imagery)
-        n_coords = len(point_has_imagery)
-
-    n_fail = n_success = 0
-    for has_imagery in point_has_imagery:
-        if has_imagery:
-            n_success += 1
-        else:
-            n_fail += 1
-        verdict = imagery_verdict(n_fail, n_success, n_coords, endpoint_failed)
-        if verdict == NO_IMAGERY:
-            return True
-        if verdict == HAS_IMAGERY:
-            return False
-    return False
+    walk = CoverageWalk(length_m, reach_m)
+    for counted, pano_along_m, point_along_m in points:
+        if counted:
+            walk.visit(pano_along_m)
+        verdict = walk.verdict(remaining_from_m=point_along_m)
+        if verdict is not None:
+            return verdict == NO_IMAGERY
+    return walk.verdict() == NO_IMAGERY
 
 
 def _get_json(url: str, **kwargs) -> dict:
@@ -1051,16 +1259,16 @@ def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInf
     """
     Builds a ``PanoInfo`` from one provider response.
 
-    GSV's and Panoramax's dates and positions come from the one pano each response is reduced to. Mapillary returns
-    every image in the queried box, so the point it was queried at is needed to rank them; see ``mapillary_pano_info``
-    for which one wins.
+    GSV's date and position come from the one pano its response holds. Mapillary and Panoramax return every picture in
+    the queried box, so the point it was queried at is needed to rank them; see ``mapillary_pano_info`` and
+    ``panoramax_pano_info`` for which one wins.
     """
     if api == 'GSV':
         location = response_json.get('location') or {}
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json),
                         location.get('lat'), location.get('lng'))
     if api == 'Panoramax':
-        return panoramax_pano_info(response_json)
+        return panoramax_pano_info(response_json, lat, lng)
     return mapillary_pano_info(response_json, lat, lng)
 
 
@@ -1160,9 +1368,9 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
-    Walks the endpoints, then along-street points with early-exit (points are fetched lazily, so a settled verdict
-    stops further requests). Any network/parse error after retries is caught and reported as ``FAILED`` so the overall
-    scan can continue.
+    Walks the endpoints, then along-street points, building the street's coverage as it goes with early-exit (points
+    are fetched lazily, so a settled verdict stops further requests). Any network/parse error after retries is caught
+    and reported as ``FAILED`` so the overall scan can continue.
 
     Args:
         street:              A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, ``geom`` (the
@@ -1187,12 +1395,14 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
     radius_m, limit_m = round(radius_km * 1000, 3), cross_track_limit_m or 0.0
     try:
         dates, offsets = [], []
+        length_m = street_length_m(geom)
 
         # Measures one point's answer and records its date and offset as a side effect. The offset is recorded
         # whether or not the pano counts, so max_cross_track_m stays the farthest pano *seen* and a limit can't hide
         # the evidence of what it rejected; a date is only recorded for a pano that counts, since an off-street pano's
-        # date says nothing about this street's imagery.
-        def settle(lat: float, lng: float, info: PanoInfo, at_endpoint: bool) -> bool:
+        # date says nothing about this street's imagery. Also returns where along the street the pano sits (the
+        # point's own position when the pano has none), which is what the coverage walk credits.
+        def settle(lat: float, lng: float, info: PanoInfo, at_endpoint: bool) -> tuple[bool, float]:
             offset = cross_track_m(geom, info.pano_lat, info.pano_lng)
             distance = None if offset is None else geodesic((lat, lng), (info.pano_lat, info.pano_lng)).meters
             endpoint = endpoint_distance_m(geom, info.pano_lat, info.pano_lng) if at_endpoint and offset is not None \
@@ -1207,39 +1417,37 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
                                           info.pano_lat, info.pano_lng,
                                           *(None if m is None else round(m, 2) for m in (distance, offset, endpoint)),
                                           counted, info.capture_date, radius_m, limit_m))
-            return counted
+            pano_lat, pano_lng = (info.pano_lat, info.pano_lng) if offset is not None else (lat, lng)
+            return counted, along_street_m(geom, length_m, pano_lat, pano_lng)
 
         first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_url, radius_km, infra3d)
-        first_counts = settle(street.y1, street.x1, first, True)
-        second_counts = settle(street.y2, street.x2, second, True)
+        first_answer = settle(street.y1, street.x1, first, True)
+        second_answer = settle(street.y2, street.x2, second, True)
         coords = list(street['sample_geom'].coords)
 
         # The walk starts and ends on the endpoints, which were just queried at the same radius. Reuse those answers
         # rather than send identical requests, and skip re-recording their date and offset, which are already counted.
-        endpoint_answers = [((street.x1, street.y1), first_counts), ((street.x2, street.y2), second_counts)]
+        endpoint_answers = [((street.x1, street.y1), first_answer), ((street.x2, street.y2), second_answer)]
 
-        def known_answer(lng: float, lat: float) -> bool | None:
-            return next((counts for (x, y), counts in endpoint_answers
+        def known_answer(lng: float, lat: float) -> tuple[bool, float] | None:
+            return next((answer for (x, y), answer in endpoint_answers
                          if math.isclose(lng, x, abs_tol=ENDPOINT_MATCH_DEG)
                          and math.isclose(lat, y, abs_tol=ENDPOINT_MATCH_DEG)), None)
 
-        # Yield the per-point booleans to the (unchanged) decision function. Because street_has_no_imagery consumes
+        # Yield the per-point answers to the decision function in walk order. Because street_has_no_imagery consumes
         # this lazily and stops at the verdict, we only fetch — and only measure — the points actually visited. The
         # radius guard, like every other distance, is measured from the stored centerline.
-        def has_imagery_stream() -> Iterator[bool]:
-            # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
-            # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
-            for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
+        def answer_stream() -> Iterator[tuple[bool, float, float]]:
+            for coord in coords:  # Shapely coords are (x=lng, y=lat).
+                point_along_m = along_street_m(geom, length_m, coord[1], coord[0])
                 known = known_answer(coord[0], coord[1])
-                if known is not None:
-                    yield known
-                    continue
-                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km, infra3d,
-                                        geom)
-                yield settle(coord[1], coord[0], info, False)
+                if known is None:
+                    info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km,
+                                            infra3d, geom)
+                    known = settle(coord[1], coord[0], info, False)
+                yield (*known, point_along_m)
 
-        no_imagery = street_has_no_imagery(not first_counts, not second_counts, has_imagery_stream(),
-                                           n_coords=len(coords))
+        no_imagery = street_has_no_imagery(answer_stream(), length_m, reach_m=radius_km * 1000)
         outcome = NO_IMAGERY if no_imagery else HAS_IMAGERY
         oldest, newest, n_panos = summarize_dates(dates)
         # The largest offset, not the mean: the question a threshold answers is whether a street has *any* point whose
@@ -1249,7 +1457,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         logger.warning("Could not check street %s after %d attempts: %s", street.street_edge_id, MAX_ATTEMPTS, err)
         outcome, oldest, newest, n_panos, max_cross_track = FAILED, None, None, 0, None
     return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos,
-                        max_cross_track, radius_m, limit_m)
+                        max_cross_track, radius_m, limit_m, COVERAGE_RULE_ID)
 
 
 def load_processed(checkpoint_file: str, search_radius_m: float, cross_track_limit_m: float = 0.0) -> set[int]:
@@ -1257,9 +1465,10 @@ def load_processed(checkpoint_file: str, search_radius_m: float, cross_track_lim
     Returns the ``street_edge_id`` values already settled in the checkpoint, so a re-run resumes rather than restarts.
 
     Failed streets are left out so they get re-attempted. A checkpoint is only resumable when it was written with the
-    same columns, at the same search radius and with the same cross-track limit as this run: rows reached under other
-    settings carry another definition of "has imagery", and rows with another column count would make the appended
-    file unparseable -- ``finalize_outputs`` and every later run would then fail on it (#5091).
+    same columns, at the same search radius, with the same cross-track limit and under the same coverage rule as this
+    run: rows reached under other settings carry another definition of "has imagery", and rows with another column
+    count would make the appended file unparseable -- ``finalize_outputs`` and every later run would then fail on it
+    (#5091).
 
     Args:
         checkpoint_file:     Path to this city and provider's checkpoint CSV.
@@ -1271,7 +1480,8 @@ def load_processed(checkpoint_file: str, search_radius_m: float, cross_track_lim
 
     Raises:
         CheckpointMismatchError: If the checkpoint's columns differ from ``CHECKPOINT_COLUMNS``, or any row was written
-                                 at a different radius or limit. The message names the file to move or delete.
+                                 at a different radius or limit or under another coverage rule. The message names the
+                                 file to move or delete.
     """
     if not os.path.isfile(checkpoint_file):
         return set()
@@ -1288,6 +1498,12 @@ def load_processed(checkpoint_file: str, search_radius_m: float, cross_track_lim
                 '%s was written at a %s of %s m, not %s m, so resuming would mix two definitions of "has imagery". '
                 'Move or delete it, or give this run its own --city-id.'
                 % (checkpoint_file, label, '/'.join('%g' % v for v in sorted(values)) or 'unknown', '%g' % expected))
+    rules = set(checkpoint['coverage_rule'].fillna('unknown'))
+    if rules != {COVERAGE_RULE_ID}:
+        raise CheckpointMismatchError(
+            '%s was written under the coverage rule %s, not %s, so resuming would mix two definitions of "has '
+            'imagery". Move or delete it, or give this run its own --city-id.'
+            % (checkpoint_file, '/'.join(sorted(rules)), COVERAGE_RULE_ID))
     return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
 
 
@@ -1523,7 +1739,8 @@ def main(argv: list[str] | None = None) -> int:
                         help='The cityparams city id being scanned, e.g. "newport-ky"; every data file lives in '
                              'db/onboarding/<city-id>/.')
     provider = parser.add_mutually_exclusive_group(required=True)
-    provider.add_argument('--gsv', action='store_true', help='Check for GSV imagery (needs GOOGLE_MAPS_API_KEY)')
+    provider.add_argument('--gsv', action='store_true',
+                          help='Check for GSV imagery (needs GOOGLE_MAPS_SERVER_KEY, else GOOGLE_MAPS_API_KEY)')
     provider.add_argument('--mapillary', action='store_true',
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
@@ -1569,12 +1786,12 @@ def main(argv: list[str] | None = None) -> int:
         if not math.isfinite(args.max_cross_track_m) or args.max_cross_track_m < 0:
             parser.error('--max-cross-track-m needs a distance of 0 (off) or more.')
     # The limit is GSV's alone. It was measured on Google's car-mounted captures, and GSV answers with the one pano the
-    # viewer would open there. Mapillary's answer is reduced to the viewer's pick by score_pano: holding that pick to
-    # the limit would hide points where an on-street runner-up exists, and filtering candidates before scoring would
-    # record a date the viewer never shows (#4411). Mapillary and Panoramax are also captured on foot and by bike, off
-    # the roadway, so a limit measured on cars would reject their sidewalk captures. Infra3d answers with its nearest
-    # frame as GSV does, but no Infra3d city has been measured. --point-log records every provider's offsets, so each
-    # can be given a limit of its own from its own distribution (#5091).
+    # viewer would open there. Mapillary's and Panoramax's answers are reduced to the viewer's pick: holding that pick
+    # to the limit would hide points where an on-street runner-up exists, and filtering candidates before scoring would
+    # record a date the viewer never shows (#4411, #5284). Mapillary and Panoramax are also captured on foot and by
+    # bike, off the roadway, so a limit measured on cars would reject their sidewalk captures. Infra3d answers with its
+    # nearest frame as GSV does, but no Infra3d city has been measured. --point-log records every provider's offsets,
+    # so each can be given a limit of its own from its own distribution (#5091).
     if api != 'GSV':
         cross_track_limit_m = None
     else:
@@ -1605,8 +1822,12 @@ def main(argv: list[str] | None = None) -> int:
     elif api == 'Panoramax':
         print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
     else:
-        api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
-        if api_key is None:
+        if api == 'GSV':
+            # These requests carry no Referer, which is all the browser key checks (#5647).
+            api_key = os.getenv('GOOGLE_MAPS_SERVER_KEY') or os.getenv('GOOGLE_MAPS_API_KEY')
+        else:
+            api_key = os.getenv('MAPILLARY_ACCESS_TOKEN')
+        if not api_key:
             print("Couldn't read API key environment variable.")
             return 1
 

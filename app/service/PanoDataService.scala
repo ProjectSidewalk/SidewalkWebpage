@@ -18,10 +18,13 @@ import play.api.libs.ws.WSBodyWritables.*
 import play.api.libs.ws.WSBodyReadables.*
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
+  endpointPanoWithin,
   infra3dTokenNeedsRemint,
+  mapillaryPitchRoll,
   parseInfra3dTokenResponse,
-  staticLocationUrl,
+  staticEndpointUrl,
   staticStillUrl,
+  GsvSearchRadiusMeters,
   ImageryCheckConcurrency,
   ImageryCheckResult,
   Infra3dToken,
@@ -46,6 +49,17 @@ import scala.util.control.NonFatal
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
 object PanoDataService {
+
+  /**
+   * The key for requests the server sends Google itself. Blank counts as unset, since a deploy that exports the
+   * variable before its value is filled in hands the app an empty string.
+   * @return The server key, else the browser key, else `None`.
+   */
+  def googleServerKey(config: Configuration): Option[String] =
+    config
+      .getOptional[String]("google-maps-server-key")
+      .filter(_.nonEmpty)
+      .orElse(config.getOptional[String]("google-maps-api-key"))
 
   /**
    * How long a "the imagery is still there" answer stays good before we ask the provider again (#3004).
@@ -121,7 +135,7 @@ object PanoDataService {
    * the horizontal fov the label's frame was rendered at (`renderedHFov`: the zoom curve, widened where GSV's
    * vertical clamp bound in a wide immersive frame, #5085). The still keeps the boxed 3:2 whatever the frame was, so
    * every consumer's marker math (`CropService.stillMarker`, `util.misc.labelMarkerFraction`) rests on the two sharing
-   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; `getImageUrl` signs it.
+   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; the URL getters sign it.
    *
    * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
    * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
@@ -149,21 +163,38 @@ object PanoDataService {
       apiKey
     )
 
+  // The frontend's PanoViewer.SEARCH_RADIUS_M: how far from a point a pano may sit and still count as imagery of it.
+  val GsvSearchRadiusMeters: Int = 25
+
   /**
-   * The unsigned Static API URL for the outdoor pano nearest a location, facing `heading`: the street-edge endpoint
-   * images. Pure for the same reason as `staticStillUrl`; `getGsvImageUrlFromLatLng` signs it.
+   * The pano a Street View metadata response names, if it really lies within `radiusM` of the searched point. Google
+   * treats `radius` as a hint and has answered from another state (#5114); the inclusive edge matches
+   * `GsvViewer.isWithinSearchRadius`, so client and server reject the same panos.
+   * @return The pano id when it is verifiably within the radius, else None.
    */
-  def staticLocationUrl(lat: Double, lng: Double, heading: Double, apiKey: String): String =
+  def endpointPanoWithin(json: JsValue, lat: Double, lng: Double, radiusM: Double): Option[String] =
+    for {
+      _       <- (json \ "status").asOpt[String].filter(_ == "OK")
+      panoId  <- (json \ "pano_id").asOpt[String].filter(_.nonEmpty)
+      panoLat <- (json \ "location" \ "lat").asOpt[Double]
+      panoLng <- (json \ "location" \ "lng").asOpt[Double]
+      if CommonUtils.haversineMeters(lat, lng, panoLat, panoLng) <= radiusM
+    } yield panoId
+
+  /**
+   * The unsigned Static API URL for a street-endpoint image of one pano, facing `heading`. Requested by pano id, not
+   * location, so the picture is the pano [[endpointPanoWithin]] checked (#5464). Pure for the same reason as
+   * `staticStillUrl`.
+   */
+  def staticEndpointUrl(panoId: String, heading: Double, apiKey: String): String =
     staticApiUrl(
       Seq(
-        "location"          -> s"$lat,$lng",
-        "radius"            -> 40,  // As far from the point as the frontend searches.
-        "source"            -> "outdoor",
+        "pano"              -> panoId,
         "size"              -> s"${StaticApiMaxEdgePx}x$StaticApiMaxEdgePx",
         "heading"           -> heading,
         "pitch"             -> -10, // Slightly toward the ground, where the sidewalk is.
         "fov"               -> 90,
-        "return_error_code" -> true // No pano within the radius is a 404, not a placeholder image.
+        "return_error_code" -> true // An expired pano is a 404, not a placeholder image.
       ),
       apiKey
     )
@@ -253,7 +284,7 @@ object PanoDataService {
 
   /**
    * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083: the same two numbers as
-   * `util.pano.GSV_VFOV_CLAMP_DEG` (public/js/common/pano-viewer/src/panoUtilities.js), which documents the model.
+   * `util.pano.GSV_VFOV_CLAMP_DEG` (frontend/js/common/pano-viewer/panoUtilities.js), which documents the model.
    */
   val GSV_VFOV_CLAMP_DEG: (Double, Double) = (14.97, 89.84)
 
@@ -291,7 +322,7 @@ object PanoDataService {
    * The POV at which a canvas click would sit at the viewport's center: the forward projection the Explore client
    * runs when a label is placed.
    *
-   * Port of `util.pano.canvasCoordToCenteredPov` (public/js/common/pano-viewer/src/panoUtilities.js) — the viewport
+   * Port of `util.pano.canvasCoordToCenteredPov` (frontend/js/common/pano-viewer/panoUtilities.js) — the viewport
    * is modeled as a rectilinear camera aimed at (heading, pitch) with focal length `(canvasWidth/2) / tan(fov/2)`,
    * the click's canvas offset is projected through it, and the result is the label's own direction. Together with
    * `calculatePanoXYFromPov` this recomputes a label's `pano_x`/`pano_y` from its stored viewport record, which is
@@ -340,7 +371,7 @@ object PanoDataService {
    * The pano-pixel coordinate a POV points at, on a heading-centred equirectangular pano: the inverse of
    * `calculatePovFromPanoXY` and the second half of the client's `pano_x`/`pano_y` computation.
    *
-   * Port of `util.pano.povToPanoCoord` (public/js/common/pano-viewer/src/panoUtilities.js) with the client's
+   * Port of `util.pano.povToPanoCoord` (frontend/js/common/pano-viewer/panoUtilities.js) with the client's
    * round-then-wrap: column zero sits at bearing `cameraHeading - 180`, and the y mapping is linear in elevation.
    *
    * @param pov           The direction to locate (heading wrt true north, pitch positive above the horizon).
@@ -507,6 +538,72 @@ object PanoDataService {
     // Calculate destination point using haversine formula.
     CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)
   }
+
+  /**
+   * Largest camera-up vs world-up angle at which a Mapillary `computed_rotation` is taken as the rig's real pose.
+   *
+   * Past this it is a failed reconstruction, not a tilted rig: the auto-labeler's study of 191,286 Mapillary panos
+   * (sidewalk-auto-labeler#42) found 30 over it, reaching 170° (25 in Clovis, i.e. upside down). The auto-labeler
+   * leaves pitch and roll NULL for those, and the server's fill mirrors it so the two writers of `camera_pitch` never
+   * disagree about one image: an honest "unknown" beats a confidently wrong pose.
+   */
+  val MapillaryMaxPoseTiltDeg: Double = 45.0
+
+  /**
+   * Camera pitch and roll in degrees from Mapillary's `computed_rotation`, or `None` when the vector is malformed or
+   * tilted past [[MapillaryMaxPoseTiltDeg]].
+   *
+   * `MapillaryViewer.extractPitchRoll` (frontend/js/common/pano-viewer/MapillaryViewer.js) is a line-for-line copy,
+   * which is what a labeler's session stores for the same image, so a value filled from here is the one a human visit
+   * would have written; change them together.
+   *
+   * The vector is OpenSfM's world→camera axis-angle rotation (world = east/north/up, camera = x right, y down,
+   * z forward); negating it gives camera→world, and rotating the camera's forward and up axes into the world frame
+   * gives the elevation of the view (pitch) and the turn of the camera's up about the view axis (roll, positive
+   * clockwise from behind the camera).
+   *
+   * @param rotation Mapillary's `computed_rotation`: three finite numbers.
+   * @return         `(pitch, roll)` in degrees, or `None`.
+   */
+  def mapillaryPitchRoll(rotation: Seq[Double]): Option[(Double, Double)] = {
+    type Vec3 = (Double, Double, Double)
+    def dot(a: Vec3, b: Vec3): Double = a._1 * b._1 + a._2 * b._2 + a._3 * b._3
+    def cross(a: Vec3, b: Vec3): Vec3 =
+      (a._2 * b._3 - a._3 * b._2, a._3 * b._1 - a._1 * b._3, a._1 * b._2 - a._2 * b._1)
+    def scale(a: Vec3, s: Double): Vec3 = (a._1 * s, a._2 * s, a._3 * s)
+    def add(a: Vec3, b: Vec3): Vec3     = (a._1 + b._1, a._2 + b._2, a._3 + b._3)
+    // A zero vector stays zero, so a camera pointing straight up or down gets roll 0.
+    def unit(a: Vec3): Vec3      = { val len = math.sqrt(dot(a, a)); if (len > 0) scale(a, 1 / len) else a }
+    def clamp(v: Double): Double = math.max(-1.0, math.min(1.0, v))
+
+    if (rotation.length != 3 || rotation.exists(v => v.isNaN || v.isInfinite)) {
+      None
+    } else {
+      val inverted: Vec3 = (-rotation(0), -rotation(1), -rotation(2))
+      val angle          = math.sqrt(dot(inverted, inverted))
+      val axis           = unit(inverted)
+      // Rodrigues: v cos θ + (k × v) sin θ + k (k · v)(1 − cos θ).
+      def rotate(v: Vec3): Vec3 =
+        add(
+          add(scale(v, math.cos(angle)), scale(cross(axis, v), math.sin(angle))),
+          scale(axis, dot(axis, v) * (1 - math.cos(angle)))
+        )
+
+      val viewDir = rotate((0.0, 0.0, 1.0))
+      val upDir   = rotate((0.0, -1.0, 0.0))
+      val tiltDeg = math.toDegrees(math.acos(clamp(upDir._3)))
+      if (tiltDeg > MapillaryMaxPoseTiltDeg) {
+        None
+      } else {
+        val worldUp: Vec3 = (0.0, 0.0, 1.0)
+        val right         = unit(cross(viewDir, worldUp))
+        val expectedUp    = unit(cross(right, viewDir))
+        val pitch         = math.toDegrees(math.asin(clamp(viewDir._3)))
+        val roll          = math.toDegrees(math.atan2(dot(upDir, right), dot(upDir, expectedUp)))
+        Some((pitch, roll))
+      }
+    }
+  }
 }
 
 @ImplementedBy(classOf[PanoDataServiceImpl])
@@ -528,7 +625,7 @@ trait PanoDataService {
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
-  def getImageUrl(
+  def getBrowserImageUrl(
       panoId: String,
       panoSrc: PanoSource,
       heading: Double,
@@ -537,6 +634,25 @@ trait PanoDataService {
       canvasWidth: Int,
       canvasHeight: Int
   ): Option[String]
+
+  /**
+   * Same as [[getBrowserImageUrl]], for a still the server downloads itself rather than hands to a browser.
+   * @return Image URL signed with the server key.
+   */
+  def getServerImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String]
+
+  /**
+   * Signed Static API URLs for a street's endpoint images (start, then end). An endpoint whose nearest pano can't be
+   * verified within [[PanoDataService.GsvSearchRadiusMeters]] is left out, so the result holds zero to two URLs.
+   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
@@ -550,7 +666,9 @@ trait PanoDataService {
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
+
+  /** @return The pano_data row when a stored backup can be served, or the reason it can't (the route's 404 body). */
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]]
 }
 
 @Singleton
@@ -571,8 +689,11 @@ class PanoDataServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  // Grab API key and secret from ENV variable.
+  private val mapillaryGraphUrl: String = config.get[String]("mapillary-graph-url")
+
+  // Grab API keys and secret from ENV variable. The browser key only works where a browser sends its Referer.
   val googleApiKey: String    = config.get[String]("google-maps-api-key")
+  val googleServerKey: String = PanoDataService.googleServerKey(config).getOrElse(googleApiKey)
   val secretKeyString: String = config.get[String]("google-maps-secret")
 
   // Decode secret key as Byte[].
@@ -672,7 +793,7 @@ class PanoDataServiceImpl @Inject() (
    * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
    */
   private def gsvPanoExists(panoId: String): Future[Option[Boolean]] = {
-    val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleApiKey")
+    val url = signUrl(s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$panoId&key=$googleServerKey")
     ws.url(url)
       .withRequestTimeout(5.seconds)
       .get()
@@ -681,7 +802,6 @@ class PanoDataServiceImpl @Inject() (
         val imageExists: Boolean = imageStatus == "OK"
 
         if (imageExists || imageStatus == "ZERO_RESULTS") {
-          // Mark the expired status, has_backup, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
           val hasBackup = Some(backupExists(panoId))
           db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, hasBackup, timestamp))
@@ -706,6 +826,11 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks whether a Mapillary image still exists via the Graph API (`GET /:imageId`).
    *
+   * The same request asks for `computed_rotation`, and a missing camera pitch is filled from it before the answer is
+   * returned (#5725; the AI pipeline sent none before sidewalk-auto-labeler#42). That holds for every caller, not
+   * only the nightly sweep: a Validate mission being built pays the one guarded primary-key UPDATE too, which is
+   * cheap enough that keeping the fill sequenced, and so deterministic for the specs, wins.
+   *
    * @param panoId Mapillary image ID.
    * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
    */
@@ -715,17 +840,19 @@ class PanoDataServiceImpl @Inject() (
         logger.warn(s"No mapillary-access-token configured; cannot verify Mapillary imagery for $panoId.")
         Future.successful(None)
       case Some(accessToken) =>
-        ws.url(s"https://graph.mapillary.com/$panoId?fields=id")
+        ws.url(s"$mapillaryGraphUrl/$panoId?fields=id,computed_rotation")
           .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
           .withRequestTimeout(5.seconds)
           .get()
           .flatMap { response =>
-            val timestamp = OffsetDateTime.now
+            val timestamp  = OffsetDateTime.now
+            lazy val image = Json.parse(response.body)
             response.status match {
-              case 200 if (Json.parse(response.body) \ "id").toOption.isDefined =>
+              case 200 if (image \ "id").toOption.isDefined =>
                 db.run(
                   panoDataTable.updateExpiredStatus(panoId, expired = false, Some(backupExists(panoId)), timestamp)
-                ).map(_ => Some(true))
+                ).flatMap(_ => fillMissingCameraOrientation(panoId, image))
+                  .map(_ => Some(true))
               case 404 =>
                 db.run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(backupExists(panoId)), timestamp))
                   .map(_ => Some(false))
@@ -744,6 +871,22 @@ class PanoDataServiceImpl @Inject() (
             case e: Exception =>
               logger.warn(s"Unexpected error checking Mapillary imagery for $panoId; treating as inconclusive.", e)
               None
+          }
+    }
+  }
+
+  /**
+   * Stores the pitch and roll a Mapillary image entity's `computed_rotation` yields, if the pano has none. It never
+   * fails the caller: the pose is a by-product of the existence check, not its purpose.
+   */
+  private def fillMissingCameraOrientation(panoId: String, image: JsValue): Future[Unit] = {
+    (image \ "computed_rotation").asOpt[Seq[Double]].flatMap(mapillaryPitchRoll) match {
+      case None                => Future.unit
+      case Some((pitch, roll)) =>
+        db.run(panoDataTable.fillMissingCameraOrientation(panoId, pitch, roll))
+          .map(_ => ())
+          .recover { case NonFatal(e) =>
+            logger.warn(s"Could not fill the camera orientation of Mapillary pano $panoId.", e)
           }
     }
   }
@@ -828,7 +971,7 @@ class PanoDataServiceImpl @Inject() (
    * @param canvasHeight Height of that frame.
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(
+  def getBrowserImageUrl(
       panoId: String,
       panoSrc: PanoSource,
       heading: Double,
@@ -836,42 +979,73 @@ class PanoDataServiceImpl @Inject() (
       zoom: Double,
       canvasWidth: Int,
       canvasHeight: Int
+  ): Option[String] = gsvStillUrl(panoId, panoSrc, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)
+
+  def getServerImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String] = gsvStillUrl(panoId, panoSrc, heading, pitch, zoom, canvasWidth, canvasHeight, googleServerKey)
+
+  /**
+   * Builds the signed Street View still behind [[getBrowserImageUrl]] and [[getServerImageUrl]].
+   * @param apiKey The browser key or the server key, depending on who will load the URL.
+   * @return       Signed image URL, or `None` for imagery that isn't from GSV.
+   */
+  private def gsvStillUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      apiKey: String
   ): Option[String] =
     if (panoSrc != PanoSource.Gsv) None
-    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, apiKey)))
 
-  /**
-   * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
-   * More information here: https://developers.google.com/maps/documentation/streetview/intro
-   *
-   * @param lat Latitude of the location
-   * @param lng Longitude of the location
-   * @param heading Compass heading of the camera
-   * @return GSV Static API URL for the given location and heading
-   */
-  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
-    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
-
-  /**
-   * Gets the image URLs for a street edge, which includes the start and end points of the street.
-   * @param streetEdgeId ID of the street edge to get image URLs for
-   * @return A sequence of image URLs for the start and end points of the street edge
-   */
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]] = {
     db.run(for {
       streetOption: Option[StreetEdge] <- streetEdgeTable.getStreet(streetEdgeId)
       startDir: Option[Double]         <- streetEdgeTable.directionFromStart(streetEdgeId)
       endDir: Option[Double]           <- streetEdgeTable.directionFromEnd(streetEdgeId)
     } yield {
-      streetOption.fold(Seq.empty[String]) { street =>
+      streetOption.toSeq.flatMap { street =>
         val startPoint: Point = street.geom.getStartPoint
         val endPoint: Point   = street.geom.getEndPoint
         Seq(
-          startDir.map(sd => getGsvImageUrlFromLatLng(startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
-          endDir.map(ed => getGsvImageUrlFromLatLng(endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
+          startDir.map(sd => (startPoint.getY, startPoint.getX, Math.toDegrees(sd))),
+          endDir.map(ed => (endPoint.getY, endPoint.getX, Math.toDegrees(ed)))
         ).flatten
       }
-    })
+    }).flatMap { endpoints =>
+      Future.traverse(endpoints) { case (lat, lng, heading) => verifiedEndpointUrl(lat, lng, heading) }.map(_.flatten)
+    }
+  }
+
+  /**
+   * The signed image URL for one street endpoint, or None when its nearest pano can't be verified as near it. A
+   * location-based Static request can't be checked (the image carries no position), so the free metadata call places
+   * the pano first and the image is then requested by id (#5464).
+   */
+  private def verifiedEndpointUrl(lat: Double, lng: Double, heading: Double): Future[Option[String]] = {
+    val url = signUrl(
+      s"https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
+        s"&location=$lat,$lng&radius=$GsvSearchRadiusMeters&key=$googleServerKey"
+    )
+    ws.url(url)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .map { response =>
+        endpointPanoWithin(Json.parse(response.body), lat, lng, GsvSearchRadiusMeters)
+          .map(panoId => signUrl(staticEndpointUrl(panoId, heading, googleServerKey)))
+      }
+      .recover { case NonFatal(_) => None } // Unverifiable (timeout, non-JSON body) is dropped: unchecked is the bug.
   }
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {
@@ -1031,21 +1205,23 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
-   * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
-   *
-   * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
-   * `requiredParams` (public/js/common/pano-viewer/src/PanoData.js) — see the note there before changing them.
+   * Checks the file before the row, so the common miss (no stored image) never touches the DB. Each refusal names its
+   * own cause (#5183) because each points somewhere different: the store and the scraper, or whatever wrote pano_data.
+   * A served row needs `PanoData.hasBackupViewerFields`; a NaN pitch or roll is handed on as absent: JSON has no NaN,
+   * and the viewer treats the two alike.
    */
-  def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
+  def getLocalBackupImage(panoId: String): Future[Either[String, PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {
-      Future.successful(None)
+      Future.successful(Left(s"No stored image for pano $panoId."))
     } else {
-      db.run(panoDataTable.getPano(panoId))
-        .map(
-          _.filter(p =>
-            p.width.isDefined && p.height.isDefined && p.lat.isDefined && p.lng.isDefined && p.cameraHeading.isDefined && p.cameraPitch.isDefined
-          )
-        )
+      db.run(panoDataTable.getPano(panoId)).map {
+        case None => Left(s"Stored image for pano $panoId cannot be served: no pano_data row.")
+        case Some(p) if p.hasBackupViewerFields =>
+          Right(p.copy(cameraPitch = p.cameraPitch.filterNot(_.isNaN), cameraRoll = p.cameraRoll.filterNot(_.isNaN)))
+        case Some(p) =>
+          val missing = p.missingBackupViewerColumns.mkString(", ")
+          Left(s"Stored image for pano $panoId cannot be served: pano_data is missing $missing.")
+      }
     }
   }
 }

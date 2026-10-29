@@ -8,14 +8,12 @@
  * build would.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule } from './loader.js';
 
-const { loadGlobalScript, REPO_ROOT } = require('./loadGlobalScript');
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
 
-// A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
-// tag makes it reachable in the browser.
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/gallery/src/displays/ValidationInfoDisplay.js'), 'utf8');
+let ValidationInfoDisplay;
 
 /** A distinct digest per file, so a URL built by carrying one file's fingerprint onto another's name is visible. */
 const DIGESTS = {
@@ -43,7 +41,7 @@ const urlFor = (logicalPath) => {
 function makeDisplay(aiValidation = null) {
   const container = document.createElement('div');
   document.body.replaceChildren(container);
-  return new window.ValidationInfoDisplay(container, 3, 1, aiValidation, null);
+  return new ValidationInfoDisplay(container, 3, 1, aiValidation, null);
 }
 
 /**
@@ -56,16 +54,14 @@ const srcOf = (display, action) => {
   return container.querySelector('.validation-info-image').src;
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   window.assetDigests = { ...DIGESTS };
-  window.i18next = { t: (key) => key };
-  loadGlobalScript('public/js/common/utilities.js');
-  window.eval(`${SRC}\nwindow.ValidationInfoDisplay = ValidationInfoDisplay;`);
+  Object.assign(i18next, { t: (key) => key });
+  ({ ValidationInfoDisplay } = await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {
   delete window.assetDigests;
-  delete window.i18next;
 });
 
 describe('Gallery vote icons', () => {

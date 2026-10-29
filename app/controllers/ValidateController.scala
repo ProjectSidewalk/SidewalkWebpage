@@ -10,17 +10,19 @@ import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
   LabelValidationSubmission,
+  MissionRequest,
   MoreLabelsRequest,
   ValidationTaskSubmission
 }
 import models.auth.WithAdmin
-import models.label.{LabelType, Tag}
+import models.label.{AdminValidationData, LabelType, LabelValidationMetadata}
 import models.mission.MissionType
 import models.user.*
 import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
   ValidationOption,
+  ValidationReason,
   ValidationTaskComment,
   ValidationTaskEnvironment,
   ValidationTaskInteraction
@@ -29,7 +31,7 @@ import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json.*
 import play.api.mvc.Result
-import service.ValidationSubmission
+import service.{ReasonNotOffered, ValidationSubmission, ValidationTaskPostReturnValue}
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -37,15 +39,6 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-
-case class ValidatePageData(
-    mission: Option[JsValue],
-    labelList: Option[JsValue],
-    missionProgress: Option[JsObject],
-    hasNextMission: Boolean,
-    completedValidations: Int,
-    tagList: Seq[Tag]
-)
 
 @Singleton
 class ValidateController @Inject() (
@@ -91,13 +84,15 @@ class ValidateController @Inject() (
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              tags           <- labelService.getTagsForCurrentCity
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
-                  validateParams, validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                    validateParams, tags)
+                )
               )
             }
           } else {
@@ -143,13 +138,15 @@ class ValidateController @Inject() (
           if (response.header.status == 200) {
             val user: SidewalkUserWithRole = request.identity
             for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              tags           <- labelService.getTagsForCurrentCity
+              commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"), user,
-                  validateParams, validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
+                    user, validateParams, tags)
+                )
               )
             }
           } else {
@@ -179,17 +176,19 @@ class ValidateController @Inject() (
         if (response.header.status == 200) {
           val user: SidewalkUserWithRole = request.identity
           for {
-            validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-            commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+            tags           <- labelService.getTagsForCurrentCity
+            commonPageData <- configService.getCommonPageData(request2Messages.lang)
           } yield {
             if (!isMobile) {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
               Redirect("/")
             } else {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              Ok(
-                views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
-                  validatePageData)
+              noStore(
+                Ok(
+                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
+                    tags)
+                )
               )
             }
           }
@@ -308,50 +307,82 @@ class ValidateController @Inject() (
   }
 
   /**
-   * Get the data needed by the /validate or /mobileValidate endpoints.
+   * Serves the mission a Validate page starts on (#5650): the one the user left unfinished, or a fresh one.
    *
-   * @return (mission, labelList, missionProgress, hasNextMission, completedValidations)
+   * The page asks here rather than carrying the mission in its HTML, so a cached copy of the page can never show
+   * labels the user has already judged; the answer has the same shape as the mission-complete response of [[post]],
+   * so the client builds a mission one way. The body carries the page's filters, cut down by
+   * [[paramsAllowedFor]] like every other body that claims them.
    */
-  def getDataForValidatePages(
-      user: SidewalkUserWithRole,
-      labelCount: Int,
-      validateParams: ValidateParams
-  ): Future[ValidatePageData] = {
-    for {
-      (mission, missionProgress, labels, adminData) <-
-        labelService.getDataForValidationPages(user, labelCount, validateParams)
-      completedValidations <- validationService.countValidations(user.userId)
-      tags: Seq[Tag]       <- labelService.getTagsForCurrentCity
-      maxSpeeds            <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
-    } yield {
-      val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
-      val progressJsObject                 =
-        missionProgress.map { p =>
-          Json.obj("agree_count" -> p.agreeCount, "disagree_count" -> p.disagreeCount, "unsure_count" -> p.unsureCount)
+  def getMission = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[MissionRequest]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        missionRequest => {
+          val user: SidewalkUserWithRole = request.identity
+          val safeParams: ValidateParams = paramsAllowedFor(missionRequest.validateParams, user)
+          val completedValidationsF      = validationService.countValidations(user.userId)
+          for {
+            returnValue          <- labelService.getDataForValidationPages(user, labelCount = 10, safeParams)
+            completedValidations <- completedValidationsF
+            maxSpeeds <- osmWayService.getMaxSpeedsForStreets(returnValue.labels.map(_.streetEdgeId).distinct)
+          } yield {
+            val mission: JsObject = missionJson(returnValue, safeParams.adminVersion, maxSpeeds)
+            Ok(mission + ("completed_validations" -> JsNumber(completedValidations)))
+          }
         }
-      val hasDataForMission: Boolean          = labels.nonEmpty
-      val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
-        labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            Some(admin),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
-      } else {
-        labels.map { l =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
+      )
+  }
+
+  /**
+   * The JSON a mission is handed over as, shared by the first-mission and mission-complete responses.
+   * @param maxSpeeds Speed limits by street, for the labels' street signs.
+   */
+  private def missionJson(
+      returnValue: ValidationTaskPostReturnValue,
+      adminVersion: Boolean,
+      maxSpeeds: Map[Int, String]
+  ): JsObject = {
+    Json.obj(
+      "has_mission_available" -> returnValue.hasMissionAvailable,
+      "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
+      "labels"                -> labelsJson(returnValue.labels, returnValue.adminData, adminVersion, maxSpeeds),
+      "progress"              -> returnValue.progress.map { p =>
+        Json.obj("agree_count" -> p.agreeCount, "disagree_count" -> p.disagreeCount, "unsure_count" -> p.unsureCount)
       }
-      val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
-      ValidatePageData(missionJsObject, Some(labelMetadataJson), progressJsObject, hasDataForMission,
-        completedValidations, tags)
+    )
+  }
+
+  /**
+   * Serializes a batch of labels for Validate, with Expert Validate's per-label extras when the page is the admin one.
+   * @param adminData One entry per label, in any order; empty unless `adminVersion`.
+   */
+  private def labelsJson(
+      labels: Seq[LabelValidationMetadata],
+      adminData: Seq[AdminValidationData],
+      adminVersion: Boolean,
+      maxSpeeds: Map[Int, String]
+  ): JsValue = {
+    val labelMetadataJsonSeq: Seq[JsObject] = if (adminVersion) {
+      labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
+        LabelFormats.validationLabelMetadataToJson(
+          l,
+          panoDataService.backupImageUrl(l.panoId),
+          Some(admin),
+          maxSpeed = maxSpeeds.get(l.streetEdgeId)
+        )
+      }
+    } else {
+      labels.map { l =>
+        LabelFormats.validationLabelMetadataToJson(
+          l,
+          panoDataService.backupImageUrl(l.panoId),
+          maxSpeed = maxSpeeds.get(l.streetEdgeId)
+        )
+      }
     }
+    Json.toJson(labelMetadataJsonSeq)
   }
 
   /**
@@ -372,6 +403,15 @@ class ValidateController @Inject() (
         BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
       )
     }
+    // A reason the type doesn't offer for the vote is dropped, keeping the vote and the text (#5475): a page open
+    // across a deploy that changed the catalog would otherwise lose its whole batch, and with it the mission.
+    def reasonFor(newVal: LabelValidationSubmission, id: String): Option[ValidationReason] =
+      parseReason(Some(id), labelTypeSeen(newVal), Some(newVal.validationResult)) match {
+        case Right(reason) => reason
+        case Left(_)       =>
+          logger.warn(s"Dropping validation reason '$id' on label ${newVal.labelId}: not offered for this vote")
+          None
+      }
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
@@ -387,8 +427,21 @@ class ValidateController @Inject() (
           newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, labelTypeSeen(newVal), user.userId, ipAddress, c.panoId, c.heading, c.pitch,
-              c.zoom, c.lat, c.lng, currTime, c.comment
+              0,
+              c.missionId,
+              c.labelId,
+              labelTypeSeen(newVal),
+              user.userId,
+              ipAddress,
+              c.panoId,
+              c.heading,
+              c.pitch,
+              c.zoom,
+              c.lat,
+              c.lng,
+              currTime,
+              c.comment,
+              c.reason.flatMap(reasonFor(newVal, _))
             )
           ),
           newVal.undone,
@@ -407,46 +460,18 @@ class ValidateController @Inject() (
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.validateParams)
       maxSpeeds   <- osmWayService.getMaxSpeedsForStreets(returnValue.labels.map(_.streetEdgeId).distinct)
     } yield {
-      val labelMetadataJsonSeq: Seq[JsObject] = if (data.validateParams.adminVersion) {
-        returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId)).map { case (l, admin) =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            Some(admin),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
-      } else {
-        returnValue.labels.map { l =>
-          LabelFormats.validationLabelMetadataToJson(
-            l,
-            panoDataService.backupImageUrl(l.panoId),
-            maxSpeed = maxSpeeds.get(l.streetEdgeId)
-          )
-        }
-      }
-      Ok(
-        Json.obj(
-          "has_mission_available" -> returnValue.hasMissionAvailable,
-          "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
-          "labels"                -> Json.toJson(labelMetadataJsonSeq),
-          "progress"              -> returnValue.progress.map { p =>
-            Json.obj(
-              "agree_count"    -> p.agreeCount,
-              "disagree_count" -> p.disagreeCount,
-              "unsure_count"   -> p.unsureCount
-            )
-          }
-        )
-      )
+      Ok(missionJson(returnValue, data.validateParams.adminVersion, maxSpeeds))
     }
 
     // Now we do all the stuff that can be done async, we can return the response before these are done.
     // Insert interactions async.
-    validationService.insertMultipleInteractions(data.interactions.map { action =>
-      ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
-        action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
-    })
+    validationService
+      .insertMultipleInteractions(data.interactions.map { action =>
+        ValidationTaskInteraction(0, action.missionId, action.action, action.panoId, action.lat, action.lng,
+          action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
+      })
+      .failed
+      .foreach(e => logger.error("Error saving validation interactions.", e))
 
     // Insert Environment async.
     val env: EnvironmentSubmission = data.environment
@@ -535,25 +560,7 @@ class ValidateController @Inject() (
               moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
             maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
           } yield {
-            val labelMetadataJsonSeq: Seq[JsObject] = if (safeParams.adminVersion) {
-              labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
-                LabelFormats.validationLabelMetadataToJson(
-                  labelMetadata = l,
-                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
-                  adminData = Some(admin),
-                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
-                )
-              }
-            } else {
-              labels.map { l =>
-                LabelFormats.validationLabelMetadataToJson(
-                  labelMetadata = l,
-                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
-                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
-                )
-              }
-            }
-            Ok(Json.obj("labels" -> Json.toJson(labelMetadataJsonSeq)))
+            Ok(Json.obj("labels" -> labelsJson(labels, adminData, safeParams.adminVersion, maxSpeeds)))
           }
         }
       )
@@ -564,7 +571,7 @@ class ValidateController @Inject() (
    *
    * Also handles clearing a vote (#4653): a submission with `undone = true` carries the vote being cleared as its
    * `validationResult` and deletes that validation (and the user's comment on the label) instead of inserting one —
-   * the same path Validate's undo button uses.
+   * the same path Validate's undo button uses. Changing a vote keeps the user's typed comment (#5475).
    */
   def postLabelMapValidation = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val userId: String = request.identity.userId
@@ -597,7 +604,8 @@ class ValidateController @Inject() (
                     comment = None,
                     newVal.undone,
                     newVal.redone,
-                    canEdit = isAdmin(request.identity)
+                    canEdit = isAdmin(request.identity),
+                    keepTypedComment = true
                   )
                 )
               )
@@ -630,23 +638,64 @@ class ValidateController @Inject() (
           case Some(label) if label.labelType.name != submission.labelType =>
             Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
           case Some(label) =>
-            for {
-              mission <- missionService.resumeOrCreateNewValidateMission(
-                userId,
-                MissionType.LabelmapValidation,
-                label.labelType
-              )
-              commentId: Int <- validationService.replaceComment(
-                ValidationTaskComment(0, mission.get.missionId, submission.labelId, label.labelType, userId,
-                  request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
-                  submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
-              )
-            } yield {
-              Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
-            }
+            // Checked against the vote as it stands server-side rather than one the client claims, so a reason for
+            // a vote that was replaced while the pick was in flight is refused instead of stored under the wrong vote.
+            val vote: Future[Option[ValidationOption]] =
+              if (submission.reason.isDefined)
+                validationService.currentVote(submission.labelId, userId, label.labelType)
+              else Future.successful(None)
+            vote
+              .flatMap { currentVote =>
+                parseReason(submission.reason, label.labelType, currentVote) match {
+                  case Left(badRequest) => Future.successful(badRequest)
+                  case Right(reason)    =>
+                    for {
+                      mission <- missionService.resumeOrCreateNewValidateMission(
+                        userId,
+                        MissionType.LabelmapValidation,
+                        label.labelType
+                      )
+                      commentId: Int <- validationService.replaceComment(
+                        ValidationTaskComment(0, mission.get.missionId, submission.labelId, label.labelType, userId,
+                          request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
+                          submission.lat, submission.lng, OffsetDateTime.now, submission.comment, reason)
+                      )
+                    } yield {
+                      Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+                    }
+                }
+              }
+              .recover { case ReasonNotOffered(reason) =>
+                // The vote moved under the pick (the early read above passed, the locked read inside the transaction
+                // did not): the card shows "couldn't save", and a reason for the new vote can be picked afresh.
+                BadRequest(Json.obj("status" -> "Error", "message" -> s"validation reason '$reason' not offered here"))
+              }
         }
       }
     )
+  }
+
+  /**
+   * Resolves a submitted canned-reason id against what the label's type offers for the user's vote (#5475).
+   *
+   * @param vote The vote the reason explains; a reason with no vote behind it, or one the vote doesn't take, is
+   *             refused the same as an unknown id.
+   * @return `Right(None)` for free text, `Right(Some(reason))` for an offered reason, and a 400 in `Left` otherwise,
+   *         so a stale client can't file a reason no menu showed for this label and vote.
+   */
+  private def parseReason(
+      reasonId: Option[String],
+      labelType: LabelType,
+      vote: Option[ValidationOption]
+  ): Either[Result, Option[ValidationReason]] = reasonId match {
+    case None     => Right(None)
+    case Some(id) =>
+      val offered = vote.map(ValidationReason.offered(labelType, _)).getOrElse(Seq.empty)
+      ValidationReason.withNameOption(id).filter(offered.contains) match {
+        case Some(reason) => Right(Some(reason))
+        case None         =>
+          Left(BadRequest(Json.obj("status" -> "Error", "message" -> s"validation reason '$id' not offered here")))
+      }
   }
 
   /**

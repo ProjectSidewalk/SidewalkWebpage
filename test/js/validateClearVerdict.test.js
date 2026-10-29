@@ -7,42 +7,31 @@
  * the X, like every other menu control, refuses to act while the next label's pano is still loading (#5211).
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
-/**
- * Loads bare top-level declarations out of a production file into window scope.
- * @param {string} relPath - Path under the repo root.
- * @param {...string} names - The classes or functions the file declares.
- */
-function loadClass(relPath, ...names) {
-  const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-  window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
-}
+let Label;
+let DesktopValidationMenu;
+let buildReasonButtonInfo;
 
-beforeAll(() => {
+beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  window.util = {
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    getImage: () => Promise.resolve('img'),
-  };
-  installUtilitiesMisc();
-  installEscapeHTML();
-  window.i18next = { t: (key) => key };
+  // The real one fetches the severity icons over the network.
+  useUtil({ getImage: () => Promise.resolve('img') });
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-  window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
-  loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
-  loadClass('public/js/validate/src/label/Label.js', 'Label');
-  loadClass('public/js/validate/src/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+  ({ Label, DesktopValidationMenu, buildReasonButtonInfo } = await loadModules(
+    'frontend/js/validate/util/ConstantsValidate.js', 'frontend/js/validate/label/Label.js',
+    'frontend/js/validate/menu/DesktopValidationMenu.js'));
 });
 
 describe('DesktopValidationMenu.clearVerdict', () => {
   let label;
   let loading;
+  let tracker;
+  let labelContainer;
+  const config = { adminVersion: false, tagsByLabelType: { Obstacle: [] } };
   const byId = (id) => document.getElementById(id);
 
   beforeEach(() => {
@@ -78,25 +67,19 @@ describe('DesktopValidationMenu.clearVerdict', () => {
         <button id="validate-submit-button" disabled></button>
       </div>`;
 
-    label = new window.Label({
+    label = new Label({
       label_id: 7, label_type: 'Obstacle', severity: 2, tags: [], ai_tags: null, ai_tags_not_present: null,
       heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p',
-    });
+    }, config);
     loading = false;
-    window.svv = {
-      adminVersion: false,
-      tagsByLabelType: { Obstacle: [] },
-      tracker: { push: jest.fn() },
-      labelContainer: {
-        getCurrentLabel: () => label,
-        dropInputWhileLoading: jest.fn(() => loading),
-      },
-      panoManager: { styleMarkerForLabel: jest.fn() },
-      labelCard: { render: jest.fn() },
+    tracker = fakeTracker();
+    labelContainer = {
+      getCurrentLabel: () => label,
+      dropInputWhileLoading: vi.fn(() => loading),
+      onLabelReady: vi.fn(),
     };
-    window.defineValidateConstants();
 
-    const menu = new window.DesktopValidationMenu({
+    const menu = new DesktopValidationMenu({
       holder: byId('validation-menu-holder'),
       verdictClearButton: byId('validate-verdict-clear'),
       yesButton: byId('validate-yes-button'),
@@ -117,7 +100,8 @@ describe('DesktopValidationMenu.clearVerdict', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: byId('current-tag-template'),
       aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
-    });
+    }, config, buildReasonButtonInfo(), labelContainer, { render: vi.fn(), onTypePicked: vi.fn() },
+    { styleMarkerForLabel: vi.fn() }, tracker);
     menu.resetMenu(label);
   });
 
@@ -149,12 +133,12 @@ describe('DesktopValidationMenu.clearVerdict', () => {
   it('logs the verdict it took back', () => {
     answerNoWithReason();
     byId('validate-verdict-clear').click();
-    expect(window.svv.tracker.push).toHaveBeenCalledWith('Click_ClearVerdict', { verdict: 'Disagree' });
+    expect(tracker.push).toHaveBeenCalledWith('Click_ClearVerdict', { verdict: 'Disagree' });
   });
 
   it('does nothing, and logs nothing, when there is no verdict to take back', () => {
     byId('validate-verdict-clear').click();
-    expect(window.svv.tracker.push).not.toHaveBeenCalledWith('Click_ClearVerdict', expect.anything());
+    expect(tracker.push).not.toHaveBeenCalledWith('Click_ClearVerdict', expect.anything());
   });
 
   it('moves focus from the X, which hides itself, to the verdict button it undid', () => {
@@ -175,7 +159,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
     answerNoWithReason();
     loading = true;
     byId('validate-verdict-clear').click();
-    expect(window.svv.labelContainer.dropInputWhileLoading).toHaveBeenCalledWith('ClearVerdict');
+    expect(labelContainer.dropInputWhileLoading).toHaveBeenCalledWith('ClearVerdict');
     expect(label.getProperty('validationResult')).toBe('Disagree');
   });
 });

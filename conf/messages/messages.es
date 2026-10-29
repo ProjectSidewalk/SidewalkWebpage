@@ -65,7 +65,6 @@ test.server.warning.message = <strong>Estás en un servidor de prueba.</strong> 
 test.server.warning.label = Aviso de servidor de prueba
 test.server.warning.close = Descartar aviso
 dont.show.again = No mostrar de nuevo
-explore.alert.close = Cerrar
 
 press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
@@ -81,6 +80,7 @@ city.name.knox-oh = Condado de Knox
 city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
+city.name.juneau-ak = Juneau
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -88,6 +88,7 @@ state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
+state.name.alaska = Alaska
 
 country.name.usa = EE.UU.
 country.name.mexico = México
@@ -211,46 +212,45 @@ about.impact.newberg.body = Después de que los residentes mapearan las banqueta
 about.impact.zurich.place = Zúrich, Suiza
 about.impact.zurich.body = Zúrich publica los datos de Project Sidewalk en el portal de datos abiertos de la ciudad, y el despliegue ganó un premio Smart City Hub Switzerland en la categoría de ciencia ciudadana.
 about.impact.schools.place = Aulas de todo EE. UU.
-about.impact.schools.body = Estudiantes usan Project Sidewalk para aprender ciencia de datos y abogacía cívica: desde Girl Scouts en Oradell, Nueva Jersey presentando sus hallazgos al ayuntamiento, hasta <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">estudiantes de secundaria en Waltham, Massachusetts con reconocimiento estatal en civismo</a>.
-about.impact.more = ¿Quieres más? Nuestro sitio hermano <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> comparte noticias, recursos y guías para usar Project Sidewalk en tu comunidad.
+about.impact.schools.body = Estudiantes usan Project Sidewalk para aprender ciencia de datos y abogacía cívica: desde Girl Scouts en Oradell, Nueva Jersey presentando sus hallazgos al ayuntamiento, hasta <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/" target="_blank" rel="noopener">estudiantes de secundaria en Waltham, Massachusetts con reconocimiento estatal en civismo</a>.
+about.impact.more = ¿Quieres más? Nuestro sitio hermano <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a> comparte noticias, recursos y guías para usar Project Sidewalk en tu comunidad.
 about.where.title = Dónde estamos
 about.where.body = De Seattle a la Ciudad de México y Zúrich, las personas voluntarias han puesto <span data-live-stat="num_cities">{0}</span> ciudades de <span data-live-stat="num_countries">{1}</span> países en el mapa de la accesibilidad, calle por calle.
-about.where.links = <a href="/cities">Consulta todos los despliegues</a> o <a href="https://accessiblecommunities.org/use-project-sidewalk/">lleva Project Sidewalk a tu ciudad</a>.
+about.where.links = <a href="/cities">Consulta todos los despliegues</a> o <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">lleva Project Sidewalk a tu ciudad</a>.
 about.history.title = Nuestra historia
-about.history.2012 = Project Sidewalk nace como proyecto de investigación del profesor Jon E. Froehlich y el estudiante de doctorado Kotaro Hara en el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, con apoyo inicial de un <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> y la <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2012 = Project Sidewalk nace como proyecto de investigación del profesor Jon E. Froehlich y el estudiante de doctorado Kotaro Hara en el <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, con apoyo inicial de un <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> y la <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
 about.history.2017 = Se lanza el primer despliegue a escala de ciudad en Washington, DC, dirigido por la estudiante de doctorado Manaswi Saha y el científico de investigación Mikey Saugstad, mientras el laboratorio se traslada a la Escuela Paul G. Allen de Ciencias de la Computación e Ingeniería de la Universidad de Washington.
 about.history.2019 = El estudio piloto de DC demuestra que la colaboración colectiva en línea puede usarse para mapear las banquetas de una ciudad entera, y recibe el premio Best Paper en CHI 2019.
-about.history.2021 = Una <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">subvención NSF Smart &amp; Connected Communities</a> profundiza nuestra colaboración con la Universidad de Illinois en Chicago y Easterseals, ampliando despliegues, programas educativos y nuestro sitio hermano <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = Una <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">subvención NSF Smart &amp; Connected Communities</a> profundiza nuestra colaboración con la Universidad de Illinois en Chicago y Easterseals, ampliando despliegues, programas educativos y nuestro sitio hermano <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
 about.history.today.label = Hoy
 about.history.today = Project Sidewalk opera en <span data-live-stat="num_cities">{0}</span> ciudades alrededor del mundo, con traducción nativa a {1} idiomas y el impulso de miles de personas voluntarias.
 about.team.title = El equipo
-about.team.intro = Project Sidewalk es investigación universitaria, dirigida por el profesor Jon E. Froehlich del <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la Universidad de Washington y el profesor Yochai Eisenberg de la Universidad de Illinois en Chicago, con la ingeniería principal de Mikey Saugstad, y aportaciones de más de cien estudiantes y colaboradores a lo largo de los años.
+about.team.intro = Project Sidewalk es investigación universitaria, dirigida por el profesor Jon E. Froehlich del <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> de la Universidad de Washington y el profesor Yochai Eisenberg de la Universidad de Illinois en Chicago, con la ingeniería principal de Mikey Saugstad, y aportaciones de más de cien estudiantes y colaboradores a lo largo de los años.
 about.team.current.title = Equipo actual
 about.team.past.title = Liderazgo anterior
-about.team.past.kotarohara = Inició Project Sidewalk junto al profesor Froehlich como su estudiante de doctorado, y fue pionero de los métodos de colaboración colectiva y visión por computadora detrás del proyecto, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">tesis doctoral</a>.
+about.team.past.kotarohara = Inició Project Sidewalk junto al profesor Froehlich como su estudiante de doctorado, y fue pionero de los métodos de colaboración colectiva y visión por computadora detrás del proyecto, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf" target="_blank" rel="noopener">tesis doctoral</a>.
 about.team.past.davidjacobs = Co-investigador principal de la subvención original de la NSF y del primer Google Faculty Research Award con los que nació Project Sidewalk, guiando su primera investigación en visión por computadora.
-about.team.past.manaswisaha = Ayudó a liderar el primer despliegue a gran escala en Washington, DC y diseñó herramientas para comprender los datos de accesibilidad urbana, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">tesis doctoral</a>.
+about.team.past.manaswisaha = Ayudó a liderar el primer despliegue a gran escala en Washington, DC y diseñó herramientas para comprender los datos de accesibilidad urbana, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf" target="_blank" rel="noopener">tesis doctoral</a>.
 about.team.contributors.title = Colaboradores
 about.team.contributors.intro = Más de {0} personas han aportado código, diseños e ideas a Project Sidewalk, incluidos {1} estudiantes desde preparatoria hasta doctorado. Parte de nuestra misión es ayudar a estudiantes de ciencias de la computación y diseño a trabajar en proyectos con impacto social a través del aprendizaje experiencial.
-about.team.contributors = … además de organizaciones aliadas y miles de personas voluntarias que mapean en todo el mundo; consulta la <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">página del proyecto</a>.
+about.team.contributors = … además de organizaciones aliadas y miles de personas voluntarias que mapean en todo el mundo; consulta la <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">página del proyecto</a>.
 about.pubs.title = Publicaciones relacionadas
-about.pubs.intro = La investigación de Project Sidewalk se publica en los principales foros de interacción humano-computadora y accesibilidad. Si usas nuestros datos o herramientas en tu investigación, por favor cita nuestro <a href="https://doi.org/10.1145/3290605.3300292">artículo de CHI 2019</a>.
-about.pubs.fallback = Consulta <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas las publicaciones de Project Sidewalk</a> en el sitio del Makeability Lab.
+about.pubs.intro = La investigación de Project Sidewalk se publica en los principales foros de interacción humano-computadora y accesibilidad. Si usas nuestros datos o herramientas en tu investigación, por favor cita nuestro <a href="https://doi.org/10.1145/3290605.3300292" target="_blank" rel="noopener">artículo de CHI 2019</a>.
+about.pubs.fallback = Consulta <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">todas las publicaciones de Project Sidewalk</a> en el sitio del Makeability Lab.
 about.pubs.showAll = Mostrar las {0} publicaciones
 about.pubs.cite.title = Cómo citar Project Sidewalk
 about.pubs.cite.plain = Cita
 about.pubs.cite.copy = Copiar
-about.pubs.cite.copied = Copiado
 about.data.title = Datos abiertos y código abierto
-about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupos de etiquetas, calles y puntuaciones de accesibilidad mediante nuestras <a href="/api">API públicas</a>, en formatos desde CSV hasta GeoJSON — todo publicado bajo CC0; consulta la <a href="/api">documentación de la API</a> para más detalles y guía de citación. Nuestro <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">código también es abierto</a>.
+about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupos de etiquetas, calles y puntuaciones de accesibilidad mediante nuestras <a href="/api">API públicas</a>, en formatos desde CSV hasta GeoJSON — todo publicado bajo CC0; consulta la <a href="/api">documentación de la API</a> para más detalles y guía de citación. Nuestro <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">código también es abierto</a>.
 about.partners.title = Socios comunitarios
 about.partners.body = Trabajamos de la mano con organizaciones de defensa de la discapacidad, gobiernos, escuelas y grupos comunitarios de todo el mundo — incluidos Easterseals, World Enabled, Liga Peatonal y la Active Transportation Alliance — para planear despliegues, organizar eventos de mapeo comunitario y convertir los datos en acción local.
-about.partners.schools = Docentes llevan Project Sidewalk a clases de civismo y ciencia de datos, y nuestro equipo y socios han pilotado planes de estudio de aprendizaje-servicio y desarrollo laboral para jóvenes con discapacidades. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Aprende a usar Project Sidewalk en tu comunidad</a>.
+about.partners.schools = Docentes llevan Project Sidewalk a clases de civismo y ciencia de datos, y nuestro equipo y socios han pilotado planes de estudio de aprendizaje-servicio y desarrollo laboral para jóvenes con discapacidades. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Aprende a usar Project Sidewalk en tu comunidad</a>.
 about.funding.title = Financiamiento de la investigación
 about.funding.body = Project Sidewalk es investigación académica financiada con subvenciones, con el apoyo de la National Science Foundation y apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
 about.cta.title = Ayúdanos a mapear todas las banquetas
 about.cta.city = Lleva Project Sidewalk a tu ciudad
-about.contact.body = ¿Preguntas, ideas o consultas de prensa? Escríbenos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abre un reporte en <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> o síguenos en <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> y <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
+about.contact.body = ¿Preguntas, ideas o consultas de prensa? Escríbenos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abre un reporte en <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">GitHub</a> o síguenos en <a href="https://www.linkedin.com/company/project-sidewalk/" target="_blank" rel="noopener">LinkedIn</a> y <a href="https://bsky.app/profile/projectsidewalk.bsky.social" target="_blank" rel="noopener">Bluesky</a>.
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
@@ -297,7 +297,7 @@ landing.partners.official.contact = Project Sidewalk es una herramienta de inves
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = Project Sidewalk fue creado con {0} por
 landing.partners.created.heart = amor
-landing.partners.created.credits = …y moldeado por socios de largo plazo como <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, el <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> y la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, junto con más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
+landing.partners.created.credits = …y moldeado por socios de largo plazo como <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, el <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> y la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, junto con más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
 landing.partners.creator.makeability.alt = Logotipo del Makeability Lab
 landing.partners.creator.uw.alt = Logotipo de la Paul G. Allen School of Computer Science & Engineering de la Universidad de Washington
 landing.partners.creator.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de la Universidad de Illinois en Chicago
@@ -321,9 +321,9 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
-footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
-footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
-footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
+footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">Universidad de Washington</a>
+footer.version = Versión {0} |  Última actualización: {1}
 
 audit.tutorial.complete.1 = ¡Lo lograste!
 audit.tutorial.complete.2 = ¡Completaste el tutorial!
@@ -351,6 +351,10 @@ audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los
 audit.center.ui.description.header = Describe (opcional)
 audit.center.ui.description.placeholder = Descripción
 
+audit.all.regions.finished.title = ¡Has explorado todos los barrios de {0}!
+audit.all.regions.finished.body = ¡Gracias! Has revisado todas las calles que tenemos en {0}. Puedes seguir ayudando validando las etiquetas de otras personas o explorando otra ciudad.
+audit.all.regions.finished.validate = Validar etiquetas
+audit.all.regions.finished.other.cities = Explorar otra ciudad
 audit.survey.title = Por favor, realiza esta encuesta sobre <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = ¿Cuánto has disfrutado usando <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muy aburrido
@@ -394,7 +398,7 @@ authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Tér
 authenticate.signup = Regístrate
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bienvenido/a de nuevo
 authenticate.join = Únete a Project Sidewalk
 authenticate.tagline = Mapea las aceras. Ayuda a que tu ciudad sea accesible para todos.
@@ -506,6 +510,7 @@ reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
 reset.pw.email.send.link = Enviar correo electrónico
 reset.pw.email.reset.pw.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+reset.pw.email.send.failed = No pudimos enviar el correo electrónico en este momento. Por favor, inténtalo de nuevo más tarde.
 reset.pw.email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
 reset.pw.email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
 reset.pw.email.reset.valid.duration = Este restablecimiento de contraseña será válido durante los próximos 60 minutos
@@ -543,7 +548,7 @@ dashboard.team.name = Nombre del equipo
 dashboard.team.description = Descripción del equipo (opcional)
 dashboard.team.button = Crear equipo
 
-labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
+labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm" target="_blank" rel="noopener">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
 labeling.guide.surface.problem.summary = Un problema en la superficie es un inconveniente que provocaría una experiencia irregular o incómoda para alguien que usa una silla de ruedas u otros dispositivos de asistencia. Si algo en una superficie hace que sea difícil o imposible de cruzar, debe ser etiquetado como un "Problema de Superficie".
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
@@ -561,6 +566,14 @@ gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+gallery.cards.sorted = Las etiquetas se ordenan por "{0}" según los filtros seleccionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatorio
+gallery.sort.newest = Más recientes primero
+gallery.sort.oldest = Más antiguas primero
+gallery.sort.most.severe = Más graves primero
+gallery.sort.least.severe = Menos graves primero
+gallery.sort.most.disputed = Más disputadas primero
 gallery.clear.filters = Borrar Filtros
 gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
 gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
@@ -665,7 +678,7 @@ sharedlabel.stat.labels = etiquetas
 sharedlabel.stat.validations = validaciones
 sharedlabel.stat.miles = millas exploradas
 sharedlabel.legend.title = Qué significan estas etiquetas
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Tu panel
 dashboard.you = Tú
 dashboard.hero.greeting = ¡Hola de nuevo, {0}! 👋
@@ -859,6 +872,16 @@ leaderboard.thisweek.none = ✨ Aún no hay etiquetas esta semana. ¡Sé la prim
 leaderboard.teams.title = Equipos en {0}
 leaderboard.teams.intro = ¡Crea o únete a un equipo para marcar la diferencia en conjunto!
 leaderboard.teams.none = 👥 Aún no hay equipos. ¡Sé el primero! Crea uno e invita a amistades o compañeros/as.
+leaderboard.myteam.title = Tu equipo: {0}
+leaderboard.myteam.intro = Cómo te comparas con tus compañeros/as de equipo en {0}.
+leaderboard.myteam.none = 👥 Todavía nadie de tu equipo aparece en la clasificación.
+leaderboard.myteam.you.hidden = No apareces porque desactivaste «{0}».
+leaderboard.myteam.you.settings = Cámbialo en Configuración
+leaderboard.myteam.you.nolabels = Aparecerás aquí cuando coloques tu primera etiqueta.
+leaderboard.myteam.pager = Páginas de la clasificación del equipo
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Siguiente ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas las ciudades, histórico
 leaderboard.allcities.intro = Las mejores personas mapeadoras de todas las ciudades de Project Sidewalk, clasificadas por el total de etiquetas.
 leaderboard.allcities.note = La distancia se actualiza una vez al día.

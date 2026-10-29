@@ -74,7 +74,9 @@ class UserProfileController @Inject() (
           "label_type"      -> label.labelType,
           "correct"         -> label.correct,
           "has_validations" -> label.hasValidations,
-          "expired"         -> label.expired
+          "expired"         -> label.expired,
+          "severity"        -> label.severity,
+          "tags"            -> label.tags
         )
       )
     }
@@ -200,7 +202,7 @@ class UserProfileController @Inject() (
               labelType.name -> validations(labelType).map { l =>
                 val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
                 val gsvImageUrl: Option[String] =
-                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
+                  panoDataService.getBrowserImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
                     l.canvasWidth, l.canvasHeight)
                 labelMetadataUserDashToJson(l, cropUrl, markers.get(l.labelId), gsvImageUrl)
               }
@@ -245,14 +247,18 @@ class UserProfileController @Inject() (
   }
 
   /**
-   * Sets the team of the given user.
+   * Sets the team of the given user. Admins may use any team; anyone else only an open one (403 otherwise).
    */
   def setUserTeam(userId: String, teamId: Int) =
     cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit request =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
-      userService
-        .setUserTeam(userId, teamId)
-        .map(_ => Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+      val joined =
+        if (Role.ADMIN_ROLES.contains(request.identity.role)) userService.setUserTeam(userId, teamId).map(_ => true)
+        else userService.joinTeam(userId, teamId)
+      joined.map { ok =>
+        val body = Json.obj("user_id" -> userId, "team_id" -> teamId)
+        if (ok) Ok(body) else Forbidden(body)
+      }
     }
 
   /**

@@ -1,16 +1,12 @@
 #!/usr/bin/env node
-// Type-checks public/js/ with TypeScript, using the JSDoc types we already write (#5278). Nothing is compiled or
+// Type-checks frontend/js/ with TypeScript, using the JSDoc types we already write (#5278). Nothing is compiled or
 // shipped; this only reads the code.
 //
-// Grunt glues each app's files into one script that shares a single global scope, so tsc has to see a whole bundle
-// at once to know what a name refers to. Explore, Validate, and Gallery each get their own run because they reuse
-// class names (Main, Label, Form, ...) that would clash if checked together; everything else is one run. The runs
-// are the tsconfig.*.json files in tools/lint/js-types/.
+// Every file is an ES module, so one run over all of frontend/js/ sees each name the way its own imports define it;
+// the config is tools/lint/js-types/tsconfig.json. Vendor libraries loaded by <script> tag, and the few values the
+// views stamp onto window, are declared in globals.d.ts beside it.
 //
-// Each run sees more than any one page loads (all of common/, and every other page script in the last run), so a
-// name a page never loads still resolves. This catches wrong types, not missing <script> tags.
-//
-// Every file in public/js/ must type-check cleanly. Exits non-zero if a file has an error or no tsconfig reads it.
+// Every file in frontend/js/ must type-check cleanly. Exits non-zero if a file has an error or the config misses one.
 //
 // Usage: node tools/lint/check-js-types.mjs
 
@@ -23,11 +19,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TS_MAJOR = 7;
 
-// common/ is in every run, and each run can find different errors there (a common/ typedef can clash with one app's
-// class), so every run's errors count; the same error from several runs is printed once.
-const RUNS = ['tsconfig.explore.json', 'tsconfig.validate.json', 'tsconfig.gallery.json', 'tsconfig.other.json'];
+const RUNS = ['tsconfig.json'];
 
-// A tsc error line: `public/js/foo.js(12,5): error TS2339: Property 'x' does not exist on type 'y'.`
+// A tsc error line: `frontend/js/foo.js(12,5): error TS2339: Property 'x' does not exist on type 'y'.`
 const ERROR_LINE = /^(.+?)\((\d+),(\d+)\): error (TS\d+): /;
 
 /**
@@ -112,7 +106,7 @@ for (const config of RUNS) {
 
 // A file only counts as checked if tsc actually read it; a new bundle that no tsconfig includes would otherwise pass
 // silently.
-const coverageProblems = jsFilesUnder('public/js')
+const coverageProblems = jsFilesUnder('frontend/js')
   .filter((f) => !readFiles.has(f))
   .map((f) => `${f} isn't read by any tsconfig in tools/lint/js-types/.`);
 
@@ -122,4 +116,4 @@ if (errors.length || coverageProblems.length) {
   if (coverageProblems.length) console.error(`\n✗ ${coverageProblems.length} coverage problem(s).`);
   process.exit(1);
 }
-console.log('✓ No type errors in public/js/.');
+console.log('✓ No type errors in frontend/js/.');

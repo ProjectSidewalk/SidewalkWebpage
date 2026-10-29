@@ -1,27 +1,20 @@
 /**
- * Tests for public/js/common/pano-viewer/src/PanoAttribution.js, the imagery-attribution overlay shown while Project
+ * Tests for frontend/js/common/pano-viewer/PanoAttribution.js, the imagery-attribution overlay shown while Project
  * Sidewalk displays its own copy of a panorama — the self-hosted Pannellum pano or the static crop (#4865).
  *
  * The line is structured by the server (holder / provider / licence / licence URL), so the overlay never has to know
  * which providers carry a licence: it links whatever licence it is handed and nothing else.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule } from './loader.js';
 
-const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoAttribution.js');
+mockModule('i18next', () => ({ default: {
+  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+} }));
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */
 const NEW_TAB_CUE = '(opens in a new tab)';
 
-/** Load PanoAttribution.js (a plain top-level function declaration, concatenation-style). */
-function loadAttribution() {
-  global.i18next = {
-    t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
-  };
-  const src = fs.readFileSync(ATTRIBUTION_PATH, 'utf8');
-  return (0, eval)(`${src}\ncreatePanoAttribution;`);
-}
 
 const MAPILLARY = {
   holder: '© jacobwhall',
@@ -30,8 +23,9 @@ const MAPILLARY = {
   license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
 };
 
+const { createPanoAttribution } = await loadModules('frontend/js/common/pano-viewer/PanoAttribution.js');
+
 describe('createPanoAttribution', () => {
-  const createPanoAttribution = loadAttribution();
   let container;
   let overlay;
 

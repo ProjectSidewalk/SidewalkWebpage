@@ -1,48 +1,24 @@
 /**
- * Test helper: loads the real Infra3dViewer (over the real PanoViewer base and panoUtilities) into the jsdom global
- * scope, plus the fixtures its suites share. Infra3dViewer is a top-level `class` written for the Grunt-concatenation
- * world, so its source is eval'd rather than required, with stubs for the globals it closes over.
+ * Test helper: the real Infra3dViewer (over the real PanoViewer base and PanoData), plus the fixtures its suites share.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
-
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
+import { loadModules, mockModule } from './loader.js';
 
 /**
- * Loads Infra3dViewer and returns the class.
- * @returns {typeof Infra3dViewer}
+ * What the viewer gets as its SDK chunk (sdk/infra3d.js): proj4 as a no-op, and whatever `infra3dapi` a suite
+ * installs before it builds a viewer.
  */
-function loadInfra3dViewer() {
-  const source = (file) => fs.readFileSync(path.join(SRC_DIR, file), 'utf8');
-  // utilities.js builds a Bowser parser at load time; nothing here consults it.
-  window.bowser = {
-    getParser: () => ({
-      getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-      getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-  };
-  loadGlobalScript('public/js/common/utilities.js');
-  loadGlobalScript('public/js/common/utilitiesMath.js');
-  loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
-  window.eval(`
-    class GsvViewer {}
-    class MapillaryViewer {}
-    class PannellumViewer {}
-    class PanoramaxViewer {}
-    class PanoData {
-      constructor(params) { this.params = params; }
-      getPanoId() { return this.params.panoId; }
-      getProperty(key) { return this.params[key]; }
-    }
-    const proj4 = () => [0, 0];
-    ${source('NoImageryError.js')}
-    ${source('PanoViewer.js')}
-    ${source('Infra3dViewer.js')}
-    window.Infra3dViewer = Infra3dViewer;
-  `);
-  return window.Infra3dViewer;
+const infra3dSdk = { infra3dapi: {}, proj4: () => [0, 0] };
+
+/**
+ * Loads Infra3dViewer fresh with its SDK chunk already "fetched", so a suite can bypass create() and still use the SDK.
+ * @returns {Promise<Function>} The class.
+ */
+async function loadInfra3dViewer() {
+  mockModule('frontend/js/common/pano-viewer/sdk/infra3d.js', () => infra3dSdk);
+  const { Infra3dViewer } = await loadModules('frontend/js/common/pano-viewer/Infra3dViewer.js');
+  await Infra3dViewer.preloadLibrary();
+  return Infra3dViewer;
 }
 
 /** A JWT-shaped token whose payload carries only the expiry (base64url, unpadded, like Cognito's). */
@@ -67,4 +43,4 @@ const nodeFor = (id) => ({
   spatialEdges: { cached: true, edges: [] },
 });
 
-module.exports = { loadInfra3dViewer, jwtExpiringAt, nodeFor };
+export { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor };

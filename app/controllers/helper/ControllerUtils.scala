@@ -229,19 +229,20 @@ object ControllerUtils {
   }
 
   /**
-   * Restricts a post-auth redirect target to a same-origin path, guarding against open redirects.
+   * Restricts a caller-supplied redirect target to a same-origin path, guarding against open redirects.
    *
-   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). Absolute URLs, protocol-relative
-   * `//host` URLs, and backslash variants that browsers normalize to `//` fall back to `default`, so a caller-supplied
-   * `returnUrl` cannot bounce a freshly-authenticated user to an attacker-controlled site.
+   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). A `/\` prefix and control
+   * characters are refused because browsers turn `/\host` and `/<tab>/host` into the off-site `//host`; any other
+   * character outside printable ASCII is refused because Play rejects it in a `Location` header.
    *
-   * @param url     The candidate redirect target (typically a `returnUrl` form field).
+   * @param url     The candidate redirect target.
    * @param default Where to send the user when `url` is not a safe same-origin path.
    * @return        `url` (trimmed) if it is a same-origin relative path, otherwise `default`.
    */
   def safeLocalPath(url: String, default: String = "/"): String = {
     val trimmed = url.trim
-    if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) trimmed else default
+    val isLocal = trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")
+    if (isLocal && trimmed.forall(c => c > ' ' && c <= '~')) trimmed else default
   }
 
   /**

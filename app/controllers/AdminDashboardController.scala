@@ -12,6 +12,7 @@ import service.{
   HealthService,
   ImageryFreshnessReportService,
   LabelService,
+  SidewalkPresenceService,
   StreetLifecycleService,
   StreetService,
   UserService
@@ -21,12 +22,8 @@ import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the redesigned Admin dashboard (issue #4272).
- *
- * These pages are a clean-slate rebuild of the legacy `/admin` monolith, structured one page per route and styled
- * after the API docs shell (left nav + content + right "On this page" TOC). They are built incrementally and coexist
- * with the legacy `/admin` page until they reach parity; only then does `/admin` flip to this dashboard. Each action
- * is admin-gated and renders a self-contained Twirl page that loads just the libraries that page needs.
+ * Controller for the Admin dashboard (#4272): one admin-gated page per route on the shared page shell, each loading
+ * only the libraries it needs.
  */
 @Singleton
 class AdminDashboardController @Inject() (
@@ -38,6 +35,7 @@ class AdminDashboardController @Inject() (
     streetLifecycleService: StreetLifecycleService,
     imageryFreshnessReportService: ImageryFreshnessReportService,
     streetService: StreetService,
+    sidewalkPresenceService: SidewalkPresenceService,
     userService: UserService
 )(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -175,8 +173,7 @@ class AdminDashboardController @Inject() (
    *
    * Answers "where are the labels, and what's there?" — every label as a point colored by type, with the shared map
    * sidebar (filter by label type, severity, tags, validation status, and the admin-only "not validated by an admin"
-   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup. This
-   * is the redesign's home for the legacy admin "Map" tab; it reuses the shared PSMap component and `/adminapi/labels/all`.
+   * filter), and click-to-open the label-detail popup. A label-ID search box jumps straight to any label's popup.
    */
   def labelMap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     for {
@@ -352,6 +349,33 @@ class AdminDashboardController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Imagery")
       Ok(views.html.admin.dashboard.imagery(commonData, request.identity))
     }
+  }
+
+  /**
+   * Renders the Sidewalks page: where the labels say sidewalks are, side by side of each street, and where that call
+   * is most likely wrong (#5724).
+   *
+   * Answers "how well is per-side sidewalk inference doing here?" without a public tool. Most cities have no sidewalk
+   * inventory to score against (Seattle's was the #5222 study), so beside the map the page lists the faces whose
+   * evidence is thinnest or most mixed, for a person to check. Driven client-side from the street GeoJSON on
+   * `/v3/api/streets` joined to `/adminapi/sidewalkPresence`.
+   */
+  def sidewalks = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Sidewalks")
+      Ok(views.html.admin.dashboard.sidewalks(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Sidewalks page's data endpoint: every open street's two faces with their verdict and evidence (#5724).
+   *
+   * Admin-only rather than a field on `/v3/api/sidewalkPresence`: the curb ramp and problem-label counts exist to
+   * flag faces for review, which is not something the public contract should promise to keep. Geometry is absent
+   * for the same reason as on [[getStreetPriority]].
+   */
+  def getSidewalkPresence = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    sidewalkPresenceService.getForAdmin.map(payload => Ok(payload))
   }
 
   /**

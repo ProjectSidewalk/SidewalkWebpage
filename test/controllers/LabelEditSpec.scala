@@ -111,7 +111,7 @@ class LabelEditSpec
   ): JsObject =
     editBody(labelId, severity, tags) ++ Json.obj("label_type" -> labelTypeSeen, "new_label_type" -> newLabelType)
 
-  /** Every source string a host passes to `showLabel()` in `public/js`; each has to be a `UiSource` member. */
+  /** Every source string a host passes to `showLabel()` in `frontend/js`; each has to be a `UiSource` member. */
   private val cardHostSources = Seq(
     "LabelMap", "UserMap", "SharedLabel", "LabelSearchPage", "GalleryExpanded", "AdminLabelMap", "AdminActivity",
     "AdminStories", "DashboardStories", "StoryListPage", "UserDashboard"

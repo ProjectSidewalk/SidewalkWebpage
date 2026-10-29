@@ -158,6 +158,12 @@
     "route-unavailable": {
       "message": "That route isn't available. It may have been deleted."
     },
+    "street-unavailable": {
+      "message": "That street isn't available to explore. It may have no imagery, or it may have been removed."
+    },
+    "region-finished": {
+      "message": "You've already explored every street in that neighborhood, so we've moved you to {{regionName}}."
+    },
     "reaudit": {
       "title": "This street has newer imagery",
       "message-you": "You last assessed this street in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
@@ -174,6 +180,7 @@
       "needs-reassessment-tip-others": "A user last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed."
     },
     "minimap": {
+      "attribution-toggle": "Map data credits",
       "coach-dismiss": "Got it",
       "distance-left": "{{distance}} left",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
@@ -187,15 +194,11 @@
       "legend-ahead": "Route ahead",
       "legend-jump": "Jump to next street",
       "legend-you": "You + view direction",
-      "legend-visited": "Visited location",
+      "legend-crumbs": "Circles: places you can click to go",
       "legend-unseen": "Not yet viewed",
-      "legend-next-stops": "Stops on your route",
       "forward-crumb-title": "Move ahead to stop {{rank}}",
-      "legend-other-links": "Other directions",
-      "legend-faced": "Filled: where forward takes you",
       "legend-earlier-labels": "My earlier labels",
       "link-crumb-title": "Move to this pano",
-      "legend-next-step": "Light blue: next step (spacebar)",
       "route-stop-title": "Stop {{rank}} on your route",
       "breadcrumb-title": "Visited: click to go back here",
       "label-marker-title": "{{labelType}} label: click to review it",
@@ -204,7 +207,10 @@
       "route-start-flag": "Route start",
       "route-finish-flag": "Route finish",
       "mission-start-flag": "Where this mission started",
-      "mission-finish-flag": "Where this mission ends"
+      "mission-finish-flag": "Where this mission ends",
+      "map-title": "Map of the area around you",
+      "unavailable": "This browser can't show the map. You can keep exploring without it.",
+      "recenter": "Back to your location"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

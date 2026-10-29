@@ -18,10 +18,15 @@ object CommentSubmissionFormats {
       lng: Double
   )
 
+  /**
+   * A comment riding in with a Validate-tool vote. `reason` is the id of the canned reason the text is, when the
+   * validator picked one rather than typing (#5475); it must be one the label's type offers for that vote.
+   */
   case class ValidationCommentSubmission(
       missionId: Int,
       labelId: Int,
       comment: String,
+      reason: Option[String],
       panoId: String,
       heading: Double,
       pitch: Double,
@@ -30,10 +35,12 @@ object CommentSubmissionFormats {
       lng: Double
   )
 
+  /** A comment from the label detail card or a Gallery card; `reason` as in [[ValidationCommentSubmission]]. */
   case class LabelMapValidationCommentSubmission(
       labelId: Int,
       labelType: String,
       comment: String,
+      reason: Option[String],
       panoId: String,
       heading: Double,
       pitch: Double,

@@ -5,18 +5,11 @@
  * backend's label-type table rather than a copy of it.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
-const { makeContextMenuUi } = require('./contextMenuUiStub');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { makeContextMenuUi } from './contextMenuUiStub.js';
+import { fakeGate, fakeTracker } from './fakes.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-const CONTEXT_MENU_SRC = read('public/js/explore/src/canvas/ContextMenu.js');
-const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManager.js');
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
 /**
  * @param {string} labelType
@@ -33,7 +26,7 @@ function makeLabel(labelType, tutorialLabelNumber) {
     getProperty: (key) => props[key],
     getProperties: () => props,
     isDeleted: () => false,
-    setProperty: (key, value) => { props[key] = value; },
+    edit: (changes) => { Object.assign(props, changes); },
   };
 }
 
@@ -43,36 +36,31 @@ function pressKey(key) {
 
 describe('Explore severity shortcuts', () => {
   let menu;
-  let keyboard;
+  let config;
+  let keyboardDisabled;
 
-  beforeEach(() => {
-    window.i18next = { t: (key) => key };
-    window.util = {
-      assetPath: assetPathStub,
-      camelToKebab: (s) => s,
-      anchorPanelToLabel: jest.fn(),
-      // Never resolves, so the severity tooltips (which need real DOM) are never built.
-      getImage: () => new Promise(() => {}),
-    };
-    installUtilitiesMisc();
-    const canvas = { clear: () => canvas, render: () => canvas, getStatus: () => false };
-    window.svl = {
-      canvas, tracker: { push: jest.fn() }, ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
-      isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
-    };
+  beforeEach(async () => {
+    // Never resolves, so the severity tooltips (which need real DOM) are never built.
+    useUtil({ getImage: () => new Promise(() => {}) });
+    const canvas = { clear: () => canvas, render: () => canvas };
+    const tracker = fakeTracker();
+    config = { isOnboarding: false };
+    keyboardDisabled = false;
 
-    window.eval(`${SHORTCUTS_SRC}\n${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
-      + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
-    menu = new window.ContextMenu(makeContextMenuUi());
+    const { ContextMenu, KeyboardManager } = await loadModules('frontend/js/explore/canvas/ContextMenu.js',
+      'frontend/js/explore/keyboard/KeyboardManager.js');
+    menu = new ContextMenu(makeContextMenuUi(), config, { iconRadius: 17 },
+      { canDelete: () => true, getAllLabels: () => [] },
+      { switching: fakeGate() }, { onMoveStarted: vi.fn() },
+      { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
     menu.labelTags = [];
-    window.svl.contextMenu = menu;
-    keyboard = new window.KeyboardManager(window.svl, canvas, menu, {}, {}, {});
+    new KeyboardManager(fakeGate({ isHeld: () => keyboardDisabled }), canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
   });
 
   afterEach(() => {
     menu.hide();
     // Its window listeners can't be removed from outside, so switch them off before the next test adds its own.
-    keyboard.disableKeyboard();
+    keyboardDisabled = true;
   });
 
   test.each(['Signal', 'NoSidewalk'])('pressing 2 leaves an unrated %s label unrated', (labelType) => {
@@ -95,7 +83,7 @@ describe('Explore severity shortcuts', () => {
 
   describe('in the tutorial', () => {
     beforeEach(() => {
-      window.svl.isOnboarding = () => true;
+      config.isOnboarding = true;
     });
 
     test('rating stays off until the tutorial reaches that label', () => {

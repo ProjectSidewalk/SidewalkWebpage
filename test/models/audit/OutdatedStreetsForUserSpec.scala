@@ -35,10 +35,12 @@ class OutdatedStreetsForUserSpec extends SidewalkSpec with GuiceOneAppPerSuite w
 
   private val ListLimit = 12
 
-  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] =
+  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] = {
+    val polledAt = OffsetDateTime.now
     streetImagery.insertOrUpdate(
-      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, OffsetDateTime.now)
+      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, polledAt, Some(polledAt))
     )
+  }
 
   "getOutdatedStreetsForUser" should {
     "list a street only once the user's audit of it is flagged" in {
@@ -313,6 +315,23 @@ class OutdatedStreetsForUserSpec extends SidewalkSpec with GuiceOneAppPerSuite w
       } yield pairs.map(_._1.streetEdgeId))
 
       streetIds.size mustBe 1
+    }
+
+    "leave out streets in deleted regions, matching the list's count" in {
+      val (streetIds, listCount) = runRolledBack(for {
+        userId          <- insertUser()
+        regionId        <- insertRegion()
+        deletedRegionId <- insertRegion(deleted = true)
+        liveStreet      <- insertStreet(Some(regionId))
+        hiddenStreet    <- insertStreet(Some(deletedRegionId))
+        _               <- audit(liveStreet, userId, outdated = true)
+        _               <- audit(hiddenStreet, userId, outdated = true)
+        pairs           <- auditTaskTable.getAuditedStreets(userId)
+        count           <- auditTaskTable.countOutdatedStreetsForUser(userId)
+      } yield (pairs.map(_._1.streetEdgeId), count))
+
+      streetIds.size mustBe 1
+      listCount mustBe 1
     }
   }
 }

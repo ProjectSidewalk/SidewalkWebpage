@@ -6,26 +6,12 @@
  * ordering the busiest five rather than re-ranking, zero-activity cities excluded, counts read from the per-city
  * rolling windows (as are the cities-active / top-city tiles above the table), and week-over-week deltas colored by
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
- *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 
-// The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
-
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const src = fs.readFileSync(path.join(JS_DIR, 'AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${src}\nAcrossCitiesPage;`);
-}
+useUtil(metricDistanceUtil);
 
 /**
  * Builds one scorecard row plus its rolling window.
@@ -121,7 +107,7 @@ describe('Across Cities — most active cities', () => {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
+    window.fetch = vi.fn(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve({
         cities: cities.map((c) => c.city),
@@ -147,8 +133,8 @@ describe('Across Cities — most active cities', () => {
     document.querySelector(`#${tableId} thead th[data-sort="${key}"]`).click();
   }
 
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
+  beforeEach(async () => {
+    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
   });
 
   it('ranks by labels + validations and shows only the top five', async () => {
@@ -234,10 +220,10 @@ describe('Across Cities — most active cities', () => {
     await render();
     const th = document.querySelector('#ac-top-table thead th[data-sort="activity_window.contributors_7d"]');
     expect(th.getAttribute('tabindex')).toBe('0');
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(topCityOrder()[0]).toBe('charlie');
     // Space flips the same column, as a native button would.
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(topCityOrder()[0]).toBe('echo');
   });
 

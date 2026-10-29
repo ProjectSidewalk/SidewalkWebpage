@@ -1,7 +1,8 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
-import models.label.LabelTableDef
+import models.label.{LabelTableDef, LabelType}
+import models.validation.{ValidationOption, ValidationReason}
 import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -24,8 +25,8 @@ import java.time.OffsetDateTime
  * validation into a `label_validation` row and the label's updated agree/disagree/unsure counts (#4777), and the one
  * that keeps a user to a single comment per label (#4942).
  *
- * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
- * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
+ * Follows the real client bootstrap: the page asks POST /validationTask/mission for its mission and label batch
+ * (#5650), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
  * (#4653) and assert it restores what the validation changed.
  *
  * Unlike Explore, these endpoints write against *real* labels that the dev DB inherited from production, so the suite
@@ -75,11 +76,12 @@ class ValidateSubmissionSpec
       tags: List[String]
   )
 
-  /** The validate-page values a submission payload is built from, as the real client reads them. */
+  /** The first-mission values a submission payload is built from, as the real client reads them. */
   private case class ValidateBootstrap(userId: String, missionId: Int, mission: JsObject, labels: Seq[JsObject])
 
   /**
-   * Loads /validate for the session and pulls the assigned mission and label batch out of the bootstrap script.
+   * Asks for the session's first mission, as the Validate page does on load, and pulls out the mission and label
+   * batch the server assigned.
    *
    * @param session Cookies from an anonymous session.
    * @return        The mission and label batch the server assigned.
@@ -88,16 +90,13 @@ class ValidateSubmissionSpec
     val labelCount = run(sql"SELECT count(*) FROM label WHERE deleted = false".as[Int]).head
     if (labelCount == 0) cancel("No labels in the connected schema; /validate can't assign a mission.")
 
-    val resp = route(app, FakeRequest(GET, "/validate").withCookies(session*)).get
+    val resp = ValidateSpecSupport.postMission(app, ValidateSpecSupport.CrowdParams, session)
     status(resp) mustBe OK
-    val html    = contentAsString(resp)
-    val mission = embeddedPageJson(html, "param.mission")
-      .collect { case obj: JsObject => obj }
+    val body    = contentAsJson(resp)
+    val mission = (body \ "mission")
+      .asOpt[JsObject]
       .getOrElse(cancel("No validation mission available (needs >= 10 validatable labels of one type)."))
-    val labels = embeddedPageJson(html, "param.labelList")
-      .collect { case arr: JsArray => arr.value.toSeq }
-      .getOrElse(fail("No label batch in the validate bootstrap."))
-      .map(_.as[JsObject])
+    val labels    = (body \ "labels").asOpt[Seq[JsObject]].getOrElse(fail("No label batch in the first mission."))
     val missionId = (mission \ "mission_id").as[Int]
     // The mission was just minted for this session's user, so it resolves the anon user's id for row assertions.
     val userId = run(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head
@@ -141,7 +140,8 @@ class ValidateSubmissionSpec
       redone: Boolean = false,
       comment: Option[String] = None,
       severity: Option[Option[Int]] = None,
-      newLabelType: Option[String] = None
+      newLabelType: Option[String] = None,
+      reason: Option[String] = None
   ): JsObject = {
     val now         = OffsetDateTime.now
     val commentJson = comment.map { text =>
@@ -149,6 +149,7 @@ class ValidateSubmissionSpec
         "mission_id" -> missionId,
         "label_id"   -> (label \ "label_id").as[Int],
         "comment"    -> text,
+        "reason"     -> reason,
         "pano_id"    -> (label \ "pano_id").as[String],
         "heading"    -> (label \ "heading").as[Double],
         "pitch"      -> (label \ "pitch").as[Double],
@@ -221,7 +222,12 @@ class ValidateSubmissionSpec
     )
 
   /** A `POST /labelmap/validate` payload for the given label. */
-  private def labelMapValidationJson(label: JsObject, result: String, undone: Boolean = false): JsObject = {
+  private def labelMapValidationJson(
+      label: JsObject,
+      result: String,
+      undone: Boolean = false,
+      redone: Boolean = false
+  ): JsObject = {
     val now = OffsetDateTime.now
     Json.obj(
       "label_id"          -> (label \ "label_id").as[Int],
@@ -238,17 +244,18 @@ class ValidateSubmissionSpec
       "end_timestamp"     -> now,
       "source"            -> "LabelMap",
       "undone"            -> undone,
-      "redone"            -> false,
+      "redone"            -> redone,
       "viewer_type"       -> "Default"
     )
   }
 
-  /** A `POST /labelmap/comment` payload for the given label. */
-  private def labelMapCommentJson(label: JsObject, text: String): JsObject =
+  /** A `POST /labelmap/comment` payload for the given label; `reason` is the canned reason's id (#5475). */
+  private def labelMapCommentJson(label: JsObject, text: String, reason: Option[String] = None): JsObject =
     Json.obj(
       "label_id"   -> (label \ "label_id").as[Int],
       "label_type" -> (label \ "label_type").as[String],
       "comment"    -> text,
+      "reason"     -> reason,
       "pano_id"    -> (label \ "pano_id").as[String],
       "heading"    -> (label \ "heading").as[Double],
       "pitch"      -> (label \ "pitch").as[Double],
@@ -334,13 +341,46 @@ class ValidateSubmissionSpec
             ORDER BY superseded_at, validation_task_comment_history_id""".as[(String, String)]
     )
 
-  /** The `validation` chip on the session user's own comment, read back through `GET /label/id/:labelId`. */
-  private def ownCommentValidation(session: Seq[Cookie], labelId: Int): Option[String] = {
+  /** The session user's own comment on the label, as `GET /label/id/:labelId` hands it to the label card. */
+  private def ownComment(session: Seq[Cookie], labelId: Int): JsObject = {
     val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session*)).get
     status(res) mustBe OK
     val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
     own must have size 1
-    (own.head \ "validation").asOpt[String]
+    own.head
+  }
+
+  /** The `validation` chip on the session user's own comment, read back through `GET /label/id/:labelId`. */
+  private def ownCommentValidation(session: Seq[Cookie], labelId: Int): Option[String] =
+    (ownComment(session, labelId) \ "validation").asOpt[String]
+
+  /** The stored reason id on the user's comment, live and superseded (#5475): `(reason, change_type)` pairs. */
+  private def reasonsOn(labelId: Int, userId: String): (Option[String], Seq[(Option[String], String)]) = {
+    val live = run(
+      sql"SELECT reason::text FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId"
+        .as[Option[String]]
+    ).headOption.flatten
+    val history = run(
+      sql"""SELECT reason::text, change_type::text FROM validation_task_comment_history
+            WHERE label_id = $labelId AND user_id = $userId
+            ORDER BY superseded_at, validation_task_comment_history_id""".as[(Option[String], String)]
+    )
+    (live, history)
+  }
+
+  /**
+   * A canned Disagree reason the label's type offers, one of its Unsure reasons (offered, but for the other vote),
+   * and one no type-mate would, the ids a stale or hostile client could send. Cancels on a label whose type has no
+   * canned reasons (none of the types Validate serves).
+   */
+  private def reasonsFor(label: JsObject): (String, String, String) = {
+    val labelType = LabelType.withName((label \ "label_type").as[String])
+    val disagree  = ValidationReason.offered(labelType, ValidationOption.Disagree)
+    val unsure    = ValidationReason.offered(labelType, ValidationOption.Unsure)
+    assume(disagree.nonEmpty && unsure.nonEmpty, s"${labelType.name} offers no canned reasons")
+    val foreign = ValidationReason.values.find(r => !ValidationReason.offersReason(labelType, r))
+    assume(foreign.isDefined, "every reason is offered on this type")
+    (disagree.last.name, unsure.head.name, foreign.get.name)
   }
 
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
@@ -636,6 +676,27 @@ class ValidateSubmissionSpec
       after.disagreeCount mustBe before.disagreeCount + 1
     }
 
+    "apply a batch in label order while keeping each label's own votes in the order cast (#5475)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      // Descending, so the lock-order sort has to move them; the first label's three entries must still run in order.
+      val pair  = b.labels.take(2).sortBy(l => -(l \ "label_id").as[Int])
+      val high  = pair(0)
+      val low   = pair(1)
+      val batch = Seq(
+        validationJson(high, b.missionId, "Agree"),
+        validationJson(low, b.missionId, "Unsure"),
+        validationJson(high, b.missionId, "Agree", undone = true),
+        validationJson(high, b.missionId, "Disagree", redone = true)
+      )
+
+      status(postValidationTask(session, taskSubmission(b, batch, Some(missionProgressJson(b, 2))))) mustBe OK
+
+      validationRow((high \ "label_id").as[Int], b.userId).map(_._1) mustBe Some("Disagree")
+      validationCount((high \ "label_id").as[Int], b.userId) mustBe 1
+      validationRow((low \ "label_id").as[Int], b.userId).map(_._1) mustBe Some("Unsure")
+    }
+
     "keep the user's earlier comment when a repeat validation carries none (#4377)" in {
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
@@ -809,6 +870,126 @@ class ValidateSubmissionSpec
       ownCommentValidation(session, labelId) mustBe Some("Unsure")
       status(postLabelMapValidation(session, labelMapValidationJson(label, "Agree"))) mustBe OK
       ownCommentValidation(session, labelId) mustBe Some("Agree")
+    }
+
+    "store a canned reason as its id beside the text, and hand it back to the label card (#5475)" in {
+      val session        = freshAnonSession()
+      val b              = fetchValidateBootstrap(session)
+      val label          = b.labels.head
+      val labelId        = (label \ "label_id").as[Int]
+      val _              = backupLabel(labelId)
+      val (reason, _, _) = reasonsFor(label)
+
+      // The pop-up only appears once a vote is on record, and the server holds the reason to that vote.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Disagree"))) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "This is a driveway", Some(reason)))) mustBe OK
+      reasonsOn(labelId, b.userId) mustBe (Some(reason), Seq.empty)
+      (ownComment(session, labelId) \ "reason").asOpt[String] mustBe Some(reason)
+
+      // Typed words replace the canned reason, and the superseded version keeps the id it was picked as.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "It is a garage entrance."))) mustBe OK
+      reasonsOn(labelId, b.userId) mustBe (None, Seq((Some(reason), "edit")))
+      (ownComment(session, labelId) \ "reason").asOpt[String] mustBe None
+    }
+
+    "keep typed words across a card's vote change, but not a canned reason the new vote doesn't take (#5475)" in {
+      val session                = freshAnonSession()
+      val b                      = fetchValidateBootstrap(session)
+      val label                  = b.labels.head
+      val labelId                = (label \ "label_id").as[Int]
+      val _                      = backupLabel(labelId)
+      val (reason, _, _)         = reasonsFor(label)
+      def revote(result: String) =
+        status(postLabelMapValidation(session, labelMapValidationJson(label, result, redone = true))) mustBe OK
+
+      // The words describe the label, so they ride every change, and nothing is archived along the way.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure"))) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Hard to tell in the shade."))) mustBe OK
+      for (result <- Seq("Disagree", "Agree", "Disagree")) {
+        revote(result)
+        commentsOn(labelId, b.userId) mustBe Seq("Hard to tell in the shade.")
+        ownCommentValidation(session, labelId) mustBe Some(result)
+      }
+      commentVersionsOn(labelId, b.userId) mustBe empty
+
+      // A canned reason explains one vote, so a change to a vote that doesn't offer it retracts it (#5076).
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Canned", Some(reason)))) mustBe OK
+      revote("Unsure")
+      commentsOn(labelId, b.userId) mustBe empty
+      reasonsOn(labelId, b.userId)._2.last mustBe (Some(reason), "validation_change")
+
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Still unsure."))) mustBe OK
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure", undone = true))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+    }
+
+    "retract typed words on a Validate-tool redo, which is an undo and a fresh vote (#5076)" in {
+      val session  = freshAnonSession()
+      val b        = fetchValidateBootstrap(session)
+      val label    = b.labels.head
+      val labelId  = (label \ "label_id").as[Int]
+      val _        = backupLabel(labelId)
+      val progress = Some(missionProgressJson(b, 1))
+
+      val first = Seq(validationJson(label, b.missionId, "Unsure", comment = Some("Hard to tell.")))
+      status(postValidationTask(session, taskSubmission(b, first, progress))) mustBe OK
+      val redo = Seq(validationJson(label, b.missionId, "Disagree", redone = true))
+      status(postValidationTask(session, taskSubmission(b, redo, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+    }
+
+    "refuse a reason the user's vote doesn't take, the type doesn't offer, or the vocabulary doesn't know (#5475)" in {
+      val session                         = freshAnonSession()
+      val b                               = fetchValidateBootstrap(session)
+      val label                           = b.labels.head
+      val labelId                         = (label \ "label_id").as[Int]
+      val _                               = backupLabel(labelId)
+      val (reason, unsureReason, foreign) = reasonsFor(label)
+
+      // No vote yet: there is nothing for a reason to explain.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(reason)))) mustBe BAD_REQUEST
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Disagree"))) mustBe OK
+      // Each of these would store an id no menu showed for this label and vote, the drift the enum exists to
+      // prevent, including a Disagree-vote user sending an Unsure reason after the vote moved under the pick.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(unsureReason)))) mustBe BAD_REQUEST
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(foreign)))) mustBe BAD_REQUEST
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some("no-button-2")))) mustBe BAD_REQUEST
+      commentsOn(labelId, b.userId) mustBe empty
+    }
+
+    "store the reason a Validate-tool vote carries, and drop one its vote doesn't take without losing the vote (#5475)" in {
+      val session              = freshAnonSession()
+      val b                    = fetchValidateBootstrap(session)
+      val label                = b.labels.head
+      val labelId              = (label \ "label_id").as[Int]
+      val _                    = backupLabel(labelId)
+      val (reason, _, foreign) = reasonsFor(label)
+      val progress             = Some(missionProgressJson(b, 1))
+
+      val canned = Seq(validationJson(label, b.missionId, "Disagree", comment = Some("Canned"), reason = Some(reason)))
+      status(postValidationTask(session, taskSubmission(b, canned, progress))) mustBe OK
+      reasonsOn(labelId, b.userId) mustBe (Some(reason), Seq.empty)
+
+      // A page open across a catalog change may name a reason no menu shows any more: the vote and its text land,
+      // the id does not, and nothing in the batch is refused.
+      val stale = Seq(validationJson(label, b.missionId, "Disagree", comment = Some("Stale"), reason = Some(foreign)))
+      status(postValidationTask(session, taskSubmission(b, stale, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Stale")
+      reasonsOn(labelId, b.userId) mustBe (None, Seq((Some(reason), "edit")))
+
+      // A reason the type offers, but for the other vote, is dropped the same way: the id has to explain this vote.
+      val crossed = Seq(validationJson(label, b.missionId, "Unsure", comment = Some("Crossed"), reason = Some(reason)))
+      status(postValidationTask(session, taskSubmission(b, crossed, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Crossed")
+      reasonsOn(labelId, b.userId)._1 mustBe None
+
+      // An undo carrying a reasoned comment retracts rather than stores it, reason included (#5076).
+      val undo = Seq(
+        validationJson(label, b.missionId, "Unsure", undone = true, comment = Some("Crossed"), reason = Some(reason))
+      )
+      status(postValidationTask(session, taskSubmission(b, undo, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      reasonsOn(labelId, b.userId)._2.last mustBe (None, "validation_change")
     }
 
     "delete the user's own comment without touching their vote (#5015)" in {

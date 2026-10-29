@@ -127,6 +127,7 @@ object LabelFormats {
       "mine"         -> currUsername.contains(c.username),
       "time_created" -> c.timeCreated,
       "validation"   -> c.validation,
+      "reason"       -> c.reason,
       "commenter"    -> idx
     )
   }

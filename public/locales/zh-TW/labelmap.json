@@ -171,7 +171,6 @@
   },
   "edit-type-changed": "已更改為 {{labelType}}",
   "edit-undo": "復原",
-  "edit-conflict-short": "標籤類型已在其他地方更改",
   "edit-conflict": "此標籤的類型已在其他地方被更改，卡片現在顯示其目前狀態。",
   "delete-label": "刪除標記",
   "delete-label-confirm": "確定要刪除這個標記嗎？",

@@ -1,0 +1,348 @@
+"""
+Unit tests for tools/city/overpass.py (#5741): the retry schedule, the probe, osmnx's settings and the day cache, and
+the paced multi-request fetch. Stdlib + requests only, so they run in both interpreter halves; the clock, the sleep
+and the network are faked throughout.
+"""
+import logging
+import sys
+import threading
+import time
+from datetime import date
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / 'tools' / 'city'))
+import overpass as op  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _osmnx_logger_as_found():
+    """configure() installs a handler on osmnx's logger and stops it propagating; the next test gets it as it was."""
+    osmnx_logger = logging.getLogger('OSMnx')
+    handlers, level, propagate = list(osmnx_logger.handlers), osmnx_logger.level, osmnx_logger.propagate
+    yield
+    osmnx_logger.handlers[:] = handlers
+    osmnx_logger.setLevel(level)
+    osmnx_logger.propagate = propagate
+
+
+class FakeClock:
+    """A clock that only moves when something sleeps on it, so a schedule is checked exactly, not timed."""
+
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps = []
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+    def __call__(self):
+        return self.now
+
+
+class ResponseStatusCodeError(ValueError):
+    """osmnx's class, by name: is_retryable goes by the name so the module needs no osmnx."""
+
+
+def failing(exceptions, result='ok'):
+    """An attempt that raises each exception in turn, then returns ``result``."""
+    queue = list(exceptions)
+
+    def attempt():
+        if queue:
+            raise queue.pop(0)
+        return result
+    return attempt
+
+
+def no_jitter():
+    return 0.0
+
+
+# ------------------------------------------------------------------------------------------------- policy
+
+def test_policy_doubles_from_30s_caps_at_240s_and_jitter_only_adds():
+    policy = op.RetryPolicy()
+    assert [policy.wait_after(k, 0.0) for k in range(1, 6)] == [30, 60, 120, 240, 240]
+    assert policy.wait_after(1, 0.999) == pytest.approx(30 * 1.24975)
+    assert policy.wait_after(1, 0.0) >= op.MIN_RETRY_WAIT_S
+
+
+def test_policy_refuses_a_wait_under_the_usage_policy_floor_or_an_inconsistent_shape():
+    with pytest.raises(ValueError, match='at least 30'):
+        op.RetryPolicy(initial_wait_s=10)
+    with pytest.raises(ValueError):
+        op.RetryPolicy(max_wait_s=20)
+    with pytest.raises(ValueError):
+        op.RetryPolicy(window_s=0)
+    assert op.RetryPolicy(initial_wait_s=30, max_wait_s=30, jitter=0).wait_after(9, 0.5) == 30
+
+
+@pytest.mark.parametrize('exc, retryable', [
+    (requests.ConnectionError('refused'), True),
+    (requests.ConnectTimeout('slow'), True),
+    (requests.ReadTimeout('slow'), True),
+    (requests.exceptions.ChunkedEncodingError('broke off'), True),
+    (op.Refused('probe'), True),
+    (ResponseStatusCodeError("'overpass-api.de' responded: 502 Bad Gateway <html>at capacity</html>"), True),
+    (ResponseStatusCodeError("'overpass-api.de' responded: 429 Too Many Requests"), True),
+    (ResponseStatusCodeError("'overpass-api.de' responded: 406 Not Acceptable"), True),
+    (ResponseStatusCodeError("'overpass-api.de' responded: 400 Bad Request: line 1: parse error"), False),
+    (ValueError('No matching features'), False),
+    (KeyError('highway'), False),
+])
+def test_is_retryable_waits_only_on_transport_faults_and_refusal_statuses(exc, retryable):
+    assert op.is_retryable(exc) is retryable
+
+
+# ------------------------------------------------------------------------------------------------- retry
+
+@pytest.mark.parametrize('exc', [
+    requests.ConnectionError('Connection refused'),
+    ResponseStatusCodeError("'overpass-api.de' responded: 502 Bad Gateway"),
+    ResponseStatusCodeError("'overpass-api.de' responded: 429 Too Many Requests"),
+])
+def test_retry_waits_at_least_30s_after_any_refusal_then_doubles(exc, caplog):
+    clock = FakeClock()
+    with caplog.at_level(logging.WARNING):
+        result = op.call_with_retry(failing([exc, exc, exc]), 'request 1/1', sleep=clock.sleep, clock=clock,
+                                    rng=no_jitter)
+    assert result == 'ok'
+    assert clock.sleeps == [30, 60, 120]
+    assert all(s >= op.MIN_RETRY_WAIT_S for s in clock.sleeps)
+    assert 'waiting 30 s before attempt 2' in caplog.text
+
+
+def test_retry_gives_up_only_when_the_window_runs_out_and_names_the_last_failure():
+    clock = FakeClock()
+    forever = requests.ConnectionError('Connection refused')
+    with pytest.raises(op.OverpassUnavailable, match='after 5 attempt') as info:
+        op.call_with_retry(failing([forever] * 20), 'request 3/9', sleep=clock.sleep, clock=clock, rng=no_jitter)
+    # 30 + 60 + 120 + 240 = 450 s slept; the next 240 s wait would end past the 600 s window, so no sixth attempt.
+    assert clock.sleeps == [30, 60, 120, 240]
+    assert info.value.__cause__ is forever
+    assert 'Connection refused' in str(info.value) and 'do not keep sending' in str(info.value)
+
+
+def test_retry_counts_the_attempts_own_time_against_the_window():
+    clock = FakeClock()
+
+    def slow_refusal():
+        clock.now += 200  # Each attempt sits through osmnx's 60 s /status fallback and a long connect timeout.
+        raise requests.ConnectTimeout('slow')
+    with pytest.raises(op.OverpassUnavailable):
+        op.call_with_retry(slow_refusal, 'request', sleep=clock.sleep, clock=clock, rng=no_jitter)
+    # 200 + 30 + 200 + 60 = 490 s in; a 120 s wait after the third attempt (690 s) would overrun the window.
+    assert clock.sleeps == [30, 60]
+
+
+def test_retry_raises_anything_that_is_not_a_refusal_at_once():
+    clock = FakeClock()
+    with pytest.raises(ValueError, match='parse error'):
+        op.call_with_retry(failing([ValueError('parse error')]), 'request', sleep=clock.sleep, clock=clock)
+    assert clock.sleeps == []
+
+
+def test_a_deadline_cuts_off_an_attempt_that_outlives_it_and_the_retry_waits_before_asking_again():
+    clock = FakeClock()
+    calls = []
+
+    def hangs_once():
+        calls.append(1)
+        if len(calls) == 1:
+            time.sleep(5)  # osmnx's unbounded 429 recursion, in miniature.
+        return 'ok'
+    attempt = lambda: op.with_deadline(hangs_once, 0.05)  # noqa: E731
+    assert op.call_with_retry(attempt, 'request', sleep=clock.sleep, clock=clock, rng=no_jitter) == 'ok'
+    assert len(calls) == 2 and clock.sleeps == [30]
+
+
+def test_with_deadline_restores_the_previous_alarm_handler_and_runs_unbounded_off_the_main_thread_or_without_one():
+    import signal
+    before = signal.getsignal(signal.SIGALRM)
+    assert op.with_deadline(lambda: 'done', 1) == 'done'
+    assert signal.getsignal(signal.SIGALRM) is before
+    assert op.with_deadline(lambda: 'unbounded', None) == 'unbounded'
+    result = []
+    worker = threading.Thread(target=lambda: result.append(op.with_deadline(lambda: 'thread', 0.01)))
+    worker.start()
+    worker.join()
+    assert result == ['thread']
+
+
+def test_summary_is_one_short_line():
+    assert op.summary(ValueError('a\n  b   c')) == 'ValueError: a b c'
+    assert op.summary(ValueError('x' * 500)).endswith('x') and len(op.summary(ValueError('x' * 500))) < 200
+    assert op.summary(ValueError()) == 'ValueError'
+
+
+# ------------------------------------------------------------------------------------------------- probe
+
+def fake_post(status=200, reason='OK', raises=None, body=None):
+    seen = {}
+
+    def json():
+        if isinstance(body, Exception):
+            raise body
+        return body if body is not None else {'osm3s': {'timestamp_osm_base': '2026-10-23T18:00:00Z'}}
+
+    def post(url, data, timeout, headers):
+        seen.update(url=url, data=data, timeout=timeout, headers=headers)
+        if raises:
+            raise raises
+        return SimpleNamespace(ok=status < 400, status_code=status, reason=reason, json=json)
+    return post, seen
+
+
+def test_probe_sends_the_tiny_query_with_our_identity_to_the_instance_named():
+    post, seen = fake_post()
+    assert op.probe(post)[0] is True
+    assert seen['url'] == 'https://overpass-api.de/api/interpreter' and seen['data'] == {'data': op.PROBE_QUERY}
+    assert op.probe(post, url='https://overpass.example.org/api/')[0] is True
+    assert seen['url'] == 'https://overpass.example.org/api/interpreter'
+    assert seen['headers'] == {'User-Agent': op.USER_AGENT} and 'sidewalk@cs.uw.edu' in op.USER_AGENT
+    assert 'node(1)' in op.PROBE_QUERY and '[timeout:5]' in op.PROBE_QUERY
+    assert op.probe(post) == (True, '2026-10-23T18:00:00Z')
+    post, _ = fake_post(body={'elements': []})
+    assert op.probe(post) == (True, None)
+    post, _ = fake_post(body=ValueError('not json'))
+    assert op.probe(post) == (True, None)
+
+
+def test_probe_is_false_on_a_refusal_or_a_bad_status_without_retrying(caplog):
+    post, _ = fake_post(raises=requests.ConnectionError('refused'))
+    with caplog.at_level(logging.INFO):
+        assert op.probe(post) == (False, None)
+        post, _ = fake_post(429, 'Too Many Requests')
+        assert op.probe(post) == (False, None)
+    assert 'probe failed' in caplog.text and 'answered 429' in caplog.text
+
+
+def test_wait_until_answering_retries_the_probe_on_the_schedule_and_returns_the_data_date(monkeypatch):
+    answers = [(False, None), (False, None), (True, '2026-10-23T18:00:00Z')]
+    asked = []
+    monkeypatch.setattr(op, 'probe', lambda url: asked.append(url) or answers.pop(0))
+    clock = FakeClock()
+    assert op.wait_until_answering(url='https://x/api', sleep=clock.sleep, clock=clock,
+                                   rng=no_jitter) == '2026-10-23T18:00:00Z'
+    assert clock.sleeps == [30, 60] and asked == ['https://x/api'] * 3
+    monkeypatch.setattr(op, 'probe', lambda url: (False, None))
+    with pytest.raises(op.OverpassUnavailable, match='Overpass probe'):
+        op.wait_until_answering(sleep=clock.sleep, clock=clock, rng=no_jitter)
+
+
+def test_main_check_waits_for_an_answer_then_exits_0_and_exits_75_when_the_window_closes(monkeypatch, capsys):
+    asked = []
+    monkeypatch.setattr(op, 'wait_until_answering', lambda url: asked.append(url) or '2026-10-23T18:00:00Z')
+    assert op.main(['--check']) == 0
+    assert op.main(['--check', '--url', 'https://x/api']) == 0 and asked == [op.OVERPASS_URL, 'https://x/api']
+    assert 'data is from 2026-10-23T18:00:00Z' in capsys.readouterr().out
+    monkeypatch.setattr(op, 'wait_until_answering', lambda url: None)
+    assert op.main(['--check']) == 0 and 'did not state' in capsys.readouterr().out
+
+    def closed(url):
+        raise op.OverpassUnavailable('Overpass probe: still not answering')
+    monkeypatch.setattr(op, 'wait_until_answering', closed)
+    assert op.main(['--check']) == op.EXIT_UNAVAILABLE == 75
+    assert 'not answering' in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        op.main([])
+
+
+# ------------------------------------------------------------------------------------------------- osmnx
+
+def test_configure_identifies_us_declares_the_limits_and_caches_by_day(tmp_path):
+    ox = SimpleNamespace(settings=SimpleNamespace())
+    op.configure(ox, tmp_path, 60, 256, today=lambda: date(2026, 10, 20))
+    assert ox.settings.http_user_agent == op.USER_AGENT and ox.settings.http_referer == op.USER_AGENT
+    assert ox.settings.overpass_url == op.OVERPASS_URL and ox.settings.overpass_rate_limit is True
+    op.configure(ox, tmp_path, 60, 256, today=lambda: date(2026, 10, 20), url='https://x/api')
+    assert ox.settings.overpass_url == 'https://x/api' and ox.settings.overpass_rate_limit is False
+    # The server gets 60 s and says so in the query; the client waits longer, so a "timed out" remark can arrive.
+    assert ox.settings.overpass_settings == '[out:json][timeout:60]{maxsize}'
+    assert ox.settings.requests_timeout == 60 + op.CLIENT_SLACK_S and ox.settings.overpass_memory == 256 * 1024 * 1024
+    assert ox.settings.use_cache is True and ox.settings.cache_folder == str(tmp_path / '2026-10-20')
+    assert ox.settings.log_file is True
+    op.configure(ox, tmp_path, today=lambda: date(2026, 10, 20))
+    assert ox.settings.overpass_settings == '[out:json][timeout:180]{maxsize}'
+    assert ox.settings.requests_timeout == 180 + op.CLIENT_SLACK_S and ox.settings.overpass_memory is None
+
+
+def test_osmnx_still_formats_the_query_and_logs_remarks_the_way_this_module_expects():
+    osmnx = pytest.importorskip('osmnx', reason='the 3.13 half has osmnx')
+    import inspect
+    from osmnx import _http, _overpass, features
+    assert 'settings.overpass_settings.format(timeout=settings.requests_timeout, maxsize=maxsize)' in \
+        inspect.getsource(_overpass)
+    assert "remarked: {response_json['remark']!r}" in inspect.getsource(_http)
+    # onboard_city.tolerate_broken_relations wraps this.
+    assert 'relation["geometry"] = _build_relation_geometry(relation.pop("members"), way_geoms)' in \
+        inspect.getsource(features)
+    assert osmnx.settings.overpass_settings == '[out:json][timeout:{timeout}]{maxsize}'
+
+
+def test_configure_prunes_day_folders_older_than_a_week_and_nothing_else(tmp_path):
+    for name in ['2026-10-20', '2026-10-13', '2026-10-12', '2025-01-01']:
+        (tmp_path / name).mkdir()
+        (tmp_path / name / 'x.json').write_text('{}')
+    (tmp_path / 'abc.json').write_text('{}')
+    (tmp_path / 'notes').mkdir()
+    op.configure(SimpleNamespace(settings=SimpleNamespace()), tmp_path, today=lambda: date(2026, 10, 20))
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['2026-10-13', '2026-10-20', 'abc.json', 'notes']
+    op.prune_cache(tmp_path / 'missing', date(2026, 10, 20))
+
+
+def test_remark_watch_reads_the_servers_remark_and_passes_osmnx_warnings_on(caplog):
+    ox = SimpleNamespace(settings=SimpleNamespace(log_name='OSMnx-test'))
+    osmnx_logger = logging.getLogger('OSMnx-test')
+    osmnx_logger.addHandler(logging.NullHandler())  # Someone else's handler is left alone and looked past.
+    watch = op.remark_watch(ox)
+    assert op.remark_watch(ox) is watch and ox.settings.log_file is True
+    assert osmnx_logger.propagate is False and osmnx_logger.handlers[-1] is watch and len(osmnx_logger.handlers) == 2
+    with caplog.at_level(logging.WARNING, logger='overpass'):
+        osmnx_logger.info('Pausing 0 seconds')
+        osmnx_logger.warning("'overpass-api.de' responded 429 Too Many Requests: we'll retry in 55 secs")
+        assert not watch.cut_short
+        osmnx_logger.warning("'overpass-api.de' remarked: 'runtime error: Query timed out in \"query\" at line 1'")
+    assert watch.cut_short and watch.remark.startswith('runtime error: Query timed out')
+    assert 'osmnx: \'overpass-api.de\' responded 429' in caplog.text and 'Pausing' not in caplog.text
+    watch.clear()
+    assert watch.remark is None and not watch.cut_short
+
+
+# ------------------------------------------------------------------------------------------------- fetch_each
+
+def test_fetch_each_streams_the_results_and_pauses_only_after_a_request_the_server_served():
+    clock = FakeClock()
+    fetched = []
+
+    def fetch_one(polygon):
+        fetched.append(polygon)
+        return polygon.upper(), polygon != 'cached'
+    results = op.fetch_each(['a', 'cached', 'b', 'c'], fetch_one, pause_s=7, sleep=clock.sleep, clock=clock)
+    assert next(results) == 'A' and fetched == ['a']  # The next tile is not fetched until this one is taken.
+    assert list(results) == ['CACHED', 'B', 'C']
+    assert clock.sleeps == [7, 7]  # After a and b; not after the cache hit, not after the last.
+
+
+def test_fetch_each_retries_each_request_and_names_it(caplog):
+    clock = FakeClock()
+    attempts = {'b': 0}
+
+    def fetch_one(polygon):
+        if polygon == 'b' and attempts['b'] == 0:
+            attempts['b'] += 1
+            raise requests.ConnectionError('refused')
+        return polygon, True
+    with caplog.at_level(logging.WARNING):
+        results = list(op.fetch_each(['a', 'b'], fetch_one, pause_s=5, sleep=clock.sleep, clock=clock, rng=no_jitter))
+    assert results == ['a', 'b']
+    assert clock.sleeps == [5, 30]  # The rest after a, then the wait after b's refusal.
+    assert 'request 2/2: ConnectionError: refused' in caplog.text
+    down = failing([requests.ConnectionError('down')] * 9)
+    with pytest.raises(op.OverpassUnavailable, match='request 1/1'):
+        list(op.fetch_each(['x'], lambda polygon: down(), sleep=clock.sleep, clock=clock, rng=no_jitter))

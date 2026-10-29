@@ -56,9 +56,10 @@ Workflow:
 
 The staging tables match what ``db/scripts/fill-new-schema.sh`` consumes: ``qgis_road`` (``road_id`` int PK that
 becomes ``street_edge_id``, ``geom`` LineString 4326 pre-split at intersections, ``highway`` way-type column,
-``osm_ids`` bigint[] of the OSM ways the street spans, ``region_id``) and ``qgis_region`` (``region_id`` int PK,
-``name``, ``data_source`` provenance, ``geom`` MultiPolygon 4326). A hand-built export sets
-``osm_ids = ARRAY[osm_id]``.
+``osm_ids`` bigint[] of the OSM ways the street spans, ``region_id``), ``qgis_region`` (``region_id`` int PK,
+``name``, ``data_source`` provenance, ``geom`` MultiPolygon 4326) and ``qgis_road_osm_way`` (one row per street and OSM
+way it lies on, with the shared stretch of each and whether they run the same direction, #5741). A hand-built export
+sets ``osm_ids = ARRAY[osm_id]`` and gets unpositioned lineage rows.
 
 Street semantics vs. the manual QGIS flow:
 
@@ -68,8 +69,8 @@ Street semantics vs. the manual QGIS flow:
     network*: excluded way types don't cause splits, and grade-separated crossings (overpasses) share no node so —
     unlike QGIS "Split with lines", which splits at any geometric crossing — they correctly stay unsplit. Its
     simplification also joins consecutive OSM ways between intersections into one edge, so a street may span several
-    ways; ``osm_ids`` lists every one of them (``osm_way_street_edge`` holds one row per street, so the fill records
-    the way the street starts on and the GeoPackage keeps the full list).
+    ways; ``osm_ids`` lists every one of them, and ``qgis_road_osm_way`` says where each lies on the street, matched
+    by geometry against the whole ways (``osm_way`` layer) since osmnx keeps neither their order nor their direction.
   * Pieces shorter than ``--merge-tiny-m`` (20 m) that remain between intersections — a roundabout's exit-to-exit
     arcs, the stubs between a dual carriageway's links — are merged back into a touching piece of the *same* OSM way
     (#4717 tier 1), never closing a ring. On Bayonne this took sub-20 m streets from 27% to 16% of the network, in
@@ -88,7 +89,7 @@ Street semantics vs. the manual QGIS flow:
     *along* the boundary rather than across it — one side lying entirely within ``--boundary-merge-tol-m`` of the
     other side's region — so a boundary-running road split midway comes back as one street (genuine crossings pull
     away from the boundary and keep their split; merged junctions land in the ``rider_merges`` QA layer). Whatever
-    is still shorter than ``--min-segment-m`` after healing is dropped (the runbook's manual "delete tiny segments"
+    is still shorter than ``MIN_SEGMENT_M`` after healing is dropped (the runbook's manual "delete tiny segments"
     pass) — kept in the QA GeoPackage's ``dropped_segments`` layer for review.
 
 The decision logic lives in pure, import-safe functions; network and file I/O live in the ``fetch_*``/``write_*``
@@ -100,9 +101,11 @@ pay its startup cost.
 import argparse
 import csv
 import hashlib
+import json
 import logging
 import re
 import sys
+import time
 from collections import Counter, defaultdict, namedtuple
 from math import cos, radians
 from datetime import datetime, timezone
@@ -112,35 +115,85 @@ import geopandas as gpd
 import pandas as pd
 import requests
 import shapely
+import shapely.errors
 from pyproj import Geod
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import linemerge, substring
+
+from osm_lineage import compute_lineage, lineage_rows, lineage_summary, ways_from_features
+from overpass import (CLIENT_SLACK_S, OVERPASS_URL, Refused, RetryPolicy, call_with_retry, configure, declare_limits,
+                      fetch_each, remark_watch, with_deadline)
+from setup_new_city import staging_fingerprint
 
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _osmnx():
-    """Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/."""
+def tolerate_broken_relations(ox):
+    """
+    Makes osmnx drop a relation it cannot build instead of failing the whole tile. A mirror caught mid-replication
+    can send a way without one of its nodes; osmnx logs that way and goes on, but a relation listing it (a pedestrian
+    area, a route) then dies in shapely on the empty line. Nothing here reads relations: streets are built from ways.
+    """
+    build = ox.features._build_relation_geometry
+    if getattr(build, 'tolerant', False):
+        return
+
+    def tolerant(members, way_geoms):
+        try:
+            return build(members, way_geoms)
+        except (shapely.errors.ShapelyError, ValueError) as exc:
+            logger.warning('osmnx could not build a relation, dropped: %s', exc)
+            return Polygon()
+    tolerant.tolerant = True
+    ox.features._build_relation_geometry = tolerant
+
+
+def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
+    """
+    Imports osmnx pointed at Overpass the way ``overpass.py`` prescribes, with its cache in the git-ignored onboarding
+    dir (a folder per day) instead of CWD-relative cache/.
+
+    Args:
+        request_timeout_s: The server time each query declares; osmnx's default suits a whole-city street graph,
+                           the backfill's small tiles declare a minute.
+        memory_mb:         The server memory each query declares; None leaves the server's default.
+        overpass_url:      The instance to ask, without /interpreter.
+    """
     import osmnx as ox
-    ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
+    configure(ox, REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache', request_timeout_s, memory_mb, url=overpass_url)
+    tolerate_broken_relations(ox)
     # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
     tags = list(getattr(ox.settings, 'useful_tags_way', []))
     ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
     return ox
 
 
+def fetch_area(boundary_poly, fetch_buffer_m):
+    """The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for."""
+    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
+    return boundary_poly.buffer(buffer_deg)
+
+
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
 # value readings, decide is_structure in db/scripts/export-street-gradient-input.sh once a city has its osm_way
-# cache; that path sees only the way a street starts on (osm_way_street_edge holds one way per street), where the
-# build reads every way the street spans.
+# cache, over every way the street lies on, as the build reads every way the street spans.
 STRUCTURE_TAGS = ('bridge', 'tunnel', 'covered')
+# A street shorter than this can't be audited (#4717).
+MIN_SEGMENT_M = 15
 
 # The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
 DEFAULT_WAY_TYPES = (
     'trunk', 'primary', 'secondary', 'tertiary', 'residential', 'unclassified', 'pedestrian', 'living_street'
+)
+# Every value OSM gives a highway way, for the backfill. Named one by one rather than highway=*, which would also
+# bring every crossing, signal and lamp node, and those outnumber the ways on a dense tile.
+ALL_WAY_TYPES = DEFAULT_WAY_TYPES + (
+    'motorway', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link', 'service', 'road',
+    'busway', 'bus_guideway', 'escape', 'raceway', 'track', 'footway', 'path', 'steps', 'cycleway', 'bridleway',
+    'corridor', 'via_ferrata', 'construction', 'proposed', 'abandoned', 'disused', 'razed', 'planned'
 )
 
 # Current (non-ACS-group) Census Tracts layer of the TIGERweb Tracts_Blocks MapServer; supports f=geojson.
@@ -176,8 +229,7 @@ def as_id_list(value):
     Normalizes an osmnx ``osmid`` attribute to a list of OSM way ids.
 
     When osmnx simplifies a graph, an edge merged from several OSM ways carries ``osmid`` as a list; an unmerged edge
-    carries a scalar. Every way id is kept for the QA GeoPackage and the staging SQL; ``osm_way_street_edge`` holds
-    one row per street (UNIQUE ``street_edge_id``), so the fill records the first — the way the street starts on.
+    carries a scalar. Every way id is kept, for the GeoPackage, the staging SQL and :func:`street_lineage`.
 
     Args:
         value: A scalar way id, or a non-empty list of them.
@@ -844,22 +896,43 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
 
     Args:
-        roads:   GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, geometry.
+        roads:   GeoDataFrame with ``road_id``, ``osm_ids``, ``highway``, ``region_id``, ``length_m``, geometry.
         regions: GeoDataFrame with ``region_id``, ``name``, geometry.
 
     Returns:
         A list of error strings; empty when the data is loadable.
     """
+    required = {'qgis_road': (roads, ('road_id', 'osm_ids', 'highway', 'region_id')),
+                'qgis_region': (regions, ('region_id', 'name'))}
+    missing = [f'{layer}.{column}' for layer, (frame, columns) in required.items()
+               for column in columns if column not in frame.columns]
+    if missing:
+        return [f'missing column(s): {missing}']
     errors = []
-    if roads['road_id'].duplicated().any():
-        errors.append(f'duplicate road_id values: {sorted(roads.loc[roads["road_id"].duplicated(), "road_id"])}')
+    if roads['road_id'].isna().any():
+        errors.append('every street needs a road_id')
+    # Whole-number float ids were cast on the way in, so a float column here holds a fraction the SQL can't take.
+    for column, ids in (('road_id', roads['road_id']), ('region_id', roads['region_id']),
+                        ('region_id', regions['region_id'])):
+        if ids.notna().all() and not pd.api.types.is_integer_dtype(ids):
+            errors.append(f'{column} must be whole numbers; a QGIS field calculator column is Decimal unless told '
+                          'otherwise')
+            break
+    duplicated = roads['road_id'].dropna().duplicated()
+    if duplicated.any():
+        errors.append(f'duplicate road_id values: {sorted(roads["road_id"].dropna()[duplicated])}')
     if regions['region_id'].duplicated().any():
         errors.append('duplicate region_id values: '
                       f'{sorted(regions.loc[regions["region_id"].duplicated(), "region_id"])}')
     dangling = set(roads['region_id']) - set(regions['region_id'])
     if dangling:
         errors.append(f'streets reference region id(s) {sorted(dangling)} that do not exist')
-    bad_road_geoms = set(roads.geometry.geom_type) - {'LineString'}
+    present = ~shapely.is_missing(roads.geometry.values) & ~roads.geometry.is_empty.to_numpy()
+    no_geom = sorted(roads.loc[~present, 'road_id'])
+    if no_geom:
+        errors.append(f'streets {no_geom} have no geometry')
+    drawn = roads.geometry[present]
+    bad_road_geoms = set(drawn.geom_type) - {'LineString'}
     if bad_road_geoms:
         errors.append(f'street geometries must be LineString; found {sorted(bad_road_geoms)}')
     bad_region_geoms = set(regions.geometry.geom_type) - {'MultiPolygon'}
@@ -871,7 +944,7 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
                       '(Vector > Geometry Tools > Fix Geometries) and re-export')
     # A loop road (start == end) is simple; a street that doubles back over itself is not. Nothing downstream can
     # cope with the latter (double length, coincident endpoints), so it never reaches the SQL.
-    not_simple = sorted(roads.loc[~roads.geometry.is_simple, 'road_id'])
+    not_simple = sorted(roads.loc[drawn[~drawn.is_simple].index, 'road_id'])
     if not_simple:
         errors.append(f'street geometries {not_simple} self-overlap or self-intersect — a street must be a simple '
                       'line (a loop road is fine); fix in QGIS and re-export')
@@ -881,9 +954,16 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
         errors.append('streets must have non-null highway and region_id')
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
-    # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
-    # might be, and staging data has no tags to tell, so those always only warn.
     if not errors:
+        # The build drops these itself, so a hit is a QGIS cut or snap that left a fragment too small to see (#4717).
+        too_short = roads.loc[roads['length_m'] < MIN_SEGMENT_M].sort_values(['length_m', 'road_id'])
+        if not too_short.empty:
+            more = ' ...' if len(too_short) > 10 else ''
+            offenders = ', '.join(f'{row.road_id} ({row.length_m:.2f} m)' for row in too_short.head(10).itertuples())
+            errors.append(f'{len(too_short)} street(s) are shorter than {MIN_SEGMENT_M} m: {offenders}{more} — '
+                          'merge or delete them in QGIS')
+        # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
+        # might be, and staging data has no tags to tell, so those always only warn.
         overlapping = find_overlapping_streets(roads)
         same_way = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if shares_way]
         different_ways = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if not shares_way]
@@ -1160,7 +1240,7 @@ def read_regions_file(path, name_col='name'):
     return regions.rename(columns={name_col: 'name'})[['name', 'geometry']]
 
 
-def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
+def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m, policy=RetryPolicy(), **retry_kwargs):
     """
     Fetches the intersection-noded, undirected street network from OSM.
 
@@ -1177,16 +1257,28 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
         boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
         include_alleys: Also fetch ``service=alley`` ways.
         fetch_buffer_m: How far outside the boundary to fetch, in meters.
+        policy, retry_kwargs: The Overpass retry schedule and its clock fakes, for tests.
 
     Returns:
         A GeoDataFrame of street edges: ``u``/``v`` (the OSM node ids at each end, which :func:`merge_tiny_same_way`
         uses to find touching pieces), ``osm_ids`` (every OSM way the edge spans), ``highway`` (single way-type
         string), ``is_structure`` (:func:`is_structure_tag`), geometry.
+
+    Raises:
+        RuntimeError: when the server cut a query short, since a street network with a piece missing is worse than
+                      none; a build is one city, so it is run again later rather than with bigger limits.
     """
     ox = _osmnx()
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    graph = ox.graph_from_polygon(boundary_poly.buffer(buffer_deg), custom_filter=build_osm_filters(include_alleys),
-                                  simplify=True, retain_all=True, truncate_by_edge=True)
+    watch = remark_watch(ox)
+
+    def attempt():
+        watch.clear()   # A remark from an attempt that then failed must not count against the one that succeeds.
+        return ox.graph_from_polygon(fetch_area(boundary_poly, fetch_buffer_m),
+                                     custom_filter=build_osm_filters(include_alleys), simplify=True, retain_all=True,
+                                     truncate_by_edge=True)
+    graph = call_with_retry(attempt, 'street graph', policy, **retry_kwargs)
+    if watch.cut_short:
+        raise RuntimeError(f'Overpass cut the street fetch short ({watch.remark}); run the build again later.')
     graph = ox.convert.to_undirected(graph)
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
@@ -1195,6 +1287,161 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     tags = [edges[tag] if tag in edges.columns else [None] * len(edges) for tag in STRUCTURE_TAGS]
     edges['is_structure'] = [is_structure_tag(*values) for values in zip(*tags)]
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
+
+
+def drop_unreadable_cache(folder, since):
+    """
+    Deletes the osmnx cache files written since ``since`` (epoch seconds) that are not whole JSON, and says how many.
+    A request's deadline can fall while osmnx writes the reply it just got, and osmnx reads the file back on the
+    next ask of the same query.
+    """
+    dropped = 0
+    if folder.is_dir():
+        for path in folder.iterdir():
+            if path.is_file() and path.stat().st_mtime >= since - 1:
+                try:
+                    json.loads(path.read_text(encoding='utf-8'))
+                except ValueError:
+                    path.unlink()
+                    dropped += 1
+    return dropped
+
+
+def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause_s=7.0, policy=RetryPolicy(),
+               one_request_each=False, overpass_url=OVERPASS_URL, **retry_kwargs):
+    """
+    Fetches the OSM ways the streets are cut from, whole and in their drawn direction, for :func:`street_lineage`.
+
+    On a build this is a second request over the same area as :func:`fetch_streets`, with the same filter, since the
+    graph fetch drops the ways' order and direction (#5741). The backfill passes many small areas instead, one request
+    each, well spaced and retried the way ``overpass.py`` prescribes.
+
+    Args:
+        polygons:          Shapely (Multi)Polygons in lon/lat, one request each; a way in two of them comes back once.
+        way_types:         ``'streets'`` for the build's :data:`DEFAULT_WAY_TYPES`, ``'alleys'`` for those plus
+                           ``service=alley`` (a build auditing alleys), or ``'any'`` for :data:`ALL_WAY_TYPES` (the
+                           backfill: a live city may have been built from footways, ramps or tracks too, and OSM
+                           retags roads after the fact).
+        request_timeout_s: The server time each request declares (see :func:`_osmnx`).
+        memory_mb:         The server memory each request declares.
+        pause_s:           The rest between two requests the server served.
+        policy:            The retry schedule for a refused request.
+        one_request_each:  Every polygon is under 2,500 km², so each call is one request and gets a deadline.
+        overpass_url:      The instance to ask, without /interpreter.
+        retry_kwargs:      The clock fakes ``overpass.fetch_each`` takes, for tests.
+
+    Returns:
+        A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
+
+    Raises:
+        overpass.OverpassUnavailable: when a request is refused for the whole retry window.
+        RuntimeError: when the server keeps cutting a request short with the limits doubled twice, or answers an
+                      area with streets in it with no way at all (an instance without this region).
+        ValueError: when ``way_types`` is none of those three.
+    """
+    if way_types not in ('streets', 'alleys', 'any'):
+        raise ValueError(f'way_types must be streets, alleys or any, not {way_types!r}')
+    ox = _osmnx(request_timeout_s, memory_mb, overpass_url)
+    watch = remark_watch(ox)
+    highways = list(ALL_WAY_TYPES) if way_types == 'any' else \
+        list(DEFAULT_WAY_TYPES) + (['service'] if way_types == 'alleys' else [])
+    limits = [request_timeout_s, memory_mb]
+
+    def cached():
+        folder = Path(ox.settings.cache_folder)
+        return len(list(folder.iterdir())) if folder.is_dir() else 0
+
+    sleep = retry_kwargs.get('sleep', time.sleep)
+
+    def fetch_one(polygon):
+        # A query cut short (out of its declared time or memory) is a 200 with a remark and partial data, so it is asked
+        # again with twice the limits, twice. The raised limits stay: the city's next tile is as dense.
+        for attempt in range(3):
+            if attempt:
+                sleep(pause_s)   # A second ask is a request like any other, and gets the rest between requests.
+            watch.clear()
+            before = cached()
+            started = time.time()
+            deadline = ox.settings.requests_timeout + 2 * CLIENT_SLACK_S if one_request_each else None
+            try:
+                features = with_deadline(lambda: ox.features_from_polygon(polygon, tags={'highway': highways}),
+                                         deadline)
+            except Refused:
+                raise
+            except Exception as exc:
+                if watch.cut_short:
+                    features = None
+                elif type(exc).__name__ == 'InsufficientResponseError' and str(exc).startswith('No matching features'):
+                    # Every area asked for has streets in it.
+                    raise RuntimeError('Overpass returned no ways at all for an area with streets in it: an instance '
+                                       'without this region, or the wrong one?') from exc
+                elif isinstance(exc, ValueError) and drop_unreadable_cache(Path(ox.settings.cache_folder), started):
+                    # The deadline can fall while osmnx writes its cache file, and osmnx reads that file back.
+                    logger.warning('Dropped a cache file written in pieces (%s); asking again', exc)
+                    continue
+                else:
+                    raise
+            # A served answer lands in the cache; one the server cut short is not cached but was served all the same.
+            served = watch.remark is not None or cached() > before
+            if not watch.cut_short:
+                return features, served
+            logger.warning('Overpass cut the request short (%s); asking again with twice the time and memory',
+                           watch.remark)
+            limits[0] *= 2
+            if limits[1]:
+                limits[1] *= 2
+            declare_limits(ox, *limits)
+        reason = watch.remark or 'a cache file written in pieces'
+        raise RuntimeError(f'Overpass gave no whole answer in three tries ({reason}): run again with a larger '
+                           f'--request-timeout-s and --request-memory-mb, or a smaller --tile-km2.')
+
+    ways, highway = {}, {}
+    for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
+        if way_types == 'alleys' and 'highway' in features.columns:
+            # Without the service column no way in the tile says what kind of service road it is, so none is an alley.
+            is_alley = features['service'] == 'alley' if 'service' in features.columns else False
+            features = features[(features['highway'] != 'service') | is_alley]
+        ways.update(ways_from_features(features))
+        highway.update(features['highway'].to_dict() if 'highway' in features.columns else {})
+    return gpd.GeoDataFrame({'osm_way_id': list(ways),
+                             'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways]},
+                            geometry=list(ways.values()), crs='EPSG:4326')
+
+
+LineageStats = namedtuple('LineageStats', 'matched partial unmatched flagged')
+
+
+def street_lineage(roads, ways):
+    """
+    Where each street lies on its OSM ways (#5741): the ``qgis_road_osm_way`` staging rows.
+
+    Args:
+        roads: Final street GeoDataFrame (``road_id``, ``osm_ids``, geometry in lon/lat).
+        ways:  The :func:`fetch_ways` frame, or None for a hand-built layer with no ways to match against.
+
+    Returns:
+        A ``(lineage, stats)`` pair: a GeoDataFrame with one row per street-way pair (``road_id``, ``osm_way_id``,
+        the four fraction columns, ``same_direction``, and the covered stretch of the street as geometry, or no
+        geometry on an unpositioned row) and a :data:`LineageStats` (None without ways), whose ``flagged`` lists
+        ``(road_id, coverage)`` for every street not matched along its whole length.
+    """
+    columns = ['road_id', 'osm_way_id', 'street_from_frac', 'street_to_frac', 'way_from_frac', 'way_to_frac',
+               'same_direction']
+    if ways is None:
+        rows = [(road.road_id, way_id, None, None, None, None, None)
+                for road in roads.itertuples() for way_id in dict.fromkeys(road.osm_ids)]
+        frame = pd.DataFrame(rows, columns=columns)
+        return gpd.GeoDataFrame(frame, geometry=[None] * len(frame), crs='EPSG:4326'), None
+    lineages = compute_lineage(((road.road_id, road.geometry, road.osm_ids) for road in roads.itertuples()),
+                               dict(zip(ways['osm_way_id'], ways.geometry)))
+    geoms = dict(zip(roads['road_id'], roads.geometry))
+    frame = pd.DataFrame(lineage_rows(lineages), columns=['street_id'] + columns[1:]).rename(columns={'street_id': 'road_id'})
+    stretches = [substring(geoms[row.road_id], row.street_from_frac, row.street_to_frac, normalized=True)
+                 if pd.notna(row.street_from_frac) else None for row in frame.itertuples()]
+    counts = lineage_summary(lineages)
+    flagged = [(lineage.street_id, lineage.coverage) for lineage in lineages if lineage.status != 'matched']
+    return (gpd.GeoDataFrame(frame[columns], geometry=stretches, crs='EPSG:4326'),
+            LineageStats(counts['matched'], counts['partial'], counts['unmatched'], flagged))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1632,9 +1879,9 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
 # Outputs.
 # ---------------------------------------------------------------------------------------------------------------------
 
-def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions):
+def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=None, lineage=None):
     """
-    Writes the QA GeoPackage: the two staging layers plus context layers for eyeballing in QGIS.
+    Writes the QA GeoPackage: the staging layers plus context layers for eyeballing in QGIS.
 
     Args:
         path:            Output ``.gpkg`` path.
@@ -1643,10 +1890,16 @@ def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions):
         boundary:        City boundary GeoDataFrame.
         dropped:         Too-short street fragments that were removed.
         rider_junctions: Junction points where boundary-running splits were merged.
+        ways:            The :func:`fetch_ways` frame, which a ``--from-gpkg`` re-export re-matches against.
+        lineage:         The :func:`street_lineage` frame, drawn as the stretch of each street every way covers.
     """
     gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
     regions.to_file(path, layer='qgis_region', driver='GPKG')
     boundary.to_file(path, layer='city_boundary', driver='GPKG')
+    if ways is not None:
+        ways.to_file(path, layer='osm_way', driver='GPKG')
+    if lineage is not None:
+        lineage.to_file(path, layer='qgis_road_osm_way', driver='GPKG')
     if not dropped.empty:
         gpkg_frame(dropped).to_file(path, layer='dropped_segments', driver='GPKG')
     if not rider_junctions.empty:
@@ -1707,7 +1960,7 @@ def write_structures_csv(path, roads):
     }).to_csv(path, index=False)
 
 
-def write_sql(path, roads, regions):
+def write_sql(path, roads, regions, fingerprint=None, lineage=None):
     """
     Writes the SQL file that loads ``qgis_road`` and ``qgis_region`` into a city schema.
 
@@ -1715,15 +1968,22 @@ def write_sql(path, roads, regions):
     exactly what fill-new-schema.sh consumes; region provenance travels in ``qgis_region.data_source``.
 
     Args:
-        path:    Output ``.sql`` path.
-        roads:   Final street GeoDataFrame.
-        regions: Final region GeoDataFrame.
+        path:        Output ``.sql`` path.
+        roads:       Final street GeoDataFrame.
+        regions:     Final region GeoDataFrame.
+        fingerprint: :func:`setup_new_city.staging_fingerprint` of the QA GeoPackage this SQL was made from, so the
+                     orchestrator can refuse the SQL once the GeoPackage no longer matches it.
+        lineage:     The :func:`street_lineage` frame; without one every street gets an unpositioned row per way id.
     """
+    if lineage is None:
+        lineage, _ = street_lineage(roads, None)
     lines = [
         '-- Generated by tools/city/onboard_city.py — staging tables consumed by db/scripts/fill-new-schema.sh.',
         '-- Load as the city role after `make create-new-schema`:',
         '--   docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U <schema> -d sidewalk -f <this file>',
+        *([f'-- Staging fingerprint: {fingerprint}'] if fingerprint else []),
         'BEGIN;',
+        'DROP TABLE IF EXISTS qgis_road_osm_way;',
         'DROP TABLE IF EXISTS qgis_road;',
         'DROP TABLE IF EXISTS qgis_region;',
         'CREATE TABLE qgis_region (',
@@ -1739,6 +1999,15 @@ def write_sql(path, roads, regions):
         '  region_id integer NOT NULL REFERENCES qgis_region (region_id),',
         '  geom geometry(LineString, 4326) NOT NULL',
         ');',
+        'CREATE TABLE qgis_road_osm_way (',
+        '  road_id integer NOT NULL REFERENCES qgis_road (road_id),',
+        '  osm_way_id bigint NOT NULL,',
+        '  street_from_frac double precision,',
+        '  street_to_frac double precision,',
+        '  way_from_frac double precision,',
+        '  way_to_frac double precision,',
+        '  same_direction boolean',
+        ');',
         'COPY qgis_region (region_id, name, data_source, geom) FROM stdin;',
     ]
     for region in regions.itertuples():
@@ -1750,12 +2019,27 @@ def write_sql(path, roads, regions):
         lines.append(f'{road.road_id}\t{{{osm_ids_to_text(road.osm_ids)}}}\t{copy_escape(road.highway)}'
                      f'\t{road.region_id}\t{ewkb_hex(road.geometry)}')
     lines.append('\\.')
+    lines.append('COPY qgis_road_osm_way (road_id, osm_way_id, street_from_frac, street_to_frac, way_from_frac, '
+                 'way_to_frac, same_direction) FROM stdin;')
+    for link in lineage.itertuples():
+        fractions = [link.street_from_frac, link.street_to_frac, link.way_from_frac, link.way_to_frac]
+        cells = [str(link.road_id), str(link.osm_way_id)] + [copy_null(frac) for frac in fractions]
+        cells.append(copy_null(None if link.same_direction is None else ('t' if link.same_direction else 'f')))
+        lines.append('\t'.join(cells))
+    lines.append('\\.')
     lines.append('COMMIT;')
     Path(path).write_text('\n'.join(lines) + '\n')
 
 
+def copy_null(value):
+    """A COPY cell: ``\\N`` for None, the value's text otherwise (``repr`` on a float keeps every digit)."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return '\\N'
+    return repr(value) if isinstance(value, float) else str(value)
+
+
 def write_report(path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 n_tier1_merged=None):
+                 n_tier1_merged=None, lineage_stats=None):
     """
     Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, and the next
     manual steps.
@@ -1773,6 +2057,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         heal_stats:    :data:`HealStats` from :func:`assign_regions`, or None on a ``--from-gpkg`` re-export
                        (healing already happened on the original run).
         n_tier1_merged: Pieces absorbed by :func:`merge_tiny_same_way`, or None on a re-export.
+        lineage_stats:  :data:`LineageStats` from :func:`street_lineage`, or None when there were no ways to match.
     """
     way_type_counts = roads['highway'].value_counts()
     total_km = roads['length_m'].sum() / 1000
@@ -1801,6 +2086,13 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
     if n_tier1_merged is not None:
         lines.append(f'- Merged sub-{args.merge_tiny_m:g} m pieces into a touching piece of the same OSM way '
                      f'(#4717 tier 1): **{n_tier1_merged}**')
+    if lineage_stats is not None:
+        flagged = ', '.join(f'{road_id} ({coverage:.0%})' for road_id, coverage in lineage_stats.flagged[:10])
+        more = ' ...' if len(lineage_stats.flagged) > 10 else ''
+        lines.append(f'- OSM way positions (#5741, `qgis_road_osm_way` layer): matched **{lineage_stats.matched}** '
+                     f'streets along their whole length, **{lineage_stats.partial}** in part, '
+                     f'**{lineage_stats.unmatched}** not at all'
+                     + (f' — check in QGIS: {flagged}{more}' if flagged else ''))
     if heal_stats is not None:
         lines += [
             f'- Healed region-boundary fragments < {args.heal_segment_m:g} m: **{heal_stats.n_fragments}** '
@@ -1812,7 +2104,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
             f'- Merged boundary-running splits: **{heal_stats.n_riders}** (one side ran entirely within '
             f'{args.boundary_merge_tol_m:g} m of the other side\'s region — along the boundary, not across it; '
             'see the `rider_merges` QA layer for the merged junctions)',
-            f'- Dropped segments < {args.min_segment_m:g} m: **{len(dropped)}**{dropped_note}',
+            f'- Dropped segments < {MIN_SEGMENT_M} m: **{len(dropped)}**{dropped_note}',
         ]
     lines += [
         '',
@@ -1913,8 +2205,6 @@ def parse_args(argv=None):
     parser.add_argument('--boundary-merge-tol-m', type=float, default=15,
                         help='Merge a split street back together when one side runs entirely within this distance of '
                              'the other side\'s region, i.e. along the boundary instead of across it (default: 15 m).')
-    parser.add_argument('--min-segment-m', type=float, default=15,
-                        help='Drop street fragments shorter than this after clipping and healing (default: 15 m).')
     parser.add_argument('--max-region-sliver-m', type=float, default=5,
                         help='Regions must never overlap. An overlap thinner than this is taken as two people '
                              'tracing the same border slightly differently and is repaired by giving the ground to '
@@ -1978,6 +2268,14 @@ def run_from_gpkg(args):
     roads = gpd.read_file(gpkg_path, layer='qgis_road')
     regions = gpd.read_file(gpkg_path, layer='qgis_region')
     logger.info('Read %d streets and %d regions from %s', len(roads), len(regions), gpkg_path)
+    if roads.crs is None or regions.crs is None:
+        sys.exit('error: the qgis_road and qgis_region layers need a CRS; set one in QGIS and re-export.')
+    roads, regions = roads.to_crs(epsg=4326), regions.to_crs(epsg=4326)
+    # QGIS's field calculator makes Decimal columns, so ids drawn by hand come in as 1.0, 2.0, ...
+    for frame, column in ((roads, 'road_id'), (roads, 'region_id'), (regions, 'region_id')):
+        if column in frame.columns and pd.api.types.is_float_dtype(frame[column]) and \
+                frame[column].notna().all() and (frame[column] % 1 == 0).all():
+            frame[column] = frame[column].astype(int)
     # QGIS edits can demote a region to a plain Polygon; promote before validating.
     regions['geometry'] = regions.geometry.map(to_multipolygon)
     if args.rename_regions:
@@ -2002,7 +2300,7 @@ def run_from_gpkg(args):
                        'sample the street gradient after the first nightly OSM way refresh (docs/street-gradient.md).')
         # An earlier build's file would otherwise be taken for this one's by the onboarding orchestrator.
         (out_dir / 'street_structures.csv').unlink(missing_ok=True)
-    roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
+    roads['length_m'] = [geodesic_length_m(geom) if geom is not None else 0.0 for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
     if errors:
@@ -2021,17 +2319,31 @@ def run_from_gpkg(args):
     else:  # A hand-built GeoPackage may not carry the boundary layer.
         coverage = None
 
+    # The build keeps the whole ways in the GeoPackage, so edited streets are re-matched against them here, with no
+    # fetch. A hand-built GeoPackage has no ways, and its streets get unpositioned rows from their way ids.
+    if 'osm_way' in layers:
+        ways = gpd.read_file(gpkg_path, layer='osm_way').to_crs(epsg=4326)
+    else:
+        ways = None
+        logger.warning('The GeoPackage has no osm_way layer, so the streets are linked to their OSM ways without '
+                       'positions along them; the lineage backfill (tools/city/backfill_osm_lineage.py) can add '
+                       'them once the city is live.')
+    lineage, lineage_stats = street_lineage(roads, ways)
+    if lineage_stats is not None:
+        logger.info('OSM way positions: %d streets matched whole, %d in part, %d not at all', lineage_stats.matched,
+                    lineage_stats.partial, lineage_stats.unmatched)
+
     sql_path = out_dir / 'qgis_tables.sql'
     report_path = out_dir / 'report.md'
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
-    write_sql(sql_path, roads, regions)
+    write_sql(sql_path, roads, regions, staging_fingerprint(gpkg_path), lineage)
     write_endpoints_csv(endpoints_path, roads)
     written = [sql_path, endpoints_path]
     if 'is_structure' in roads.columns:
         write_structures_csv(out_dir / 'street_structures.csv', roads)
         written.append(out_dir / 'street_structures.csv')
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
-                 stats, coverage, None)
+                 stats, coverage, None, lineage_stats=lineage_stats)
     logger.info('\nWrote:\n%s\nThe SQL now matches the edited GeoPackage.',
                 '\n'.join(f'  {path}' for path in written + [report_path]))
 
@@ -2105,11 +2417,13 @@ def main(argv=None):
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))
+    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], 'alleys' if args.include_alleys else 'streets')
+    logger.info('OSM ways fetched: %d', len(ways))
     streets, n_tier1_merged = merge_tiny_same_way(streets, args.merge_tiny_m)
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',
                 n_tier1_merged, args.merge_tiny_m, len(streets))
 
-    roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, args.min_segment_m,
+    roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, MIN_SEGMENT_M,
                                                                  args.heal_segment_m, args.boundary_merge_tol_m)
     if roads.empty:
         sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
@@ -2130,21 +2444,24 @@ def main(argv=None):
                 heal_stats.n_riders)
     street_stats = street_length_stats(roads)
     logger.info('Final streets: %d (%.1f km, median %.0f m); dropped %d fragments < %g m; %d (%.0f%%) under 20 m',
-                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(dropped), args.min_segment_m,
+                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(dropped), MIN_SEGMENT_M,
                 street_stats.n_lt20, street_stats.pct_lt20)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
+    lineage, lineage_stats = street_lineage(roads, ways)
+    logger.info('OSM way positions: %d streets matched whole, %d in part, %d not at all', lineage_stats.matched,
+                lineage_stats.partial, lineage_stats.unmatched)
 
     gpkg_path = out_dir / f'{args.city_id}_qa.gpkg'
     sql_path = out_dir / 'qgis_tables.sql'
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     report_path = out_dir / 'report.md'
-    write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions)
-    write_sql(sql_path, roads, regions)
+    write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions, ways, lineage)
+    write_sql(sql_path, roads, regions, staging_fingerprint(gpkg_path), lineage)
     write_endpoints_csv(endpoints_path, roads)
     write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 n_tier1_merged)
+                 n_tier1_merged, lineage_stats)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the '
                 'report).', gpkg_path, sql_path, endpoints_path, out_dir / 'street_structures.csv', report_path)
 

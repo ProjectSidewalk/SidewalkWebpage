@@ -6,16 +6,11 @@
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-  <script>
-    // Set data attributes for API information. Used by apiDocs.js (e.g. the download buttons) to build API calls.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'accessScoreRegions');
-  </script>
 
   <div class="page-section" id="access-score-regions-intro-section">
     <h1 class="page-heading" id="access-score-regions-api">AccessScore: Regions API <a href="#access-score-regions-api" class="permalink">#</a></h1>
     <p>The AccessScore: Regions API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each region (neighborhood) — higher is more accessible. A region's <code>score</code> is the <strong>street-length-weighted mean</strong> of the AccessScores of its audited streets, so long streets count proportionally more than short ones, and its <code>intersection_score</code> the plain mean of its scored <a href="@routes.ApiDocsController.accessScoreIntersections">intersections</a> — every crossing counts once.</p>
-    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong> and the weights are subject to change. See the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> for how individual street scores are computed.</p>
+    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf" target="_blank" rel="noopener">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong> and the weights are subject to change. See the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> for how individual street scores are computed.</p>
   </div>
 
   <div class="page-section" id="access-score-regions-preview-section">
@@ -24,21 +19,11 @@
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street- and neighborhood-level accessibility—researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-regions-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/accessScoreRegionsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        AccessScoreRegionsPreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    @ViteAssets.stylesheets("api-docs/accessScoreRegions", alreadyLinked = "api-docs/layout")
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/accessScoreRegions.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

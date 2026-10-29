@@ -1,153 +1,384 @@
 # Testing & CI Plan
 
-_A proposed, phased plan to introduce an automated test suite and continuous integration to Project Sidewalk. Drafted June 2026 from a code-audit pass; open for team feedback. Tracking issue: #1086._
+_A proposed, phased plan to introduce an automated test suite and continuous integration to Project Sidewalk. Drafted
+June 2026 from a code-audit pass; open for team feedback. Tracking issue: #1086._
 
 ## Context
 
-Project Sidewalk is a public civic-tech app with real end users, yet it currently has **zero backend (Scala) tests, no JS tests, and no CI** — `.github/` contains only a PR template, and `npm test` invokes a non-existent grunt task. A recent audit shipped a security fix (PR #4239: SQL-injection escaping + `saveImage` path validation) and surfaced a discarded-`DBIO` data-integrity bug (#4228) — none of which have anything guarding them against regression. The compiler (`-Xfatal-warnings`) is presently the *only* automated gate.
+Project Sidewalk is a public civic-tech app with real end users, yet it currently has **zero backend (Scala) tests, no
+JS tests, and no CI** — `.github/` contains only a PR template, and `npm test` invokes a non-existent grunt task. A
+recent audit shipped a security fix (PR #4239: SQL-injection escaping + `saveImage` path validation) and surfaced a
+discarded-`DBIO` data-integrity bug (#4228) — none of which have anything guarding them against regression. The compiler
+(`-Xfatal-warnings`) is presently the *only* automated gate.
 
-**Goal:** stand up a layered, best-practices test suite + GitHub Actions CI, delivered in **independently mergeable phases**, the first of which requires *zero tests to exist* so it can land immediately.
+**Goal:** stand up a layered, best-practices test suite + GitHub Actions CI, delivered in **independently mergeable
+phases**, the first of which requires *zero tests to exist* so it can land immediately.
 
 **Non-goals (for now):** deep canvas/imagery E2E, high coverage targets, or rewriting the frontend to a module system.
 
 ## Test architecture — four layers (fat base, thin top)
 
 - **(a) Unit, no-DB** — plain ScalaTest on pure logic / DI-free `object`s. Milliseconds, no app, no services.
-- **(b) DB integration** — `*Service`/`*Table` query tests against **real Postgres + PostGIS** (H2 cannot emulate the slick-pg geometry/enum/jsonb/array types in `app/models/utils/MyPostgresProfile.scala`). Home of the #4239 / #4228 regressions.
-- **(c) In-JVM functional/route** — boot a `GuiceApplicationBuilder` app with faked Silhouette auth, stubbed `WSClient`, and the eager actors disabled; exercise controllers/routes including auth guards and the public v3 API.
-- **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
+- **(b) DB integration** — `*Service`/`*Table` query tests against **real Postgres + PostGIS** (H2 cannot emulate the
+  slick-pg geometry/enum/jsonb/array types in `app/models/utils/MyPostgresProfile.scala`). Home of the #4239 / #4228
+  regressions.
+- **(c) In-JVM functional/route** — boot a `GuiceApplicationBuilder` app with faked Silhouette auth, stubbed `WSClient`,
+  and the eager actors disabled; exercise controllers/routes including auth guards and the public v3 API.
+- **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless
+  Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a
+  **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs
+  against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
 
 ## Test database
 
-- **CI brings up the repo's own `db` image** (`db/Dockerfile`, via `docker compose up -d --build db`) — the same Postgres+PostGIS build dev runs, with `db/scripts/init.sh` creating the `plpgsql` and `postgis` extensions and restoring the committed template dumps. A fresh runner creates the `pgdata` volume empty, so the entrypoint runs `init.sh` and every run starts from the same template. Reproducing this locally does *not* start clean — an existing `pgdata` makes the entrypoint skip `init.sh`, and the suites run against whatever city you last imported. Simpler/faster than Testcontainers (no Docker-in-Docker, no per-suite startup), and contributors aren't forced to run Docker locally.
-- Connection comes from env vars so the *same* tests run against the CI database, a local dev DB, or an **optional** Testcontainers instance toggled by a system property (Testcontainers stays available, not mandatory).
-- **Schema:** `play.evolutions.db.default.autoApply=true` is already set and `conf/application.test.conf` does `include "application.conf"`, so Play applies all evolutions automatically on first DB access — **once per CI job**. Measure apply time in Phase 2; cache an evolved volume/image only if it proves slow.
-- **Isolation:** transaction-rollback per test for layer (b); `TRUNCATE … RESTART IDENTITY CASCADE` + minimal reseed in `beforeEach` for layer (c) (the HTTP path can't share a transaction). Never drop/re-evolve per test. Keep layer-(b) and layer-(c) suites separate (enforced via tags + directories).
+- **CI brings up the repo's own `db` image** (`db/Dockerfile`, via `docker compose up -d --build db`) — the same
+  Postgres+PostGIS build dev runs, with `db/scripts/init.sh` creating the `plpgsql` and `postgis` extensions and
+  restoring the committed template dumps. A fresh runner creates the `pgdata18` volume empty, so the entrypoint runs
+  `init.sh` and every run starts from the same template. Reproducing this locally does *not* start clean — an existing
+  `pgdata18` makes the entrypoint skip `init.sh`, and the suites run against whatever city you last imported.
+  Simpler/faster than Testcontainers (no Docker-in-Docker, no per-suite startup), and contributors aren't forced to run
+  Docker locally.
+- Connection comes from env vars so the *same* tests run against the CI database or a local dev DB (`DATABASE_URL`
+  overrides the default).
+- **Schema:** `play.evolutions.db.default.autoApply=true` is already set and `conf/application.test.conf` does `include
+  "application.conf"`, so Play applies all evolutions automatically on first DB access — **once per CI job**. Measure
+  apply time in Phase 2; cache an evolved volume/image only if it proves slow.
+- **Isolation:** transaction-rollback per test for layer (b); `TRUNCATE … RESTART IDENTITY CASCADE` + minimal reseed in
+  `beforeEach` for layer (c) (the HTTP path can't share a transaction). Never drop/re-evolve per test. Keep layer-(b)
+  and layer-(c) suites separate (enforced via tags + directories).
 
-## Dependencies to add
+## Test dependencies
 
-`build.sbt` (Test-scoped; pin exact versions, let automation bump):
-```scala
-"org.playframework"            %% "play-test"               % "3.0.10" % Test,
-"org.scalatestplus.play"       %% "scalatestplus-play"      % "7.0.1"  % Test,
-"com.dimafeng"                 %% "testcontainers-scala-scalatest"  % "0.43.0" % Test,  // optional local toggle
-"com.dimafeng"                 %% "testcontainers-scala-postgresql" % "0.43.0" % Test,
-"org.mockito"                   % "mockito-core"            % "5.14.2" % Test
-```
-`project/plugins.sbt` (currently only the Play plugin):
-```scala
-addSbtPlugin("org.scalameta" % "sbt-scalafmt"  % "2.5.4")
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
-```
+The specs need only **scalatestplus-play** (Test scope in `build.sbt`), which brings in ScalaTest and Play's test
+helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scoverage** plugins in `project/plugins.sbt`.
 
 ## Test support harness — `test/` mirrors `app/`, plus `test/util/`
 
-**Landed as `test/util/`** (the bullets below, plus `StreetFixtures.scala` and `UserAgents.scala`; `GuiceTestApp`/`WsStubs` are still proposals). Suites build their own `GuiceApplicationBuilder` with `.disable[modules.ActorModule]` rather than sharing one.
+**Landed as `test/util/`** (the bullets below, plus `StreetFixtures.scala` and `UserAgents.scala`;
+`GuiceTestApp`/`WsStubs` are still proposals). Suites build their own `GuiceApplicationBuilder` with
+`.disable[modules.ActorModule]` rather than sharing one.
 
-- `util/SidewalkSpec.scala` — the base class for every spec that would otherwise extend `PlaySpec` (`make lint-spec-base` enforces it). ScalaTest has its own `===`, and under Scala 3 it wins over Slick's inside a spec, so `filter(_.id === id)` silently becomes `where false`; the base class switches ScalaTest's off.
-- `util/RolledBackDb.scala` — DB config plus `runRolledBack`, which runs a body inside a transaction that always aborts. For layer (b): the HTTP path can't share a transaction, so a layer-(c) spec that writes rows deletes them by id in `afterAll` instead (`ImageryAdminSpec`, `AdminJobTriggerSpec`, and since #5041 `ImageryFreshnessReportServiceSpec`, `NightlyJobStatusSpec`). Deleting by what the rows *look like* — `DELETE FROM background_job_run WHERE job_name = …` — is the same thing as deleting by id only on CI's empty schema; on a developer's database it also takes the rows the dev app itself recorded. Where a case needs a real name to itself rather than just its own rows, it `assume`s the database holds nothing else under that name and cancels if it does. That is the opposite direction from the data-hungry `assume`s #5115's seed was written to retire: it cancels on a database holding *more* than the case expects, which no seed makes true — `ci-seed.sql` records no `background_job_run` rows, and CI's actors are disabled, so those cases always run there. Seeding job runs would silently cancel them, so if the seed ever grows some, rewrite the cases rather than leaving them to report as passes.
-- `util/AnonSession.scala` — `freshAnonSession()`, a distinct persistent user per call, minted through the real `/anonSignUp` route. That route is rate-limited per IP and every suite in a run shares loopback, so a suite minting more than a couple of sessions must `.configure("rate-limit.anon-signup.enabled" -> false)`.
-- `util/RoleSession.scala` (#4946) — `sessionAs(Role.Administrator)` / `sessionAs(Role.Registered)`: an anonymous session promoted by a DB write to `sidewalk_login.user_role`, demoted again in `afterAll`. Roles are checked against `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing. **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
-- `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp` route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows for those users deletes them in its own `afterAll`, which runs first. Mix in before `GuiceOneAppPerSuite`, like `RoleSession`.
-- `util/StubService.scala` (#4946) — a reflective stand-in for a service trait that answers named methods and throws on the rest, for specs about what a controller *does* rather than what its collaborator computes. Only works on traits whose members are all abstract (what makes a Scala trait a Java interface).
-- `support/GuiceTestApp.scala` — a shared `GuiceApplicationBuilder` with `bind[WSClient].toInstance(stub)`. It does not need to do anything about the eager actors: `.disable[modules.ActorModule]` is what every suite uses today and it needs no `@Named` `ActorRef` re-binding.
-- `support/WsStubs.scala` — canned responses for the external callers: `PanoDataService` (Google SV metadata, Infra3d OAuth), `AiService` (Sidewalk AI), `ConfigService` (SciStarter).
+- `util/SidewalkSpec.scala` — the base class for every spec that would otherwise extend `PlaySpec` (`make
+  lint-spec-base` enforces it). ScalaTest has its own `===`, and under Scala 3 it wins over Slick's inside a spec, so
+  `filter(_.id === id)` silently becomes `where false`; the base class switches ScalaTest's off.
+- `util/RolledBackDb.scala` — DB config plus `runRolledBack`, which runs a body inside a transaction that always aborts.
+  For layer (b): the HTTP path can't share a transaction, so a layer-(c) spec that writes rows deletes them by id in
+  `afterAll` instead (`ImageryAdminSpec`, `AdminJobTriggerSpec`, and since #5041 `ImageryFreshnessReportServiceSpec`,
+  `NightlyJobStatusSpec`). Deleting by what the rows *look like* — `DELETE FROM background_job_run WHERE job_name = …` —
+  is the same thing as deleting by id only on CI's empty schema; on a developer's database it also takes the rows the
+  dev app itself recorded. Where a case needs a real name to itself rather than just its own rows, it `assume`s the
+  database holds nothing else under that name and cancels if it does. That is the opposite direction from the
+  data-hungry `assume`s #5115's seed was written to retire: it cancels on a database holding *more* than the case
+  expects, which no seed makes true — `ci-seed.sql` records no `background_job_run` rows, and CI's actors are disabled,
+  so those cases always run there. Seeding job runs would silently cancel them, so if the seed ever grows some, rewrite
+  the cases rather than leaving them to report as passes.
+- `util/AnonSession.scala` — `freshAnonSession()`, a distinct persistent user per call, minted through the real
+  `/anonSignUp` route. That route is rate-limited per IP and every suite in a run shares loopback, so a suite minting
+  more than a couple of sessions must `.configure("rate-limit.anon-signup.enabled" -> false)`.
+- `util/RoleSession.scala` (#4946) — `sessionAs(Role.Administrator)` / `sessionAs(Role.Registered)`: an anonymous
+  session promoted by a DB write to `sidewalk_login.user_role`, demoted again in `afterAll`. Roles are checked against
+  `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't
+  tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
+  keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
+  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists`, and
+  after the role check an Infra3D access check, so a signed-in `sessionAs` account gets that access (never an
+  anonymous one, which is sent to sign in on those cities).
+- `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
+  route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
+  account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows
+  for those users deletes them in its own `afterAll`, which runs first. Mix in before `GuiceOneAppPerSuite`, like
+  `RoleSession`.
+- `util/StubService.scala` (#4946) — a reflective stand-in for a service trait that answers named methods and throws on
+  the rest, for specs about what a controller *does* rather than what its collaborator computes. Only works on traits
+  whose members are all abstract (what makes a Scala trait a Java interface).
+- `support/GuiceTestApp.scala` — a shared `GuiceApplicationBuilder` with `bind[WSClient].toInstance(stub)`. It does not
+  need to do anything about the eager actors: `.disable[modules.ActorModule]` is what every suite uses today and it
+  needs no `@Named` `ActorRef` re-binding.
+- `support/WsStubs.scala` — canned responses for the external callers: `PanoDataService` (Google SV metadata, Infra3d
+  OAuth), `AiService` (Sidewalk AI), `ConfigService` (SciStarter).
 - ScalaTest **tags** `DbTest` / `Functional` so CI can include/exclude by phase; unit tests untagged (always run).
 
 ## First concrete test targets
 
-- **Unit (a):** `ImageSigningServiceSpec` (HMAC sign/verify, expiry, tamper, wrong-path), `CommonUtilsSpec` (`calculateDestination`), `ControllerUtilsSpec` (`parseIntegerSeq`/`isMobile`/`parseURL`), `PanoDataServiceMathSpec` (`getFov`/`calculatePovFromPanoXY`/`toLatLng`).
-- **DB (b):** **`LabelTableSqlEscapingSpec` (#4239)** — drive the raw-SQL builders with `'`, `''`, `'; DROP TABLE` payloads in regionName/tags/labelType/wayType; assert safe execution + correct results; mirror for `ClusterTable`/`StreetEdgeTable`. **`ValidationServiceSpec` (#4228)** — assert the previously-discarded `DBIO` side effect actually persists inside `.transactionally`.
-- **Functional (c):** **`ImageControllerSpec` (#4239)** — `saveImage` rejects path-traversal `label_type`/`name` and requires a signed-in user; `serveCropImage` enforces `labelTypeNames` + HMAC + Referer. `PublicApiSpec` — v3 bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`: every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public), plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish. **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5 extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html` stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load off their unfingerprinted paths — so nothing else would catch one.
+- **Unit (a):** `ImageSigningServiceSpec` (HMAC sign/verify, expiry, tamper, wrong-path), `CommonUtilsSpec`
+  (`calculateDestination`), `ControllerUtilsSpec` (`parseIntegerSeq`/`isMobile`/`parseURL`), `PanoDataServiceMathSpec`
+  (`getFov`/`calculatePovFromPanoXY`/`toLatLng`).
+- **DB (b):** **`LabelTableSqlEscapingSpec` (#4239)** — drive the raw-SQL builders with `'`, `''`, `'; DROP TABLE`
+  payloads in regionName/tags/labelType/wayType; assert safe execution + correct results; mirror for
+  `ClusterTable`/`StreetEdgeTable`. **`ValidationServiceSpec` (#4228)** — assert the previously-discarded `DBIO` side
+  effect actually persists inside `.transactionally`.
+- **Functional (c):** **`ImageControllerSpec` (#4239)** — `saveImage` rejects path-traversal `label_type`/`name` and
+  requires a signed-in user; `serveCropImage` enforces `labelTypeNames` + HMAC + Referer. `PublicApiSpec` — v3
+  bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
+  every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
+  plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
+  `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
+  tampered, or expired session cookie counting as logged out.
+  **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5
+  extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
+  stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load
+  off their unfingerprinted paths — so nothing else would catch one.
 
 ## Frontend testing
 
-- **Runner: Jest + jsdom** (CommonJS-friendly for the no-module global-script reality; less ESM friction than Vitest). Load each pure util via a small `require` helper that captures its global (`util.math`, the pano-viewer classes) — **no production-code changes required** to start. First targets: `common/UtilitiesMath.js`, `common/pano-viewer/src/PanoUtilities.js`, `common/aggregate-stats.js`.
-- Replace the broken `npm test` (`grunt && grunt test`) with `jest`.
-- **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `public/css/` layout check + the `public/js/` asset-path check, the `public/vendor/` version check, the JSDoc type check, the spec base-class check, plus the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are **now blocking** steps in the `frontend` job — ESLint (`public/js/` + `public/locales/` + `test/js/` + `test/e2e/`), Stylelint (`public/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`, `tools/lint/check-css-layout.mjs` (#5030: a page's stylesheet is linked only by that page, page class prefixes stay in the page's own files, every linked stylesheet exists), `tools/lint/check-vendor-versions.mjs` (#4399: every self-hosted library folder is listed in `docs/upgrading-libraries.md` and the versions there match the filenames — Dependabot never sees these, so that doc is their whole inventory), `tools/lint/check-js-types.mjs` (#5278: TypeScript checks `public/js/` against its JSDoc types in four runs, one each for Explore, Validate, and Gallery (which reuse class names) and one for everything else; every file fails on an error), and `tools/lint/check-asset-paths.mjs` (#4893: no hardcoded `/assets/` URL in `public/js/`, and every `util.assetPath` argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a literal family directory; #5204 added the rule against editing a resolved `src` as a string) — each landing once its tree was clean, straight to blocking with no advisory ramp (same as scalafmt/evolutions-lint). **Severity is the gate**: `error` rules block the build (correctness + must-fix smells like `no-unused-vars`/`no-shadow`), while the one `warn` rule on ESLint/Stylelint (`max-len` / `max-line-length`) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so they're *not* run with `--max-warnings 0`.
+- **Runner: Vitest + jsdom** (`vitest.config.mjs`; `make test-js`, also `npm test`). A suite loads its subject with
+  `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
+  `test/js/README.md`.
+- **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
+  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
+  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
+  Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
+  `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
+  class prefixes stay in the page's own files, every stylesheet is imported by something, every view that loads an
+  entry's JS asks for its styles), `tools/lint/check-js-types.mjs` (#5278: TypeScript checks `frontend/js/` against
+  its JSDoc types in four runs, one each for Explore, Validate, and Gallery (which reuse class names) and one for
+  everything else; every file fails on an error), and `tools/lint/check-asset-paths.mjs` (#4893: no hardcoded `/assets/`
+  URL in `frontend/js/`, and every `util.assetPath` argument checkable — a literal one naming a real file in a
+  fingerprinted family, an interpolated one opening with a literal family directory; #5204 added the rule against
+  editing a resolved `src` as a string) — each landing once its tree was clean, straight to blocking with no advisory
+  ramp (same as scalafmt/evolutions-lint). **Severity is the gate**: `error` rules block the build (correctness +
+  must-fix smells like `no-unused-vars`/`no-shadow`), while the one `warn` rule on ESLint/Stylelint (`max-len` /
+  `max-line-length`) is advisory, since CLAUDE.md sanctions long-line exceptions, so neither linter runs with the
+  `--max-warnings 0` flag that would fail on one.
 
 ## Python utility testing
 
-- **Runner: `pytest`** for the standalone Python scripts in [`scripts/`](../scripts) and [`tools/`](../tools). Tests live in [`test/python/`](../test/python); config is in `pyproject.toml` (`[tool.pytest.ini_options]`, with the script folders on `pythonpath`).
-- The scripts were refactored so their decision logic sits in **pure, importable** functions (distance metric, coordinate cleaning, clustering, cluster-id offsetting; bounding-box/vertex math, GSV/Mapillary response parsing, imagery-decision thresholds, CSV writing), with network/file I/O isolated in thin wrappers and `main`. Tests target the pure functions — **no DB, no network**.
-- **Coverage gate:** the suite measures line + branch coverage (`pytest-cov`) and **fails under 100%** (`--cov-fail-under=100` in `pyproject.toml`). Justified: the scripts are small and now pure, so full correctness coverage is achievable and keeps a new uncovered branch from slipping in. (Contrast the Scala suite, which starts with a low, *ratcheting* scoverage threshold in Phase 4 — a large legacy surface can't jump to 100%.) `main`'s I/O is covered by mocking the network wrappers + `tmp_path`; the only exclusions are the `__main__` guards and one provably-unreachable loop branch (`# pragma: no branch`). Scoping is a bare `--cov` plus `source = ["scripts", "tools"]`, so the gate is always on and covers both arms — an uncovered *branch*, and a script nothing imports, which `source` reports at 0%. Each half sets `COVERAGE_OMIT` to the script its interpreter can't import; unset, the gate fails loudly rather than silently measuring less.
-- **Split by interpreter (#4396).** Each script is tested on the Python that runs it: `label_clustering.py` on **`python3` (3.8)**, since the app shells out to it and prod's system Python is 3.8; the offline tooling (`check_streets_for_imagery.py`, `onboard_city.py`, `street_gradient.py`) on **`python3.13`**, since its libraries need ≥ 3.11. `make test-python` runs both halves (`test-python-app` / `test-python-tools` for one). Each takes the whole directory minus the files the other owns, so a new test file runs in both by default; one that only works on one gets an `--ignore` in the other.
-- Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8, `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt` (`pytest`, `pytest-cov`, environment-marked per interpreter) into both. Exact pins live in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Runner: `pytest`** for the standalone Python scripts in [`scripts/`](../scripts) and [`tools/`](../tools). Tests
+  live in [`test/python/`](../test/python); config is in `pyproject.toml` (`[tool.pytest.ini_options]`, with the script
+  folders on `pythonpath`).
+- The scripts were refactored so their decision logic sits in **pure, importable** functions (distance metric,
+  coordinate cleaning, clustering, cluster-id offsetting; bounding-box/vertex math, GSV/Mapillary response parsing,
+  imagery-decision thresholds, CSV writing), with network/file I/O isolated in thin wrappers and `main`. Tests target
+  the pure functions — **no DB, no network**.
+- **Coverage gate:** the suite measures line + branch coverage (`pytest-cov`) and **fails under 100%**
+  (`--cov-fail-under=100` in `pyproject.toml`). Justified: the scripts are small and now pure, so full correctness
+  coverage is achievable and keeps a new uncovered branch from slipping in. (Contrast the Scala suite, which starts with
+  a low, *ratcheting* scoverage threshold in Phase 4 — a large legacy surface can't jump to 100%.) `main`'s I/O is
+  covered by mocking the network wrappers + `tmp_path`; the only exclusions are the `__main__` guards and one
+  provably-unreachable loop branch (`# pragma: no branch`). Scoping is a bare `--cov` plus `source = ["scripts",
+  "tools"]`, so the gate is always on and covers both arms — an uncovered *branch*, and a script nothing imports, which
+  `source` reports at 0%. Each half sets `COVERAGE_OMIT` to the script its interpreter can't import; unset, the gate
+  fails loudly rather than silently measuring less.
+- **Split by interpreter (#4396).** Each script is tested on the Python that runs it: `label_clustering.py` on
+  **`python3` (3.8)**, since the app shells out to it and prod's system Python is 3.8; the offline tooling
+  (`check_streets_for_imagery.py`, `onboard_city.py`, `osm_lineage.py`, `backfill_osm_lineage.py`, `street_gradient.py`)
+  on **`python3.13`**, since its libraries need ≥ 3.12. `make test-python` runs both halves (`test-python-app` /
+  `test-python-tools` for one). Each takes the whole directory minus the files the other owns, so a new test file runs
+  in both by default; one that only works on one gets an `--ignore` in the other.
+- Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
+  `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
+  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both;
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says why the pins fall where they do.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
 Parallel jobs:
-- **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325, see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic, no DB. (Forward *application* of new evolutions is already exercised by `backend-tests`, which boots the app and auto-applies pending evolutions. A from-scratch up→down→up round-trip was prototyped and dropped: applying the full history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB would be needed, not worth it for an advisory check.)
-- **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file outside `public/vendor/`, from a Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot sees the version) so CI and every developer get the same version. Any finding fails it, notes included; silence one only with a `# shellcheck disable=SCxxxx` line that gives the reason. Shared settings are in `.shellcheckrc`. **Blocking**, and a required status check once promoted (#5589; a new job can only be made required after it's on `develop`, see the branch-protection note below). The scripts have no tests of their own: they are developer tools, and a test framework for them isn't worth the upkeep.
-- **route-lint** — `setup-python` (3.8, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a `conf/routes` entry is unreachable because an earlier same-method route already matches all of its request paths — Play commits to the first path-pattern match and 400s on a typed-param mismatch rather than falling through, which is how a wildcard above a literal sibling silently broke `/label/tags` (#456). **Blocking**, and a required status check. The compiled-router counterpart is `RouteReachabilitySpec` in `backend-tests`, which also covers sub-router includes.
-- **python-tests** — a two-leg `setup-python` matrix (`fail-fast: false`) mirroring `make test-python`: **`Python tests (in-band script)`** installs `requirements.txt` + `requirements-dev.txt` on **3.8**, **`Python tests (offline tooling)`** installs `requirements-offline-tools.txt` + `requirements-dev.txt` on **3.13**, and each runs `test/python` minus the other interpreter's file. No DB/network. `continue-on-error` is `${{ matrix.advisory }}` rather than a job-level flag, so the two legs gate differently: the **in-band** leg is **blocking** and required, because `label_clustering.py` is shelled out to by the running app; the **offline tooling** leg stays **advisory**, because `check_streets_for_imagery.py` is an operator utility that never runs on the server. Note that `half` also spells the check name — renaming a leg renames a required check, which branch protection then waits on forever.
-- **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first (booting the app auto-applies pending evolutions, so this is also the forward-apply gate — the class of failure that shipped the broken evolution 325 — and the spec asserts the schema reached HEAD rather than stopping partway), then the shared `test/e2e/fixtures/ci-seed.sql`, which needs the evolved schema, then `install-media.sh` beside it, then the suite, which needs both. The seed is generated: `test/e2e/fixtures/gen_ci_seed.py` rebuilds it from a prod slice pulled by `test/e2e/fixtures/ci_seed_slice.sql`, and the invariants it has to preserve (derived caches matching their runtime recomputes, the label-id window the share and phone-viewport specs read from opposite ends, `label_point.pano_x` sharing a pixel space with the downscaled fixture imagery) are written there as code rather than left for a reader to rediscover in 500 lines of INSERTs. The seed is the whole reason the data-dependent half of the suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled — the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in `build.sbt`. Both spec steps run under **scoverage**, and a final `coverageReport` step enforces the **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
-- **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll` under `if: always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. Both steps **blocking**, and both required status checks.
-- **frontend** — `setup-node` (Node 24, `cache: npm`); `npm ci` → `npx grunt` (exercises grunt concat) → the nine lint steps plus the Jest suite, all **blocking** and each `if: always()` so the build + every result report in one run: **`npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`**, **`npx stylelint 'public/**/*.css'`**, **`npx htmlhint app/views`**, **`node tools/lint/check-locale-parity.mjs`**, **`node tools/lint/check-css-layout.mjs`**, **`node tools/lint/check-asset-paths.mjs`** (no `--max-warnings 0` — the lone `warn` rule, `max-len`, is advisory), **`node tools/lint/check-vendor-versions.mjs`**, **`node tools/lint/check-js-types.mjs`**, **`node tools/lint/check-spec-base.mjs`**, then **`npm run test:js:coverage`** (the jsdom Jest suite in `test/js/`), made blocking by #5132 — thin coverage is why there's no `coverageThreshold`, not a reason to let an existing suite go red.
-- **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the grunt bundles, then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at startup; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly actors' first tick lands uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins — harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` + `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`) rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since a seeded schema always puts those pages in their healthy state. Both are in the gate by matching `A11Y_SPECS` in `playwright.config.js`, the one pattern that also keeps them out of the smoke half. It is its own Playwright project (`--project=a11y`), run ahead of the smoke half. A project rather than a `--grep` keeps the split structural: rewording a test title can't move it between the halves. Gating this early is safe because a page enters the table only once its violations are fixed or tracked, so a failure is a regression rather than a known gap. The seed puts a few gallery cards, leaderboard rows and api-docs preview features on the page, so those surfaces are covered; what still needs a full local DB is anything only volume brings out (a long username, a hundred cards). The data portal pages (#5058) join when they land. Both halves are blocking, and the job is a **required status check** (added 2026-09-02), which gates merges on its infrastructure too — the DB bring-up, `sbt stage`, the app boot and both readiness probes. Policy and the manual checklist are in [`docs/accessibility.md`](accessibility.md). Every key is a dummy, `GOOGLE_MAPS_API_KEY` included: Mapbox and Google Maps are both stubbed in-suite (`test/e2e/fixtures/google-maps-stub.js`, #5129), so the phase-2 Explore/Validate specs run on fork PRs too, and nothing can bill — Google charges per `StreetViewPanorama` / `Map` instantiation, and a real key here once cost more than production in a month; see `docs/google-cloud.md` → "CI's Google usage".
+- **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in
+  the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits
+  statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325,
+  see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic,
+  no DB. A second step fails if an evolution already in the newest `v*` tag was edited. (Applying evolutions, and
+  rolling the new ones back, is `backend-tests`' job, below.)
+- **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
+  included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
+  Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
+  sees the version) so CI and every developer get the same version. Any finding fails it, notes included; silence one
+  only with a `# shellcheck disable=SCxxxx` line that gives the reason. Shared settings are in `.shellcheckrc`.
+  **Blocking**, and a required status check once promoted (#5589; a new job can only be made required after it's on
+  `develop`, see the branch-protection note below). The scripts have no tests of their own: they are developer tools,
+  and a test framework for them isn't worth the upkeep.
+- **route-lint** — `setup-python` (3.8, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a
+  `conf/routes` entry is unreachable because an earlier same-method route already matches all of its request paths —
+  Play commits to the first path-pattern match and 400s on a typed-param mismatch rather than falling through, which is
+  how a wildcard above a literal sibling silently broke `/label/tags` (#456). **Blocking**, and a required status check.
+  The compiled-router counterpart is `RouteReachabilitySpec` in `backend-tests`, which also covers sub-router includes.
+- **python-tests** — a two-leg `setup-python` matrix (`fail-fast: false`) mirroring `make test-python`: **`Python tests
+  (in-band script)`** installs `requirements.txt` + `requirements-dev.txt` on **3.8**, **`Python tests (offline
+  tooling)`** installs `requirements-offline-tools.txt` + `requirements-dev.txt` on **3.13**, and each runs
+  `test/python` minus the other interpreter's file. No DB/network. `continue-on-error` is `${{ matrix.advisory }}`
+  rather than a job-level flag, so the two legs gate differently: the **in-band** leg is **blocking** and required,
+  because `label_clustering.py` is shelled out to by the running app; the **offline tooling** leg stays **advisory**,
+  because `check_streets_for_imagery.py` is an operator utility that never runs on the server. Note that `half` also
+  spells the check name — renaming a leg renames a required check, which branch protection then waits on forever.
+- **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck`
+  schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
+  required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
+  (booting the app auto-applies pending evolutions, so this is also the forward-apply gate — the class of failure that
+  shipped the broken evolution 325 — and the spec asserts the schema reached HEAD rather than stopping partway), then
+  the shared `test/e2e/fixtures/ci-seed.sql`, which needs the evolved schema, then `install-media.sh` beside it, then
+  the suite, which needs both. The seed is generated: `test/e2e/fixtures/gen_ci_seed.py` rebuilds it from a prod slice
+  pulled by `test/e2e/fixtures/ci_seed_slice.sql`, and the invariants it has to preserve (derived caches matching their
+  runtime recomputes, the label-id window the share and phone-viewport specs read from opposite ends,
+  `label_point.pano_x` sharing a pixel space with the downscaled fixture imagery) are written there as code rather than
+  left for a reader to rediscover in 500 lines of INSERTs. The seed is the whole reason the data-dependent half of the
+  suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
+  the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and
+  roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in
+  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`, skipped when no
+  evolution is newer than the newest `v*` tag (`db/scripts/last-release.sh`). For each newer one, newest first, it
+  runs the Downs and the Ups in both orders, on the seeded city and on a `pg_dump` copy of it, and then rolls them all
+  back and forward again in one batch; what it asserts is in [`evolutions.md`](evolutions.md) → "Downs have to work".
+  It only covers what's new since the release because the committed template can't replay all history (see
+  `evolutions.md`, "It also breaks replay"). It needs `LAST_RELEASE_EVOLUTION` set and otherwise has no tests, since
+  it rolls back whatever database it's connected to, and the step fails unless exactly one test ran. The spec steps
+  run under
+  **scoverage**, and a final `coverageReport` step enforces the
+  **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
+- **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
+  and `scalafmtSbtCheck` (the build files: `build.sbt` and `project/*.scala`) as separate steps, each under `if:
+  always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy
+  `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. All
+  three steps are **blocking**, and the job is a required status check.
+- **frontend** — `setup-node` (Node 24, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
+  the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
+  nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
+  one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
+  'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
+  tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
+  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
+  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+- **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
+  recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
+  assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
+  startup; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly actors' first tick lands
+  uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
+  harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
+  `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
+  half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when
+  either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`)
+  rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast
+  and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
+  `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
+  the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since
+  a seeded schema always puts those pages in their healthy state. Both are in the gate by matching `A11Y_SPECS` in
+  `playwright.config.js`, the one pattern that also keeps them out of the smoke half. It is its own Playwright project
+  (`--project=a11y`), run ahead of the smoke half. A project rather than a `--grep` keeps the split structural:
+  rewording a test title can't move it between the halves. Gating this early is safe because a page enters the table
+  only once its violations are fixed or tracked, so a failure is a regression rather than a known gap. The seed puts a
+  few gallery cards, leaderboard rows and api-docs preview features on the page, so those surfaces are covered; what
+  still needs a full local DB is anything only volume brings out (a long username, a hundred cards). The data portal
+  pages (#5058) join when they land. Both halves are blocking, and the job is a **required status check** (added
+  2026-09-02), which gates merges on its infrastructure too — the DB bring-up, `sbt stage`, the app boot and both
+  readiness probes. Policy and the manual checklist are in [`docs/accessibility.md`](accessibility.md). Every key is a
+  dummy, `GOOGLE_MAPS_API_KEY` included: Mapbox and Google Maps are both stubbed in-suite
+  (`test/e2e/fixtures/google-maps-stub.js`, #5129), so the phase-2 Explore/Validate specs run on fork PRs too, and
+  nothing can bill — Google charges per `StreetViewPanorama` / `Map` instantiation, and a real key here once cost more
+  than production in a month; see `docs/google-cloud.md` → "CI's Google usage".
 
-**Gating policy:** `sbt compile` blocking from day one; **scalafmt blocking** (`scalafmtCheckAll`, run with `if: always()` so it reports alongside a compile failure; the tree is kept format-clean and `make scalafmt-fix` auto-formats); **every frontend linter blocking** (ESLint, Stylelint, HTMLHint, locale key-parity, CSS layout, asset paths, vendor versions, JS types, spec base class — steps in the `frontend` job, each `if: always()`; each skipped the advisory ramp once its tree was clean, same call as scalafmt/evolutions-lint); the **test jobs ramped advisory → blocking** once their run history was clean (#4743 — `backend-tests` and the in-band `python-tests` leg, promoted after a 26-run sweep showed no failed steps behind their `continue-on-error`; the **Jest step** followed with #5132); **E2E blocking on every PR** (the `e2e-smoke` job — originally sketched as a nightly workflow, moved to PR-time with #4504 because the regressions it exists to catch were all PR-time misses; its smoke half rode the advisory ramp until #5115 seeded the database it runs against, at which point the last standing failures were real bugs rather than missing data, and it became a required check the same day).
+**Gating policy:** every check blocks except the offline Python leg: `sbt compile`, scalafmt (`scalafmtCheckAll` and
+`scalafmtSbtCheck`, each `if: always()` so it reports alongside a compile failure; `make scalafmt-fix` formats), every
+frontend linter, the unit suites, `backend-tests` and `e2e-smoke`, all on every PR. A lint check goes straight to
+blocking once its tree is clean; a test job runs advisory until its run history is clean, then is promoted.
 
-**`continue-on-error` belongs on the narrowest thing it should excuse.** A job carrying it reports its conclusion as `success` even when its steps fail, so an advisory job looks green in the checks list and adding it to branch protection enforces *nothing* until the flag comes off. Where only part of a job is advisory, put the flag on that step or on that matrix leg (`python-tests`' offline half, via `continue-on-error: ${{ matrix.advisory }}`) — at job level it would excuse the blocking work sitting beside it. It's also worth re-reading periodically: `frontend`'s Jest step carried one long after the reason had lapsed (#5132), invisible from the checks list because the job around it was green and required.
+**`continue-on-error` belongs on the narrowest thing it should excuse.** A job carrying it reports its conclusion as
+`success` even when its steps fail, so an advisory job looks green in the checks list and adding it to branch protection
+enforces *nothing* until the flag comes off. Where only part of a job is advisory, put the flag on that step or on that
+matrix leg (`python-tests`' offline half, via `continue-on-error: ${{ matrix.advisory }}`); at job level it would excuse
+the blocking work sitting beside it, and a stale flag is invisible from the checks list.
 
-**Branch protection (`develop`, set 2026-06-29; extended 2026-09-01 with #4743).** The deterministic jobs are wired as **required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend (compile + scalafmt)`**, **`Frontend (build)`**, **`Route reachability lint`**, **`Evolutions lint`**, **`Backend tests (API, PostGIS)`**, **`Python tests (in-band script)`**, and **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115 made both of its steps blocking). **`Shell script lint`** (#5589) is next in line, to be required once that job is on `develop`. Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)), `strict=false` (no "branch up to date" churn). `Python tests (offline tooling)` is the one check deliberately **not** required: it stays advisory because it covers an operator utility that never runs on the server. Repo **auto-merge** is enabled (opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
+**Branch protection (`develop`, set 2026-06-29; extended 2026-09-01 with #4743).** The deterministic jobs are wired as
+**required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend
+(compile + scalafmt)`**, **`Frontend (build)`**, **`Route reachability lint`**, **`Evolutions lint`**, **`Backend tests
+(API, PostGIS)`**, **`Python tests (in-band script)`**, and **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115
+made both of its steps blocking). **`Shell script lint`** (#5589) is next in line, to be required once that job is on
+`develop`. Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required
+reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)),
+`strict=false` (no "branch up to date" churn). `Python tests (offline tooling)` is the one check deliberately **not**
+required: it stays advisory because it covers an operator utility that never runs on the server. Repo **auto-merge** is
+enabled (opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
 
-**Dependency automation:** **Scala Steward** (VirtusLab's hosted instance, `.scala-steward.conf`) for sbt deps — Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, `docker`, and `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another. [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs from both bots, so GitHub merges each once its required checks pass (#4395). Majors, Dependabot's pip PRs (their only test leg is advisory) and Steward PRs with extra generated commits wait for a human.
+**Dependency automation:** **Scala Steward** (VirtusLab's hosted instance, `.scala-steward.conf`) for sbt deps —
+Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, `docker`, and
+`pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another.
+[`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs
+from both bots, so GitHub merges each once its required checks pass (#4395). Majors, Dependabot's pip PRs (their only
+test leg is advisory) and Steward PRs with extra generated commits wait for a human.
+
+**Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl
+page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly.
+[`codeql-config.yml`](../.github/codeql/codeql-config.yml) skips `public/vendor/`, `test/`, `tools/` and `conf/`. CodeQL
+can't read Scala, so the backend isn't scanned. Python is skipped too: the tools are run by hand, and
+`scripts/label_clustering.py` only talks to the app on localhost. Results are in the **Security → Code scanning** tab
+and flagged on the PR that causes them. It is **not a required check**.
+
+**Vulnerable dependencies (#5614):** the **`Dependency review`** job in `ci.yml` flags a PR that adds a dependency with
+a known vulnerability. It is **not a required check**, because some fixes can't install on the app's Python 3.8 (#4396).
 
 ## Coverage
 
-Scala and JS hold **ratchets** — a floor just under the measured number, raised in whichever PR earns the headroom.
-Python holds a real **100%** floor (small, pure scripts; see [Python utility testing](#python-utility-testing)).
+Python holds a real **100%** floor (small, pure scripts; see [Python utility testing](#python-utility-testing)). Scala
+and JS each hold a **ratchet**, a floor just under the measured number, raised in whichever PR earns the headroom.
 
-**Scala — `sbt-scoverage` (#4743).** `backend-tests` runs both spec steps under `coverage` and ends on a blocking
-`coverageReport`; the floor is `coverageMinimumStmtTotal` in `build.sbt`. Reproduce with
-`sbt clean coverage test coverageReport`.
+**Scala — `sbt-scoverage` (#4743).** The floor is `coverageMinimumStmtTotal` in `build.sbt`. `backend-tests` runs both
+spec steps under `coverage` and ends on a blocking `coverageReport` (`sbt clean coverage test coverageReport` locally).
 
 **A coverage number is only comparable to one measured the same way**, so read the new figure off a CI run before
-raising the floor. CI and a local run now execute the same specs (#5042), but CI's schema is empty where a local one
-is seeded, so data-dependent paths are covered locally and not there — expect CI to read well below a local run.
+raising the floor. CI and a local run now execute the same specs (#5042), but CI's schema is empty where a local one is
+seeded, so data-dependent paths are covered locally and not there — expect CI to read well below a local run.
 
-Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its
-692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
+Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its 692
+statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
 requests, so their coverage is real, and excluding them would move the number by only ~1.5 points. The compiler also
-won't instrument a method over 3000 tree nodes, and under `-Werror` its warning fails the build, so split the method
-into private helpers (#5605).
+won't instrument a method over 3000 tree nodes, and under `-Werror` its warning fails the build, so a method that big
+is split into private helpers (#5605).
 
-**JavaScript — Jest, report-only for now.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/`
-bundles, with `public/js` in `roots` so an untested file counts against the ratio instead of being invisible.
-
-There is deliberately **no `coverageThreshold`**, because the number can't yet support one: Jest instruments only what
-it hands out through `require`, and 99 of the 107 suites `eval` their subject instead — the only way to reach a file
-that defines a bare top-level class rather than assigning to `window`. The result is 10 files measured out of 229,
-with well-tested modules reporting 0, so a floor would move for reasons unrelated to whether anything is tested. See
-**#5112**, which belongs to the ES-modules question in #4467: `import`/`export` would make every file `require`-able
-and dissolve this as a side effect.
+**JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 56.48 / 52.13 / 52.67 / 57.27 at the
+time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)
 
-- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt compile` (blocking) + `scalafmtCheckAll` (blocking) + frontend asset build; `.github/dependabot.yml` + Scala Steward; fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
-- **Phase 1 — unit:** backend Layer-(a) specs + **Jest util tests** (a step in the `frontend` job, landed with #4504, blocking since #5132) + **`pytest` for the Python scripts** (the `python-tests` matrix — in-band leg blocking, offline leg advisory); run on every PR (no DB service needed for the unit subset).
-- **Phase 2 — DB integration:** PostGIS service + `PostgresTestKit`; #4239 + #4228 regression specs; measure evolution time.
-- **Phase 3 — functional:** `RoleSession`/`AnonSession` (landed) + `GuiceTestApp`/`WsStubs`; `ImageControllerSpec` + `PublicApiSpec`.
-- **Phase 4 — coverage + E2E:** scoverage with a **low, ratcheting** threshold (start near current %, raise over time) — **landed with #4743**, see [Coverage](#coverage); Playwright thin smoke suite. **The E2E half landed with #4504** ([`test/e2e/`](../test/e2e), the `e2e-smoke` PR job, Mapbox stubbed via `page.route`); Explore/Validate followed with the restricted GSV key and #5115's label seed, and its later phases add per-page interactions and a few end-to-end flows.
+- **Phase 0 — gate, zero tests required (land first):** add sbt-scalafmt/sbt-scoverage plugins; `ci.yml` with `sbt
+  compile` (blocking) + `scalafmtCheckAll` (blocking) + frontend asset build; `.github/dependabot.yml` + Scala Steward;
+  fix the `npm test` placeholder. (Frontend lint excluded — owned by #2487.) **Implemented on `feature/ci-phase0`.**
+- **Phase 1 — unit:** backend Layer-(a) specs + **the jsdom unit suite** (a step in the `frontend` job, landed with
+  #4504, blocking since #5132) + **`pytest` for the Python scripts** (the `python-tests` matrix — in-band leg blocking,
+  offline leg advisory); run on every PR (no DB service needed for the unit subset).
+- **Phase 2 — DB integration:** PostGIS service + `PostgresTestKit`; #4239 + #4228 regression specs; measure evolution
+  time.
+- **Phase 3 — functional:** `RoleSession`/`AnonSession` (landed) + `GuiceTestApp`/`WsStubs`; `ImageControllerSpec` +
+  `PublicApiSpec`.
+- **Phase 4 — coverage + E2E:** scoverage with a **low, ratcheting** threshold (start near current %, raise over time) —
+  **landed with #4743**, see [Coverage](#coverage); Playwright thin smoke suite. **The E2E half landed with #4504**
+  ([`test/e2e/`](../test/e2e), the `e2e-smoke` PR job, Mapbox stubbed via `page.route`); Explore/Validate followed with
+  the restricted GSV key and #5115's label seed, then tutorial labeling with #4777; later phases add per-page
+  interactions and more end-to-end flows.
 
 ## Key decisions
 
-- **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (or `sbt scalafmtAll`) auto-formats before pushing.
-- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual.
-- **Test DB: the repo's own `db` image** under `docker compose` (Testcontainers optional/local), not Testcontainers-in-CI.
-- **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is Python, which holds a real 100% floor.
+- **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
+  covers the build files) auto-formats before pushing.
+- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
+  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, except
+  labeling in Explore's tutorial (#4777) and voting on labels in Validate (#4948).
+- **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
+- **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
+  pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is
+  Python, which holds a real 100% floor.
 
 ## Risks / gotchas
 
-- **Actor disabling is load-bearing** — if the eager actors aren't neutralized they fire scheduled DB/WS work → flaky functional tests + dirty DB. Most likely early-flakiness source.
-- **Authenticated requests** — settled, no testkit needed: sessions are minted through the real `/anonSignUp` route and promoted with a DB write (`util/RoleSession.scala`). A `FakeEnvironment` identity would not survive contact with the admin routes anyway — most log activity keyed to `request.identity.userId`, so an identity with no `sidewalk_user` row trips the FK.
+- **Actor disabling is load-bearing** — if the eager actors aren't neutralized they fire scheduled DB/WS work → flaky
+  functional tests + dirty DB. Most likely early-flakiness source.
+- **Authenticated requests** — settled, no testkit needed: sessions are minted through the real `/anonSignUp` route and
+  promoted with a DB write (`util/RoleSession.scala`). A `FakeEnvironment` identity would not survive contact with the
+  admin routes anyway — most log activity keyed to `request.identity.userId`, so an identity with no `sidewalk_user` row
+  trips the FK.
 - **Evolution apply time** is unverified — measure in Phase 2; cache if slow.
 - **Isolation strategies must not mix** within a suite (rollback vs truncate) — keep (b)/(c) separate.
 - **Dependabot ≠ sbt** — Scala Steward handles sbt bumps.
 
 ## Verification
 
-- **Local:** `sbt test` (against a local PostGIS, a `DATABASE_URL` to the dev DB, or the Testcontainers toggle), `npm test` (jest), `make lint`, `sbt scalafmtCheckAll`.
-- **CI smoke:** open a draft PR, confirm both jobs run and pass; prove the gates bite by (1) pushing an intentional unused import (the compile gate must fail) and (2) reverting one `.replace("'","''")` from #4239 and confirming `LabelTableSqlEscapingSpec` fails.
-- **E2E:** `make test-e2e` against the running dev app — no setup, the runner is a container (details in [`test/e2e/README.md`](../test/e2e/README.md)); prove the gate bites by appending a planted `console.error` to a built bundle and confirming that page's test fails.
+- **Local:** `make test-scala` (against the dev DB, or another one through `DATABASE_URL`), `npm test` (the jsdom unit
+  suite), `make lint`, `make scalafmt`.
+- **CI smoke:** open a draft PR, confirm both jobs run and pass; prove the gates bite by (1) pushing an intentional
+  unused import (the compile gate must fail) and (2) reverting one `.replace("'","''")` from #4239 and confirming
+  `LabelTableSqlEscapingSpec` fails.
+- **E2E:** `make test-e2e` against the running dev app — no setup, the runner is a container (details in
+  [`test/e2e/README.md`](../test/e2e/README.md)); prove the gate bites by appending a planted `console.error` to a built
+  bundle and confirming that page's test fails.

@@ -1,7 +1,7 @@
 package formats.json
 
 import formats.json.ExploreFormats.{given, *}
-import models.audit.AuditTask
+import models.audit.{AuditTask, CoveredRange}
 import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -30,18 +30,18 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
       |  "start_point_reversed": false,
       |  "last_priority_update_time": "2026-07-19T10:00:00Z",
       |  "request_updated_street_priority": false,
-      |  "audited_distance_m": 123.4
+      |  "covered_ranges": [[0, 123.4]]
       |}""".stripMargin
 
-  test("TaskSubmission parses audited_distance_m") {
+  test("TaskSubmission parses covered_ranges") {
     val sub = Json.parse(taskSubmissionJson).as[TaskSubmission]
     sub.streetEdgeId shouldBe 42
-    sub.auditedDistanceM shouldBe Some(123.4)
+    sub.coveredRanges shouldBe Some(Seq(CoveredRange(0d, 123.4d)))
   }
 
-  test("TaskSubmission tolerates a missing audited_distance_m (older clients)") {
-    val withoutDistance = Json.parse(taskSubmissionJson).as[play.api.libs.json.JsObject] - "audited_distance_m"
-    withoutDistance.as[TaskSubmission].auditedDistanceM shouldBe None
+  test("TaskSubmission tolerates missing covered_ranges (older clients)") {
+    val withoutCoverage = Json.parse(taskSubmissionJson).as[play.api.libs.json.JsObject] - "covered_ranges"
+    withoutCoverage.as[TaskSubmission].coveredRanges shouldBe None
   }
 
   private val labelPointJson = Json.obj(
@@ -113,5 +113,42 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
     val json = Json.toJson(task)
     (json \ "audited_distance_m").toOption shouldBe None
     (json \ "start_offset_m").toOption shouldBe None
+  }
+
+  private val aiPanoJson = Json.obj(
+    "pano_id"        -> "ai-pano",
+    "source"         -> "gsv",
+    "capture_date"   -> "2025-06",
+    "width"          -> 8192,
+    "height"         -> 4096,
+    "lat"            -> 40.89,
+    "lng"            -> -74.02,
+    "camera_heading" -> 180.0,
+    "links"          -> Json.arr(),
+    "history"        -> Json.arr()
+  )
+
+  private val aiSubmissionJson = Json.obj(
+    "label_type"          -> "CurbRamp",
+    "model_id"            -> "test-model",
+    "model_training_date" -> "01-15-2026",
+    "api_version"         -> "1.0",
+    "pano"                -> aiPanoJson,
+    "labels"              -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 2048, "confidence" -> 0.9))
+  )
+
+  test("AiLabelsSubmission reads a missing overwrite as None and a given one as Some (#5382)") {
+    aiSubmissionJson.as[AiLabelsSubmission].overwrite shouldBe None
+    (aiSubmissionJson + ("overwrite" -> Json.toJson(true))).as[AiLabelsSubmission].overwrite shouldBe Some(true)
+  }
+
+  test("AiLabelsSubmission rejects a non-boolean overwrite") {
+    (aiSubmissionJson + ("overwrite" -> Json.toJson("yes"))).validate[AiLabelsSubmission].isError shouldBe true
+  }
+
+  test("AiLabelsSubmission with labels refuses a pano missing what places them; without labels it doesn't (#4808)") {
+    val panoWithoutLat = aiSubmissionJson + ("pano" -> (aiPanoJson - "lat"))
+    panoWithoutLat.validate[AiLabelsSubmission].isError shouldBe true
+    (panoWithoutLat + ("labels" -> Json.arr())).validate[AiLabelsSubmission].isSuccess shouldBe true
   }
 }

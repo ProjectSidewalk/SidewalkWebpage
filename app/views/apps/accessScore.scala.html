@@ -1,4 +1,3 @@
-@import models.pano.PanoSource
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
@@ -97,6 +96,9 @@
             @info("slope-help")
           </div>
           <div id="acs-slope" class="acs-slope" hidden>
+            @* Filled in by AccessScoreSlopePanel.js in a city whose grades come from a coarse model: why the slider
+               below moves nothing until approximate grades are included. Empty, and so not shown, elsewhere. *@
+            <p class="acs-field__note" id="acs-slope-coarse-note"></p>
             <div class="acs-weight" id="acs-slope-weight-row">
               <div class="acs-weight__head">
                 <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
@@ -137,7 +139,7 @@
             </div>
             <div class="acs-check-row">
               <label class="acs-check" for="acs-slope-approximate">
-                <input type="checkbox" id="acs-slope-approximate">
+                <input type="checkbox" id="acs-slope-approximate" aria-describedby="acs-slope-coarse-note">
                 <span data-i18n="accessscore:slope-approximate-include">Include approximate grades</span>
               </label>
               @info("slope-approximate-include-help")
@@ -286,64 +288,12 @@
   @* Paging steps through the labels of the cluster a card was opened from. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-mini-card.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/toast.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/elevation-profile.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/access-score.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("accessScore")
 
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.6.0.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
-  <script src='@assets.path("js/common/Toast.js")'></script>
-  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
-  <script src='@assets.path("js/common/LabelMiniCard.js")'></script>
-  <script src='@assets.path("js/common/PanoMarker.js")'></script>
-  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
-  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
-  <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
-  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
-  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
-  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-  <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
-  <script src='@assets.path("js/access-score/build/access-score.js")'></script>
-
-  <script>
-    const imagerySrc = "@commonData.imagerySource.name";
-    // Gets all translations before building the page.
-    window.appManager.ready(function () {
-      AccessScoreApp.start({
-        mapboxApiKey: '@commonData.mapboxApiKey',
-        viewerType: imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer,
-        imageryAccessToken: "@commonData.imageryAccessToken",
-        @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
-        username: @if(user.exists(_.role != models.user.Role.Anonymous)) {"@user.map(_.username)"} else {null},
-      });
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/accessScore.js")'
+          data-mapbox-api-key="@commonData.mapboxApiKey"
+          data-imagery-source="@commonData.imagerySource.name"
+          data-imagery-access-token="@commonData.imageryAccessToken"
+          @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
+          data-username="@if(user.exists(_.role != models.user.Role.Anonymous)) {@user.map(_.username)}"></script>
 }

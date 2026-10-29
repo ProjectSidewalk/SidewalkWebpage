@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Clique aqui</a> para explorar esta rua!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Conhecer o <b>limite de velocidade</b> de uma rua pode ajudar a avaliar melhor a segurança dos pedestres, por exemplo, se é <b>seguro</b> atravessar em um cruzamento sem sinalização.",
+  "speed-limit-tooltip": "Conhecer o limite de velocidade de uma rua pode ajudar a avaliar melhor a segurança dos pedestres, por exemplo, se é seguro atravessar em um cruzamento sem sinalização.",
   "speed-limit-aria-label": "Limite de velocidade {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Junte-se a mais {{count, number}} comunidade",
@@ -26,6 +26,7 @@
   "other": "Outro",
   "surface-problems": "Problemas de Superfície",
   "close": "Fechar",
+  "dont-show-again": "Não mostrar novamente",
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Excluir",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Ver no Mapillary",
     "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
-    "copy-to-clipboard": "Copiar para a área de transferência",
-    "copied-to-clipboard": "Dados copiados para a área de transferência!"
+    "copy-to-clipboard": "Copiar para a área de transferência"
   },
   "pano-attribution": {
     "opens-new-tab": "(abre em uma nova aba)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Copiado!",
+    "failed": "Falha ao copiar",
+    "section-link": "Copiar link para esta seção"
+  },
   "share": {
     "button": "Compartilhar",
     "heading": "Compartilhar este rótulo",
     "text": "Veja este(a) {{labelType}} no Project Sidewalk",
     "story-text": "“{{excerpt}}” — uma história da comunidade no Project Sidewalk",
     "copy-link": "Copiar link",
-    "copied": "Copiado!",
     "on-bluesky": "Compartilhar no Bluesky",
     "on-x": "Compartilhar no X",
     "on-facebook": "Compartilhar no Facebook",
@@ -360,13 +364,19 @@
     "via-email": "Compartilhar por e-mail"
   },
   "mini-card": {
-    "no-image": "Sem imagem",
+    "image-unavailable": "Imagem indisponível",
+    "image-coming": "Imagem disponível em breve!",
     "open": "Abrir este rótulo: {{label}}",
     "votes": "Validar este rótulo",
     "no-image-to-judge": "Sem imagem para avaliar este rótulo",
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "session-load-failed": {
+    "title": "Não foi possível carregar",
+    "body": "Não foi possível carregar sua missão. Recarregue a página para tentar novamente.",
+    "bad-link": "Este link não é válido. Verifique o endereço e tente novamente."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (tipo atual)",
     "change": "alterar",
@@ -405,5 +415,113 @@
   },
   "immersive-enter": "Entrar no modo imersivo",
   "immersive-exit": "Sair do modo imersivo",
-  "immersive-exit-hint": "Modo imersivo. Pressione F para sair."
+  "immersive-exit-hint": "Modo imersivo. Pressione F para sair.",
+  "validation-reason": {
+    "prompt-disagree": "Por que você discorda?",
+    "prompt-unsure": "O que deixa você em dúvida?",
+    "other": "Outro…",
+    "other-hint": "Escreva seu próprio motivo",
+    "other-save": "Salvar",
+    "saved": "Motivo salvo",
+    "dismiss": "Fechar",
+    "wrong-type": {
+      "text": "Este é o tipo de rótulo errado",
+      "tooltip": "Há algo aqui, mas deveria ser marcado com outro tipo de rótulo",
+      "tooltip-curb-ramp": "Às vezes uma rampa ausente é rotulada por engano como rampa de calçada",
+      "tooltip-no-curb-ramp": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+      "tooltip-obstacle": "Grama e detritos como folhas devem ser marcados como Problema na Superfície",
+      "tooltip-surface-problem": "Cascalho ou grama não são considerados calçada e devem ser marcados como Sem Calçada",
+      "tooltip-no-sidewalk": "Problemas de superfície ou obstáculos podem ser rotulados incorretamente como Sem Calçada"
+    },
+    "driveway": {
+      "text": "Isto é uma entrada de garagem",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+    },
+    "driveway-transition": {
+      "text": "Isto é uma transição entre calçada e entrada de garagem",
+      "tooltip": "As transições entre calçada e entrada de garagem não são consideradas rampas de acesso, a menos que uma rampa específica tenha sido adicionada"
+    },
+    "residential-walkway": {
+      "text": "Isto é um passagem residencial",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+    },
+    "no-sidewalk-here": {
+      "text": "Não há calçada aqui",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+    },
+    "unsafe-crossing": {
+      "text": "Não é seguro atravessar aqui",
+      "tooltip": "Os pedestres não devem atravessar neste ponto, portanto não se espera uma rampa de calçada"
+    },
+    "not-pedestrian-path": {
+      "text": "Isto não está em um caminho de pedestres",
+      "tooltip-obstacle": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, como na imagem abaixo, não é necessário rotular como Obstáculo",
+      "tooltip-surface-problem": "Se um problema de superfície não estiver em um caminho destinado a pedestres, não deve ser rotulado como Problema de Superfície"
+    },
+    "ample-space": {
+      "text": "Há espaço suficiente para evitar este objeto",
+      "tooltip": "Em calçadas muito largas, objetos fáceis de evitar <b>não</b> devem ser rotulados como obstáculos"
+    },
+    "normal-tiles": {
+      "text": "Estas são placas normais de calçada",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+    },
+    "sidewalk-here": {
+      "text": "Há uma calçada aqui",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+    },
+    "traffic-median": {
+      "text": "Isto é um canteiro central de tráfego",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+    },
+    "no-visible-crosswalk": {
+      "text": "Não há faixa de pedestres visível aqui",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+    },
+    "stop-line": {
+      "text": "Isto é uma linha de parada para carros",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+    },
+    "speed-bump": {
+      "text": "Isto é uma lombada",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+    },
+    "vehicle-signal-only": {
+      "text": "Isto é apenas um semáforo para veículos",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+    },
+    "sign-no-light": {
+      "text": "Isto é uma placa sem luz que indique travessia segura",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+    },
+    "pole-no-signal": {
+      "text": "Isto é um poste sem sinal ou botão de pedestres",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+    },
+    "better-image": {
+      "text": "Preciso de uma imagem melhor",
+      "tooltip": "Isso pode acontecer porque a imagem está borrada, o objeto está muito distante ou seria necessário outro ângulo"
+    },
+    "placement-incorrect": {
+      "text": "A posição do rótulo parece incorreta",
+      "tooltip": "Às vezes o que está sendo rotulado é visível, mas o rótulo aparece muito distante"
+    },
+    "ramp-required-unsure": {
+      "text": "Não tenho certeza se uma rampa é necessária",
+      "tooltip-curb-ramp": "Algumas vielas ou entradas comerciais exigem rampas devido a diferenças de altura, outras não. Às vezes não está claro se uma transição em uma calçada exige uma rampa ou piso tátil de alerta.",
+      "tooltip-no-curb-ramp": "Pode não estar claro se pedestres deveriam conseguir atravessar em um cruzamento com uma via mais movimentada"
+    },
+    "space-to-avoid-unsure": {
+      "text": "Pode haver espaço suficiente para evitar o objeto",
+      "tooltip": "A largura da calçada pode ser difícil de avaliar apenas pela imagem"
+    },
+    "too-minor-unsure": {
+      "text": "Pode ser pequeno demais para rotular",
+      "tooltip": "Pode não estar claro se algo como grama entre blocos de calçada precisa ser rotulado"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Não tenho certeza se deveria haver uma calçada aqui",
+      "tooltip": "Às vezes é necessário mais contexto e pode ser difícil determinar isso a partir de apenas uma imagem"
+    }
+  }
 }

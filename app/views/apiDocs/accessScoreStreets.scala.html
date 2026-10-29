@@ -29,16 +29,11 @@
 }
 
 @content = {
-  <script>
-    // Set data attributes for API information. Used by apiDocs.js (e.g. the download buttons) to build API calls.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'accessScoreStreets');
-  </script>
 
   <div class="page-section" id="access-score-streets-intro-section">
     <h1 class="page-heading" id="access-score-streets-api">AccessScore: Streets API <a href="#access-score-streets-api" class="permalink">#</a></h1>
     <p>The AccessScore: Streets API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each street — higher is more accessible. A street's <code>score</code> combines three things: its own <strong>segment</strong>, scored from the obstacles, surface problems, and missing sidewalks along it, and the <strong>intersections at its two ends</strong>, scored from the curb ramps, crosswalks, and signals pooled at each corner (see the <a href="@routes.ApiDocsController.accessScoreIntersections">AccessScore: Intersections API</a>). Each piece weights every clustered feature by its type, its severity/quality rating, and its tags, then squashes the total with a logistic function.</p>
-    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong>: the weights are deliberately simple and subject to change. For full control you can compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a>.</p>
+    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf" target="_blank" rel="noopener">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong>: the weights are deliberately simple and subject to change. For full control you can compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a>.</p>
   </div>
 
   <div class="page-section" id="access-score-streets-preview-section">
@@ -47,21 +42,11 @@
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street-level accessibility—researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-streets-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/accessScoreStreetsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        AccessScoreStreetsPreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    @ViteAssets.stylesheets("api-docs/accessScoreStreets", alreadyLinked = "api-docs/layout")
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/accessScoreStreets.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">
@@ -140,7 +125,7 @@
         <li><code>segment_score = sigmoid(Σ<sub>type</sub> term + grade_term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and, with the street's published <code>grade_term</code>, the result equals <code>segment_score</code>. To score the labels alone, drop the <code>grade_term</code>.</li>
         <li>An <a href="@routes.ApiDocsController.accessScoreIntersections">intersection</a> is rebuilt the same way from its own <code>severity_counts</code> and <code>tag_adjustments</code>, with no length factor; the street's headline <code>score</code> is then the mean of <code>segment_score</code> and the scores of <code>start_intersection_id</code> and <code>end_intersection_id</code>, over those that are not <code>null</code>.</li>
       </ul>
-      <p>Its <code>grade</code> object is what reads the <a href="#street-grade">grade fields</a>: the two limits (<code>walking_surface_limit</code>, <code>ramp_limit</code>), the grades a map of them is classed at (<code>map_class_breaks</code>), and under <code>sources</code> the credit for each elevation model this city's streets were sampled from, with how many streets each covers.</p>
+      <p>Its <code>grade</code> object is what reads the <a href="#street-grade">grade fields</a>: the two limits (<code>walking_surface_limit</code>, <code>ramp_limit</code>), the grades a map of them is classed at (<code>map_class_breaks</code>), and under <code>sources</code> the credit for each elevation model this city's streets were sampled from, with how many streets each covers (<code>street_count</code>) and the <code>grade_confidence</code> of those streets (<code>confidence</code>). <code>approximate</code> is true where at least half of the city's sampled streets come from <code>low</code> sources: its grades are approximate as a whole, and sit out of the score by default.</p>
       <p>The <code>grade_scoring</code> object publishes the settings the served scores were computed under, as <code>defaults</code>: a <code>weight</code> of <code>@AccessScoreCalculator.defaultSlopeSettings.weight</code> on <code>@AccessScoreCalculator.slopeStatisticName(AccessScoreCalculator.defaultSlopeSettings.statistic)</code>, ramping between the two limits. That is the <code>grade_term</code> each street carries. To apply settings of your own, recompute the term and put it in that one's place in the sum above, <code>grade_term = −weight × units</code>:</p>
       <ul class="api-list">
         <li><strong>Which streets take part.</strong> A street with no grade at all (a bridge, a gap, an unsampled street) takes no grade term. Neither does one whose grade is approximate, meaning <code>grade_confidence</code> is <code>"low"</code> or <code>grade_quality</code> is <code>"suspect"</code> (both are a straight line between the street's ends), unless <code>include_approximate</code> is set. The same gate applies to the barrier.</li>
@@ -306,7 +291,7 @@
         <tbody>
           <tr><td><code>geometry.coordinates</code></td><td><code>array[number]</code></td><td>Coordinate pairs forming the street's path, in <code>[longitude, latitude]</code> (WGS84 / EPSG:4326).</td></tr>
           <tr><td><code>properties.street_edge_id</code></td><td><code>integer</code></td><td>Project Sidewalk's unique identifier for this street segment.</td></tr>
-          <tr><td><code>properties.osm_way_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street, if available.</td></tr>
+          <tr><td><code>properties.osm_way_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way" target="_blank" rel="noopener">OpenStreetMap Way ID</a> for the street: the way covering most of it, when it spans several (the Streets API lists them).</td></tr>
           <tr><td><code>properties.street_name</code></td><td><code>string</code></td><td>The street's name, from its OpenStreetMap way's <code>name</code> tag; <code>null</code> for an unnamed way.</td></tr>
           <tr><td><code>properties.region_id</code></td><td><code>integer</code></td><td>Identifier for the region the street belongs to.</td></tr>
           <tr><td><code>properties.score</code></td><td><code>number</code></td><td>Headline AccessScore in <code>(0,&nbsp;1)</code>; higher is more accessible. The mean of <code>segment_score</code>, <code>start_intersection_score</code>, and <code>end_intersection_score</code> over those that are not <code>null</code>; <code>null</code> when all three are.</td></tr>

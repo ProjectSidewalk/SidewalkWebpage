@@ -1,26 +1,18 @@
 /**
  * Tests for the admin team page (#5381): what the member table shows, how the totals read, and that the roster
  * controls call the endpoints the server actually exposes.
- *
- * Runs under jsdom (jest.config.js). TeamPage and AdminShell are bare top-level classes loaded by <script> tags, so
- * they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 
-// The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
+useUtil(metricDistanceUtil);
 
-const src = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
+// Removing a member asks first; the dialog itself is not under test, so it answers yes without a DOM.
+const ConfirmDialog = { confirm: vi.fn(() => Promise.resolve(true)) };
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog }));
 
-let TeamPage;
-
-beforeAll(() => {
-  global.AdminShell = (0, eval)(`${src('public/js/admin-dashboard/AdminShell.js')}\nAdminShell;`);
-  TeamPage = (0, eval)(`${src('public/js/admin-dashboard/TeamPage.js')}\nTeamPage;`);
-});
+const { TeamPage } = await loadModules('frontend/js/admin-dashboard/TeamPage.js');
 
 const TEAM_ID = 7;
 
@@ -53,7 +45,7 @@ async function load() {
     <div id="team-add-results"></div>`;
 
   const calls = [];
-  global.fetch = jest.fn((url, opts = {}) => {
+  window.fetch = vi.fn((url, opts = {}) => {
     calls.push({ url, method: opts.method || 'GET' });
     if (url.startsWith('/adminapi/team')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) });
@@ -66,7 +58,7 @@ async function load() {
     }
     return Promise.resolve({ ok: true, text: () => Promise.resolve('{}') });
   });
-  global.ConfirmDialog = { confirm: jest.fn(() => Promise.resolve(true)) };
+  ConfirmDialog.confirm = vi.fn(() => Promise.resolve(true));
 
   const page = new TeamPage(TEAM_ID, {
     overviewUrl: '/adminapi/team',
@@ -152,7 +144,7 @@ describe('the roster controls', () => {
     document.querySelector('.team-remove[data-user-id="u1"]').click();
     await Promise.resolve();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(global.ConfirmDialog.confirm).toHaveBeenCalled();
+    expect(ConfirmDialog.confirm).toHaveBeenCalled();
     expect(calls.some((c) => c.url === '/userapi/leaveTeam?userId=u1' && c.method === 'PUT')).toBe(true);
     expect(calls.filter((c) => c.url.startsWith('/adminapi/team')).length).toBe(2);
   });
@@ -169,12 +161,12 @@ describe('the roster controls', () => {
     await load();
     // Held open by hand, so the box is cleared while the request is genuinely outstanding.
     let release;
-    global.fetch = jest.fn((url) => (url.startsWith('/adminapi/userSearch')
+    window.fetch = vi.fn((url) => (url.startsWith('/adminapi/userSearch')
       ? new Promise((resolve) => {
-        release = () => resolve({ ok: true, json: () => Promise.resolve([
-          { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },
-        ]) });
-      })
+          release = () => resolve({ ok: true, json: () => Promise.resolve([
+            { user_id: 'u3', username: 'cyd', email: 'cyd@example.org', role: 'Registered', team: null },
+          ]) });
+        })
       : Promise.resolve({ ok: true, json: () => Promise.resolve(OVERVIEW) })));
 
     await search('cyd');

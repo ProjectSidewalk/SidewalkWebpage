@@ -6,12 +6,15 @@
  * up as if the check never ran; and HIBP's padding filler (suffixes with a count of 0) is not a hit.
  */
 
-const crypto = require('node:crypto');
-const { TextEncoder } = require('node:util');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import crypto from 'node:crypto';
+import { TextEncoder } from 'node:util';
+import { loadModules, mockModule } from './loader.js';
+
+// The navbar dialog's open/close is not under test; AuthModal only needs something to construct.
+mockModule('frontend/js/common/Modal.js', () => ({ Modal: class { open() {} close() {} } }));
 
 // jsdom leaves TextEncoder out of the page globals; every browser that runs this code has it.
-if (typeof global.TextEncoder === 'undefined') global.TextEncoder = TextEncoder;
+if (typeof window.TextEncoder === 'undefined') window.TextEncoder = TextEncoder;
 
 const RANGE_URL = 'https://api.pwnedpasswords.com/range/';
 const BREACH_MESSAGE = 'This password has shown up in a known data breach.';
@@ -75,20 +78,15 @@ const AUTH_DIALOG = `
  * @param {{withDialog?: boolean, withChecklist?: boolean}} [options] - `withDialog` also renders the navbar
  *   sign-in dialog on the page; `withChecklist: false` renders the group with no composition rules.
  */
-function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) {
+async function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) {
   let domReady;
-  jest.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
+  vi.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
   });
-  window.PsModal = class {
-    open() {}
-
-    close() {}
-  };
   document.body.innerHTML = `
     ${withDialog ? AUTH_DIALOG : ''}
     <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>`;
-  loadGlobalScript('public/js/common/AuthModal.js');
+  await loadModules('frontend/js/common/AuthModal.js');
   domReady();
 }
 
@@ -101,8 +99,8 @@ function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) 
 async function typePassword(value) {
   const pw = document.getElementById('sign-up-password');
   pw.value = value;
-  pw.dispatchEvent(new window.Event('input'));
-  await jest.advanceTimersByTimeAsync(DEBOUNCE_MS);
+  pw.dispatchEvent(new Event('input'));
+  await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 }
 
 const warning = () => document.querySelector('.au-warning');
@@ -126,23 +124,20 @@ function stubWebCrypto(available) {
 }
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   stubWebCrypto(true);
 });
 
 afterEach(() => {
   // Restores the window.addEventListener spy however the test body exited; leaving it installed would swallow
   // every later load's DOMContentLoaded registration and misattribute the failures.
-  jest.restoreAllMocks();
-  jest.useRealTimers();
   delete window.fetch;
-  delete window.PsModal;
 });
 
 describe('advisory breached-password check', () => {
   test('sends only the first five hex characters of the hash, never the password', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(window.fetch).toHaveBeenCalledTimes(1);
@@ -154,11 +149,11 @@ describe('advisory breached-password check', () => {
   });
 
   test('warns and drops the strength meter when the hash suffix comes back with a real count', async () => {
-    window.fetch = jest.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
       ok: true,
       text: async () => `0000000000000000000000000000000000A:12\r\n${PASSWORD_SHA1.slice(5)}:4823\r\n`,
     });
-    renderPasswordGroup();
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(true);
@@ -168,8 +163,8 @@ describe('advisory breached-password check', () => {
   });
 
   test('announces the warning by inserting it, as a live region rather than a field description', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:9\r\n` });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:9\r\n` });
+    await renderPasswordGroup();
     // Nothing to announce and nothing in the description before a verdict lands.
     expect(warningShown()).toBe(false);
     expect(document.getElementById('sign-up-password').getAttribute('aria-describedby'))
@@ -181,8 +176,8 @@ describe('advisory breached-password check', () => {
   });
 
   test('treats a padding entry for the same suffix as no hit', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:0\r\n` });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:0\r\n` });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(false);
@@ -190,9 +185,9 @@ describe('advisory breached-password check', () => {
   });
 
   test('stays silent when the password is not in the corpus', async () => {
-    window.fetch = jest.fn()
+    window.fetch = vi.fn()
       .mockResolvedValue({ ok: true, text: async () => 'ABCDEF0123456789ABCDEF0123456789ABC:9\r\n' });
-    renderPasswordGroup();
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(false);
@@ -200,8 +195,8 @@ describe('advisory breached-password check', () => {
   });
 
   test('fails open when the lookup rejects', async () => {
-    window.fetch = jest.fn().mockRejectedValue(new Error('offline'));
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockRejectedValue(new Error('offline'));
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(false);
@@ -209,50 +204,50 @@ describe('advisory breached-password check', () => {
   });
 
   test('fails open on a non-OK response', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: false, text: async () => '' });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: false, text: async () => '' });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(warningShown()).toBe(false);
   });
 
   test('skips the lookup for a password that has not met the composition rules yet', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup();
     await typePassword('short1');
 
     expect(window.fetch).not.toHaveBeenCalled();
   });
 
   test('clears the warning once the user edits the flagged password', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
     expect(warningShown()).toBe(true);
 
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
     await typePassword(`${PASSWORD}xyz`);
 
     expect(warningShown()).toBe(false);
   });
 
   test('debounces to one lookup for a password typed straight through', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup();
     const pw = document.getElementById('sign-up-password');
     for (let i = 1; i <= PASSWORD.length; i++) {
       pw.value = PASSWORD.slice(0, i);
-      pw.dispatchEvent(new window.Event('input'));
-      await jest.advanceTimersByTimeAsync(50);
+      pw.dispatchEvent(new Event('input'));
+      await vi.advanceTimersByTimeAsync(50);
     }
-    await jest.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
     expect(window.fetch).toHaveBeenCalledTimes(1);
   });
 
   test('caches the range, so returning to a checked password costs no second request', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
     await typePassword(`${PASSWORD}!`); // Same 5-char prefix is not guaranteed, so this may fetch again.
     const afterDetour = window.fetch.mock.calls.length;
@@ -262,18 +257,18 @@ describe('advisory breached-password check', () => {
   });
 
   test('restores a known verdict immediately, without a full-strength flash while it re-checks', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
-    renderPasswordGroup();
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
     expect(warningShown()).toBe(true);
 
     const pw = document.getElementById('sign-up-password');
     pw.value = PASSWORD.slice(0, -1);
-    pw.dispatchEvent(new window.Event('input'));
+    pw.dispatchEvent(new Event('input'));
     expect(warningShown()).toBe(false); // A shorter value is a different password with no verdict yet.
 
     pw.value = PASSWORD;
-    pw.dispatchEvent(new window.Event('input'));
+    pw.dispatchEvent(new Event('input'));
 
     // Same keystroke, before any debounce: the earlier verdict still stands, so no "Strong" flash.
     expect(warningShown()).toBe(true);
@@ -281,8 +276,8 @@ describe('advisory breached-password check', () => {
   });
 
   test('never reaches the network for a group that has no checklist to satisfy', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
-    renderPasswordGroup({ withChecklist: false });
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup({ withChecklist: false });
     await typePassword('a');
 
     expect(window.fetch).not.toHaveBeenCalled();
@@ -290,8 +285,8 @@ describe('advisory breached-password check', () => {
 
   test('does nothing at all without Web Crypto (an insecure origin)', async () => {
     stubWebCrypto(false);
-    window.fetch = jest.fn();
-    renderPasswordGroup();
+    window.fetch = vi.fn();
+    await renderPasswordGroup();
     await typePassword(PASSWORD);
 
     expect(window.fetch).not.toHaveBeenCalled();
@@ -299,14 +294,14 @@ describe('advisory breached-password check', () => {
   });
 
   test('wires the page\'s own fields even when the navbar dialog is on the page too', async () => {
-    window.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
-    renderPasswordGroup({ withDialog: true });
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    await renderPasswordGroup({ withDialog: true });
     await typePassword(PASSWORD);
 
     expect(window.fetch).toHaveBeenCalledTimes(1);
     expect(warningShown()).toBe(true);
     // The eye toggle is wired from the same pass, so it stands in for the rest of enhanceAuthForms.
-    document.querySelector('.au-eye').dispatchEvent(new window.Event('click'));
+    document.querySelector('.au-eye').dispatchEvent(new Event('click'));
     expect(document.getElementById('sign-up-password').type).toBe('text');
   });
 });

@@ -1,12 +1,13 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
-        lease-status lease-take lease-release \
+        upgrade-dev-db lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
+        export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
         lint-spec-base lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -38,6 +39,8 @@ lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true ye
 lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
+# Same idiom for upgrade-dev-db's `all=1`, which copies every database rather than just sidewalk.
+upgrade-dev-db-all-flag = $(if $(filter 1 true yes,$(all)),--all,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -81,9 +84,9 @@ BOLD  := \033[1m
 RESET := \033[0m
 # What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
 # /**/*.css added.
-eslint-paths   = $(if $(filter ./,$(dir)),public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
-css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
+css-glob       = $(if $(filter ./,$(dir)),frontend/css/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
 # package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
@@ -152,7 +155,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
+			lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -176,6 +179,10 @@ docker-up:
 
 docker-up-db:
 	@docker compose up -d db
+
+# Copies a Postgres 16 dev database into the Postgres 18 one, from the host. See docs/dev-environment.md.
+upgrade-dev-db:
+	@bash tools/dev/upgrade-dev-db.sh --container $(db-container) $(upgrade-dev-db-all-flag)
 
 # `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:
@@ -205,7 +212,7 @@ qa-worktree:
 	$(worktree-require-wt)
 	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
-# End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
+# End a qa-worktree session: stop its app, its asset watcher, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
 # `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
@@ -255,7 +262,7 @@ fill-new-schema:
 # Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
 # `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
 # a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
-# `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
+# `args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
 onboard-city:
 	@python3 tools/city/setup_new_city.py $(id) $(args)
 
@@ -286,8 +293,8 @@ import-street-imagery:
 # takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
 # `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
 # build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
-# unless the positional args ride in args=; the sampler takes its flags via args=, e.g.
-# `make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
+# unless the positional args ride in args=; the sampler takes its flags via args=, e.g. `make street-gradient
+# id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"`.
 # Main checkout only, like build-city-data: the db container sees only that checkout's db/.
 export-street-gradient-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
@@ -298,16 +305,29 @@ street-gradient:
 import-street-gradient:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
 
+# A live city's OSM way positions (#5741), in the gradient's three steps: export the streets, match them against today's
+# OSM (tools/city/backfill_osm_lineage.py, in the web container), import. Main checkout only, like the gradient.
+export-osm-lineage-input:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
+
+osm-lineage:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/backfill_osm_lineage.py --city-id $(id) $(args)"
+
+import-osm-lineage:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-osm-lineage.sh $(args)"
+
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
 # import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
-                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
+                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py \
+                    --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
 cov-omit-app      = -e COVERAGE_OMIT=tools/city/check_streets_for_imagery.py -e COVERAGE_OMIT2=tools/city/onboard_city.py \
-                    -e COVERAGE_OMIT3=tools/city/street_gradient.py
+                    -e COVERAGE_OMIT3=tools/city/street_gradient.py -e COVERAGE_OMIT4=tools/city/osm_lineage.py \
+                    -e COVERAGE_OMIT5=tools/city/backfill_osm_lineage.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
@@ -336,9 +356,9 @@ test-python-tools:
 # since that first build downloads the base image.
 #
 # The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
-# node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
+# node_modules live. `args` passes through, so `make test-js args=test/js/toastPosition.test.js` runs one suite.
 test-js:
-	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/jest --config jest.config.js $(args)"
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd $(container-dir) && $(node-modules)/.bin/vitest run $(args)"
 
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
@@ -393,15 +413,14 @@ lint-locales:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
-# Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
-# page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
-# blocking CI step.
+# The frontend/css/ layout rules (tools/lint/check-css-layout.mjs). Pure node, run in the web container so node is
+# present. Also a blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
-# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
 # argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
@@ -409,16 +428,7 @@ lint-asset-paths:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
 
-# Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
-# versions there match the ones in the filenames. No Dependabot ecosystem watches that folder, so that doc is the
-# only inventory these libraries have, and it's hand-copied. Pure node, run in the web container so node is
-# present. Also a blocking CI step.
-lint-vendor-versions:
-	@echo "Checking vendor versions...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
-	@echo "Finished checking vendor versions";
-
-# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
+# Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
@@ -440,12 +450,14 @@ lint-shellcheck:
 
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
-# Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
+# `scalafmt-fix` reformats in place. The two checks run separately because sbt stops at its first failing command,
+# and one failure shouldn't hide the other.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && { bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll; s=\$$?; bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtSbtCheck && exit \$$s; }"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.
@@ -453,6 +465,7 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
+	@[ -f "$(host-dir)/public/build/manifest.json" ] || { echo "error: $(host-dir)/public/build/manifest.json is missing. The specs render views whose stylesheet tags come from the build, so run \`npm run build\` in that tree first."; exit 1; }
 	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,

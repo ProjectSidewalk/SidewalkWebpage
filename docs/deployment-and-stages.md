@@ -69,6 +69,21 @@ NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, 
 An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
 foreign-key case (`sidewalk_login` has no SidewalkAI account).
 
+`OrphanedJobRunSweep` (the same module) closes the `background_job_run` rows the previous process left open (#5236):
+a deploy or crash that kills a job mid-run leaves its row `running`, and nothing else would ever close it. Every run
+that started before this JVM did is marked `interrupted` (one WARN line each), which is safe because a stage runs
+exactly one process per city schema. Expect one of:
+
+```
+INFO m.OrphanedJobRunSweep - Orphaned job runs: none.
+WARN m.OrphanedJobRunSweep - Orphaned job run: #1234 crop-generation-actor (scheduled) started
+2026-09-05T06:00:01-07:00 was still open when this process started at 2026-09-07T17:09:12.345-07:00; marked
+interrupted.
+```
+
+A WARN on a boot that followed a deploy names the jobs that deploy cut off. Each job's own outcome is logged by
+`JobRunService` as `<job> (<trigger>) run succeeded in Ns.` or `<job> (<trigger>) run failed after Ns: <error>`.
+
 It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
 is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
 refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
@@ -221,7 +236,9 @@ A hotfix that changes no schema *still* needs step 4 for the displayed version t
 
 Deploying an older tag rolls the **schema** back too: `autoApplyDowns=true` (`conf/application.conf`, no stage
 override) means each city instance runs the `Downs` of every evolution above the target version at startup,
-unattended. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
+unattended. CI runs the Downs of every evolution newer than the last release before it ships (#5839,
+[`evolutions.md`](evolutions.md) → "Downs have to work"), but on test data, so it can't rule out a conflict with
+real data. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
@@ -330,9 +347,11 @@ A deploy builds the app essentially the same way you do locally, in this order:
    **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
    fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
+   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
+2. `npm ci`, then `npm run build` (**Vite**): every page's JS bundle (minified, with a sourcemap beside it that
+   carries the sources, since `frontend/js/` itself is not served), the stylesheets (`frontend/css/` is not served
+   either), and the manifest `views.ViteAssets` reads to link them.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
@@ -383,6 +402,11 @@ store nothing in the app writes. The downscaled display copies of panos too wide
 demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
 nothing derived and anything copying it can take the directory whole.
 
+The minimap basemap job writes there too (#5716): tile archives in each city's `basemap/` folder, and one shared
+`pmtiles` tool in `tools/` (or the city's own folder if `tools/` isn't writable). Both are rebuilt if deleted. The job
+needs outbound HTTPS to `build-metadata.protomaps.dev` and `build.protomaps.com`, and to `github.com` and
+`release-assets.githubusercontent.com` for the tool download.
+
 `pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
 the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
 pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of
@@ -415,6 +439,12 @@ check — not a comment in `application.conf` — is what holds the contract.
 `assets.path("css/main.css")` resolves to that URL (`/assets/css/91f6…-main.css`), and since `conf/routes` serves
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
+
+The one asset family that doesn't go through `assets.path` is Vite's shared JS chunks (`public/build/js/chunks/`): a
+page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
+hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer. The
+stylesheet a lazily loaded chunk brings in (`public/build/css/`) is fetched the same way but keeps the hourly default:
+the stage rewrites the icon URLs inside it after Vite has hashed its name, so a deploy can change what that URL serves.
 
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
@@ -453,7 +483,7 @@ page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset b
 `util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
 and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
-`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+`/assets/...` URLs out of `frontend/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). It also rejects string
 surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
@@ -466,9 +496,10 @@ form at stage time, deriving the name from the file's bytes as sbt-digest does. 
 stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
-rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
-absolute one, so `make lint-asset-paths` (rule 6) rejects absolute ones in every stylesheet.
+file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
+(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
+`public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
+or an `/assets/` prefix there, and a library's stylesheet goes through the same build because a module imports it.
 
 Two things about that stage are load-bearing:
 
@@ -478,9 +509,9 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
+  `make lint-asset-paths` applies the same rule to `frontend/css/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
-  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
+  Bundles under `public/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in
@@ -566,7 +597,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
-| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
+| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
 | **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in

@@ -152,10 +152,10 @@ every other such face, still servable, never certain.
 `getLabelTypeToValidate` picks the mission's label type before any labels are drawn.
 `getAvailableValidationsLabelsByType` returns, per label type, how many labels the user could validate at all and how
 many of those each queue holds — computed with the *same* predicates as the label query, so type selection and label
-selection cannot disagree about what "needs validation" means. It runs on every Validate page load and mission
-completion, so the two dearer counts are only taken for a cascade that can read them: the `Triage` count (which joins
-the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and the `NoSidewalk` face count
-only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
+selection cannot disagree about what "needs validation" means. It runs on every Validate first-mission request (one
+per page load) and mission completion, so the two dearer counts are only taken for a cascade that can read them: the
+`Triage` count (which joins the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and
+the `NoSidewalk` face count only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
    The counts apply `unvalidatedOnly` and Expert Validate's `?users=`, `?regions=`, and `?teams=` filters
@@ -319,7 +319,7 @@ The flag rides `ValidateHelper.ValidateParams` as `triage`, which `require`s `ad
 and `userIds` do; the JSON reader checks the same constraint before building the params, so a body that breaks it is
 a 400 rather than the 500 the constructor's exception would be. `ValidateController.paramsAllowedFor` rebuilds a
 non-admin's params without the admin-only fields — so a non-admin who posts `triage: true` gets the crowd cascade. The Twirl views embed it in
-`param.validateParams`, and `public/js/validate/src/data/Form.js` sends it back as `validate_params.triage`; the JSON
+`param.validateParams`, and `frontend/js/validate/data/Form.js` sends it back as `validate_params.triage`; the JSON
 reader defaults a missing field to `false`, so a tab opened before the field existed still submits successfully.
 
 The mode is visible only in the URL and in the embedded params — there is no user-facing string for it, so there is
@@ -571,8 +571,9 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 
 ## QA
 
-Validate cannot be browser-automated (it needs live street-view panoramas), so this is a manual checklist. Run the app
-locally against your dev schema — `make dev` then `npm start`, or `make qa-worktree wt=<name>` for a worktree — then:
+Validate needs live street-view panoramas, which are never browser-automated (each is billed), so this is a manual
+checklist. Run the app on your dev schema (`make dev` then `npm start`, or `make qa-worktree wt=<name>` in a worktree)
+and work through these steps:
 
 1. Sign in as an admin and open `/expertValidate`. In devtools, `svv.validateParams.triage === true`. The labels
    served should be ties, unsure-heavy, or high-vote-count labels (the admin panel lists each label's votes).
@@ -588,8 +589,9 @@ locally against your dev schema — `make dev` then `npm start`, or `make qa-wor
 
 `NoSidewalk` (#5285), against a schema with `street_side` (Teaneck locally):
 
-8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools each `svv.labelList` entry carries
-   `street_side` (`left`/`right`/`null`); the first labels come from distinct streets; the admin panel shows 0 votes
+8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools' network tab, each label in the
+   `/validationTask/mission` response carries `street_side` (`left`/`right`/`null`); the first labels come from
+   distinct streets; the admin panel shows 0 votes
    on them, and `SELECT street_edge_id, street_side, count(*) FROM label JOIN label_point USING (label_id) WHERE
    label_id IN (…) GROUP BY 1, 2` shows one label per face.
 9. Agree on one, then reload `/expertValidate?labelType=NoSidewalk` several times: the other labels on that face

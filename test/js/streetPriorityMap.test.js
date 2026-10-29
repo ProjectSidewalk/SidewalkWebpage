@@ -6,30 +6,16 @@
  * brushes a region across the rest of the page, and the popup that explains one street's priority. Mapbox GL cannot
  * run under jsdom (no WebGL), so this stands up a `mapboxgl` double that records what the map was asked to do — the
  * arrangement is ours to get right, the rendering is Mapbox's.
- *
- * Runs under jsdom (jest.config.js). StreetPriorityMap is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-/* global StreetPriorityTiers -- pulled into scope by the eval() loader below. */
+import { loadModules, mockModule } from './loader.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
-
-loadGlobalScript('public/js/common/utilities.js');
-
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Loads AdminShell (the popup escapes through it) and returns the map class. */
-function loadMap() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const map = fs.readFileSync(path.join(JS_DIR, 'StreetPriorityMap.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${map}\n`
-    + 'globalThis.StreetPriorityTiers = StreetPriorityTiers;\nStreetPriorityMap;');
-}
-
-const StreetPriorityMap = loadMap();
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
+const { StreetPriorityMap, StreetPriorityTiers } =
+  await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 
 /** A minimal `mapboxgl` double: records layers, sources, feature states and handlers instead of drawing. */
 function stubMapbox() {
@@ -85,14 +71,15 @@ function stubMapbox() {
 
   class FakeNavigationControl {}
 
-  global.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
     Map: FakeMap,
     Popup: class extends FakePopup {
       constructor(options) { super(options); state.popup = this; }
     },
     NavigationControl: FakeNavigationControl,
-  };
+    LngLatBounds: FakeLngLatBounds,
+  });
   return state;
 }
 
@@ -124,7 +111,6 @@ function geojson() {
 }
 
 describe('StreetPriorityMap.init', () => {
-  afterEach(() => { delete global.mapboxgl; });
 
   test('refuses to start without a Mapbox token rather than rendering a blank box', () => {
     stubMapbox();
@@ -138,9 +124,9 @@ describe('StreetPriorityMap.init', () => {
     document.body.innerHTML = '<div id="priority-map"></div>';
     new StreetPriorityMap('priority-map', { mapboxToken: 'pk.test' }).init(geojson());
     // Both corners come from different features, so a bounds box built from only the first would fail here.
-    expect(state.options.bounds).toEqual([[-122.4, 47.55], [-122.34, 47.66]]);
+    expect(state.options.bounds.toArray()).toEqual([[-122.4, 47.55], [-122.34, 47.66]]);
     expect(state.options.container).toBe('priority-map');
-    expect(global.mapboxgl.accessToken).toBe('pk.test');
+    expect(mapboxgl.accessToken).toBe('pk.test');
   });
 
   test('resolves only once the style has loaded, so callers cannot draw into a map that has no layers', async () => {
@@ -170,16 +156,15 @@ describe('StreetPriorityMap layers', () => {
     document.body.innerHTML = '<div id="priority-map"></div>';
     map = new StreetPriorityMap('priority-map', {
       mapboxToken: 'pk.test',
-      onRegionClick: jest.fn(),
-      onRegionHover: jest.fn(),
-      onRegionHoverEnd: jest.fn(),
+      onRegionClick: vi.fn(),
+      onRegionHover: vi.fn(),
+      onRegionHoverEnd: vi.fn(),
     });
     const ready = map.init(geojson());
     state.mapInstance.finishLoad();
     await ready;
   });
 
-  afterEach(() => { delete global.mapboxgl; });
 
   test('promotes street_edge_id so feature state can be addressed by the id the rest of the page uses', () => {
     const source = state.sources['imagery-priority-streets'];
@@ -232,7 +217,7 @@ describe('StreetPriorityMap interactions', () => {
   beforeEach(async () => {
     state = stubMapbox();
     document.body.innerHTML = '<div id="priority-map"></div>';
-    hooks = { onRegionClick: jest.fn(), onRegionHover: jest.fn(), onRegionHoverEnd: jest.fn() };
+    hooks = { onRegionClick: vi.fn(), onRegionHover: vi.fn(), onRegionHoverEnd: vi.fn() };
     map = new StreetPriorityMap('priority-map', { mapboxToken: 'pk.test', ...hooks });
     const ready = map.init(geojson());
     state.mapInstance.finishLoad();
@@ -240,7 +225,6 @@ describe('StreetPriorityMap interactions', () => {
     state.featureStates.length = 0;
   });
 
-  afterEach(() => { delete global.mapboxgl; });
 
   test('brushes the hovered segment\'s region and thickens the segment itself', () => {
     fire('mousemove', hoverEvent({ id: 2, properties: geojson().features[1].properties }));
@@ -307,7 +291,6 @@ describe('StreetPriorityMap popup', () => {
     await ready;
   });
 
-  afterEach(() => { delete global.mapboxgl; });
 
   test('explains a street\'s tier with the counts that produced it', () => {
     const html = showPopupFor(geojson().features[1].properties);
@@ -353,7 +336,6 @@ describe('StreetPriorityMap.highlightSegments', () => {
     state.featureStates.length = 0;
   });
 
-  afterEach(() => { delete global.mapboxgl; });
 
   test('selects exactly the given segments', () => {
     map.highlightSegments([1, 2]);

@@ -1,5 +1,5 @@
 /**
- * Tests for changing a label's type from the label detail card (public/js/common/label-detail/LabelDetail.js,
+ * Tests for changing a label's type from the label detail card (frontend/js/common/label-detail/LabelDetail.js,
  * issue #3671).
  *
  * The title is the type: a plain span for most viewers, and for the labeler and admins a button that opens a picker
@@ -9,26 +9,22 @@
  * save also names the type the card showed, and a 409 means the label moved on under it, so the card redraws from
  * the reply instead of rolling back.
  *
- * Built the same way as labelDetailEditGating.test.js: the sources are eval'd into jsdom with the collaborators
- * LabelDetail reaches for stubbed on `window`. jsdom has no popover API, so the picker takes the inline fallback
- * path, which is what the assertions read.
+ * jsdom has no popover API, so the picker takes the inline fallback path, which is what the assertions read. The
+ * pano manager, the toast and the card's flourishes (badges, stories, the info popover, the hide toggle) are
+ * stand-ins: the real ones want a viewer and page markup, and none is what a type change exercises.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) } }));
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
-const PICKER_SRC = readSrc('public/js/common/LabelTypePicker.js');
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
+const toast = { show: vi.fn() };
 
-const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
-const RATED = { CurbRamp: true, Obstacle: true, SurfaceProblem: true, Signal: false };
-// A curb ramp is rated on how well it does its job, an obstacle on how much it gets in the way, so a rating means
-// something different either side of that line; Signal carries none at all.
-const SCALES = { CurbRamp: 'quality', Obstacle: 'severity', SurfaceProblem: 'severity', Signal: 'unrated' };
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -63,7 +59,6 @@ function buildCard() {
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false"></button>
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false"></button>
         </div>
-        <span class="label-detail__pan-hint" hidden></span>
       </div>
       <div class="label-detail__meta-row">
         <div class="label-detail__meta-cell"><span><span class="label-detail__labeled-word"></span>:</span><span class="label-detail__timestamp label-detail__meta-value"></span></div>
@@ -135,7 +130,6 @@ function meta(overrides = {}) {
 
 describe('changing a label\'s type from the card (#3671)', () => {
   let card;
-  let panoManager;
   let saveRequest;
   let onEdit;
   /** What /label/edit answers next: a status and a body, or the default echo of the request. */
@@ -159,11 +153,11 @@ describe('changing a label\'s type from the card (#3671)', () => {
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
+    vi.useFakeTimers({ toNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
     card = buildCard();
     nextReply = null;
-    onEdit = jest.fn();
-    saveRequest = jest.fn(async (url, opts) => {
+    onEdit = vi.fn();
+    saveRequest = vi.fn(async (url, opts) => {
       const body = JSON.parse(opts.body);
       const reply = nextReply ?? {
         status: 200,
@@ -173,67 +167,34 @@ describe('changing a label\'s type from the card (#3671)', () => {
       return { ok: reply.status < 400, status: reply.status, json: async () => reply.body };
     });
 
-    window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-    window.logWebpageActivity = jest.fn();
-    window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-    window.buildBackupImageData = () => null;
-    window.util = {
-      assetPath: assetPathStub,
-      camelToKebab: window.camelToKebab,
-      EXPLORE_CANVAS_WIDTH: 720,
-      EXPLORE_CANVAS_HEIGHT: 480,
-      isMobile: () => false,
-      lazyIdentityFetch: saveRequest,
-      misc: {
-        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-        VALID_LABEL_TYPES: TYPES,
-        getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-        getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-        isPositiveLabelType: (type) => type === 'CurbRamp',
-        labelTypeHasSeverity: (type) => RATED[type],
-        getRatingScale: (type) => SCALES[type] ?? 'unrated',
-        getIconImagePaths: (type) => ({ iconImagePath: `/assets/${type}_small.svg` }),
-        getLabelColors: (type) => `color-${type}`,
-      },
-      pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
-      url: { replaceQuery: () => {} },
-    };
-    installDateHelpers();
-    window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: jest.fn() };
-    window.LabelVisibilityToggle = class { constructor() {} };
-    window.PanoInfoPopover = class { constructor() {} };
+    window.logWebpageActivity = vi.fn();
+    useUtil({ lazyIdentityFetch: saveRequest });
 
     let resolvePano;
     panoManager = {
-      clearLabels: jest.fn(),
-      setLabel: jest.fn(),
-      setLabelType: jest.fn(),
-      setLabelsHidden: jest.fn(),
-      setPano: jest.fn(() => new Promise((res) => { resolvePano = res; })),
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelType: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
       svHolder: document.createElement('div'),
     };
-    window.PopupPanoManager = { create: async () => panoManager };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
-    window.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
         return Promise.resolve({ ok: true, json: async () => meta({ num_agree: 1, num_disagree: 0, num_unsure: 0 }) });
       }
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    window.eval(`${PICKER_SRC}\n${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
-    card.detail = await window.LabelDetail.create(card, {
+    const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
+    card.detail = await LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onEdit,
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
@@ -349,8 +310,8 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:curb-ramp');
     expect(q('.label-detail__severity-faces [data-severity="1"]').getAttribute('aria-pressed')).toBe('true');
-    expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',
+    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'labelmap:edit-conflict', dark: true, compact: true,
     }));
     expect(typeStatus().textContent).toBe('');
     // The label really is on a different type now, so the host and the vote counts have to hear about it.
@@ -388,7 +349,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     typeButton().click();
     chip('Signal').focus();
     const agree = q('[data-result="Agree"]');
-    const clicks = jest.fn();
+    const clicks = vi.fn();
     agree.addEventListener('click', clicks);
 
     chip('Signal').dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', bubbles: true }));

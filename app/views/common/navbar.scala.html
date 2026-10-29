@@ -53,7 +53,7 @@
            than being hidden), so the link set is stable page to page. *@
         @if(!isMobileDevice) {
           <li class="navbar-item">
-            <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarItemIcon("compass")@Messages("navbar.explore")</a>
+            <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore"@if(isExplore){ aria-current="page"}>@common.navbarItemIcon("compass")@Messages("navbar.explore")</a>
           </li>
         }
         @* `data-nav-quick` marks an item the collapsed bar shows as an icon beside the hamburger, lowest number first;

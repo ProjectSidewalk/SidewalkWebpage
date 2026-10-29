@@ -7,7 +7,7 @@ import formats.json.ExploreFormats.{given, *}
 import formats.json.MissionFormats.given
 import models.audit.*
 import models.auth.DefaultEnv
-import models.label.LabelType
+import models.label.{LabelType, POV}
 import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
@@ -35,7 +35,8 @@ class ExploreController @Inject() (
     osmWayService: service.OsmWayService,
     rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
-    aiService: service.AiService
+    aiService: service.AiService,
+    basemapService: service.BasemapService
 )(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -49,9 +50,38 @@ class ExploreController @Inject() (
   private def finite(value: Option[Double]): Option[Double] = value.filter(v => !v.isNaN && !v.isInfinite)
 
   /**
-   * Returns an explore page.
+   * Returns the Explore page: the tool's markup and session scalars only. The task, mission and route it opens on
+   * come from [[getSession]], which the page requests with the query string this URL carried (#5650).
    */
-  def explore(
+  def explore = cc.securityService.SecuredAction { implicit request =>
+    val user: SidewalkUserWithRole = request.identity
+
+    // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
+    if (isMobile) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      for {
+        commonData       <- configService.getCommonPageData(request2Messages.lang)
+        surveyData       <- exploreService.listSurveyQuestions
+        tutorialStreetId <- configService.getTutorialStreetId
+        makeCrops        <- configService.getMakeCrops
+      } yield {
+        val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
+        val basemap           = BasemapController.pageData(basemapService.currentArchive)
+        noStore(
+          Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops, basemap))
+        )
+      }
+    }
+  }
+
+  /**
+   * Resolves the session an Explore visit starts in -- the task, mission, region and route -- and the pano to open
+   * at, as JSON. One request per page load, with the page's own query string; a visit's server-side log line is
+   * written here, since this is where the visit resolves.
+   */
+  def getSession(
       newRegion: Boolean,
       retakeTutorial: Option[Boolean],
       routeId: Option[Int],
@@ -69,57 +99,55 @@ class ExploreController @Inject() (
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 
-    // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile) {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
-      Future.successful(Redirect("/mobileLanding"))
-    } else {
-      // Play's Double binder accepts NaN and Infinity, which the page would hand to the viewer as JS identifiers; a
-      // hand-written seed value that is not finite is dropped rather than passed on (#5480).
-      val seedLat     = finite(lat)
-      val seedLng     = finite(lng)
-      val seedHeading = finite(heading)
-      val seedPitch   = finite(pitch)
-      val seedZoom    = finite(zoom)
+    // Play's Double binder accepts NaN and Infinity, which the page would hand to the viewer as JS identifiers; a
+    // hand-written seed value that is not finite is dropped rather than passed on (#5480).
+    val seedLat     = finite(lat)
+    val seedLng     = finite(lng)
+    val seedHeading = finite(heading)
+    val seedPitch   = finite(pitch)
+    val seedZoom    = finite(zoom)
 
-      // Explore's live URL (#5480) carries the mission it was written from, and that id is honored only for the
-      // mission's owner: it tells the labeler's own tab -- a refresh, or one of the app's own reloads -- apart from
-      // a shared link. The owner resumes their session as a bare /explore would, with the pano seed riding along;
-      // for anyone else the id is inert and the lat/lng below is a drop-in, so a recipient never enters the sharer's
-      // mission or route.
-      val ownSessionF: Future[Boolean] = missionId match {
-        case Some(mId) => missionService.getMission(mId).map(_.exists(_.userId == user.userId))
-        case None      => Future.successful(false)
+    // Explore's live URL (#5480) carries the mission it was written from, and that id is honored only for the
+    // mission's owner: it tells the labeler's own tab -- a refresh, or one of the app's own reloads -- apart from
+    // a shared link. The owner resumes their session as a bare /explore would, with the pano seed riding along;
+    // for anyone else the id is inert and the lat/lng below is a drop-in, so a recipient never enters the sharer's
+    // mission or route.
+    val ownSessionF: Future[Boolean] = missionId match {
+      case Some(mId) => missionService.getMission(mId).map(_.exists(_.userId == user.userId))
+      case None      => Future.successful(false)
+    }
+
+    // NOTE: precedence is routeId, then streetEdgeId, then regionId, then lat/lng (an address drop-in, #4451).
+    for {
+      ownSession     <- ownSessionF
+      exploreDataOpt <- (routeId, streetEdgeId, regionId, seedLat, seedLng) match {
+        case (Some(routeId), _, _, _, _) =>
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+            Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
+        case (_, Some(streetEdgeId), _, _, _) =>
+          exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
+            resumeRoute, regionId = None, Some(streetEdgeId))
+        case (_, _, Some(regionId), _, _) =>
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+            routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
+        case (_, _, _, Some(lt), Some(lg)) if !ownSession =>
+          // Free exploration at a searched address under an exploreAddress mission (#4451); falls back to the
+          // normal flow when no street is close enough to the requested point.
+          exploreService.getDataForExploreAddressPage(user.userId, lt, lg).flatMap {
+            case Some(exploreAddressData) => Future.successful(Some(exploreAddressData))
+            case None                     =>
+              exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
+                routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
+          }
+        case _ =>
+          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId = None,
+            resumeRoute, regionId = None, streetEdgeId = None)
       }
-
-      // NOTE: precedence is routeId, then streetEdgeId, then regionId, then lat/lng (an address drop-in, #4451).
-      for {
-        ownSession  <- ownSessionF
-        exploreData <- (routeId, streetEdgeId, regionId, seedLat, seedLng) match {
-          case (Some(routeId), _, _, _, _) =>
-            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
-              Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
-          case (_, Some(streetEdgeId), _, _, _) =>
-            exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false,
-              routeId = None, resumeRoute = false, regionId = None, Some(streetEdgeId))
-          case (_, _, Some(regionId), _, _) =>
-            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
-              routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
-          case (_, _, _, Some(lt), Some(lg)) if !ownSession =>
-            // Free exploration at a searched address under an exploreAddress mission (#4451); falls back to the
-            // normal flow when no street is close enough to the requested point.
-            exploreService.getDataForExploreAddressPage(user.userId, lt, lg).flatMap {
-              case Some(exploreAddressData) => Future.successful(exploreAddressData)
-              case None                     =>
-                exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
-                  routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
-            }
-          case _ =>
-            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
-              routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
-        }
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-      } yield {
+    } yield exploreDataOpt match {
+      case None =>
+        cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_AllRegionsFinished")
+        noStore(Ok(Json.obj("all_regions_finished" -> true)))
+      case Some(exploreData) =>
         val isExploreAddress: Boolean =
           exploreData.mission.missionType == MissionType.ExploreAddress
         // The owner's seed is only right for the mission it was written in. A resume that landed elsewhere -- the
@@ -128,13 +156,13 @@ class ExploreController @Inject() (
         val seedOwnSession: Boolean =
           ownSession && missionId.contains(exploreData.mission.missionId) &&
             exploreData.mission.missionType != MissionType.AuditOnboarding
-        val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
 
-        // Log visit to the Explore page.
+        // Log the visit.
         val activityStr: String =
           if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
-          else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
-          else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
+          else if (exploreData.servedStreetId.isDefined) s"Visit_Audit_StreetEdgeId=${exploreData.servedStreetId.get}"
+          else if (regionId.isDefined && routeId.isEmpty && streetEdgeId.isEmpty)
+            s"Visit_Audit_RegionId=${regionId.get}"
           else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${seedLat.get}_Lng=${seedLng.get}"
           else if (newRegion) "Visit_Audit_NewRegionSelected"
           else "Visit_Audit"
@@ -148,31 +176,42 @@ class ExploreController @Inject() (
             cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableRouteId=$rId")
           }
         }
-
-        // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
-        // panoId or lat/lng for an admin exploring a specific street, at lat/lng for an address drop-in (any user)
-        // — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins when it
-        // loads, with the lat/lng as its fallback (#4635) — or for the owner of a live URL's mission (#5480).
-        (streetEdgeId, isAdmin(user), panoId, seedLat, seedLng) match {
-          case (Some(s), true, Some(p), _, _) =>
-            Ok(
-              views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p), None, seedHeading,
-                seedPitch, seedZoom)
-            )
-          case (Some(s), true, _, Some(lt), Some(lg)) =>
-            Ok(
-              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, None,
-                seedHeading, seedPitch, seedZoom)
-            )
-          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress || seedOwnSession =>
-            // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
-            Ok(
-              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), p, placeName,
-                seedHeading, seedPitch, seedZoom)
-            )
-          case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
+        if (exploreData.streetUnavailable) {
+          streetEdgeId.foreach { sId =>
+            cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableStreetEdgeId=$sId")
+          }
         }
-      }
+
+        // The pano is seeded at panoId or lat/lng for an admin exploring a specific street, at lat/lng for an address
+        // drop-in (any user) -- where a pano + POV seed can ride along (the label card's "Explore here", #4637): the
+        // pano wins when it loads, with the lat/lng as its fallback (#4635) -- or for the owner of a live URL's mission
+        // (#5480). A POV needs a heading; pitch and zoom just refine it.
+        val (startLat, startLng, startPanoId, startPlaceName) =
+          (exploreData.servedStreetId, isAdmin(user), panoId, seedLat, seedLng) match {
+            case (Some(_), true, Some(p), _, _)         => (None, None, Some(p), None)
+            case (Some(_), true, _, Some(lt), Some(lg)) => (Some(lt), Some(lg), None, None)
+            // placeName rides along only on the drop-in path -- it names the searched place in the landing greeting.
+            case (None, _, p, Some(lt), Some(lg)) if isExploreAddress || seedOwnSession =>
+              (Some(lt), Some(lg), p, placeName)
+            case _ => (None, None, None, None)
+          }
+        val seeded: Boolean       = startLat.isDefined || startPanoId.isDefined
+        val startPov: Option[POV] =
+          if (seeded) seedHeading.map(h => POV(h, seedPitch.getOrElse(0.0), seedZoom.getOrElse(1.0))) else None
+
+        noStore(
+          Ok(
+            Json.toJson(
+              ExploreSession(
+                exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
+                exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
+                exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
+                exploreData.routeUnavailable, exploreData.streetUnavailable, exploreData.regionFinished, startLat,
+                startLng, startPanoId, startPov, startPlaceName
+              )
+            )
+          )
+        )
     }
   }
 
@@ -394,7 +433,8 @@ class ExploreController @Inject() (
                 "label_ids"      -> returnData.newLabels
                   .map(l => Json.obj("label_id" -> l.labelId, "temporary_label_id" -> l.temporaryLabelId)),
                 "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
-                "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
+                "refresh_page" -> returnData.refreshPage, // If we notice something out of whack, tell front-end to refresh.
+                "covered_ranges" -> returnData.coveredRanges.map(Json.toJson(_))
               )
             )
           }

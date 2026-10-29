@@ -8,20 +8,30 @@
  * The picker is checked as the radio group it claims to be, and the dropdown as the disclosure it is.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
+import { loadModules, mockModule, useUtil, REPO_ROOT } from './loader.js';
+import { fakeTracker } from './fakes.js';
 
-/**
- * Loads bare top-level declarations out of a production file into window scope.
- * @param {string} relPath - Path under the repo root.
- * @param {...string} names - The classes or functions the file declares.
- */
-function loadClass(relPath, ...names) {
-  const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-  window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
+const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
+
+/** @returns {?string} The English string a `common:` i18next key resolves to, or null when the key is missing. */
+function resolve(key) {
+  const [ns, rest] = key.split(':');
+  if (ns !== 'common') return 'not checked here';
+  const hit = rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN_COMMON);
+  return typeof hit === 'string' ? hit : null;
 }
+
+// i18next echoes its key so assertions can name the key they expect rather than an English string. `exists`
+// answers from the real English file, since the reason vocabulary (#5475) drops a reason whose text is missing.
+mockModule('i18next', () => ({
+  default: {
+    t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key),
+    exists: (key) => resolve(key) !== null,
+  },
+}));
 
 const TAGS_BY_TYPE = {
   Obstacle: [{ tag_name: 'pole' }, { tag_name: 'trash/recycling can' }],
@@ -29,32 +39,45 @@ const TAGS_BY_TYPE = {
   CurbRamp: [{ tag_name: 'narrow' }],
 };
 
-beforeAll(() => {
+let Label;
+let LabelContainer;
+let LabelTypePicker;
+let LabelTypeDropdown;
+let buildReasonButtonInfo;
+let DesktopValidationMenu;
+let util;
+
+beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  window.util = {
-    assetPath: assetPathStub,
-    isMobile: () => false,
-    camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-  };
-  installUtilitiesMisc();
-  installEscapeHTML();
-  // i18next echoes its key so assertions can name the key they expect rather than an English string.
-  window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
-  loadClass('public/js/validate/src/label/Label.js', 'Label');
-  loadClass('public/js/validate/src/label/LabelContainer.js', 'LabelContainer');
+  ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util } =
+    await loadModules(
+      'frontend/js/common/LabelTypePicker.js',
+      'frontend/js/validate/label/Label.js',
+      'frontend/js/validate/label/LabelContainer.js',
+      'frontend/js/validate/util/ConstantsValidate.js',
+      'frontend/js/validate/menu/DesktopValidationMenu.js',
+      'frontend/js/common/utilities.js',
+    ));
 });
 
+/** The page facts the label, the container and the menu read; adminVersion is flipped per describe. */
+const config = {
+  tagsByLabelType: TAGS_BY_TYPE, adminVersion: false, source: 'ExpertValidate',
+  canvasWidth: () => 720, canvasHeight: () => 480, labelRadius: 10,
+};
+let tracker;
+
 beforeEach(() => {
-  window.svv = { tagsByLabelType: TAGS_BY_TYPE, tracker: { push: jest.fn() } };
+  config.adminVersion = false;
+  tracker = fakeTracker();
 });
 
 /** @returns {Label} An Obstacle label with a rating and two tags, as the backend would hand it over. */
 function makeLabel(overrides = {}) {
-  return new window.Label({
+  return new Label({
     label_id: 7, label_type: 'Obstacle', severity: 2, tags: ['pole', 'trash/recycling can'],
     heading: 0, pitch: 0, zoom: 1, canvas_x: 0, canvas_y: 0, pano_id: 'p', ...overrides,
-  });
+  }, config);
 }
 
 describe('Label.setNewLabelType re-bases the editable state on the picked type', () => {
@@ -93,7 +116,7 @@ describe('Label.setNewLabelType re-bases the editable state on the picked type',
     expect(label.getIconUrl()).toContain('Obstacle_small.svg');
     label.setNewLabelType('SurfaceProblem');
     expect(label.getIconUrl()).toContain('SurfaceProblem_small.svg');
-    expect(label.getIconColor()).toBe(window.util.misc.getLabelColors('SurfaceProblem'));
+    expect(label.getIconColor()).toBe(util.misc.getLabelColors('SurfaceProblem'));
   });
 });
 
@@ -101,12 +124,10 @@ describe('the submission names the type seen and the type picked', () => {
   let container;
 
   beforeEach(() => {
-    window.svv.canvasHeight = () => 480;
-    window.svv.canvasWidth = () => 720;
-    window.svv.missionContainer = { getCurrentMission: () => ({ getProperty: () => 99 }) };
-    window.svv.form = { getSource: () => 'ExpertValidate' };
-    window.svv.panoManager = { getActiveViewerName: () => 'gsv' };
-    container = new window.LabelContainer([], 'Obstacle');
+    const el = () => document.createElement('div');
+    container = new LabelContainer([], 'Obstacle', { holder: el(), busyRegion: [], viewer: { controlLayer: el() } },
+      config, { getActiveViewerName: () => 'gsv' }, {}, {}, {}, { getCurrentMission: () => ({ getProperty: () => 99 }) },
+      tracker);
   });
 
   it('sends label_type always and new_label_type only when the type changed', () => {
@@ -138,12 +159,12 @@ describe('LabelTypePicker', () => {
   });
 
   it('draws one radio per stamped type, with the current type shown but not pickable', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle' });
 
     const chips = [...root.querySelectorAll('[role="radio"]')];
     expect(root.getAttribute('role')).toBe('radiogroup');
-    expect(chips.map((c) => c.dataset.labelType)).toEqual(window.util.misc.VALID_LABEL_TYPES);
+    expect(chips.map((c) => c.dataset.labelType)).toEqual(util.misc.VALID_LABEL_TYPES);
     const current = chips.find((c) => c.dataset.labelType === 'Obstacle');
     expect(current.getAttribute('aria-disabled')).toBe('true');
     expect(current.getAttribute('aria-label')).toBe('common:label-type-picker.current:common:obstacle');
@@ -155,7 +176,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('a click picks a chip, checks it alone, and moves the Tab stop onto it', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle' });
 
     root.querySelector('[data-label-type="SurfaceProblem"]').click();
@@ -169,7 +190,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('arrow keys move between pickable chips, skipping the current type, and pick as they go', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
     const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
     chip('CurbRamp').focus();
@@ -188,7 +209,7 @@ describe('LabelTypePicker', () => {
     const viewer = (e) => { if (e.key.startsWith('Arrow')) e.stopPropagation(); };
     window.addEventListener('keydown', viewer, { capture: true });
     try {
-      const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+      const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
       picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
       const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
       chip('CurbRamp').focus();
@@ -202,7 +223,7 @@ describe('LabelTypePicker', () => {
   });
 
   it('leaves the keys alone while focus is outside the group, since it listens window-wide', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
     document.body.focus();
 
@@ -215,7 +236,7 @@ describe('LabelTypePicker', () => {
   it('keeps focus through a host that redraws on every pick, so arrowing carries on', () => {
     // What Expert Validate does: picking re-renders the whole group, which used to destroy the focused chip and drop
     // focus to the body, leaving the next arrow key with nothing to move from.
-    const picker = new window.LabelTypePicker(root, {
+    const picker = new LabelTypePicker(root, {
       onPick: (t) => {
         picks.push(t);
         picker.render({ current: 'NoCurbRamp', selected: t });
@@ -235,7 +256,7 @@ describe('LabelTypePicker', () => {
 
   it('an arrow key opens a folded group back up rather than moving between chips nobody can see', () => {
     const toggles = [];
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
     picker.render({ current: 'NoCurbRamp' });
     const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
     chip('Obstacle').click();
@@ -251,7 +272,7 @@ describe('LabelTypePicker', () => {
 
   it('collapse leaves only the picked chip, and clicking it opens the group again', () => {
     const toggles = [];
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t), onToggle: (x) => toggles.push(x) });
     picker.render({ current: 'Obstacle' });
     picker.collapse(); // Nothing picked yet, so nothing to fold down to.
     expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
@@ -266,12 +287,12 @@ describe('LabelTypePicker', () => {
     expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
     expect(picks).toEqual(['Signal']); // Re-opening is not a pick.
     root.querySelector('[data-label-type="Signal"]').click();
-    expect(root.querySelectorAll('[hidden]')).toHaveLength(window.util.misc.VALID_LABEL_TYPES.length - 1);
+    expect(root.querySelectorAll('[hidden]')).toHaveLength(util.misc.VALID_LABEL_TYPES.length - 1);
     expect(toggles).toEqual([true, false]);
   });
 
   it('render with a saved selection redraws it without firing onPick', () => {
-    const picker = new window.LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
     picker.render({ current: 'Obstacle', selected: 'Signal' });
 
     expect(picks).toEqual([]);
@@ -283,7 +304,7 @@ describe('LabelTypePicker', () => {
 
     /** @returns {LabelTypePicker} A picker in a host that saves on every pick, as both popovers do. */
     function build() {
-      const picker = new window.LabelTypePicker(root, { commitsOnPick: true, onPick: (t) => picks.push(t) });
+      const picker = new LabelTypePicker(root, { commitsOnPick: true, onPick: (t) => picks.push(t) });
       picker.render({ current: 'NoCurbRamp', selected: 'CurbRamp' });
       return picker;
     }
@@ -344,7 +365,7 @@ describe('LabelTypeDropdown', () => {
         <p class="label-type-popover__hint" hidden></p>
         <div class="label-type-popover__chips"></div>
       </div>`;
-    const dropdown = new window.LabelTypeDropdown(
+    const dropdown = new LabelTypeDropdown(
       document.getElementById('title'), document.querySelector('.label-type-popover'), {
         onOpen: () => {
           opens += 1;
@@ -448,33 +469,22 @@ describe('LabelTypeDropdown', () => {
 });
 
 describe('the disagree reasons (#5409)', () => {
-  const EN = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/validate.json'), 'utf8'));
-
-  /** @returns {?string} The English string an i18next key resolves to, or null when the key is missing. */
-  function resolve(key) {
-    const [ns, rest] = key.split(':');
-    if (ns !== 'validate') return 'not checked here';
-    return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN) ?? null;
-  }
-
-  beforeAll(() => {
-    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
-  });
+  let reasonButtonInfo;
 
   beforeEach(() => {
-    window.defineValidateConstants();
+    reasonButtonInfo = buildReasonButtonInfo();
   });
 
   it('every type leads with "wrong label type", and no reason names a type of its own any more', () => {
-    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+    for (const [type, reasons] of Object.entries(reasonButtonInfo)) {
       expect([type, reasons['no-button-1'].wrongType]).toEqual([type, true]);
       for (const info of Object.values(reasons)) expect(info).not.toHaveProperty('newLabelType');
     }
   });
 
-  it('every reason still points at a string that exists, so the renumbering left nothing dangling', () => {
+  it('every reason still points at a string that exists, so the move to the shared vocabulary left nothing dangling', () => {
     const missing = [];
-    for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
+    for (const [type, reasons] of Object.entries(reasonButtonInfo)) {
       for (const [id, info] of Object.entries(reasons)) {
         // The tooltip carries its shortcut number, once.
         const tooltipKey = info.tooltipText.replace(/ \(\d\)$/, '');
@@ -486,8 +496,22 @@ describe('the disagree reasons (#5409)', () => {
     expect(missing).toEqual([]);
   });
 
+  it('every button carries the id its reason is stored as, and the same id wherever the reason recurs (#5475)', () => {
+    expect(reasonButtonInfo['curb-ramp']['no-button-2'].reasonId).toBe('driveway');
+    expect(reasonButtonInfo['obstacle']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    expect(reasonButtonInfo['surface-problem']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    for (const reasons of Object.values(reasonButtonInfo)) {
+      expect(reasons['unsure-button-1'].reasonId).toBe('better-image');
+      for (const button of Object.values(reasons)) expect(typeof button.reasonId).toBe('string');
+    }
+    // Every type Validate serves has its buttons, in the backend's order.
+    expect(Object.keys(reasonButtonInfo)).toEqual(
+      Object.keys(window.validationReasons).map((type) => type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()),
+    );
+  });
+
   it('there are never more disagree reasons than the four buttons the menu has', () => {
-    for (const reasons of Object.values(window.svv.reasonButtonInfo)) {
+    for (const reasons of Object.values(reasonButtonInfo)) {
       const ids = Object.keys(reasons).filter((id) => id.startsWith('no-button-'));
       expect(ids.every((id) => Number(id.split('-')[2]) <= 4)).toBe(true);
     }
@@ -497,13 +521,13 @@ describe('the disagree reasons (#5409)', () => {
 describe('DesktopValidationMenu on Expert Validate', () => {
   let menu;
   let label;
+  let labelCard;
+  let panoManager;
 
   beforeAll(() => {
-    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
-    window.util.getImage = () => Promise.resolve('img');
+    // No image ever loads in jsdom, and the menu only needs the promise to settle.
+    useUtil({ getImage: () => Promise.resolve('img') });
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
-    loadClass('public/js/validate/src/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
   beforeEach(() => {
@@ -538,16 +562,15 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-submit-button" disabled></button>`;
 
     label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
-    Object.assign(window.svv, {
-      adminVersion: true,
-      labelContainer: { getCurrentLabel: () => label, dropInputWhileLoading: () => false },
-      panoManager: { styleMarkerForLabel: jest.fn() },
-      labelCard: { render: jest.fn() },
-    });
-    window.defineValidateConstants();
+    config.adminVersion = true;
+    const labelContainer = {
+      getCurrentLabel: () => label, dropInputWhileLoading: () => false, onLabelReady: vi.fn(),
+    };
+    panoManager = { styleMarkerForLabel: vi.fn() };
+    labelCard = { render: vi.fn(), onTypePicked: vi.fn() };
 
     const byId = (id) => document.getElementById(id);
-    menu = new window.DesktopValidationMenu({
+    menu = new DesktopValidationMenu({
       yesButton: byId('validate-yes-button'),
       noButton: byId('validate-no-button'),
       unsureButton: byId('validate-unsure-button'),
@@ -568,7 +591,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
       currentTagTemplate: document.getElementById('current-tag-template'),
       aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
-    });
+    }, config, buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker);
     menu.resetMenu(label);
   });
 
@@ -596,7 +619,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
     expect(label.getProperty('newSeverity')).toBe(3);
     expect(/** @type {HTMLInputElement} */ (document.getElementById('validate-severity-radio-3')).checked).toBe(true);
-    expect(window.svv.tracker.push).toHaveBeenCalledWith('Click=Severity_Old=2_New=3');
+    expect(tracker.push).toHaveBeenCalledWith('Click=Severity_Old=2_New=3');
   });
 
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
@@ -619,8 +642,8 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-tags-section')).toBe(true);
     expect(submitDisabled()).toBe(false);
-    expect(window.svv.panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);
-    expect(window.svv.labelCard.render).toHaveBeenCalledWith(label);
+    expect(panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);
+    expect(labelCard.render).toHaveBeenCalledWith(label);
   });
 
   it('going back to Disagree puts the label back on its own type and brings the reasons back', () => {
@@ -631,11 +654,11 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(label.getProperty('validationResult')).toBe('Disagree');
     expect(shown('validate-why-no-section')).toBe(true);
     expect(shown('validate-label-type-section')).toBe(false);
-    expect(window.svv.labelCard.render).toHaveBeenLastCalledWith(label);
+    expect(labelCard.render).toHaveBeenLastCalledWith(label);
   });
 
   it('on regular Validate the reason is a plain disagree reason', () => {
-    window.svv.adminVersion = false;
+    config.adminVersion = false;
     document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 

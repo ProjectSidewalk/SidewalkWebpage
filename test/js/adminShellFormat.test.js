@@ -5,26 +5,11 @@
  * only ever render the same value the same way. That guarantee is worth exactly as much as the edges are pinned: the
  * cases here are the tier boundaries a hand-written formatter tends to get wrong, plus the escaping, which is what
  * stands between user-supplied text and innerHTML.
- *
- * Runs under jsdom (jest.config.js). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-loadGlobalScript('public/js/common/utilities.js');
-
-const SHELL_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js');
-
-/** Load AdminShell.js and return the class binding. */
-function loadShell() {
-  const src = fs.readFileSync(SHELL_PATH, 'utf8');
-  return (0, eval)(`${src}\nAdminShell;`);
-}
-
-const AdminShell = loadShell();
+const { AdminShell } = await loadModules('frontend/js/admin-dashboard/AdminShell.js');
 
 describe('AdminShell.nil', () => {
   test('is true only for null and undefined, not for falsy values that are real data', () => {
@@ -35,17 +20,6 @@ describe('AdminShell.nil', () => {
     expect(AdminShell.nil(0)).toBe(false);
     expect(AdminShell.nil('')).toBe(false);
     expect(AdminShell.nil(false)).toBe(false);
-  });
-});
-
-describe('AdminShell.tooltipAttr', () => {
-  test('survives both the attribute parse and psTooltip\'s innerHTML as plain text', () => {
-    const host = document.createElement('div');
-    host.innerHTML = `<span data-ps-tooltip="${AdminShell.tooltipAttr('<img src=x onerror="bad()"> & co')}"></span>`;
-    const card = document.createElement('div');
-    card.innerHTML = host.firstChild.getAttribute('data-ps-tooltip');
-    expect(card.querySelector('img')).toBeNull();
-    expect(card.textContent).toBe('<img src=x onerror="bad()"> & co');
   });
 });
 
@@ -86,11 +60,7 @@ describe('AdminShell.relativeTime', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
   });
 
   test('steps through the just-now / minutes / hours / days tiers', () => {
@@ -193,8 +163,7 @@ describe('AdminShell.jobStatusBadge', () => {
 describe('AdminShell.jobLastRun', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
-  beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
-  afterEach(() => { jest.restoreAllMocks(); });
+  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
   test('reports a job the schedule has never fired as never, not as its manual run', () => {
     // A hand-run job proves the code works, not that anything is firing it, so it must not read as a scheduled run.

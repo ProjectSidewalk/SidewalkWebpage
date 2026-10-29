@@ -69,6 +69,11 @@ const VALIDATIONS = [];
 /** Serves the fixture in place of the city's feeds. */
 async function stubFeeds(context) {
   VALIDATIONS.length = 0;
+  // The map is fenced to the city's bounds; a dev database holding another city would leave the fixture outside them.
+  await context.route((url) => url.pathname === '/cityMapParams', (route) => route.fulfill({json: {
+    city_center: {lat: 40.88, lng: -74.01}, southwest_boundary: {lat: 40.8, lng: -74.1},
+    northeast_boundary: {lat: 40.95, lng: -73.9}, default_zoom: 12,
+  }}));
   await context.route('**/labelmap/validate', (route) => {
     VALIDATIONS.push(route.request().postDataJSON());
     return route.fulfill({json: {}});

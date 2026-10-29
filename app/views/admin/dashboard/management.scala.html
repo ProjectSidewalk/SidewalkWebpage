@@ -1,11 +1,12 @@
 @import service.CommonPageData
 @import models.user.{Role, SidewalkUserWithRole}
-@import views.ViewHelpers.jsonForScript
+@import play.api.libs.json.Json
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
+@* Admin Management page (#4272): the dashboard's one place for changes rather than reading: user roles and teams,
+   team settings, and maintenance jobs. Per-user flags live on /admin/user/:username, linked from each row. *@
 
 @content = {
   <div class="page-section" id="management-intro-section">
@@ -23,11 +24,11 @@
       placeholder="Search username or email…">
       <span class="mgmt-count dq-sub" id="mgmt-user-count"></span>
     </div>
-    <div class="mgmt-pagination" id="mgmt-pagination-top"></div>
+    <div class="ps-pager ps-pager--spread" id="mgmt-pagination-top"></div>
     <div class="ps-table-scroll">
       <div id="mgmt-users"></div>
     </div>
-    <div class="mgmt-pagination" id="mgmt-pagination-bottom"></div>
+    <div class="ps-pager ps-pager--spread" id="mgmt-pagination-bottom"></div>
   </div>
 
   <div class="page-section" id="teams-section">
@@ -84,8 +85,15 @@
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
+          <b>Rebuild minimap basemap</b>
+          <span class="dq-sub">Cuts Explore's minimap tiles from the newest OpenStreetMap data (also quarterly); run after changing regions.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-basemap" data-confirm="Rebuild the minimap basemap from the newest OpenStreetMap data?">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
           <b>Recount street gradient staleness</b>
-          <span class="dq-sub">Counts ungraded or re-shaped streets for the Health page (also nightly); run after importing <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street grades</a>.</span>
+          <span class="dq-sub">Counts ungraded or re-shaped streets for the Health page (also nightly); run after importing <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md" target="_blank" rel="noopener">street grades</a>.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recount-gradient-staleness" data-confirm="Recount street gradient staleness?">Run</button>
       </div>
@@ -100,27 +108,9 @@
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
   </div>
 
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ManagementPage({
-        userStatsUrl: '/adminapi/getUserStats',
-        setRoleUrl: '/adminapi/setRole',
-        setTeamUrl: '/userapi/setUserTeam',
-        teamStatusUrl: '/adminapi/updateTeamStatus',
-        teamVisibilityUrl: '/adminapi/updateTeamVisibility',
-        clearCacheUrl: '/adminapi/clearPlayCache',
-        recalcStatsUrl: '/adminapi/updateUserStats',
-        recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
-        recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
-        generateCropsUrl: '/adminapi/generateCrops',
-        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
-        refreshPlacesUrl: '/adminapi/refreshPlaces',
-        recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness'
-      }, @jsonForScript(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name))).init();
-    });
-  </script>
+  @ViteAssets.stylesheets("admin/management", alreadyLinked = "admin/shell")
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/management.js")'
+          data-assignable-roles="@Json.stringify(Json.toJson(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name)))"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Management") {

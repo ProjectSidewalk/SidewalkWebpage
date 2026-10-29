@@ -4,7 +4,7 @@
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Cliquez ici</a> pour explorer cette rue !",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
-  "speed-limit-tooltip": "Connaître la <b>limitation de vitesse</b> d'une rue aide à mieux évaluer la sécurité des piétons, par exemple s'il est <b>sûr</b> de traverser à une intersection non régulée.",
+  "speed-limit-tooltip": "Connaître la limitation de vitesse d'une rue aide à mieux évaluer la sécurité des piétons, par exemple s'il est sûr de traverser à une intersection non régulée.",
   "speed-limit-aria-label": "Limitation de vitesse {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Rejoignez {{count, number}} autre communauté",
@@ -26,6 +26,7 @@
   "other": "Autre",
   "surface-problems": "Problèmes de surface",
   "close": "Fermer",
+  "dont-show-again": "Ne plus afficher",
   "cancel": "Annuler",
   "continue": "Continuer",
   "delete": "Supprimer",
@@ -208,8 +209,7 @@
     "view-in-mapillary": "Voir dans Mapillary",
     "view-in-panoramax": "Voir dans Panoramax",
     "city": "Ville",
-    "copy-to-clipboard": "Copier dans le presse-papiers",
-    "copied-to-clipboard": "Données copiées dans votre presse-papiers !"
+    "copy-to-clipboard": "Copier dans le presse-papiers"
   },
   "pano-attribution": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
@@ -346,13 +346,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Copié !",
+    "failed": "Échec de la copie",
+    "section-link": "Copier le lien vers cette section"
+  },
   "share": {
     "button": "Partager",
     "heading": "Partager cette étiquette",
     "text": "Découvrez cette étiquette {{labelType}} sur Project Sidewalk",
     "story-text": "« {{excerpt}} » — un témoignage de la communauté sur Project Sidewalk",
     "copy-link": "Copier le lien",
-    "copied": "Copié !",
     "on-bluesky": "Partager sur Bluesky",
     "on-x": "Partager sur X",
     "on-facebook": "Partager sur Facebook",
@@ -360,13 +364,19 @@
     "via-email": "Partager par e-mail"
   },
   "mini-card": {
-    "no-image": "Pas d'image",
+    "image-unavailable": "Image indisponible",
+    "image-coming": "Image bientôt disponible !",
     "open": "Ouvrir cette étiquette : {{label}}",
     "votes": "Valider cette étiquette",
     "no-image-to-judge": "Aucune image pour juger cette étiquette",
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
+  "session-load-failed": {
+    "title": "Chargement impossible",
+    "body": "Nous n'avons pas pu charger votre mission. Veuillez recharger la page pour réessayer.",
+    "bad-link": "Ce lien n'est pas valide. Vérifiez l'adresse et réessayez."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (type actuel)",
     "change": "modifier",
@@ -405,5 +415,113 @@
   },
   "immersive-enter": "Entrer en mode immersif",
   "immersive-exit": "Quitter le mode immersif",
-  "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter."
+  "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter.",
+  "validation-reason": {
+    "prompt-disagree": "Pourquoi n'êtes-vous pas d'accord ?",
+    "prompt-unsure": "Qu'est-ce qui vous rend incertain ?",
+    "other": "Autre…",
+    "other-hint": "Écrivez votre propre raison",
+    "other-save": "Enregistrer",
+    "saved": "Raison enregistrée",
+    "dismiss": "Fermer",
+    "wrong-type": {
+      "text": "Ce n'est pas le bon type d'étiquette",
+      "tooltip": "Il y a bien quelque chose ici, mais ce devrait être un autre type d'étiquette",
+      "tooltip-curb-ramp": "Il arrive qu'un bateau manquant soit étiqueté par erreur comme un bateau",
+      "tooltip-no-curb-ramp": "Il arrive qu'un bateau soit étiqueté par erreur comme manquant, souvent parce qu'il n'a pas de bande d'éveil",
+      "tooltip-obstacle": "L'herbe et les débris comme les feuilles doivent être marqués avec une étiquette Problème de surface",
+      "tooltip-surface-problem": "Le gravier ou l'herbe ne sont pas considérés comme un trottoir et doivent être marqués avec une étiquette Absence de trottoir",
+      "tooltip-no-sidewalk": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir"
+    },
+    "driveway": {
+      "text": "C'est une entrée charretière",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+    },
+    "driveway-transition": {
+      "text": "C'est une transition trottoir–entrée charretière",
+      "tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée"
+    },
+    "residential-walkway": {
+      "text": "C'est une allée privée",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+    },
+    "no-sidewalk-here": {
+      "text": "Il n'y a pas de trottoir ici",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+    },
+    "unsafe-crossing": {
+      "text": "Il n'est pas sûr de traverser ici",
+      "tooltip": "Les piétons ne sont pas censés traverser à cet endroit, donc aucun bateau n'est attendu"
+    },
+    "not-pedestrian-path": {
+      "text": "Ce n'est pas sur un cheminement piéton",
+      "tooltip-obstacle": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, comme sur l'image ci-dessous, aucune étiquette Obstacle n'est nécessaire",
+      "tooltip-surface-problem": "Si un problème de surface n'est pas sur un chemin destiné aux piétons, il ne doit pas être étiqueté comme problème de surface"
+    },
+    "ample-space": {
+      "text": "Il y a largement la place d'éviter cet objet",
+      "tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles"
+    },
+    "normal-tiles": {
+      "text": "Ce sont des dalles de trottoir normales",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+    },
+    "sidewalk-here": {
+      "text": "Il y a un trottoir ici",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+    },
+    "traffic-median": {
+      "text": "C'est un terre-plein central",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+    },
+    "no-visible-crosswalk": {
+      "text": "Il n'y a aucun passage piéton visible ici",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+    },
+    "stop-line": {
+      "text": "C'est une ligne d'arrêt pour les voitures",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+    },
+    "speed-bump": {
+      "text": "C'est un ralentisseur",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+    },
+    "vehicle-signal-only": {
+      "text": "Ce n'est qu'un feu de circulation pour véhicules",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+    },
+    "sign-no-light": {
+      "text": "C'est un panneau sans feu indiquant quand traverser",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+    },
+    "pole-no-signal": {
+      "text": "C'est un poteau sans feu ni bouton piéton",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+    },
+    "better-image": {
+      "text": "Il faudrait une meilleure image",
+      "tooltip": "L'image est peut-être floue, l'élément étiqueté trop éloigné, ou un autre angle serait nécessaire"
+    },
+    "placement-incorrect": {
+      "text": "Le placement de l'étiquette semble incorrect",
+      "tooltip": "Il arrive que l'élément étiqueté soit visible mais que l'étiquette en soit éloignée"
+    },
+    "ramp-required-unsure": {
+      "text": "Pas sûr qu'un bateau soit nécessaire",
+      "tooltip-curb-ramp": "Certaines ruelles ou entrées commerciales nécessitent une rampe en raison d'une différence de niveau, d'autres non. Il n'est pas toujours clair qu'un raccord de trottoir nécessite une rampe ou une bande d'éveil.",
+      "tooltip-no-curb-ramp": "Il peut être difficile de savoir si les piétons doivent pouvoir traverser à une intersection avec une route plus fréquentée"
+    },
+    "space-to-avoid-unsure": {
+      "text": "Il y a peut-être assez de place pour éviter l'objet",
+      "tooltip": "La largeur du trottoir peut être difficile à juger sur une image"
+    },
+    "too-minor-unsure": {
+      "text": "Peut-être trop mineur pour être étiqueté",
+      "tooltip": "Il peut être difficile de savoir si un défaut comme de l'herbe entre des dalles mérite une étiquette"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Pas sûr qu'il devrait y avoir un trottoir ici",
+      "tooltip": "Il faut parfois plus de contexte, et il est difficile de déterminer d'après une seule image si un trottoir est nécessaire"
+    }
+  }
 }

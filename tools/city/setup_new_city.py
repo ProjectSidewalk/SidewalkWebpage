@@ -59,6 +59,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 import argparse
 import hashlib
 import re
+import sqlite3
 import subprocess
 import sys
 import time
@@ -622,6 +623,39 @@ def mount_mismatch(local_path, container_path):
         return f'{container_path} is not in the db container'
     if theirs.stdout.split()[0] != hashlib.md5(local_path.read_bytes()).hexdigest():
         return f"the db container's {container_path} is not this checkout's {local_path}"
+    return None
+
+
+def staging_fingerprint(gpkg_path):
+    """
+    Hashes the rows of a QA GeoPackage's ``qgis_road`` and ``qgis_region`` layers.
+
+    Read through sqlite3 rather than hashing the file: an edit QGIS has saved only to the WAL side file counts, and
+    QGIS merely opening the file does not.
+
+    Returns:
+        A hex digest; the same bytes on both Python versions this repo uses.
+    """
+    digest = hashlib.sha256()
+    db = sqlite3.connect(str(gpkg_path))
+    try:
+        for layer in ('qgis_road', 'qgis_region'):
+            for row in db.execute(f'SELECT * FROM {layer} ORDER BY rowid'):
+                digest.update(repr(row).encode())
+    finally:
+        db.close()
+    return digest.hexdigest()
+
+
+def sql_fingerprint(sql_file):
+    """The staging fingerprint the build wrote into the SQL header, or None for a file from before it was recorded."""
+    with sql_file.open() as sql:
+        for line in sql:
+            if not line.startswith('--'):
+                return None
+            match = re.match(r'-- Staging fingerprint: (\w+)$', line.rstrip())
+            if match:
+                return match.group(1)
     return None
 
 
@@ -1257,6 +1291,11 @@ def main(argv=None):
     sql_file = city_dir / 'qgis_tables.sql'
     if not sql_file.exists():
         sys.exit(f'error: {sql_file} not found — run `make build-city-data id={city_id} ...` first.')
+    gpkg = city_dir / f'{city_id}_qa.gpkg'
+    expected = sql_fingerprint(sql_file)
+    if expected and gpkg.exists() and staging_fingerprint(gpkg) != expected:
+        sys.exit(f'error: {gpkg.name} has changed since {sql_file.name} was written, so the SQL does not match what '
+                 f'was QA\'d: run `make build-city-data id={city_id} args="--from-gpkg"` first.')
     regions = parse_report(city_id)
 
     print(f'Step 0/9 — what the build produced for {city_id}:')

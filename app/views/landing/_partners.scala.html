@@ -19,8 +19,7 @@
 * since a logo alone is often not legible as a name. The trigger is the .partner-logo wrapper rather than the link, so
 * the tooltip covers no-URL partners' bare images too, and so the aria-describedby psTooltip adds lands on a
 * non-focusable div: the image's alt already describes the logo, and a screen reader would otherwise read the name as
-* a second, redundant description. psTooltip renders its text as HTML, so the
-* admin-supplied name is escaped here once and again by Twirl's attribute escaping (see psTooltip.js).
+* a second, redundant description.
 *@
 
 @logoImg(p: PartnerMetadata) = {
@@ -30,7 +29,8 @@
 }
 
 @* Twirl escapes the admin-entered name and URL here; only the message's own text is trusted by the @Html below. *@
-@contactLink(c: OfficialContact) = {<a href="@c.url" data-partner-source="official-contact">@c.name</a>}
+@contactLink(c: OfficialContact) = {<a href="@c.url" data-partner-source="official-contact" target="_blank"
+  rel="noopener">@c.name</a>}
 
 @officialContactNotice = {
   @for(contact <- officialContact) {
@@ -52,10 +52,11 @@
     <p class="partner-section-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
     <div class="partner-logos">
       @for(p <- partners) {
-        <div class="partner-logo" data-ps-tooltip="@play.twirl.api.HtmlFormat.escape(p.name).body">
+        <div class="partner-logo" data-ps-tooltip="@p.name">
           @* No-URL partners render a bare img — an <a> without href would read as a broken link. *@
           @if(p.url.isDefined) {
-            <a href="@p.url" data-partner-source="@SlugUtils.slugify(p.name, s"partner-${p.partnerId}")">@logoImg(p)</a>
+            <a href="@p.url" data-partner-source="@SlugUtils.slugify(p.name, s"partner-${p.partnerId}")"
+               target="_blank" rel="noopener">@logoImg(p)</a>
           } else {
             @logoImg(p)
           }
@@ -69,19 +70,20 @@
   </h2>
   <div class="partner-logos partner-logos--creators">
     <div class="partner-logo">
-      <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">
+      <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab"
+         target="_blank" rel="noopener">
         <img loading="lazy" src='@assets.path("images/logos/makeability-lab-logo.png")' width="600" height="485"
         alt="@Messages("landing.partners.creator.makeability.alt")">
       </a>
     </div>
     <div class="partner-logo">
-      <a href="https://www.cs.washington.edu/" data-partner-source="uw-allen-school">
+      <a href="https://www.cs.washington.edu/" data-partner-source="uw-allen-school" target="_blank" rel="noopener">
         <img loading="lazy" src='@assets.path("images/logos/uw-allen-school-logo.png")' width="900" height="262"
         alt="@Messages("landing.partners.creator.uw.alt")">
       </a>
     </div>
     <div class="partner-logo">
-      <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd">
+      <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd" target="_blank" rel="noopener">
         <img loading="lazy" src='@assets.path("images/logos/uic-idhd-logo.png")' width="500" height="196"
         alt="@Messages("landing.partners.creator.uic.alt")">
       </a>

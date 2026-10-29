@@ -12,7 +12,7 @@ The set of updates that are likely to be involved:
    definitions themselves belong in `app/models/api/*ApiModels.scala`, not in the `*Table.scala` that produces them.
 2. Making sure the API is updated for every output file type it serves (JSON, CSV, GeoJSON, Shapefile, GeoPackage),
    with the serialization on the DTO (`toJson` / `toCsvRow`, `csvHeader` in the companion).
-3. Updating the relevant documentation in the `app/views/apiDocs/` files and the matching `public/js/api-docs/*Preview.js`.
+3. Updating the relevant documentation in the `app/views/apiDocs/` files and the matching `frontend/js/api-docs/*Preview.js`.
 4. Updating or adding the functional spec in `test/controllers/api/`.
 
 A few things to keep in mind:

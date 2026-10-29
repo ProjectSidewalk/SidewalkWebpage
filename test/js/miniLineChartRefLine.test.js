@@ -1,27 +1,19 @@
 /**
- * Tests for public/js/admin-dashboard/MiniLineChart.js reference lines (#4908).
+ * Tests for frontend/js/admin-dashboard/MiniLineChart.js reference lines (#4908).
  *
  * The Imagery page's "streets polled per night" chart is unreadable without one: a 400-street bar is most of a
  * 500-street batch and a twelfth of a 5,000-street batch, and only the target says which. So the contract worth
  * pinning is that the line lands where the data would put it, and that a target above every bar widens the y scale
  * instead of being drawn off the top — which would read as "no target" rather than "target never met".
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-loadGlobalScript('public/js/common/utilities.js');
-
-const CHART_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/MiniLineChart.js');
-
-/** Load MiniLineChart.js (a plain top-level class declaration, concatenation-style) and return the class. */
-function loadMiniLineChart() {
-  const src = fs.readFileSync(CHART_PATH, 'utf8');
-  return (0, eval)(`${src}\nMiniLineChart;`);
+/** Loads a fresh MiniLineChart class. */
+async function loadMiniLineChart() {
+  return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart reference line', () => {
@@ -40,8 +32,8 @@ describe('MiniLineChart reference line', () => {
   /** The y coordinate of the tallest bar's top edge. */
   const tallestBarTop = (div) => Math.min(...[...div.querySelectorAll('rect.mini-bar')].map((r) => +r.getAttribute('y')));
 
-  beforeEach(() => {
-    MiniLineChart = loadMiniLineChart();
+  beforeEach(async () => {
+    MiniLineChart = await loadMiniLineChart();
   });
 
   test('puts the line exactly where a bar of the same value would end', () => {
@@ -90,6 +82,48 @@ describe('MiniLineChart reference line', () => {
     ['an infinite value', { value: Infinity }],
   ])('draws nothing for %s', (_label, refLine) => {
     expect(render({ refLine }).querySelector('line.mini-ref')).toBeNull();
+  });
+
+  test('moves the label below the line when a bar\'s value label would sit under it', () => {
+    // The last bar meets the target, so its value text sits at the label's height; the label is long enough to reach
+    // across that bar's band from the right edge.
+    const label = 'trailing average across every deployment: 250 a day';
+    const div = render({ barValues: true, refLine: { value: 250, label } });
+    const lineY = +div.querySelector('line.mini-ref').getAttribute('y1');
+    expect(+div.querySelector('text.mini-ref-label').getAttribute('y')).toBeGreaterThan(lineY);
+    // Without bar values there is nothing to dodge, so the same label stays above.
+    const plain = render({ refLine: { value: 250, label } });
+    expect(+plain.querySelector('text.mini-ref-label').getAttribute('y')).toBeLessThan(lineY);
+  });
+
+  test('keeps the label above the line when nothing is in its way', () => {
+    const div = render({ refLine: { value: 50, label: 'avg: 50/day' } });
+    const lineY = +div.querySelector('line.mini-ref').getAttribute('y1');
+    expect(+div.querySelector('text.mini-ref-label').getAttribute('y')).toBeLessThan(lineY);
+  });
+
+  test('marks the label aria-hidden only when the caller says the text alternative carries it', () => {
+    expect(render({ refLine: { value: 50, label: 'x' } }).querySelector('text.mini-ref-label')
+      .hasAttribute('aria-hidden')).toBe(false);
+    expect(render({ refLine: { value: 50, label: 'x', labelInAriaLabel: true } }).querySelector('text.mini-ref-label')
+      .getAttribute('aria-hidden')).toBe('true');
+  });
+
+  test('counts x labels back from the emphasized index so it is always labeled', () => {
+    const cats = Array.from({ length: 30 }, (_, i) => `d${i}`);
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg(cats, [{ name: 'N', key: 'n', values: cats.map(() => 1) }],
+      { kind: 'bar', maxXLabels: 6, emphasisIndex: 29 });
+    const labels = [...div.querySelectorAll('text.mini-axis')].map((t) => t.textContent)
+      .filter((t) => t.startsWith('d'));
+    expect(labels).toContain('d29');
+    expect(labels.length).toBe(6);
+  });
+
+  test('draws no x labels for an empty series, even with the emphasis on its (nonexistent) last point', () => {
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg([], [{ name: 'N', key: 'n', values: [] }], { kind: 'bar', emphasisIndex: -1 });
+    expect([...div.querySelectorAll('text.mini-axis')].some((t) => t.getAttribute('y') === '212')).toBe(false);
   });
 
   test('leaves line charts free to use one too', () => {

@@ -47,6 +47,12 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
   }
 
   /**
+   * A response the browser must never serve from its cache (#5650): the tool pages and the session data they fetch,
+   * so a back/forward navigation can't resurrect a mission or task the user already worked through.
+   */
+  protected def noStore(result: Result): Result = result.withHeaders(CACHE_CONTROL -> "no-store")
+
+  /**
    * Attaches failure logging to a streaming response body.
    *
    * Chunked API responses (`Ok.chunked`) commit a 200 status and headers *before* the underlying database stream

@@ -10,11 +10,6 @@
 @intersectionTypeList = @{intersectionTypes.mkString(", ")}
 
 @content = {
-  <script>
-    // Set data attributes for API information. Used by apiDocs.js (e.g. the download buttons) to build API calls.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'accessScoreIntersections');
-  </script>
 
   <div class="page-section" id="access-score-intersections-intro-section">
     <h1 class="page-heading" id="access-score-intersections-api">AccessScore: Intersections API <a href="#access-score-intersections-api" class="permalink">#</a></h1>
@@ -27,7 +22,7 @@
     </div>
     <p>The AccessScore: Intersections API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each street intersection — higher is more accessible. Curb ramps, missing curb ramps, crosswalks, and pedestrian signals are corner features, so they are pooled on the intersection they sit at, across every street meeting there, rather than credited to whichever street the labeler happened to walk. The score summarizes what was found at the corners. It does not trace any one crossing from a ramp, over a crosswalk, to the ramp on the far side, so it is not a verdict on whether a particular crossing is passable.</p>
     <p>Intersections are derived from Project Sidewalk's own street network: every place three or more streets meet. Bridges and tunnels that only <em>cross</em> a street are marked <code>grade_separated</code> and never scored. See the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> for how a street's score combines its own segment with its end intersections.</p>
-    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>.</p>
+    <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf" target="_blank" rel="noopener">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>.</p>
   </div>
 
   <div class="page-section" id="access-score-intersections-preview-section">
@@ -36,21 +31,11 @@
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure whether an intersection is crossable — researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-intersections-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/access-score.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/accessScoreIntersectionsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        AccessScoreIntersectionsPreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    @ViteAssets.stylesheets("api-docs/accessScoreIntersections", alreadyLinked = "api-docs/layout")
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/accessScoreIntersections.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

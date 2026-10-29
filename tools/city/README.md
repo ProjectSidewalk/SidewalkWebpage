@@ -1,11 +1,10 @@
 # City tools
 
-Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py` and
-`street_gradient.py` run in the web container as `python3.13` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.11), which is what their
-`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve their paths relative
-to the repo root, so they can be launched from any working directory. Unit tests live in
-[`test/python/`](../../test/python).
+Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
+[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
+`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
+root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
 | Script | Run with | What it does |
 | --- | --- | --- |
@@ -15,6 +14,12 @@ to the repo root, so they can be launched from any working directory. Unit tests
 | `create_ga_properties.py` | `make onboard-city`, or by hand | Creates a city's Google Analytics properties |
 | `maps_key_referrers.py` | `make onboard-city`, or by hand | Adds a city's hostnames to the Maps key's referrer list |
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
+| `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
+| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage`; `--dry-run` prints the request count first |
+| `overpass.py` | (imported; `--check` by hand) | How the two fetchers above talk to the public Overpass server without getting the network blocked: identity, small tiled requests, a day cache, 30 s-and-doubling retries, one exit code (75) for "stop and resume later" |
+
+The OSM fetches share one cache, `db/onboarding/osmnx-cache/<date>/`, which `overpass.py` keeps for a week: a rerun
+the same day re-reads what it fetched, a later one sees what OSM holds then.
 
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.
@@ -30,7 +35,7 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_API_KEY
+   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
@@ -38,9 +43,10 @@ Standalone and manual — nothing in the app calls it.
    python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
                                                                  # 360° pictures only
    ```
-   It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
-   lack imagery. It writes streets without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary
-   (presence + capture-date range) to `street_imagery_summary.csv`, both in the same dir.
+   It checks each street's endpoints, then samples points along the street, and keeps a street only if the panos it
+   found cover enough of it for a labeler's walk to finish (the rule under "Search radius" below). It writes streets
+   without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary (presence + capture-date range)
+   to `street_imagery_summary.csv`, both in the same dir.
 3. Run `make hide-streets-without-imagery` to mark those streets in the database.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
@@ -49,7 +55,7 @@ second across all workers, default 10 — deliberately conservative; Google allo
 ### Infra3d
 
 Infra3d has no metadata endpoint, so `--infra3d` uses the nearest-frame query (`framegate`'s `knn/query`) that the
-vendored viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
+viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
 same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3dToken`). Export **one** city's pair as
 `INFRA3D_CLIENT_ID` / `INFRA3D_CLIENT_SECRET` (in the web container they're `INFRA3D_CLIENT_ID_ZURICH`,
 `..._WINTERTHUR`, etc.); the tenant to query comes from the token's own scope, so nothing else is per-city. Two things
@@ -93,16 +99,18 @@ each street's capture-date range (oldest/newest) and pano count into `street_ima
 region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m, cross_track_limit_m`). That tells us
 not just whether a street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is
 the one recorded.
-Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
-actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
-`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look freshly
-imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a "stale
-imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+Mapillary and Panoramax instead return every picture in the queried box, and the date recorded belongs to the picture
+Explore would actually display: `score_pano` and `panoramax_pano_info` port the viewers' ranking (distance, resolution,
+recency), reading its weights from `conf/pano-scoring.json` so they can't drift; Panoramax's section of that file adds
+its own resolution cap (12288 px) and the age an undated picture is scored at. Recording the *newest* picture instead
+would let a street look freshly imaged while the viewer went on serving older panos (#4411, #5284). Persisting this
+into the database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as
+a separate follow-up (#4348).
 
 ### Search radius, and how far off the street a pano sits
 
 Every sampled point — street endpoints and the points between them alike — is queried at **25 m**, the radius Explore
-searches (`svl.STREETVIEW_MAX_DISTANCE`). Matching it is what makes the hide list mean "Explore has no imagery of this
+searches (`PanoViewer.SEARCH_RADIUS_M`). Matching it is what makes the hide list mean "Explore has no imagery of this
 street"; and the radius has to clear each provider's capture interval anyway, or the box can straddle a gap and report
 no imagery where there is some. Mapillary's smart spacing targets 20 m on highways, and 12.6% of Budapest's
 consecutive captures exceed 20 m.
@@ -118,9 +126,8 @@ counts toward a street's verdict:
   beyond the search radius of both the query point and the street's own centerline. The street half matters: a pano
   more than 25 m further down the same street is still imagery of it, and a point-only check hid six Teaneck streets
   that way. Explore's viewer makes the point half of that check (#5114) and gets the street half from sampling the
-  street every 10 m, so the two agree on which panos count as imagery at a point. Their street-level verdicts still
-  differ: the scan weighs endpoints and a failure fraction, while Explore needs only one point along the street to
-  work. Mapillary and Panoramax already filter to the box server-side, and Infra3d applies its radius client-side.
+  street every 10 m, so the two agree on which panos count as imagery at a point. Mapillary and Panoramax already
+  filter to the box server-side, and Infra3d applies its radius client-side.
 - **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline. The
   one exception is the answer to either of the street's two endpoint queries: it also counts if the pano lies within
   **25 m** of an endpoint. An endpoint is an intersection, and the nearest pano to one is often up the crossing street.
@@ -129,6 +136,20 @@ counts toward a street's verdict:
 
 Every distance is measured from the street's stored centerline. The walk samples points from a resampled copy, whose
 straight chords cut the corners of a bend.
+
+### The street-level verdict: the same coverage rule Explore credits a walk by
+
+Which panos count is only half of it; the other half is how much of the street they have to cover. The scan asks the
+question Explore asks of a labeler's walk (#5669): each counted pano covers **10 m** either side of itself, plus the
+stretch back to the previous counted pano when that hop is at most **50 m** (as far as Explore's sweep carries a
+labeler between panos and still counts the ground between as walked), and the street has imagery once what is left
+unseen is **at most half the street and at most 50 m**. The numbers are read from `conf/street-coverage.json`, the
+file the server credits a walk from (`models.audit.StreetCoverage`) and Explore ends a street by, so a street the scan
+keeps open is one a labeler can finish and a street it retires is one nobody could. A street with a hole of more than
+50 m in its imagery is retired even if both ends have pictures: Explore would hop the hole, but nobody could look at
+the sidewalk in it. The walk stops as soon as the verdict can't change: once enough is seen, or once not even imagery
+at every remaining point would be enough. The rule in force is written into every checkpoint row (`coverage_rule`), so
+a checkpoint from before a rule change is refused rather than resumed into (`load_processed`).
 
 Both numbers were measured, not picked (#5091). They come from the panos each street's walk actually visited, recorded
 with `--point-log` (below):
@@ -155,10 +176,10 @@ with `--point-log` (below):
 
 The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
 the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
-limit would reject their sidewalk captures. For Mapillary, holding the viewer's pick (`score_pano`) to the limit would
+limit would reject their sidewalk captures. For Mapillary and Panoramax, holding the viewer's pick to the limit would
 hide points that have an on-street runner-up, and filtering the candidates before scoring would record a date the
-viewer never shows (#4411). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been measured.
-`--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
+viewer never shows (#4411, #5284). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been
+measured. `--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
 `--max-cross-track-m` with another provider is an error.
 
 Each street's `max_cross_track_m` in the summary is the distance from its centerline to the farthest pano it saw,
@@ -267,23 +288,24 @@ Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plaz
 closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
 (`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
 osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
-`osm_ids` (the fill records the first in `osm_way_street_edge`, which is one row per street). Regions come from the
+`osm_ids`, and `qgis_road_osm_way` records where each lies on the street (#5741), matched by geometry against the
+whole ways, which the build fetches separately and keeps in the GeoPackage's `osm_way` layer. Regions come from the
 first source that works: `--regions-file` (any OGR format/CRS; `--region-name-col` names its name column, and
 `--regions-source` records the provenance in `region.data_source`), OSM neighbourhood polygons (auto-rejected under
 75% city coverage), US census tracts (TIGERweb), or the city boundary as a single region.
 
-Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
-from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
-tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
-the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
-`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
-averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
-and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
-"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
-boundaries, and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the
-GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which
-validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run from
+the main checkout): the QA GeoPackage (with `osm_way` and `qgis_road_osm_way` layers beside the staging ones),
+`qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the preflight below runs before any database
+exists), `street_structures.csv` (which streets are on a bridge, in a tunnel or covered, from the OSM tags, with each
+street's geometry hash, so the street-gradient export can run before the nightly `osm_way` cache exists and can refuse a
+file from another build; it rides in the GeoPackage too, so a `--from-gpkg` re-export rewrites it), and `report.md` with
+the tiny-segment histogram (production averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with
+`SPARSE`/`OVERSIZED`/`EMPTY` flags, and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
+"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged boundaries,
+and `--rename-regions` applies `db/onboarding/<city-id>/region_renames.csv` — or hand-edit the GeoPackage in QGIS and
+regenerate the SQL with `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers first (a
+hand-built layer with a single `osm_id` column is accepted).
 
 ## `street_gradient.py`
 
@@ -295,7 +317,7 @@ table are in [`docs/street-gradient.md`](../../docs/street-gradient.md).
 ```bash
 make export-street-gradient-input      # streets with no row yet, or whose geometry changed
 make street-gradient id=seattle-wa     # US cities: USGS 3DEP 10 m, picked from the city's country-id
-make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"
+make street-gradient id=taipei args="--dem-dir db/onboarding/taipei/dem --dem-name moi-dtm-20m --dem-resolution-m 20"
 make import-street-gradient
 ```
 
@@ -303,9 +325,10 @@ make import-street-gradient
 `--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
 by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
 
-- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
-  far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
-  systems, elevations in meters.
+- **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (ten countries;
+  the table in `docs/street-gradient.md`). Sources that cannot be read in place (INEGI's zipped grids, IGN's WMS
+  GeoTIFFs) are fetched once into `db/onboarding/_dem_cache/`. Anything else goes through `--dem-dir`: a directory
+  of hand-downloaded GeoTIFFs in any mix of coordinate systems, elevations in meters.
 - **Bridges and tunnels.** A bare-earth model has the ground under a bridge, so streets the export marks
   `is_structure` (from `osm_way.tags`) get their endpoint elevations and no grade (`quality = structure`), and an
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints

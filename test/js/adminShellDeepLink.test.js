@@ -6,9 +6,7 @@
  * for height changes and re-scrolls the target — until the reader scrolls, keys, or touches, after which the page
  * must never move under them.
  *
- * Runs under jsdom (jest.config.js), which has neither ResizeObserver nor Element.scrollIntoView: the observer is
- * stubbed so a test can fire it by hand, and scrollIntoView is a spy. AdminShell is a bare top-level class in a
- * concatenated bundle, so it is eval'd into global scope rather than required.
+ * jsdom has neither ResizeObserver nor Element.scrollIntoView, so the observer is a stub a test fires by hand.
  *
  * jsdom fires `hashchange` for a `location.hash` assignment on a later task, after the synchronous test body, and
  * every AdminShell built here leaves its window listeners behind. Those late events reach stale instances whose
@@ -16,11 +14,7 @@
  * its own `hashchange` rather than waiting for jsdom's.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const SHELL_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js'), 'utf8');
+import { loadModules } from './loader.js';
 
 let AdminShell;
 /** The callbacks handed to `new ResizeObserver(cb)`, so a test can simulate the content column changing height. */
@@ -28,9 +22,8 @@ let resizeCallbacks = [];
 /** Elements passed to `observe()`, to assert the shell watches the content column and nothing else. */
 let observed = [];
 
-beforeAll(() => {
-  global.initSidebarDisclosure = () => {};
-  AdminShell = (0, eval)(`${SHELL_SRC}\nAdminShell;`);
+beforeAll(async () => {
+  AdminShell = (await loadModules('frontend/js/admin-dashboard/AdminShell.js')).AdminShell;
 });
 
 beforeEach(() => {
@@ -41,10 +34,10 @@ beforeEach(() => {
     observe(el) { observed.push(el); }
     disconnect() {}
   };
-  window.HTMLElement.prototype.scrollIntoView = jest.fn();
-  window.scrollTo = jest.fn();
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  window.scrollTo = vi.fn();
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: false });
-  performance.getEntriesByType = jest.fn(() => []);
+  performance.getEntriesByType = vi.fn(() => []);
   setScrollY(0);
   window.location.hash = '';
 });
@@ -68,7 +61,7 @@ function setScrollY(y, height = 0) {
  * @param {string} type - A PerformanceNavigationTiming type: 'navigate', 'reload', 'back_forward'.
  */
 function setNavigationType(type) {
-  performance.getEntriesByType = jest.fn((kind) => (kind === 'navigation' ? [{ type }] : []));
+  performance.getEntriesByType = vi.fn((kind) => (kind === 'navigation' ? [{ type }] : []));
 }
 
 /**
@@ -102,7 +95,9 @@ function contentResized() {
   resizeCallbacks.forEach((cb) => cb([]));
 }
 
-const scrollCalls = () => /** @type {jest.Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts;
+const scrollCalls = () => (
+  /** @type {import('vitest').Mock} */ (window.HTMLElement.prototype.scrollIntoView).mock.contexts
+);
 
 describe('deep-link target while sections above it load', () => {
   test('re-scrolls the fragment target each time the content column changes height', () => {
@@ -110,7 +105,7 @@ describe('deep-link target while sections above it load', () => {
     const { hiddenSection, target } = buildDom();
     new AdminShell().init();
     expect(observed).toEqual([document.querySelector('.page-content')]);
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     hiddenSection.hidden = false;
     contentResized();
@@ -124,7 +119,7 @@ describe('deep-link target while sections above it load', () => {
       window.location.hash = '#my-routes';
       buildDom();
       new AdminShell().init();
-      jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+      vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
       window.dispatchEvent(new Event(type));
       contentResized();
@@ -137,7 +132,7 @@ describe('deep-link target while sections above it load', () => {
     buildDom();
     new AdminShell().init();
     contentResized();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     setScrollY(500);
     window.dispatchEvent(new Event('scroll'));
@@ -151,7 +146,7 @@ describe('deep-link target while sections above it load', () => {
     const { target } = buildDom();
     new AdminShell().init();
     contentResized();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     setScrollY(1131, 1249);
     window.dispatchEvent(new Event('scroll'));
@@ -165,7 +160,7 @@ describe('deep-link target while sections above it load', () => {
     const { target } = buildDom();
     new AdminShell().init();
     contentResized();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     window.dispatchEvent(new Event('scroll'));
     contentResized();
@@ -177,7 +172,7 @@ describe('deep-link target while sections above it load', () => {
     window.location.hash = '#my-routes';
     buildDom();
     new AdminShell().init();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     // click() carries no pointerdown, as voice control and switch access don't either.
     /** @type {HTMLAnchorElement} */ (document.querySelector('.page-toc a[href="#team"]')).click();
@@ -193,7 +188,7 @@ describe('deep-link target while sections above it load', () => {
       window.location.hash = '#my-routes';
       buildDom();
       new AdminShell().init();
-      jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+      vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
       contentResized();
 
@@ -205,7 +200,7 @@ describe('deep-link target while sections above it load', () => {
     window.location.hash = '#my-routes';
     const { target } = buildDom();
     new AdminShell().init();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     contentResized();
 
@@ -215,7 +210,7 @@ describe('deep-link target while sections above it load', () => {
   test('does nothing on a page opened without a fragment', () => {
     buildDom();
     new AdminShell().init();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     contentResized();
 
@@ -226,7 +221,7 @@ describe('deep-link target while sections above it load', () => {
     window.location.hash = '#no-such-section';
     buildDom();
     new AdminShell().init();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     contentResized();
 
@@ -237,7 +232,7 @@ describe('deep-link target while sections above it load', () => {
     buildDom();
     new AdminShell().init();
     window.dispatchEvent(new Event('wheel'));
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     window.location.hash = '#cities';
     window.dispatchEvent(new Event('hashchange'));
@@ -253,7 +248,7 @@ describe('deep-link target while sections above it load', () => {
     raw.id = '%E0%A4%A';
     document.querySelector('.page-content').appendChild(raw);
     new AdminShell().init();
-    jest.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
 
     contentResized();
 

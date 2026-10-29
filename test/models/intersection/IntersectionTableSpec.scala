@@ -1,5 +1,6 @@
 package models.intersection
 
+import models.street.StreetEdgeStatus
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -30,12 +31,12 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
   /** One degree of latitude is ~111 km, so this many degrees is about `meters` meters north-south. */
   private def degrees(meters: Double): Double = meters / 111000.0
 
-  /** Seeds an open residential street along the given WKT LineString, returning its id. */
-  private def insertStreetAt(wkt: String): DBIO[Int] =
+  /** Seeds a residential street along the given WKT LineString (open unless `status` says), returning its id. */
+  private def insertStreetAt(wkt: String, status: StreetEdgeStatus = StreetEdgeStatus.Open): DBIO[Int] =
     sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
           SELECT (SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge), g,
                  ST_X(ST_StartPoint(g)), ST_Y(ST_StartPoint(g)), ST_X(ST_EndPoint(g)), ST_Y(ST_EndPoint(g)),
-                 'residential', 'open'
+                 'residential', $status
           FROM (SELECT ST_SetSRID(ST_GeomFromText($wkt), 4326) AS g) geom
           RETURNING street_edge_id""".as[Int].head
 
@@ -115,6 +116,9 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
       dataStatements must have size 2
 
       val counts = runRolledBack(for {
+        // 381 knew one way per street; since 417 a street can list several (#5741), which its join would fan out
+        // over, so the comparison is made on the primary way alone, the one the rebuild falls back to at an end.
+        _          <- sqlu"DELETE FROM osm_way_street_edge WHERE NOT is_primary"
         _          <- sqlu"UPDATE cluster SET intersection_id = NULL"
         _          <- sqlu"DELETE FROM intersection_street_edge"
         _          <- sqlu"DELETE FROM intersection"
@@ -157,8 +161,8 @@ class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
     "merge endpoints within a meter into one node, excluding a sliver edge that lies inside it" in {
       runRolledBack(for {
         arms <- fourWay(10.0, 10.0)
-        // A 0.6 m sliver from the cross, then a street leaving from its far end: five streets meet, not six.
-        sliver <- insertStreetAt(line(10.0, 10.0, 10.000005, 10.000003))
+        // A 0.6 m (so disabled, #5691) sliver from the cross, then a street off its far end: five meet, not six.
+        sliver <- insertStreetAt(line(10.0, 10.0, 10.000005, 10.000003), StreetEdgeStatus.Disabled)
         fifth  <- insertStreetAt(line(10.000005, 10.000003, 10.001, 10.001))
         _      <- table.rebuild
         near   <- intersectionsNear(10.0, 10.0)

@@ -1,6 +1,7 @@
 package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
+import models.audit.CoveredRange
 import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
@@ -72,12 +73,12 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       """{"mission_id":2,"label_id":3,"comment":"c","pano_id":"p","heading":1.5,"pitch":2.5,"zoom":3.5,"lat":4.5,
         |"lng":5.5}""".stripMargin,
-      ValidationCommentSubmission(2, 3, "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)
+      ValidationCommentSubmission(2, 3, "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)
     )
     check(
       """{"label_id":3,"label_type":"Obstacle","comment":"c","pano_id":"p","heading":1.5,"pitch":2.5,"zoom":3.5,
         |"lat":4.5,"lng":5.5}""".stripMargin,
-      LabelMapValidationCommentSubmission(3, "Obstacle", "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)
+      LabelMapValidationCommentSubmission(3, "Obstacle", "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)
     )
   }
 
@@ -110,8 +111,8 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       s"""{"street_edge_id":1,"task_start":$ts,"audit_task_id":2,"completed":true,"current_lat":1.5,
          |"current_lng":2.5,"start_point_reversed":false,"current_mission_start":{"lat":3.5,"lng":4.5},
-         |"last_priority_update_time":$ts,"request_updated_street_priority":true,"audited_distance_m":5.5,
-         |"route_street_id":3}""".stripMargin,
+         |"last_priority_update_time":$ts,"request_updated_street_priority":true,
+         |"route_street_id":3,"covered_ranges":[[0,12.5],[20,30]]}""".stripMargin,
       TaskSubmission(
         1,
         t,
@@ -123,22 +124,24 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         Some(GeometryFactory().createPoint(Coordinate(3.5, 4.5))),
         t,
         true,
-        Some(5.5),
-        Some(3)
+        Some(3),
+        Some(Seq(CoveredRange(0d, 12.5d), CoveredRange(20d, 30d)))
       )
     )
     check(
       """{"mission_id":1,"distance_progress":1.5,"region_id":2,"completed":true,"audit_task_id":3,"skipped":false}""",
       AuditMissionProgress(1, Some(1.5), 2, true, Some(3), false)
     )
+    // A submission with labels must carry the pano's size, heading and position (#4808).
     val pano: PanoSubmission =
-      PanoSubmission("p", PanoSource.Gsv, "2020-01", None, None, None, None, None, None, None, None, None, Nil, None,
-        None, None, Nil, None)
+      PanoSubmission("p", PanoSource.Gsv, "2020-01", Some(8192), Some(4096), None, None, Some(1.5), Some(2.5),
+        Some(90.0), None, None, Nil, None, None, None, Nil, None)
     check(
       """{"label_type":"CurbRamp","model_id":"m","model_training_date":"d","api_version":"v",
-        |"pano":{"pano_id":"p","source":"gsv","capture_date":"2020-01","links":[],"history":[]},
+        |"pano":{"pano_id":"p","source":"gsv","capture_date":"2020-01","width":8192,"height":4096,"lat":1.5,"lng":2.5,
+        |"camera_heading":90.0,"links":[],"history":[]},
         |"labels":[{"pano_x":1,"pano_y":2,"confidence":0.5}]}""".stripMargin,
-      AiLabelsSubmission(LabelType.CurbRamp, "m", "d", "v", pano, Seq(AiLabelDetection(1, 2, 0.5)))
+      AiLabelsSubmission(LabelType.CurbRamp, "m", "d", "v", pano, Seq(AiLabelDetection(1, 2, 0.5)), overwrite = None)
     )
   }
 
@@ -241,7 +244,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         ValidationOption.Agree,
         Some(2),
         List("t"),
-        Some(ValidationCommentSubmission(8, 7, "c", "p", 1.5, 2.5, 3.5, 4.5, 5.5)),
+        Some(ValidationCommentSubmission(8, 7, "c", None, "p", 1.5, 2.5, 3.5, 4.5, 5.5)),
         Some(1),
         Some(2),
         1.5,
@@ -299,6 +302,10 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
       """{"label_type":"CurbRamp","labels_needed":3,"excluded_label_ids":[1,2],
         |"validate_params":{"admin_version":false,"unvalidated_only":false}}""".stripMargin,
       MoreLabelsRequest(LabelType.CurbRamp, 3, Seq(1, 2), ValidateParams(false))
+    )
+    check(
+      """{"validate_params":{"admin_version":false,"unvalidated_only":true}}""",
+      MissionRequest(ValidateParams(false, unvalidatedOnly = true))
     )
   }
 }

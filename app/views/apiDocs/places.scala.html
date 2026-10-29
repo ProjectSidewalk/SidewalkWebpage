@@ -9,16 +9,11 @@
 @categoryIds = @{PlaceCategory.ids.mkString(", ")}
 
 @content = {
-  <script>
-    // Set data attributes for API information. Used by apiDocs.js (e.g. the download buttons) to build API calls.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'places');
-  </script>
 
   <div class="page-section" id="places-intro-section">
     <h1 class="page-heading" id="places-api">Places API <a href="#places-api" class="permalink">#</a></h1>
     <p>The Places API returns the destinations that matter most to people with disabilities and to the city staff who plan for them: schools, health care, libraries, grocery stores, transit stops, parks, community centers, and government offices. Each is a point with a category, a name, the region it lies in, and the nearest street, so a street's <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore</a> can be read as "the block between a bus stop and a clinic" rather than as a block on its own. The <a href="/accessScore">AccessScore map</a> draws this layer.</p>
-    <p>Places come from <a href="https://www.openstreetmap.org/">OpenStreetMap</a>, fetched for the city's bounds by a job that runs weekly, so a place added or corrected on OSM appears here within the week. OSM-derived fields (every field of an <code>osm</code> place) are &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/">Open Database License</a>. A wrong or missing place is best fixed on OSM itself, where the fix reaches everyone; <code>osm_url</code> links straight to the object.</p>
+    <p>Places come from <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>, fetched for the city's bounds by a job that runs weekly, so a place added or corrected on OSM appears here within the week. OSM-derived fields (every field of an <code>osm</code> place) are &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License</a>. A wrong or missing place is best fixed on OSM itself, where the fix reaches everyone; <code>osm_url</code> links straight to the object.</p>
   </div>
 
   <div class="page-section" id="places-preview-section">
@@ -26,20 +21,11 @@
     <p>Below is a live preview of the places in a sample region of @cityName, retrieved directly from the API. Hover a place to highlight it; click for its name, category, and nearest street.</p>
     <div id="places-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/placesPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        PlacesPreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    @ViteAssets.stylesheets("api-docs/places", alreadyLinked = "api-docs/layout")
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/places.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

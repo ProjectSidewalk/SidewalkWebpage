@@ -1,5 +1,5 @@
 ---
-applyTo: "public/js/**/*.js"
+applyTo: "frontend/js/**/*.js"
 ---
 # Frontend JS review (ES2022 target)
 

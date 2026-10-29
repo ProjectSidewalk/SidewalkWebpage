@@ -6,20 +6,11 @@
  * differently than the column it sums, and an intro that asserts work an empty account hasn't done. The escaping
  * cases cover the other direction: i18next escapes interpolated values by default, which is wrong both for a string
  * going into textContent and for one this file escapes itself.
- *
- * Runs under jsdom (jest.config.js). CrossCityStats is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
-
-loadGlobalScript('public/js/common/utilities.js');
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const STATS_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/CrossCityStats.js'), 'utf8');
-const MATH_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesMath.js'), 'utf8');
+import fs from 'fs';
+import path from 'path';
+import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 
 /** The subset of dashboard.json this section reads, verbatim, so the tests break if a placeholder is renamed. */
 const STRINGS = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/dashboard.json'), 'utf8')).cities;
@@ -84,7 +75,7 @@ const city = (overrides) => ({
 /** Runs a full render() against a stubbed endpoint payload and returns the section element. */
 async function render(payload, opts = {}) {
   const section = buildDom();
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => payload });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
   await new CrossCityStats(section, { currentCityName: 'Seattle', ...opts }).render();
   return section;
 }
@@ -100,13 +91,8 @@ const payloadOf = (cities, extra = {}) => ({
   ...extra,
 });
 
-let CrossCityStats;
-
-beforeAll(() => {
-  (0, eval)(MATH_SRC);
-  global.i18next = i18nextStub;
-  CrossCityStats = (0, eval)(`${STATS_SRC}\nCrossCityStats;`);
-});
+mockModule('i18next', () => ({ default: i18nextStub }));
+const { CrossCityStats } = await loadModules('frontend/js/user-dashboard/CrossCityStats.js');
 
 const text = (section, id) => section.querySelector(`#${id}`).textContent;
 
@@ -217,7 +203,7 @@ describe('the section announcement', () => {
 
   test('stays silent when the breakdown cannot be computed', async () => {
     const section = buildDom();
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ unavailable: true }) });
     await new CrossCityStats(section, { currentCityName: 'Seattle' }).render();
 
     expect(section.hidden).toBe(true);

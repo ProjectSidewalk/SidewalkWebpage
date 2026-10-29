@@ -16,6 +16,7 @@ import play.twirl.api.Html
 import slick.dbio.DBIO
 
 import java.lang.management.ManagementFactory
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
 import javax.inject.*
@@ -109,11 +110,25 @@ case class CommonPageData(
     supportedLanguages: Seq[String]
 ) {
 
+  def versionDate: LocalDate = CommonPageData.releaseDate(versionTimestamp)
+
+  def versionDateLabel(lang: Lang): String = CommonPageData.releaseDateLabel(versionTimestamp, lang)
+
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 
   /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
   def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
+}
+
+object CommonPageData {
+
+  /** A release's day in UTC, so it doesn't follow the server's time zone and matches the admin deploy strip. */
+  def releaseDate(released: OffsetDateTime): LocalDate = released.atZoneSameInstant(ZoneOffset.UTC).toLocalDate
+
+  /** A release's date in the reader's language's date style (e.g. "October 7, 2026"). */
+  def releaseDateLabel(released: OffsetDateTime, lang: Lang): String =
+    releaseDate(released).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(lang.toLocale))
 }
 
 /**
@@ -167,7 +182,7 @@ enum ContributorKind(val name: String) extends NamedEnum {
 object ContributorKind extends NamedEnumCompanion[ContributorKind]
 
 /**
- * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
+ * One person's contribution to one city on one day, the grain the per-day bar charts are built from (#4931).
  *
  * @param day         Calendar day (Pacific).
  * @param userId      The contributor's user id, which identifies them across cities when their days are merged.
@@ -183,6 +198,44 @@ case class DailyContributorActivity(
     kind: ContributorKind,
     labels: Int,
     validations: Int
+)
+
+/**
+ * One day's activity in one city at the grain the trailing-year baseline needs (#5653).
+ *
+ * Registered people keep their user id so the service can count each person once per day across cities, the way the
+ * daily bars do. Anonymous and AI rows are collapsed to one row per (day, kind): neither feeds a cross-city headcount,
+ * and per-cookie anonymous accounts would otherwise dominate a 365-day result set from every schema.
+ *
+ * @param day         Calendar day (Pacific).
+ * @param userId      The registered contributor's user id; empty for a collapsed anonymous or AI row.
+ * @param kind        How this activity is attributed — a person, a cookie identity, or the pipeline.
+ * @param labels      Non-tutorial, non-excluded labels created that day.
+ * @param validations Validations submitted that day.
+ */
+case class DailyBaselineRow(day: LocalDate, userId: String, kind: ContributorKind, labels: Int, validations: Int)
+
+/**
+ * Trailing-year per-day averages that the Across Cities per-day charts are read against (#5653).
+ *
+ * Counted on the bars' own basis (see [[DailyPoint]]), so a bar and the reference line under it measure the same
+ * thing: volumes are people's work with AI excluded, and contributors are distinct registered people per day across
+ * cities. Today is outside the window because its bar is still filling in and would drag the average down.
+ *
+ * @param days               How many days the averages are taken over; quiet days count as zero.
+ * @param windowStart        First day of the window (Pacific).
+ * @param windowEnd          Last day of the window (Pacific), which is yesterday.
+ * @param labelsPerDay       Mean labels people created per day.
+ * @param validationsPerDay  Mean validations people submitted per day.
+ * @param contributorsPerDay Mean distinct registered contributors per day.
+ */
+case class DailyBaseline(
+    days: Int,
+    windowStart: LocalDate,
+    windowEnd: LocalDate,
+    labelsPerDay: Double,
+    validationsPerDay: Double,
+    contributorsPerDay: Double
 )
 
 /**
@@ -207,7 +260,7 @@ case class ContributorWindowActivity(
 )
 
 /**
- * One day's contribution volume across cities, for the Across Cities "this week" bar charts (#4686, #4931).
+ * One day's contribution volume across cities, for the Across Cities per-day bar charts (#4686, #4931, #5653).
  *
  * Counted on the same two bases as [[ActivityWindowSummary]] — volumes are human work with pipeline work beside it,
  * headcounts are distinct and split registered / anonymous / AI. One AI account can out-produce every person in the
@@ -430,6 +483,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
  * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param walkedKm                Length of every completed audit on a counted street, repeats and outdated imagery
+ *                                included, in km: effort rather than coverage.
+ * @param mappedKm                Distinct audited length on any imagery, in km. `mappedKm - auditedKm` is the length
+ *                                whose every audit predates newer imagery (the re-audit backlog, #4384).
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
@@ -471,6 +528,8 @@ case class CityScorecard(
     coverage: Double,
     totalKm: Double,
     auditedKm: Double,
+    walkedKm: Double,
+    mappedKm: Double,
     totalLabels: Int,
     aiLabels: Int,
     labelsWithSeverity: Int,
@@ -506,10 +565,18 @@ case class CityScorecard(
  * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
  *
  * @param scorecard The per-city metrics.
- * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
- *                  "needs attention" panel.
+ * @param anomalies Zero or more flag keys: "high_disagreement", "reaudit_backlog". The page turns these into a "needs
+ *                  attention" panel; stalled and low-coverage cities come from [[ConfigService.lifecycle]] instead.
  */
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
+
+/**
+ * People who contributed across the cities the Across Cities page shows, staging and AI accounts excluded (#5828).
+ *
+ * @param distinct  Each person counted once, wherever they contributed.
+ * @param multiCity Those who contributed in two or more cities.
+ */
+case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
 
 /**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
@@ -641,7 +708,8 @@ object ConfigService {
   /**
    * Age beyond which a cross-city read is refreshed in the background when served (#4931).
    *
-   * One `/admin/across-cities` request triggers five of these reads, and each fans a query out to every city schema —
+   * One `/admin/across-cities` request triggers five of these reads (plus two more on their own longer clocks:
+   * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
    * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
    * expiring cache is that **no request ever waits on that fan-out**: past this age the cached copy is still served
    * immediately and the refresh runs behind it, whereas an expiring entry makes whichever request arrives first pay
@@ -670,6 +738,32 @@ object ConfigService {
 
   /** How long a labeling-speed read may be served at all; see [[LabelingSpeedFreshFor]]. */
   val LabelingSpeedMaxAge: FiniteDuration = Duration(7, "days")
+
+  /**
+   * How many days the per-day charts' reference averages cover (#5653).
+   *
+   * A trailing year rather than all time, so early sparse years and the pre-AI-labeling era don't skew what "a normal
+   * day" means now, while still spanning every season.
+   */
+  val DailyBaselineDays: Int = 365
+
+  /**
+   * Age beyond which the trailing-year baseline is refreshed in the background when served (#5653).
+   *
+   * Its own pair, far longer than [[CrossCityFreshFor]], because it scans a year of activity per city yet one more day
+   * moves a 365-day mean by well under 1%; refreshing it every ten minutes would buy nothing visible.
+   */
+  val DailyBaselineFreshFor: FiniteDuration = Duration(12, "hours")
+
+  /** How long the trailing-year baseline may be served at all; see [[DailyBaselineFreshFor]]. */
+  val DailyBaselineMaxAge: FiniteDuration = Duration(3, "days")
+
+  /**
+   * How long a page load waits for the trailing-year baseline when nothing is cached. The year-long fan-out is the
+   * page's heaviest read, and the line is a nicety on top of the bars, so a cold (or repeatedly failing) baseline
+   * costs the page its average line for one load rather than holding the whole response.
+   */
+  val DailyBaselineColdWait: FiniteDuration = Duration(5, "seconds")
 
   /**
    * How many contributors each city ships for its "Most active cities" hover cards (#4931).
@@ -794,6 +888,43 @@ object ConfigService {
   }
 
   /**
+   * Averages a trailing window of per-city daily rows into the per-day reference values the charts draw (#5653).
+   *
+   * Mirrors [[summarizeDay]]'s definitions so the line and the bars agree: volumes sum registered and anonymous rows
+   * (AI excluded), and contributors are distinct (day, registered user) pairs, so a person active in three cities on
+   * one day counts once for that day. Every total is divided by `days` rather than by the number of days with data,
+   * because a day nobody mapped is a real zero, not a missing sample.
+   *
+   * @param today The current Pacific day, which is excluded because its bar is still partial.
+   * @param days  Window length; the window is `[today - days, today - 1]`.
+   * @param rows  (cityId, row) pairs from every city; rows outside the window are ignored, since the DAO's coarse
+   *              lower bound reaches past the window's first day and it has no upper bound, so today arrives too.
+   * @return      The window and its per-day means.
+   */
+  def summarizeBaseline(today: LocalDate, days: Int, rows: Seq[(String, DailyBaselineRow)]): DailyBaseline = {
+    val windowStart = today.minusDays(days.toLong)
+    val windowEnd   = today.minusDays(1)
+    val inWindow    = rows.collect {
+      case (_, row) if !row.day.isBefore(windowStart) && !row.day.isAfter(windowEnd) => row
+    }
+    val people          = inWindow.filter(_.kind != ContributorKind.Ai)
+    val contributorDays = inWindow
+      .filter(row => row.kind == ContributorKind.Registered && row.labels + row.validations > 0)
+      .map(row => (row.day, row.userId))
+      .distinct
+      .size
+    def perDay(total: Long): Double = if (days > 0) total.toDouble / days else 0.0
+    DailyBaseline(
+      days = days,
+      windowStart = windowStart,
+      windowEnd = windowEnd,
+      labelsPerDay = perDay(people.map(_.labels.toLong).sum),
+      validationsPerDay = perDay(people.map(_.validations.toLong).sum),
+      contributorsPerDay = perDay(contributorDays.toLong)
+    )
+  }
+
+  /**
    * The (table, column) pairs the global leaderboard's cross-schema query reads (#3719).
    *
    * A schema must have all of them to join the union, and the readiness probe derives its `information_schema` filter
@@ -886,6 +1017,38 @@ object ConfigService {
 
   /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
   val DisagreementMedianMultiple: Double = 1.5
+
+  /** A city whose re-audit backlog is at least this share of its mapped km is flagged "reaudit_backlog". */
+  val ReauditBacklogShare: Double = 0.40
+
+  /** A city with less mapped km than this is never flagged "reaudit_backlog" (a few stale streets aren't a trend). */
+  val MinMappedKmForReauditFlag: Double = 10.0
+
+  /**
+   * The length of a city's mapped streets whose every audit predates newer imagery, in km. Clamped at 0 because the
+   * two sums are computed separately and floating-point error could leave a city with no backlog slightly negative.
+   */
+  def reauditKm(sc: CityScorecard): Double = math.max(0.0, sc.mappedKm - sc.auditedKm)
+
+  /**
+   * Whether a city's re-audit backlog is big enough to flag "reaudit_backlog": at least [[ReauditBacklogShare]] of
+   * its mapped km, and only once it has [[MinMappedKmForReauditFlag]] mapped.
+   */
+  def hasReauditBacklog(sc: CityScorecard): Boolean =
+    sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
+
+  /**
+   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
+   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   *
+   * @param perCity One city's contributor `user_id`s per element.
+   * @param aiIds   The AI accounts' `user_id`s.
+   * @return        Each person counted once, and those in two or more cities.
+   */
+  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+    CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+  }
 
   /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
@@ -1030,16 +1193,35 @@ trait ConfigService {
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
 
   /**
-   * Returns the daily label/validation/active-user volume summed across all available cities for the trailing window
-   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the "this week" bar charts
-   * and their hover cards. Same definitions and exclusions as [[getCrossCityWeeklyTrend]]; active users are summed per
-   * city, so a person active in multiple cities is counted in each (documented on the page), while the contributor
-   * list merges their cities so each person appears once.
+   * Returns the daily label/validation/contributor volume across all available cities for the trailing window
+   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the rolling 7- and 30-day
+   * bar charts and their hover cards (#5653). Same activity definitions and exclusions as [[getCrossCityWeeklyTrend]];
+   * each day is rolled up by [[ConfigService.summarizeDay]], which merges a person's cities so they count once per day.
    *
    * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
    * @return     Exactly `days` days, zero-filled and ascending by day.
    */
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]]
+
+  /**
+   * Returns the trailing-year per-day averages the per-day bar charts draw as reference lines (#5653).
+   *
+   * Counted on the bars' own basis ([[ConfigService.summarizeBaseline]]) over the [[ConfigService.DailyBaselineDays]]
+   * days ending yesterday. Cached on its own long stale-while-revalidate pair because it scans a year per city and
+   * barely moves day to day, so page loads never wait on it once warm.
+   *
+   * Fails as a whole if any city's query fails, rather than counting that city as idle: a partial mean would be cached
+   * for hours. A failed background refresh keeps serving the last good value; a failed cold compute is the caller's to
+   * degrade.
+   *
+   * @param coldWait How long to wait for the compute when nothing is cached; it keeps running past this and fills
+   *                 the cache for the next load.
+   * @return         The window and its labels, validations and contributors per day, or None when nothing was
+   *                 cached and the compute didn't finish within `coldWait`.
+   */
+  def getCrossCityDailyBaseline(
+      coldWait: FiniteDuration = ConfigService.DailyBaselineColdWait
+  ): Future[Option[DailyBaseline]]
 
   /**
    * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
@@ -1073,6 +1255,19 @@ trait ConfigService {
    * @return A Future of cityId → that city's story counts, or None where the count failed.
    */
   def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
+
+  /**
+   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once, and how
+   * many of them contributed in two or more (#5828).
+   *
+   * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
+   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. A refresh where any city's read
+   * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
+   * count is cached.
+   *
+   * @return A Future of the contributor counts, or None if they couldn't be read for every city.
+   */
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1607,11 +1802,34 @@ class ConfigServiceImpl @Inject() (
             .groupBy { case (_, activity) => activity.day }
           // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
           // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
-          val today = LocalDate.now(ZoneId.of("US/Pacific"))
+          val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
           (0 until days).map { i =>
             val day = today.minusDays((days - 1 - i).toLong)
             ConfigService.summarizeDay(day, rowsByDay.getOrElse(day, Seq.empty))
           }
+        }
+      }
+    }
+  }
+
+  def getCrossCityDailyBaseline(coldWait: FiniteDuration): Future[Option[DailyBaseline]] = {
+    val days = ConfigService.DailyBaselineDays
+    swrCache.staleWhileRevalidateWithin[DailyBaseline](
+      "getCrossCityDailyBaseline",
+      ConfigService.DailyBaselineFreshFor,
+      ConfigService.DailyBaselineMaxAge,
+      coldWait
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
+          db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
+            .recoverWith { case e: Exception =>
+              Future.failed(new RuntimeException(s"Daily baseline query failed for city $cityId", e))
+            }
+            .map(rows => rows.map(cityId -> _))
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          ConfigService.summarizeBaseline(LocalDate.now(ZoneId.of("America/Los_Angeles")), days, perCity.flatten)
         }
       }
     }
@@ -1709,6 +1927,35 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]] = {
+    swrCache
+      .staleWhileRevalidate[CrossCityContributorCounts](
+        "getCrossCityContributorCounts",
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
+      ) {
+        availableCityIds().flatMap { availableCities =>
+          // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
+          // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+          val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
+            val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+            idsF.failed.foreach(e =>
+              logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+            )
+            idsF
+          }
+          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+            ConfigService.contributorCounts(perCity, aiIds.toSet)
+          }
+        }
+      }
+      .map(Option(_))
+      .recover { case e: Exception =>
+        logger.warn(s"Cross-city contributor counts unavailable: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
@@ -1778,9 +2025,10 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
-   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
-   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   * Attaches anomaly flags to each scorecard, using the full set for the relative (median-based) check (#4329): a
+   * "high_disagreement" data-quality flag, and "reaudit_backlog" when much of a city's mapped length has newer imagery
+   * than its audits. The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here.
    *
    * @param scorecards All gathered per-city scorecards.
    * @return           Each scorecard paired with its data-quality flags.
@@ -1798,6 +2046,8 @@ class ConfigServiceImpl @Inject() (
       ) {
         flags += "high_disagreement"
       }
+
+      if (ConfigService.hasReauditBacklog(sc)) flags += "reaudit_backlog"
 
       CityScorecardWithFlags(sc, flags.toSeq)
     }

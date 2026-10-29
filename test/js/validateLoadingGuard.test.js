@@ -1,6 +1,6 @@
 /**
  * Tests for Validate's refusal to act on the current label while that label's pano is still loading (issue #5211),
- * across public/js/validate/src/label/LabelContainer.js and the busy region public/js/validate/src/Main.js names.
+ * across frontend/js/validate/label/LabelContainer.js and the busy region frontend/js/validate/Main.js names.
  *
  * `moveToNextLabel()` advances `#currLabel` synchronously and only then awaits the load, so for the length of that
  * load — 1.7 s on average on the Pannellum fallback path, and up to 4.5 s — "the current label" and "the pano on
@@ -14,106 +14,84 @@
  * and so matched nothing at all.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const { assetPathStub } = require('./loadGlobalScript');
+import { REPO_ROOT, loadModules, mockModule } from './loader.js';
+import { fakeGate, fakeTracker } from './fakes.js';
+import {
+  FakeLabel, fakeLabelContainerDeps, newLabelContainer, buildLabelContainer,
+} from './support/labelContainerHarness.js';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'public/js/validate/src/label/LabelContainer.js');
-const MAIN_PATH = path.join(REPO_ROOT, 'public/js/validate/src/Main.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
 
 const LABEL_TYPE = 'CurbRamp';
 
-/**
- * Load a bare `class` or `const` declaration out of a production file. The Grunt bundle concatenates these into page
- * scope, so wrap the source in an IIFE that returns the named binding (same trick as validateSkipUnrenderableLabel).
- * @param {string} filePath - Absolute path to the production file.
- * @param {string} name - Name of the binding the file declares.
- * @returns {*} The binding's value.
- */
-function loadBindingFromFile(filePath, name) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + name + ';\n})()');
-}
+mockModule('frontend/js/validate/label/Label.js', () => ({ Label: FakeLabel }));
 
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
   return document.createElement('div');
 }
 
+/** @type {Function} The LabelContainer class under test. */
+let LabelContainer;
+
+/** @type {Record<string, any>} The collaborators the container under test is built over. */
+let deps;
+
 /** @returns {boolean} Whether every busy-region element carries the busy class and aria-busy. */
 function busyRegionIsBusy() {
-  return svv.ui.busyRegion.every(
+  return deps.ui.busyRegion.every(
     (el) => el.classList.contains('validate-disabled') && el.getAttribute('aria-busy') === 'true',
   );
 }
 
 /** @returns {boolean} Whether every busy-region element has had both the busy class and aria-busy taken off. */
 function busyRegionIsReleased() {
-  return svv.ui.busyRegion.every(
+  return deps.ui.busyRegion.every(
     (el) => !el.classList.contains('validate-disabled') && !el.hasAttribute('aria-busy'),
   );
 }
 
 describe('input aimed at a label whose pano is still loading is dropped (issue #5211)', () => {
-  let LabelContainer;
   let releaseLoad; // Resolves the held-open setPanorama, if one is being held.
   let holdNextLoad;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     holdNextLoad = false;
     releaseLoad = null;
 
-    global.util = {assetPath: assetPathStub, isMobile: () => false};
-
-    // Only the surface LabelContainer reaches for: it stamps a timestamp on the label it is about to load, reads the
-    // pano to load off it, and hands it to the UI. `validate` stands in for the real submission path.
-    global.Label = class Label {
-      constructor(params) {
-        this.auditProps = params;
-        this.props = {};
-        this.validate = jest.fn();
-      }
-
-      getAuditProperty(key) { return this.auditProps[key]; }
-      setProperty(key, value) { this.props[key] = value; }
-      getProperty(key) { return this.props[key]; }
-    };
-
-    global.svv = {
-      adminVersion: false,
-      tracker: {push: jest.fn()},
-      labelCard: {render: jest.fn()},
-      validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn()},
-      labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
-      modalNoNewMission: {show: jest.fn()},
+    deps = fakeLabelContainerDeps({
+      tracker: fakeTracker(),
+      labelCard: {render: vi.fn()},
+      validationMenu: {resetMenu: vi.fn()},
+      undoValidation: {enableUndo: vi.fn()},
+      labelVisibilityControl: {
+        hideLabelCard: vi.fn(),
+        unhideLabel: vi.fn(),
+        openCardOnLoad: vi.fn(),
+        isVisible: () => true,
+      },
+      modalNoNewMission: {show: vi.fn()},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],
         viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
-        renderPanoMarker: jest.fn(),
-        prefetchPano: jest.fn(),
-        setPanorama: jest.fn((panoId) => {
+        renderPanoMarker: vi.fn(),
+        prefetchPano: vi.fn(),
+        setPanorama: vi.fn((panoId) => {
           if (!holdNextLoad) return Promise.resolve({panoData: {panoId}});
           holdNextLoad = false;
           return new Promise((resolve) => { releaseLoad = () => resolve({panoData: {panoId}}); });
         }),
       },
-    };
+    });
 
-    LabelContainer = loadBindingFromFile(LABEL_CONTAINER_PATH, 'LabelContainer');
-  });
-
-  afterEach(() => {
-    delete global.util;
-    delete global.Label;
-    delete global.svv;
+    ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
   });
 
   /**
@@ -121,10 +99,9 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
    * @returns {Promise<{labelContainer: object, inFlight: Promise}>} The container, mid-load, and the pending move.
    */
   async function buildContainerMidLoad() {
-    const labelContainer = await LabelContainer.create(
-      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE,
-    );
-    svv.tracker.push.mockClear();
+    const labelContainer = await buildLabelContainer(LabelContainer, deps,
+      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'}], LABEL_TYPE);
+    deps.tracker.push.mockClear();
     holdNextLoad = true;
     // Not awaited: moveToNextLabel runs as far as the pano load and stops there, which is the window under test.
     const inFlight = labelContainer.moveToNextLabel();
@@ -145,11 +122,11 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 
     await labelContainer.moveToNextLabel();
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'NextLabel'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'NextLabel'});
     await finishLoad(inFlight);
     // Label 3 was never reached for, so the validator is asked about label 2 — the one whose pano just arrived.
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
-    expect(svv.panoManager.setPanorama).toHaveBeenCalledTimes(2);
+    expect(deps.panoManager.setPanorama).toHaveBeenCalledTimes(2);
   });
 
   // Mission progress is rolled back only for an undo that actually happened, so a dropped one has to report itself
@@ -159,7 +136,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 
     expect(await labelContainer.undoLabel()).toBe(false);
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Undo'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Undo'});
     await finishLoad(inFlight);
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
   });
@@ -170,7 +147,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 
     labelContainer.validateCurrentLabel('Agree', new Date(), '');
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Validate=Agree'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Validate=Agree'});
     await finishLoad(inFlight);
     expect(labelContainer.getCurrentLabel().validate).not.toHaveBeenCalled();
   });
@@ -178,14 +155,15 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   test('the same verdict is recorded normally once the pano is on screen', async () => {
     const {labelContainer, inFlight} = await buildContainerMidLoad();
     await finishLoad(inFlight);
-    svv.tracker.push.mockClear();
+    deps.tracker.push.mockClear();
 
     const timestamp = new Date();
     labelContainer.validateCurrentLabel('Agree', timestamp, 'looks right');
 
-    expect(labelContainer.getCurrentLabel().validate).toHaveBeenCalledWith('Agree', 'looks right');
+    expect(labelContainer.getCurrentLabel().validate)
+      .toHaveBeenCalledWith('Agree', 'looks right', deps.panoManager.panoViewer);
     expect(labelContainer.getProperty('validationTimestamp')).toBe(timestamp);
-    expect(svv.tracker.push).not.toHaveBeenCalledWith('ValidateInputDropped_Loading', expect.anything());
+    expect(deps.tracker.push).not.toHaveBeenCalledWith('ValidateInputDropped_Loading', expect.anything());
   });
 
   // What the menus call. It answers for the current moment, so it has to go quiet the instant the label lands.
@@ -193,12 +171,12 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     const {labelContainer, inFlight} = await buildContainerMidLoad();
 
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(true);
-    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Agree'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateInputDropped_Loading', {source: 'Agree'});
 
     await finishLoad(inFlight);
-    svv.tracker.push.mockClear();
+    deps.tracker.push.mockClear();
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
-    expect(svv.tracker.push).not.toHaveBeenCalled();
+    expect(deps.tracker.push).not.toHaveBeenCalled();
   });
 
   // `validate-disabled` is opacity and pointer-events only, so without this a screen reader is told nothing at all.
@@ -220,7 +198,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     holder.innerHTML = '<div id="svv-pano-loading" role="status" aria-live="polite"></div>';
     const menu = fakeElement();
     document.body.append(holder, menu);
-    svv.ui.busyRegion = [holder, menu];
+    deps.ui.busyRegion = [holder, menu];
 
     const {inFlight} = await buildContainerMidLoad();
 
@@ -241,7 +219,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     await finishLoad(inFlight);
 
     const boom = new Error('label card blew up');
-    svv.labelCard.render.mockImplementationOnce(() => { throw boom; });
+    deps.labelCard.render.mockImplementationOnce(() => { throw boom; });
 
     await expect(labelContainer.moveToNextLabel()).rejects.toThrow(boom);
 
@@ -255,26 +233,46 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   test('a render that throws says so, rather than just recovering quietly', async () => {
     const {labelContainer, inFlight} = await buildContainerMidLoad();
     await finishLoad(inFlight);
-    svv.tracker.push.mockClear();
+    deps.tracker.push.mockClear();
 
-    svv.labelCard.render.mockImplementationOnce(() => { throw new Error('label card blew up'); });
+    deps.labelCard.render.mockImplementationOnce(() => { throw new Error('label card blew up'); });
 
     await expect(labelContainer.moveToNextLabel()).rejects.toThrow('label card blew up');
 
-    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
   });
 
-  // The no-more-labels path releases the lock before showing its modal, so that the modal's own disableKeyboard is
-  // what stands. A release in the finally has to leave that alone rather than re-enable the keyboard behind it.
+  // The menu resets as the label becomes current, not once its marker is drawn: otherwise a draw that fails would
+  // hand the tool back with the previous label's verdict still selected, which would submit nothing and skip this
+  // label on the next click. What needs the drawn marker (the card opened on load, say) is told only on success.
+  test('a draw that fails has already reset the menu for the new label, and tells nobody the label is shown', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    const shown = vi.fn();
+    labelContainer.onLabelShown(shown);
+    deps.validationMenu.resetMenu.mockClear();
+    deps.panoManager.renderPanoMarker.mockRejectedValueOnce(new Error('marker did not draw'));
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow('marker did not draw');
+
+    expect(deps.validationMenu.resetMenu).toHaveBeenCalledWith(labelContainer.getCurrentLabel());
+    expect(shown).not.toHaveBeenCalled();
+  });
+
+  // The no-more-labels path hands the tool back before showing its modal. The finally has to leave that alone rather
+  // than hand it back a second time behind the modal.
   test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
-    global.svv.keyboard = {enableKeyboard: jest.fn(), disableKeyboard: jest.fn()};
-    const labelContainer = await LabelContainer.create([{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
-    svv.keyboard.enableKeyboard.mockClear();
+    const keyboard = fakeGate();
+    const labelContainer = newLabelContainer(LabelContainer, deps, [{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
+    // As KeyboardManager subscribes.
+    labelContainer.onLoadingChange((loading) => (loading ? keyboard.hold('loading') : keyboard.release('loading')));
+    await labelContainer.renderCurrentLabel();
+    keyboard.release.mockClear();
 
     await labelContainer.moveToNextLabel();
 
-    expect(svv.modalNoNewMission.show).toHaveBeenCalled();
-    expect(svv.keyboard.enableKeyboard).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
+    expect(deps.modalNoNewMission.show).toHaveBeenCalled();
+    expect(keyboard.release).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
   });
 });
 
@@ -291,8 +289,8 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 // be the handler's first statement, since everything after it writes.
 describe('every menu path that writes onto the current label refuses one that is still loading', () => {
   const MENU_PATHS = {
-    desktop: path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'),
-    mobile: path.join(REPO_ROOT, 'public/js/validate/src/menu/MobileValidationMenu.js'),
+    desktop: path.join(REPO_ROOT, 'frontend/js/validate/menu/DesktopValidationMenu.js'),
+    mobile: path.join(REPO_ROOT, 'frontend/js/validate/menu/MobileValidationMenu.js'),
   };
 
   // [layout, what it is, the line that opens the handler, the source it drops under].
@@ -333,7 +331,7 @@ describe('every menu path that writes onto the current label refuses one that is
       .map((line) => line.trim())
       .find((line) => line !== '' && !line.startsWith('//'));
 
-    expect(firstStatement).toBe(`if (svv.labelContainer.dropInputWhileLoading('${source}')) return;`);
+    expect(firstStatement).toBe(`if (this.#labelContainer.dropInputWhileLoading('${source}')) return;`);
   });
 
   // The setters these call are guarded, but each handler pushes its own tracker event first, so a guard that lived
@@ -353,16 +351,16 @@ describe('every menu path that writes onto the current label refuses one that is
         .find((line) => line !== '' && !line.startsWith('//'));
 
       expect(firstStatement)
-        .toMatch(/^if \(svv\.labelContainer\.dropInputWhileLoading\('(Disagree|Unsure)Reason'\)\) return;$/);
+        .toMatch(/^if \(this\.#labelContainer\.dropInputWhileLoading\('(Disagree|Unsure)Reason'\)\) return;$/);
     }
   });
 });
 
 // An id missing from the view matches nothing, silently, which is how mobile came to have no busy state (#5211).
 // These check the selector lists against the markup they cover.
-describe('every element the busy state covers exists in the view it covers it in', () => {
-  const busySelectors = loadBindingFromFile(MAIN_PATH, 'VALIDATE_BUSY_SELECTORS');
+const { VALIDATE_BUSY_SELECTORS: busySelectors } = await loadModules('frontend/js/validate/Main.js');
 
+describe('every element the busy state covers exists in the view it covers it in', () => {
   test.each([
     ['desktop', DESKTOP_VIEW_PATH],
     ['mobile', MOBILE_VIEW_PATH],

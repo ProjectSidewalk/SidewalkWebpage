@@ -2,13 +2,15 @@
 
 A thin headless-browser suite (issue #4504) that loads each core page and **fails on any uncaught page
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
-grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
+asset build (`npm run build`), and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
-(#5060). Deep canvas/imagery testing stays manual by design.
+(#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
+Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
+Validate and reads the votes back (#4948).
 
 ## Running locally
 
@@ -148,7 +150,7 @@ this suite in two steps: the **accessibility gate** (`--project=a11y`), then the
 gave the pages content to render. Each project writes to its own `test-results/` subdirectory, so the second run
 does not clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright
 report, traces, and `app.log`. **It never runs
-during local development** — your edit / `grunt watch` / reload loop is untouched.
+during local development** — your edit / `npm run watch` / reload loop is untouched.
 
 ### The CI test city
 
@@ -184,7 +186,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  real API was ~20 billable events. The stub implements just the surface `frontend/js` uses (grep-verified; the
   file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
   finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
   (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,
@@ -197,10 +199,13 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
-  error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
+  error). Explore's minimap is a real MapLibre map; CI's app has no tile archive (the job that cuts one is off in CI),
+  so it draws over a plain background. A reload counter
+  turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
-  CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
-  the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
+  CI must take the mission branch (`loadValidate` fails without one there; locally either is fine) — the seed carries
+  the ≥ 10 validatable labels of one type a mission needs, and the server resolves their imagery from the committed
+  backups rather than a provider (#5115) — and on it asserts
   that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
   alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
   tutorial. `/mobile`
@@ -210,14 +215,15 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Phase 2b:** make CI exercise `/validate`'s real mission path. ✅ via #5115's seed — ten validatable labels
   on panos with committed backup imagery. The `GOOGLE_MAPS_SECRET` #4948 called for
   turned out not to be needed: the seeded panoramas are expired, so the server-side imagery check reads the
-  backup files on disk instead of asking a provider. Still open under #4948 is coverage of the mission's
-  *interactions* (menu handlers, keyboard shortcuts, undo), not reaching a mission at all. Also open: gallery
-  expanded-card view and api-docs preview content asserts.
+  backup files on disk instead of asking a provider. The mission's interactions (menu, keyboard shortcuts, undo)
+  ✅ `validate-interactions.spec.js`, #4948: it calls `serveAnyPano`, so a dev database's live panos load in the
+  stub and the spec runs locally too. Still open: gallery expanded-card view and api-docs preview content asserts.
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
-  superuser `UPDATE user_role` in CI).
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
+  ✅ `validate-interactions.spec.js`, #4948); admin pages (promote the setup user via a superuser `UPDATE user_role`
+  in CI).
 
 ## File map
 
@@ -225,7 +231,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
@@ -242,5 +248,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
+| `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
+| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

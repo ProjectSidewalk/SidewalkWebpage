@@ -6,6 +6,7 @@ import models.api.{
   DailyLabelStat,
   LabelAccuracy,
   LabelCVMetadata,
+  LabelCommentForApi,
   LabelDataForApi,
   LabelSevStats,
   LabelValidationSummaryForApi,
@@ -18,6 +19,7 @@ import models.api.{
   ValidatorType
 }
 import models.audit.{AuditTask, AuditTaskTableDef}
+import models.gallery.GalleryOrder
 import models.label.LabelTable.{given, *}
 import models.mission.MissionTableDef
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
@@ -116,7 +118,9 @@ case class LabelLocation(
     lng: Double,
     correct: Option[Boolean],
     hasValidations: Boolean,
-    expired: Boolean
+    expired: Boolean,
+    severity: Option[Int],
+    tags: List[String]
 )
 
 case class LabelForLabelMap(
@@ -273,7 +277,8 @@ case class LabelComment(
     username: String,
     comment: String,
     timeCreated: Option[OffsetDateTime],
-    validation: Option[String]
+    validation: Option[String],
+    reason: Option[String]
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
@@ -771,8 +776,8 @@ object LabelTable {
   }
 
   /**
-   * Parses the JSON built by the comment aggregations (the label_comments_agg view and the matching inline SQL in
-   * getRecentLabelsMetadata) into LabelComment objects — the single Scala-side reader of that wire shape.
+   * Parses the label_comments_agg view's JSON into LabelComment objects — the single Scala-side reader of that wire
+   * shape, used by both the Gallery and getRecentLabelsMetadata.
    */
   private[label] def parseCommentsJson(json: String): Seq[LabelComment] = {
     play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
@@ -780,7 +785,28 @@ object LabelTable {
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
         (obj \ "time_created").asOpt[OffsetDateTime],
-        (obj \ "validation").asOpt[String]
+        (obj \ "validation").asOpt[String],
+        (obj \ "reason").asOpt[String]
+      )
+    }
+  }
+
+  /**
+   * Parses one label's comment aggregate from getLabelDataWithFilters. Keyed by `user_id` rather than the `username`
+   * the label card shows, so it is its own reader and user_ids never reach the card's payload. Postgres renders a
+   * timestamptz in the session's time zone, so the time is moved to UTC to match the label's own `time_created`.
+   *
+   * @param json One label's `comments` aggregate.
+   * @return The label's comments, oldest first.
+   */
+  private[label] def parseCommentsForApiJson(json: String): Seq[LabelCommentForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelCommentForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "comment").as[String],
+        (obj \ "reason").asOpt[String],
+        (obj \ "validation").asOpt[String],
+        (obj \ "time_created").as[OffsetDateTime].withOffsetSameInstant(ZoneOffset.UTC)
       )
     }
   }
@@ -830,6 +856,7 @@ object LabelTable {
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
       validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
+      comments = r.nextStringOption().map(parseCommentsForApiJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -866,7 +893,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Slick mapping for the label_comments_agg VIEW, which pre-aggregates validation comments per label via json_agg.
-   * Each row contains a label_id and a JSON array string of {username, comment} objects.
+   * Each row contains a label_id and a JSON array string of comment objects, as parseCommentsJson reads them.
    */
   private class LabelCommentsAggTableDef(tag: Tag) extends Table[(Int, Option[String])](tag, "label_comments_agg") {
     def labelId: Rep[Int]             = column[Int]("label_id")
@@ -1457,19 +1484,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
    *
-   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and camera angles, and rows written
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
    * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
-   * imagery under the new label's marker (#4804), so they're better left out of the queue.
+   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
+   * `PanoDataTable.hasBackupViewerFields`; see the note there before changing it.
    *
    * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
    * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
-   *
-   * The six columns mirror `PanoData`'s `requiredParams` — see the note there before changing them.
    */
   private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
-    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&
-      pd.width.isDefined && pd.height.isDefined && pd.lat.isDefined && pd.lng.isDefined &&
-      pd.cameraHeading.isDefined && pd.cameraPitch.isDefined)
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && PanoDataTable.hasBackupViewerFields(pd))
   }
 
   /**
@@ -1969,33 +1993,58 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   * Retrieves the Gallery's labels of the given types, severities, and tags, in the given order.
+   *
+   * The random Gallery runs this once per type (the service spreads its request across the types), so for it the set
+   * is one type. A sorted Gallery (#2705) runs it once over every selected type, because a global order can only come
+   * from one query: the top of each type's own ranking, merged, is not the top of the union.
+   *
    * @param viewer            The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelType         Label type specifying what type of labels to grab.
+   * @param labelTypes        Label types to grab; must be non-empty.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of regions to get labels from. All regions if empty.
    * @param severity          Set of severities the labels grabbed can have.
-   * @param tags              Set of tags the labels grabbed can have.
+   * @param tagsByLabelType   Tags each type is narrowed to. A type absent from the map, or mapped to an empty set, is
+   *                          not narrowed: a tag belongs to a type, so a curb ramp's tag says nothing about an obstacle.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
-   * @param recentFirst       If true, order the labels newest-first instead of randomly.
+   * @param order             Random, the landing grid's newest-first pool, or a strict [[GallerySort]].
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
       viewer: PanoSource,
-      labelType: LabelType,
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tags: Set[String],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false
+      order: GalleryOrder = GalleryOrder.Random
   ): Query[LabelValidationMetadataRep, LabelValidationMetadata, Seq] = {
+    require(labelTypes.nonEmpty, "getGalleryLabelsQuery needs at least one label type")
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
+    val anyTags: Boolean            = labelTypes.exists(lt => tagsByLabelType.getOrElse(lt, Set.empty).nonEmpty)
+    // The disagree-ratio gate below keeps the public Gallery from showing labels the crowd has already rejected. A
+    // sorted order is admin tooling, and "most disputed" exists to find exactly those labels, so the gate is waived
+    // there (#2705). The contributor-quality gate is not: a low-quality contributor's label is noise, not a dispute.
+    val waiveDisagreeGate: Boolean = order match {
+      case GalleryOrder.Sorted(_)                        => true
+      case GalleryOrder.Random | GalleryOrder.RecentPool => false
+    }
+
+    // One disjunct per type: the type alone, or the type and an overlap (postgres `&&`, Slick `@&`) with its tags.
+    // Sorted so the SQL is the same whatever order the set iterates in.
+    def typeAndTags(lb: LabelTableDef): Rep[Boolean] = labelTypes.toSeq
+      .sortBy(_.name)
+      .map { lt =>
+        val tags = tagsByLabelType.getOrElse(lt, Set.empty)
+        if (tags.isEmpty) lb.labelType === lt else lb.labelType === lt && (lb.tags @& tags.toList)
+      }
+      .reduce(_ || _)
     // Filter labels based on correctness.
     val _labelsFilteredByCorrectness = {
       var query = labels
@@ -2018,22 +2067,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur  <- userRoles if _us.userId === _ur.userId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lb.labelType === labelType
+      if typeAndTags(_lb)
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       // When the severity filter is non-empty, require a match against the requested ratings or (if allowed) null.
       if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
-      if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
+      if (_lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2) || waiveDisagreeGate
     } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
     val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
 
-    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
-    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
+    // Remove duplicates if needed, then order. Callers that batch through this query (findValidLabelsForType) shuffle
+    // each batch themselves when randomizing, so RecentPool yields a shuffled recent pool; a Sorted order is kept as
+    // is, and the service restores it after the imagery check.
     val _uniqueLabels =
-      if (tags.nonEmpty) _galleryLabels.groupBy(x => x).map { case (label, _) => label } else _galleryLabels
-    if (recentFirst) _uniqueLabels.sortBy(_.timestamp.desc) else _uniqueLabels.sortBy(_ => random)
+      if (anyTags) _galleryLabels.groupBy(x => x).map { case (label, _) => label } else _galleryLabels
+    order match {
+      case GalleryOrder.Random       => _uniqueLabels.sortBy(_ => random)
+      case GalleryOrder.RecentPool   => _uniqueLabels.sortBy(_.timestamp.desc)
+      case GalleryOrder.Sorted(sort) => _uniqueLabels.sortBy(sort.orderBy)
+    }
   }
 
   /**
@@ -2426,13 +2479,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp.lng,
       _l.correct,
       _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0,
-      _pd.expired
+      _pd.expired,
+      _l.severity,
+      _l.tags
     )
 
     // lat/lng are unwrapped here because doing it inside the query fails at runtime.
     _labels.result.map(_.map {
-      case (labelId, auditTaskId, panoId, labelType, lat, lng, correct, hasValidations, expired) =>
-        LabelLocation(labelId, auditTaskId, panoId, labelType, lat.get, lng.get, correct, hasValidations, expired)
+      case (labelId, auditTaskId, panoId, labelType, lat, lng, correct, hasValidations, expired, severity, tags) =>
+        LabelLocation(labelId, auditTaskId, panoId, labelType, lat.get, lng.get, correct, hasValidations, expired,
+          severity, tags)
     })
   }
 
@@ -2677,7 +2733,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.time_created,
              user_stat.high_quality,
              label.street_edge_id,
-             osm_way_street_edge.osm_way_id,
+             osm_way_at_fraction(label.street_edge_id, ST_LineLocatePoint(street_edge.geom, label_point.geom)) AS osm_way_id,
              region.region_id,
              region.name,
              label_point.street_side::text,
@@ -2687,6 +2743,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.disagree_count,
              label.unsure_count,
              vals.validations,
+             comms.comments,
              label.audit_task_id,
              label.mission_id,
              pano_data.capture_date,
@@ -2708,7 +2765,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_point.lng
       FROM #${FilteredTables.labels(contributors = contributors)}
       INNER JOIN label_point ON label.label_id = label_point.label_id
-      INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN street_edge ON label.street_edge_id = street_edge.street_edge_id
+      -- A street without a linked way yields no label; the way named is the one under the label (#5741).
+      INNER JOIN osm_way_street_edge_primary ON label.street_edge_id = osm_way_street_edge_primary.street_edge_id
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
@@ -2728,6 +2787,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM #${FilteredTables.verdictVotes()}
           GROUP BY label_validation.label_id
       ) AS "vals" ON label.label_id = vals.label_id
+      LEFT JOIN (
+          -- Only commenters whose votes count, like vals above, so every user_id here could appear there (#5849).
+          -- The label card's label_comments_agg view shows everyone, so this is its own aggregate. Comments are
+          -- unique per (label, user, label_type), so the current-type join below is what makes it one per user.
+          SELECT validation_task_comment.label_id,
+                 json_agg(json_build_object(
+                   'user_id', validation_task_comment.user_id,
+                   'comment', validation_task_comment.comment,
+                   'reason', validation_task_comment.reason,
+                   'validation', label_validation.validation_result,
+                   'time_created', validation_task_comment.timestamp
+                 ) ORDER BY validation_task_comment.timestamp)::text AS comments
+          FROM validation_task_comment
+          INNER JOIN label ON validation_task_comment.label_id = label.label_id
+              AND validation_task_comment.label_type = label.label_type
+          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+              AND validation_task_comment.user_id = label_validation.user_id
+              AND validation_task_comment.label_type = label_validation.label_type
+          WHERE validation_task_comment.user_id <> label.user_id
+            AND #${FilteredTables.userCounts(None, "validation_task_comment.user_id", Contributors.NotExcluded)}
+          GROUP BY validation_task_comment.label_id
+      ) AS "comms" ON label.label_id = comms.label_id
       WHERE """
       .concat(SqlFragments.allOf(whereConditions))
       .concat(sql"""
@@ -3112,6 +3193,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
   }
 
+  /** One user's live labels of one type on one pano: what a per-pano resubmission would duplicate or replace. */
+  private def liveLabelsOnPano(panoId: String, userId: String, labelType: LabelType) =
+    labelsUnfiltered.filter(l =>
+      l.panoId === panoId && l.userId === userId && l.labelType === labelType && l.deleted === false
+    )
+
+  /** Counts a user's live labels of one type on one pano, which an AI resubmission must not duplicate (#5382). */
+  def countLiveLabelsOnPano(panoId: String, userId: String, labelType: LabelType): DBIO[Int] =
+    liveLabelsOnPano(panoId, userId, labelType).length.result
+
+  /**
+   * Soft-deletes a user's live labels of one type on one pano for a resubmission that replaces them (#5382). Only the
+   * deletion columns change, so the label keeps its point, AI info and validations and can be restored. The caller
+   * refreshes the user's accuracy, as [[LabelEditService.setDeleted]] does.
+   * @return How many labels were deleted.
+   */
+  def softDeleteLabelsOnPano(
+      panoId: String,
+      userId: String,
+      labelType: LabelType,
+      deleterId: String,
+      source: UiSource
+  ): DBIO[Int] = {
+    val (by, at, from) = LabelDeletion.fields(deleterId, Some(source))
+    liveLabelsOnPano(panoId, userId, labelType).map(_.deletion).update((true, by, at, from))
+  }
+
   /**
    * Gets the pano + point-of-view metadata needed to build a preview image URL for a set of labels.
    *
@@ -3247,7 +3355,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     ).flatten
 
     sql"""
-      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              label.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
@@ -3256,7 +3364,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       WHERE """
       .concat(SqlFragments.allOf(dateBounds))
       .concat(sql"""
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
+      GROUP BY (label.time_created AT TIME ZONE 'America/Los_Angeles')::date, label.label_type::text
       ORDER BY date ASC, label.label_type::text
     """)
       .as[DailyLabelStat]

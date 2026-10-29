@@ -14,8 +14,8 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 **Stack:**
 - **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
-- **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
+- **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
+  native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -84,16 +84,34 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
 and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
-inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission walks
-(#5526), is walks that make sense on the ground: routes that end at intersections rather than at an
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
+proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
 arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
   `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
   the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
-  Historically the city build cut streets at region borders so the two coincided; new cities are no longer meant to
-  be cut that way (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and existing cuts are to be merged
-  back in a later, staged data repair. Until then a street that was cut at a border is simply two streets.
+  Historically the city build cut streets at region borders so the two coincided; the current build heals the short
+  pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
+  `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
+  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets. A check
+  constraint (evolution 422, #5691) keeps every street that isn't `disabled` at least 1 m long. Disabled streets can
+  still be shorter, and queries that read every status (the intersection rebuild, route distances) can meet one, so a
+  route must include at least one street that isn't disabled.
+- **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
+  pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
+  direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our
+  `street_side` follows our line. `tools/city/osm_lineage.py` matches them by geometry: the street build against the
+  ways it fetched, `tools/city/backfill_osm_lineage.py` for a live city against today's OSM (export, match, import, like
+  the street gradient). A row with no position still names the way (a city linked before the positions existed, a
+  hand-built layer, the Infra3d placeholder `-1`). Readers that need one way per street use the
+  `osm_way_street_edge_primary` view: the row flagged `is_primary`, a placed row first, then the one covering most of
+  the street, then the lowest id. The flag is stored because ranking on the fly is re-ranked over the whole table under
+  a join; statement triggers keep it right under any writer, and `OsmWayStreetEdgeSpec` fails on a flag that disagrees
+  with a fresh ranking. Readers that need the way under a point call `osm_way_at_fraction(street_edge_id, fraction)`;
+  the Streets and Sidewalk Presence APIs return the whole list. The nightly `osm_way` refresh stores `osm_version` and
+  `osm_timestamp`, so a link whose `matched_at` predates the way's last edit is one to re-match (a node move bumps
+  neither, so that is a hint, not a guarantee).
 - **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
   first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
   street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves
@@ -109,24 +127,28 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
   are actually in, and going by the street alone would drop a label placed just across a border from its mission's
   region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
-- **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
-  region's unwalked streets to `WalkPlanner` (`public/js/common/`), stamps each task with its planned position and
-  direction, and `nextTask` follows that order through the same walk-order branch a route uses. It replans when a
-  street is given up for lack of imagery, when another labeler changes the priority of a street still ahead, and
-  when the labeler switches to a street other than the plan's next; a replan asked for while a jump is armed waits
-  until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
-  deterministic: the same streets, priorities and start street give the same plan, and a reload that resumes the
-  same street replans the same remaining walk. If planning fails, the greedy next-street rule takes over.
-  - *Why the client, and what would move it.* The next-street choice was client-side before the planner (the greedy
-    rule it replaces), the client already holds every street with its live priority and receives priority deltas
-    on every task POST, and both consumers (the next-street pick and the minimap preview) are on the client, so a
-    server plan would add a table, an endpoint and an invalidation story for no consumer. The server's part is the
-    first street of a session and the thresholds: `walk-planner.priority-tolerance` and `walk-planner.tiny-street-m`
-    in `application.conf` (env-overridable per deployment) reach the page as `mainParam.walkPlanner`, and the planner
-    has no defaults for them. Move the planning itself to the server only if a need appears that a client can't
-    meet: coordinating several labelers in one region (reservations, which today's planner would consume as excluded
-    streets), a plan that must survive a device switch, or a planned route shown outside Explore. `WalkPlanner` has
-    no DOM or map dependency so that such a port is a transcription.
+- **A street is credited by coverage, not by reaching its end.** Every Explore walk keeps per task the stretches of
+  the street its panos covered: 10 m either side of each on-street pano plus the stretch between neighbours under 50 m
+  apart (`Task.recordVisit`, on every landing). The server unions each submission into `audit_task.covered_ranges`,
+  derives `audited_distance_m` from the total, and completes the task once what is left unseen is at most half the
+  street and at most 50 m (`StreetCoverage`, fitted to real walks fleet-wide), never from the client's completed flag.
+  The numbers live in `conf/street-coverage.json` because three things must agree on them (#5669): the client ends a
+  street by the same rule, the server credits it, and the imagery checker (`tools/city/check_streets_for_imagery.py`)
+  keeps a street open only if a walk could finish it. So a regular mission's street ends, credited, once the labeler
+  reaches its end having seen enough of it; if the imagery runs out first, it is credited when enough was seen, else
+  reported as missing imagery and left unfinished (`StreetProgress`, `StreetSweep`): a hole of more than 50 m is a
+  stretch nobody could look at, so the street waits for better imagery. A report is evidence for the checker, not a
+  verdict (#4922); it only stops the neighborhood handing that street back to the labeler who bounced off it
+  (`selectANewTaskInARegion`, `reported_no_imagery` on the region task list, #5017), until the street has imagery
+  newer than the report. A region down to such streets is skipped by region assignment and sizes no mission
+  (`getRegionsWithNothingLeftToPick`, `getUnauditedDistance`), though its progress still reads as unfinished.
+  The `?lat&lng` drop-in (#4451) has no route or direction, so there the client credits each pano to whichever
+  loaded street it is on, switching tasks as the labeler wanders (`TaskContainer.recordExploreMove`), and the
+  server finds the task by user, street and mission, never by the posted id. A street the user already has an
+  up-to-date audit of takes no new task, so it is never counted twice; one flagged for re-audit gets one, as in a
+  regular mission. Everything downstream reads `audit_task.completed` as usual. `start_offset_m` marks drop-in rows
+  and keeps them out of the regular-mission resume paths, though the region task list still returns their coverage
+  so a reload redraws a part-walked street. Sessions from before #5733 are credited by a one-off backfill.
 
 ### Media storage
 
@@ -151,6 +173,13 @@ directory by `LabelEditService`). They are disposable — delete the store and t
 which is why they live beside the app's other derived media rather than in the panorama store, which the app only
 reads.
 
+The same directory holds the **minimap basemap** (#5716): each city's tile archives in `<city-id>/basemap/`, and in
+`tools/` one copy of the `pmtiles` tool for every city on the server, all rebuilt if deleted.
+
+A pano's `pano_data.width`/`height` never change: Google re-renders pixels, never the frame (measured in
+sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
+file, not a resized pano (#5667).
+
 Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
@@ -174,10 +203,13 @@ the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore shee
 row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
 image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
 must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
-that in place of the native file without the viewer being able to tell, because it places markers by angle. **The
-viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
-its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
-produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
+that in place of the native file without the viewer being able to tell, because it places markers by angle. A backup
+is served only when its row holds the pano's dimensions, camera position and heading; camera pitch and roll are
+stored but not needed, since the viewer takes the horizon from the image itself (#5174, #5725), and
+`PanoDataTable.hasBackupViewerFields` names every copy of that rule. **The viewer decides when one is needed**,
+because only it knows the GPU: Pannellum uploads an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE`
+and a device advertising 8192 renders a 16384-wide pano — the widest GSV produces — untouched. When a device can't,
+it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
 width on demand, caching it under the crop store (#5256). A phone asks for 8192 whatever its GPU says, because the
 native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
 For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
@@ -187,6 +219,10 @@ that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rat
 nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
+
+`/backupImage/:panoId/metadata` answers 404 whether the file is missing, the `pano_data` row is missing, or the row
+lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
+no query.
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -216,7 +252,8 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `AiSeedRowsRepair`, which inserts
 the SidewalkAI user's per-schema rows wherever a schema was created without running 281.sql — a cloned or
-dump-restored city, #5349). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
+dump-restored city, #5349, and `OrphanedJobRunSweep`, which closes the job runs a previous process died in the
+middle of, #5236). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
 HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
 `conf/application.conf`.
 
@@ -234,6 +271,10 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
 
+The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
+`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
+`updated_at` too, so keying on it starved never-polled streets.
+
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
@@ -245,6 +286,15 @@ computation takes longer than the reverse proxy allows a request, so a cold cach
 opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
 endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
 background; the AccessScore tool retries on that header and says so under its spinner.
+
+The **minimap basemap refresh** (#5716) keeps each city's own copy of the minimap's OpenStreetMap tiles.
+`BasemapService` runs the `pmtiles` tool to copy the regions' area, plus 2 km, out of Protomaps' daily world file: a few
+seconds and 3–64 MB per city. No package manager ships the tool, so the app downloads it itself, pinned to one version
+and checksum-checked. The nightly tick cuts when nothing has been cut since the latest January, April, July or October
+1st, so a failed refresh retries the next night, and a city with no archive cuts one within an hour of startup.
+`BasemapController` serves the archive by range request under a new name per cut, so browsers can cache it for good. The
+label fonts are Protomaps' Noto Sans glyphs in `public/vendor/basemap-glyphs/`. Admin > Management can rebuild on
+demand, say after a region change.
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
@@ -258,8 +308,13 @@ the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the tabl
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
-the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
-job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
+subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
+row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
+that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
+inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -267,6 +322,11 @@ table — or the latest one to change the derivation, with a real Down that re-d
 a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
+
+`sidewalk_presence` is read in two places: the public `/v3/api/sidewalkPresence`, and the admin Sidewalks page
+(`/admin/sidewalks`, #5724), which maps every face and lists the calls most worth checking. The admin page reads
+`/adminapi/sidewalkPresence` instead of the public endpoint, because it also needs per-side curb ramp and
+obstacle/surface-problem counts that exist only to flag faces for review and shouldn't become part of the public API.
 
 `street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
 elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
@@ -362,8 +422,8 @@ to anonymous access.
 
 ## Frontend
 
-Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the
-corresponding Twirl view:
+Each major UI is a self-contained app under `frontend/js/`, started from its page's entry in `frontend/js/pages/` and
+loaded by the corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
   Its immersive mode (#5085, the shared `common/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills
@@ -375,15 +435,14 @@ corresponding Twirl view:
   Explore's URL follows the labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one
   write per 500 ms with the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with
   `panoId`, `lat`, `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
-  `ExploreController.explore` reads, so the address bar is always a shareable link to that view. To anyone else the
+  `ExploreController.getSession` reads, so the address bar is always a shareable link to that view. To anyone else the
   URL names a place, not a session: opening it lands in free exploration there (the `?lat&lng` drop-in of #4451),
   never in the sharer's mission or route, so `routeId`, `resumeRoute`, `regionId`, `streetEdgeId` and `placeName`
   are dropped from it once the page is up. To its owner it is still their session: the URL also carries the
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission. The order in which a neighborhood mission walks its
-  streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
+  path already resumes the user's own open drop-in mission.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
@@ -395,14 +454,13 @@ corresponding Twirl view:
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
-  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
+  hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
-  the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
-  that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
-  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  the keyboard for the panel in `KeyboardManager`, not through the keyboard lock's `Gate`, and the partial sits outside
+  `#svv-application-holder` so the busy state's `pointer-events: none` can't freeze the sliders.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
-  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
   during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
   and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
@@ -461,16 +519,46 @@ corresponding Twirl view:
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
-- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
-  `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
+  Admins also get a **"Sort by"** select above the filters (#2705; Random, Newest, Oldest, Most/Least severe, Most
+  disputed), carried as `?sort=` and honoured within whatever filters are selected. `GallerySort`
+  (`app/models/gallery/`) is the one definition of the options: the view renders the `<select>` from the enum, and
+  each value carries both its SQL `ORDER BY` and the same ordering in memory, every one ending on `time_created DESC,
+  label_id DESC` (the time so that a tie-broken order really is the "newest first" the page says, since a backfilled
+  label can carry an older time than a lower id; the id so that the order is total). A sorted Gallery is a different query
+  path from the random one, not a re-ordering of it: the random Gallery runs one query per selected type and shuffles
+  the batches together, which cannot produce a global order (the top of each type's ranking, merged, is not the top of
+  the union), so `LabelService.getGalleryLabels` runs **one ordered query across every selected type** with no type
+  spread and no shuffle. The batch walk (`findValidLabelsForType`) keeps the query's order through the imagery check
+  when asked not to randomize (the check hands back crop-backed labels first, and taking the first n of *that* would
+  swap a cropped label in for a top-ranked one), and in sorted mode walks past a prefix of dead imagery rather than
+  ending on an empty batch, under `LabelServiceImpl.MaxEmptyBatches`, since a fixed order puts the same dead rows at
+  the same offsets on every request. Paging works because the client sends the ids it has loaded and the query
+  excludes them, so each fetch is the next-ranked unseen labels — and that is only true if what the client holds is
+  a prefix of the server's order under the current filters, so `CardContainer` empties its card cache on every sort
+  change and on every filter change while sorted (the random Gallery keeps its cache across filter changes, as it
+  always has). The client pages by the order cards *arrived* in, never by re-deriving the key from a card's own
+  severity or votes: those change under the admin as they vote or edit, and re-sorting on them moved cards between
+  pages mid-review. Severity sorts on the raw 1–3 value,
+  which is "worst first" for every type since a quality-scale 3 is the worst rating too; unrated and unvalidated
+  labels sort last. A sorted order is admin tooling on both the page and the card request (a non-admin's `sort`
+  falls back to random; the landing grid's `recent` pool stays open), because in a sorted order the query waives
+  the disagree-ratio gate (`disagreeCount < 3 || disagreeCount < agreeCount * 2`) that keeps crowd-rejected labels
+  out of the public Gallery: "Most disputed" exists to find exactly those. The contributor-quality gate still
+  applies. Filters narrow and the sort orders what is left, so some pairs
+  leave the sort nothing to rank (Most disputed over unvalidated labels only; a severity sort over one severity
+  level or no rated type); `cardOrder.sortMootReason` names those, and the page keeps the choice but says under the
+  select and in the footer that it is showing newest first, rather than greying the option out, which would have to
+  snap the sort to Random and rewrite the URL under the admin.
+- **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
+  in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
   scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
   formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`user-dashboard/`** — the user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
-  chart colors follow the design system). Served file-by-file — no Grunt bundle.
+  chart colors follow the design system). Entries in `pages/api-docs/`, one per page plus `layout.js` for the chrome.
 - **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
   math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
   it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
@@ -497,9 +585,8 @@ corresponding Twirl view:
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
-  `common/scoreRamp.js`.
-- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
@@ -510,7 +597,22 @@ corresponding Twirl view:
   through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
   floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
   AccessScore tool hatches by.
-- **`ps-map/`** — shared map component used across pages.
+- **`ps-map/`** — shared map component used across pages, on Mapbox GL.
+- **The Explore minimap is the one map that isn't `ps-map/`** (#5429): MapLibre GL over OpenStreetMap vector tiles that
+  we serve ourselves (#5716), so a city on Mapillary or Panoramax imagery loads no Google JavaScript on Explore at all,
+  and the minimap talks to no third party. Three rules keep it that way. *The library is named in exactly one file*,
+  `explore/navigation/Minimap.js`; the peg, label icons, crumbs, flags and `Task`'s street lines reach the map through
+  its methods (`addMarker`, `setStreetLines`, `project`, `getZoom`, `getBounds`, `setBasemapVisible`) in plain `{lat,
+  lng}` and DOM elements, and the map object is never handed out. *The basemap is code*, `MinimapBasemapStyle.js`: a
+  sparse style (land, water, rivers, parks, buildings, roads, and road and water names in the UI language where OSM has
+  one) built from the `main.css` tokens, written for the Protomaps schema, and reviewed like any other change. *Missing
+  tiles degrade, never break*: `Minimap.create` resolves when the style is ready, not when tiles arrive, so streets,
+  markers and fog draw over a blank background, as they do for a city with no archive yet. *No map degrades too*:
+  MapLibre needs WebGL2 and throws without it, so `create` never rejects; a minimap that can't be built says so in its
+  place and draws nothing, `isAvailable()` turns false for the overlays drawn to its scale, and the rest of Explore
+  starts (`Minimap_Unavailable` is logged). What Project Sidewalk itself draws on the map (street-line encodings, fog,
+  cone) is `MinimapStyle.js`. The mission-complete map on the same page is still Mapbox, so Explore loads both
+  libraries.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
@@ -523,7 +625,7 @@ corresponding Twirl view:
   inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
   (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
   hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
-  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  beyond `PanoViewer.SEARCH_RADIUS_M` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
   `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
@@ -539,19 +641,70 @@ corresponding Twirl view:
   `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
   as Validate's reveal does.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
-libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
-files only — bundles are generated into `public/js/*/build/`.
+### Modules and the build
 
-First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
-`public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are
-(#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for anything more
-than one page links (one component per file — the `page-shell.css` sidebar + content + TOC template, `kpi.css`,
-`tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
-page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
-linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
-stylesheet(s) — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
-otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
+Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
+the imports decide load order, not a hand-kept list. No page keeps a shared registry object: each module is handed
+what it works with as constructor arguments, wired in the page's `Main.js` (#5648). The page's facts travel as one
+frozen config (`ExploreConfig`, `ValidateConfig`) and its elements as one UI object, page data first and collaborators
+last. What is built first announces and what is built later subscribes in its own constructor (`Tracker.onFlush`,
+`TaskContainer.onCurrentTaskChanged`, `NavigationService.onMoved`, …); `Main` wires only policy that spans modules,
+such as what a pop-up stops. Anything that can be switched off is a `common/Gate`, held by name (a modal, the
+tutorial, a move in flight) and open only once every holder has let go. Explore's `walking` gate is the exception: it
+holds only policy, and a move in flight or just landed is `NavigationService.canWalk()`'s to add (#5765).
+Explore's walking is three modules (#5766): `NavigationService` makes moves, `StreetSweep` searches a street for the
+next pano (and decides what finding none means), and `StreetProgress` ends streets on each landing (`onLanded`, which
+runs before `onMoved`) and makes the jump to the next one.
+`window.svl` and `window.svv` are only console and e2e handles, returned by each page's `Main.start()`.
+`util` is the object `common/utilities.js` exports; a file
+that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
+`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Third-party libraries are npm dependencies a module
+`import`s like any other (mapbox-gl through `common/mapboxgl.js`, which sets up its worker), so Vite bundles each page
+with the libraries it reaches and tree-shakes what it can (#5734). The imagery viewers `import()` theirs on demand
+through `common/pano-viewer/sdk/`, so a city's visitors download only its own provider's SDK.
+[`upgrading-libraries.md`](upgrading-libraries.md) says how to bump one and what to watch.
+
+**One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
+the page's code and runs its start-up. **Vite** (`vite.config.mjs`, Rolldown underneath) builds every file in that
+folder to `public/build/js/<same path>.js`, minified, with code that several pages share split into
+`public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there.
+A view loads its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
+`main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
+be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
+`data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
+id="page-data">` block the entry parses. That block holds session scalars only (user, language, imagery source,
+keys, Validate's filters): the mission or task a tool opens on is fetched by the entry (`common/pageSession.js`) from
+`POST /validationTask/mission` or `GET /explore/session`, the latter with the page's own query string, so a copy of
+the page the browser cached can never show labels the user already judged, and the first mission arrives in the same
+shape as the next one (#5650). The tool pages also answer `Cache-Control: no-store` for the same reason.
+
+The sources live in `frontend/`, outside `public/`, because Play serves everything under `public/`: only the bundles
+ship (their sourcemaps carry the JS sources for the browser's debugger). **Stylesheets go through the same build**
+(#5651): a module `import`s the stylesheet it depends on (`Toast.js` imports `toast.css`, a page's entry imports the
+page's own sheet), and Vite writes them to `public/build/css/`, split by chunk, so a component several pages share is
+one file they all load. Which files a page needs is only known after the build, so the build writes `manifest.json`
+(Vite's [backend integration](https://vite.dev/guide/backend-integration)) and a view emits its tags with
+`@ViteAssets.stylesheets("<entry>")` (`app/views/ViteAssets.scala`), which links the imported chunks' sheets before
+the page's own, and a shared sheet before a chunk's own, so a page's rules come last. A page inside a layout that
+links an entry of its own (the admin and user dashboards, the API docs) names it as `alreadyLinked = "<shell entry>"`,
+so nothing is linked twice. A `url()` in a source stylesheet is the file's root-absolute path under `public/`
+(`url("/images/icons/x.svg")`), which the build turns into the served `/assets/` URL. No Vite dev server: `npm start`
+runs `npm run watch` (`tools/dev/watch-assets.mjs`, `vite build --watch` plus a restart when a page entry is added or
+removed), so a save rebuilds into `public/build/` for `sbt run` to serve. Everything under `public/build/` is generated and
+git-ignored. The one third-party asset served as files rather than bundled is the minimap's basemap glyphs under
+`public/vendor/basemap-glyphs/`, which MapLibre fetches by URL pattern.
+
+First-party assets split by type: `frontend/js/` is JavaScript-only, `frontend/css/` holds all styles, and media
+lives in `public/images/`, `public/audio/`, and `public/videos/`. Within `frontend/css/`, files are organized by what
+they are (#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for
+anything more than one page uses (one component per file — the `page-shell.css` sidebar + content + TOC template,
+`kpi.css`, `tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single
+file per page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's
+stylesheet is imported only by that page's modules, every stylesheet is imported by something, a page's class prefix
+(`ud-`, `ac-`, `svl-`, …) is defined only in that page's stylesheet(s), and a view that loads an entry's JS asks for
+that entry's styles — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces all four. Directories and CSS
+files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase otherwise). See
+[`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
 which resolves to the content-fingerprinted copy a staged build serves under a year-long `immutable` cache; a
@@ -563,7 +716,7 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `frontend/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
@@ -648,6 +801,31 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
 `utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
 stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+
+The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
+enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for
+a Disagree and an Unsure vote, in menu order; `main.scala.html` stamps it as `window.validationReasons`, and
+`frontend/js/common/validationReasons.js` is the one frontend reader. Validate's menus, the label detail card and the
+Gallery cards all render their reasons from it, with each reason's text and tooltip in the locale files under its id
+(`common:validation-reason.<id>`), so the stamp stays language-free. On the label card and the Gallery cards the
+question is asked by the reason pop-up (`ReasonPopover.js`, mobile Validate's notched panel generalised): it hangs
+off whichever control cast the vote once the server has it, offers the reasons as `ReasonChips` (whose "Other…"
+turns into a text field and Save in place, for a typed reason), and leaves on a pick or a save, Escape, its close
+control, a click outside (unless "Other…" holds unsaved words), or the next vote, never on mouse-leave. It shows in
+the top layer but sits inside the host's `<dialog>` when there is one, since a modal (the LabelMap card) leaves
+everything outside it inert. There is no separate way back: the next Disagree or Unsure asks again (clicking the
+standing vote clears it, so a second click recasts it). The card's comment box holds still while the pop-up is up,
+then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal.
+A pick is stored as the validator's comment on the label with the id in
+`validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
+marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
+semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
+the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
+on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
+new vote), and dropped, with the vote and text kept, on the Validate batch. Changing a vote from a card keeps the
+validator's typed words, which describe the label rather than the vote, under the new vote, and archives a canned
+reason the new vote doesn't offer; clearing a vote, or Validate's redo (an undo and a fresh vote), still takes the
+comment with it.
 
 ## Where to go next
 

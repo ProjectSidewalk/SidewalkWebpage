@@ -345,7 +345,7 @@ class ShareController @Inject() (
     if (crop.exists()) {
       Future.successful(Option(ImageIO.read(crop)))
     } else {
-      panoDataService.getImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom,
+      panoDataService.getServerImageUrl(meta.panoId, imagerySource, meta.pov.heading, meta.pov.pitch, meta.pov.zoom,
         meta.canvasWidth, meta.canvasHeight) match {
         case Some(url) =>
           ws.url(url)
@@ -353,8 +353,11 @@ class ShareController @Inject() (
             .map { r =>
               // The still is requested with `return_error_code`, so missing imagery arrives as a 404 rather than as a
               // placeholder photo: any non-200 means there is no base image and the caller serves the branded fallback.
-              if (r.status != 200) None
-              else Option(ImageIO.read(ByteArrayInputStream(r.bodyAsBytes.toArray)))
+              if (r.status != 200) {
+                // Anything but a 404 is Google refusing the request, which a wrong server key looks like.
+                if (r.status != 404) logger.warn(s"GSV still for label ${meta.labelId} refused: HTTP ${r.status}")
+                None
+              } else Option(ImageIO.read(ByteArrayInputStream(r.bodyAsBytes.toArray)))
             }
             .recover { case e =>
               logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None

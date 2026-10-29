@@ -1,12 +1,10 @@
 /**
- * Tests for util.escapeHTML.
- *
- * Runs under jsdom (jest.config.js).
+ * Tests for util.escapeHTML and util.htmlToText.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-loadGlobalScript('public/js/common/utilities.js');
+const { util } = await loadModules('frontend/js/common/utilities.js');
 
 describe('util.escapeHTML', () => {
   test('escapes every character that could break out of markup', () => {
@@ -26,5 +24,15 @@ describe('util.escapeHTML', () => {
 
   test('escapes ampersands before the entities it introduces, so they are not double-escaped', () => {
     expect(util.escapeHTML('&lt;')).toBe('&amp;lt;');
+  });
+});
+
+describe('util.htmlToText', () => {
+  test('drops tags and decodes entities', () => {
+    expect(util.htmlToText('<tag-underline>S</tag-underline>teep &amp; narrow')).toBe('Steep & narrow');
+  });
+
+  test('treats null as empty', () => {
+    expect(util.htmlToText(null)).toBe('');
   });
 });

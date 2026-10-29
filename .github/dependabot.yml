@@ -5,10 +5,10 @@ version: 2
 #
 # Cadence is monthly so version-currency PRs arrive as one predictable batch for a two-person team, rather
 # than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
-# are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
-# minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
-# a human. Each ecosystem gets two groups so a red major can't hold the safe patch & minor bumps hostage in the
-# same PR (#4395). See issue #4385 for the standing dependency/platform maintenance strategy.
+# are a separate channel and still fire immediately. Green patch & minor bumps auto-merge via
+# `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need a human. Each ecosystem gets
+# two groups so a red major can't hold the safe patch & minor bumps hostage in the same PR (#4395).
+# See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -16,6 +16,31 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
+      # The imagery viewers (proj4 is only Infra3d's) and the minimap's map library (#5734): CI never drives a pano or
+      # the minimap, so a broken minor would merge green, and dependency-auto-merge.yml leaves both groups to a person.
+      # Dependabot takes the first group that matches.
+      npm-imagery:
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      # A group covers version updates only unless it says so; without this one, the same packages' security updates
+      # would arrive ungrouped and auto-merge.
+      npm-imagery-security:
+        applies-to: security-updates
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
       npm-patch-minor:
         patterns: ["*"]
         update-types: ["patch", "minor"]
@@ -39,9 +64,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest"
+      - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest-environment-jsdom"
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jsdom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
         update-types: ["version-update:semver-major"]
@@ -58,6 +85,9 @@ updates:
       # A TypeScript major changes what `make lint-js-types` reports.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Held below 3.25 on purpose; docs/upgrading-libraries.md says why. Patches within 3.24 still come through.
+      - dependency-name: "mapbox-gl"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -104,6 +134,6 @@ updates:
         patterns: ["*"]
         update-types: ["major"]
     # requirements.txt is frozen for the app's Python 3.8 (docs/upgrading-libraries.md): every bump fails CI and no
-    # security fix can install there either. Retiring 3.8 (#4385) brings it back.
+    # security fix can install there either. Retiring 3.8 (#4396) brings it back.
     exclude-paths:
       - "requirements.txt"

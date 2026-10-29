@@ -158,6 +158,12 @@
     "route-unavailable": {
       "message": "Esa ruta no está disponible. Es posible que se haya eliminado."
     },
+    "street-unavailable": {
+      "message": "Esa calle no está disponible para explorar. Es posible que no tenga imágenes o que se haya eliminado."
+    },
+    "region-finished": {
+      "message": "Ya exploraste todas las calles de ese vecindario, así que te llevamos a {{regionName}}."
+    },
     "reaudit": {
       "title": "Esta calle tiene imágenes más recientes",
       "message-you": "Evaluaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
@@ -174,6 +180,7 @@
       "needs-reassessment-tip-others": "Un usuario evaluó este lugar por última vez en {{assessedDate}}, pero las imágenes de aquí son más recientes ({{captureDate}}). Por favor, evalúalo de nuevo para ayudarnos a analizar lo que ha cambiado."
     },
     "minimap": {
+      "attribution-toggle": "Créditos de los datos del mapa",
       "coach-dismiss": "Entendido",
       "distance-left": "Quedan {{distance}}",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",
@@ -187,15 +194,11 @@
       "legend-ahead": "Ruta pendiente",
       "legend-jump": "Salto a la siguiente calle",
       "legend-you": "Usted + dirección de vista",
-      "legend-visited": "Ubicación visitada",
+      "legend-crumbs": "Círculos: lugares a los que puede ir con un clic",
       "legend-unseen": "Aún sin ver",
-      "legend-next-stops": "Paradas en su ruta",
       "forward-crumb-title": "Avanzar a la parada {{rank}}",
-      "legend-other-links": "Otras direcciones",
-      "legend-faced": "Relleno: adonde le lleva avanzar",
       "legend-earlier-labels": "Mis etiquetas anteriores",
       "link-crumb-title": "Ir a esta panorámica",
-      "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)",
       "route-stop-title": "Parada {{rank}} de su ruta",
       "breadcrumb-title": "Visitado: clic para volver aquí",
       "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
@@ -204,7 +207,10 @@
       "route-start-flag": "Inicio de la ruta",
       "route-finish-flag": "Final de la ruta",
       "mission-start-flag": "Donde empezó esta misión",
-      "mission-finish-flag": "Donde termina esta misión"
+      "mission-finish-flag": "Donde termina esta misión",
+      "map-title": "Mapa de la zona a su alrededor",
+      "unavailable": "Este navegador no puede mostrar el mapa. Puede seguir explorando sin él.",
+      "recenter": "Volver a su ubicación"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

@@ -4,6 +4,9 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsString, Json}
 
+import java.nio.file.{Files, Path, Paths}
+import scala.jdk.CollectionConverters.*
+
 /**
  * Pure (no DB, no app boot) tests for `ViewHelpers.jsonForScript`, the inline-`<script>` JSON serializer (#4451).
  *
@@ -40,5 +43,12 @@ class ViewHelpersSpec extends AnyFunSuite with Matchers {
 
   test("a benign string is plain JSON, untouched") {
     ViewHelpers.jsonForScript("Teaneck High School").body shouldBe "\"Teaneck High School\""
+  }
+
+  test("no view writes JSON with a bare Html(Json.stringify(...)), which skips the < escaping") {
+    val views     = Files.walk(Paths.get("app/views")).iterator.asScala.filter(_.toString.endsWith(".scala.html")).toSeq
+    val offenders = views.filter((p: Path) => Files.readString(p).contains("Html(Json.stringify"))
+    views should not be empty
+    offenders shouldBe empty
   }
 }

@@ -8,6 +8,7 @@ import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -48,6 +49,7 @@ class AdminController @Inject() (
     trafficService: TrafficService,
     sidewalkPresenceService: SidewalkPresenceService,
     placesService: PlacesService,
+    basemapService: BasemapService,
     actorSystem: ActorSystem
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -131,26 +133,24 @@ class AdminController @Inject() (
   }
 
   /**
-   * Unified daily activity time series for the redesigned admin dashboard's Activity page (#4272).
-   *
-   * Returns one row per calendar day with the volume of each contribution type (labels, validations, audits, missions),
-   * sign-ins and active users split registered-vs-anonymous, and new registered accounts. Only days with activity are
-   * emitted; the client zero-fills and rolls up by range/granularity. snake_case output per the dashboard convention.
+   * Daily activity for the admin Activity page (#4272): per day, each contribution type's volume, sign-ins and active
+   * users (registered vs anonymous), and new accounts. Only active days are sent; the page fills in the gaps.
    */
   def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getActivityByDay.map { series =>
       Ok(Json.obj("series" -> JsArray(series.map { r =>
         Json.obj(
-          "date"               -> r.date.toString,
-          "labels"             -> r.labels,
-          "validations"        -> r.validations,
-          "audits"             -> r.audits,
-          "missions"           -> r.missions,
-          "signins_registered" -> r.signinsRegistered,
-          "signins_anon"       -> r.signinsAnon,
-          "active_registered"  -> r.activeRegistered,
-          "active_anon"        -> r.activeAnon,
-          "new_users"          -> r.newUsers
+          "date"                -> r.date.toString,
+          "labels"              -> r.labels,
+          "validations"         -> r.validations,
+          "audits"              -> r.audits,
+          "explored_distance_m" -> r.exploredDistanceM,
+          "missions"            -> r.missions,
+          "signins_registered"  -> r.signinsRegistered,
+          "signins_anon"        -> r.signinsAnon,
+          "active_registered"   -> r.activeRegistered,
+          "active_anon"         -> r.activeAnon,
+          "new_users"           -> r.newUsers
         )
       })))
     }
@@ -419,9 +419,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
-   * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
-   * snake_case output per the dashboard convention.
+   * Recent activity for the admin Activity page (#4272): the latest labels, validations, and comments, newest first,
+   * each with who did it and the label it points at.
    *
    * @param n Number of feed items; kept within 1 to [[service.AdminService.MaxRecentActivity]].
    */
@@ -474,7 +473,7 @@ class AdminController @Inject() (
         panoDataService
           .cropUrl(id, labelType)
           .orElse(metaById.get(id).flatMap { m =>
-            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
+            panoDataService.getBrowserImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
           })
       case _ => None
@@ -482,8 +481,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
-   * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   * Leaderboards for the admin Contributors page (#4272): top labelers, with label-type and severity mix, and top
+   * validators, with their agree/disagree/unsure split.
    *
    * @param n Rows per leaderboard; kept within 1 to [[service.AdminService.MaxLeaderboardRows]].
    */
@@ -526,9 +525,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Humans-vs-AI comparison for the redesigned admin dashboard: AI vs human as labeler, validator, and tagger.
-   * Output is snake_case per the v3 naming convention; the AI group is always present (all-zero where there's no AI
-   * activity) so the page can render consistent empty states.
+   * AI vs humans as labeler, validator, and tagger, for the admin dashboard. The AI group is always present (zeros when
+   * it has done nothing) so the page's empty states stay consistent.
    */
   def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getHumanVsAiStats.map { stats =>
@@ -569,9 +567,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Top-line snapshot for the redesigned admin dashboard's Overview landing page (#4272): one KPI cluster per lens
-   * (coverage, data quality, contributors, activity pulse, humans-vs-AI share, API usage). snake_case per the dashboard
-   * convention. Every percentage's denominator is included so the page can show its N.
+   * Headline numbers for the admin Overview page (#4272), one group per dashboard page. Each percentage comes with its
+   * denominator so the page can show its N.
    */
   def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getOverviewSummary.map { s =>
@@ -591,9 +588,9 @@ class AdminController @Inject() (
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
           "reaudit_streets"            -> s.reauditStreets,
-          "total_distance_mi"          -> s.totalDistanceMi,
-          "audited_distance_mi"        -> s.auditedDistanceMi,
-          "reaudit_distance_mi"        -> s.reauditDistanceMi,
+          "total_distance_m"           -> s.totalDistanceM,
+          "audited_distance_m"         -> s.auditedDistanceM,
+          "reaudit_distance_m"         -> s.reauditDistanceM,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,
@@ -680,22 +677,35 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
-    // The trailing-7-day daily series drives the "this week" bar charts (#4686), and the window summary the
-    // week-over-week deltas on the "Today & this week" tiles (#4758).
+    // The trailing daily series drives the rolling "this week" (#4686) and "this month" (#5653) bar charts, the
+    // trailing-year baseline their average lines, and the window summary the week-over-week deltas on the "Today &
+    // this week" tiles (#4758). One 30-day read rather than a 7- and a 30-day one: the page takes the week from its
+    // last seven days, so the two groups can't disagree about a shared day and the fan-out runs once.
+    val dailyTrendDays = 30
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
-    val dailyF         = configService.getCrossCityDailyTrend(7)
+    val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
+    // A failed or still-computing baseline only costs the charts their average line; it must not take the rest of the
+    // page down with it, nor hold it (the read's own cold wait bounds the latter).
+    val baselineF = configService.getCrossCityDailyBaseline().recover { case e: Exception =>
+      logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
+      None
+    }
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
+    // People active in several cities count once here, unlike a sum of each city's contributors.
+    val contributorCountsF = configService.getCrossCityContributorCounts()
 
     for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
+      dailyBaseline <- baselineF
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
+      contributors  <- contributorCountsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -709,6 +719,21 @@ class AdminController @Inject() (
           "stories"            -> storyStatsJson(storyStats, cityInfoById),
           "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
           "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
+          // Trailing-year per-day averages drawn as a reference line on every per-day chart (#5653), on the bars'
+          // own basis so the line and the bars are comparable. Null when the baseline couldn't be computed, which the
+          // page reads as "draw no line".
+          "daily_baseline" -> dailyBaseline
+            .map { b =>
+              Json.obj(
+                "days"                 -> b.days,
+                "window_start"         -> b.windowStart.toString,
+                "window_end"           -> b.windowEnd.toString,
+                "labels_per_day"       -> b.labelsPerDay,
+                "validations_per_day"  -> b.validationsPerDay,
+                "contributors_per_day" -> b.contributorsPerDay
+              )
+            }
+            .getOrElse(JsNull),
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
           // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
           // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
@@ -720,7 +745,7 @@ class AdminController @Inject() (
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),
-          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+          "summary" -> crossCitySummaryJson(scorecards, cityInfoById, contributors)
         )
       )
     }
@@ -777,6 +802,9 @@ class AdminController @Inject() (
       "total_km"          -> sc.totalKm,
       "audited_km"        -> sc.auditedKm,
       "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+      "walked_km"         -> sc.walkedKm,
+      "mapped_km"         -> sc.mappedKm,
+      "reaudit_km"        -> ConfigService.reauditKm(sc),
       // Data + quality lens.
       "total_labels"             -> sc.totalLabels,
       "ai_labels"                -> sc.aiLabels,
@@ -850,7 +878,8 @@ class AdminController @Inject() (
     })
 
   /**
-   * The last seven days, project-wide, for the "this week" bar charts (#4686): zero-filled, today partial. Each day
+   * The trailing days, project-wide, for the rolling 7- and 30-day bar charts (#4686, #5653): zero-filled, today
+   * partial, the week being the last seven of them. Each day
    * also carries what its hover card shows (#4931), so the card and the bar come from the same rows.
    *
    * @param cityInfoById Each city's config, for names and URLs.
@@ -932,36 +961,45 @@ class AdminController @Inject() (
     })
 
   /**
-   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
-   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
+   * The page's headline totals, summed from the cities shown so they match the table, except `total_users` and
+   * `multi_city_users`, which count each person once across those cities. The anomaly thresholds ride along so the
    * page can flag the "needs attention" items.
    *
-   * @return The summary block.
+   * @param contributorCounts People who contributed across the cities; None if they couldn't be read.
+   * @return                  The summary block.
    */
-  private def crossCitySummaryJson(scorecards: Seq[CityScorecard], cityInfoById: Map[String, CityInfo]): JsObject = {
-    val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-    val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
-    val totalContributors = scorecards.map(_.activeContributors).sum
-    val totalKm           = scorecards.map(_.auditedKm).sum
-    val totalLabels       = scorecards.map(_.totalLabels).sum
-    val totalValidations  = scorecards.map(_.totalValidations).sum
-    val sumAgree          = scorecards.map(_.validationsAgree).sum
-    val sumDisagree       = scorecards.map(_.validationsDisagree).sum
-    val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+  private def crossCitySummaryJson(
+      scorecards: Seq[CityScorecard],
+      cityInfoById: Map[String, CityInfo],
+      contributorCounts: Option[CrossCityContributorCounts]
+  ): JsObject = {
+    val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+    val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+    val totalLabels      = scorecards.map(_.totalLabels).sum
+    val totalValidations = scorecards.map(_.totalValidations).sum
+    val sumAgree         = scorecards.map(_.validationsAgree).sum
+    val sumDisagree      = scorecards.map(_.validationsDisagree).sum
+    val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
     Json.obj(
-      "num_cities"                -> scorecards.length,
-      "num_countries"             -> numCountries,
-      "num_languages"             -> numLanguages,
-      "total_users"               -> totalContributors,
-      "total_km"                  -> totalKm,
-      "total_labels"              -> totalLabels,
-      "total_validations"         -> totalValidations,
-      "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
-      "global_agreement"          -> globalAgreement,
-      "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
-      "active_within_days"        -> ConfigService.ActiveWithinDays,
-      "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-      "low_traction_contributors" -> ConfigService.LowTractionContributors
+      "num_cities"                     -> scorecards.length,
+      "num_countries"                  -> numCountries,
+      "num_languages"                  -> numLanguages,
+      "total_users"                    -> contributorCounts.map(_.distinct),
+      "multi_city_users"               -> contributorCounts.map(_.multiCity),
+      "total_walked_km"                -> scorecards.map(_.walkedKm).sum,
+      "total_mapped_km"                -> scorecards.map(_.mappedKm).sum,
+      "total_current_km"               -> scorecards.map(_.auditedKm).sum,
+      "total_reaudit_km"               -> scorecards.map(ConfigService.reauditKm).sum,
+      "total_labels"                   -> totalLabels,
+      "total_validations"              -> totalValidations,
+      "total_datapoints"               -> (totalLabels.toLong + totalValidations.toLong),
+      "global_agreement"               -> globalAgreement,
+      "median_disagreement_rate"       -> ConfigService.medianDisagreementRate(scorecards),
+      "active_within_days"             -> ConfigService.ActiveWithinDays,
+      "wrapped_up_coverage"            -> ConfigService.WrappedUpCoverage,
+      "low_traction_contributors"      -> ConfigService.LowTractionContributors,
+      "reaudit_backlog_share"          -> ConfigService.ReauditBacklogShare,
+      "min_mapped_km_for_reaudit_flag" -> ConfigService.MinMappedKmForReauditFlag
     )
   }
 
@@ -1101,10 +1139,10 @@ class AdminController @Inject() (
   }
 
   /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
-  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+  private def runStreetPriorityRecalc(): Future[StreetPriorityRecalc] =
     jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
       streetService.recalculateStreetPriority
-    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+    )(RecalculateStreetPriorityActor.runDetails(_, None))
 
   /** Recalculates street priority without making the caller wait, since it rewrites every street. */
   private def recalculateStreetPriorityInBackground(): Unit =
@@ -1225,6 +1263,22 @@ class AdminController @Inject() (
     }
   }
 
+  /** Cuts a new minimap basemap now (#5716), e.g. after a region change; the run row reports the result. */
+  def refreshBasemap = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (basemapService.isRunning) {
+      Future.successful(Conflict("A basemap refresh is already in progress."))
+    } else {
+      jobRunService
+        .record(BasemapRefreshActor.Name, JobRunTrigger.Manual)(basemapService.refresh(force = true))(_.runDetails)
+        .onComplete {
+          case Success(result) => logger.info(s"Manually triggered basemap refresh finished: ${result.runDetails}")
+          case Failure(e)      => logger.error(s"Manually triggered basemap refresh failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Basemap refresh started. It reports to the Health panel when it finishes."))
+    }
+  }
+
   /**
    * Recounts the served streets whose gradient is missing or stale (#5223), as the nightly job does, so the Health
    * panel reflects an import the moment it lands rather than the next morning. Recorded as a `Manual` run of that
@@ -1265,10 +1319,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Returns v3 API usage split by source (external vs the docs "Try it" widgets) for the redesigned admin dashboard.
-   *
-   * Pivots the per-source rows into `external`/`api_docs` columns per endpoint, day, and format so the page can show
-   * real external adoption alongside docs-driven traffic in one request.
+   * v3 API usage per endpoint, day, and format, split into external calls and the API docs' "Try it" widgets, so the
+   * admin page can tell real adoption from docs traffic.
    *
    * @param days Number of past days to include (0 = all time).
    */

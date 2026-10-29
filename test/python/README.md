@@ -13,7 +13,7 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   clustering (`cluster`), global cluster-id offsetting (`offset_and_combine`), and JSON assembly (`build_output_json`).
 - `test_check_streets_for_imagery.py` — bounding-box math (`create_bounding_box`), vertex interpolation
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
-  imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
+  street-coverage verdict (`CoverageWalk`, `street_has_no_imagery`), and the CSV writer (`write_output`).
 - `test_onboard_city.py` — the city-onboarding pipeline (#4291): the OSM filter builder and tag normalization,
   geodesic measures, the street-healing stack (gap bridging, boundary-tail restore, fragment healing, rider merging),
   region prep/merging/validation, COPY/EWKB serialization, and the I/O layer — fetch wrappers (osmnx and the TIGERweb
@@ -40,6 +40,14 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   replay, the forward simulations, NoSidewalk's block-face evidence and spread, CSV loading and the report; plus a
   pin of the tool's mirrored policy constants against `ValidationQueuePolicy.scala` and `pool.sql`. numpy only, so
   it runs in both halves.
+- `test_osm_lineage.py` / `test_backfill_osm_lineage.py` — the street-to-OSM-way matcher in [`tools/city/`](../../tools/city)
+  (#5741) and the live-city backfill around it: the export reader, the tiling of a city's streets into small Overpass
+  requests (far-apart towns, a long street across tiles), the dry run, the output and review files, and the exit code
+  when Overpass will not answer, with the fetch and the probe faked. 3.13-only (shapely).
+- `test_overpass.py` — how the fetchers talk to Overpass (`tools/city/overpass.py`): the retry schedule on a fake clock
+  (at least 30 s after a 429, a 502 or a refused connection, doubling, giving up only when the window runs out, an
+  attempt cut off at its deadline), what counts as a refusal, the probe query and its identity, osmnx's settings and
+  the day cache's pruning, and the paced multi-request fetch. Stdlib + requests, both halves.
 
 ### Resilience coverage
 

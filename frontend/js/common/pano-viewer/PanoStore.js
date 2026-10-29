@@ -1,0 +1,57 @@
+/**
+ * A way to store and retrieve PanoData objects.
+ */
+
+import { util } from '../utilities.js';
+import './panoUtilities.js';
+/** @typedef {import('./PanoData.js').PanoData} PanoData */
+
+export class PanoStore {
+  constructor() {
+    this.store = {};
+  }
+
+  /**
+   * This method adds panorama data into the storage.
+   * @param {string} panoId
+   * @param {PanoData} panoMetadata
+   */
+  addPanoMetadata(panoId, panoMetadata) {
+    if (!(panoId in this.store)) {
+      // Mark the locally-served tutorial panos as already submitted so getStagedPanoData() never hands their
+      // fabricated metadata to the form POST. Their pano_data rows exist (#4587) but are owned by evolution 360 —
+      // a submission would upsert over them on every tutorial run.
+      if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
+        panoMetadata.setProperty('submitted', true);
+      }
+      this.store[panoId] = panoMetadata;
+    }
+  }
+
+  /**
+   * This method returns the existing panorama data.
+   * @param {string} panoId
+   * @returns {PanoData|null}
+   */
+  getPanoData(panoId) {
+    return panoId in this.store ? this.store[panoId] : null;
+  }
+
+  /**
+   * Get all the panorama instances stored in the storage.
+   * @returns {Array<PanoData>}
+   */
+  getAllPanoData() {
+    return Object.keys(this.store).map((panoId) => this.store[panoId]);
+  }
+
+  /**
+   * Get panorama instances that have not been submitted to the server.
+   * @returns {Array<PanoData>}
+   */
+  getStagedPanoData() {
+    let panoramas = this.getAllPanoData();
+    panoramas = panoramas.filter((pano) => !pano.getProperty('submitted'));
+    return panoramas;
+  }
+}

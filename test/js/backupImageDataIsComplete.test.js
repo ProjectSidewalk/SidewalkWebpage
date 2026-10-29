@@ -1,39 +1,17 @@
 /**
- * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in public/js/common/utilitiesSidewalk.js, which keep
+ * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in frontend/js/common/utilitiesSidewalk.js, which keep
  * a pano_data row with null width/height from reaching PannellumViewer and throwing (#4804).
  *
- * The last block pins the guard's field list against PanoData, the authority it and two backend copies answer to.
- *
- * Runs under jsdom (jest.config.js).
+ * The last block pins the guard's field list against PanoData, the authority it and the backend copies answer to.
  */
 
-/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- pulled into scope by the eval() loader below. */
+import { loadModules } from './loader.js';
 
-const fs = require('fs');
-const path = require('path');
-
-// jest-environment-jsdom doesn't expose these, and jsdom's own dependencies need them when required from within a
-// test (the "runs twice" case below drives a second jsdom instance to get real <script> semantics).
-global.TextEncoder = global.TextEncoder ?? require('node:util').TextEncoder;
-global.TextDecoder = global.TextDecoder ?? require('node:util').TextDecoder;
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const UTILITIES_PATH = path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js');
-const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoData.js');
-
-/**
- * Execute a production global script in the jsdom global scope, then hoist the named bindings onto `global`.
- *
- * Indirect eval puts top-level `function` declarations on globalThis, but not `const`/`class` — hence the epilogue.
- *
- * @param {string} filePath Absolute path to the script.
- * @param {string[]} names Bindings to expose on `global`.
- */
-function loadScript(filePath, names) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  const epilogue = names.map((n) => `global.${n} = ${n};`).join('\n');
-  (0, eval)(`${src}\n${epilogue}`);
-}
+const { backupImageDataIsComplete, buildBackupImageData, PanoData, util } = await loadModules(
+  'frontend/js/common/utilitiesSidewalk.js',
+  'frontend/js/common/pano-viewer/PanoData.js',
+  'frontend/js/common/utilities.js',
+);
 
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
 function completeBackupImageData() {
@@ -78,53 +56,34 @@ function labelMetadata(panoDataOverrides = {}) {
   };
 }
 
-beforeAll(() => {
-  loadScript(UTILITIES_PATH, []);
-  loadScript(PANO_DATA_PATH, ['PanoData']);
-});
-
-test('the script can run twice on one page', () => {
-  // Some views load this file directly on a page whose bundle already concatenates it, so it executes twice. A
-  // top-level `const` made the second execution a fatal redeclaration that took /labelMap down.
-  //
-  // Driven through real <script> tags rather than the eval() loader above, which cannot catch this: eval puts its
-  // lexical declarations in a scope it throws away, so a repeated `const` there is harmless.
-  const { JSDOM, VirtualConsole } = require('jsdom');
-  const virtualConsole = new VirtualConsole();
-  const errors = [];
-  virtualConsole.on('jsdomError', (e) => errors.push(e.message));
-  const dom = new JSDOM('<!doctype html><body>', { runScripts: 'dangerously', virtualConsole });
-
-  const src = fs.readFileSync(UTILITIES_PATH, 'utf8');
-  for (let i = 0; i < 2; i++) {
-    const script = dom.window.document.createElement('script');
-    script.textContent = src;
-    dom.window.document.body.appendChild(script);
-  }
-
-  expect(errors).toEqual([]);
-});
-
 describe('backupImageDataIsComplete', () => {
   test('accepts metadata with every required field', () => {
     expect(backupImageDataIsComplete(completeBackupImageData())).toBe(true);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects null %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading'])('rejects null %s', (field) => {
     const data = completeBackupImageData();
     data[field] = null; // What the server sends for a NULL pano_data column.
     expect(backupImageDataIsComplete(data)).toBe(false);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects missing %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading'])('rejects missing %s', (field) => {
     const data = completeBackupImageData();
     delete data[field];
     expect(backupImageDataIsComplete(data)).toBe(false);
   });
 
+  test('accepts a null camera_pitch: the viewer never reads it, and the AI pipeline recorded panos without one (#5725)', () => {
+    const data = completeBackupImageData();
+    data.camera_pitch = null;
+    data.camera_roll = null;
+    expect(backupImageDataIsComplete(data)).toBe(true);
+  });
+
   test('rejects a field that is present but not a usable number', () => {
     expect(backupImageDataIsComplete({ ...completeBackupImageData(), width: NaN })).toBe(false);
     expect(backupImageDataIsComplete({ ...completeBackupImageData(), width: '13312' })).toBe(false);
+    expect(backupImageDataIsComplete({ ...completeBackupImageData(), camera_heading: NaN })).toBe(false);
   });
 
   test('accepts zero values, which are legitimate for the camera angles', () => {
@@ -139,6 +98,7 @@ describe('backupImageDataIsComplete', () => {
 
   test('does not require the optional fields', () => {
     const data = completeBackupImageData();
+    delete data.camera_pitch;
     delete data.camera_roll;
     delete data.tile_width;
     delete data.tile_height;
@@ -165,8 +125,14 @@ describe('buildBackupImageData', () => {
     expect(buildBackupImageData(labelMetadata({ width: null, height: null }))).toBeNull();
   });
 
-  test('returns null when pano_data is missing the camera angles', () => {
-    expect(buildBackupImageData(labelMetadata({ camera_pitch: null }))).toBeNull();
+  test('returns null when pano_data is missing the camera heading', () => {
+    expect(buildBackupImageData(labelMetadata({ camera_heading: null }))).toBeNull();
+  });
+
+  test('builds the viewer metadata without a camera pitch (#5725)', () => {
+    const built = buildBackupImageData(labelMetadata({ camera_pitch: null, camera_roll: null }));
+    expect(built).not.toBeNull();
+    expect(built.camera_pitch).toBeNull();
   });
 
   test('returns null when there is no camera location', () => {
@@ -209,7 +175,7 @@ describe('coupling to PanoData', () => {
 
   // If a field is added to PanoData's requiredParams, this fails until the guard (and its two backend copies) catch
   // up, rather than #4804 recurring silently.
-  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'])(
+  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading'])(
     'PanoData rejects a pano missing %s, matching the guard',
     (field) => {
       const params = panoDataParams();
@@ -220,11 +186,26 @@ describe('coupling to PanoData', () => {
     },
   );
 
+  test('PanoData accepts a pano missing cameraPitch, matching the guard (#5725)', () => {
+    const params = panoDataParams();
+    delete params.cameraPitch;
+
+    expect(() => new PanoData(params)).not.toThrow();
+    expect(new PanoData(params).getProperty('cameraPitch')).toBeUndefined();
+    expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).not.toContain('camera_pitch');
+  });
+
+  test('PanoData still rejects a cameraPitch that is present but not a number', () => {
+    expect(() => new PanoData({ ...panoDataParams(), cameraPitch: NaN })).toThrow('cameraPitch must be a valid number');
+  });
+
   test('the guard checks every field PanoData requires that a pano_data row can be missing', () => {
     // These are supplied unconditionally by PannellumViewer#buildPanoData, so they can't be missing at runtime.
     const suppliedByViewer = ['panoId', 'source', 'captureDate', 'linkedPanos', 'history'];
+    // Stored when known, never needed to render (#5725).
+    const optional = ['cameraPitch'];
     for (const field of Object.keys(panoDataParams())) {
-      if (!suppliedByViewer.includes(field)) {
+      if (!suppliedByViewer.includes(field) && !optional.includes(field)) {
         expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(snakeCase(field));
       }
     }

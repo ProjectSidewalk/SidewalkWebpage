@@ -1,7 +1,8 @@
-/**
- * @jest-environment <rootDir>/test/js/support/timeZoneJsdomEnvironment.js
- * @jest-environment-options {"timeZone": "Australia/Sydney"}
- */
+// Pinned east of UTC: the viewer's-local-date edge cases only appear at some offsets. V8 re-reads the zone on each
+// assignment, so this holds for the whole file and is put back for the worker's next file.
+const previousTimeZone = process.env.TZ;
+process.env.TZ = 'Australia/Sydney';
+afterAll(() => { process.env.TZ = previousTimeZone; });
 
 /**
  * Tests for the Imagery page's pipeline panel (#4908).
@@ -16,28 +17,15 @@
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
-
-loadGlobalScript('public/js/common/utilities.js');
-
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+import { loadModules, mockModule } from './loader.js';
 
 /** Chart calls, recorded instead of drawn — MiniLineChart has its own tests. */
 const charts = [];
 
-/** Loads AdminShell + the panel into global scope, with MiniLineChart stubbed. */
-function loadPanel() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const panel = fs.readFileSync(path.join(JS_DIR, 'ImageryPipelinePanel.js'), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${panel}\nImageryPipelinePanel;`);
-}
-
-const ImageryPipelinePanel = loadPanel();
+mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+  MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+}));
+const { ImageryPipelinePanel } = await loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js');
 
 const MARKUP = `
   <select id="imagery-range">
@@ -104,7 +92,7 @@ const report = (overrides = {}) => ({
 async function renderPanel(payload = report(), opts = {}) {
   document.body.innerHTML = MARKUP;
   charts.length = 0;
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => payload });
+  window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
   const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, ...opts });
   await panel.init();
   return panel;
@@ -118,7 +106,6 @@ beforeAll(() => {
   expect(new Date(Date.parse('2026-08-17T16:00:00Z')).getDate()).toBe(18);
 });
 
-afterEach(() => { jest.restoreAllMocks(); });
 
 describe('ImageryPipelinePanel banner', () => {
   test('reports a healthy pipeline with what it actually did', async () => {
@@ -152,6 +139,23 @@ describe('ImageryPipelinePanel banner', () => {
     await renderPanel(report({ jobs: [job({ last_status: 'failed', last_error: 'HTTP 429' })] }));
     expect(statusHtml()).toContain('ac-badge--warn');
     expect(statusText()).toContain('HTTP 429');
+  });
+
+  test('reports a poll an app restart or crash cut off as a warning, not as healthy', async () => {
+    // An interrupted run carries no error message, so the banner has to say what happened on its own.
+    await renderPanel(report({ jobs: [job({ last_status: 'interrupted', last_error: null })] }));
+    expect(statusHtml()).toContain('ac-badge--warn');
+    expect(statusText()).toContain('restart or crash');
+  });
+
+  test('says an interrupted flag sync was cut off, not that it has stopped succeeding on schedule', async () => {
+    // Not overdue: the previous night's sync succeeded, so "has not succeeded on schedule" would be false.
+    await renderPanel(report({
+      jobs: [job(), job({ job_name: SYNC, last_status: 'interrupted', last_error: null })],
+    }));
+    expect(statusHtml()).toContain('ac-badge--warn');
+    expect(statusText()).toContain('cut off when the app stopped');
+    expect(statusText()).not.toContain('not succeeded on schedule');
   });
 
   test('reports a healthy poll whose flag sync is not running', async () => {
@@ -287,16 +291,16 @@ describe('ImageryPipelinePanel window selector', () => {
   test('opens on the window the server chose as its default', async () => {
     await renderPanel(report(), { days: 90 });
     expect(document.getElementById('imagery-range').value).toBe('90');
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/imageryFreshness?days=90', expect.anything());
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/imageryFreshness?days=90', expect.anything());
   });
 
   test('refetches when the reader picks another window', async () => {
     const panel = await renderPanel();
     const select = document.getElementById('imagery-range');
     select.value = '365';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
     expect(panel).toBeDefined();
   });
 
@@ -307,7 +311,7 @@ describe('ImageryPipelinePanel window selector', () => {
     document.body.innerHTML = MARKUP;
     charts.length = 0;
     const resolvers = [];
-    global.fetch = jest.fn(() => new Promise((resolve) => {
+    window.fetch = vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
     }));
 
@@ -315,14 +319,14 @@ describe('ImageryPipelinePanel window selector', () => {
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     select.value = '365';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
 
     resolvers[0]();
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
+    expect(window.fetch).toHaveBeenCalledTimes(2);
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/imageryFreshness?days=365', expect.anything());
 
     resolvers[1]();
     await started;
@@ -331,7 +335,7 @@ describe('ImageryPipelinePanel window selector', () => {
   test('does not refetch when the queued window is the one already showing', async () => {
     document.body.innerHTML = MARKUP;
     const resolvers = [];
-    global.fetch = jest.fn(() => new Promise((resolve) => {
+    window.fetch = vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
     }));
 
@@ -339,38 +343,38 @@ describe('ImageryPipelinePanel window selector', () => {
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
     select.value = '30';
-    select.dispatchEvent(new window.Event('change'));
+    select.dispatchEvent(new Event('change'));
 
     resolvers[0]();
     await started;
     await new Promise(process.nextTick);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(window.fetch).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('ImageryPipelinePanel failure handling', () => {
   test('says the history could not be read rather than leaving the loading line up', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     await new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30 }).init();
     expect(statusText()).toContain('Could not load the pipeline history');
     expect(document.getElementById('imagery-pipeline-status').classList.contains('error')).toBe(true);
   });
 
   test('hands the report to its owner only when one arrived', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    const onLoaded = jest.fn();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onLoaded = vi.fn();
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn().mockRejectedValue(new Error('offline'));
+    window.fetch = vi.fn().mockRejectedValue(new Error('offline'));
     await new ImageryPipelinePanel({ pipelineUrl: '/x', days: 30, onLoaded }).init();
     expect(onLoaded).not.toHaveBeenCalled();
   });
 
   test('hands the loaded report to its owner, so the page fills its KPIs from the same fetch', async () => {
-    const onLoaded = jest.fn();
+    const onLoaded = vi.fn();
     await renderPanel(report(), { onLoaded });
     expect(onLoaded).toHaveBeenCalledWith(expect.objectContaining({ poll_batch_size: 500 }));
   });

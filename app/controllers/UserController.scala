@@ -22,8 +22,9 @@ import play.silhouette.impl.providers.CredentialsProvider
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.*
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 import scala.util.Random
+import scala.util.control.NonFatal
 
 @Singleton
 class UserController @Inject() (
@@ -151,12 +152,22 @@ class UserController @Inject() (
   }
 
   /**
-   * Handles the sign-out action.
+   * Signs the user out and redirects to `url`.
+   *
+   * Anyone else goes home instead: `url` is often a tool page, which makes a new account for a visitor without one.
+   * A link from another site never signs anyone out, so other sites can't sign users out (#5706).
    */
-  def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
-    silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
+  def signOut(url: String) = silhouette.UserAwareAction.async { implicit request =>
+    val fromOtherSite = request.headers.get("Sec-Fetch-Site").contains("cross-site")
+    (request.identity, request.authenticator) match {
+      case _ if fromOtherSite                => Future.successful(Redirect("/"))
+      case (Some(user), Some(authenticator)) =>
+        cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
+        silhouette.env.eventBus.publish(LogoutEvent(user, request))
+        silhouette.env.authenticatorService.discard(authenticator, Redirect(safeLocalPath(url)))
+      case (None, Some(authenticator)) => silhouette.env.authenticatorService.discard(authenticator, Redirect("/"))
+      case _                           => Future.successful(Redirect("/"))
+    }
   }
 
   /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
@@ -517,9 +528,10 @@ class UserController @Inject() (
    */
   def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
+    val target  = safeLocalPath(url)
     request.identity match {
       case Some(user) =>
-        Future.successful(Redirect(url, qString))
+        Future.successful(Redirect(target, qString))
       case None =>
         // Each anon sign-up costs a bcrypt hash and inserts across several tables, unauthenticated, so it needs its
         // own IP bound. Checked directly rather than via rateLimited(): that helper's no-JS branch redirects, and any
@@ -533,12 +545,12 @@ class UserController @Inject() (
             TooManyRequests(Messages("authenticate.error.too.many"))
               .withHeaders("Retry-After" -> retryAfter.toString)
           )
-        } else signUpAnonUser(url, qString)
+        } else signUpAnonUser(target, qString)
     }
   }
 
-  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `url`. */
-  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(using
+  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `target`. */
+  private def signUpAnonUser(target: String, qString: Map[String, Seq[String]])(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val randomPassword: String = Random.alphanumeric take 16 mkString ""
@@ -553,14 +565,14 @@ class UserController @Inject() (
       value         <- silhouette.env.authenticatorService.init(authenticator)
       // Strip UTM params from redirect to avoid double-capture in index().
       qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
-      result <- silhouette.env.authenticatorService.embed(value, Redirect(url, qStringNoUtm))
+      result <- silhouette.env.authenticatorService.embed(value, Redirect(target, qStringNoUtm))
 
       _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString))
     } yield {
       // Log the anon sign-up along with url and query string of the page they came from.
       val activityStr =
-        if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
-        else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
+        if (qString.isEmpty) s"""AnonAutoSignUp_url="$target""""
+        else s"""AnonAutoSignUp_url="$target?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
       cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
       silhouette.env.eventBus.publish(SignUpEvent(user, request))
@@ -590,10 +602,10 @@ class UserController @Inject() (
   }
 
   /**
-   * Sends an email with password reset instructions.
+   * Sends password reset instructions to the submitted email when it belongs to an account.
    *
-   * It sends an email to the given address if it exists in the database. Otherwise we do not show the user
-   * a notice for not existing email addresses to prevent the leak of existing email addresses.
+   * The confirmation is the same whether or not the address is registered; only a failed send is reported to the
+   * user (#4531).
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
     val ipAddress: IpAddress   = request.ipAddress
@@ -620,17 +632,29 @@ class UserController @Inject() (
     }
   }
 
-  /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
+  /**
+   * Emails password reset instructions to `email` if it belongs to an account.
+   *
+   * An unknown address and a delivered email get the same confirmation, so the response never says whether an
+   * address is registered. A send that fails is the one exception: the user is told it did not go out rather than
+   * left waiting for mail that will never arrive (#4531). That does differ from the unknown-address response while
+   * the mailer is down, a signal the per-IP and per-email `forgot` throttles keep expensive to probe.
+   *
+   * @param email The address the user typed into the form.
+   * @param userId The signed-in user making the request, if any.
+   * @param ipAddress The requester's IP address, for the webpage_activity log.
+   * @return A redirect back to the form carrying an `info` flash when the reset link was sent or the address is
+   *         unknown, or an `error` flash when the send failed.
+   */
   private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
-    val result = Redirect(routes.UserController.forgotPassword)
+    val sentResult = Redirect(routes.UserController.forgotPassword)
       .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
     cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
     authenticationService.findByEmail(email).flatMap {
       case Some(user) =>
-        // User exists, create a new token and send an email with the reset link.
         authenticationService.createToken(user.userId).flatMap { authTokenID =>
           val url = routes.UserController.resetPasswordPage(authTokenID).absoluteURL()
 
@@ -641,29 +665,31 @@ class UserController @Inject() (
             bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
           )
 
-          try {
-            mailerClient.send(resetEmail)
-            cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
-            Future.successful(result)
-          } catch {
-            case e: Exception =>
+          // The SMTP client blocks for up to play.mailer.connectiontimeout + play.mailer.timeout; `blocking` lets the
+          // pool compensate rather than starve other requests on it. An unsent token is harmless: nobody knows it,
+          // it expires on its own, and a retry creates a fresh one.
+          Future(blocking(mailerClient.send(resetEmail)))
+            .map { _ =>
+              cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
+              sentResult
+            }
+            .recover { case NonFatal(e) =>
               cc.loggingService.insert(
                 userId,
                 ipAddress,
                 s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
               )
-              logger.error("Failed to send password reset email", e)
-              // Show the same confirmation regardless: a mailer outage must not 500 the user, nor reveal
-              // (via a differing response) that this email is registered. Delivery health is ops' concern.
-              Future.successful(result)
-          }
+              logger.error(s"Failed to send password reset email to $email", e)
+              Redirect(routes.UserController.forgotPassword)
+                .flashing("error" -> Messages("reset.pw.email.send.failed"))
+            }
         }
 
-      // This is the case where the email was not found in the database.
+      // Nothing is sent for an unknown address, so nothing can fail: same confirmation as a delivery.
       case None =>
         cc.loggingService
           .insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=EmailNotFound""")
-        Future.successful(result)
+        Future.successful(sentResult)
     }
   }
 

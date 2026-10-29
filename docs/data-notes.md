@@ -9,6 +9,13 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ## Data caveats by release
 
+### Visit-only anonymous accounts were deleted (#5612)
+
+Until v11.8.0, opening any page made an anonymous account. The roughly 5.3 million that never did anything and never
+opened a tool (Explore, Validate, …) were deleted. Their `AnonAutoSignUp` rows are gone from `webpage_activity` and
+their other rows there have no `user_id`, so counts of anonymous accounts and sign-ups for earlier periods are far
+lower than older reports show.
+
 ### `webpage_activity.user_id` can be empty (#4643)
 
 A page opened with no session (a crawler, or a first visit before opening Explore) is logged with no `user_id`. Every
@@ -41,9 +48,13 @@ gone. Analysts should know:
   page views stay on the shared account.
 - **Streets keep the 2015 network** and belong to one neighborhood each (largest-overlap pick; DC never split
   streets at boundaries). The original 192-neighborhood set was dropped in favor of the 179 shown since 2016.
-- **Label positions are the original client values.** The 179.sql coordinate fix never applied on DC (all pano
-  dimensions were NULL); 3,773 positions from the legacy depth code were unusable and are NULL pending a recompute.
-  37 labels with an empty pano id were deleted, as 298.sql did elsewhere.
+- **Label positions were converted after the migration, not by it.** The 179.sql coordinate fix never applied on DC
+  (all pano dimensions were NULL). The dimensions were recovered from the scraped store and Google, and the
+  conversion and position recompute ran as `tools/one-off/5667-dc-label-positions.sql` (#5667); its backup table
+  `old_label_point_coords_2` holds the pre-conversion values. Labels on panos nobody can size any more keep the
+  legacy coordinates (negative `pano_y`), a few hundred whose pano has no recorded position still have no
+  lat/lng, and the ~14,800 tutorial labels were left alone on purpose. 37 labels with an empty pano id were deleted,
+  as 298.sql did elsewhere.
 - **Naive timestamps** (`label.time_created`, survey submissions) were US/Eastern before 2018-08-25 and UTC after.
 - The public aggregate stats now count DC live: users 823 registered + the split anonymous accounts rather than the
   old fixed 1,395; distance 2,089 km of network rather than the 5,482 km "explored" (which counted repeat audits).
@@ -74,13 +85,10 @@ Up to the v2 release, records for **anonymous users weren't marked as `complete`
 
 ## Gallery screenshot tips
 
-Console snippets for staging clean label screenshots in the Gallery's expanded card view:
+The expanded card's own "hide label" toggle (#2477) takes the marker off the imagery, and stays off as you page.
+To nudge the marker instead, it is a positioned element over the pano canvas, so devtools can move it:
 
 ```js
-// Hide the label icon/marker in the expanded view.
-sg.cardContainer.getModal().pano.labelMarker.marker.setVisible(false);
-
-// Inspect the marker's current heading/pitch, then reposition it.
-sg.cardContainer.getModal().pano.labelMarker.marker.getPosition();           // current { heading, pitch }
-sg.cardContainer.getModal().pano.labelMarker.marker.setPosition({ heading: newH, pitch: newP });
+const marker = document.querySelector('.gallery-expanded-view .label-detail__marker');
+marker.style.left = `${parseFloat(marker.style.left) + 10}px`; // The viewer re-places it on the next pan or zoom.
 ```

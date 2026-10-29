@@ -1,25 +1,13 @@
 /**
  * Tests for how the Manage user page's Excluded box drives the quality dropdown (#3956), chiefly that a stray
  * check-and-uncheck restores the admin's earlier choice.
- *
- * Runs under jsdom (jest.config.js). AdminUser is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
-const ADMIN_USER_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
-let AdminUser;
-
-beforeAll(() => {
-  window.i18next = { language: 'en' };
-  installDateHelpers();
-  AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
-});
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**
  * Builds the account form's quality and exclusion controls, then the page controller.
@@ -35,7 +23,7 @@ function load(quality, excluded) {
     </select>
     <input type="checkbox" id="au-excluded" ${excluded ? 'checked' : ''}>`;
   document.getElementById('au-quality').value = quality;
-  global.fetch = jest.fn(() => new Promise(() => {}));
+  window.fetch = vi.fn(() => new Promise(() => {}));
   new AdminUser({
     userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags', hoursUrl: '/hours',
     pageUrlFor: (u) => `/admin/user/${u}/manage`,

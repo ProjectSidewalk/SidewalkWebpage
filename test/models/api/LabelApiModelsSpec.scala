@@ -25,7 +25,8 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
       heading: Option[Double] = Some(94.3114318847656),
       pitch: Option[Double] = Some(-24.6774997711182),
       streetSide: Option[StreetSide] = Some(StreetSide.Left),
-      centerlineOffsetM: Option[Double] = Some(4.25)
+      centerlineOffsetM: Option[Double] = Some(4.25),
+      comments: Seq[LabelCommentForApi] = Seq.empty
   ): LabelDataForApi = LabelDataForApi(
     labelId = 8,
     userId = "user-uuid",
@@ -50,6 +51,7 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     disagreeCount = 0,
     unsureCount = 0,
     validations = Seq.empty,
+    comments = comments,
     auditTaskId = Some(6),
     missionId = Some(3),
     imageCaptureDate = Some("2012-08"),
@@ -144,5 +146,54 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     val unpositioned = sampleLabel(PanoSource.Gsv, streetSide = None, centerlineOffsetM = None)
     (unpositioned.toJson \ "properties" \ "centerline_offset_m").toOption.map(_.toString) shouldBe Some("null")
     unpositioned.toCsvRow.split(",", -1)(offsetIndex) shouldBe ""
+  }
+
+  /**
+   * Splits one CSV row on commas outside quotes, unescaping doubled quotes (RFC 4180), so a test reads a cell the way a
+   * CSV reader would rather than trusting the writer's own helpers.
+   *
+   * @param row One CSV line.
+   * @return Its cells, unquoted.
+   */
+  private def parseCsvRow(row: String): Seq[String] = {
+    val cells    = scala.collection.mutable.ArrayBuffer.empty[String]
+    val cell     = StringBuilder()
+    var inQuotes = false
+    var i        = 0
+    while (i < row.length) {
+      val c = row.charAt(i)
+      if (inQuotes && c == '"' && i + 1 < row.length && row.charAt(i + 1) == '"') { cell += '"'; i += 1 }
+      else if (c == '"') inQuotes = !inQuotes
+      else if (c == ',' && !inQuotes) { cells += cell.toString; cell.clear() }
+      else cell += c
+      i += 1
+    }
+    (cells :+ cell.toString).toSeq
+  }
+
+  test("comments reach GeoJSON as an array and CSV as one JSON-string column, empty as []") {
+    val text    = "not a curb ramp, \"driveway\"\nsee the next pano"
+    val comment = LabelCommentForApi(
+      "u-1",
+      text,
+      Some("driveway"),
+      None,
+      OffsetDateTime.of(2026, 10, 27, 17, 0, 0, 0, ZoneOffset.UTC)
+    )
+    val label = sampleLabel(PanoSource.Gsv, comments = Seq(comment))
+
+    val fromJson = (label.toJson \ "properties" \ "comments").as[Seq[JsObject]]
+    fromJson.map(c => (c \ "user_id").as[String]) shouldBe Seq("u-1")
+
+    val header      = LabelDataForApi.csvHeader.trim.split(",")
+    val columnIndex = header.indexOf("comments")
+    header(columnIndex - 1) shouldBe "validations"
+    // The newline is JSON-escaped, so the row stays on one line.
+    label.toCsvRow should not include "\n"
+    val cell = parseCsvRow(label.toCsvRow)(columnIndex)
+    (play.api.libs.json.Json.parse(cell) \ 0 \ "comment").as[String] shouldBe text
+
+    (sampleLabel(PanoSource.Gsv).toJson \ "properties" \ "comments").as[Seq[JsObject]] shouldBe empty
+    parseCsvRow(sampleLabel(PanoSource.Gsv).toCsvRow)(columnIndex) shouldBe "[]"
   }
 }

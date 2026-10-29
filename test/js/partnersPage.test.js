@@ -5,17 +5,11 @@
  * worth pinning are the ones a casual manual test misses: that the payload sent on reorder is the *whole* permuted
  * id list for the right scope's endpoint, that a non-Owner gets no edit controls on the global list while the city
  * list keeps them, and that a create with no file is refused client-side before any request is made.
- *
- * Runs under jsdom (jest.config.js). PartnersPage is a bare top-level class served file-by-file, so it is eval'd
- * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
 
-const PAGE_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/PartnersPage.js');
-
-const PartnersPage = (0, eval)(`${fs.readFileSync(PAGE_PATH, 'utf8')}\nPartnersPage;`);
+const { PartnersPage } = await loadModules('frontend/js/admin-dashboard/PartnersPage.js');
 
 /** The Twirl page's containers and per-scope add forms, reduced to what the class touches. */
 function buildDom({ ownerForms }) {
@@ -48,7 +42,7 @@ const globalPartner = (id, name) => ({ ...cityPartner(id, name), city_id: null }
 /** Stubs fetch with a queue-less handler and records every call. */
 function stubFetch(listPayload) {
   const calls = [];
-  global.fetch = jest.fn(async (url, options = {}) => {
+  window.fetch = vi.fn(async (url, options = {}) => {
     calls.push({ url, options });
     if (url === '/adminapi/partners' && !options.method) {
       return { ok: true, json: async () => listPayload() };
@@ -113,7 +107,7 @@ describe('PartnersPage', () => {
     // Hold the reorder PUT open so the second click lands while the first is still in flight.
     let releasePut;
     const calls = [];
-    global.fetch = jest.fn(async (url, options = {}) => {
+    window.fetch = vi.fn(async (url, options = {}) => {
       calls.push({ url, options });
       if (options.method === 'PUT') await new Promise((resolve) => { releasePut = resolve; });
       return {
@@ -144,7 +138,7 @@ describe('PartnersPage', () => {
 
   test("creating in one scope does not clear the other scope's in-progress edit", async () => {
     buildDom({ ownerForms: true });
-    Element.prototype.scrollIntoView = jest.fn(); // Not implemented in jsdom; #startEdit scrolls to the form.
+    Element.prototype.scrollIntoView = vi.fn(); // Not implemented in jsdom; #startEdit scrolls to the form.
     const calls = stubFetch(() => ({
       city_id: 'seattle',
       is_owner: true,
@@ -225,7 +219,7 @@ describe('PartnersPage official-contact form (#5462)', () => {
    */
   function stubContactFetch(saved, putReply) {
     const calls = [];
-    global.fetch = jest.fn(async (url, options = {}) => {
+    window.fetch = vi.fn(async (url, options = {}) => {
       calls.push({ url, options });
       if (url === '/adminapi/officialContact' && options.method === 'PUT') return putReply;
       if (url === '/adminapi/officialContact') return { ok: true, json: async () => saved };
