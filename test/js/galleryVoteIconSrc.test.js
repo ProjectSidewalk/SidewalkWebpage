@@ -95,4 +95,10 @@ describe('Gallery vote icons', () => {
     display.setVoteIconFilled('Disagree', true);
     expect(srcOf(display, 'Disagree')).toContain(urlFor('images/icons/validation/disagree-filled.svg'));
   });
+
+  test('drop the -ai variant when a type change leaves the AI without a vote (#5853)', () => {
+    const display = makeDisplay('Agree');
+    display.setAiValidation(null);
+    expect(srcOf(display, 'Agree')).toContain(urlFor('images/icons/validation/agree-outline.svg'));
+  });
 });

@@ -65,6 +65,7 @@ class ValidationServiceImpl @Inject() (
     labelTable: LabelTable,
     labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
+    labelEditTable: LabelEditTable,
     missionService: MissionService,
     userStatTable: UserStatTable
 )(using ec: ExecutionContext)
@@ -300,12 +301,19 @@ class ValidationServiceImpl @Inject() (
       val deleted: DBIO[Boolean] =
         labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
       // A redo replaces the vote just cast, which sits on another type when it was an admin's type-changing Agree: the
-      // redo is filed on the type the validator saw, so the same-type lookup below would miss it.
+      // redo is filed on the type the validator saw, so the same-type lookup below would miss it. Only a vote that made
+      // that type change qualifies; the user's own vote on another type stays (#5853).
       val redoneOtherType: DBIO[Option[LabelValidation]] =
         if (valSubmission.redone)
           labelValidationTable
             .lockNewestValidation(validation.labelId, validation.userId)
-            .map(_.filter(_.labelType != validation.labelType))
+            .flatMap {
+              case Some(v) if v.labelType != validation.labelType =>
+                labelEditTable
+                  .findByLabelValidationId(v.labelValidationId)
+                  .map(_.filter(e => e.oldLabelType != e.newLabelType).map(_ => v))
+              case _ => DBIO.successful(None)
+            }
         else DBIO.successful(None)
 
       deleted.flatMap(
