@@ -125,7 +125,8 @@ export class AcrossCitiesPage {
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
-  #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
+  #funnelWindow = '30d'; // '30d' | '90d' | 'all': the window last asked for.
+  #shownFunnelWindow = '30d'; // The window whose numbers are on screen.
   #funnelDim = 'all';    // 'all' | 'role' | 'device'.
 
   /**
@@ -534,14 +535,22 @@ export class AcrossCitiesPage {
     }
 
     mapboxgl.accessToken = this.#mapboxToken;
-    this.#map = new mapboxgl.Map({
-      container: 'ac-cities-map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-30, 28],
-      zoom: 1.2,
-      minZoom: 1,
-      projection: 'mercator',
-    });
+    try {
+      this.#map = new mapboxgl.Map({
+        container: 'ac-cities-map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-30, 28],
+        zoom: 1.2,
+        minZoom: 1,
+        projection: 'mercator',
+      });
+    } catch (err) {
+      // Mapbox throws when the browser has no WebGL; left to init's catch, that would blank every section after this.
+      console.warn('Across Cities map failed to start:', err);
+      this.#setText('ac-map-status', 'Map unavailable.');
+      host.style.display = 'none';
+      return;
+    }
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
 
@@ -645,16 +654,16 @@ export class AcrossCitiesPage {
     }
     el.innerHTML = items.map((it) => {
       const name = util.escapeHTML(it.city.city_name || it.city.city_id);
-      const rawHref = it.href || it.city.url;
-      const href = rawHref ? util.escapeHTML(rawHref) : '#';
+      const href = it.href || it.city.url;
+      // Without a URL there is nowhere to go, so the item is plain text rather than a link to the top of this page.
+      const tag = href ? 'a' : 'div';
       return [
-        `<a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
-        ` href="${href}"`,
-        rawHref ? ' target="_blank" rel="noopener">' : '>',
+        `<${tag} class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
+        href ? ` href="${util.escapeHTML(href)}" target="_blank" rel="noopener">` : '>',
         '<span class="ov-attention-dot" aria-hidden="true"></span>',
         `<span class="ov-attention-text"><strong>${name}</strong> — ${util.escapeHTML(it.reason)}</span>`,
         `<span class="ov-attention-go">${util.escapeHTML(it.label)} →</span>`,
-        '</a>',
+        `</${tag}>`,
       ].join('');
     }).join('');
   }
@@ -964,6 +973,8 @@ export class AcrossCitiesPage {
     return (list || this.#cities).slice().sort((a, b) => {
       const va = val(a);
       const vb = val(b);
+      // Code-point order would put "Évora" after "zurich".
+      if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * dir;
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;
@@ -1405,7 +1416,7 @@ export class AcrossCitiesPage {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#funnelWindow === btn.dataset.window) return;
         this.#funnelWindow = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+        this.#markFunnelWindow(this.#funnelWindow);
         this.#loadFunnels();
       }));
     }
@@ -1420,15 +1431,30 @@ export class AcrossCitiesPage {
     }
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
+  /** @param {string} timeWindow - The `data-window` of the button to mark active. */
+  #markFunnelWindow(timeWindow) {
+    document.querySelectorAll('#ac-funnel-window .ac-toggle-btn')
+      .forEach((b) => b.classList.toggle('is-active', b.dataset.window === timeWindow));
+  }
+
+  /**
+   * Fetches and renders the funnels for the current window. A stale response is dropped and a failure puts the
+   * highlight back on the shown window, so a button never labels another window's numbers.
+   */
   async #loadFunnels() {
+    const timeWindow = this.#funnelWindow;
     this.#setText('ac-funnel-status', 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+      if (timeWindow !== this.#funnelWindow) return;
       this.#funnels = (data && data.funnels) || {};
+      this.#shownFunnelWindow = timeWindow;
       this.#renderFunnels();
     } catch (err) {
+      if (timeWindow !== this.#funnelWindow) return;
       console.error('Funnel load failed:', err);
+      this.#funnelWindow = this.#shownFunnelWindow;
+      this.#markFunnelWindow(this.#shownFunnelWindow);
       this.#setText('ac-funnel-status', 'Could not load funnel data.');
     }
   }
@@ -1891,7 +1917,8 @@ export class AcrossCitiesPage {
   /** Compact number ("1.2M", "317k", "842"). */
   #compact(n) {
     const v = n ?? 0;
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    // From 999,500 up, the "k" form would round to "1000k".
+    if (v >= 999_500) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
     if (v >= 1e4) return `${Math.round(v / 1e3)}k`;
     return v.toLocaleString();
   }
@@ -1913,8 +1940,9 @@ export class AcrossCitiesPage {
   /** Human duration from seconds ("8s", "2.4 min", "1.3 h"). */
   #duration(seconds) {
     const s = seconds || 0;
-    if (s < 60) return `${Math.round(s)}s`;
-    if (s < 3600) return `${(s / 60).toFixed(1)} min`;
+    // Each cutoff sits where the smaller unit would round up to the next one ("60s", "60.0 min").
+    if (s < 59.5) return `${Math.round(s)}s`;
+    if (s < 3597) return `${(s / 60).toFixed(1)} min`;
     return `${(s / 3600).toFixed(1)} h`;
   }
 

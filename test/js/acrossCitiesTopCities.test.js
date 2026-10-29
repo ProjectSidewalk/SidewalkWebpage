@@ -8,8 +8,9 @@
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { useUtil } from './loader.js';
 import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
 useUtil(metricDistanceUtil);
 
@@ -95,32 +96,11 @@ const MARKUP = `
   </table>`;
 
 describe('Across Cities — most active cities', () => {
-  let AcrossCitiesPage;
-
-  /**
-   * Renders the page against a fixture and returns the initialized instance.
-   *
-   * @param {Array} [cities] - Entries from makeCity(); defaults to the full fixture.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
-   */
   async function render(cities = FIXTURE) {
-    document.body.innerHTML = MARKUP;
-    const windowByCity = {};
-    cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    window.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: cities.map((c) => c.city),
-        summary: {},
-        over_time_all_time: [],
-        over_time_daily: [],
-        window_summary: null,
-        window_by_city: windowByCity,
-      }),
-    }));
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
-    await page.init();
-    return page;
+    const windowByCity = Object.fromEntries(cities.map((c) => [c.city.city_id, c.window]));
+    await renderAcrossCities({
+      markup: MARKUP, scorecards: { cities: cities.map((c) => c.city), window_by_city: windowByCity },
+    });
   }
 
   /** City names in the top table, in display order. */
@@ -132,10 +112,6 @@ describe('Across Cities — most active cities', () => {
   function clickHeader(tableId, key) {
     document.querySelector(`#${tableId} thead th[data-sort="${key}"]`).click();
   }
-
-  beforeEach(async () => {
-    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
-  });
 
   it('ranks by labels + validations and shows only the top five', async () => {
     await render();
