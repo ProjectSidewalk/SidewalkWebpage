@@ -275,10 +275,12 @@ export const ValidationsPreview = {
     statsGrid.className = 'summary-stats-grid';
     summarySection.appendChild(statsGrid);
 
+    // With no validations there's no rate to give, and dividing by zero would print "NaN%".
+    const rate = (count) => (totalValidations ? `${((count / totalValidations) * 100).toFixed(1)}%` : 'N/A');
     this.addSummaryStatItem(statsGrid, totalValidations.toLocaleString(), 'Total Validations');
-    this.addSummaryStatItem(statsGrid, `${((totalAgree / totalValidations) * 100).toFixed(1)}%`, 'Agree Rate');
-    this.addSummaryStatItem(statsGrid, `${((totalDisagree / totalValidations) * 100).toFixed(1)}%`, 'Disagree Rate');
-    this.addSummaryStatItem(statsGrid, `${((totalUnsure / totalValidations) * 100).toFixed(1)}%`, 'Unsure Rate');
+    this.addSummaryStatItem(statsGrid, rate(totalAgree), 'Agree Rate');
+    this.addSummaryStatItem(statsGrid, rate(totalDisagree), 'Disagree Rate');
+    this.addSummaryStatItem(statsGrid, rate(totalUnsure), 'Unsure Rate');
     this.addSummaryStatItem(statsGrid, filteredTypes.length.toString(), 'Label Types Shown');
   },
 

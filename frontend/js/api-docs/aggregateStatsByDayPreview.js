@@ -63,7 +63,7 @@ function buildDailyMap(data) {
 function dailyTotals(dates, byDay, field) {
   return dates.map((d) => {
     let total = 0;
-    (byDay.get(d) || new Map()).forEach((row) => {
+    byDay.get(d).forEach((row) => {
       total += (row[field] || 0);
     });
     return total;
@@ -210,8 +210,8 @@ export function render(container, data) {
           labels: dates,
           datasets: labelTypes.map((lt) => ({
             label: lt,
-            data: dates.map((d) => ((byDay.get(d) || new Map()).get(lt) || {}).human_labels || 0),
-            borderColor: util.misc.getLabelColors(lt) || ApiDocsTheme.color('--color-neutral-500'),
+            data: dates.map((d) => byDay.get(d).get(lt)?.human_labels || 0),
+            borderColor: util.misc.getLabelColors(lt),
             backgroundColor: 'transparent',
             tension: 0.3,
             pointRadius: dates.length > 60 ? 0 : 2,

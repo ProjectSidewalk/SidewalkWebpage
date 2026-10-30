@@ -151,12 +151,6 @@ export const UserStatsPreview = {
     // Take top N users for visualization.
     const topUsers = sortedUsers.slice(0, config.maxUsers);
 
-    // Sort users by validations given (for the validators chart).
-    const sortedByValidations = [...validUsers]
-      .sort((a, b) => b.validations_given - a.validations_given)
-      .filter((user) => user.validations_given > 0)
-      .slice(0, config.maxUsers);
-
     // Prepare data for accuracy vs. contributions chart.
     const accuracyData = sortedUsers
       .filter((user) => user.label_accuracy !== null && user.validated_labels > 5)
@@ -171,7 +165,6 @@ export const UserStatsPreview = {
     return {
       allUsers: sortedUsers,
       topUsers,
-      topValidators: sortedByValidations,
       accuracyData,
     };
   },

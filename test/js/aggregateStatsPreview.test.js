@@ -189,4 +189,53 @@ describe('AggregateStatsPreview', () => {
     const container = document.getElementById(CONTAINER_ID);
     expect(container.innerHTML).toContain('Failed to load');
   });
+
+  test('scales each label type\'s bar to the type with the most labels, listing the most labeled first', async () => {
+    stubFetch(GOOD_FIXTURE);
+    await AggregateStatsPreview.setup({}).init();
+    const container = document.getElementById(CONTAINER_ID);
+    const rows = [...container.querySelectorAll('tbody tr')];
+    expect(rows.map((tr) => [...tr.cells].map((td) => td.textContent))).toEqual([
+      ['CurbRamp', '5,000', '3,000', '2,000', '1,000'],
+      ['Obstacle', '1,200', '800', '500', '300'],
+    ]);
+    expect(rows.map((tr) => tr.querySelector('.count-bar-fill').style.width)).toEqual(['100%', '24%']);
+  });
+
+  test('gives label types with no labels empty bars and zero counts, even when no type has any', async () => {
+    stubFetch({ by_label_type: { Signal: {}, Other: { labels: 0 } } });
+    await AggregateStatsPreview.setup({}).init();
+    const container = document.getElementById(CONTAINER_ID);
+    expect([...container.querySelectorAll('.count-bar-fill')].map((bar) => bar.style.width)).toEqual(['0%', '0%']);
+    expect([...container.querySelector('tbody tr').cells].map((td) => td.textContent).slice(1))
+      .toEqual(['0', '0', '0', '0']);
+    // An absent distance reads as none explored.
+    expect(container.textContent).toContain('0 km');
+  });
+
+  test('shows only the headline cards when no label type is reported', async () => {
+    stubFetch(WRONG_SHAPE_CAMEL);
+    await AggregateStatsPreview.setup({}).init();
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.querySelectorAll('.preview-stat')).toHaveLength(7);
+    expect(container.querySelector('table')).toBeNull();
+  });
+
+  test('caps the width of the preview, or leaves it alone when told to', async () => {
+    stubFetch(GOOD_FIXTURE);
+    await AggregateStatsPreview.setup({ maxWidth: 600 }).init();
+    expect(document.getElementById(CONTAINER_ID).style.maxWidth).toBe('600px');
+
+    document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
+    await AggregateStatsPreview.setup({ maxWidth: 0 }).init();
+    expect(document.getElementById(CONTAINER_ID).style.maxWidth).toBe('');
+  });
+
+  test('rejects, fetching nothing, when the page lacks its container', async () => {
+    document.body.innerHTML = '';
+    stubFetch(GOOD_FIXTURE);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(AggregateStatsPreview.init()).rejects.toThrow('Container element not found');
+    expect(window.fetch).not.toHaveBeenCalled();
+  });
 });
