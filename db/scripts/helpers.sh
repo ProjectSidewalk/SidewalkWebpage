@@ -130,6 +130,57 @@ mark_streets_no_imagery() {
 EOSQL
 }
 
+# The inverse, kept in step with StreetLifecycleService.reopenStreet (the admin Reopen button). Only no_imagery
+# streets move: closed and disabled stay so whatever the imagery does. The priority row must come back, since task
+# assignment joins on it and the nightly recalc only updates existing rows; without it the street is open yet never
+# handed out. Same arguments as mark_streets_no_imagery.
+reopen_streets_with_imagery() {
+  local street_ids=$1
+  local source=$2
+  shift 2
+  if [[ -z "$street_ids" ]]; then
+    echo "No street IDs provided; skipping reopening."
+    return 0
+  fi
+  if [[ -z "$source" ]]; then
+    echo "No change source provided; refusing to reopen streets without recording who did it." >&2
+    return 1
+  fi
+  psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
+        BEGIN;
+        WITH changed AS (
+            UPDATE street_edge
+            SET status = 'open'
+            WHERE street_edge_id IN ($street_ids)
+                AND status = 'no_imagery'
+            RETURNING street_edge_id
+        )
+        INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+        SELECT street_edge_id,
+               'no_imagery'::street_edge_status,
+               'open'::street_edge_status,
+               '$source'::street_edge_status_change_source
+        FROM changed;
+
+        INSERT INTO street_edge_priority (street_edge_id, priority)
+        SELECT street_edge_id, 1.0
+        FROM street_edge
+        WHERE street_edge_id IN ($street_ids)
+            AND status = 'open'
+            AND NOT EXISTS (
+                SELECT 1 FROM street_edge_priority WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
+            );
+
+        -- The checker's full-street verdict outranks the nightly poll's three-point evidence (#4929).
+        DELETE FROM street_reopen_candidate
+        WHERE street_edge_id IN ($street_ids);
+
+        -- Truncate the region_completion table to force recalculation of distances.
+        TRUNCATE TABLE region_completion;
+        COMMIT;
+EOSQL
+}
+
 # Runs a long-running command while reassuring the user that work is happening. pg_restore of a large dump (the users
 # dump is ~900 MB) can run for minutes with no output, and a silent script reads as "hung". This prints an up-front
 # notice, then animates progress until the command finishes:

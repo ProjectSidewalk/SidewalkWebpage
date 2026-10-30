@@ -44,7 +44,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `import-dump.sh` | `make import-dump db=<schema>` | Drops and reloads **one city's schema** from `<schema>-dump`; recreates the role, sets its `search_path`, re-grants read-only. | To load or refresh a city's data. |
 | `create-new-schema.sh` | `make create-new-schema name=<schema> donor=<schema>` | Builds a **brand-new empty city schema** by cloning a live city's structure plus its seed rows (evolutions, version, `config` + tutorial street, tags, surveys; the SidewalkAI user's rows are the app's job at boot, #5349) and bumping the sequences. Refuses a donor below evolution 373 (its `label_type` is still a table that `tag` references, so the seed copy fails half-way), one that has applied an evolution beyond the checkout's highest, or whose top evolution is another branch's under the same number — accepted when its hash is the file's (`make` passes both), otherwise the other city schemas must agree with it. The committed template is not used here — it is frozen at evolution 252 and can't be replayed past 372 (#5198). | When standing up a city you don't yet have a dump for. |
 | `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `tools/city/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
-| `hide-streets-without-imagery.sh` | `make hide-streets-without-imagery` | Marks streets listed in a CSV as `status = 'no_imagery'` so they're not handed out for auditing. | After running `check_streets_for_imagery.py`. |
+| `hide-streets-without-imagery.sh` | `make hide-streets-without-imagery` | Applies the imagery scan's summary: streets without imagery become `status = 'no_imagery'` so they're not handed out for auditing, and `no_imagery` streets with imagery again are reopened. | After running `check_streets_for_imagery.py`. |
 | `reveal-or-hide-regions.sh` | `make reveal-or-hide-regions` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
 | `last-release.sh` | — | Prints the newest `v*` tag and the highest evolution in it, fetching just that tag. | CI's rollback gate and released-evolution check (#5839). |
@@ -75,7 +75,7 @@ make create-new-schema name=sidewalk_<city> donor=sidewalk_<donor>   # clone a c
 # …load qgis_road + qgis_region into the schema (onboard_city.py writes a psql-loadable qgis_tables.sql)…
 make fill-new-schema                                                  # streets, regions, tutorial, center/bounds/zoom
 make check-imagery id=<city-id> args="--<provider>"                   # full imagery scan (an hour for a mid-sized city)
-make hide-streets-without-imagery                                     # onboarding/<city-id>/streets_with_no_imagery.csv
+make hide-streets-without-imagery                                     # onboarding/<city-id>/street_imagery_summary.csv
 make import-street-imagery                                            # onboarding/<city-id>/street_imagery_summary.csv
 ```
 
@@ -85,7 +85,7 @@ and `db/scripts/` are invisible to it.
 **Ongoing maintenance:**
 
 - Open/close regions: `make reveal-or-hide-regions`
-- Mark no-imagery streets: `make hide-streets-without-imagery`
+- Mark no-imagery streets, or reopen them after a rescan: `make hide-streets-without-imagery`
 - Hand-run cleanups (removing streets or validations, merging duplicate streets): [`tools/one-off/`](../../tools/one-off).
 
 ## Gotchas

@@ -47,7 +47,8 @@ Standalone and manual — nothing in the app calls it.
    found cover enough of it for a labeler's walk to finish (the rule under "Search radius" below). It writes streets
    without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary (presence + capture-date range)
    to `street_imagery_summary.csv`, both in the same dir.
-3. Run `make hide-streets-without-imagery` to mark those streets in the database.
+3. Run `make hide-streets-without-imagery` to apply the summary: streets without imagery are marked `no_imagery`,
+   and `no_imagery` streets the scan found imagery on are reopened, so a rescan corrects an earlier verdict either way.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
 second across all workers, default 10 — deliberately conservative; Google allows ~500/s).
@@ -225,9 +226,8 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint_<provider>.csv`, so a re-run resumes
   where it left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir
   and the checkpoint is per provider, a scan can never resume another city's or another provider's results:
-  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. The final
-  no-imagery CSV is derived from the checkpoint at the end — its schema is unchanged, so
-  `make hide-streets-without-imagery` is unaffected. `failed_streets.csv` is rewritten every run (empty when nothing
+  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. Both output
+  CSVs are derived from the checkpoint at the end. `failed_streets.csv` is rewritten every run (empty when nothing
   failed), so a rerun with a fixed key clears it.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
   whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than

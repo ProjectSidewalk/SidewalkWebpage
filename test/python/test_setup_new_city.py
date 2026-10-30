@@ -683,7 +683,7 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     joined = _joined(calls)
     assert (city_dir / 'street_edge_endpoints.csv').read_text().startswith('street_edge_id,region_id')
     assert any('check_streets_for_imagery.py --city-id x --panoramax' in cmd for cmd in joined)
-    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/streets_with_no_imagery.csv' in cmd
+    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
     assert any('import-street-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)

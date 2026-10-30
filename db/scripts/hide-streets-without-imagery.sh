@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 # =====================================================================================================================
-# hide-streets-without-imagery.sh — mark streets that have no street-view imagery as un-auditable.
+# hide-streets-without-imagery.sh — set each street's status from the imagery checker's verdict.
 #
 # WHY THIS EXISTS: a city import includes every OSM street, but some have no usable street-view imagery and shouldn't be
-# handed out for auditing. check_streets_for_imagery.py scans the city and writes a CSV of those street IDs; this script
-# applies that CSV by setting street_edge.status = 'no_imagery' and dropping the streets' priority rows (see #4348/#4335).
+# handed out for auditing. check_streets_for_imagery.py scans the city and writes a per-street summary; this script
+# applies it in both directions, so a rescan (new imagery, or a new coverage rule, #5669) corrects an earlier verdict.
 #
 # HOW IT'S RUN:  make hide-streets-without-imagery → /opt/scripts/hide-streets-without-imagery.sh (in the db box).
-# INPUT:         a headered CSV whose first column is street_edge_id
-#                (db/onboarding/<city-id>/streets_with_no_imagery.csv).
+# INPUT:         db/onboarding/<city-id>/street_imagery_summary.csv
 #
-# The actual UPDATE/DELETE lives in mark_streets_no_imagery() in helpers.sh, shared with reveal-or-hide-regions.sh
-# so the two can't drift. It's idempotent, so re-running on an already-processed region is safe.
+# The SQL lives in helpers.sh, shared with reveal-or-hide-regions.sh so the two can't drift; re-running a file is safe.
 # =====================================================================================================================
 set -euo pipefail
 
@@ -23,19 +21,23 @@ source /opt/scripts/helpers.sh
 # working dir (/opt == ./db on the host). No prompt default: the scan writes into each city's own onboarding dir.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 CSV_FILENAME=${2:-$(prompt_with_default \
-    "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/streets_with_no_imagery.csv)")}
+    "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/street_imagery_summary.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
   echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
   exit 1
 fi
+# The verdict column is read by position, so a file with another layout must fail here, not mark the wrong streets.
+if [[ "$(head -n 1 "$CSV_FILENAME" | tr -d '\r' | cut -d',' -f1-3)" != "street_edge_id,region_id,has_imagery" ]]; then
+  echo "Error: $CSV_FILENAME does not start with street_edge_id,region_id,has_imagery. Is it a street_imagery_summary.csv?" >&2
+  exit 1
+fi
 
-# Read list of streets to hide from CSV file.
-STREET_IDS=$(read_street_ids_from_csv "$CSV_FILENAME")
-echo "Streets to exclude: $STREET_IDS"
+NO_IMAGERY_IDS=$(awk -F',' 'NR > 1 && $3 == "False" { print $1 }' "$CSV_FILENAME" | paste -sd',' -)
+HAS_IMAGERY_IDS=$(awk -F',' 'NR > 1 && $3 == "True" { print $1 }' "$CSV_FILENAME" | paste -sd',' -)
+echo "Streets without imagery: $NO_IMAGERY_IDS"
 
-# Mark the streets without imagery (shared with reveal-or-hide-regions.sh via helpers.sh).
-mark_streets_no_imagery "$STREET_IDS" hide_streets_without_imagery -d sidewalk -U "$SCHEMA_NAME"
+mark_streets_no_imagery "$NO_IMAGERY_IDS" hide_streets_without_imagery -d sidewalk -U "$SCHEMA_NAME"
+reopen_streets_with_imagery "$HAS_IMAGERY_IDS" hide_streets_without_imagery -d sidewalk -U "$SCHEMA_NAME"
 
-echo "Done! You can now safely delete $CSV_FILENAME — but keep the street_imagery_summary CSV until it has been"
-echo "ingested with 'make import-street-imagery'."
+echo "Done! Keep $CSV_FILENAME until it has been ingested with 'make import-street-imagery'."

@@ -22,7 +22,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
      need Python >= 3.12.
   3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
-  4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
+  4. Run ``make hide-streets-without-imagery`` to apply the summary: streets without imagery are marked
+     ``no_imagery``, and ``no_imagery`` streets the scan found imagery on are reopened.
 
 Preflight (``--sample N``): the same check on a random sample of streets, kept apart from a full scan's files under
 ``db/onboarding/<city-id>/preflight/<provider>/``, with every provider sampled so far summarized side by side in
@@ -166,7 +167,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 # scans for different cities can't collide or resume each other's checkpoints.
 # Input CSV export of street_edge endpoints + geom (see module docstring).
 INPUT_FILE = 'db/onboarding/{}/street_edge_endpoints.csv'
-# Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
+# Streets found to be missing imagery, for a reader; the database is updated from the summary, which has both verdicts.
 OUTPUT_FILE = 'db/onboarding/{}/streets_with_no_imagery.csv'
 # Per-street imagery summary (presence + capture-date range) for every settled street.
 SUMMARY_FILE = 'db/onboarding/{}/street_imagery_summary.csv'

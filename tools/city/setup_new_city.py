@@ -936,7 +936,7 @@ def run_imagery_scan(schema, city_id, pano_type):
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
     print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
-              f'onboarding/{city_id}/streets_with_no_imagery.csv', check=True)
+              f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
     # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
     # summary is the only source of imagery-age data (#4348).
