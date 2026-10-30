@@ -26,30 +26,6 @@ export function toRadians(angleInDegree) {
 
 util.math.toRadians = toRadians;
 
-/**
- * This function takes two pairs of latlng positions and returns distance in meters.
- * http://rosettacode.org/wiki/Haversine_formula#JavaScript
- *
- * @param {{lat: number, lng: number}} latLng1
- * @param {{lat: number, lng: number}} latLng2
- * @returns {number} A distance in meters.
- */
-export function haversine(latLng1, latLng2) {
-  const lat1 = toRadians(latLng1.lat);
-  const lng1 = toRadians(latLng1.lng);
-  const lat2 = toRadians(latLng2.lat);
-  const lng2 = toRadians(latLng2.lng);
-  const R = 6372800; // Earth radius in m.
-  const dLat = lat2 - lat1;
-  const dLon = lng2 - lng1;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-    + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-  const c = 2 * Math.asin(Math.sqrt(a));
-  return R * c;
-}
-
-util.math.haversine = haversine;
-
 export function roundToTwentyFive(num) {
   return Math.round(num / 25) * 25;
 }

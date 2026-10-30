@@ -3,12 +3,12 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 
+import * as turf from '@turf/turf';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
-import '../utilitiesMath.js';
 
 export class GsvViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -323,7 +323,16 @@ export class GsvViewer extends PanoViewer {
    * GsvViewer.isWithinSearchRadius({ lat: 47.61968, lng: -122.31007 }, { lat: 43.09179, lng: -76.17201 }, 25); // false
    */
   static isWithinSearchRadius(searched, found, radiusM) {
-    return util.math.haversine(searched, found) <= radiusM;
+    return GsvViewer.#distanceM(searched, found) <= radiusM;
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} a
+   * @param {{lat: number, lng: number}} b
+   * @returns {number} Metres between the two.
+   */
+  static #distanceM(a, b) {
+    return turf.distance([a.lng, a.lat], [b.lng, b.lat], { units: 'meters' });
   }
 
   /**
@@ -343,7 +352,7 @@ export class GsvViewer extends PanoViewer {
       this.#farPanosReported.add(panoId);
       this._fireDiagnostic('FarPanoRejected', {
         panoId,
-        distanceM: Math.round(util.math.haversine(searched, found)),
+        distanceM: Math.round(GsvViewer.#distanceM(searched, found)),
         radiusM,
         // Whether it is Google's own imagery or a user-contributed photosphere, which `source=outdoor` lets through and
         // which the #5114 answer was; it sizes the photosphere question (#5463). The contributor's name stays out.

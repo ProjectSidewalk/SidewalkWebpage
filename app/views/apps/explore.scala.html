@@ -6,7 +6,7 @@
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
   surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean,
-  basemap: play.api.libs.json.JsObject
+  basemap: play.api.libs.json.JsObject, walkPlanner: play.api.libs.json.JsValue
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -408,6 +408,13 @@
                   <path class="minimap-legend-sample-chevron" d="M12 3L17 6L12 9Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
+              </div>
+              @* Shown only while a neighborhood mission follows a planned walk (WalkPlanLayer sets minimap-plan-mode). *@
+              <div class="minimap-legend-row minimap-legend-row-jump">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-jump" d="M2 6H28"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-jump">Jump to next street</span>
               </div>
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
@@ -890,6 +897,8 @@
        (StreetCoverage) so the client's coverage tracking and the server's completion check agree. *@
     "streetCoverage": @jsonForScript(models.audit.StreetCoverage.asJson),
     "basemap": @jsonForScript(basemap),
+    @* The walk planner's thresholds (#5526): domain values, so application.conf owns them (walk-planner.*). *@
+    "walkPlanner": @jsonForScript(walkPlanner),
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken"
   }</script>

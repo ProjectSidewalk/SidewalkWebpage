@@ -42,6 +42,8 @@ class ExploreController @Inject() (
 
   given Configuration = config
   private val logger  = Logger(this.getClass)
+  // Read once: a bad or blank override then fails the controller at startup, not every Explore load.
+  private val walkPlanner: JsValue = Json.toJson(service.WalkPlannerSettings.fromConfig(config))
 
   /**
    * Drops a bound Double that is NaN or infinite; the query binder lets both through (#5480).
@@ -70,7 +72,10 @@ class ExploreController @Inject() (
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
         val basemap           = BasemapController.pageData(basemapService.currentArchive)
         noStore(
-          Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops, basemap))
+          Ok(
+            views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops, basemap,
+              walkPlanner)
+          )
         )
       }
     }

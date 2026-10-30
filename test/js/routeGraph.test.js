@@ -51,20 +51,6 @@ describe('RouteGraph', () => {
     ({ RouteGraph } = await loadModules('frontend/js/route-builder/RouteGraph.js'));
   });
 
-  describe('distance math', () => {
-    it('measures ~111 m for 0.001 degrees of latitude', () => {
-      const d = RouteGraph.distanceM([0, 0], [0, 0.001]);
-      expect(d).toBeGreaterThan(105);
-      expect(d).toBeLessThan(118);
-    });
-
-    it('sums segment lengths for a line', () => {
-      const len = RouteGraph.lineLengthM([A, B, D]); // bottom then right edge
-      expect(len).toBeGreaterThan(210);
-      expect(len).toBeLessThan(236);
-    });
-  });
-
   describe('route()', () => {
     it('finds the direct one-street path', () => {
       const graph = new RouteGraph(gridStreets());

@@ -95,7 +95,9 @@ const turfStub = {
   along: (line, distKm) => pointFeature(interpolate(line.geometry.coordinates, distKm)),
   cleanCoords: (line) => line,
   distance: (from, to, options = {}) => {
-    const km = kmBetween(from.geometry.coordinates, to.geometry.coordinates);
+    // Real turf takes a point feature or a bare [lng, lat]; GsvViewer passes the latter.
+    const coords = (p) => (Array.isArray(p) ? p : p.geometry.coordinates);
+    const km = kmBetween(coords(from), coords(to));
     return options.units === 'meters' ? km * 1000 : km;
   },
   lineSlice: (startPoint, _stopPoint, line) =>
@@ -246,6 +248,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
         getNextTaskAfterJump: () => null,
         setNextTaskAfterJump: vi.fn(),
         renderTask: vi.fn(),
+        // No planned walk unless a test sets one up; the replan-before-advance tests do (#5526).
+        hasWalkPlan: vi.fn(() => false),
+        planWalk: vi.fn(() => true),
       },
     };
 
@@ -305,6 +310,49 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
       expect(reportNoImagery).toHaveBeenCalledTimes(1);
       expect(reportNoImagery).toHaveBeenCalledWith(dead, 7);
+      expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
+    });
+
+    it('rebuilds a planned walk around the dead street before choosing the next one (#5526)', async () => {
+      const [dead, live] = [makeTask(101), makeTask(102)];
+      assignStreets(dead, live);
+      svl.taskContainer.hasWalkPlan.mockReturnValue(true);
+      respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+      await nav.moveForward();
+
+      // The plan's next street assumed the labeler would leave by this street's far end. The street is flagged as
+      // given up first, so the replan sees it as off the walk and starts from where the labeler stands.
+      expect(svl.taskContainer.planWalk).toHaveBeenCalledWith('giveUp');
+      expect(dead.wasGivenUpOnImagery()).toBe(true);
+      expect(svl.taskContainer.planWalk.mock.invocationCallOrder[0])
+        .toBeLessThan(svl.taskContainer.nextTask.mock.invocationCallOrder[0]);
+    });
+
+    it('holds the chosen street as an armed jump across the submission it awaits (#5526)', async () => {
+      // A priority refresh that lands during the awaited submission would otherwise replan under a street already
+      // chosen and prefetched; the armed target makes the replan wait for the landing.
+      const [dead, live] = [makeTask(101), makeTask(102)];
+      assignStreets(dead, live);
+      svl.taskContainer.hasWalkPlan.mockReturnValue(true);
+      respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+      await nav.moveForward();
+
+      expect(svl.taskContainer.setNextTaskAfterJump).toHaveBeenCalledWith(live);
+      expect(svl.taskContainer.setNextTaskAfterJump.mock.invocationCallOrder[0])
+        .toBeLessThan(svl.form.submitData.mock.invocationCallOrder[0]);
+      expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
+    });
+
+    it('leaves a walk without a plan to the greedy choice', async () => {
+      const [dead, live] = [makeTask(101), makeTask(102)];
+      assignStreets(dead, live);
+      respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+      await nav.moveForward();
+
+      expect(svl.taskContainer.planWalk).not.toHaveBeenCalled();
       expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
     });
 
