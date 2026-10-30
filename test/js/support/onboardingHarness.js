@@ -4,8 +4,12 @@
  * act as the labeler: pick a label type, place a label, rate it, tag it, turn, zoom, walk, press Ok.
  *
  * Google Maps' event bus is a small double, so a test can turn the camera and fire the pano's `pov_changed`. Floating
- * UI is a double that positions the callout once when it is attached; `world.floating.update()` runs it again. Label is reduced to the two statics the tutorial
- * calls, since drawing an icon and building a minimap marker are Label's own business.
+ * UI is a double that positions the callout once when it is attached; `world.floating.update()` runs it again. Label
+ * is reduced to the two statics the tutorial calls, since drawing an icon and building a minimap marker are Label's
+ * own business.
+ *
+ * SEVERITY and TAGS below hold each step's right answer, so a change to a step's answer in OnboardingStates.js
+ * changes them too.
  */
 
 import { loadModules, mockModule } from '../loader.js';
@@ -44,15 +48,15 @@ export const { Onboarding, OnboardingStates, util } = await loadModules(
 );
 
 /**
- * The right answer to each rating and tagging step, by the step's label number. The tutorial copy names them; the
- * script's transitions are what check them.
- */
-/**
  * Each reload the tutorial asks for. jsdom can't navigate and `location` can't be stubbed, so a reload is counted as
  * jsdom refusing one. Its call history is emptied before each test.
  */
 export const navigations = navigationAttempts();
 
+/**
+ * The right answer to each rating and tagging step, by the step's label number. The tutorial copy names them; the
+ * script's transitions are what check them.
+ */
 export const SEVERITY = { 1: 2, 2: 1, 3: 2, 4: 2, 6: 1, 8: 1 };
 export const TAGS = { 1: [2], 3: [23], 4: [5], 7: [20, 21] };
 
@@ -172,16 +176,19 @@ export function setupOnboarding({ reducedMotion = false, start = true } = {}) {
       },
     },
   });
-  // jsdom has no media playback; `world.play` is what play() settles with.
-  world.play = Promise.resolve();
-  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => world.play);
+  // jsdom has no media playback; `world.play` builds what play() settles with, at the moment it is called.
+  world.play = () => Promise.resolve();
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => world.play());
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
   // The listeners each collaborator was handed, so the test can play the labeler's side.
   const on = { labeled: [], modeChanged: [], zoomed: [], labelRemoved: [] };
   const subscribe = (list) => (listener) => {
     list.push(listener);
-    return () => list.splice(list.indexOf(listener), 1);
+    return () => {
+      const i = list.indexOf(listener);
+      if (i !== -1) list.splice(i, 1);
+    };
   };
 
   world.pov = { heading: 0, pitch: 0, zoom: 1 };
@@ -276,18 +283,28 @@ export function setupOnboarding({ reducedMotion = false, start = true } = {}) {
   return { onboarding, c };
 }
 
-/** @returns {string} The id of the state the tutorial is on, read from the last transition it logged. */
+/**
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ * @returns {string} The id of the state the tutorial is on, read from the last transition it logged.
+ */
 export function currentStep(c) {
   const transitions = c.tracker.push.mock.calls.filter(([name]) => name === 'Onboarding_Transition');
   return transitions.at(-1)?.[1].onboardingTransition;
 }
 
-/** @returns {object} The current state's script entry. */
+/**
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ * @returns {object} The current state's script entry.
+ */
 export function currentState(c) {
   return c.states.get().find((state) => state.id === currentStep(c));
 }
 
-/** Turns the camera, firing `pov_changed` the way the pano does. */
+/**
+ * Turns the camera, firing `pov_changed` the way the pano does.
+ * @param {number} heading
+ * @param {number} [pitch] - Defaults to the current pitch.
+ */
 export function turnTo(heading, pitch = world.pov.pitch) {
   world.pov = { ...world.pov, heading, pitch };
   [...world.povListeners.values()].forEach((fn) => fn());
@@ -298,7 +315,11 @@ export function pressOk() {
   document.getElementById('onboarding-ok-button').click();
 }
 
-/** Picks a label type in the ribbon (or by its keyboard shortcut). */
+/**
+ * Picks a label type in the ribbon (or by its keyboard shortcut).
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ * @param {string} mode - A label type, or 'Walk'.
+ */
 export function selectMode(c, mode) {
   [...c.on.modeChanged].forEach((fn) => fn(mode));
 }
@@ -319,26 +340,39 @@ export function placeLabel(c, { accurate = true } = {}) {
   return label;
 }
 
-/** Deletes the label the step asked the labeler to remove. */
+/**
+ * Deletes the label the step asked the labeler to remove.
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ */
 export function deleteLabel(c) {
   world.label.deleted = true;
   [...c.on.labelRemoved].forEach((fn) => fn());
 }
 
-/** Picks a rating in the context menu. */
+/**
+ * Picks a rating in the context menu.
+ * @param {number} severity - 1 to 3.
+ */
 export function rate(severity) {
   const radio = document.querySelector(`#severity-menu input[value="${severity}"]`);
   radio.checked = true;
   radio.dispatchEvent(new Event('change'));
 }
 
-/** Sets the label's tags, as the context menu does before it announces the change. */
+/**
+ * Sets the label's tags, as the context menu does before it announces the change.
+ * @param {number[]} tagIds
+ */
 export function tag(tagIds) {
   world.label.setProperty('tagIds', tagIds);
   document.getElementById('context-menu-tag-holder').dispatchEvent(new Event('tagIds-updated'));
 }
 
-/** Zooms the pano in or out. */
+/**
+ * Zooms the pano in or out.
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ * @param {'in'|'out'} direction
+ */
 export function zoom(c, direction) {
   [...c.on.zoomed].forEach((fn) => fn(direction));
 }
@@ -391,4 +425,20 @@ export async function doStep(c) {
       throw new Error(`no way to do step ${state.id} (${props.action})`);
   }
   return state.id;
+}
+
+/**
+ * Does correct steps until the tutorial reaches `stopAt`, or its end when none is given.
+ * @param {object} c - The collaborators `setupOnboarding` returned.
+ * @param {string} [stopAt] - The step to stop on.
+ * @returns {Promise<string[]>} The ids of the steps done along the way.
+ */
+export async function playUntil(c, stopAt = 'end-onboarding') {
+  const visited = [];
+  for (let guard = 0; guard < 200; guard++) {
+    if (currentStep(c) === stopAt) return visited;
+    if (currentStep(c) === 'end-onboarding') break;
+    visited.push(await doStep(c));
+  }
+  throw new Error(`never reached ${stopAt}; stopped at ${currentStep(c)}`);
 }

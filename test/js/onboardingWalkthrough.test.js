@@ -6,20 +6,9 @@
  */
 
 import {
-  currentState, currentStep, deleteLabel, doStep, flush, navigations, placeLabel, pressOk, rate, selectMode, SEVERITY,
-  setupOnboarding, tag, TAGS, turnTo, world,
+  currentState, currentStep, deleteLabel, doStep, flush, navigations, placeLabel, playUntil, pressOk, rate, selectMode,
+  SEVERITY, setupOnboarding, tag, TAGS, turnTo, world,
 } from './support/onboardingHarness.js';
-
-/** Plays correct steps until the tutorial reaches `stopAt`, or ends. Returns the ids visited along the way. */
-async function playUntil(c, stopAt = null) {
-  const visited = [];
-  for (let guard = 0; guard < 200; guard++) {
-    const step = currentStep(c);
-    if (step === stopAt || step === 'end-onboarding') return visited;
-    visited.push(await doStep(c));
-  }
-  throw new Error(`the tutorial stalled at ${currentStep(c)}`);
-}
 
 describe('the tutorial, played through', () => {
   it('locks the tool down and opens on the first step', () => {
@@ -78,9 +67,8 @@ describe('the tutorial, played through', () => {
     await playUntil(c, 'select-label-type-1');
     expect(c.panoManager.setHeadingRange).toHaveBeenLastCalledWith({ min: 230, max: 233 });
 
-    await playUntil(c, 'label-attribute-1');
-    selectMode(c, 'CurbRamp');
-    expect(c.panoManager.setHeadingRange).toHaveBeenLastCalledWith({ min: 230, max: 233 });
+    await playUntil(c, 'adjust-heading-angle-1');
+    expect(c.panoManager.setHeadingRange).toHaveBeenLastCalledWith({ min: 197, max: 242 });
   });
 
   it('removes every pano listener a step added once the tutorial is over', async () => {

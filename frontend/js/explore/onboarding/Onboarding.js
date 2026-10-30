@@ -751,6 +751,9 @@ export class Onboarding {
     }
   }
 
+  /**
+   * Marks the tutorial mission complete, then saves and reloads into a real Explore mission.
+   */
   #endTheOnboarding() {
     this.#tracker.push('Onboarding_End');
     this.#missionContainer.getCurrentMission().setProperty('isComplete', true);

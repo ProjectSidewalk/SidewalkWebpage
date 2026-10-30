@@ -5,14 +5,8 @@
  */
 
 import {
-  currentStep, deleteLabel, doStep, placeLabel, pressOk, selectMode, setupOnboarding, turnTo, world,
+  currentStep, deleteLabel, doStep, placeLabel, playUntil, pressOk, selectMode, setupOnboarding, turnTo, world,
 } from './support/onboardingHarness.js';
-
-/** Plays correct steps until the tutorial reaches `stopAt`. */
-async function playUntil(c, stopAt) {
-  for (let guard = 0; guard < 200 && currentStep(c) !== stopAt; guard++) await doStep(c);
-  if (currentStep(c) !== stopAt) throw new Error(`never reached ${stopAt}`);
-}
 
 /** Gives an element a fixed on-screen box. */
 function placeAt(el, { left = 0, top = 0, width = 0, height = 0 }) {
@@ -58,7 +52,9 @@ describe('the arrows on the tutorial canvas', () => {
     turnTo(103);
     const facing = strokes();
     expect(world.draws.some(([op]) => op === 'strokeRect')).toBe(true);
+    const before = world.draws.length;
     turnTo(283);
+    expect(world.draws.slice(before).some(([op]) => op === 'clearRect')).toBe(true);
     expect(strokes()).toBe(facing);
   });
 });
@@ -106,7 +102,9 @@ describe('the example labels', () => {
 
     await playUntil(c, 'select-label-type-8');
     const atDrop = world.icons.length;
+    const before = world.draws.length;
     turnTo(c.panoManager.getPov().heading);
+    expect(world.draws.slice(before).some(([op]) => op === 'clearRect')).toBe(true);
     expect(world.icons.length).toBe(atDrop);
   });
 });
@@ -404,7 +402,7 @@ describe('the celebration clip on the last screen', () => {
 
   it('shows the still when the browser refuses to play it', async () => {
     const { c } = setupOnboarding();
-    world.play = Promise.reject(new Error('NotAllowedError'));
+    world.play = () => Promise.reject(new Error('NotAllowedError'));
     await playUntil(c, 'outro');
     await Promise.resolve();
 
