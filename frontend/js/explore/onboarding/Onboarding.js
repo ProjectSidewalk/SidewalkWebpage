@@ -713,15 +713,9 @@ export class Onboarding {
     messageHolder.classList.toggle('onboarding-message-flash');
     setTimeout(() => messageHolder.classList.toggle('onboarding-message-flash'), 100);
 
-    // Tear down anchor positioning from the previous message.
-    if (this.#floatingCleanup) {
-      this.#floatingCleanup();
-      this.#floatingCleanup = null;
-    }
-
     // Reset positioning state so each message starts clean.
     messageHolder.classList.remove('callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage',
-      'onboarding-message-top-right', 'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
+      'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
     Object.assign(messageHolder.style, { position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
     this.#uiOnboarding.background.style.visibility = 'hidden';
 
@@ -734,7 +728,8 @@ export class Onboarding {
 
     messageHolder.innerHTML = typeof message === 'function' ? message() : message;
 
-    // Place the message in one of three coordinate-free modes; otherwise it keeps its default top-left corner.
+    // Place the message as a takeover, a callout on an anchor, or above a pano point; otherwise it keeps its default
+    // top-left corner.
     if (parameters.background) {
       // Takeover: dim the viewport behind the message. Centered by default; fullPage opts into a full-page canvas.
       this.#uiOnboarding.background.style.visibility = 'visible';
@@ -753,17 +748,10 @@ export class Onboarding {
     } else if (parameters.panoAnchor) {
       // Pin just above a pano-image coordinate (e.g. the step's annotation arrow).
       this.#positionMessageAtPanoCoord(parameters.panoAnchor);
-    } else if (parameters.position === 'top-right') {
-      // Pin to the pano's top-right corner (used when the default top-left would cover the labeled feature).
-      messageHolder.classList.add('onboarding-message-top-right');
     }
   }
 
-  #endTheOnboarding(skip) {
-    if (skip) {
-      this.#tracker.push('Onboarding_Skip');
-      this.#missionContainer.getCurrentMission().setProperty('skipped', true);
-    }
+  #endTheOnboarding() {
     this.#tracker.push('Onboarding_End');
     this.#missionContainer.getCurrentMission().setProperty('isComplete', true);
 
@@ -828,7 +816,7 @@ export class Onboarding {
 
     // End the onboarding if there is no transition state is specified. Move to the actual task
     if ('end-onboarding' in state) {
-      this.#endTheOnboarding(state['end-onboarding'].skip);
+      this.#endTheOnboarding();
       return;
     } else {
       this.#hideMessage();
