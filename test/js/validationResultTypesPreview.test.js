@@ -47,10 +47,8 @@ describe('ValidationResultTypesPreview', () => {
   let ValidationResultTypesPreview;
 
   beforeEach(async () => {
-    // Fresh container per test.
     document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-    // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
-    // bleed into the next.
+    // A fresh copy of the module, so one test's setup() can't leak into the next.
     ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
   });
 
@@ -132,5 +130,58 @@ describe('ValidationResultTypesPreview', () => {
     expect(container.innerHTML).not.toContain('Failed to load');
     // But because `validation_result_types` is absent, zero rows render — the drift signal.
     expect(container.querySelectorAll('tbody tr')).toHaveLength(0);
+  });
+
+  test('colors each result as Validate does, scaling its bar to the most common result', async () => {
+    document.documentElement.style.setProperty('--color-pine-500', '#00ff00');
+    document.documentElement.style.setProperty('--color-neutral-500', '#808080');
+    stubFetch({ validation_result_types: [
+      { name: 'Unsure', count: 25, count_human: 25 },
+      { name: 'Agree', count: 100, count_human: 90, count_ai: 10 },
+      { name: 'Skipped', count: 50, count_human: 50, count_ai: 0 },
+    ] });
+    await ValidationResultTypesPreview.setup({}).init();
+    const rows = [...document.querySelectorAll('tbody tr')];
+    expect(rows.map((tr) => [...tr.cells].map((td) => td.textContent))).toEqual([
+      ['Agree', '100', '90', '10'],
+      ['Skipped', '50', '50', '0'],
+      ['Unsure', '25', '25', '0'],
+    ]);
+    expect(rows.map((tr) => tr.querySelector('.count-bar-fill').style.width)).toEqual(['100%', '50%', '25%']);
+    expect(rows[0].querySelector('.api-swatch').style.backgroundColor).toBe('rgb(0, 255, 0)');
+    // A result Validate has no color for is drawn in neutral gray.
+    expect(rows[1].querySelector('.api-swatch').style.backgroundColor).toBe('rgb(128, 128, 128)');
+  });
+
+  test('draws empty bars when no result has any validations', async () => {
+    stubFetch({ validation_result_types: [{ name: 'Agree', count: 0, count_human: 0, count_ai: 0 }] });
+    await ValidationResultTypesPreview.setup({}).init();
+    expect(document.querySelector('.count-bar-fill').style.width).toBe('0%');
+  });
+
+  test('says the request failed, with its status', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}) })));
+    await ValidationResultTypesPreview.setup({}).init();
+    const container = document.getElementById(CONTAINER_ID);
+    expect(container.textContent).toBe('Failed to load validation result types: HTTP error! Status: 503');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  test('caps the width of the preview, or leaves it alone when told to', async () => {
+    stubFetch(GOOD_FIXTURE);
+    await ValidationResultTypesPreview.setup({ maxWidth: 600 }).init();
+    expect(document.getElementById(CONTAINER_ID).style.maxWidth).toBe('600px');
+
+    document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
+    await ValidationResultTypesPreview.setup({ maxWidth: 0 }).init();
+    expect(document.getElementById(CONTAINER_ID).style.maxWidth).toBe('');
+  });
+
+  test('rejects, fetching nothing, when the page lacks its container', async () => {
+    document.body.innerHTML = '';
+    stubFetch(GOOD_FIXTURE);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(ValidationResultTypesPreview.init()).rejects.toThrow('Container element not found');
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 });

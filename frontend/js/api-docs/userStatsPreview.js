@@ -1,11 +1,4 @@
-/**
- * Project Sidewalk User Stats Visualization Generator.
- *
- * This script generates visualizations for the User Stats API preview by fetching data directly from the API endpoint.
- *
- * @requires DOM element with id 'user-stats-preview'
- * @requires Chart.js library
- */
+/** The /v3/api-docs/userStats preview: charts of the top contributors, from the User Stats API. */
 
 import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';
@@ -151,12 +144,6 @@ export const UserStatsPreview = {
     // Take top N users for visualization.
     const topUsers = sortedUsers.slice(0, config.maxUsers);
 
-    // Sort users by validations given (for the validators chart).
-    const sortedByValidations = [...validUsers]
-      .sort((a, b) => b.validations_given - a.validations_given)
-      .filter((user) => user.validations_given > 0)
-      .slice(0, config.maxUsers);
-
     // Prepare data for accuracy vs. contributions chart.
     const accuracyData = sortedUsers
       .filter((user) => user.label_accuracy !== null && user.validated_labels > 5)
@@ -171,7 +158,6 @@ export const UserStatsPreview = {
     return {
       allUsers: sortedUsers,
       topUsers,
-      topValidators: sortedByValidations,
       accuracyData,
     };
   },

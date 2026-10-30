@@ -1,13 +1,6 @@
 /**
- * Project Sidewalk API Documentation JavaScript.
- *
- * This script handles the interactive features of the API documentation page:
- * - Accordion navigation in the sidebar (static grouping and dynamic page sections)
- * - Scroll spy to highlight active sections
- * - Dynamic TOC generation for right sidebar
- * - Mobile responsiveness
- * - Permalink copying
- * - Smooth scrolling
+ * What every API docs page shares: the "On This Page" list and its highlight, smooth scrolling, copyable heading
+ * links, the phone sidebar, and the download buttons.
  */
 
 import i18next from 'i18next';
@@ -17,248 +10,13 @@ import '../../css/components/page-shell.css';
 import '../../css/components/progress-bar.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
-
-  if (enableLeftSidebarAccordions) {
-    // 1. Set up the static structure enhancements (grouping related links).
-    setupStaticNavAccordions();
-
-    // 2. Generate dynamic submenu for the current active page's headings.
-    generateDynamicSidebarSubmenu();
-
-    // 3. Set up ONE listener for all accordion toggles using event delegation.
-    setupAccordionListener();
-  }
-
-  // 4. Initialize other features.
   generateTableOfContents();
   setupScrollSpy();
   initSidebarDisclosure();
   setupPermalinkCopying();
   setupSmoothScrolling();
-
-  // 5. Initialize download buttons functionality with feedback.
   setupDownloadButtons();
 });
-
-/**
- * Finds related static nav items (e.g., 'page' and 'page#section') and groups them into an accordion structure in HTML.
- * Does NOT add event listeners here.
- */
-function setupStaticNavAccordions() {
-  console.log('Setting up static navigation accordions structure');
-  const navContainer = document.querySelector('.page-nav');
-  if (!navContainer) return;
-
-  const navHeaders = navContainer.querySelectorAll('.page-nav-header');
-  let submenuIdCounter = 0; // Counter for unique IDs.
-
-  navHeaders.forEach((header) => {
-    let nextElement = header.nextElementSibling;
-    const potentialGroup = [];
-    while (nextElement && !nextElement.classList.contains('page-nav-header')) {
-      if (nextElement.tagName === 'A' && nextElement.classList.contains('page-nav-item')) {
-        potentialGroup.push(nextElement);
-      }
-      nextElement = nextElement.nextElementSibling;
-    }
-
-    // Group items by base URL (path before #).
-    const itemsByBaseUrl = potentialGroup.reduce((acc, item) => {
-      const href = item.getAttribute('href') || '';
-      const baseUrl = href.split('#')[0];
-      if (!acc[baseUrl]) acc[baseUrl] = [];
-      acc[baseUrl].push(item);
-      return acc;
-    }, {});
-
-    // Process groups that have a base item + hash items.
-    for (const baseUrl in itemsByBaseUrl) {
-      const groupItems = itemsByBaseUrl[baseUrl];
-      // Need at least one base item and one hash item (e.g., /intro and /intro#auth).
-      const baseItem = groupItems.find((item) => item.getAttribute('href') === baseUrl);
-      const hashItems = groupItems.filter((item) => item !== baseItem);
-
-      if (baseItem && hashItems.length > 0) {
-        // Check if already processed (e.g., by dynamic generation).
-        if (baseItem.classList.contains('page-nav-accordion')) {
-          console.log(`Skipping setup for already existing accordion: ${baseUrl}`);
-          continue;
-        }
-
-        console.log(`Grouping static links under: ${baseUrl}`);
-        const submenuId = `static-submenu-${submenuIdCounter++}`;
-
-        // 1. Convert baseItem to accordion trigger.
-        baseItem.classList.add('page-nav-accordion');
-        baseItem.setAttribute('aria-expanded', 'false');
-        baseItem.setAttribute('aria-controls', submenuId);
-
-        // Add arrow indicator.
-        const arrow = document.createElement('span');
-        arrow.className = 'accordion-arrow';
-        arrow.innerHTML = '⌵'; // Downwards arrow
-        baseItem.appendChild(arrow);
-
-        // 2. Create submenu container.
-        const submenu = document.createElement('div');
-        submenu.className = 'page-nav-submenu';
-        submenu.id = submenuId;
-        submenu.setAttribute('role', 'region');
-        submenu.style.maxHeight = '0px'; // Start collapsed
-        submenu.style.overflow = 'hidden';
-
-        // 3. Move hashItems into the submenu.
-        hashItems.forEach((item) => {
-          // Optional: Add subitem class for styling.
-          item.classList.add('page-nav-subitem');
-          // Remove item from original position and append to submenu.
-          item.parentNode.removeChild(item);
-          submenu.appendChild(item);
-        });
-
-        // 4. Insert submenu after the baseItem.
-        baseItem.parentNode.insertBefore(submenu, baseItem.nextSibling);
-      }
-    }
-  });
-  console.log('Static navigation accordions structure setup complete.');
-}
-
-/**
- * Finds the primary active nav item, scans content for H1/H2, and generates an expanded submenu structure in the HTML.
- * Does NOT add event listeners here.
- */
-function generateDynamicSidebarSubmenu() {
-  console.log('Generating dynamic sidebar submenu for active page');
-  const activeNavItem = document.querySelector('.page-sidebar .page-nav-item.is-active');
-
-  // Ensure it's a top-level item (not already inside a submenu).
-  if (!activeNavItem || activeNavItem.closest('.page-nav-submenu')) {
-    console.log('No suitable top-level active nav item found for dynamic submenu.');
-    return;
-  }
-
-  const content = document.querySelector('.page-content');
-  if (!content) {
-    console.error('Content area not found for dynamic submenu generation.');
-    return;
-  }
-
-  // Find H1 and H2 headings with IDs within the main content.
-  const headings = content.querySelectorAll('h1[id].page-heading, h2[id].page-heading');
-  if (headings.length === 0) {
-    console.log('No H1/H2 headings with IDs found in content for dynamic submenu.');
-    return;
-  }
-
-  console.log(`Found ${headings.length} headings for dynamic submenu.`);
-  const submenuId = 'dynamic-submenu-active'; // Use a predictable ID
-
-  // 1. Create submenu container
-  const submenu = document.createElement('div');
-  submenu.className = 'page-nav-submenu'; // JS will set initial maxHeight
-  submenu.id = submenuId;
-  submenu.setAttribute('role', 'region');
-  submenu.style.overflow = 'hidden'; // Keep hidden during setup
-
-  // 2. Populate submenu with links to headings.
-  headings.forEach((heading) => {
-    const id = heading.getAttribute('id');
-    const title = heading.textContent.replace(/#$/, '').trim();
-    const level = heading.tagName.toLowerCase(); // h1, h2
-
-    const subItem = document.createElement('a');
-    subItem.className = `page-nav-subitem level-${level}`;
-    subItem.href = `#${id}`; // Link to the heading ID
-    subItem.textContent = title;
-    submenu.appendChild(subItem);
-  });
-
-  // 3. Convert the activeNavItem to be an accordion trigger.
-  activeNavItem.classList.add('page-nav-accordion');
-  activeNavItem.setAttribute('aria-expanded', 'true'); // Start expanded
-  activeNavItem.setAttribute('aria-controls', submenuId);
-
-  // Add arrow indicator if it doesn't have one already.
-  if (!activeNavItem.querySelector('.accordion-arrow')) {
-    const arrow = document.createElement('span');
-    arrow.className = 'accordion-arrow';
-    arrow.innerHTML = '⌵'; // Downwards arrow
-    activeNavItem.appendChild(arrow);
-  }
-
-  // 4. Insert submenu after the activeNavItem.
-  activeNavItem.parentNode.insertBefore(submenu, activeNavItem.nextSibling);
-
-  // 5. Set initial expanded height (after insertion).
-  // Use setTimeout to allow rendering engine to calculate scrollHeight.
-  setTimeout(() => {
-    submenu.style.maxHeight = `${submenu.scrollHeight}px`;
-    console.log(`Dynamic submenu for ${activeNavItem.textContent.trim()} generated and expanded.`);
-  }, 0);
-}
-
-/**
- * Sets up a single event listener on the navigation container to handle clicks on all accordion triggers using event
- * delegation.
- */
-function setupAccordionListener() {
-  const navContainer = document.querySelector('.page-sidebar .page-nav');
-  if (!navContainer) {
-    console.error('Navigation container .page-nav not found for accordion listener.');
-    return;
-  }
-
-  navContainer.addEventListener('click', (event) => {
-    // Find the closest ancestor that is an accordion trigger.
-    const target = /** @type {Element} */ (event.target);
-    const accordionTrigger = target.closest('.page-nav-accordion');
-
-    if (accordionTrigger) {
-      // Prevent default link behavior only if it's an actual link being used as trigger.
-      if (accordionTrigger.tagName === 'A' && accordionTrigger.getAttribute('href')) {
-        // Check if the click was directly on the trigger or its arrow, not on a link *inside* a submenu that might
-        // bubble up.
-        if (target === accordionTrigger || target.classList.contains('accordion-arrow')) {
-          event.preventDefault();
-        } else {
-          return; // Allow clicks on nested links within trigger text (if any)
-        }
-      }
-
-      const submenuId = accordionTrigger.getAttribute('aria-controls');
-      const submenu = document.getElementById(submenuId);
-
-      if (!submenu) {
-        console.error(`Submenu with ID ${submenuId} not found for accordion trigger.`);
-        return;
-      }
-
-      // Get current state and toggle ARIA attribute.
-      const isExpanded = accordionTrigger.getAttribute('aria-expanded') === 'true';
-      accordionTrigger.setAttribute('aria-expanded', String(!isExpanded));
-
-      // Optional: Toggle an 'expanded' class for CSS hooks if needed.
-      // accordionTrigger.classList.toggle('expanded', !isExpanded);
-      // submenu.classList.toggle('expanded', !isExpanded);
-
-      // Toggle max-height for animation.
-      if (isExpanded) {
-        // Collapse
-        submenu.style.maxHeight = '0px';
-        console.log(`Accordion collapsed: ${submenuId}`);
-      } else {
-        // Expand.
-        submenu.style.maxHeight = `${submenu.scrollHeight}px`;
-        console.log(`Accordion expanded: ${submenuId}`);
-        // Optional: Handle nested accordions - if one opens, maybe close siblings?
-      }
-    }
-  });
-
-  console.log('Centralized accordion click listener initialized.');
-}
 
 /**
  * Generates the table of contents in the right sidebar based on headings in content.
@@ -274,7 +32,6 @@ export function generateTableOfContents() {
   }
 
   tocContainer.innerHTML = '';
-  // Ensure headings have IDs.
   const headings = content.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
 
   if (headings.length === 0) {
@@ -299,17 +56,14 @@ export function generateTableOfContents() {
 }
 
 /**
- * Sets up scroll spy to highlight active TOC items based on scroll position. Left sidebar H1/H2 links are NOT
- * dynamically highlighted by scroll spy.
+ * Sets up scroll spy to highlight active TOC items based on scroll position.
  * @returns {void}
  */
 export function setupScrollSpy() {
   const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
 
-  // Select only elements with IDs for section detection.
   const contentSections = contentArea.querySelectorAll('[id]');
-  // Select only links in the right TOC.
   const tocLinks = document.querySelectorAll('.page-toc a');
 
   if (contentSections.length === 0 || tocLinks.length === 0) {
@@ -317,13 +71,11 @@ export function setupScrollSpy() {
     return;
   }
 
-  // Create an array of section objects with their elements and top offsets.
   const sections = Array.from(contentSections).map((section) => ({
     id: section.id,
     offsetTop: section.offsetTop,
   })).sort((a, b) => a.offsetTop - b.offsetTop); // Sort by position
 
-  // Calculate offset based on fixed header height + breathing room.
   const scrollOffset = parseInt(
     getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
   ) + 20;
@@ -332,7 +84,6 @@ export function setupScrollSpy() {
     const scrollPosition = window.scrollY + scrollOffset;
     let currentSectionId = null;
 
-    // Find the current section (last one whose top is above the scroll position).
     for (let i = sections.length - 1; i >= 0; i--) {
       if (sections[i].offsetTop <= scrollPosition) {
         currentSectionId = sections[i].id;
@@ -340,10 +91,8 @@ export function setupScrollSpy() {
       }
     }
 
-    // --- Highlight TOC Links (Exact Match) ---
     tocLinks.forEach((link) => {
       const linkHref = link.getAttribute('href');
-      // Check if href exists and matches currentSectionId after removing '#'.
       if (linkHref && linkHref.substring(1) === currentSectionId) {
         link.classList.add('is-active');
       } else {
@@ -352,67 +101,49 @@ export function setupScrollSpy() {
     });
   }
 
-  // Debounce scroll handler.
   let scrollTimeout;
   window.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(highlightActiveTocItem, 50);
   });
 
-  // Initial highlight on load.
   setTimeout(highlightActiveTocItem, 100);
 }
 
 /**
- * Sets up smooth scrolling for TOC and sidebar hash links. Does NOT update left sidebar highlighting on click.
+ * Sets up smooth scrolling for the TOC's links to headings on this page.
  * @returns {void}
  */
 function setupSmoothScrolling() {
-  // Target both TOC and Sidebar nav container.
-  const scrollContainers = document.querySelectorAll('.page-toc, .page-sidebar .page-nav');
-  if (scrollContainers.length === 0) return;
+  const toc = document.querySelector('.page-toc');
+  if (!toc) return;
 
   const headerHeight = parseInt(
     getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
   );
   const scrollPadding = 10; // Extra space above the target.
 
-  scrollContainers.forEach((container) => {
-    container.addEventListener('click', (event) => {
-      const link = /** @type {Element} */ (event.target).closest('a');
+  toc.addEventListener('click', (event) => {
+    const link = /** @type {Element} */ (event.target).closest('a');
 
-      // Check if it's an internal hash link.
-      if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
-        // Allow accordion toggle clicks to be handled separately by setupAccordionListener.
-        if (link.classList.contains('page-nav-accordion')) {
-          // Make sure default wasn't already prevented by accordion listener if it exists.
-          if (!event.defaultPrevented) {
-            event.preventDefault(); // Prevent scrolling if clicking accordion header directly.
-          }
-          return; // Let accordion listener handle toggle, don't scroll.
-        }
+    if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
+      event.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
 
-        // Prevent default scroll jump for non-accordion hash links.
-        event.preventDefault();
-        const targetId = link.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-
-        if (targetElement) {
-          // Perform smooth scroll.
-          const elementPosition = targetElement.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.scrollY - headerHeight - scrollPadding;
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        } else {
-          console.warn(`Smooth scroll target element not found for id: ${targetId}`);
-        }
+      if (targetElement) {
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - headerHeight - scrollPadding;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+      } else {
+        console.warn(`Smooth scroll target element not found for id: ${targetId}`);
       }
-    });
+    }
   });
 }
 
 /**
- * Makes each heading's "#" permalink copy its section's URL rather than jump to it. Delegated, so the headings
- * labelTagsPreview.js renders later work too; it labels its own the same way.
+ * Makes each heading's "#" link copy its URL instead of jumping. Listens on the page, so headings added later work too.
  * @returns {void}
  */
 function setupPermalinkCopying() {
@@ -437,8 +168,7 @@ function setupPermalinkCopying() {
 }
 
 /**
- * Sets up the download buttons. Each one fetches the file itself instead of handing the URL to the browser, since
- * only then can the page see the server's answer, the download's progress, and when it finishes.
+ * Sets up the download buttons. They fetch the file themselves, so the page can show the server's answer and progress.
  */
 function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
@@ -484,10 +214,7 @@ function setupDownloadButtons() {
     statusBar.setAttribute('aria-valuenow', String(percent ?? 0));
   }
 
-  /**
-   * Marks every button busy during a download. `aria-disabled` rather than `disabled`, which would drop the keyboard
-   * focus to the body mid-download.
-   */
+  /** Marks every button busy. `aria-disabled`, since `disabled` would knock keyboard focus off the button. */
   function setButtonsBusy(busy) {
     downloadButtons.forEach((btn) => {
       btn.setAttribute('aria-disabled', String(busy));
@@ -540,8 +267,7 @@ function setupDownloadButtons() {
 
     let response;
     try {
-      // no-store: a download is never worth a cache entry, and Chrome can make a request wait behind an identical
-      // one it is caching.
+      // no-store: Chrome can hold a request back behind an identical one it's still caching.
       response = await fetch(url, { cache: 'no-store' });
     } catch {
       showStatus('error', 'The download failed before it started. The connection may have dropped. Please try again.');
@@ -561,14 +287,12 @@ function setupDownloadButtons() {
       return;
     }
 
-    // Streamed CSV/GeoJSON can't know their size until the last row. A built file's is in X-File-Size, which survives
-    // the gzip that drops Content-Length; a compressed Content-Length would undercount what arrives here.
+    // A streamed file has no size up front. A built one sends X-File-Size, since gzip drops or shrinks Content-Length.
     const encoded = !!response.headers.get('Content-Encoding');
     const declaredSize = response.headers.get('X-File-Size') || (encoded ? '' : response.headers.get('Content-Length'));
     const totalBytes = Number(declaredSize) || 0;
 
-    // Whole chunks are folded into a Blob as they pile up, since the browser can page a Blob out to disk but not an
-    // array of buffers, and a city-wide file runs to hundreds of MB.
+    // Chunks are folded into a Blob as they pile up: a city's file can be hundreds of MB, and a Blob can go to disk.
     let blob = new Blob([], { type: response.headers.get('Content-Type') || '' });
     let chunks = [];
     let pending = 0;
@@ -604,8 +328,7 @@ function setupDownloadButtons() {
       return;
     }
 
-    // A stream that ends early but tidily raises no error, so a short file is only caught by counting. JSON and
-    // GeoJSON have a closing bracket to check instead; a truncated CSV is indistinguishable from a complete one.
+    // A stream can end early without an error, so check the size, or for JSON the closing bracket.
     const short = totalBytes ? receivedBytes < totalBytes : !(await endsCompletely(blob));
     if (short) {
       showStatus('error', 'The download stopped before it finished. Please try again.');
@@ -640,9 +363,7 @@ const FILE_EXTENSIONS = {
 };
 
 /**
- * A JSON or GeoJSON body that ends before its closing bracket was cut off mid-flight (#4161). Any other format is
- * taken at face value, since nothing in it says where the end should be.
- *
+ * A JSON body without its closing bracket was cut off (#4161). Other formats are taken as they are.
  * @param {Blob} blob - The downloaded file.
  * @returns {Promise<boolean>} False only when the file is provably incomplete.
  */
