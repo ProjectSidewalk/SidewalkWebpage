@@ -102,25 +102,21 @@ function placeholders(value) {
  * @returns {Map<string, Set<string>>} Normalized key to placeholder names.
  */
 function referencePlaceholders(baseNamespace) {
-  if (!referencePlaceholdersByNamespace.has(baseNamespace)) {
+  return referencePlaceholdersByNamespace.getOrInsertComputed(baseNamespace, () => {
     const parsed = readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
     const byKey = new Map();
     for (const [path, value] of parsed ? leafEntries(parsed) : []) {
       const key = path.replace(PLURAL_SUFFIX, '');
       byKey.set(key, new Set([...(byKey.get(key) ?? []), ...placeholders(value)]));
     }
-    referencePlaceholdersByNamespace.set(baseNamespace, byKey);
-  }
-  return referencePlaceholdersByNamespace.get(baseNamespace);
+    return byKey;
+  });
 }
 
 /** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
 function referenceKeySet(baseNamespace) {
-  if (!referenceKeysByNamespace.has(baseNamespace)) {
-    const path = join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`);
-    referenceKeysByNamespace.set(baseNamespace, normalizedKeySet(readTranslations(path)));
-  }
-  return referenceKeysByNamespace.get(baseNamespace);
+  return referenceKeysByNamespace.getOrInsertComputed(baseNamespace, () =>
+    normalizedKeySet(readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`))));
 }
 
 /**
