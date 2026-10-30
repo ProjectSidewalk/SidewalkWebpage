@@ -67,6 +67,11 @@ prompt_with_default() {
 # $1: path to the CSV file.
 read_street_ids_from_csv() {
   local csv_file=$1
+  # The scan's summary lists every street with its verdict; taking its first column would mark the whole city.
+  if head -n 1 "$csv_file" | grep -q 'has_imagery'; then
+    echo "$csv_file is a street_imagery_summary.csv; it belongs to hide-streets-without-imagery.sh." >&2
+    return 1
+  fi
   tail -n +2 "$csv_file" | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//'
 }
 
@@ -90,17 +95,17 @@ mark_streets_no_imagery() {
     echo "No change source provided; refusing to mark streets without recording who did it." >&2
     return 1
   fi
-  # The `status <> 'no_imagery'` guard is what keeps the trail honest: without it, re-running the same CSV would
-  # rewrite every row and log thousands of transitions that never happened. Every CTE here sees the same snapshot,
-  # so `to_change` holds the pre-update status, and a data-modifying CTE runs to completion whether or not the
-  # primary query reads it.
+  # Only open streets move. Re-running the same CSV then logs no transitions that never happened, and a closed or
+  # disabled street keeps its status whatever the imagery does (a disabled sliver under 1 m would also trip the
+  # street_edge_min_length_check if flipped). Every CTE here sees the same snapshot, so `to_change` holds the
+  # pre-update status, and a data-modifying CTE runs to completion whether or not the primary query reads it.
   psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
         BEGIN;
         WITH to_change AS (
             SELECT street_edge_id, status AS old_status
             FROM street_edge
             WHERE street_edge_id IN ($street_ids)
-                AND status <> 'no_imagery'
+                AND status = 'open'
         ), changed AS (
             UPDATE street_edge
             SET status = 'no_imagery'
@@ -131,9 +136,10 @@ EOSQL
 }
 
 # The inverse, kept in step with StreetLifecycleService.reopenStreet (the admin Reopen button). Only no_imagery
-# streets move: closed and disabled stay so whatever the imagery does. The priority row must come back, since task
-# assignment joins on it and the nightly recalc only updates existing rows; without it the street is open yet never
-# handed out. Same arguments as mark_streets_no_imagery.
+# streets in a region that is not hidden move: closed and disabled stay so whatever the imagery does, and a hidden
+# region's streets stay dark with it (its open ones were closed when it was hidden, its no_imagery ones were not).
+# The priority row must come back, since task assignment joins on it and the nightly recalc only updates existing
+# rows; without it the street is open yet never handed out. Same arguments as mark_streets_no_imagery.
 reopen_streets_with_imagery() {
   local street_ids=$1
   local source=$2
@@ -153,6 +159,13 @@ reopen_streets_with_imagery() {
             SET status = 'open'
             WHERE street_edge_id IN ($street_ids)
                 AND status = 'no_imagery'
+                AND EXISTS (
+                    SELECT 1
+                    FROM street_edge_region
+                    JOIN region ON street_edge_region.region_id = region.region_id
+                    WHERE street_edge_region.street_edge_id = street_edge.street_edge_id
+                        AND region.deleted = FALSE
+                )
             RETURNING street_edge_id
         )
         INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
@@ -168,7 +181,8 @@ reopen_streets_with_imagery() {
         WHERE street_edge_id IN ($street_ids)
             AND status = 'open'
             AND NOT EXISTS (
-                SELECT 1 FROM street_edge_priority WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
+                SELECT 1 FROM street_edge_priority
+                WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
             );
 
         -- The checker's full-street verdict outranks the nightly poll's three-point evidence (#4929).

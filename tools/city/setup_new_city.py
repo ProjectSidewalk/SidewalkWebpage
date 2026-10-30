@@ -57,6 +57,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 """
 
 import argparse
+import csv
 import hashlib
 import re
 import sqlite3
@@ -932,9 +933,12 @@ def run_imagery_scan(schema, city_id, pano_type):
     subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/check_streets_for_imagery.py',
                                '--city-id', city_id, flag, flags=('-i', *tty)), check=True)
 
-    no_imagery = city_dir / 'streets_with_no_imagery.csv'
-    n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
-    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
+    summary = city_dir / 'street_imagery_summary.csv'
+    n_hidden = 0
+    if summary.exists():
+        n_hidden = sum(1 for row in csv.DictReader(summary.open()) if row['has_imagery'] == 'False')
+    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery (and reopening any the scan found imagery '
+          'on)...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
               f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
