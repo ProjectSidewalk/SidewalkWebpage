@@ -15,8 +15,8 @@ import javax.inject.{Inject, Singleton}
  *
  * Most values name one of the hand-run scripts in `db/scripts` or `tools/one-off` that write `street_edge.status`;
  * `admin_reopen` is the one in-app writer, the Reopen button on /admin/street-status (#4929). Since script runs are
- * otherwise untraced, this is what tells a later reader whether a batch of streets went dark because the imagery
- * checker found nothing there or because someone closed the whole region.
+ * otherwise untraced, this is what tells a later reader whether a batch of streets went dark, or came back, because
+ * of what the imagery checker found there or because someone hid or revealed the whole region.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
  * 358.sql, 368.sql, 386.sql, and 416.sql) and the script or service that emits it.

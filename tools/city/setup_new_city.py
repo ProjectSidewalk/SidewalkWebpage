@@ -936,7 +936,8 @@ def run_imagery_scan(schema, city_id, pano_type):
     summary = city_dir / 'street_imagery_summary.csv'
     n_hidden = 0
     if summary.exists():
-        n_hidden = sum(1 for row in csv.DictReader(summary.open()) if row['has_imagery'] == 'False')
+        with summary.open() as handle:
+            n_hidden = sum(1 for row in csv.DictReader(handle) if row['has_imagery'] == 'False')
     print(f'  {n_hidden} street(s) without imagery; marking them no_imagery (and reopening any the scan found imagery '
           'on)...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,

@@ -95,17 +95,18 @@ mark_streets_no_imagery() {
     echo "No change source provided; refusing to mark streets without recording who did it." >&2
     return 1
   fi
-  # Only open streets move. Re-running the same CSV then logs no transitions that never happened, and a closed or
-  # disabled street keeps its status whatever the imagery does (a disabled sliver under 1 m would also trip the
-  # street_edge_min_length_check if flipped). Every CTE here sees the same snapshot, so `to_change` holds the
-  # pre-update status, and a data-modifying CTE runs to completion whether or not the primary query reads it.
+  # Open and closed streets move (a closed one sits in a hidden region, and must be dark already when the region
+  # is revealed); re-running the same CSV then logs no transitions that never happened. Disabled streets stay
+  # disabled: they were removed on purpose, and a sliver under 1 m would trip street_edge_min_length_check if
+  # flipped. Every CTE here sees the same snapshot, so `to_change` holds the pre-update status, and a
+  # data-modifying CTE runs to completion whether or not the primary query reads it.
   psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
         BEGIN;
         WITH to_change AS (
             SELECT street_edge_id, status AS old_status
             FROM street_edge
             WHERE street_edge_id IN ($street_ids)
-                AND status = 'open'
+                AND status IN ('open', 'closed')
         ), changed AS (
             UPDATE street_edge
             SET status = 'no_imagery'
@@ -135,11 +136,11 @@ mark_streets_no_imagery() {
 EOSQL
 }
 
-# The inverse, kept in step with StreetLifecycleService.reopenStreet (the admin Reopen button). Only no_imagery
-# streets in a region that is not hidden move: closed and disabled stay so whatever the imagery does, and a hidden
-# region's streets stay dark with it (its open ones were closed when it was hidden, its no_imagery ones were not).
-# The priority row must come back, since task assignment joins on it and the nightly recalc only updates existing
-# rows; without it the street is open yet never handed out. Same arguments as mark_streets_no_imagery.
+# The inverse, kept in step with StreetLifecycleService.reopenStreet (the admin Reopen button). A no_imagery street
+# the scan found imagery on becomes open, or closed when its region is hidden, so a later reveal needs no scan of its
+# own. Disabled streets stay disabled. The priority row must come back, since task assignment joins on it and the
+# nightly recalc only updates existing rows; without it the street is open yet never handed out. Same arguments as
+# mark_streets_no_imagery.
 reopen_streets_with_imagery() {
   local street_ids=$1
   local source=$2
@@ -154,40 +155,36 @@ reopen_streets_with_imagery() {
   fi
   psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
         BEGIN;
-        WITH changed AS (
-            UPDATE street_edge
-            SET status = 'open'
-            WHERE street_edge_id IN ($street_ids)
-                AND status = 'no_imagery'
-                AND EXISTS (
-                    SELECT 1
-                    FROM street_edge_region
-                    JOIN region ON street_edge_region.region_id = region.region_id
-                    WHERE street_edge_region.street_edge_id = street_edge.street_edge_id
-                        AND region.deleted = FALSE
-                )
-            RETURNING street_edge_id
-        )
+        CREATE TEMP TABLE reopening ON COMMIT DROP AS
+        SELECT street_edge.street_edge_id,
+               (CASE WHEN region.deleted THEN 'closed' ELSE 'open' END)::street_edge_status AS new_status
+        FROM street_edge
+        JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+        JOIN region ON street_edge_region.region_id = region.region_id
+        WHERE street_edge.street_edge_id IN ($street_ids)
+            AND street_edge.status = 'no_imagery';
+
+        UPDATE street_edge
+        SET status = reopening.new_status
+        FROM reopening
+        WHERE street_edge.street_edge_id = reopening.street_edge_id;
+
         INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
-        SELECT street_edge_id,
-               'no_imagery'::street_edge_status,
-               'open'::street_edge_status,
-               '$source'::street_edge_status_change_source
-        FROM changed;
+        SELECT street_edge_id, 'no_imagery'::street_edge_status, new_status, '$source'::street_edge_status_change_source
+        FROM reopening;
 
         INSERT INTO street_edge_priority (street_edge_id, priority)
         SELECT street_edge_id, 1.0
-        FROM street_edge
-        WHERE street_edge_id IN ($street_ids)
-            AND status = 'open'
+        FROM reopening
+        WHERE new_status = 'open'
             AND NOT EXISTS (
                 SELECT 1 FROM street_edge_priority
-                WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id
+                WHERE street_edge_priority.street_edge_id = reopening.street_edge_id
             );
 
-        -- The checker's full-street verdict outranks the nightly poll's three-point evidence (#4929).
+        -- A reopened street is no longer a candidate; a closed one is not polled (#4929).
         DELETE FROM street_reopen_candidate
-        WHERE street_edge_id IN ($street_ids);
+        WHERE street_edge_id IN (SELECT street_edge_id FROM reopening);
 
         -- Truncate the region_completion table to force recalculation of distances.
         TRUNCATE TABLE region_completion;

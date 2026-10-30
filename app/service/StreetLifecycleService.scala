@@ -233,7 +233,8 @@ class StreetLifecycleServiceImpl @Inject() (
    * Reopens a no_imagery street whose imagery came back, from the admin review queue (#4929).
    *
    * The only in-app writer of street_edge.status; reopen_streets_with_imagery (db/scripts/helpers.sh) is its copy
-   * for scripts. Two steps beyond the status flip + change row are load-bearing: the
+   * for scripts, which also lands a hidden region's street on closed (the queue never holds one). Two steps beyond
+   * the status flip + change row are load-bearing: the
    * street_edge_priority row must be re-inserted if absent (task assignment INNER JOINs on priority and the nightly
    * recalc only ever updates existing rows, so without it the street is open yet silently unroutable), and
    * region_completion must be truncated (the reopened street raises its region's total distance; the table is a
