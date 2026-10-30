@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{clearUtmCookie, fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms.*
 import models.auth.{DefaultEnv, RememberMeSettings}
-import models.user.{Role, SidewalkUserWithRole, UserUtm}
+import models.user.{NewsEmailOptOutSource, Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
@@ -465,10 +465,24 @@ class UserController @Inject() (
                   value         <- silhouette.env.authenticatorService.init(authenticator)
                   result        <- silhouette.env.authenticatorService.embed(value, result)
                   _             <- saveUtms(user.userId)
+                  // Everyone starts subscribed, so only an unchecked box writes anything. Whether it was turned
+                  // off or just left off depends on how it started here, and the two are kept apart.
+                  _ <-
+                    if (data.newsEmail) Future.successful(0)
+                    else {
+                      val source =
+                        if (configService.getNewsEmailPreChecked) NewsEmailOptOutSource.SignUpOptedOut
+                        else NewsEmailOptOutSource.SignUpNotOptedIn
+                      userService.optOutOfNewsEmail(user.userId, source)
+                    }
                 } yield {
                   // Log the sign-up/in.
                   cc.loggingService.insert(user.userId, ipAddress, "SignUp")
                   cc.loggingService.insert(user.userId, ipAddress, "SignIn")
+                  if (!data.newsEmail) {
+                    val _ = cc.loggingService
+                      .insert(user.userId, ipAddress, "Click_module=NewsEmail_subscribed=false_source=SignUp")
+                  }
 
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))

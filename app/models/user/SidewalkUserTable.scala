@@ -116,6 +116,21 @@ class SidewalkUserTable @Inject() (
   val humanUsers =
     sidewalkUserToRoleJoin.filter { case (_, role) => role.role =!= Role.Ai }.map { case (user, _) => user }
 
+  /**
+   * Everyone project news may be emailed to (#5864). Email is unique per account, so no dedupe is needed.
+   * @return (user id, username, email) per recipient, by email.
+   */
+  def newsEmailRecipients: Future[Seq[(String, String, String)]] = db.run(
+    sidewalkUserToRoleJoin
+      .filter { case (_, userRole) => userRole.role inSet Role.NEWS_EMAIL_ROLES }
+      .joinLeft(userSettings)
+      .on { case ((user, _), settings) => user.userId === settings.userId }
+      .filter { case (_, settings) => settings.flatMap(_.newsEmailOptOutAt).isEmpty }
+      .map { case ((user, _), _) => (user.userId, user.username, user.email) }
+      .sortBy(_._3)
+      .result
+  )
+
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]] = {
     db.run(sidewalkUserWithRole.filter(_.userId === userId).result.headOption)
   }

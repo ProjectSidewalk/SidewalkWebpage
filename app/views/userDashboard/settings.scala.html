@@ -5,18 +5,19 @@
 @import play.api.Configuration
 @import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
-    onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
+    onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, newsEmail: Boolean, privateByDefault: Boolean
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
-* team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
-* "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
-* Settings.js, which also warns before the page is left with unsaved edits (#5226). The password change (#2285) is
+* team membership, the project-news email opt-out (#5864), and the two privacy toggles from #4323 — "Show me on the
+* leaderboard" (on_leaderboard) and "Make my dashboard public" (public_profile). The whole form saves in one POST to
+* /dashboard/settings via Settings.js, which also warns before the page is left with unsaved edits (#5226). The password change (#2285) is
 * the exception, with its own form and AccountForm.js, as is "Sign out of other devices" (#5305). Shown on the shared
 * shell as its own nav item (#2545).
 *
 * @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
+* @param newsEmail   Whether the user still gets project news by email (the box reads as "send me news").
 *@
 
 @* Kept out of the attribute itself: a spaced `==` inside an attribute position reads to HTMLHint as an attribute name
@@ -132,6 +133,19 @@
         </div>
         <span class="ud-field-help">@Messages("dashboard.settings.team.help")</span>
       </div>
+    </div>
+  </div>
+
+  <div class="page-section" id="settings-email-section">
+    <h2 class="page-heading" id="email">@Messages("dashboard.settings.news.email") <a href="#email" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <label class="ud-check" for="set-news-email">
+        <input type="checkbox" id="set-news-email" @if(newsEmail){checked}>
+        <span class="ud-check-text">
+          <strong>@Messages("dashboard.settings.news.email.toggle")</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.news.email.help")</span>
+        </span>
+      </label>
     </div>
   </div>
 

@@ -205,12 +205,12 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     import UserFormats.{*, given}
     check(
       """{"username":" n ","on_leaderboard":true,"public_profile":false,"team_id":3,"community_service":true,
-        |"measurement_system":"metric"}""".stripMargin,
-      SettingsSubmission(Some("n"), true, false, Some(3), Some(true), Some("metric"))
+        |"measurement_system":"metric","news_email":false}""".stripMargin,
+      SettingsSubmission(Some("n"), true, false, Some(3), Some(true), Some("metric"), Some(false))
     )
     check(
       """{"on_leaderboard":false,"public_profile":true}""",
-      SettingsSubmission(None, false, true, None, None, None)
+      SettingsSubmission(None, false, true, None, None, None, None)
     )
   }
 

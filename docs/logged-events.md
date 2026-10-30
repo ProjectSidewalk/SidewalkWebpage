@@ -71,7 +71,13 @@ Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APID
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
-be measured the same way language switching is (`auto` means "follow the site language", the default). The
+be measured the same way language switching is (`auto` means "follow the site language", the default). A save that
+changes the project-news email box (#5864) likewise logs `Click_module=NewsEmail_subscribed=<true|false>_source=Settings`
+beside `SaveSettings`; the same event with `_source=SignUp` is a new account that unchecked the box on the sign-up form
+(only the unchecked case is logged, since checked is the default), and `_source=Unsubscribe` is the newsletter's
+unsubscribe link, logged under the account the link named even though nobody is signed in. Opening that link logs
+`Visit_Unsubscribe_valid=<true|false>` the same way, with `false` (and no account) for a token that didn't check out.
+An admin downloading the newsletter send list logs `Click_module=DownloadNewsEmailRecipients`. The
 Settings page's change-password form (#2285) has its own button and logs, server-side, `Click_module=ChangePassword`
 on success, `ChangePasswordFailed_Reason=<WrongCurrentPassword|Invalid>` on a rejection (`Invalid` covers a new
 password that breaks the rules, doesn't match its confirmation, or equals the current one), and

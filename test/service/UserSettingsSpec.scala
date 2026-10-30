@@ -1,6 +1,6 @@
 package service
 
-import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserSettingsTableDef}
+import models.user.{MeasurementSystem, NewsEmailOptOutSource, Role, SidewalkUserWithRole, UserSettingsTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -67,6 +67,30 @@ class UserSettingsSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll
       val user = reload(newAnonUser().userId)
       user.communityService mustBe false
       user.measurementSystem mustBe None
+      await(userService.getNewsEmailOptOut(user.userId)) mustBe None
+    }
+
+    "opt out of project news keeping the first time and reason, and opt back in, without touching other settings" in {
+      val userId = newAnonUser().userId
+      await(userService.setCommunityService(userId, enabled = true))
+      await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.Settings))
+      val firstOptOut = await(userService.getNewsEmailOptOut(userId)).value
+      firstOptOut.source mustBe NewsEmailOptOutSource.Settings
+
+      // The Settings box and the newsletter link can both opt the same person out; the record keeps the first.
+      await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.UnsubscribeLink))
+      await(userService.getNewsEmailOptOut(userId)).value mustBe firstOptOut
+      reload(userId).communityService mustBe true
+
+      await(userService.optInToNewsEmail(userId))
+      await(userService.getNewsEmailOptOut(userId)) mustBe None
+      reload(userId).communityService mustBe true
+    }
+
+    "opt back in without writing a settings row for a user who never had one" in {
+      val userId = newAnonUser().userId
+      await(userService.optInToNewsEmail(userId)) mustBe 0
+      run(TableQuery[UserSettingsTableDef].filter(_.userId === userId).exists.result) mustBe false
     }
 
     "save units and service-hours tracking without either one resetting the other" in {
