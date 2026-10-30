@@ -159,6 +159,7 @@ seo.title.welcome = Bienvenue — Project Sidewalk
 seo.title.forgot.password = Récupérer le mot de passe — Project Sidewalk
 seo.title.reset.password = Réinitialiser le mot de passe — Project Sidewalk
 seo.title.service.hours = Infos bénévolat — Project Sidewalk
+seo.title.unsubscribe = Se désabonner — Project Sidewalk
 seo.title.time.check = Suivi du temps — Project Sidewalk
 seo.title.about = À propos — Project Sidewalk
 seo.description.default = Aidez à cartographier et à évaluer les trottoirs de {0} par l''exploration virtuelle. Des données ouvertes sur les bateaux de trottoir, les obstacles et les problèmes de surface pour un monde plus accessible.
@@ -396,6 +397,7 @@ authenticate.new = Nouveau ici ? <a href="#" id="form-open-sign-up">Inscrivez-vo
 authenticate.confirm.password = Confirmer le mot de passe
 authenticate.service.hours.title = Prévoyez-vous de demander que votre travail sur Project Sidewalk soit comptabilisé comme heures de bénévolat ou de service communautaire ?
 authenticate.terms = Vous acceptez nos <a target="_blank" href="/terms">Conditions d''utilisation et notre Politique de confidentialité</a>
+authenticate.news.email = M''envoyer de temps en temps des nouvelles de Project Sidewalk
 authenticate.signup = S''inscrire
 authenticate.has.account = Vous avez un compte ? <a href="#" id="form-open-sign-in">Connectez-vous</a>
 authenticate.is.member = Déjà membre ? <a href="{0}">Connectez-vous</a>
@@ -512,6 +514,13 @@ reset.pw.email.hello = Bonjour {0},
 reset.pw.email.reset.title = Réinitialisez le mot de passe de votre compte Project Sidewalk
 reset.pw.email.send.link = Envoyer l''e-mail
 reset.pw.email.reset.pw.sent = Un e-mail de réinitialisation de votre mot de passe a été envoyé.
+unsubscribe.confirm.title = Se désabonner des nouvelles de Project Sidewalk ?
+unsubscribe.confirm.intro = Vous ne recevrez plus de nouvelles ni de mises à jour du projet à l''adresse e-mail de votre compte. Les e-mails concernant votre compte, comme la réinitialisation du mot de passe, continueront d''arriver.
+unsubscribe.confirm.submit = Se désabonner
+unsubscribe.done.title = Vous êtes désabonné
+unsubscribe.done.intro = Nous ne vous enverrons plus de nouvelles du projet. Vous avez changé d''avis ? Réactivez-les dans les <a href="{0}">Paramètres</a>.
+unsubscribe.invalid.title = Ce lien n''est pas valide
+unsubscribe.invalid.intro = Le lien de désabonnement a peut-être été coupé lors de la copie. Vous pouvez aussi gérer vos e-mails dans les <a href="{0}">Paramètres</a> ou nous écrire à <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
 reset.pw.email.send.failed = Nous n''avons pas pu envoyer l''e-mail pour le moment. Veuillez réessayer plus tard.
 reset.pw.email.reset.request.message = Vous avez récemment demandé à réinitialiser le mot de passe de votre compte Project Sidewalk. Cliquez sur le lien ci-dessous pour le réinitialiser :
 reset.pw.email.reset.not.requested = Si vous n''avez pas demandé de réinitialisation, ignorez ce message ou écrivez-nous pour nous en informer.
@@ -830,6 +839,9 @@ dashboard.settings.service.hours = Heures de bénévolat
 dashboard.settings.service.hours.toggle = M''inscrire aux heures de service communautaire
 dashboard.settings.service.hours.help = Vous inscrit à la reconnaissance officielle — votre responsable peut vérifier vos heures — et ajoute « Heures de bénévolat » et « Suivi du temps » au menu de votre compte.
 dashboard.settings.service.hours.link = Comment fonctionnent les heures de bénévolat
+dashboard.settings.news.email = Actualités par e-mail
+dashboard.settings.news.email.toggle = M''envoyer des nouvelles de Project Sidewalk
+dashboard.settings.news.email.help = Des nouvelles occasionnelles du projet, chacune avec un lien de désabonnement. Les e-mails concernant votre compte, comme la réinitialisation du mot de passe, arrivent toujours.
 dashboard.settings.team = Équipe
 dashboard.settings.team.label = Votre équipe
 dashboard.settings.team.help = Rejoignez une équipe ou une classe pour cartographier ensemble et apparaître au classement des équipes.

@@ -58,12 +58,30 @@ The backend follows a consistent layering: **routes → Controller → Service �
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
-  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking, and whether project
+  news may be emailed to them, #5864) and
   `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
   password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
   (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Newsletter email (#5864)** — everyone is subscribed to project news unless `user_settings.news_email_opt_out_at`
+  is set, with `news_email_opt_out_source` saying why (`NewsEmailOptOutSource`: the user's own Settings or
+  unsubscribe-link choice, a sign-up box turned off or one left off where it starts unchecked, the never-consented
+  backfill, or, once the mailing-service sync lands, its unsubscribe, a bounce or a spam complaint).
+  `news_email_consented_at` records the user ticking the box themselves, the proof of consent the EU-style rules ask
+  for; the backfill never overrides it. The sync should never re-subscribe a `complaint`, and a `bounce` belongs to
+  the address, so a future email-change flow clears it. Opt-outs come from the Settings toggle, the sign-up box
+  (pre-checked only in the opt-out-law countries listed in `news-email-opt-out-countries`, since a pre-ticked box
+  isn't consent under the EU-style rules), or the newsletter's unsubscribe link: `/unsubscribe?token=`, where the
+  token is the user id signed by `NewsEmailTokenService` with the application secret (shared by every city, so a
+  link verifies anywhere). The GET only confirms, the `nocsrf` POST opts out, and the POST
+  is what `List-Unsubscribe-Post` headers point at. Admin → Management exports the send list, `Role.NEWS_EMAIL_ROLES`
+  accounts not opted out, with each row's unsubscribe link; the mailing service never holds the list of record.
+  Accounts from before the box that first signed up in a consent-law country were opted out by
+  `tools/one-off/5864-opt-out-consent-country-signups.sql`, stamped at their sign-up time, so for them the stamp
+  means "never agreed" and ticking the Settings box is the consent. Password resets are transactional and never
+  opt-out-able.
 - **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`

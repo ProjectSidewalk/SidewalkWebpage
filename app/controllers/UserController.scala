@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{clearUtmCookie, fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms.*
 import models.auth.{DefaultEnv, RememberMeSettings}
-import models.user.{Role, SidewalkUserWithRole, UserUtm}
+import models.user.{NewsEmailOptOutSource, Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
@@ -457,7 +457,8 @@ class UserController @Inject() (
                 val newUser           =
                   SidewalkUserWithRole(newUserId, data.username, email, Role.Registered, communityService = false,
                     false, measurementSystem = None)
-                val pwInfo = passwordHasher.hash(data.password)
+                val pwInfo              = passwordHasher.hash(data.password)
+                val newsEmailPreChecked = configService.getNewsEmailPreChecked
 
                 (for {
                   user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
@@ -465,10 +466,28 @@ class UserController @Inject() (
                   value         <- silhouette.env.authenticatorService.init(authenticator)
                   result        <- silhouette.env.authenticatorService.embed(value, result)
                   _             <- saveUtms(user.userId)
+                  // Everyone starts subscribed, so a box left at its default writes nothing. A tick of a box that
+                  // started unchecked is consent and is recorded as such; an unchecked box is an opt-out, kept apart
+                  // by whether it was turned off or just left off.
+                  _ <- (data.newsEmail, newsEmailPreChecked) match {
+                    case (true, true)  => Future.successful(0)
+                    case (true, false) => userService.consentToNewsEmail(user.userId)
+                    case (false, true) =>
+                      userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.SignUpOptedOut)
+                    case (false, false) =>
+                      userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.SignUpNotOptedIn)
+                  }
                 } yield {
                   // Log the sign-up/in.
                   cc.loggingService.insert(user.userId, ipAddress, "SignUp")
                   cc.loggingService.insert(user.userId, ipAddress, "SignIn")
+                  if (data.newsEmail != newsEmailPreChecked) {
+                    val _ = cc.loggingService.insert(
+                      user.userId,
+                      ipAddress,
+                      s"Click_module=NewsEmail_subscribed=${data.newsEmail}_source=SignUp"
+                    )
+                  }
 
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))

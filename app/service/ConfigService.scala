@@ -101,6 +101,8 @@ case class CommonPageData(
     // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
     volunteerEmail: String,
     volunteerSupervisor: String,
+    // Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out.
+    newsEmailPreChecked: Boolean,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html,
@@ -1437,6 +1439,9 @@ trait ConfigService {
   def getAiTagSuggestionsEnabled: Boolean
   def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
+
+  /** Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out. */
+  def getNewsEmailPreChecked: Boolean
   def defaultPrivacyFlags: (Boolean, Boolean)
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
@@ -2523,6 +2528,9 @@ class ConfigServiceImpl @Inject() (
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
 
+  def getNewsEmailPreChecked: Boolean =
+    config.get[Seq[String]]("news-email-opt-out-countries").contains(getCurrentCountryId)
+
   /**
    * The initial values for a new user's two privacy flags in this deployment.
    *
@@ -2589,11 +2597,13 @@ class ConfigServiceImpl @Inject() (
       volunteerEmail: String          = config.get[String]("volunteer-email-address")
       volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
       supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
+      newsEmailPreChecked: Boolean    = getNewsEmailPreChecked
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
+        newsEmailPreChecked, assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson,
+        supportedLanguages)
     }
   }
 }

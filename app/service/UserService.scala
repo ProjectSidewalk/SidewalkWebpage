@@ -500,6 +500,18 @@ trait UserService {
 
   /** Saves the user's units for every city; None follows the site language. */
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
+
+  /** Opts the user out of project news by email, for every city (#5864); a repeat keeps the first time and reason. */
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int]
+
+  /** Records the user ticking the news box themselves, which subscribes them and is the proof of consent. */
+  def consentToNewsEmail(userId: String): Future[Int]
+
+  /** @return Where the user stands on project news by email, for every city. */
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus]
+
+  /** @return (user id, username, email) of everyone project news may be sent to, by email. */
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -718,6 +730,15 @@ class UserServiceImpl @Inject() (
 
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
     db.run(userSettingsTable.setMeasurementSystem(userId, system))
+
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int] =
+    db.run(userSettingsTable.optOutOfNewsEmail(userId, source))
+
+  def consentToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.consentToNewsEmail(userId))
+
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
+
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
 
   def getPublicProfile(
       username: String,

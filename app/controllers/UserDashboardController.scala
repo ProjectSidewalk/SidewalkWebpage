@@ -6,7 +6,7 @@ import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import forms.ChangePasswordForm
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
-import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, NewsEmailOptOutSource, Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
@@ -166,9 +166,9 @@ class UserDashboardController @Inject() (
 
   /**
    * Renders the user's Settings page: editable username, read-only email, a measurement-units choice, team membership,
-   * and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard public"). The toggles reflect the
-   * user's real flags; `privateByDefault` tells the view whether this deployment starts users private (school/minor
-   * cities) so it can explain the default.
+   * the project-news email opt-out (#5864), and the two privacy toggles ("Show me on the leaderboard" and "Make my
+   * dashboard public"). The toggles reflect the user's real flags; `privateByDefault` tells the view whether this
+   * deployment starts users private (school/minor cities) so it can explain the default.
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity
@@ -178,12 +178,13 @@ class UserDashboardController @Inject() (
       openTeams  <- userService.getAllOpenTeams
       currTeam   <- userService.getUserTeam(user.userId)
       privacy    <- userService.getPrivacySettings(user.userId)
+      newsStatus <- userService.getNewsEmailStatus(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
       val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
-          unitsChoice, configService.getPrivateProfilesByDefault)
+          unitsChoice, newsEmail = newsStatus.optOut.isEmpty, configService.getPrivateProfilesByDefault)
       )
     }
   }
@@ -196,7 +197,8 @@ class UserDashboardController @Inject() (
    * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
-   * Units and community service hours are saved to the account, so they apply in every city (#3720).
+   * Units, community service hours, and the project-news email choice are saved to the account, so they apply in
+   * every city (#3720, #5864).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user                    = request.identity
@@ -216,6 +218,14 @@ class UserDashboardController @Inject() (
           .map(MeasurementSystem.withNameOption)
           .filter(_ != user.measurementSystem)
         val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
+        // The box reads "send me news", so a checked box means no opt-out.
+        val newsEmailEdit: Future[Option[Boolean]] = s.newsEmail match {
+          case Some(subscribed) =>
+            userService
+              .getNewsEmailStatus(user.userId)
+              .map(status => Option.when(status.optOut.isEmpty != subscribed)(subscribed))
+          case None => Future.successful(None)
+        }
 
         // Only the username can be refused, so it's checked before the first write and renamed after the last one.
         val usernameCheck: Future[Either[String, Unit]] = usernameEdit
@@ -236,6 +246,13 @@ class UserDashboardController @Inject() (
               _ <- unitsEdit
                 .map(units => userService.setMeasurementSystem(user.userId, units))
                 .getOrElse(Future.successful(0))
+              newsEdit <- newsEmailEdit
+              _        <- newsEdit
+                .map(subscribed =>
+                  if (subscribed) userService.consentToNewsEmail(user.userId)
+                  else userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.Settings)
+                )
+                .getOrElse(Future.successful(0))
               _ <- usernameEdit
                 .map(name => userService.changeUsername(user.userId, name))
                 .getOrElse(Future.successful(Right(user.username)))
@@ -250,6 +267,13 @@ class UserDashboardController @Inject() (
                   user.userId,
                   request.ipAddress,
                   s"Click_module=ChangeUnits_from=${from}_to=$to"
+                )
+              }
+              newsEdit.foreach { subscribed =>
+                cc.loggingService.insert(
+                  user.userId,
+                  request.ipAddress,
+                  s"Click_module=NewsEmail_subscribed=${subscribed}_source=Settings"
                 )
               }
               Ok(Json.obj("success" -> true))

@@ -75,6 +75,11 @@ class AuthFormsSpec extends AnyFunSuite with Matchers {
     errorKeys(signUp(email = "not-an-email")) should contain("email")
   }
 
+  test("sign-up's news-email box reads as false when unchecked, since an unchecked box sends nothing (#5864)") {
+    SignUpForm.form.bind(signUp()).value.map(_.newsEmail) shouldBe Some(false)
+    SignUpForm.form.bind(signUp() + ("newsEmail" -> "true")).value.map(_.newsEmail) shouldBe Some(true)
+  }
+
   test("sign-up has no serviceHours field (moved to Settings)") {
     // Binding succeeds even though no serviceHours key is supplied — the field is gone from the form.
     SignUpForm.form.bind(signUp()).value.isDefined shouldBe true

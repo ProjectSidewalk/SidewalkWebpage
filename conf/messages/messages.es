@@ -159,6 +159,7 @@ seo.title.welcome = Te damos la bienvenida — Project Sidewalk
 seo.title.forgot.password = Recuperar contraseña — Project Sidewalk
 seo.title.reset.password = Restablecer contraseña — Project Sidewalk
 seo.title.service.hours = Información voluntaria — Project Sidewalk
+seo.title.unsubscribe = Darse de baja — Project Sidewalk
 seo.title.time.check = Chequeo de tiempo — Project Sidewalk
 seo.title.about = Sobre nosotros — Project Sidewalk
 seo.description.default = Ayuda a mapear y evaluar las banquetas de {0} mediante exploración virtual. Datos abiertos sobre rampas peatonales, obstáculos y problemas de superficie para un mundo más accesible.
@@ -395,6 +396,7 @@ authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístr
 authenticate.confirm.password = Confirmar contraseña
 authenticate.service.hours.title = ¿Planea solicitar que su trabajo a través de Project Sidewalk se cuente como horas de servicio comunitario/voluntario?
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
+authenticate.news.email = Enviarme novedades ocasionales sobre Project Sidewalk
 authenticate.signup = Regístrate
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
@@ -510,6 +512,13 @@ reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
 reset.pw.email.send.link = Enviar correo electrónico
 reset.pw.email.reset.pw.sent = Se ha enviado un correo electrónico para restablecer tu contraseña.
+unsubscribe.confirm.title = ¿Darse de baja de las novedades de Project Sidewalk?
+unsubscribe.confirm.intro = Dejarás de recibir novedades y actualizaciones del proyecto en el correo de tu cuenta. Los correos sobre tu cuenta, como el restablecimiento de contraseña, seguirán llegando.
+unsubscribe.confirm.submit = Darme de baja
+unsubscribe.done.title = Te has dado de baja
+unsubscribe.done.intro = Ya no te enviaremos novedades del proyecto. ¿Cambiaste de opinión? Vuelve a activarlas en <a href="{0}">Configuración</a>.
+unsubscribe.invalid.title = Este enlace no es válido
+unsubscribe.invalid.intro = Puede que el enlace para darse de baja se haya cortado al copiarlo. También puedes gestionar el correo en <a href="{0}">Configuración</a> o escribirnos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
 reset.pw.email.send.failed = No pudimos enviar el correo electrónico en este momento. Por favor, inténtalo de nuevo más tarde.
 reset.pw.email.reset.request.message = Recientemente solicitaste que se restablezca la contraseña de tu cuenta de Project Sidewalk. Haz clic en el siguiente enlace para restablecer tu contraseña:
 reset.pw.email.reset.not.requested = Si no has solicitado el restablecimiento de la contraseña, por favor, ignora este mensaje o envíanos un correo electrónico para informarnos.
@@ -826,6 +835,9 @@ dashboard.settings.service.hours = Horas de servicio voluntario
 dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
 dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.
 dashboard.settings.service.hours.link = Cómo funcionan las horas de servicio
+dashboard.settings.news.email = Novedades por correo
+dashboard.settings.news.email.toggle = Enviarme novedades sobre Project Sidewalk
+dashboard.settings.news.email.help = Novedades ocasionales sobre el proyecto, cada una con un enlace para darse de baja. Los correos sobre tu cuenta, como el restablecimiento de contraseña, siempre llegan.
 dashboard.settings.team = Equipo
 dashboard.settings.team.label = Tu equipo
 dashboard.settings.team.help = Únete a un equipo o clase para mapear en conjunto y aparecer en la tabla de equipos.
