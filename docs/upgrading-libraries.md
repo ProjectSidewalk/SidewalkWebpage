@@ -24,7 +24,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | | Ours | Latest | Upstream EOL | Set in |
 |---|---|---|---|---|
 | Java (JDK) | Temurin **17** | 25 LTS | Oct 2027 | web base image, `build.sbt`, `ci.yml` |
-| Node (+ npm) | **26.x** (npm ≥ 11) | 26.x | Apr 2029 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
+| Node (+ npm) | **26.x** (npm ≥ 11) | 26.x (checked 2026-10-30) | Apr 2029 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
 | Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
@@ -40,7 +40,8 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   PROJ from Postgres's own package server, the same source as prod's.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
-  `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported until Apr 2029.
+  `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported until Apr 2029; 27 takes over as
+  LTS on 2027-10-20.
 
 ### Database server
 
