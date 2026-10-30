@@ -243,9 +243,9 @@ export class AcrossCitiesPage {
    */
   #joinActivityWindows() {
     for (const c of this.#cities) {
-      const w = this.#windowByCity[c.city_id] || null;
+      const w = this.#windowByCity[c.city_id] || {};
       c.activity_window = w;
-      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+      c.activity_7d = (w.labels_7d || 0) + (w.validations_7d || 0);
     }
   }
 
@@ -466,7 +466,7 @@ export class AcrossCitiesPage {
    * @returns {string} The cell's markup.
    */
   #weekCell(city, metric, showDelta = true) {
-    const { current, prior, ai } = this.#metricCounts(city.activity_window || {}, metric);
+    const { current, prior, ai } = this.#metricCounts(city.activity_window, metric);
     // A city with no activity in either window gets the bare count, since "→ 0%" is noise.
     const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
     const delta = d
@@ -765,7 +765,7 @@ export class AcrossCitiesPage {
 
   /** Draws the three over-time line charts for the currently selected range. */
   #drawTrends() {
-    const series = this.#trendSeries[this.#trendRange] || [];
+    const series = this.#trendSeries[this.#trendRange];
     // Multi-year x-axes carry the year; within 12 weeks "Jun 9" is unambiguous.
     const fmt = this.#trendRange === 'all' ? AcrossCitiesPage.#shortDateYear : AcrossCitiesPage.#shortDate;
     const cats = series.map((w) => fmt(w.week_start));
@@ -885,7 +885,6 @@ export class AcrossCitiesPage {
    */
   #wireSorting(tableId, render) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort');
@@ -966,7 +965,7 @@ export class AcrossCitiesPage {
       if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
       if (key.includes('.')) {
         const [outer, inner] = key.split('.');
-        return (c[outer] && c[outer][inner]) ?? 0;
+        return c[outer][inner] ?? 0;
       }
       return c[key] ?? 0;
     };
@@ -989,7 +988,6 @@ export class AcrossCitiesPage {
    */
   #markSortedHeader(tableId) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       const key = th.getAttribute('data-sort');
       th.classList.toggle('ac-sorted', key === state.key);
@@ -1463,7 +1461,7 @@ export class AcrossCitiesPage {
   #renderFunnels() {
     const host = document.getElementById('ac-funnels');
     if (!host) return;
-    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim] || AcrossCitiesPage.#FUNNEL_DIMS.all;
+    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim];
     const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
     const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
@@ -1480,7 +1478,7 @@ export class AcrossCitiesPage {
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
-    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType];
     const steps = funnel.steps || [];
     const cities = funnel.cities || [];
     return `
@@ -1565,7 +1563,7 @@ export class AcrossCitiesPage {
     const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item">`
-      + `<span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>`
+      + `<span class="ac-funnel-swatch" style="background:${palette[i]}"></span>`
       + `${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
     const stepRows = steps.map((k, i) => {
@@ -1582,7 +1580,7 @@ export class AcrossCitiesPage {
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `<div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
-          + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
+          + `style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
       }).join('');
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
@@ -1745,7 +1743,7 @@ export class AcrossCitiesPage {
    * costs one card, and the three can't drift apart in content.
    *
    * @param {Record<string, any>} d - A `over_time_daily` entry.
-   * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
+   * @param {string} emphasisKey - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
    *   'contributors'), whose line the card leans on.
    * @returns {string} The card's markup.
    */
@@ -1755,7 +1753,7 @@ export class AcrossCitiesPage {
       card = this.#buildDayTip(d);
       this.#dayTipCards.set(d.day, card);
     }
-    return emphasisKey ? card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`) : card;
+    return card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`);
   }
 
   /**
@@ -1820,7 +1818,7 @@ export class AcrossCitiesPage {
    */
   #cityTipHtml(city, metric) {
     this.#tipLinkCount = 0; // Counted per card, so the pin hint only goes on a card that has links to pin for.
-    const w = city.activity_window || {};
+    const w = city.activity_window;
     const { current, prior, ai } = this.#metricCounts(w, metric);
     const heading = { labels: 'labels', validations: 'validations', contributors: 'contributors' }[metric]
       ?? 'labels + validations';

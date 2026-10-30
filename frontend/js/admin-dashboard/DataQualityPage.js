@@ -116,7 +116,7 @@ export class DataQualityPage {
     const max = rows.length ? rows[0].count : 1;
 
     document.getElementById('dq-labels').innerHTML = rows.map((r) => {
-      const pct = total ? ` <span class="dq-sub">(${DataQualityPage.#pct(r.count / total)})</span>` : '';
+      const pct = ` <span class="dq-sub">(${DataQualityPage.#pct(r.count / total)})</span>`;
       const bar = `<div class="dq-bar-track"><div class="dq-bar" style="width:${(r.count / max) * 100}%;`
         + `background:${this.#color(r.type)}"></div></div>`;
       return this.#row(r.type, bar, `${r.count.toLocaleString()}${pct}`);
@@ -437,15 +437,15 @@ export class DataQualityPage {
 
   // --- Canonical metadata accessors (from /v3/api/labelTypes). ---
   #color(type) {
-    return (this.#meta.get(type) || {}).color || '#888';
+    return this.#meta.get(type).color || '#888';
   }
 
   #icon(type) {
-    return (this.#meta.get(type) || {}).icon || '';
+    return this.#meta.get(type).icon || '';
   }
 
   #name(type) {
-    return (this.#meta.get(type) || {}).display || type;
+    return this.#meta.get(type).display;
   }
 
   // --- Behavior from util.misc (the shared label-type framework, loaded by the shell). ---

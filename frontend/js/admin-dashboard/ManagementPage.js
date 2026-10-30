@@ -89,8 +89,7 @@ export class ManagementPage {
   }
 
   #filteredSortedUsers() {
-    const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key) || cols[0];
+    const col = this.#columns().find((c) => c.key === this.#sort.key);
     const q = this.#filter.trim().toLowerCase();
     const rows = q
       ? this.#users.filter((u) => (u.username || '').toLowerCase().includes(q)
@@ -111,7 +110,6 @@ export class ManagementPage {
     const cols = this.#columns();
     const all = this.#filteredSortedUsers();
     const pageCount = Math.max(1, Math.ceil(all.length / this.#pageSize));
-    if (this.#page > pageCount) this.#page = pageCount;
     const start = (this.#page - 1) * this.#pageSize;
     const rows = all.slice(start, start + this.#pageSize);
 
@@ -161,7 +159,7 @@ export class ManagementPage {
     const count = document.getElementById('mgmt-user-count');
     if (!count) return;
     count.textContent = matched === this.#users.length
-      ? `${this.#users.length.toLocaleString()} users`
+      ? AdminShell.count(this.#users.length, 'user')
       : `${matched.toLocaleString()} of ${this.#users.length.toLocaleString()} users`;
   }
 
@@ -245,7 +243,7 @@ export class ManagementPage {
       if (!sel || sel.disabled) return;
       const userId = sel.getAttribute('data-user-id');
       if (sel.getAttribute('data-kind') === 'role') this.#changeRole(userId, sel);
-      else if (sel.getAttribute('data-kind') === 'team') this.#changeTeam(userId, sel);
+      else this.#changeTeam(userId, sel);
     });
     // Pagination controls (delegated on each stable pagination bar — top and bottom stay in sync).
     for (const id of ManagementPage.#PAGINATION_IDS) {
@@ -265,7 +263,7 @@ export class ManagementPage {
         const target = /** @type {Element} */ (e.target);
         const sel = /** @type {HTMLSelectElement} */ (target.closest('.ps-pager-size select'));
         if (!sel) return;
-        this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
+        this.#pageSize = parseInt(sel.value, 10);
         this.#page = 1;
         this.#renderUsers();
         /** @type {HTMLSelectElement|null} */ (bar.querySelector('.ps-pager-size select'))?.focus();
@@ -278,34 +276,34 @@ export class ManagementPage {
     if (token === 'first') this.#page = 1;
     else if (token === 'prev') this.#page = Math.max(1, this.#page - 1);
     else if (token === 'next') this.#page = Math.min(pageCount, this.#page + 1);
-    else if (token === 'last') this.#page = pageCount;
+    else this.#page = pageCount;
     this.#renderUsers();
   }
 
   async #changeRole(userId, sel) {
     const user = this.#users.find((u) => u.user_id === userId);
-    const previous = user ? user.role : null;
+    const previous = user.role;
     const newRole = sel.value;
     try {
       const res = await AdminShell.mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
-      if (user) user.role = res.role || newRole;
-      this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
+      user.role = res.role || newRole;
+      this.#flash(`Set ${user.username} to ${newRole}.`);
     } catch (err) {
       // Revert the control to the server's truth.
-      if (previous !== null && previous !== undefined) sel.value = previous;
+      sel.value = previous;
       this.#flash(`Could not change role: ${err.message}`, true);
     }
   }
 
   async #changeTeam(userId, sel) {
     const user = this.#users.find((u) => u.user_id === userId);
-    const previousName = user ? user.team : null;
+    const previousName = user.team;
     const teamId = parseInt(sel.value, 10);
     const team = this.#teams.find((t) => t.team_id === teamId);
     try {
       await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
-      if (user) user.team = team ? team.name : user.team;
-      this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
+      user.team = team.name;
+      this.#flash(`Assigned ${user.username} to ${team.name}.`);
     } catch (err) {
       // Revert to the previously selected team (or the placeholder).
       sel.value = previousName && this.#teamsByName.has(previousName)
@@ -358,8 +356,7 @@ export class ManagementPage {
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
       await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
-      const team = this.#teams.find((t) => t.team_id === teamId);
-      if (team) team[field === 'open' ? 'open' : 'visible'] = next;
+      this.#teams.find((t) => t.team_id === teamId)[field] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
       this.#flash(`Team ${teamId}: ${field} → ${next ? onLabel : offLabel}.`);
     } catch (err) {

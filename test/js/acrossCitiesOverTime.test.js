@@ -95,3 +95,54 @@ describe('Across Cities — load failure', () => {
     expect(error).toHaveBeenCalled();
   });
 });
+
+describe('Across Cities — over-time charts, uneven data', () => {
+  /**
+   * @param {object} scorecards - Fields of the scorecards body.
+   * @returns {Promise<(id: string) => {cats: string[], values: number[], opts: object}>} The last draw into a host.
+   */
+  async function drawWith(scorecards) {
+    let spy;
+    await renderAcrossCities({
+      markup: MARKUP, scorecards,
+      beforeInit: ({ MiniLineChart }) => { spy = vi.spyOn(MiniLineChart, 'renderInto'); },
+    });
+    return (id) => {
+      const [, cats, series, opts] = spy.mock.calls.findLast(([host]) => host.id === id);
+      return { cats, values: series[0].values, opts };
+    };
+  }
+
+  it('orders weeks however they arrive, counts a missing figure as zero, and skips a city with no trend', async () => {
+    const drawn = await drawWith({ cities: [
+      makeCity('a', { weekly_trend: [
+        { week_start: '2026-06-15', labels: 1 }, { week_start: '2026-06-01', labels: 2 },
+        { week_start: '2026-06-08', validations: 3 },
+      ] }),
+      makeCity('b', { weekly_trend: undefined }),
+    ] });
+    expect(drawn('ac-chart-labels').values).toEqual([2, 0, 1]);
+    expect(drawn('ac-chart-validations').values).toEqual([0, 3, 0]);
+  });
+
+  it('drops the dots on an all-time view longer than 30 weeks, and counts a week without new users as none',
+    async () => {
+      const weeks = Array.from({ length: 31 }, (_, i) => ({
+        week_start: new Date(Date.UTC(2020, 0, 6 + 7 * i)).toISOString().slice(0, 10), labels: 1,
+        ...(i === 0 ? { new_users: 4 } : {}),
+      }));
+      const drawn = await drawWith({ over_time_all_time: weeks });
+      document.querySelector('#ac-trend-toggle [data-range="all"]').click();
+      expect(drawn('ac-chart-labels').opts.dotRadius).toBe(0);
+      expect(new Set(drawn('ac-chart-cum-users').values)).toEqual(new Set([4]));
+    });
+
+  it('labels a week it can’t read as a date with the text as sent', async () => {
+    const drawn = await drawWith({
+      cities: [makeCity('a', { weekly_trend: [{ week_start: 'bad', labels: 1 }] })],
+      over_time_all_time: [{ week_start: 'unknown', labels: 1 }],
+    });
+    expect(drawn('ac-chart-labels').cats).toEqual(['bad']);
+    expect(drawn('ac-chart-cum-labels').cats).toEqual(['unknown']);
+  });
+});

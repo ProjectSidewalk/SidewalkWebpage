@@ -92,8 +92,8 @@ const report = (overrides = {}) => ({
 async function renderPanel(payload = report(), opts = {}) {
   document.body.innerHTML = MARKUP;
   charts.length = 0;
-  window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
-  const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, ...opts });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload }));
+  const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, onLoaded: () => {}, ...opts });
   await panel.init();
   return panel;
 }
@@ -311,11 +311,11 @@ describe('ImageryPipelinePanel window selector', () => {
     document.body.innerHTML = MARKUP;
     charts.length = 0;
     const resolvers = [];
-    window.fetch = vi.fn(() => new Promise((resolve) => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
-    }));
+    })));
 
-    const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30 });
+    const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, onLoaded: () => {} });
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
@@ -335,11 +335,11 @@ describe('ImageryPipelinePanel window selector', () => {
   test('does not refetch when the queued window is the one already showing', async () => {
     document.body.innerHTML = MARKUP;
     const resolvers = [];
-    window.fetch = vi.fn(() => new Promise((resolve) => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => {
       resolvers.push(() => resolve({ ok: true, json: async () => report() }));
-    }));
+    })));
 
-    const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30 });
+    const panel = new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, onLoaded: () => {} });
     const started = panel.init();
     const select = document.getElementById('imagery-range');
     select.value = '90';
@@ -358,8 +358,8 @@ describe('ImageryPipelinePanel failure handling', () => {
   test('says the history could not be read rather than leaving the loading line up', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     document.body.innerHTML = MARKUP;
-    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
-    await new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30 }).init();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, onLoaded: () => {} }).init();
     expect(statusText()).toContain('Could not load the pipeline history');
     expect(document.getElementById('imagery-pipeline-status').classList.contains('error')).toBe(true);
   });
@@ -368,7 +368,7 @@ describe('ImageryPipelinePanel failure handling', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const onLoaded = vi.fn();
     document.body.innerHTML = MARKUP;
-    window.fetch = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     await new ImageryPipelinePanel({ pipelineUrl: '/x', days: 30, onLoaded }).init();
     expect(onLoaded).not.toHaveBeenCalled();
   });
@@ -401,5 +401,50 @@ describe('the regained-imagery rotation line', () => {
     await renderPanel(report());
     expect(document.getElementById('imagery-no-imagery-note').textContent)
       .toMatch(/No retired street was re-checked/);
+  });
+});
+
+describe('ImageryPipelinePanel edge cases (#5840)', () => {
+  test('loads the server\'s default window on a page without the window selector', async () => {
+    document.body.innerHTML = MARKUP.replace(/<select[^]*?<\/select>/, '');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => report() }));
+    await new ImageryPipelinePanel({ pipelineUrl: '/adminapi/imageryFreshness', days: 30, onLoaded: () => {} }).init();
+    expect(window.fetch.mock.calls[0][0]).toContain('days=30');
+  });
+
+  test('a report with no jobs or nights reads as a poll that never ran, with empty charts', async () => {
+    const empty = report();
+    delete empty.jobs;
+    delete empty.run_days;
+    await renderPanel(empty);
+    expect(statusText()).toContain('has never run here');
+    expect(document.getElementById('imagery-failure-note').textContent)
+      .toBe('No run of either job failed in the last 3 days.');
+    expect(document.getElementById('imagery-no-imagery-note').textContent).toMatch(/No retired street was re-checked/);
+    expect(charts[0].series[0].values.every((v) => v === 0)).toBe(true);
+  });
+
+  test('a failed poll with no error text points to the server log', async () => {
+    await renderPanel(report({ jobs: [job({ last_status: 'failed', last_error: null })] }));
+    expect(statusText()).toContain('The most recent poll failed: see the server log');
+  });
+
+  test('one flagged audit is described in the singular', async () => {
+    await renderPanel(report({ run_days: [night('2026-08-18', { streets_polled: 10, audits_flagged: 1 })] }));
+    expect(statusText()).toContain('flagged 1 audit for a re-audit');
+  });
+
+  test('chart values read as streets and audits, singular for one', async () => {
+    await renderPanel();
+    const [poll, flags] = charts;
+    expect([poll.options.valueFormat(1), poll.options.valueFormat(2.4)]).toEqual(['1 street', '2 streets']);
+    expect([flags.options.valueFormat(0.6), flags.options.valueFormat(0)]).toEqual(['1 audit', '0 audits']);
+  });
+
+  test('a failed load on a page without a status line fails quietly', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    document.body.innerHTML = MARKUP.replace('<div id="imagery-pipeline-status"></div>', '');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(new ImageryPipelinePanel({ pipelineUrl: '/x', days: 30, onLoaded: () => {} }).init()).resolves.toBeUndefined();
   });
 });

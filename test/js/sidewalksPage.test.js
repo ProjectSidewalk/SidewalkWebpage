@@ -164,10 +164,10 @@ const geojson = (ids) => ({
 async function renderPage({ streets = CITY, ids = [1, 2, 3, 4, 5, 6], rebuiltAt = '2026-10-08T03:30:00Z' } = {}) {
   document.body.innerHTML = MARKUP;
   const mapState = stubMapbox();
-  window.fetch = vi.fn((url) => Promise.resolve({
+  vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
     ok: true,
     json: async () => (url === '/presence' ? { rebuilt_at: rebuiltAt, streets } : geojson(ids)),
-  }));
+  })));
   await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
   await new Promise((resolve) => setTimeout(resolve, 1));
   return mapState;
@@ -335,11 +335,11 @@ describe('the Sidewalks page', () => {
   test('a street chosen before the map loads is marked once it does', async () => {
     document.body.innerHTML = MARKUP;
     const map = stubMapbox({ holdLoad: true });
-    window.fetch = vi.fn((url) => Promise.resolve({
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
       ok: true,
       json: async () => (url === '/presence' ? { rebuilt_at: '2026-10-08T03:30:00Z', streets: CITY }
         : geojson([1, 2, 3, 4, 5, 6])),
-    }));
+    })));
     const loaded = new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' })
       .init();
     while (!map.fireLoad) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -442,5 +442,87 @@ describe('the Sidewalks page', () => {
   test('explains an empty city rather than drawing an empty map', async () => {
     await renderPage({ streets: [], ids: [] });
     expect(text('sidewalks-status')).toContain('No open street has a sidewalk verdict yet');
+  });
+});
+
+describe('the Sidewalks page, edge cases (#5840)', () => {
+  test('a single labeler with several labels and a tagged side with one label read in the right number', async () => {
+    const city = [
+      street(1, face('left', absent({ no_sidewalk_label_count: 2 })), face('right')),
+      street(2, face('left', absent({ no_sidewalk_user_count: 2 })),
+        face('right', { presence: 'absent', presence_basis: 'other_side_tag', label_count: 1 })),
+    ];
+    await renderPage({ streets: city, ids: [1, 2] });
+    const firstRow = () => document.querySelector('#sidewalks-flag-table tbody tr').textContent;
+    expect(firstRow()).toContain('2 NoSidewalk labels, 1 user');
+    pickFlag('other_side_tag');
+    expect(firstRow()).toContain('; 1 label on this side');
+  });
+
+  test('a street with only one side reported has no other-side verdict', () => {
+    const [only] = SidewalksPage.join(geojson([1]), [{ ...street(1, face('left')), faces: [face('left')] }]);
+    expect(only.properties.other_presence).toBeNull();
+  });
+
+  test('the legend counts a verdict the city has none of as zero', async () => {
+    await renderPage({ streets: CITY.slice(0, 5), ids: [1, 2, 3, 4, 5] });
+    expect(text('sidewalks-legend').replace(/\s+/g, ' ')).toContain('Unknown (street not audited) (0)');
+  });
+
+  test('sorting a review list by its last NoSidewalk date puts undated rows last', async () => {
+    const city = [
+      street(1, face('left', absent({ problem_label_count: 1, last_no_sidewalk_label_at: '2024-01-01T00:00:00Z' })),
+        face('right')),
+      street(2, face('left', absent({ no_sidewalk_user_count: 2, problem_label_count: 1,
+        last_no_sidewalk_label_at: null })), face('right')),
+      street(3, face('left', absent({ no_sidewalk_user_count: 2, problem_label_count: 1,
+        last_no_sidewalk_label_at: '2025-01-01T00:00:00Z' })), face('right')),
+    ];
+    await renderPage({ streets: city, ids: [1, 2, 3] });
+    pickFlag('problem_labels');
+    const th = [...document.querySelectorAll('#sidewalks-flag-table th')]
+      .find((el) => el.textContent.startsWith('Last'));
+    th.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(flagRows()).toEqual(['3:left', '1:left', '2:left']);
+  });
+
+  test('a page missing its optional controls still loads, falling back to the first list and one labeler', async () => {
+    document.body.innerHTML = MARKUP
+      .replace(/<select id="sidewalks-min-users">[^]*?<\/select>/, '')
+      .replace('<div id="sidewalks-basis-filters"></div>', '')
+      .replace('<div id="sidewalks-legend"></div>', '')
+      .replace('<select id="sidewalks-flag"></select>', '')
+      .replace('<div id="sidewalks-status"></div>', '');
+    stubMapbox();
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
+      ok: true,
+      json: async () => (url === '/presence' ? { rebuilt_at: null, streets: CITY } : geojson([1, 2, 3, 4, 5, 6])),
+    })));
+    await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    expect(flagRows()).toEqual(['1:left']);
+    document.getElementById('sidewalks-filters').dispatchEvent(new Event('change'));
+    // No basis checkboxes means no basis passes the filter.
+    expect(text('sidewalks-filter-note')).toBe('Showing 0 of 12 sides.');
+  });
+
+  test('a failed request is reported as an error rather than leaving the page loading', async () => {
+    document.body.innerHTML = MARKUP;
+    stubMapbox();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve(url === '/presence'
+      ? { ok: false, status: 500 }
+      : { ok: true, json: async () => geojson([1]) })));
+    await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
+    expect(text('sidewalks-status')).toBe('Could not load sidewalk presence data. Please try again.');
+    expect(document.getElementById('sidewalks-status').classList.contains('error')).toBe(true);
+  });
+
+  test('a city whose payloads carry no streets at all says it is empty, even without a status line', async () => {
+    document.body.innerHTML = MARKUP.replace('<div id="sidewalks-status"></div>', '');
+    stubMapbox();
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: async () => ({}) })));
+    await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
+    expect(text('kpi-rebuilt')).toBe('never');
   });
 });

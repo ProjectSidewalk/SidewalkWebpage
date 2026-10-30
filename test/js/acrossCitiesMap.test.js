@@ -177,3 +177,24 @@ describe('Across Cities — deployment map', () => {
     expect(open).not.toHaveBeenCalled();
   });
 });
+
+describe('Across Cities — deployment map, sparse cities', () => {
+  it('names a city by its short name, then its id, when the formatted name is missing', async () => {
+    await render([makeCity('a'), makeCity('b')], { cities: [
+      geo('a', { city_name_formatted: null, city_name_short: 'Short A' }),
+      geo('b', { city_name_formatted: null }),
+    ] });
+    expect(Object.keys(features()).sort()).toEqual(['Short A', 'b']);
+    expect(features().b.properties.popup).toContain('<div class="coverage-popup-name">b</div>');
+  });
+
+  it('says how long ago a city was active, and shows a dash for a state it doesn’t know', async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    await render([makeCity('a', { lifecycle: 'mystery', last_activity: twoHoursAgo })], { cities: [geo('a')] });
+    const popup = document.createElement('div');
+    popup.innerHTML = features()['a city'].properties.popup;
+    const rows = Object.fromEntries([...popup.querySelectorAll('tr')].map((tr) => [tr.cells[0].textContent,
+      tr.cells[1].textContent]));
+    expect(rows).toMatchObject({ Status: '—', 'Last activity': '2h ago' });
+  });
+});

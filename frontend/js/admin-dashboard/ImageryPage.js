@@ -173,7 +173,7 @@ export class ImageryPage {
       this.#streetsByRegion.get(regionId).push(Number(street.street_edge_id));
     }
     this.#regions = Array.from(byRegion.values())
-      .map((row) => ({ ...row, mean_priority: row.streets ? row.priority_sum / row.streets : 0 }));
+      .map((row) => ({ ...row, mean_priority: row.priority_sum / row.streets }));
   }
 
   #buildTables() {
@@ -245,7 +245,6 @@ export class ImageryPage {
 
   /** Fills the street table with the pinned region's queue, or the city-wide top of the ranking. */
   #renderStreetTable() {
-    if (!this.#streetTable) return;
     const regionId = this.#pinnedIds.length ? Number(this.#pinnedIds[0]) : null;
     const pool = regionId === null
       ? this.#streets
@@ -297,7 +296,7 @@ export class ImageryPage {
       this.#regionTable?.clearHighlight();
       return;
     }
-    const streetIds = regionIds.flatMap((id) => this.#streetsByRegion.get(Number(id)) || []);
+    const streetIds = regionIds.flatMap((id) => this.#streetsByRegion.get(Number(id)));
     this.#map?.highlightSegments(streetIds);
     this.#regionTable?.highlightRows(regionIds);
   }
@@ -317,7 +316,7 @@ export class ImageryPage {
 
     // polled_at is the poll rotation's key (#5403); the median is NULL after a conclusive poll that found nothing.
     const polled = this.#streets.filter((street) => street.polled_at);
-    const share = this.#streets.length ? Math.round((polled.length / this.#streets.length) * 100) : 0;
+    const share = Math.round((polled.length / this.#streets.length) * 100);
     const oldestPoll = ImageryPage.#oldestInstant(polled, 'polled_at');
     // Clamped: a browser clock behind the server's would otherwise read "-1 days ago".
     const oldestAge = oldestPoll === null
@@ -438,7 +437,6 @@ export class ImageryPage {
       [tier.key, { count: 0, meters: 0, min: Infinity, max: -Infinity }]));
     for (const street of this.#streets) {
       const stat = stats[street.priority_tier];
-      if (!stat) continue;
       stat.count += 1;
       stat.meters += street.length_m || 0;
       stat.min = Math.min(stat.min, street.priority);
@@ -536,7 +534,7 @@ export class ImageryPage {
     const buckets = ImageryPage.#FRESHNESS_BUCKETS.map((bucket) => ({ ...bucket, count: 0 }));
     for (const street of behind) {
       const days = ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture);
-      const bucket = buckets.find((b) => days <= b.max) || buckets[buckets.length - 1];
+      const bucket = buckets.find((b) => days <= b.max);
       bucket.count += 1;
     }
     MiniLineChart.renderInto(document.getElementById('imagery-freshness-chart'),
@@ -593,10 +591,9 @@ export class ImageryPage {
    *
    * @param {number} count - Streets in the tier.
    * @param {number} total - Routable streets city-wide.
-   * @returns {string} A percentage, or an em dash when there is nothing to divide by.
+   * @returns {string} A percentage.
    */
   static #share(count, total) {
-    if (!total) return '—';
     const pct = (count / total) * 100;
     if (count > 0 && pct < 0.5) return '<1%';
     return `${Math.round(pct)}%`;

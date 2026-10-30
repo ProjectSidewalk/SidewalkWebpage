@@ -207,6 +207,18 @@ describe('deep-link target while sections above it load', () => {
     expect(scrollCalls()).toEqual([target]);
   });
 
+  test('holds where the browser cannot say how the page was reached', () => {
+    performance.getEntriesByType = undefined;
+    window.location.hash = '#my-routes';
+    const { target } = buildDom();
+    new AdminShell().init();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+
+    contentResized();
+
+    expect(scrollCalls()).toEqual([target]);
+  });
+
   test('does nothing on a page opened without a fragment', () => {
     buildDom();
     new AdminShell().init();

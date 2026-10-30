@@ -19,13 +19,13 @@ export class ImageryPipelinePanel {
   #pending = null;
 
   /**
-   * @param {{pipelineUrl: string, days: number, onLoaded?: (report: object) => void}} opts - Endpoint, initial window,
+   * @param {{pipelineUrl: string, days: number, onLoaded: (report: object) => void}} opts - Endpoint, initial window,
    *   and a callback handed the report so the page can fill its own KPIs from the same fetch.
    */
   constructor(opts) {
     this.#pipelineUrl = opts.pipelineUrl;
     this.#days = opts.days;
-    this.#onLoaded = opts.onLoaded || (() => {});
+    this.#onLoaded = opts.onLoaded;
   }
 
   /** Wires the window selector and loads the first report. */
@@ -134,7 +134,8 @@ export class ImageryPipelinePanel {
     const poll = jobs.find((job) => job.job_name === report.poll_job);
     const sync = jobs.find((job) => job.job_name === report.sync_job);
     const reason = poll?.last_details?.not_polled_reason;
-    const recentPolled = (report.run_days || []).reduce((sum, day) => sum + (day.streets_polled || 0), 0);
+    const runDays = report.run_days || [];
+    const recentPolled = runDays.reduce((sum, day) => sum + (day.streets_polled || 0), 0);
 
     let tone = 'good';
     let message;
@@ -170,7 +171,7 @@ export class ImageryPipelinePanel {
       message = `The poll has run but refreshed no streets in the last ${report.days} days; every street it `
         + 'selected was inconclusive.';
     } else {
-      const flagged = (report.run_days || []).reduce((sum, day) => sum + (day.audits_flagged || 0), 0);
+      const flagged = runDays.reduce((sum, day) => sum + (day.audits_flagged || 0), 0);
       message = `Polled ${recentPolled.toLocaleString()} streets in the last ${report.days} days and flagged `
         + `${flagged.toLocaleString()} audit${flagged === 1 ? '' : 's'} for a re-audit.`;
     }

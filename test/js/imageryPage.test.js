@@ -165,8 +165,10 @@ const report = (overrides = {}) => ({
 });
 
 /** Renders the page against canned responses and waits for the map's load event. */
-async function renderPage({ streets = CITY, features, pipeline = report(), failStreets = false } = {}) {
-  document.body.innerHTML = MARKUP;
+async function renderPage({
+  streets = CITY, features, pipeline = report(), failStreets = false, markup = MARKUP,
+} = {}) {
+  document.body.innerHTML = markup;
   charts.length = 0;
   const mapState = stubMapbox();
   window.fetch = vi.fn((url) => {
@@ -657,5 +659,74 @@ describe('ImageryPage join', () => {
     await renderPage();
     const tierCells = streetRows().map((tr) => tr.cells[3].textContent);
     expect(tierCells).toEqual(['Not yet audited', 'Needs re-audit', 'Audited once', 'Audited 2+ times']);
+  });
+});
+
+describe('ImageryPage edge cases (#5840)', () => {
+  test('a poll with no hours or counts recorded shows a dash and says it has no counts', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: null }] }),
+    });
+    expect(text('kpi-last-poll')).toBe('—');
+    expect(text('kpi-last-poll-note')).toBe('no counts recorded for that run');
+  });
+
+  test('a poll that recorded what it polled but not what it selected counts the selection as zero', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: 3,
+        last_details: { streets_polled: 7 } }] }),
+    });
+    expect(text('kpi-last-poll-note')).toBe('7 of 0 selected streets refreshed');
+  });
+
+  test('a report with no jobs or nights reads as a poll that never ran and a stalled rotation', async () => {
+    const pipeline = report();
+    delete pipeline.jobs;
+    delete pipeline.run_days;
+    await renderPage({ pipeline });
+    expect(text('kpi-last-poll')).toBe('never');
+    expect(text('imagery-rotation')).toContain('the rotation is stalled');
+  });
+
+  test('a rotation with no batch size on the report still projects a full pass', async () => {
+    await renderPage({ pipeline: report({ poll_batch_size: null }) });
+    expect(text('imagery-rotation')).toContain('at 400 streets a night (batch size 0)');
+  });
+
+  test('a street with no length counts toward the tier and the re-audit KPI but adds no distance', async () => {
+    const streets = [street({ street_edge_id: 1, outdated_good_count: 1, outdated: true, length_m: null }),
+      street({ street_edge_id: 2, outdated_good_count: 1, outdated: true, length_m: 1000 })];
+    await renderPage({ streets, features: geojson([1, 2]) });
+    expect(text('kpi-needs-reaudit')).toBe('2');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.0 km with newer imagery');
+  });
+
+  test('the freshness chart reads its bars as streets, singular for one', async () => {
+    await renderPage();
+    const chart = charts.find((c) => c.host?.id === 'imagery-freshness-chart');
+    expect([chart.options.valueFormat(1), chart.options.valueFormat(3)]).toEqual(['1 street', '3 streets']);
+  });
+
+  test('a priority payload with no streets list, or a streets payload with no features, is not an error', async () => {
+    await renderPage({ streets: null });
+    expect(text('imagery-status')).toContain('no routable streets');
+
+    await renderPage({ features: { type: 'FeatureCollection' } });
+    expect(text('imagery-status')).toContain('No geometry matched');
+  });
+
+  test('a page missing its optional notes still loads its tables', async () => {
+    const strip = (ids) => ids.reduce((html, id) => html.replace(new RegExp(`<(\\w+)[^>]*id="${id}"[^>]*></\\1>`), ''),
+      MARKUP);
+    await renderPage({ markup: strip(['imagery-priority-note', 'imagery-region-note', 'imagery-street-intro',
+      'imagery-street-note', 'imagery-freshness-note', 'imagery-status']) });
+    expect(regionRows()).toHaveLength(2);
+    regionRows()[0].click();
+    expect(streetRows().length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('#imagery-legend tbody tr').length).toBeGreaterThan(0);
+
+    await renderPage({ markup: strip(['imagery-legend']) });
+    expect(text('imagery-priority-note')).toBe('');
+    expect(regionRows()).toHaveLength(2);
   });
 });
