@@ -1,11 +1,4 @@
-/**
- * Project Sidewalk User Stats Visualization Generator.
- *
- * This script generates visualizations for the User Stats API preview by fetching data directly from the API endpoint.
- *
- * @requires DOM element with id 'user-stats-preview'
- * @requires Chart.js library
- */
+/** The /v3/api-docs/userStats preview: charts of the top contributors, from the User Stats API. */
 
 import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';

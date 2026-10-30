@@ -29,8 +29,7 @@ export const ApiDocsMap = (function () {
    * @param {string} options.mapboxApiKey - Mapbox access token.
    * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
    * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
-   * @param {number} [options.fitPadding] - Pixels of padding left around `bounds`. Defaults to a share of the map's
-   *                                        width, capped at 75.
+   * @param {number} [options.fitPadding] - Padding around `bounds`, in px. Defaults to 12% of the map's width, max 75.
    * @param {mapboxgl.LngLatLike} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
    * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
    * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
@@ -111,9 +110,8 @@ export const ApiDocsMap = (function () {
    * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {mapboxgl.LngLatLike} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
-   * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, e.g.
-   *   `closeButton: false` for a hover preview; `modifier` is a class added beside `map-popup`, for a popup styled
-   *   apart from the rest.
+   * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, plus
+   *   `modifier`, a class added beside `map-popup` for a popup styled differently.
    * @returns {mapboxgl.Popup} The opened popup.
    */
   function popup(map, lngLat, html, { modifier, ...options } = {}) {
@@ -323,7 +321,7 @@ export const ApiDocsMap = (function () {
    *     to its info, from /v3/api/labelTypes.
    */
   function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo) {
-    // A type the API doesn't list is still drawn, in labelTypeColorExpression's fallback gray, so it's listed too.
+    // The map draws a type the API doesn't list in gray, so the legend lists it too.
     const fallback = { color: ApiDocsTheme.color('--color-neutral-500'), display: '' };
     const rows = typeNames
       .map((name) => {

@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/rawLabels preview (#5840): a map of every label in the busiest region, colored by label type, with
- * a count, a legend of the types drawn, and a popup per label.
- */
+/** The /v3/api-docs/rawLabels preview (#5840): a map of the busiest region's labels, with a legend and popups. */
 
 import { loadModules } from './loader.js';
 import {
@@ -26,7 +23,6 @@ function label(id, properties = {}) {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview({
   labels = { type: 'FeatureCollection', features: [label(1), label(2)] }, routes = {},
 } = {}) {
@@ -43,7 +39,6 @@ async function renderPreview({
   return { fetchStub, container: document.getElementById('raw-labels-preview') };
 }
 
-/** Clicks a label on the map and returns its popup. */
 function clickLabel(properties) {
   world.maps[0].fireOn('raw-labels', 'click', [label(9, properties)]);
   return world.popups.at(-1);

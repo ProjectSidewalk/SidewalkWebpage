@@ -1,17 +1,14 @@
 /**
- * Shared setup for the API docs suites (#5840). Mapbox GL and Chart.js both draw on a canvas jsdom can't render, so
- * each is a double that records what a preview asked it to draw and lets a test fire the map's events. Everything
- * between the API response and those two (the previews themselves, ApiDocsMap, the legends and popups) is real.
- *
- * Call `stubApiDocsLibraries()` once at the top of a suite, before its first `loadModules`.
+ * Shared setup for the API docs suites (#5840). jsdom can't draw Mapbox maps or Chart.js charts, so both are fakes
+ * that record what they were asked to draw; everything else is real. Call `stubApiDocsLibraries()` before loading.
  */
 
 import { mockModule } from '../loader.js';
 
-/** What the doubles share with the test: reset by `resetWorld`, read by the test. */
+/** Every map, chart and popup made so far, for the test to read. */
 export const world = { maps: [], charts: [], popups: [] };
 
-/** Empties `world`, and makes the next map build load, or fail with `mapError`. */
+/** Empties `world`; a `mapError` makes the next maps fail to load. */
 export function resetWorld({ mapError = null } = {}) {
   world.maps = [];
   world.charts = [];
@@ -19,7 +16,7 @@ export function resetWorld({ mapError = null } = {}) {
   world.mapError = mapError;
 }
 
-/** mapboxgl.LngLatBounds, enough for geoBounds.js: the box grown around every point it's given. */
+/** Enough of mapboxgl.LngLatBounds for geoBounds.js. */
 export class FakeBounds {
   constructor() {
     this.box = null;
@@ -48,10 +45,7 @@ export class FakeBounds {
   }
 }
 
-/**
- * A mapbox-gl Map double. It reports itself loaded at once (or fails, per `world.mapError`), adds a control's element
- * to its container the way the real map does, and keeps every source, layer and handler for the test to inspect.
- */
+/** A fake Mapbox map: loads at once (or fails, per `world.mapError`) and keeps its sources, layers and handlers. */
 export class FakeMap {
   constructor(options) {
     this.options = options;
@@ -85,7 +79,7 @@ export class FakeMap {
 
   once(event, handler) {
     this.on(event, handler);
-    // A build set to fail reports it the way Mapbox does: an `error` event, after the caller has subscribed.
+    // Mapbox reports a failed load as an `error` event, after the caller has subscribed.
     if (event === 'error' && world.mapError) queueMicrotask(() => this.fire('error', { error: world.mapError }));
     return this;
   }
@@ -100,7 +94,7 @@ export class FakeMap {
     this.handlers.filter((h) => h.event === event && h.layer === layer).forEach((h) => h.handler(payload));
   }
 
-  /** Fires a layer event at the given features, as a pointer over them would. */
+  /** Fires a layer event at the given features, as the pointer would. */
   fireOn(layer, event, features, lngLat = { lng: 0, lat: 0 }) {
     this.fire(event, { features, lngLat, point: { x: 0, y: 0 }, originalEvent: {} }, layer);
   }
@@ -158,7 +152,7 @@ export class FakeMap {
   }
 }
 
-/** A mapbox-gl Popup double: records where it opened and what it holds, and renders the HTML for queries. */
+/** A fake Mapbox popup, with its HTML rendered so a test can query it. */
 export class FakePopup {
   constructor(options) {
     this.options = options;
@@ -212,7 +206,7 @@ export class FakePopup {
   }
 }
 
-/** A Chart.js double: keeps the config and the canvas it was drawn on. */
+/** A fake Chart.js chart, keeping its config. */
 export class FakeChart {
   constructor(canvas, config) {
     this.canvas = canvas;
@@ -233,10 +227,7 @@ export class FakeChart {
   }
 }
 
-/**
- * Replaces mapbox-gl, its language plugin, Chart.js and i18next for whatever the suite loads next. i18next answers
- * with the key, plus any interpolated values, so a test can see both what was asked for and what filled it.
- */
+/** Swaps in the fakes, and an i18next that answers with the key plus any values filled in. */
 export function stubApiDocsLibraries() {
   mockModule('frontend/js/common/mapboxgl.js', () => ({
     default: {
@@ -259,11 +250,8 @@ export function stubApiDocsLibraries() {
 }
 
 /**
- * Answers `fetch` from a table of URL prefixes, ignoring the `utm_source` marker the docs add. A route's value is
- * the JSON body, or `{ status, body }` (a numeric status and nothing else) for an error, or a function of the URL
- * returning either. Anything unrouted fails the test with the URL it asked for. The stub is undone before the next
- * test, so one that forgets to route its own requests hits setup.js's throwing fetch, not this test's routes.
- *
+ * Answers `fetch` by URL prefix. A route gives the JSON body, `{ status, body }` for an error, or a function of the
+ * URL giving either. An unrouted URL fails the test, and the stub is undone after each test.
  * @param {Record<string, any>} routes - URL prefix (path plus any query) to the answer.
  * @returns {import('vitest').Mock} The stub, whose calls are the URLs asked for.
  */
@@ -289,7 +277,7 @@ export function routeFetch(routes) {
   return stub;
 }
 
-/** @returns {boolean} Whether a route's answer is `{ status, body }`, rather than a body that has a `status` field. */
+/** @returns {boolean} Whether an answer is `{ status, body }`, not a body that happens to have a `status`. */
 function isErrorSpec(answer) {
   return typeof answer?.status === 'number' && Object.keys(answer).every((key) => key === 'status' || key === 'body');
 }
@@ -300,7 +288,7 @@ export const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); })
 /** @returns {string} An element's text, whitespace collapsed. */
 export const textOf = (el) => el.textContent.replace(/\s+/g, ' ').trim();
 
-/** Sets the main.css color tokens the previews read, so a color reads as itself rather than an empty string. */
+/** Sets the color tokens the previews read, which jsdom has no stylesheet for. */
 export function stampColorTokens() {
   const style = document.documentElement.style;
   ['white', 'black', '300', '500', '800'].forEach((shade, i) => {

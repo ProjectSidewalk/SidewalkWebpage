@@ -1,8 +1,6 @@
 /**
- * The /v3/api-docs/streetGrade preview (#5840): the busiest region's streets in the AccessScore tool's slope classes,
- * where hovering a street previews its elevation profile, clicking pins it, and a picker under the map pins one from
- * the keyboard. The chart itself is the AccessScore tool's, replaced here by a stand-in that records what it was asked
- * to draw.
+ * The /v3/api-docs/streetGrade preview (#5840): streets colored by slope, where hovering previews a street's elevation
+ * profile and clicking (or the picker under the map) pins it. The elevation chart is a stand-in.
  */
 
 import { loadModules, mockModule } from './loader.js';
@@ -62,7 +60,6 @@ function profile(overrides = {}) {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview(routes = {}) {
   document.body.innerHTML = '<div id="street-grade-preview"></div>';
   const fetchStub = routeFetch({
@@ -78,17 +75,15 @@ async function renderPreview(routes = {}) {
   return { fetchStub, map: world.maps[0], container: document.getElementById('street-grade-preview') };
 }
 
-/** @returns {string[]} The URLs fetched for street profiles. */
 const profileFetches = (fetchStub) => fetchStub.mock.calls.map(([url]) => url).filter((u) => u.includes('streetGrade'));
 
-/** Clicks a street, as the reader pinning its popup, and lets its profile load. */
+/** Clicks a street to pin its popup, and waits for its profile to load. */
 async function clickStreet(map, id, properties = streets().features[id - 1].properties) {
   map.fireOn('street-grade-lines', 'click', [{ id, properties }], { lng: 1, lat: 2 });
   await flush();
   return world.popups.at(-1);
 }
 
-/** The popup now open, if any. */
 const openPopup = () => world.popups.filter((p) => !p.removed).at(-1);
 
 beforeEach(() => {
@@ -312,7 +307,7 @@ describe('hovering the streets', () => {
   const hover = (map, id) => map.fireOn(
     'street-grade-lines', 'mousemove', [{ id, properties: streets().features[id - 1].properties }]);
 
-  /** Renders with real timers, so the page's loads can settle, then hands the hover tests fake ones. */
+  /** Renders on real timers so the page can finish loading, then switches to fake ones for the hover delay. */
   async function renderHoverable() {
     vi.useRealTimers();
     const rendered = await renderPreview();
@@ -391,7 +386,7 @@ describe('the street picker', () => {
     await renderPreview();
     const options = [...document.querySelectorAll('#street-grade-picker-select option')].map(textOf);
     expect(options).toEqual(['Steepest first…', 'Unnamed street · 12% (street 2)', 'Main <St> · 3% (street 1)']);
-    // It follows the map, outside the container a failure would overwrite.
+    // Outside the container, so an error message replacing the map doesn't wipe it.
     expect(document.getElementById('street-grade-preview').nextElementSibling.className).toBe('street-grade-picker');
   });
 

@@ -1,7 +1,6 @@
 /**
- * The label tags preview (#5840): on /v3/api-docs/labelTags, one table of tags per label type, each under a heading
- * the index page links to; on the index, a summary of which tags each type offers. Fed from a canned
- * /v3/api/labelTags response.
+ * The label tags preview (#5840): a table of tags per label type on /v3/api-docs/labelTags, each under a heading the
+ * index links to, and a summary of each type's tags on the index.
  */
 
 import { loadModules } from './loader.js';
@@ -18,7 +17,6 @@ const LABEL_TAGS = {
   ],
 };
 
-/** Loads the preview onto a page with its container, and runs it with the given options. */
 async function renderPreview(options = {}, response = LABEL_TAGS) {
   document.body.innerHTML = '<div id="label-tags-preview"></div>';
   const fetchStub = routeFetch({ '/v3/api/labelTags': response });
@@ -27,7 +25,6 @@ async function renderPreview(options = {}, response = LABEL_TAGS) {
   return { fetchStub, container: document.getElementById('label-tags-preview'), LabelTagsPreview };
 }
 
-/** @returns {string[][]} Each body row of a table, as its cells' text. */
 const bodyRows = (table) => [...table.querySelectorAll('tbody tr')].map((tr) => [...tr.cells].map(textOf));
 
 describe('the detailed view', () => {

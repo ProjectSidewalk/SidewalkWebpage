@@ -1,7 +1,6 @@
 /**
- * The /v3/api-docs/accessScoreRegions preview (#5840): one map of the city's regions colored by AccessScore or audit
- * coverage, with a legend that follows the pick and a popup per region, and a "still computing" note in place of an
- * error while the server warms its cache (#5418).
+ * The /v3/api-docs/accessScoreRegions preview (#5840): regions colored by AccessScore or coverage, with a "still
+ * computing" note instead of an error while the server builds its cache (#5418).
  */
 
 import { loadModules } from './loader.js';
@@ -29,7 +28,6 @@ function regions() {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given response. */
 async function renderPreview(answer = regions()) {
   document.body.innerHTML = '<div id="access-score-regions-preview"></div>';
   routeFetch({ [ENDPOINT]: answer });
@@ -39,7 +37,6 @@ async function renderPreview(answer = regions()) {
   return { map: world.maps[0], container: document.getElementById('access-score-regions-preview') };
 }
 
-/** Clicks a region and returns its popup. */
 function clickRegion(map, properties) {
   map.fireOn('access-score-region-fill', 'click', [{ properties }], { lng: 1, lat: 2 });
   return world.popups.at(-1);
@@ -60,7 +57,7 @@ describe('a city with scored regions', () => {
     expect(map.layerOrder).toEqual(['basemap-dim', 'access-score-region-fill', 'access-score-region-outline']);
     expect(textOf(container.querySelector('.map-chip'))).toBe('2 regions');
     expect(container.querySelector('#as-region-metric-select').value).toBe('score');
-    // A null score folds to the sentinel below the ramp, the "none" gray.
+    // A missing score is drawn in the "none" gray, below the color ramp.
     const color = map.layers['access-score-region-fill'].paint['fill-color'];
     expect(color[1]).toEqual(['<=', ['coalesce', ['get', 'score'], -1], -1]);
   });
@@ -102,7 +99,7 @@ describe('a city with scored regions', () => {
     const popup = clickRegion(map, regions().features[1].properties);
     expect(textOf(popup.element.querySelector('h4'))).toBe('Region 8');
     expect(popup.text()).toContain('N/A (no audited streets) AccessScore Coverage: 0%');
-    // A region the API sent without the field at all reads the same.
+    // Same for a region the API sent with no score field at all.
     const bare = regions().features[1].properties;
     delete bare.score;
     delete bare.coverage;

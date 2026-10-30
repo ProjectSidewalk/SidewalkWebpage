@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/labelClusters preview (#5840): a map of the busiest region's label clusters, colored by label type
- * and sized by how many labels each holds, with a count, a legend of the types drawn, and a popup per cluster.
- */
+/** The /v3/api-docs/labelClusters preview (#5840): the busiest region's clusters, sized by label count. */
 
 import { loadModules } from './loader.js';
 import {
@@ -28,7 +25,6 @@ function cluster(id, properties = {}) {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview({
   clusters = { type: 'FeatureCollection', features: [cluster(1), cluster(2, { label_type: 'Obstacle' })] },
   routes = {},
@@ -46,7 +42,6 @@ async function renderPreview({
   return { fetchStub, container: document.getElementById('label-clusters-preview') };
 }
 
-/** Clicks a cluster on the map and returns its popup. */
 function clickCluster(properties) {
   world.maps[0].fireOn('label-clusters', 'click', [cluster(9, properties)]);
   return world.popups.at(-1);

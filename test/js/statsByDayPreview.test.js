@@ -1,7 +1,6 @@
 /**
- * The two by-day API docs previews (#5840), built by statsByDayPreview.js: summary cards and three daily charts
- * (labels, human validations by result, labels by type), for one city on /v3/api-docs/overallStatsByDay and summed
- * across every deployment, with AI activity, on /v3/api-docs/aggregateStatsByDay.
+ * The two by-day API docs previews (#5840): summary cards and three daily charts, for one city (overallStatsByDay)
+ * and for all cities with AI activity counted (aggregateStatsByDay).
  */
 
 import { loadModules } from './loader.js';
@@ -22,7 +21,6 @@ const AGGREGATE = {
   agreementCard: 'Human agreement rate',
 };
 
-/** One row of either endpoint's flat data: a label type's activity on one day. */
 function row(date, labelType, overrides = {}) {
   return {
     date,
@@ -39,7 +37,7 @@ function row(date, labelType, overrides = {}) {
   };
 }
 
-/** Two days: CurbRamp on both, Obstacle only on the second, with some AI validations mixed in. */
+/** CurbRamp on both days, Obstacle on the second only, with some AI validations mixed in. */
 const TWO_DAYS = [
   row('2026-10-02', 'CurbRamp', { human_labels: 5, ai_labels: 2, human_validations_agree: 6, ai_validations_agree: 4 }),
   row('2026-10-01', 'CurbRamp', {
@@ -50,7 +48,7 @@ const TWO_DAYS = [
   }),
 ];
 
-/** @returns {string[]} `count` consecutive days ending 2026-10-31 (some reach back into earlier months), ascending. */
+/** @returns {string[]} The `count` days up to 2026-10-31, oldest first. */
 function days(count) {
   return Array.from({ length: count }, (_, i) => new Date(Date.UTC(2026, 9, 31 - (count - 1) + i))
     .toISOString().slice(0, 10));
@@ -58,7 +56,6 @@ function days(count) {
 
 let variant;
 
-/** Loads the module and runs `variant`'s preview against the given response. */
 async function renderPreview(response = { data: TWO_DAYS }, setup = {}) {
   document.body.innerHTML = `<div id="${variant.containerId}"></div>`;
   routeFetch({ [`/v3/api/${variant.endpoint}`]: response });
@@ -69,16 +66,13 @@ async function renderPreview(response = { data: TWO_DAYS }, setup = {}) {
 
 const container = () => document.getElementById(variant.containerId);
 
-/** @returns {Record<string, string>} Each summary card's label to its value. */
 const cards = () => Object.fromEntries([...container().querySelectorAll('.preview-stat')].map((stat) => [
   textOf(stat.querySelector('.preview-stat-label')), textOf(stat.querySelector('.preview-stat-value')),
 ]));
 
-/** @returns {string[]} Each chart section's title and description. */
 const sections = () => [...container().querySelectorAll('.preview-section:not(.preview-stat-grid)')].map(
   (section) => `${textOf(section.querySelector('.preview-title'))}: ${textOf(section.querySelector('.preview-desc'))}`);
 
-/** @returns {Record<string, number[]>} A chart's datasets, by legend label. */
 const series = (chart) => Object.fromEntries(chart.data.datasets.map((d) => [d.label, d.data]));
 
 beforeEach(() => {

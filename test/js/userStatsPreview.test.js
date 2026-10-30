@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/userStats preview (#5840): the top labelers, their label-type breakdown, and accuracy against
- * contribution volume, built from canned /v3/api/userStats and /v3/api/labelTypes responses.
- */
+/** The /v3/api-docs/userStats preview (#5840): top labelers, their label types, and accuracy against volume. */
 
 import { loadModules } from './loader.js';
 import { flush, resetWorld, routeFetch, stubApiDocsLibraries, textOf, world } from './support/apiDocsHarness.js';
@@ -15,7 +12,7 @@ const LABEL_TYPES = {
   ],
 };
 
-/** The good/middling/bad accuracy tiers' tokens, each a distinct color so a test can tell which tier a bubble got. */
+/** A distinct color per accuracy tier, so a test can tell which tier a bubble got. */
 const TIER_TOKENS = {
   '--color-jade-400': '#110000',
   '--color-jade-700': '#120000',
@@ -26,7 +23,6 @@ const TIER_TOKENS = {
   '--color-neutral-500': '#555555',
 };
 
-/** A user row as /v3/api/userStats returns it. */
 function user(id, labels, overrides = {}) {
   return {
     user_id: id,
@@ -56,7 +52,6 @@ function users() {
   ];
 }
 
-/** Loads the preview and runs it against the given responses. */
 async function renderPreview({ routes = {}, setup = {} } = {}) {
   document.body.innerHTML = '<div id="user-stats-preview"></div>';
   const fetchStub = routeFetch({
@@ -72,15 +67,13 @@ async function renderPreview({ routes = {}, setup = {} } = {}) {
 
 const container = () => document.getElementById('user-stats-preview');
 
-/** @returns {HTMLElement} The section with this title. */
 const section = (title) => [...container().querySelectorAll('.preview-section')]
   .find((s) => s.querySelector('.preview-title').textContent === title);
 
-/** @returns {FakeChart} The chart drawn under the section with this title; its context's canvas is the element. */
+/** A chart is drawn on the 2D context stand-in, whose `canvas` is the real element. */
 const chartTitled = (title) => world.charts.find((chart) => chart.canvas.canvas.closest('.preview-section')
   === section(title));
 
-/** @returns {{title: string, label: string|string[]}} What a chart's tooltip shows for one point. */
 const tooltip = (chart, i) => {
   const { callbacks } = chart.options.plugins.tooltip;
   return { title: callbacks.title([{ dataIndex: i }]), label: callbacks.label?.({ dataIndex: i }) };
@@ -125,7 +118,7 @@ describe("the top labelers' label types", () => {
     expect(chart.data.datasets.map((d) => [d.label, d.data, d.backgroundColor])).toEqual([
       ['Curb Ramp', [50, 20, 6, 6], '#90C31F'],
       ['Obstacle in Path', [50, 20, 6, 5], '#78B0EA'],
-      // Not in the label types API's list, so its machine name and the neutral color.
+      // Not in the API's list, so it shows its raw name in the neutral color.
       ['Other', [1, 1, 0, 0], '#555555'],
     ]);
     expect(chart.options.scales.y.stacked).toBe(true);

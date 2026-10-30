@@ -1,12 +1,6 @@
 /**
- * Project Sidewalk Stats by Day Preview Generator.
- *
- * Renders the live time-series previews for the two by-day API endpoints, which serve the same rows: Overall Stats
- * by Day (the current city) and Aggregate Stats by Day (summed across every deployment). Each shows daily label and
- * validation activity over the most recent 90 days with data; the aggregate one also charts and counts AI activity.
- *
- * @requires DOM element with id 'overall-stats-by-day-preview' or 'aggregate-stats-by-day-preview'
- * @requires Chart.js library (chart-4.5.1.min.js)
+ * The previews on the two by-day API docs pages: one city, and every city summed (which also shows AI activity).
+ * Both chart the last 90 days that have data.
  */
 
 import { Chart } from './apiDocsChart.js';
@@ -69,8 +63,8 @@ function dailyTotals(dates, byDay, field) {
  * Renders the summary stats bar and charts.
  * @param {HTMLElement} container
  * @param {Array<Record<string, any>>} data
- * @param {StatsByDayVariant} variant - Which endpoint's preview this is.
- * @param {{cityName: string}} config - The preview's settings, for the wording that names the city.
+ * @param {StatsByDayVariant} variant - Which page's preview this is.
+ * @param {{cityName: string}} config - The preview's settings.
  */
 function render(container, data, variant, config) {
   if (!data.length) {
@@ -135,7 +129,7 @@ function render(container, data, variant, config) {
     });
   }));
 
-  // ── Chart 2: Human validations per day (stacked agree/disagree/unsure) ─
+  // ── Chart 2: Human validations per day, stacked by result ──────────────
   const validationBar = (label, field, color) => ({
     label,
     data: dailyTotals(dates, byDay, field),
@@ -236,15 +230,14 @@ function makeChart(title, description, builder) {
  * @property {boolean} withAi - Whether AI labels are charted and AI validations counted in the total.
  * @property {string} validationsLabel - The total-validations card's label.
  * @property {string} agreementLabel - The agreement-rate card's label.
- * @property {(config: {cityName: string}) => [string, string]} labelsChart - Title and description of the labels chart.
- * @property {(config: {cityName: string}) => [string, string]} validationsChart - Title and description of the
- *     validations chart.
- * @property {[string, string]} byTypeChart - Title and description of the labels-by-type chart.
+ * @property {(config: {cityName: string}) => [string, string]} labelsChart - That chart's title and description.
+ * @property {(config: {cityName: string}) => [string, string]} validationsChart - Same, for validations.
+ * @property {[string, string]} byTypeChart - Same, for labels by type.
  */
 
 /**
  * Builds one by-day preview.
- * @param {StatsByDayVariant} variant - Which endpoint, and how its preview words and counts things.
+ * @param {StatsByDayVariant} variant - Which page, and how its preview words and counts things.
  * @returns {{setup: Function, init: Function}} The preview.
  */
 function createStatsByDayPreview(variant) {
@@ -276,7 +269,6 @@ function createStatsByDayPreview(variant) {
         })
         .then((json) => {
           container.innerHTML = '';
-          // Trim to the most recent 90 days that have data for readability.
           render(container, trimToRecentDays(json.data || [], 90), variant, config);
         })
         .catch((err) => {

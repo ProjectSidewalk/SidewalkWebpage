@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/overallStats preview (#5840): the city's summary cards and three bar charts (label counts, mean
- * severity, accuracy) built from canned /v3/api/overallStats and /v3/api/labelTypes responses.
- */
+/** The /v3/api-docs/overallStats preview (#5840): the city's summary cards and its three bar charts. */
 
 import { loadModules } from './loader.js';
 import {
@@ -17,7 +14,7 @@ const LABEL_TYPES = {
   ],
 };
 
-/** A city's stats: CurbRamp and Obstacle carry severity, Signal has none, and NoSidewalk was never validated. */
+/** CurbRamp and Obstacle have severity ratings, Signal has none, and NoSidewalk was never validated. */
 function stats() {
   return {
     launch_date: '2019-04-01',
@@ -44,7 +41,6 @@ function stats() {
   };
 }
 
-/** Loads the preview and runs it against the given responses. */
 async function renderPreview({ routes = {}, setup = {} } = {}) {
   document.body.innerHTML = '<div id="overall-stats-preview"></div>';
   routeFetch({ '/v3/api/labelTypes': LABEL_TYPES, '/v3/api/overallStats': stats(), ...routes });
@@ -56,16 +52,13 @@ async function renderPreview({ routes = {}, setup = {} } = {}) {
 
 const container = () => document.getElementById('overall-stats-preview');
 
-/** @returns {Record<string, string>} Each summary card's label to its value. */
 const cards = () => Object.fromEntries([...container().querySelectorAll('.preview-stat')].map((stat) => [
   textOf(stat.querySelector('.preview-stat-label')), textOf(stat.querySelector('.preview-stat-value')),
 ]));
 
-/** @returns {FakeChart} The chart drawn under the section with this title. */
 const chartTitled = (title) => world.charts.find((chart) => chart.canvas.canvas.closest('.preview-section')
   .querySelector('.preview-title').textContent === title);
 
-/** @returns {string|string[]} What a chart's tooltip shows for one bar. */
 const tooltip = (chart, i) => ({
   title: chart.options.plugins.tooltip.callbacks.title([{ dataIndex: i }]),
   label: chart.options.plugins.tooltip.callbacks.label({ dataIndex: i }),
@@ -76,7 +69,7 @@ beforeEach(() => {
   stampColorTokens();
   document.documentElement.removeAttribute('data-api-base-url');
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  // jsdom has no 2D canvas; the chart double only needs something to be handed.
+  // jsdom can't draw on a canvas, so the chart gets a stand-in.
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function () { return { canvas: this }; });
 });
 
@@ -123,7 +116,7 @@ describe('the charts', () => {
     const chart = chartTitled('Label Counts by Type');
     expect(chart.data.labels).toEqual(['Curb Ramp', 'Obstacle in Path', 'Signal']);
     expect(chart.data.datasets[0].data).toEqual([600, 300, 100]);
-    // Signal isn't in the API's list, so it falls back to the neutral token; the border is a shade darker.
+    // Signal isn't in the API's list, so it gets the neutral color, with a darker border.
     expect(chart.data.datasets[0].backgroundColor).toEqual(['#90C31F', '#78B0EA', '#444444']);
     expect(chart.data.datasets[0].borderColor).toEqual(['#7caf0b', '#649cd6', '#303030']);
     expect(chart.options.scales.y.title.text).toBe('Number of Labels');

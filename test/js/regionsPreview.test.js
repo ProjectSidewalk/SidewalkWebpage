@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/regions preview (#5840): one map of every region in the city, colored by the metric the reader
- * picks, with a legend that follows the pick and a popup per region.
- */
+/** The /v3/api-docs/regions preview (#5840): the city's regions, colored by whichever metric the reader picks. */
 
 import { loadModules } from './loader.js';
 import {
@@ -24,7 +21,6 @@ function regions() {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given regions response. */
 async function renderPreview(answer = regions()) {
   document.body.innerHTML = '<div id="regions-preview"></div>';
   const fetchStub = routeFetch({ '/v3/api/regions?inline=true': answer });
@@ -34,7 +30,6 @@ async function renderPreview(answer = regions()) {
   return { fetchStub, map: world.maps[0], container: document.getElementById('regions-preview') };
 }
 
-/** @returns {string[]} The text of each of an element's direct children. */
 const rows = (el) => [...el.children].map(textOf);
 
 beforeEach(() => {

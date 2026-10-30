@@ -1,8 +1,4 @@
-/**
- * The /v3/api-docs/sidewalkPresence preview (#5840): one map of the busiest region's block faces, each street drawn
- * twice and colored by what the labels say about that side, with a legend of the verdicts present, a summary, and a
- * popup that sets a face beside the other side of its street.
- */
+/** The /v3/api-docs/sidewalkPresence preview (#5840): each side of a street colored by whether it has a sidewalk. */
 
 import { loadModules } from './loader.js';
 import {
@@ -20,9 +16,8 @@ function face(streetEdgeId, side, properties = {}) {
 }
 
 /**
- * Street 1 has no sidewalk on its left (three labels, one confirmed) and one on its right; street 2's left is called
- * absent from the other side's tag; street 3 is unaudited on both sides, and street 4's two faces are absent on one
- * and two labels.
+ * Street 1: no sidewalk on the left (3 labels, 1 confirmed), one on the right. Street 2: left marked missing by a tag
+ * on the other side. Street 3: unaudited. Street 4: both sides missing, on 1 and 2 labels.
  */
 function faces() {
   return {
@@ -39,7 +34,6 @@ function faces() {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview({ region = regionFeature(), faceData = faces(), routes = {} } = {}) {
   document.body.innerHTML = '<div id="sidewalk-presence-preview"></div>';
   const fetchStub = routeFetch({
@@ -53,10 +47,8 @@ async function renderPreview({ region = regionFeature(), faceData = faces(), rou
   return { fetchStub, map: world.maps[0], container: document.getElementById('sidewalk-presence-preview') };
 }
 
-/** @returns {string[]} The text of each of an element's direct children. */
 const rows = (el) => [...el.children].map(textOf);
 
-/** Clicks a face on the map and returns its popup. */
 function clickFace(map, properties) {
   map.fireOn('face-lines', 'click', [{ properties }], { lng: 1, lat: 2 });
   return world.popups.at(-1);
@@ -195,7 +187,6 @@ describe('an empty region', () => {
 });
 
 describe('when something fails', () => {
-  /** @returns {string} What the preview's container reads. */
   const shown = () => textOf(document.getElementById('sidewalk-presence-preview'));
 
   it('shows the region lookup failing, and fetches no faces', async () => {

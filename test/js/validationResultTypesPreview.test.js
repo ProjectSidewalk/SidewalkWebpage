@@ -47,10 +47,8 @@ describe('ValidationResultTypesPreview', () => {
   let ValidationResultTypesPreview;
 
   beforeEach(async () => {
-    // Fresh container per test.
     document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-    // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
-    // bleed into the next.
+    // A fresh copy of the module, so one test's setup() can't leak into the next.
     ({ ValidationResultTypesPreview } = await loadModules(MODULE_PATH));
   });
 

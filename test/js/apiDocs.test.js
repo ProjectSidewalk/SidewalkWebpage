@@ -1,8 +1,4 @@
-/**
- * The chrome every API docs page shares (#5840), from apiDocs.js: the "On This Page" contents and its scroll spy,
- * smooth scrolling to a heading, copying a heading's permalink, and the download buttons, which fetch the file
- * themselves to report progress and catch a download cut short.
- */
+/** apiDocs.js, shared by every API docs page (#5840): the contents list, heading links, and download buttons. */
 
 import { loadModules, mockModule } from './loader.js';
 import { textOf } from './support/apiDocsHarness.js';
@@ -13,7 +9,7 @@ mockModule('frontend/js/common/copyToClipboard.js', () => ({ copyToClipboard }))
 mockModule('frontend/js/common/sidebarDisclosure.js', () => ({ initSidebarDisclosure }));
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
-/** A docs page as layout.scala.html lays it out, with the given content and download buttons. */
+/** A docs page laid out as layout.scala.html does. */
 function pageMarkup({ content = defaultContent(), buttons = defaultButtons() } = {}) {
   return `
     <div class="page-sidebar">
@@ -43,8 +39,7 @@ function defaultButtons() {
 }
 
 /**
- * Loads apiDocs.js onto a fresh page and runs its DOMContentLoaded setup, caught rather than added so an earlier
- * test's copy of the module never sets this page up too.
+ * Loads apiDocs.js and runs its page setup. The setup is caught, not added, so an earlier test's copy can't run too.
  * @returns {Promise<object>} The module's exports.
  */
 async function loadPage(markup = pageMarkup(), { endpoint = 'streets', baseUrl } = {}) {
@@ -118,7 +113,6 @@ describe('the scroll spy', () => {
 
   const highlighted = () => [...document.querySelectorAll('.page-toc a.is-active')].map((a) => a.getAttribute('href'));
 
-  /** Scrolls the window to `y` and lets the debounced handler run. */
   function scrollTo(y) {
     window.scrollY = y;
     window.dispatchEvent(new Event('scroll'));
@@ -136,7 +130,7 @@ describe('the scroll spy', () => {
     vi.advanceTimersByTime(100);
     expect(highlighted()).toEqual(['#streets-api']);
 
-    // Sections count as reached 70px early: the 50px navbar, plus 20px of breathing room.
+    // A section counts as reached 70px early: the 50px navbar plus 20px of space.
     scrollTo(429);
     expect(highlighted()).toEqual(['#streets-api']);
     scrollTo(430);
@@ -291,12 +285,11 @@ describe('the download buttons', () => {
     });
   });
 
-  /** Waits out the promise chain between a stream event and the page's reaction to it. */
+  /** Lets the page react to a stream event. */
   const settle = async () => {
     for (let i = 0; i < 10; i++) await Promise.resolve();
   };
 
-  /** @returns {{state: string, message: string, detail: string, bar: ?string}} What the status line shows. */
   function status() {
     const box = document.querySelector('.download-status');
     const bar = box.querySelector('.download-status-bar');
@@ -338,11 +331,11 @@ describe('the download buttons', () => {
 
     stream.push(new Uint8Array(1024 * 1024));
     await settle();
-    // A button with no text of its own goes by its format.
+    // A button with no text is named by its format.
     expect(status()).toEqual(
       { state: 'working', message: 'Downloading the shapefile file', detail: '1.0 MB of 4.0 MB', bar: '25' });
 
-    // Within a quarter second of the last repaint, a chunk changes nothing on screen.
+    // Repaints are at most every 250ms, so this chunk changes nothing on screen.
     stream.push(new Uint8Array(1024 * 1024));
     await settle();
     expect(status().bar).toBe('25');
@@ -373,7 +366,7 @@ describe('the download buttons', () => {
     expect(status()).toEqual({ state: 'working', message: 'Downloading the GeoJSON file', detail: '1 KB', bar: null });
     stream.end();
     await settle();
-    // Unnamed by the server, the file is named after the endpoint, with the format's extension.
+    // The server gave no name, so the file is named after the endpoint.
     expect(saved.map((s) => s.name)).toEqual(['streets.geojson']);
   });
 
@@ -431,7 +424,7 @@ describe('the download buttons', () => {
     await settle();
     stream.push(new Uint8Array(33 * 1024 * 1024));
     await settle();
-    // The empty starting Blob, then one fold once more than 32 MB is waiting.
+    // The empty starting Blob, then one fold once over 32 MB has piled up.
     expect(blobs).toHaveBeenCalledTimes(2);
     stream.push('tail');
     stream.end();

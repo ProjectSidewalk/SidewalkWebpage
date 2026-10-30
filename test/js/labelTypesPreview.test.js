@@ -1,7 +1,4 @@
-/**
- * The label types preview on the API docs index (#5840): a table of the label types /v3/api/labelTypes serves, with
- * their icons and a swatch of each color. Fed from a canned response.
- */
+/** The label types preview on the API docs index (#5840): a table of label types with icons and color swatches. */
 
 import { loadModules } from './loader.js';
 import { routeFetch, stubApiDocsLibraries, textOf } from './support/apiDocsHarness.js';
@@ -26,7 +23,6 @@ const LABEL_TYPES = {
   ],
 };
 
-/** Loads the preview onto a page with its container, and runs it with the given options. */
 async function renderPreview(options = {}, response = LABEL_TYPES) {
   document.body.innerHTML = '<div id="label-types-preview"></div>';
   routeFetch({ '/v3/api/labelTypes': response });
@@ -35,7 +31,6 @@ async function renderPreview(options = {}, response = LABEL_TYPES) {
   return document.getElementById('label-types-preview');
 }
 
-/** @returns {string[][]} Each body row of a table, as its cells' text. */
 const bodyRows = (table) => [...table.querySelectorAll('tbody tr')].map((tr) => [...tr.cells].map(textOf));
 
 describe('the label types table', () => {

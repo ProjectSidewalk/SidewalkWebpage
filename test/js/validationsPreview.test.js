@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/validations preview (#5840): the overall validation rates and one agree/disagree/unsure chart per
- * label type, built from canned /v3/api/validations and /v3/api/labelTypes responses.
- */
+/** The /v3/api-docs/validations preview (#5840): overall rates, and an agree/disagree/unsure chart per type. */
 
 import { loadModules } from './loader.js';
 import {
@@ -17,13 +14,12 @@ const LABEL_TYPES = {
   ],
 };
 
-/** @returns {Array<object>} `count` validations of one label type with one result. */
 const validations = (labelType, result, count) => Array.from(
   { length: count }, () => ({ label_type: labelType, validation_result: result }));
 
 /**
- * CurbRamp: 6 agree, 2 disagree, 2 unsure. Signal (not in the label types list): 4 agree, 1 disagree. Obstacle: 3
- * agree, too few to chart by default. One result the preview doesn't know is counted in the total only.
+ * CurbRamp: 6 agree, 2 disagree, 2 unsure. Signal, which the label types list lacks: 4 agree, 1 disagree. Obstacle:
+ * 3 agree, too few to chart by default, plus one result the preview doesn't know, which counts in the total only.
  */
 function data() {
   return [
@@ -37,7 +33,6 @@ function data() {
   ];
 }
 
-/** Loads the preview and runs it against the given responses. */
 async function renderPreview({ routes = {}, setup = {} } = {}) {
   document.body.innerHTML = '<div id="validations-preview"></div>';
   const fetchStub = routeFetch({ '/v3/api/labelTypes': LABEL_TYPES, '/v3/api/validations': data(), ...routes });
@@ -49,12 +44,10 @@ async function renderPreview({ routes = {}, setup = {} } = {}) {
 
 const container = () => document.getElementById('validations-preview');
 
-/** @returns {Record<string, string>} Each summary card's label to its value. */
 const cards = () => Object.fromEntries([...container().querySelectorAll('.summary-stat-item')].map((stat) => [
   textOf(stat.querySelector('.summary-stat-label')), textOf(stat.querySelector('.summary-stat-value')),
 ]));
 
-/** @returns {string[]} The title over each label type's chart, in page order. */
 const chartTitles = () => [...container().querySelectorAll('.chart-title')].map(textOf);
 
 beforeEach(() => {

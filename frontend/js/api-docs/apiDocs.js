@@ -1,13 +1,6 @@
 /**
- * Project Sidewalk API Documentation JavaScript.
- *
- * This script handles the interactive features of the API documentation page:
- * - Scroll spy to highlight active sections
- * - Dynamic TOC generation for right sidebar
- * - Mobile responsiveness
- * - Permalink copying
- * - Smooth scrolling
- * - Download buttons
+ * What every API docs page shares: the "On This Page" list and its highlight, smooth scrolling, copyable heading
+ * links, the phone sidebar, and the download buttons.
  */
 
 import i18next from 'i18next';
@@ -39,7 +32,6 @@ export function generateTableOfContents() {
   }
 
   tocContainer.innerHTML = '';
-  // Ensure headings have IDs.
   const headings = content.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
 
   if (headings.length === 0) {
@@ -71,9 +63,7 @@ export function setupScrollSpy() {
   const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
 
-  // Select only elements with IDs for section detection.
   const contentSections = contentArea.querySelectorAll('[id]');
-  // Select only links in the right TOC.
   const tocLinks = document.querySelectorAll('.page-toc a');
 
   if (contentSections.length === 0 || tocLinks.length === 0) {
@@ -81,13 +71,11 @@ export function setupScrollSpy() {
     return;
   }
 
-  // Create an array of section objects with their elements and top offsets.
   const sections = Array.from(contentSections).map((section) => ({
     id: section.id,
     offsetTop: section.offsetTop,
   })).sort((a, b) => a.offsetTop - b.offsetTop); // Sort by position
 
-  // Calculate offset based on fixed header height + breathing room.
   const scrollOffset = parseInt(
     getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
   ) + 20;
@@ -96,7 +84,6 @@ export function setupScrollSpy() {
     const scrollPosition = window.scrollY + scrollOffset;
     let currentSectionId = null;
 
-    // Find the current section (last one whose top is above the scroll position).
     for (let i = sections.length - 1; i >= 0; i--) {
       if (sections[i].offsetTop <= scrollPosition) {
         currentSectionId = sections[i].id;
@@ -104,10 +91,8 @@ export function setupScrollSpy() {
       }
     }
 
-    // --- Highlight TOC Links (Exact Match) ---
     tocLinks.forEach((link) => {
       const linkHref = link.getAttribute('href');
-      // Check if href exists and matches currentSectionId after removing '#'.
       if (linkHref && linkHref.substring(1) === currentSectionId) {
         link.classList.add('is-active');
       } else {
@@ -116,14 +101,12 @@ export function setupScrollSpy() {
     });
   }
 
-  // Debounce scroll handler.
   let scrollTimeout;
   window.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(highlightActiveTocItem, 50);
   });
 
-  // Initial highlight on load.
   setTimeout(highlightActiveTocItem, 100);
 }
 
@@ -143,14 +126,12 @@ function setupSmoothScrolling() {
   toc.addEventListener('click', (event) => {
     const link = /** @type {Element} */ (event.target).closest('a');
 
-    // Check if it's an internal hash link.
     if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
       event.preventDefault();
       const targetId = link.getAttribute('href').substring(1);
       const targetElement = document.getElementById(targetId);
 
       if (targetElement) {
-        // Perform smooth scroll.
         const elementPosition = targetElement.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.scrollY - headerHeight - scrollPadding;
         window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
@@ -162,8 +143,7 @@ function setupSmoothScrolling() {
 }
 
 /**
- * Makes each heading's "#" permalink copy its section's URL rather than jump to it. Delegated, so the headings
- * labelTagsPreview.js renders later work too; it labels its own the same way.
+ * Makes each heading's "#" link copy its URL instead of jumping. Listens on the page, so headings added later work too.
  * @returns {void}
  */
 function setupPermalinkCopying() {
@@ -188,8 +168,7 @@ function setupPermalinkCopying() {
 }
 
 /**
- * Sets up the download buttons. Each one fetches the file itself instead of handing the URL to the browser, since
- * only then can the page see the server's answer, the download's progress, and when it finishes.
+ * Sets up the download buttons. They fetch the file themselves, so the page can show the server's answer and progress.
  */
 function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
@@ -235,10 +214,7 @@ function setupDownloadButtons() {
     statusBar.setAttribute('aria-valuenow', String(percent ?? 0));
   }
 
-  /**
-   * Marks every button busy during a download. `aria-disabled` rather than `disabled`, which would drop the keyboard
-   * focus to the body mid-download.
-   */
+  /** Marks every button busy. `aria-disabled`, since `disabled` would knock keyboard focus off the button. */
   function setButtonsBusy(busy) {
     downloadButtons.forEach((btn) => {
       btn.setAttribute('aria-disabled', String(busy));
@@ -291,8 +267,7 @@ function setupDownloadButtons() {
 
     let response;
     try {
-      // no-store: a download is never worth a cache entry, and Chrome can make a request wait behind an identical
-      // one it is caching.
+      // no-store: Chrome can hold a request back behind an identical one it's still caching.
       response = await fetch(url, { cache: 'no-store' });
     } catch {
       showStatus('error', 'The download failed before it started. The connection may have dropped. Please try again.');
@@ -312,14 +287,12 @@ function setupDownloadButtons() {
       return;
     }
 
-    // Streamed CSV/GeoJSON can't know their size until the last row. A built file's is in X-File-Size, which survives
-    // the gzip that drops Content-Length; a compressed Content-Length would undercount what arrives here.
+    // A streamed file has no size up front. A built one sends X-File-Size, since gzip drops or shrinks Content-Length.
     const encoded = !!response.headers.get('Content-Encoding');
     const declaredSize = response.headers.get('X-File-Size') || (encoded ? '' : response.headers.get('Content-Length'));
     const totalBytes = Number(declaredSize) || 0;
 
-    // Whole chunks are folded into a Blob as they pile up, since the browser can page a Blob out to disk but not an
-    // array of buffers, and a city-wide file runs to hundreds of MB.
+    // Chunks are folded into a Blob as they pile up: a city's file can be hundreds of MB, and a Blob can go to disk.
     let blob = new Blob([], { type: response.headers.get('Content-Type') || '' });
     let chunks = [];
     let pending = 0;
@@ -355,8 +328,7 @@ function setupDownloadButtons() {
       return;
     }
 
-    // A stream that ends early but tidily raises no error, so a short file is only caught by counting. JSON and
-    // GeoJSON have a closing bracket to check instead; a truncated CSV is indistinguishable from a complete one.
+    // A stream can end early without an error, so check the size, or for JSON the closing bracket.
     const short = totalBytes ? receivedBytes < totalBytes : !(await endsCompletely(blob));
     if (short) {
       showStatus('error', 'The download stopped before it finished. Please try again.');
@@ -391,9 +363,7 @@ const FILE_EXTENSIONS = {
 };
 
 /**
- * A JSON or GeoJSON body that ends before its closing bracket was cut off mid-flight (#4161). Any other format is
- * taken at face value, since nothing in it says where the end should be.
- *
+ * A JSON body without its closing bracket was cut off (#4161). Other formats are taken as they are.
  * @param {Blob} blob - The downloaded file.
  * @returns {Promise<boolean>} False only when the file is provably incomplete.
  */

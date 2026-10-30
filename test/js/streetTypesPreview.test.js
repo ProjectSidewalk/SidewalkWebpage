@@ -1,6 +1,6 @@
 /**
- * The /v3/api-docs/streetTypes preview (#5840): a table of the city's OSM street types, most common first, each with
- * its count and a bar scaled to the most common. Fed from a canned /v3/api/streetTypes response.
+ * The /v3/api-docs/streetTypes preview (#5840): the city's OSM street types, most common first, each with its count
+ * and a bar scaled to the most common one.
  */
 
 import { loadModules } from './loader.js';
@@ -16,7 +16,6 @@ const STREET_TYPES = {
   ],
 };
 
-/** Loads the preview onto a page with its container, and runs it with the given options. */
 async function renderPreview(options = {}, response = STREET_TYPES) {
   document.body.innerHTML = '<div id="street-types-preview"></div>';
   routeFetch({ '/v3/api/streetTypes': response });

@@ -1,8 +1,4 @@
-/**
- * The /v3/api-docs/accessScoreIntersections preview (#5840): one map of the busiest region's intersections colored by
- * AccessScore, grade-separated crossings drawn hollow, with a popup giving an intersection's score and cluster counts
- * and, on a desktop, a link into Explore at that corner.
- */
+/** The /v3/api-docs/accessScoreIntersections preview (#5840): intersections colored by AccessScore. */
 
 import { loadModules, useUtil } from './loader.js';
 import {
@@ -31,7 +27,6 @@ function intersections() {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview(routes = {}) {
   document.body.innerHTML = '<div id="access-score-intersections-preview"></div>';
   const fetchStub = routeFetch({
@@ -46,7 +41,6 @@ async function renderPreview(routes = {}) {
   return { fetchStub, map: world.maps[0], container: document.getElementById('access-score-intersections-preview') };
 }
 
-/** Clicks an intersection and returns its popup. */
 function clickIntersection(map, feature) {
   map.fireOn('access-score-intersection-points', 'click', [feature], { lng: 9, lat: 9 });
   return world.popups.at(-1);
@@ -103,7 +97,7 @@ describe("an intersection's popup", () => {
     expect(popup.lngLat).toEqual({ lng: 9, lat: 9 });
     expect(popup.text()).toBe('Intersection 1 0.250 AccessScore Streets: 4 Audits: 3 Labels: 6 '
       + 'Clusters: CurbRamp: 2, Signal: 1 Explore here (opens in a new tab)');
-    // The intersection's centroid, not where in the circle the click landed.
+    // At the intersection's center, not where in the circle the click landed.
     expect(popup.element.querySelector('a').getAttribute('href')).toBe('/explore?lat=0.002&lng=0.001');
   });
 

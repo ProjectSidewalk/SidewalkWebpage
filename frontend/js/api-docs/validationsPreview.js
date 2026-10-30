@@ -1,21 +1,4 @@
-/**
- * Validations Preview Generator.
- *
- * Generates validation result distribution charts by label type by fetching data from validations and label types APIs.
- *
- * @requires DOM element with id 'validations-preview'
- * @requires Chart.js library
- *
- * @example
- * // Initialize with default settings.
- * ValidationsPreview.init();
- *
- * // Initialize with custom options.
- * ValidationsPreview.setup({
- *   apiBaseUrl: "https://projectsidewalk.io/v3/api",
- *   containerId: "custom-container"
- * }).init();
- */
+/** The /v3/api-docs/validations preview: overall validation rates, and a chart of results per label type. */
 
 import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';
@@ -275,7 +258,6 @@ export const ValidationsPreview = {
     statsGrid.className = 'summary-stats-grid';
     summarySection.appendChild(statsGrid);
 
-    // With no validations there's no rate to give, and dividing by zero would print "NaN%".
     const rate = (count) => (totalValidations ? `${((count / totalValidations) * 100).toFixed(1)}%` : 'N/A');
     this.addSummaryStatItem(statsGrid, totalValidations.toLocaleString(), 'Total Validations');
     this.addSummaryStatItem(statsGrid, rate(totalAgree), 'Agree Rate');

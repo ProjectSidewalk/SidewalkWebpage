@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/places preview (#5840): a map of one region's places, one dot each, with a count, a legend of the
- * categories present, and a popup per place.
- */
+/** The /v3/api-docs/places preview (#5840): one region's places as dots, with a legend of the categories present. */
 
 import { loadModules } from './loader.js';
 import {
@@ -27,7 +24,6 @@ const PLACES = {
   ],
 };
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview({ routes = {} } = {}) {
   document.body.innerHTML = '<div id="places-preview"></div>';
   const fetchStub = routeFetch({
@@ -41,7 +37,6 @@ async function renderPreview({ routes = {} } = {}) {
   return { fetchStub, container: document.getElementById('places-preview') };
 }
 
-/** Clicks a place on the map and returns its popup. */
 function clickPlace(properties) {
   world.maps[0].fireOn('place-points', 'click', [{ properties }], { lng: 3, lat: 4 });
   return world.popups.at(-1);

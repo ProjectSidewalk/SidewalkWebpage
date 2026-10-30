@@ -1,11 +1,4 @@
-/**
- * Label Clusters Map Preview Generator.
- *
- * Generates a live map preview of PS label clusters by fetching data directly from the Label Clusters API.
- *
- * @requires DOM element with id 'label-clusters-preview'
- * @requires mapbox-gl and js/api-docs/apiDocsMap.js
- */
+/** The /v3/api-docs/labelClusters preview: a live map of one region's label clusters, from the Label Clusters API. */
 
 import { geometryBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
@@ -15,8 +8,7 @@ import { ApiDocsTheme } from './apiDocsTheme.js';
 const CLUSTERS_LAYER = 'label-clusters';
 const REGION_SOURCE = 'preview-region';
 
-// Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
-// against the dimmed basemap.
+// Our own choice, not a backend value: it stands apart from every label type color on the dimmed map.
 const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
 
 export let config = {

@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/accessScoreStreets preview (#5840): one map of the busiest region's streets colored by AccessScore,
- * unaudited streets gray, with a popup giving a street's score, slope and per-type cluster counts.
- */
+/** The /v3/api-docs/accessScoreStreets preview (#5840): streets colored by AccessScore, unaudited ones gray. */
 
 import { loadModules } from './loader.js';
 import {
@@ -26,7 +23,6 @@ function streets() {
   };
 }
 
-/** Loads the preview onto a page with its container, and runs it against the given responses. */
 async function renderPreview(routes = {}) {
   document.body.innerHTML = '<div id="access-score-streets-preview"></div>';
   const fetchStub = routeFetch({

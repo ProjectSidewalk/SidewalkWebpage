@@ -1,7 +1,4 @@
-/**
- * The /v3/api-docs/streets previews (#5840): three maps of the busiest region's streets, colored by contributors, audit
- * age and label count, each with its legend, summary and street popup.
- */
+/** The /v3/api-docs/streets previews (#5840): three street maps, colored by users, audit age and label count. */
 
 import { loadModules } from './loader.js';
 import {
@@ -37,7 +34,6 @@ function streets() {
   };
 }
 
-/** Loads the preview onto a page with its three containers, and runs it against the given responses. */
 async function renderPreview({ region = regionFeature(), streetData = streets(), routes = {} } = {}) {
   document.body.innerHTML = CONTAINERS.map((id) => `<div id="${id}"></div>`).join('');
   const fetchStub = routeFetch({
@@ -53,7 +49,6 @@ async function renderPreview({ region = regionFeature(), streetData = streets(),
 
 const container = (i) => document.getElementById(CONTAINERS[i]);
 
-/** @returns {string[]} The text of each of an overlay's rows. */
 const rows = (el) => [...el.children].map(textOf);
 
 beforeEach(() => {
@@ -130,7 +125,7 @@ describe('a region with streets', () => {
 });
 
 describe("a street's popup", () => {
-  /** Clicks a street on the first map and returns its popup. */
+  /** Renders the preview, then clicks a street on the first map and returns its popup. */
   async function popupFor(properties) {
     await renderPreview();
     world.maps[0].fireOn('street-lines', 'click', [{ properties }], { lng: 1, lat: 2 });
