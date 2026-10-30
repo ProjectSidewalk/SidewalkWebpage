@@ -1,9 +1,11 @@
 # --- !Ups
 -- When, and why, the user stopped getting project news by email (#5864). Both NULL, or no row, means they still get it.
--- Named for the one category it covers, since password resets are never opt-out-able. The table is shared by every
--- city, and an ALTER locks it even when the column is already there, so each city's run after the first checks before
--- taking that lock. CREATE TYPE has no IF NOT EXISTS, hence the pg_type check, and the type needs the shared owner or
--- no other city could ever alter it.
+-- news_email_consented_at is when they last ticked the box themselves (Settings, or a sign-up form where it starts
+-- unchecked), which is the proof of consent the EU-style rules ask for and what the never-consented backfill must not
+-- override. Named for the one category it covers, since password resets are never opt-out-able. The table is shared by
+-- every city, and an ALTER locks it even when the column is already there, so each city's run after the first checks
+-- before taking that lock. CREATE TYPE has no IF NOT EXISTS, hence the pg_type check, and the type needs the shared
+-- owner or no other city could ever alter it.
 -- Semicolons inside the block are doubled to survive Play's statement splitter (see docs/evolutions.md).
 DO $$
 BEGIN
@@ -23,6 +25,11 @@ BEGIN
       ADD COLUMN news_email_opt_out_source sidewalk_login.news_email_opt_out_source,
       ADD CONSTRAINT user_settings_news_email_opt_out_source_matches_at_check
         CHECK ((news_email_opt_out_at IS NULL) = (news_email_opt_out_source IS NULL));;
+  END IF;;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'sidewalk_login' AND table_name = 'user_settings'
+                   AND column_name = 'news_email_consented_at') THEN
+    ALTER TABLE sidewalk_login.user_settings ADD COLUMN news_email_consented_at TIMESTAMPTZ;;
   END IF;;
 END $$;
 

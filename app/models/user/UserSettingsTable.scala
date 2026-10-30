@@ -14,17 +14,22 @@ import scala.concurrent.ExecutionContext
  * @param communityService      Whether the user is tracking their time for community service hours.
  * @param newsEmailOptOutAt     When the user stopped getting project news by email (#5864), or None if they still do.
  * @param newsEmailOptOutSource Why, set exactly when `newsEmailOptOutAt` is (a CHECK enforces it).
+ * @param newsEmailConsentedAt  When the user last ticked the news box themselves, the proof of consent; None if never.
  */
 case class UserSettings(
     userId: String,
     measurementSystem: Option[MeasurementSystem],
     communityService: Boolean,
     newsEmailOptOutAt: Option[OffsetDateTime],
-    newsEmailOptOutSource: Option[NewsEmailOptOutSource]
+    newsEmailOptOutSource: Option[NewsEmailOptOutSource],
+    newsEmailConsentedAt: Option[OffsetDateTime]
 )
 
 /** An account's project-news opt-out: when it happened and why. */
 case class NewsEmailOptOut(at: OffsetDateTime, source: NewsEmailOptOutSource)
+
+/** Where an account stands on project news: opted out (and why), and when they last consented, if ever. */
+case class NewsEmailStatus(optOut: Option[NewsEmailOptOut], consentedAt: Option[OffsetDateTime])
 
 class UserSettingsTableDef(tag: Tag) extends Table[UserSettings](tag, "user_settings") {
   def userId: Rep[String]                               = column[String]("user_id", O.PrimaryKey)
@@ -33,8 +38,10 @@ class UserSettingsTableDef(tag: Tag) extends Table[UserSettings](tag, "user_sett
   def newsEmailOptOutAt: Rep[Option[OffsetDateTime]]    = column[Option[OffsetDateTime]]("news_email_opt_out_at")
   def newsEmailOptOutSource: Rep[Option[NewsEmailOptOutSource]] =
     column[Option[NewsEmailOptOutSource]]("news_email_opt_out_source")
+  def newsEmailConsentedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("news_email_consented_at")
 
-  def * = (userId, measurementSystem, communityService, newsEmailOptOutAt, newsEmailOptOutSource).mapTo[UserSettings]
+  def * = (userId, measurementSystem, communityService, newsEmailOptOutAt, newsEmailOptOutSource, newsEmailConsentedAt)
+    .mapTo[UserSettings]
 
   def user = foreignKey("user_settings_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
@@ -96,24 +103,36 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
       VALUES ($userId, now(), $source)
       ON CONFLICT (user_id) DO UPDATE
       SET news_email_opt_out_at     = COALESCE(user_settings.news_email_opt_out_at, EXCLUDED.news_email_opt_out_at),
-          news_email_opt_out_source = COALESCE(user_settings.news_email_opt_out_source, EXCLUDED.news_email_opt_out_source)
+          news_email_opt_out_source =
+            COALESCE(user_settings.news_email_opt_out_source, EXCLUDED.news_email_opt_out_source)
     """
   }
 
-  /** @return The number of `user_settings` rows written: 0 when the user was already getting project news. */
-  def optInToNewsEmail(userId: String): DBIO[Int] = {
+  /**
+   * Records that the user ticked the news box themselves, which both subscribes them and is the proof of consent the
+   * never-consented backfill must leave alone. The latest tick is kept, being the one any question would be about.
+   * @return The number of `user_settings` rows written.
+   */
+  def consentToNewsEmail(userId: String): DBIO[Int] = {
     sqlu"""
-      UPDATE sidewalk_login.user_settings SET news_email_opt_out_at = NULL, news_email_opt_out_source = NULL
-      WHERE user_id = $userId AND news_email_opt_out_at IS NOT NULL
+      INSERT INTO sidewalk_login.user_settings (user_id, news_email_consented_at)
+      VALUES ($userId, now())
+      ON CONFLICT (user_id) DO UPDATE
+      SET news_email_consented_at = EXCLUDED.news_email_consented_at,
+          news_email_opt_out_at = NULL, news_email_opt_out_source = NULL
     """
   }
 
-  /** @return When and why the user stopped getting project news by email, or None if they still do. */
-  def getNewsEmailOptOut(userId: String): DBIO[Option[NewsEmailOptOut]] =
+  /** @return Where the user stands on project news by email; all None for a user with no settings row. */
+  def getNewsEmailStatus(userId: String): DBIO[NewsEmailStatus] =
     userSettings
       .filter(_.userId === userId)
-      .map(settings => (settings.newsEmailOptOutAt, settings.newsEmailOptOutSource))
+      .map(settings => (settings.newsEmailOptOutAt, settings.newsEmailOptOutSource, settings.newsEmailConsentedAt))
       .result
       .headOption
-      .map(_.flatMap { case (at, source) => at.zip(source).map(NewsEmailOptOut.apply.tupled) })
+      .map {
+        case Some((at, source, consentedAt)) =>
+          NewsEmailStatus(at.zip(source).map(NewsEmailOptOut.apply.tupled), consentedAt)
+        case None => NewsEmailStatus(None, None)
+      }
 }

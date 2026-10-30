@@ -5,6 +5,7 @@ import models.api.ApiModelUtils
 import models.auth.{DefaultEnv, WithAdmin}
 import models.user.NewsEmailOptOutSource
 import play.api.Configuration
+import play.api.mvc.Result
 import play.filters.csrf.CSRFAddToken
 import play.silhouette.api.Silhouette
 import service.{AuthenticationService, ConfigService, NewsEmailTokenService, UserService}
@@ -28,21 +29,32 @@ class NewsEmailController @Inject() (
 
   given Configuration = config
 
-  /** The account an unsubscribe token names, if the token is genuine and the account still exists. */
-  private def tokenOwner(token: String): Future[Option[String]] = tokens.userId(token) match {
+  /** The account an unsubscribe token names, if the token is there, genuine, and the account still exists. */
+  private def tokenOwner(token: Option[String]): Future[Option[String]] = token.flatMap(tokens.userId) match {
     case Some(userId) => authenticationService.findByUserId(userId).map(_.map(_.userId))
     case None         => Future.successful(None)
   }
 
+  /** The token is the credential, so it mustn't leak to other sites through the Referer header. */
+  private def withoutReferrer(result: Result): Result = result.withHeaders("Referrer-Policy" -> "no-referrer")
+
+  /** A CSV cell: quoted when needed, and kept from running as a formula when the file is opened in a spreadsheet. */
+  private def csvCell(value: String): String = {
+    val formulaStart = Set('=', '+', '-', '@', '\t', '\r')
+    ApiModelUtils.escapeCsvField(if (value.headOption.exists(formulaStart.contains)) s"'$value" else value)
+  }
+
   /** The confirm page behind the link. A GET changes nothing, since mail scanners follow links before the reader. */
-  def unsubscribePage(token: String) = silhouette.UserAwareAction.async { implicit request =>
+  def unsubscribePage(token: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+    val ownerLookup    = tokenOwner(token)
+    val pageDataLookup = configService.getCommonPageData(request2Messages.lang)
     for {
-      owner      <- tokenOwner(token)
-      commonData <- configService.getCommonPageData(request2Messages.lang)
+      owner      <- ownerLookup
+      commonData <- pageDataLookup
     } yield {
       cc.loggingService.insert(owner, request.ipAddress, s"Visit_Unsubscribe_valid=${owner.isDefined}")
-      val page = views.html.newsEmail.unsubscribe(commonData, request.identity, token, _)
-      if (owner.isDefined) Ok(page("confirm")) else NotFound(page("invalid"))
+      val page = views.html.newsEmail.unsubscribe(commonData, request.identity, token.getOrElse(""), _)
+      withoutReferrer(if (owner.isDefined) Ok(page("confirm")) else NotFound(page("invalid")))
     }
   }
 
@@ -51,7 +63,7 @@ class NewsEmailController @Inject() (
    * token, so the route is `nocsrf`; the skipped filter would have minted the token the navbar's forms render, so
    * `addCsrfToken` does instead.
    */
-  def unsubscribe(token: String) = addCsrfToken(silhouette.UserAwareAction.async { implicit request =>
+  def unsubscribe(token: Option[String]) = addCsrfToken(silhouette.UserAwareAction.async { implicit request =>
     tokenOwner(token).flatMap { owner =>
       for {
         _ <- owner
@@ -59,8 +71,8 @@ class NewsEmailController @Inject() (
           .getOrElse(Future.successful(0))
         commonData <- configService.getCommonPageData(request2Messages.lang)
       } yield {
-        val page = views.html.newsEmail.unsubscribe(commonData, request.identity, token, _)
-        owner match {
+        val page = views.html.newsEmail.unsubscribe(commonData, request.identity, token.getOrElse(""), _)
+        withoutReferrer(owner match {
           case Some(userId) =>
             cc.loggingService.insert(
               userId,
@@ -69,7 +81,7 @@ class NewsEmailController @Inject() (
             )
             Ok(page("done"))
           case None => NotFound(page("invalid"))
-        }
+        })
       }
     }
   })
@@ -79,8 +91,8 @@ class NewsEmailController @Inject() (
     userService.getNewsEmailRecipients.map { recipients =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Click_module=DownloadNewsEmailRecipients")
       val rows = recipients.map { case (userId, username, email) =>
-        val unsubscribeUrl = routes.NewsEmailController.unsubscribePage(tokens.token(userId)).absoluteURL()
-        Seq(userId, username, email, unsubscribeUrl).map(ApiModelUtils.escapeCsvField).mkString(",")
+        val unsubscribeUrl = routes.NewsEmailController.unsubscribePage(Some(tokens.token(userId))).absoluteURL()
+        Seq(userId, username, email, unsubscribeUrl).map(csvCell).mkString(",")
       }
       Ok(("user_id,username,email,unsubscribe_url" +: rows).mkString("\n"))
         .as("text/csv")

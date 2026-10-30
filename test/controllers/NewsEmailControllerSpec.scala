@@ -39,7 +39,9 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
 
   private def await[T](f: Future[T]): T = Await.result(f, 60.seconds)
 
-  private def optedOut(userId: String) = await(userService.getNewsEmailOptOut(userId))
+  private def optedOut(userId: String) = await(userService.getNewsEmailStatus(userId)).optOut
+
+  private def consentedAt(userId: String) = await(userService.getNewsEmailStatus(userId)).consentedAt
 
   /** A throwaway anonymous account, swept with the signed-up ones. */
   private def newAnonUser(): String = {
@@ -91,8 +93,11 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
       optedOut(userId) mustBe None
     }
 
-    "404 a token that doesn't check out, or names an account that no longer exists" in {
+    "404 a token that doesn't check out, names an account that no longer exists, or is missing" in {
       status(route(app, FakeRequest(GET, "/unsubscribe?token=not.a.token")).get) mustBe NOT_FOUND
+      val missing = route(app, FakeRequest(GET, "/unsubscribe")).get
+      status(missing) mustBe NOT_FOUND
+      contentAsString(missing) must include("/dashboard/settings#email")
       status(route(app, FakeRequest(GET, s"/unsubscribe?token=${tokens.token(UUID.randomUUID().toString)}")).get)
         .mustBe(NOT_FOUND)
     }
@@ -107,6 +112,7 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
           .withFormUrlEncodedBody("List-Unsubscribe" -> "One-Click")
       ).get
       status(resp) mustBe OK
+      header("Referrer-Policy", resp) mustBe Some("no-referrer")
       optedOut(userId).value.source mustBe NewsEmailOptOutSource.UnsubscribeLink
     }
 
@@ -134,8 +140,10 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
       val (subscribed, _, _)   = signUpFreshUser()
       val (optedOutUser, _, _) = signUpFreshUser(newsEmail = false)
       optedOut(subscribed) mustBe None
-      // Which sign-up reason depends on how the box starts in this deployment's country.
+      // Which sign-up reason depends on how the box starts in this deployment's country, as does whether a ticked
+      // box counts as consent (only a box that started unchecked does).
       val preChecked = app.injector.instanceOf[service.ConfigService].getNewsEmailPreChecked
+      consentedAt(subscribed).isDefined mustBe !preChecked
       optedOut(optedOutUser).value.source mustBe {
         if (preChecked) NewsEmailOptOutSource.SignUpOptedOut else NewsEmailOptOutSource.SignUpNotOptedIn
       }
@@ -150,6 +158,7 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
       optedOut(userId).value.source mustBe NewsEmailOptOutSource.Settings
       status(saveSettings(sessionCookies, username, newsEmail = true)) mustBe OK
       optedOut(userId) mustBe None
+      consentedAt(userId) mustBe defined
     }
   }
 
@@ -158,11 +167,15 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
       val (subscribed, email, sessionCookies) = signUpFreshUser()
       val (optedOutUser, _, _)                = signUpFreshUser(newsEmail = false)
       val anonymous                           = newAnonUser()
+      // An anonymous account an admin promoted keeps its placeholder address, which must never be mailed.
+      val promotedAnonymous = newAnonUser()
+      await(authService.updateRole(promotedAnonymous, Role.Registered))
 
       val recipients = await(userService.getNewsEmailRecipients)
       recipients.map(_._1) must contain(subscribed)
       recipients.map(_._1) must not contain optedOutUser
       recipients.map(_._1) must not contain anonymous
+      recipients.map(_._1) must not contain promotedAnonymous
 
       status(route(app, FakeRequest(GET, "/adminapi/newsEmailRecipients.csv").withCookies(sessionCookies*)).get)
         .must(not be OK)
@@ -174,6 +187,8 @@ class NewsEmailControllerSpec extends SidewalkSpec with SignedUpAccounts with Gu
       val lines = contentAsString(csv).split("\n")
       lines.head mustBe "user_id,username,email,unsubscribe_url"
       lines.find(_.startsWith(s"$subscribed,")).value must endWith(s"/unsubscribe?token=${tokens.token(subscribed)}")
+      // An admin opens this in a spreadsheet, so nothing in it may start as a formula.
+      lines.forall(line => !line.split(",").exists(cell => cell.headOption.exists("=+-@".contains(_)))) mustBe true
       lines.find(_.startsWith(s"$subscribed,")).value must include(s",$email,")
       lines.exists(_.startsWith(s"$optedOutUser,")) mustBe false
     }

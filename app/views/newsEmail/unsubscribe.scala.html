@@ -27,7 +27,7 @@
         <p class="au-copy">@Html(Messages(s"unsubscribe.$state.intro", settingsUrl))</p>
         @if(state == "confirm") {
           @* No CSRF field: the route is nocsrf so mail clients can POST to it, and the signed token is the guard. *@
-          <form class="au-form" method="post" action="@routes.NewsEmailController.unsubscribe(token)">
+          <form class="au-form" method="post" action="@routes.NewsEmailController.unsubscribe(Some(token))">
             <button type="submit" class="button button--primary button--large au-submit">
               @Messages("unsubscribe.confirm.submit")
             </button>

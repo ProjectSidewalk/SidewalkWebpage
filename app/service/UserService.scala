@@ -504,11 +504,11 @@ trait UserService {
   /** Opts the user out of project news by email, for every city (#5864); a repeat keeps the first time and reason. */
   def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int]
 
-  /** Opts the user back in to project news by email, for every city. */
-  def optInToNewsEmail(userId: String): Future[Int]
+  /** Records the user ticking the news box themselves, which subscribes them and is the proof of consent. */
+  def consentToNewsEmail(userId: String): Future[Int]
 
-  /** @return When and why the user stopped getting project news by email, or None if they still do. */
-  def getNewsEmailOptOut(userId: String): Future[Option[NewsEmailOptOut]]
+  /** @return Where the user stands on project news by email, for every city. */
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus]
 
   /** @return (user id, username, email) of everyone project news may be sent to, by email. */
   def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
@@ -734,10 +734,9 @@ class UserServiceImpl @Inject() (
   def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int] =
     db.run(userSettingsTable.optOutOfNewsEmail(userId, source))
 
-  def optInToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.optInToNewsEmail(userId))
+  def consentToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.consentToNewsEmail(userId))
 
-  def getNewsEmailOptOut(userId: String): Future[Option[NewsEmailOptOut]] =
-    db.run(userSettingsTable.getNewsEmailOptOut(userId))
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
 
   def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
 

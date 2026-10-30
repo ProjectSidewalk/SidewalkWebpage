@@ -19,12 +19,13 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class NewsEmailTokenService @Inject() (config: Configuration) {
   // The application secret, which every city shares, so a link made by one city's export verifies in any city.
-  private val secret = config.get[String]("play.http.secret.key")
+  private val key =
+    SecretKeySpec(config.get[String]("play.http.secret.key").getBytes(StandardCharsets.UTF_8), "HmacSHA256")
 
   // Keyed to this purpose, so a signature made here can never pass as one of the image-serving signatures.
   private def hmac(userId: String): String = {
     val mac = Mac.getInstance("HmacSHA256")
-    mac.init(SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"))
+    mac.init(key)
     Base64.getUrlEncoder.withoutPadding.encodeToString(mac.doFinal(s"news-unsubscribe:$userId".getBytes("UTF-8")))
   }
 

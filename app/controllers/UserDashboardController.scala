@@ -178,13 +178,13 @@ class UserDashboardController @Inject() (
       openTeams  <- userService.getAllOpenTeams
       currTeam   <- userService.getUserTeam(user.userId)
       privacy    <- userService.getPrivacySettings(user.userId)
-      optedOut   <- userService.getNewsEmailOptOut(user.userId)
+      newsStatus <- userService.getNewsEmailStatus(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
       val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
-          unitsChoice, newsEmail = optedOut.isEmpty, configService.getPrivateProfilesByDefault)
+          unitsChoice, newsEmail = newsStatus.optOut.isEmpty, configService.getPrivateProfilesByDefault)
       )
     }
   }
@@ -222,8 +222,8 @@ class UserDashboardController @Inject() (
         val newsEmailEdit: Future[Option[Boolean]] = s.newsEmail match {
           case Some(subscribed) =>
             userService
-              .getNewsEmailOptOut(user.userId)
-              .map(optedOut => Option.when(optedOut.isEmpty != subscribed)(subscribed))
+              .getNewsEmailStatus(user.userId)
+              .map(status => Option.when(status.optOut.isEmpty != subscribed)(subscribed))
           case None => Future.successful(None)
         }
 
@@ -249,7 +249,7 @@ class UserDashboardController @Inject() (
               newsEdit <- newsEmailEdit
               _        <- newsEdit
                 .map(subscribed =>
-                  if (subscribed) userService.optInToNewsEmail(user.userId)
+                  if (subscribed) userService.consentToNewsEmail(user.userId)
                   else userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.Settings)
                 )
                 .getOrElse(Future.successful(0))

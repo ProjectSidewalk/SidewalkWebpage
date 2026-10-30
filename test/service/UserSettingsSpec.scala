@@ -1,6 +1,13 @@
 package service
 
-import models.user.{MeasurementSystem, NewsEmailOptOutSource, Role, SidewalkUserWithRole, UserSettingsTableDef}
+import models.user.{
+  MeasurementSystem,
+  NewsEmailOptOutSource,
+  NewsEmailStatus,
+  Role,
+  SidewalkUserWithRole,
+  UserSettingsTableDef
+}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -67,30 +74,33 @@ class UserSettingsSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll
       val user = reload(newAnonUser().userId)
       user.communityService mustBe false
       user.measurementSystem mustBe None
-      await(userService.getNewsEmailOptOut(user.userId)) mustBe None
+      await(userService.getNewsEmailStatus(user.userId)) mustBe NewsEmailStatus(None, None)
     }
 
-    "opt out of project news keeping the first time and reason, and opt back in, without touching other settings" in {
+    "opt out keeping the first time and reason, and consent back in, without touching other settings" in {
       val userId = newAnonUser().userId
       await(userService.setCommunityService(userId, enabled = true))
       await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.Settings))
-      val firstOptOut = await(userService.getNewsEmailOptOut(userId)).value
+      val firstOptOut = await(userService.getNewsEmailStatus(userId)).optOut.value
       firstOptOut.source mustBe NewsEmailOptOutSource.Settings
 
       // The Settings box and the newsletter link can both opt the same person out; the record keeps the first.
       await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.UnsubscribeLink))
-      await(userService.getNewsEmailOptOut(userId)).value mustBe firstOptOut
+      await(userService.getNewsEmailStatus(userId)).optOut.value mustBe firstOptOut
       reload(userId).communityService mustBe true
 
-      await(userService.optInToNewsEmail(userId))
-      await(userService.getNewsEmailOptOut(userId)) mustBe None
+      // Ticking the box clears the opt-out and keeps the proof of consent.
+      await(userService.consentToNewsEmail(userId))
+      val consented = await(userService.getNewsEmailStatus(userId))
+      consented.optOut mustBe None
+      consented.consentedAt mustBe defined
       reload(userId).communityService mustBe true
     }
 
-    "opt back in without writing a settings row for a user who never had one" in {
+    "record consent for a user with no settings row yet" in {
       val userId = newAnonUser().userId
-      await(userService.optInToNewsEmail(userId)) mustBe 0
-      run(TableQuery[UserSettingsTableDef].filter(_.userId === userId).exists.result) mustBe false
+      await(userService.consentToNewsEmail(userId)) mustBe 1
+      await(userService.getNewsEmailStatus(userId)).consentedAt mustBe defined
     }
 
     "save units and service-hours tracking without either one resetting the other" in {

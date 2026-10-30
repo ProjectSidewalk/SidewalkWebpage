@@ -49,9 +49,9 @@ POST    /serviceHours/set                               controllers.UserControll
 # Newsletter unsubscribe (#5864), reached from a link in the email with no sign-in. The GET only shows a confirm button,
 # since mail scanners follow links. The POST is also what mail clients send for one-click unsubscribe (RFC 8058), with
 # no session or CSRF token, so the signed token is its whole authentication.
-GET     /unsubscribe                                    controllers.NewsEmailController.unsubscribePage(token: String)
+GET     /unsubscribe                                    controllers.NewsEmailController.unsubscribePage(token: Option[String] ?= None)
 + nocsrf
-POST    /unsubscribe                                    controllers.NewsEmailController.unsubscribe(token: String)
+POST    /unsubscribe                                    controllers.NewsEmailController.unsubscribe(token: Option[String] ?= None)
 
 # Security policy endpoints.
 + nocsrf
