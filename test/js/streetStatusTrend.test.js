@@ -69,7 +69,7 @@ function payload(overrides = {}) {
 
 async function render(data, { weeks = 3, onShowStreet } = {}) {
   document.body.innerHTML = MARKUP;
-  window.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data }));
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks, onShowStreet }).init();
 }
 
@@ -250,7 +250,7 @@ describe('the regained-imagery queue', () => {
   });
 
   test('points the street id at the map above rather than at Explore, which cannot serve a retired street', async () => {
-    const onShowStreet = vi.fn().mockReturnValue(true);
+    const onShowStreet = vi.fn().mockReturnValue(null);
     await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet });
     const container = document.getElementById('trend-reopen-candidates');
     // An anchor here would be a link to /explore, which answers a 500 for every street this queue lists.
@@ -261,10 +261,10 @@ describe('the regained-imagery queue', () => {
     expect(container.querySelector('.reopen-queue-error')).toBeNull();
   });
 
-  test('says so when the map cannot show the street yet, instead of looking broken', async () => {
-    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => false });
+  test('shows why the map could not show the street, instead of looking broken', async () => {
+    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => 'The map is still loading.' });
     document.querySelector('[data-action="locate"]').click();
-    expect(document.querySelector('.reopen-queue-error').textContent).toMatch(/map is still loading/);
+    expect(document.querySelector('.reopen-queue-error').textContent).toBe('The map is still loading.');
   });
 
   test('says the queue is empty rather than rendering a headerless table', async () => {
@@ -297,9 +297,9 @@ describe('the regained-imagery queue', () => {
     confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    window.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
-    });
+    }));
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -317,7 +317,7 @@ describe('the regained-imagery queue', () => {
     confirmDialog.confirm = vi.fn().mockResolvedValue(false);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    window.fetch = vi.fn();
+    vi.stubGlobal('fetch', vi.fn());
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -330,9 +330,9 @@ describe('the regained-imagery queue', () => {
     confirmDialog.confirm = vi.fn();
     const dismissBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Dismiss');
-    window.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
-    });
+    }));
 
     dismissBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -348,12 +348,12 @@ describe('the regained-imagery queue', () => {
       .find((b) => b.textContent === 'Reopen');
     // A 409 is the stale-row case, and the server says which status the street actually has -- far more use than
     // the status code, which is all the admin would otherwise get.
-    window.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 409,
       statusText: 'Conflict',
       json: async () => ({ status: 'Error', message: "Street 555 is 'open', not 'no_imagery'." }),
-    });
+    }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     reopenBtn.click();
@@ -371,9 +371,9 @@ describe('the regained-imagery queue', () => {
   test('falls back to the status code when the failure body is not the JSON we expect', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
     confirmDialog.confirm = vi.fn().mockResolvedValue(true);
-    window.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new Error('not json'); },
-    });
+    }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     [...document.querySelectorAll('#trend-reopen-candidates button')]
@@ -451,7 +451,7 @@ describe('the reports-by-region table', () => {
 describe('loading and failure', () => {
   test('reports a failed fetch without touching the snapshot above it', async () => {
     document.body.innerHTML = MARKUP;
-    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' }));
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
     const status = document.getElementById('trend-status');
     expect(status.textContent).toMatch(/Could not load recent changes: 503/);
@@ -479,7 +479,7 @@ describe('edge cases (#5840)', () => {
 
   test('with no window given, asks the server for its default window', async () => {
     document.body.innerHTML = MARKUP.replace(/<select[^]*?<\/select>/, '');
-    window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload() });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload() }));
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend' }).init();
     expect(window.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend', expect.anything());
   });
@@ -497,9 +497,9 @@ describe('edge cases (#5840)', () => {
   test('a window picked while one is loading is fetched once that load finishes, not dropped', async () => {
     document.body.innerHTML = MARKUP;
     let finishFirst;
-    window.fetch = vi.fn()
+    vi.stubGlobal('fetch', vi.fn()
       .mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }))
-      .mockResolvedValue({ ok: true, json: async () => payload() });
+      .mockResolvedValue({ ok: true, json: async () => payload() }));
     const done = new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 26 }).init();
     const range = document.getElementById('trend-range');
     range.value = '13';
@@ -515,7 +515,7 @@ describe('edge cases (#5840)', () => {
   test('renders on a page without the section wrapper or a status line', async () => {
     document.body.innerHTML = MARKUP.replace('id="street-status-trend-section"', '')
       .replace('<div id="trend-status"></div>', '');
-    window.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => payload({ top_report_regions: [] }) });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload({ top_report_regions: [] }) }));
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
     expect(document.getElementById('trend-regions').textContent).toMatch(/No missing-imagery reports/);
   });
@@ -558,7 +558,7 @@ describe('edge cases (#5840)', () => {
 
   test('a failed dismiss says "dismiss", and a JSON body without a message falls back to the status code', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    window.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ status: 'Error' }) });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ status: 'Error' }) }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
     document.querySelector('[data-action="dismiss"]').click();
     await flush();
@@ -566,7 +566,7 @@ describe('edge cases (#5840)', () => {
   });
 
   test('asking twice for a street the map cannot show keeps a single message', async () => {
-    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => false });
+    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => 'The map is still loading.' });
     document.querySelector('[data-action="locate"]').click();
     document.querySelector('[data-action="locate"]').click();
     expect(document.querySelectorAll('.reopen-queue-error')).toHaveLength(1);

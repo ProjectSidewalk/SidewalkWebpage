@@ -134,8 +134,8 @@ export class ImageryPipelinePanel {
     const poll = jobs.find((job) => job.job_name === report.poll_job);
     const sync = jobs.find((job) => job.job_name === report.sync_job);
     const reason = poll?.last_details?.not_polled_reason;
-    const days = report.run_days || [];
-    const recentPolled = days.reduce((sum, day) => sum + (day.streets_polled || 0), 0);
+    const runDays = report.run_days || [];
+    const recentPolled = runDays.reduce((sum, day) => sum + (day.streets_polled || 0), 0);
 
     let tone = 'good';
     let message;
@@ -171,7 +171,7 @@ export class ImageryPipelinePanel {
       message = `The poll has run but refreshed no streets in the last ${report.days} days; every street it `
         + 'selected was inconclusive.';
     } else {
-      const flagged = days.reduce((sum, day) => sum + (day.audits_flagged || 0), 0);
+      const flagged = runDays.reduce((sum, day) => sum + (day.audits_flagged || 0), 0);
       message = `Polled ${recentPolled.toLocaleString()} streets in the last ${report.days} days and flagged `
         + `${flagged.toLocaleString()} audit${flagged === 1 ? '' : 's'} for a re-audit.`;
     }

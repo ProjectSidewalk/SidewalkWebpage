@@ -159,7 +159,7 @@ export class ManagementPage {
     const count = document.getElementById('mgmt-user-count');
     if (!count) return;
     count.textContent = matched === this.#users.length
-      ? `${this.#users.length.toLocaleString()} users`
+      ? AdminShell.count(this.#users.length, 'user')
       : `${matched.toLocaleString()} of ${this.#users.length.toLocaleString()} users`;
   }
 

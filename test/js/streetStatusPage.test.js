@@ -159,7 +159,7 @@ describe('the trend section', () => {
   test('a street it names is zoomed to and outlined alone, clearing any region pin', async () => {
     await load(STREETS);
     row(20).click();
-    expect(trends[0].opts.onShowStreet(2)).toBe(true);
+    expect(trends[0].opts.onShowStreet(2)).toBeNull();
 
     expect(mapSelected()).toEqual([2]);
     expect(highlightedRows()).toEqual([]);
@@ -168,9 +168,9 @@ describe('the trend section', () => {
     expect(scrolled).toEqual([['street-status-map-section', { behavior: 'smooth', block: 'start' }]]);
   });
 
-  test('a street the map does not know is refused, so the trend shows a plain id instead', async () => {
+  test('a street the map does not know is refused, saying so', async () => {
     await load(STREETS);
-    expect(trends[0].opts.onShowStreet(999)).toBe(false);
+    expect(trends[0].opts.onShowStreet(999)).toBe("Street 999 isn't on the status map.");
     expect(map.fits).toEqual([]);
   });
 
@@ -179,16 +179,16 @@ describe('the trend section', () => {
     routeFetch({ [STREETS_URL]: STREETS });
     map = stubMapbox(mapboxgl);
     const done = new StreetStatusPage({ mapboxToken: 'pk.test', streetsUrl: STREETS_URL, trendUrl: '/t' }).init();
-    expect(trends[0].opts.onShowStreet(1)).toBe(false);
+    expect(trends[0].opts.onShowStreet(1)).toMatch(/still loading/);
     await flush();
     map.load();
     await done;
-    expect(trends[0].opts.onShowStreet(1)).toBe(true);
+    expect(trends[0].opts.onShowStreet(1)).toBeNull();
   });
 
   test('showing a street still works on a page without the map section to scroll to', async () => {
     await load(STREETS, { markup: MARKUP.replace('id="street-status-map-section"', 'id="elsewhere"') });
-    expect(trends[0].opts.onShowStreet('5')).toBe(true);
+    expect(trends[0].opts.onShowStreet('5')).toBeNull();
     expect(scrolled).toEqual([]);
   });
 });

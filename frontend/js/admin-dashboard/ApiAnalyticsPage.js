@@ -27,7 +27,10 @@ export class ApiAnalyticsPage {
   async #load() {
     this.#setStatus('Loading API analytics…', false);
     try {
-      const data = await util.fetchJson(`${this.#dataUrl}?days=${this.#days}`);
+      const days = this.#days;
+      const data = await util.fetchJson(`${this.#dataUrl}?days=${days}`);
+      // A quick second range click can answer first; drop the older reply rather than draw it under the new range.
+      if (days !== this.#days) return;
       this.#data = data;
       this.#renderRangeCaptions(data);
       this.#renderKpis(data);

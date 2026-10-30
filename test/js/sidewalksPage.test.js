@@ -164,10 +164,10 @@ const geojson = (ids) => ({
 async function renderPage({ streets = CITY, ids = [1, 2, 3, 4, 5, 6], rebuiltAt = '2026-10-08T03:30:00Z' } = {}) {
   document.body.innerHTML = MARKUP;
   const mapState = stubMapbox();
-  window.fetch = vi.fn((url) => Promise.resolve({
+  vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
     ok: true,
     json: async () => (url === '/presence' ? { rebuilt_at: rebuiltAt, streets } : geojson(ids)),
-  }));
+  })));
   await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
   await new Promise((resolve) => setTimeout(resolve, 1));
   return mapState;
@@ -335,11 +335,11 @@ describe('the Sidewalks page', () => {
   test('a street chosen before the map loads is marked once it does', async () => {
     document.body.innerHTML = MARKUP;
     const map = stubMapbox({ holdLoad: true });
-    window.fetch = vi.fn((url) => Promise.resolve({
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
       ok: true,
       json: async () => (url === '/presence' ? { rebuilt_at: '2026-10-08T03:30:00Z', streets: CITY }
         : geojson([1, 2, 3, 4, 5, 6])),
-    }));
+    })));
     const loaded = new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' })
       .init();
     while (!map.fireLoad) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -494,10 +494,10 @@ describe('the Sidewalks page, edge cases (#5840)', () => {
       .replace('<select id="sidewalks-flag"></select>', '')
       .replace('<div id="sidewalks-status"></div>', '');
     stubMapbox();
-    window.fetch = vi.fn((url) => Promise.resolve({
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve({
       ok: true,
       json: async () => (url === '/presence' ? { rebuilt_at: null, streets: CITY } : geojson([1, 2, 3, 4, 5, 6])),
-    }));
+    })));
     await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
     await new Promise((resolve) => setTimeout(resolve, 1));
     expect(flagRows()).toEqual(['1:left']);
@@ -510,9 +510,9 @@ describe('the Sidewalks page, edge cases (#5840)', () => {
     document.body.innerHTML = MARKUP;
     stubMapbox();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    window.fetch = vi.fn((url) => Promise.resolve(url === '/presence'
+    vi.stubGlobal('fetch', vi.fn((url) => Promise.resolve(url === '/presence'
       ? { ok: false, status: 500 }
-      : { ok: true, json: async () => geojson([1]) }));
+      : { ok: true, json: async () => geojson([1]) })));
     await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
     expect(text('sidewalks-status')).toBe('Could not load sidewalk presence data. Please try again.');
     expect(document.getElementById('sidewalks-status').classList.contains('error')).toBe(true);
@@ -521,7 +521,7 @@ describe('the Sidewalks page, edge cases (#5840)', () => {
   test('a city whose payloads carry no streets at all says it is empty, even without a status line', async () => {
     document.body.innerHTML = MARKUP.replace('<div id="sidewalks-status"></div>', '');
     stubMapbox();
-    window.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => ({}) }));
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: async () => ({}) })));
     await new SidewalksPage({ mapboxToken: 'pk.test', streetsUrl: '/streets', presenceUrl: '/presence' }).init();
     expect(text('kpi-rebuilt')).toBe('never');
   });

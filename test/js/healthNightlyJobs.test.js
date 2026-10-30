@@ -65,7 +65,7 @@ function job(overrides = {}) {
 /** Renders the panel for a set of job rows and returns the page's DOM. */
 async function render(jobs) {
   document.body.innerHTML = MARKUP;
-  window.fetch = vi.fn().mockResolvedValue({
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     json: async () => ({
@@ -83,7 +83,7 @@ async function render(jobs) {
       nightly_jobs: jobs,
       thresholds: THRESHOLDS,
     }),
-  });
+  }));
   // init() also starts poll and age tickers; stub them so jsdom isn't left with live intervals.
   vi.spyOn(window, 'setInterval').mockImplementation(() => 0);
   await new HealthPage({ healthUrl: '/adminapi/dbHealth' }).init();
@@ -292,7 +292,7 @@ async function start(...replies) {
     if (reply instanceof Error) return { ok: false, status: 503, json: async () => ({}) };
     return { ok: true, status: 200, json: async () => reply };
   });
-  window.fetch = fetch;
+  vi.stubGlobal('fetch', fetch);
   const timers = [];
   vi.spyOn(window, 'setInterval').mockImplementation((fn, ms) => {
     timers.push({ fn, ms });
@@ -652,7 +652,7 @@ describe('polling', () => {
 
   test('uses a 20-second poll when none is given', async () => {
     document.body.innerHTML = PAGE_MARKUP;
-    window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => health() }));
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => health() })));
     const setInterval = vi.spyOn(window, 'setInterval').mockImplementation(() => 0);
     await new HealthPage({ healthUrl: '/adminapi/dbHealth' }).init();
     expect(setInterval.mock.calls.map(([, ms]) => ms)).toEqual([20000, 1000]);

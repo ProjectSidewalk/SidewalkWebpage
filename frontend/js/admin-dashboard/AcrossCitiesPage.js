@@ -243,9 +243,9 @@ export class AcrossCitiesPage {
    */
   #joinActivityWindows() {
     for (const c of this.#cities) {
-      const w = this.#windowByCity[c.city_id] || null;
+      const w = this.#windowByCity[c.city_id] || {};
       c.activity_window = w;
-      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+      c.activity_7d = (w.labels_7d || 0) + (w.validations_7d || 0);
     }
   }
 

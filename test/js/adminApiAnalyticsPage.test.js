@@ -149,6 +149,19 @@ describe('loading', () => {
   });
 });
 
+describe('switching ranges quickly', () => {
+  test('drops a slow reply for an earlier range instead of drawing it under the newer one', async () => {
+    let answer90;
+    await load({ 30: payload(), 90: new Promise((resolve) => { answer90 = resolve; }), 0: payload() });
+    range(90).click();
+    range(0).click();
+    await flush();
+    answer90(payload({ sources: { external: { calls: 9, unique_ips: 1 }, api_docs: { calls: 0, unique_ips: 0 } } }));
+    await flush();
+    expect(text('kpi-external-calls')).toBe('1,200');
+  });
+});
+
 describe('the date range captions', () => {
   test('span the last 30 days, ending today, on every chart', async () => {
     await load(payload());

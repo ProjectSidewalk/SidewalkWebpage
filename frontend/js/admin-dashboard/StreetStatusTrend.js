@@ -27,8 +27,8 @@ export class StreetStatusTrend {
    * @param {string} opts.trendUrl - URL of the trend JSON endpoint, without the `weeks` parameter.
    * @param {number} [opts.weeks] - Initial window size in weeks, injected from the server's own default so the two
    *   can't drift. Omitted leaves the window off the request, which lets the server apply that same default.
-   * @param {(streetId: number) => boolean} opts.onShowStreet - Asks the page to point its status map at one street,
-   *   returning false if it can't yet.
+   * @param {(streetId: number) => ?string} opts.onShowStreet - Asks the page to point its status map at one street,
+   *   returning null once done or else why it couldn't.
    */
   constructor(opts) {
     this.#trendUrl = opts.trendUrl;
@@ -175,9 +175,8 @@ export class StreetStatusTrend {
    */
   #showCandidateOnMap(button) {
     const streetEdgeId = Number(button.closest('tr').dataset.streetId);
-    if (!this.#onShowStreet(streetEdgeId)) {
-      this.#setQueueError('The status map is still loading; try again in a moment.');
-    }
+    const problem = this.#onShowStreet(streetEdgeId);
+    if (problem) this.#setQueueError(problem);
   }
 
   /**

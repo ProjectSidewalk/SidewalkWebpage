@@ -149,4 +149,14 @@ describe('CoverageTable', () => {
     table.clearHighlight();
     expect(document.querySelectorAll('tr.is-highlighted')).toHaveLength(0);
   });
+
+  test('keeps the highlight when a sort or search redraws the rows', () => {
+    const { table } = render();
+    table.highlightRows([1]);
+    header('name').click();
+    const search = document.getElementById('coverage-table-search');
+    search.value = 'town';
+    search.dispatchEvent(new Event('input'));
+    expect([...document.querySelectorAll('tr.is-highlighted')].map((tr) => tr.dataset.regionId)).toEqual(['1']);
+  });
 });

@@ -258,13 +258,15 @@ export class ActivityPage {
       { name: 'Anonymous', key: 'anon', values: buckets.map((b) => b.activeAnon) },
     ];
     const weekly = this.#gran === 'week';
-    const unit = weekly ? 'avg users/day' : 'users';
+
     const caption = weekly
       ? '<p class="dq-empty">Weekly points are the average of that week’s daily active-user counts.</p>'
       : '';
     el.innerHTML = `<div class="mini-host"></div>${caption}`;
     MiniLineChart.renderInto(el.querySelector('.mini-host'), labels, series, {
-      valueFormat: (v) => `${Math.round(v).toLocaleString()} ${unit}`,
+      valueFormat: (v) => (weekly
+        ? `${Math.round(v).toLocaleString()} avg users/day`
+        : AdminShell.count(Math.round(v), 'user')),
       ariaLabel: 'Active contributors over time',
       dotRadius: 2,
     });

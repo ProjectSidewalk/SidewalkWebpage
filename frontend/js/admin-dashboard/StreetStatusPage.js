@@ -9,6 +9,7 @@
 
 import { geometryBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
+import { AdminShell } from './AdminShell.js';
 import { StreetStatusColors, StreetStatusMap } from './StreetStatusMap.js';
 import { StreetStatusTable } from './StreetStatusTable.js';
 import { StreetStatusTrend } from './StreetStatusTrend.js';
@@ -48,8 +49,7 @@ export class StreetStatusPage {
       new StreetStatusTrend({
         trendUrl: this.#trendUrl,
         weeks: this.#trendWeeks,
-        // Bound now but only usable once the map has loaded, which is the later of the two: the queue asks first and
-        // renders a plain street id if the answer is no.
+        // Bound now but only usable once the map has loaded, which is usually the later of the two.
         onShowStreet: (id) => this.#showStreet(id),
       }).init()
         .catch((e) => console.error('Could not initialize the street-status trend section.', e));
@@ -124,18 +124,18 @@ export class StreetStatusPage {
    * Zooms the map to one street and scrolls it into view, for a panel below that can only name a street by id.
    *
    * @param {number} streetEdgeId - The street to show.
-   * @returns {boolean} false when the map isn't ready or doesn't know that street, so the caller can fall back to
-   *   rendering a plain id rather than an action that would do nothing.
+   * @returns {?string} null once shown; otherwise why not, for the caller to show the admin.
    */
   #showStreet(streetEdgeId) {
+    if (!this.#map) return 'The status map is still loading; try again in a moment.';
     const feature = this.#featureByStreet.get(Number(streetEdgeId));
-    if (!this.#map || !feature) return false;
+    if (!feature) return `Street ${AdminShell.num(streetEdgeId)} isn't on the status map.`;
     this.#pinnedIds = [];
     this.#hoverIds = null;
     this.#table?.clearHighlight();
     this.#map.focusSegment(Number(streetEdgeId), geometryBounds(feature.geometry));
     document.getElementById('street-status-map-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return true;
+    return null;
   }
 
   /** Click handler: toggles the pinned set (clicking the same selection again clears it). */

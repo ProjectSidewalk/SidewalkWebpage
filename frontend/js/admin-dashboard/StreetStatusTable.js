@@ -23,6 +23,7 @@ export class StreetStatusTable {
   #sortDir = -1;           // -1 = descending.
   #filter = '';
   #hoverId = null;
+  #highlighted = new Set(); // Kept so a re-sort or search, which redraws the rows, doesn't drop the highlight.
 
   /**
    * @param {string} tableId - ID of the <table> element.
@@ -52,6 +53,7 @@ export class StreetStatusTable {
     this.#wireEvents(table, tbody);
   }
 
+  /** @returns {string} The header row, its arrow on the sorted column. */
   #headerRowHtml() {
     const arrowFor = (key) => (key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '');
     const th = (key, label) => `<th data-key="${util.escapeHTML(key)}" role="button" tabindex="0" scope="col">
@@ -83,6 +85,7 @@ export class StreetStatusTable {
         + `<td>${util.escapeHTML(r.name)}</td>${statusCells}<td>${r.total.toLocaleString()}</td>`
         + `<td>${StreetStatusTable.#barHtml(r)}</td></tr>`;
     }).join('');
+    this.#paintHighlight();
   }
 
   /** Builds an inline 100%-stacked bar (one span per status, sized by share) for a region row. */
@@ -97,6 +100,11 @@ export class StreetStatusTable {
     return `<div class="street-status-bar" aria-hidden="true">${segments}</div>`;
   }
 
+  /**
+   * Wires sorting, search and row hover/click; render() calls it once per table.
+   * @param {HTMLElement} table - The table.
+   * @param {HTMLTableSectionElement} tbody - Its body, whose rows are redrawn but which itself stays.
+   */
   #wireEvents(table, tbody) {
     // Redraws only the row, so the listeners on <thead> survive, and keeps focus on the header a key press sorted.
     const refreshHeader = () => {
@@ -108,11 +116,11 @@ export class StreetStatusTable {
     };
 
     table.querySelector('thead').addEventListener('click', (e) => {
-      const th = e.target.closest('th[data-key]');
+      const th = /** @type {Element} */ (e.target).closest('th[data-key]');
       if (th) this.#sortBy(th.dataset.key, refreshHeader);
     });
     table.querySelector('thead').addEventListener('keydown', (e) => {
-      const th = e.target.closest('th[data-key]');
+      const th = /** @type {Element} */ (e.target).closest('th[data-key]');
       if (th && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         this.#sortBy(th.dataset.key, refreshHeader);
@@ -128,7 +136,7 @@ export class StreetStatusTable {
     }
 
     tbody.addEventListener('pointerover', (e) => {
-      const tr = e.target.closest('tr[data-region-id]');
+      const tr = /** @type {Element} */ (e.target).closest('tr[data-region-id]');
       const id = tr ? Number(tr.dataset.regionId) : null;
       if (id === this.#hoverId) return;
       this.#hoverId = id;
@@ -141,7 +149,7 @@ export class StreetStatusTable {
       this.#onRowHoverEnd();
     });
     tbody.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr[data-region-id]');
+      const tr = /** @type {Element} */ (e.target).closest('tr[data-region-id]');
       if (tr) this.#onRowClick(Number(tr.dataset.regionId));
     });
   }
@@ -160,16 +168,20 @@ export class StreetStatusTable {
 
   /** Highlights the rows for the given region ids. @param {number[]} ids */
   highlightRows(ids) {
-    const set = new Set(ids.map(Number));
-    const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-    tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
-      tr.classList.toggle('is-highlighted', set.has(Number(tr.dataset.regionId)));
-    });
+    this.#highlighted = new Set(ids.map(Number));
+    this.#paintHighlight();
   }
 
   /** Clears all row highlights. */
   clearHighlight() {
+    this.#highlighted.clear();
+    this.#paintHighlight();
+  }
+
+  #paintHighlight() {
     const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-    tbody.querySelectorAll('tr.is-highlighted').forEach((tr) => tr.classList.remove('is-highlighted'));
+    tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
+      tr.classList.toggle('is-highlighted', this.#highlighted.has(Number(tr.dataset.regionId)));
+    });
   }
 }

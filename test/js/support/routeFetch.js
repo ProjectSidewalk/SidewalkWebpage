@@ -12,10 +12,11 @@ export function routeFetch(routes, normalize = (url) => url) {
   const stub = vi.fn(async (input, options = {}) => {
     const url = normalize(String(input));
     const method = options.method || 'GET';
-    const key = Object.keys(routes).sort((a, b) => b.length - a.length).find((k) => {
-      const [m, prefix] = k.includes(' ') ? k.split(' ') : [null, k];
-      return (m === null || m === method) && url.startsWith(prefix);
-    });
+    const key = Object.keys(routes).map((k) => (k.includes(' ') ? k.split(' ') : [null, k]))
+      .filter(([m, prefix]) => (m === null || m === method) && url.startsWith(prefix))
+      // The longest path wins; on a tie, the key naming a method.
+      .sort(([ma, a], [mb, b]) => b.length - a.length || Number(mb !== null) - Number(ma !== null))
+      .map(([m, prefix]) => (m === null ? prefix : `${m} ${prefix}`))[0];
     if (key === undefined) throw new Error(`unrouted fetch: ${method} ${url}`);
     let answer = routes[key];
     if (typeof answer === 'function') answer = await answer(url, options);
