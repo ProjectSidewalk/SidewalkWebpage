@@ -350,6 +350,31 @@ describe('AccessScoreDock', () => {
     expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
   });
 
+  test('a fold keeps the reader\'s open state out of the URL and the log, and the bar\'s toggle lifts it (#5748)', () => {
+    const root = document.getElementById('acs-dock');
+    callbacks.onStateChange.mockClear();
+    dock.setFolded(true);
+    expect(root.classList.contains('acs-dock--collapsed')).toBe(true);
+    expect(document.getElementById('acs-dock-body').hidden).toBe(true);
+    expect(dock.state.open).toBe(true);
+    expect(callbacks.onStateChange).not.toHaveBeenCalled();
+    expect(callbacks.log).not.toHaveBeenCalled();
+    dock.setFolded(false);
+    expect(root.classList.contains('acs-dock--collapsed')).toBe(false);
+    // Folded over a collapsed band: lifting the fold leaves it collapsed, as the reader left it.
+    dock.setOpen(false, {log: false});
+    dock.setFolded(true);
+    dock.setFolded(false);
+    expect(root.classList.contains('acs-dock--collapsed')).toBe(true);
+    expect(dock.state.open).toBe(false);
+    // The toggle while folded is a request to see the band: the fold lifts and the band opens.
+    dock.setFolded(true);
+    document.getElementById('acs-dock-toggle').click();
+    expect(root.classList.contains('acs-dock--collapsed')).toBe(false);
+    expect(dock.state.open).toBe(true);
+    expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
+  });
+
   test('a rank row focuses its region as the band\'s scope, until the map or a reset says otherwise', async () => {
     // The rows only read: no type is a switch for the map's dots.
     expect(document.querySelector('.acs-whats-here__row button')).toBeNull();

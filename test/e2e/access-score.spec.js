@@ -385,6 +385,8 @@ test.describe('/accessScore', () => {
       await expect(caret).toBeVisible();
       expect(Number.parseFloat(await caret.evaluate((el) => el.style.left))).toBeCloseTo(46.8, 0);
       await expect(page.locator('.acs-histogram__bin[aria-pressed="true"]')).toHaveCount(0);
+      // A region's card is still a popup; the street panel is for streets.
+      await expect(page.locator('#acs-panel')).toBeHidden();
       // The second region carries no streets, so nothing is left to fade against the selected one.
       expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
     });
@@ -436,17 +438,26 @@ test.describe('/accessScore', () => {
       expect(worst[0]).toBeLessThanOrEqual(best[0]);
       await order.click();
 
-      // A row is the street: clicking it selects that street on the map, popup and URL included.
+      // A row is the street: clicking it selects that street on the map, panel and URL included (#5748). The band
+      // folds to its bar while the panel is open, keeping its legend and the caret at the street's score.
       const row = page.locator('.acs-rank__row').first();
       const zoomBefore = await page.evaluate(() => window.accessScore.map.getZoom());
       const streetId = await row.getAttribute('data-row-id');
       await row.click();
       await expect(row).toHaveAttribute('aria-current', 'true');
-      await expect(page.locator('.acs-popup')).toBeVisible();
+      await expect(page.locator('#acs-panel')).toBeVisible();
+      await expect(page.locator('#acs-panel-title')).toContainText(`Street ${streetId}`);
+      await expect(page.locator('#acs-dock-body')).toBeHidden();
+      await expect(page.locator('.acs-dock__strip-caret')).toBeVisible();
       await expect.poll(() => urlParam(page, 'sel')).toBe(streetId);
       await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).not.toBe(zoomBefore);
       // The rows in What's here only read: nothing in them is a button.
       await expect(page.locator('.acs-whats-here__row button')).toHaveCount(0);
+      // Closing the panel deselects: the URL and the band follow.
+      await page.locator('#acs-panel-close').click();
+      await expect(page.locator('#acs-panel')).toBeHidden();
+      await expect(page.locator('#acs-dock-body')).toBeVisible();
+      await expect.poll(() => urlParam(page, 'sel')).toBeNull();
     });
 
   test('selecting a street fades the streets outside its region, and the collapsed band keeps the legend',
@@ -485,17 +496,55 @@ test.describe('/accessScore', () => {
       await expect(legend.locator('.acs-map-legend__swatch--hatch')).toBeVisible();
     });
 
-  test('a street popup shows the headline over its three components', async ({page}) => {
-    await page.goto('/accessScore?sel=1');
-    await waitForAppReady(page);
-    await waitForTool(page);
-    const popup = page.locator('.acs-popup');
-    await expect(popup).toBeVisible();
-    await expect(popup.locator('.acs-popup__score')).toHaveText('81.8');
-    // The stubbed intersections feed is empty, so the headline is the segment alone and both crossings read "—".
-    await expect(popup.locator('.acs-popup__components'))
-      .toHaveText(/Segment 81\.8 · Start crossing — · End crossing —/);
-  });
+  test('the street panel leads with the verdict, lists what drives the score, and pictures the clusters (#5748)',
+    async ({page}) => {
+      await page.goto('/accessScore?sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      const panel = page.locator('#acs-panel');
+      await expect(panel).toBeVisible();
+      await expect(panel.locator('#acs-panel-title')).toHaveText('Cedar Lane · Street 1');
+      await expect(panel.locator('.acs-panel__score')).toHaveText('81.8/ 100');
+      // The stubbed intersections feed is empty: no scored crossing, so the street's score is the block's.
+      await expect(panel.locator('.acs-panel__sentence'))
+        .toContainText('The block scores 81.8, helped most by Curb Ramp (+1.50).');
+      await expect(panel.locator('.acs-panel__sentence')).toContainText('No crossing at either end has a score');
+      await expect(panel.locator('.acs-panel__components'))
+        .toHaveAttribute('aria-label', 'Segment 81.8 · Start crossing — · End crossing —');
+      await expect(panel.locator('.acs-row')).toHaveCount(1);
+      await expect(panel.locator('.acs-row[data-type="CurbRamp"] .acs-row__effect')).toHaveText('+1.50');
+      // A link's selection steals no focus from the document.
+      expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+      // The evidence: the fixture's one cluster on street 1, as a tile wearing its effect, with its vote chips live.
+      const tile = panel.locator('[data-acs-group="block"] .acs-tile');
+      await expect(tile).toHaveCount(1);
+      // One Good ramp of the street's two: half the type's +1.50.
+      await expect(tile.locator('.acs-tile__effect')).toHaveText('+0.75');
+      await expect(tile.locator('.lmc__type')).toHaveText('Curb Ramp');
+      await expect(tile.locator('.lmc__image')).toBeVisible();
+      const agree = tile.locator('.lmc__vote--agree');
+      await agree.click();
+      await expect(agree).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(() => VALIDATIONS.length).toBe(1);
+      expect(VALIDATIONS[0]).toMatchObject({label_id: 11, validation_result: 'Agree', source: 'AccessScorePanel'});
+      // A tile opens the shared label card.
+      await tile.locator('.lmc__open').click();
+      await expect(page.locator('#label-modal')).toBeVisible();
+      await page.keyboard.press('Escape');
+      // A reweighting keeps the panel up and re-reads its numbers.
+      await page.locator('#acs-weights-toggle').click();
+      await page.locator('#acs-weight-CurbRamp').fill('0');
+      await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
+      await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');
+      await expect(panel).toBeVisible();
+      await expect(panel.locator('.acs-panel__score')).toHaveText('50.0/ 100');
+      await expect(tile.locator('.acs-tile__effect')).toHaveText('+0.00');
+      // Escape in the panel deselects.
+      await panel.locator('#acs-panel-title').focus();
+      await page.keyboard.press('Escape');
+      await expect(panel).toBeHidden();
+      await expect.poll(() => urlParam(page, 'sel')).toBeNull();
+    });
 
   test('coloring by slope swaps the paint and the legend, reaches the URL, and the popup draws the profile (#5223)',
     async ({page, context, consoleErrors}) => {
@@ -563,18 +612,18 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
       await expect(page.locator('#acs-show-grade')).toBeChecked();
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
-      const popup = page.locator('.acs-popup');
-      await expect(popup).toContainText('Steepest 8.1% · average 6.2%');
-      await expect(popup.locator('svg.elevation-profile__chart')).toBeVisible();
+      const panel = page.locator('#acs-panel');
+      await expect(panel).toContainText('Steepest 8.1% · average 6.2%');
+      await expect(panel.locator('svg.elevation-profile__chart')).toBeVisible();
       // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
-      await expect(popup.locator('.elevation-profile__callout')).toContainText('8.1%');
-      const rows = popup.locator('.elevation-profile__legend').getByRole('button');
+      await expect(panel.locator('.elevation-profile__callout')).toContainText('8.1%');
+      const rows = panel.locator('.elevation-profile__legend').getByRole('button');
       await expect(rows).toHaveCount(2);
       // By keyboard: a legend row is a real button, reachable and pressable without a pointer.
       await rows.first().press('Enter');
       await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
-      await expect(popup.locator('.elevation-profile')).toHaveClass(/elevation-profile--filtered/);
-      await expect(popup.locator('.acs-popup__credit')).toHaveText('Elevation: Fixture Survey');
+      await expect(panel.locator('.elevation-profile')).toHaveClass(/elevation-profile--filtered/);
+      await expect(panel.locator('.acs-panel__credit')).toHaveText('Elevation: Fixture Survey');
 
       await page.locator('#acs-show-grade').uncheck();
       await expect(page.locator('#acs-show-unaudited')).toBeEnabled();
@@ -625,11 +674,11 @@ test.describe('/accessScore', () => {
       await expect(page.getByRole('status').filter({hasText: 'accessibility limits of 5% and 8.3%'})).toBeVisible();
       await page.locator('#acs-slope-statistic').selectOption('max_grade');
 
-      // The table that explains the score has a row for what slope took off it.
+      // The rows that explain the score have one for what slope took off it.
       await page.goto('/accessScore?sel=1');
       await waitForAppReady(page);
       await waitForTool(page);
-      await expect(page.locator('.acs-popup__table')).toContainText(/Grade\s*—\s*−1\.00/);
+      await expect(page.locator('.acs-row[data-type="grade"] .acs-row__effect')).toHaveText('−1.00');
 
       // A barrier at the default 12.5% leaves a street whose steepest stretch is 12% alone; at 10% it scores 0.
       await page.locator('#acs-slope-toggle').click();
@@ -648,8 +697,8 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
       await expect(page.locator('#acs-slope')).toBeVisible();
       await expect(page.locator('#acs-slope-barrier')).toBeChecked();
-      await expect(page.locator('.acs-popup')).toContainText('The segment scores 0: steeper than the 10% barrier.');
-      await expect(page.locator('.acs-popup__table')).toContainText('barrier: 0');
+      await expect(page.locator('#acs-panel')).toContainText('The segment scores 0: steeper than the 10% barrier.');
+      await expect(page.locator('.acs-row[data-type="grade"] .acs-row__effect')).toHaveText('barrier: 0');
 
       await page.locator('#acs-slope-reset').click();
       await expect.poll(() => scoreOf(page, 1)).toBeCloseTo(weighed, 9);
@@ -780,6 +829,7 @@ test.describe('/accessScore', () => {
     expect(await scoreOf(page, 1)).toBeCloseTo(0.8176, 3);
     await expect(page.locator('#acs-reset')).toBeHidden();
     await expect(page.locator('.acs-popup')).toHaveCount(0);
+    await expect(page.locator('#acs-panel')).toBeHidden();
     await expect(page.locator('#acs-dock-brush')).toBeHidden();
     // The searched place is part of "everything" (#5321).
     await expect(page.locator('.ps-search-pin')).toHaveCount(0);
@@ -1015,13 +1065,14 @@ test.describe('/accessScore', () => {
       await page.waitForFunction(() => window.accessScore.placesLayer.place(1) !== null);
 
       await page.evaluate(() => window.accessScore.selectPlace(1));
-      const card = page.locator('.acs-popup');
-      await expect(card.locator('.acs-popup__title')).toHaveText('Fixture High School');
-      // The street card's shape, headed by the place: the street, the score, and what drives it.
-      await expect(card.locator('.acs-popup__subtitle').first()).toHaveText('Cedar Lane · Street 1');
-      await expect(card.locator('.acs-popup__score')).toHaveText('81.8');
-      await expect(card.locator('.acs-popup__subtitle').nth(1)).toHaveText('What drives this score');
-      await expect(card.locator('table')).toBeVisible();
+      const card = page.locator('#acs-panel');
+      await expect(card.locator('#acs-panel-title')).toHaveText('Fixture High School');
+      await expect(card.locator('#acs-panel-meta')).toHaveText('Schools · Fixture');
+      // The street panel's shape, headed by the place: the street, the score, and what drives it (#5748).
+      await expect(card.locator('.acs-panel__place-street')).toContainText('Nearest street · Cedar Lane · Street 1 ·');
+      await expect(card.locator('.acs-panel__score')).toHaveText('81.8/ 100');
+      await expect(card.locator('#acs-panel-rows-title')).toHaveText('What drives this score');
+      await expect(card.locator('.acs-row')).toHaveCount(1);
       await expect(card.locator('[data-acs-hop="ExploreHere"]')).toHaveAttribute('href', '/explore?lat=40.88050&lng=-74.00890');
       // A place is not a street selection: it never lands in `sel`, and the dock keeps its city scope.
       await expect.poll(() => urlParam(page, 'place')).toBe('40.88050,-74.00890');
@@ -1030,25 +1081,25 @@ test.describe('/accessScore', () => {
 
       await page.locator('#acs-weights-toggle').click();
       await page.locator('#acs-weight-CurbRamp').fill('0');
-      await expect(card.locator('.acs-popup__score')).toHaveText('50.0');
+      await expect(card.locator('.acs-panel__score')).toHaveText('50.0/ 100');
       expect(await urlParam(page, 'sel')).toBeNull();
 
       // A place with no street near it says so; an unnamed one is titled by its category, and one on an unaudited
-      // street has no score and no table.
+      // street has no score and nothing to explain.
       await page.evaluate(() => window.accessScore.selectPlace(3));
-      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Transit stops');
-      await expect(page.locator('.acs-popup .acs-popup__meta').first()).toHaveText('Fixture');
-      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveText('Not yet audited');
-      await expect(page.locator('.acs-popup table')).toHaveCount(0);
+      await expect(card.locator('#acs-panel-title')).toHaveText('Transit stops');
+      await expect(card.locator('#acs-panel-meta')).toHaveText('Fixture');
+      await expect(card.locator('.acs-panel__score')).toHaveText('Not yet audited');
+      await expect(card.locator('.acs-row')).toHaveCount(0);
       await page.evaluate(() => window.accessScore.selectPlace(2));
-      await expect(page.locator('.acs-popup')).toContainText('No street within 250 m.');
-      await expect(page.locator('.acs-popup .acs-popup__score')).toHaveCount(0);
+      await expect(card).toContainText('No street within 250 m.');
+      await expect(card.locator('.acs-panel__score')).toHaveCount(0);
 
-      // A shared link reopens the marker's card without a click, and draws its category so the card sits on a marker.
+      // A shared link reopens the marker's panel without a click, and draws its category so it sits on a marker.
       await page.goto('/accessScore?place=40.88050,-74.00890&placeName=Fixture+High+School');
       await waitForAppReady(page);
       await waitForTool(page);
-      await expect(page.locator('.acs-popup .acs-popup__title')).toHaveText('Fixture High School');
+      await expect(page.locator('#acs-panel-title')).toHaveText('Fixture High School');
       await expect(page.locator('#acs-place-school')).toBeChecked();
       await expect.poll(() => urlParam(page, 'pc')).toBe('school');
       expect(consoleErrors).toEqual([]);

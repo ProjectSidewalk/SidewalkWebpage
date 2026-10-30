@@ -84,6 +84,8 @@ export class AccessScoreDock {
   static PHOTO_MOVE_DEBOUNCE_MS = 500;
 
   #open = true;
+  /** Whether the band is folded to its bar for the street panel (`setFolded`), whatever `#open` says. */
+  #folded = false;
   /** @type {?AccessScoreBrush} The brush in force, of either kind; null with none. */
   #brush = null;
   /** The ascending slope-class breaks, for reading a grade brush back into streets; null in an unsampled city. */
@@ -123,10 +125,12 @@ export class AccessScoreDock {
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    * @param {?number[]} [options.gradeBreaks] - The slope-class breaks a grade brush is read against (#5223); null
    *   in a city whose streets have no slope.
+   * @param {?import('./AccessScoreClusterFeed.js').AccessScoreClusterFeed} [options.feed] - The page's shared
+   *   cluster cache for the photo strip (#5748); null to let the strip keep its own.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
-    gradeBreaks = null,
+    gradeBreaks = null, feed = null,
   }) {
     this.#gradeBreaks = gradeBreaks;
     this.#root = root;
@@ -170,6 +174,7 @@ export class AccessScoreDock {
       types: model.config.scored_types,
       onOpenLabel: (labelId, ids) => this.#callbacks.onOpenLabel(labelId, ids),
       log,
+      feed,
     });
     this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
       // A street row is a map selection, which arrives back through `setSelection` and scopes the band itself; a
@@ -278,11 +283,30 @@ export class AccessScoreDock {
    */
   setOpen(open, { log = true } = {}) {
     this.#open = open;
-    this.#root.classList.toggle('acs-dock--collapsed', !open);
-    this.#els.toggle.setAttribute('aria-expanded', String(open));
-    this.#els.body.hidden = !open;
+    this.#folded = false;
+    this.#applyOpen();
     if (log) this.#callbacks.log('Dock', open ? 'open' : 'closed');
     this.#callbacks.onStateChange();
+  }
+
+  /**
+   * Folds the band to its bar while something else needs the map (the street panel, #5748), or unfolds it. A fold
+   * is not a collapse: the reader's own open/closed choice is kept, left out of the URL and the log, and comes back
+   * when the fold lifts. A click on the bar's toggle while folded lifts the fold and opens.
+   * @param {boolean} folded - True to fold.
+   */
+  setFolded(folded) {
+    if (folded === this.#folded) return;
+    this.#folded = folded;
+    this.#applyOpen();
+  }
+
+  /** The band's shown state: open unless collapsed or folded. */
+  #applyOpen() {
+    const shown = this.#open && !this.#folded;
+    this.#root.classList.toggle('acs-dock--collapsed', !shown);
+    this.#els.toggle.setAttribute('aria-expanded', String(shown));
+    this.#els.body.hidden = !shown;
   }
 
   /**
@@ -927,7 +951,7 @@ export class AccessScoreDock {
   }
 
   #bind() {
-    this.#els.toggle.addEventListener('click', () => this.setOpen(!this.#open));
+    this.#els.toggle.addEventListener('click', () => this.setOpen(this.#folded ? true : !this.#open));
     this.#els.brushClear.addEventListener('click', () => this.setBrush(null));
     this.#els.rankOrder?.addEventListener('click', () => {
       this.setRankWorst(!this.#rankWorst);

@@ -215,7 +215,7 @@ says (the centre, unless the window shifted off a pole) — and the files look a
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
 against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
 on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
-the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet, photo strip and street panel) — take it from the
 row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
 image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
 must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
@@ -587,7 +587,18 @@ loaded by the corresponding Twirl view:
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
   raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
   every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
-  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  per histogram bin, since a symbol's image can't read feature-state, #5311), the street panel
+  (`AccessScoreStreetPanel.js`, #5748: what a click on a street or a place opens, a drawer on the map's right that
+  says why the street scores what it does, verdict first — a sentence, the block and its two crossings drawn in their
+  score colors, a signed effect bar per label type with grade among them, the elevation profile — and backs it with
+  the evidence, one `LabelMiniCard` tile per cluster along the block and at each crossing, worst first, each wearing
+  what that cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
+  type since the engine scores a cluster from its median rating and tag counts); a row lights its tiles, a tile its
+  dot on the map; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, the
+  dock folds to its bar while it is open, and a place's panel is its nearest street's headed by the place; a region
+  keeps a Mapbox popup), the clusters' shared cache (`AccessScoreClusterFeed.js`: a region's `/v3/api/labelClusters`
+  feed and the `/label/id` JSON behind each picture, fetched once for the panel and the photo strip), the cluster
+  sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
@@ -601,8 +612,8 @@ loaded by the corresponding Twirl view:
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
-  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band, the
+  panel and the popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
 - **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which

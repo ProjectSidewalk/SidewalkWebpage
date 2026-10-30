@@ -280,6 +280,21 @@
         </div>
       </aside>
 
+      @* The street panel (#5748): what a click on a street, or on a place, opens. A sibling of the dock, after it,
+         so the stylesheet can end the dock at the panel's edge. AccessScoreStreetPanel.js fills the body. *@
+      <aside id="acs-panel" class="acs-panel" aria-labelledby="acs-panel-title" data-docs-url="@routes.ApiDocsController.accessScoreStreets#scoring-model" hidden>
+        <div class="acs-panel__head">
+          <div class="acs-panel__titles">
+            <h2 class="acs-panel__title" id="acs-panel-title" tabindex="-1"></h2>
+            <p class="acs-panel__meta" id="acs-panel-meta"></p>
+          </div>
+          <button type="button" id="acs-panel-close" class="acs-panel__close" aria-label="Close" data-i18n-aria-label="common:close">
+            <img src="@assets.path("images/icons/cross.svg")" alt="">
+          </button>
+        </div>
+        <div class="acs-panel__body" id="acs-panel-body"></div>
+      </aside>
+
       @common.mapLoadingOverlay()
     </div>
   </div>

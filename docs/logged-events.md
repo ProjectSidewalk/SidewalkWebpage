@@ -130,10 +130,10 @@ The AccessScore tool (`/accessScore`, `frontend/js/access-score/`, #5217) logs i
 the Street grade section's `AccessScore_GradeWeight_value=<magnitude>`, `AccessScore_GradeStat_value=<statistic id>`,
 `AccessScore_GradeThreshold_value=<low|high|barrier>_value=<percent>`, `AccessScore_GradeBarrier_value=<bool>`,
 `AccessScore_GradeApproximate_value=<bool>` and `AccessScore_GradeReset` (#5223; its fold logs
-`AccessScore_Section_value=grade_open=<bool>` like the other two), the street popup's elevation profile's
+`AccessScore_Section_value=grade_open=<bool>` like the other two), the street panel's elevation profile's
 `AccessScore_ProfileClass_value=<class index>_value=<bool>` (a legend row pinned or unpinned; the index counts from
 the gentlest grade class, as the map legend's do) and `AccessScore_ProfileScrub` (the chart pointed along or stepped
-through with the arrow keys, once per popup, since a sweep is one interaction; a Tab passing through is not one),
+through with the arrow keys, once per panel, since a sweep is one interaction; a Tab passing through is not one),
 `AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` /
 `AccessScore_Section_value=places_open=<bool>` (a fold toggled; every fold starts closed, so an open says the section
 was reached for), `AccessScore_Reset` (the weights),
@@ -141,15 +141,23 @@ was reached for), `AccessScore_Reset` (the weights),
 (weights, slope settings, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId_value=<id>` / `AccessScore_Select_regionId_value=<id>` (a click on a street or neighborhood;
 every AccessScore event that carries an id spells it `_<idName>_value=<id>`, the page's one `log(kind, value)` helper),
+the street panel's (#5748) `AccessScore_Panel_value=open` (the panel opened by a click on a street or a place; a
+selection a link carried in is not logged, nor is a street swapped for another while it is open),
+`AccessScore_PanelClose_value=<button|escape>` (closed by the reader; a deselect by a click on bare map is not logged),
+`AccessScore_PanelRow_value=<labelType|grade>` (a row in "What drives this score" hovered or focused, once per type per
+open), `AccessScore_PanelHoverCluster_labelClusterId_value=<id>` (an evidence tile hovered or focused, once per
+cluster per open), `AccessScore_PanelOpenLabel_labelId_value=<id>` (a tile opening the full label card),
+`AccessScore_PanelSheet_labelClusterId_value=<id>` (a tile's "N labels" opening the cluster sheet) and
+`AccessScore_PanelExpandGroup_value=<block|start|end>` ("Show all" on a group of tiles),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
-`AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
-and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
+`AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
+and the panel's and popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
 `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
 `AccessScore_PlaceCategoryOnly_value=<category>` (a row's hover-revealed "Only") and
 `AccessScore_PlaceCategorySelectAll` / `AccessScore_PlaceCategoryDeselectAll` (the heading's section action, the
 shared filter sidebar's),
-`AccessScore_SelectPlace_placeId_value=<id>` (a click on a place marker, which opens the place card; a card restored from a
-link's `place` param is not logged); the card's one hop is the shared `ExploreHere`. A click on a
+`AccessScore_SelectPlace_placeId_value=<id>` (a click on a place marker, which opens the street panel headed by the
+place; one restored from a link's `place` param is not logged); the card's one hop is the shared `ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per

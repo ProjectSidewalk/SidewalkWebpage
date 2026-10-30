@@ -689,21 +689,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Slope's row in the terms table has no label type to take a color from; it takes the slope map's mid blue. */
-.acs-popup__swatch--slope {
-  background-color: var(--color-grade-ramp-3);
-}
-
-/* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the
+/* The panel's grade section (#5223). The note says why a number is missing or approximate, and the credit is the
    elevation model's licence condition, so both are text-sized rather than fine print. */
-.acs-popup__note,
-.acs-popup__credit {
+.acs-panel__note,
+.acs-panel__credit {
   margin: var(--space-xxs) 0 0;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
-.acs-popup__profile {
+.acs-panel__profile {
   min-height: calc(20px * var(--ui-scale, 1));
   margin-top: var(--space-xxs);
   font: var(--text-caption-regular);
@@ -715,6 +710,7 @@
 /* Mapbox floats its corner controls into a column; a reversed flex row puts the legend beside the zoom buttons
    (the navigation control is added first, so it stays at the corner). */
 #acs-map .mapboxgl-ctrl-top-right {
+  right: var(--acs-panel-width, 0);
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-start;
@@ -871,7 +867,9 @@
    the loading overlay (20) covers it. Mapbox's attribution and logo lift above it (below). */
 .acs-dock {
   position: absolute;
-  right: 0;
+
+  /* The band ends where the street panel begins (#5748); the panel publishes its width on the holder. */
+  right: var(--acs-panel-width, 0);
   bottom: 0;
   left: 0;
   z-index: 12;
@@ -887,6 +885,7 @@
 .filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-dock {
   left: var(--filter-sidebar-width, 350px);
 }
+
 
 /* The band covers the map's bottom edge, where Mapbox keeps its attribution and logo; the dock publishes its
    height on the holder and the controls ride up by it. */
@@ -1667,6 +1666,450 @@
   list-style: none;
 }
 
+
+/* ---- The street panel (#5748): why a street scores what it does, with the pictures behind it ---- */
+
+/* A drawer on the map's right, the mirror of the controls drawer on the left. Over the dock (12) and under the
+   status pill (15). It stays light on the dark basemap, as the band and the popups do. */
+.acs-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  width: min(calc(500px * var(--ui-scale, 1)), 48vw);
+  background: var(--color-neutral-white);
+  box-shadow: -2px 0 6px rgb(0 0 0 / 12%);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.acs-panel[hidden] {
+  display: none;
+}
+
+.acs-panel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-panel__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.acs-panel__title {
+  margin: 0;
+  font: var(--text-title-bold);
+  overflow-wrap: anywhere;
+}
+
+.acs-panel__title:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-panel__meta {
+  margin: 2px 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__close {
+  flex: none;
+  width: calc(32px * var(--ui-scale, 1));
+  height: calc(32px * var(--ui-scale, 1));
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.acs-panel__close:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-panel__close:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-panel__close img {
+  width: 100%;
+  height: 100%;
+}
+
+.acs-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 0 var(--space-md) var(--space-lg);
+}
+
+.acs-panel__section {
+  margin-top: var(--space-md);
+}
+
+.acs-panel__subtitle {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-small-bold);
+}
+
+.acs-panel__empty,
+.acs-panel__status,
+.acs-panel__sum,
+.acs-panel__how {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__status:empty {
+  display: none;
+}
+
+/* Where a place heads the panel: the line that names the street the rest of it is about. */
+.acs-panel__place-street {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- The verdict: headline, sentence, and the three components drawn as the street ---- */
+
+.acs-panel__verdict {
+  padding: var(--space-sm) 0 var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-panel__score {
+  font: var(--text-h2-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-panel__score small {
+  margin-left: var(--space-xxs);
+  font: var(--text-small-medium);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__sentence {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-small-regular);
+  max-width: 60ch;
+}
+
+.acs-panel__sentence b {
+  font: var(--text-small-bold);
+}
+
+/* Crossing · block · crossing, in a row: the dots take their score color, the bar the block's. */
+.acs-panel__components {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0 var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.acs-panel__end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  text-align: center;
+}
+
+.acs-panel__dot {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  border-radius: 50%;
+  border: 3px solid var(--color-neutral-white);
+  box-shadow: 0 0 0 1px var(--color-neutral-200);
+}
+
+.acs-panel__dot--none {
+  background: var(--color-neutral-200);
+}
+
+.acs-panel__end-score {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-panel__block {
+  position: relative;
+  height: calc(14px * var(--ui-scale, 1));
+  border-radius: calc(7px * var(--ui-scale, 1));
+  margin-bottom: calc(44px * var(--ui-scale, 1));
+}
+
+.acs-panel__block span {
+  position: absolute;
+  top: calc(100% + var(--space-xxs));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-panel__block b {
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+}
+
+/* ---- The rows: one per type, grade among them, each effect a bar on one shared scale ---- */
+
+.acs-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-xs);
+  padding: var(--space-xxs) var(--space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  font: var(--text-caption-regular);
+  cursor: default;
+}
+
+.acs-row:hover,
+.acs-row.is-on {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+}
+
+.acs-row:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-row__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Grade has no label type to take a color from; it takes the slope map's mid blue. */
+.acs-row__swatch--grade {
+  background-color: var(--color-grade-ramp-3);
+}
+
+.acs-row__label {
+  font: var(--text-caption-semibold);
+  min-width: 0;
+}
+
+.acs-row__label small {
+  display: block;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-row__count,
+.acs-row__effect {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-row__count {
+  min-width: 3ch;
+  color: var(--color-neutral-700);
+}
+
+.acs-row__effect {
+  min-width: 6ch;
+  font: var(--text-caption-semibold);
+}
+
+.acs-row__effect--feature,
+.acs-group__score--feature,
+.acs-tile__effect--feature {
+  color: var(--color-jade-700);
+}
+
+.acs-row__effect--problem,
+.acs-group__score--problem,
+.acs-tile__effect--problem {
+  color: var(--color-orange-600);
+}
+
+.acs-row__effect--none,
+.acs-group__score--none,
+.acs-tile__effect--none {
+  color: var(--color-neutral-500);
+}
+
+/* Zero in the middle: a problem's bar grows to the left, a feature's to the right. */
+.acs-row__bar {
+  position: relative;
+  grid-column: 2 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-neutral-100);
+  overflow: hidden;
+}
+
+.acs-row__bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--color-neutral-400);
+}
+
+.acs-row__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.acs-row__fill--problem {
+  background: var(--color-orange-500);
+}
+
+.acs-row__fill--feature {
+  background: var(--color-jade-600);
+}
+
+/* ---- The evidence: a tile per cluster, in three groups ---- */
+
+.acs-group {
+  margin-top: var(--space-sm);
+}
+
+.acs-group__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0;
+  font: var(--text-caption-semibold);
+}
+
+.acs-group__score {
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-group__caption {
+  margin: 2px 0 var(--space-xs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Cards shrink to fit: as many across as the width allows, every tile the same 3:2 picture over a short caption. */
+.acs-group__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(140px * var(--ui-scale, 1)), 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-group__more {
+  margin-top: var(--space-xs);
+}
+
+.acs-tile {
+  position: relative;
+  transition: opacity var(--transition-fast);
+}
+
+.acs-tile.is-dim {
+  opacity: 0.4;
+}
+
+.acs-tile.is-on .lmc--sheet {
+  border-color: var(--color-neutral-900);
+  box-shadow: var(--box-shadow);
+}
+
+/* The Gallery card's look on the shared mini card: rounder, a lined caption, chips with an edge. */
+.acs-tile__card.lmc--sheet {
+  height: 100%;
+  border-radius: calc(12px * var(--ui-scale, 1));
+}
+
+.acs-tile__card .lmc__tag {
+  border: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-white);
+}
+
+/* What the cluster does to the score, on the picture's top-left corner; above the card's button for the click. */
+.acs-tile__effect {
+  position: absolute;
+  top: var(--space-xxs);
+  left: var(--space-xxs);
+  z-index: 1;
+  padding: 0 calc(6px * var(--ui-scale, 1));
+  border-radius: var(--border-radius);
+  background: rgb(255 255 255 / 92%);
+  font: var(--text-tiny-semibold);
+  line-height: calc(18px * var(--ui-scale, 1));
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.acs-tile__effect[hidden] {
+  display: none;
+}
+
+/* "6 labels": the way to the whole cluster, on the picture's top-right corner. */
+.acs-tile__size {
+  position: absolute;
+  top: var(--space-xxs);
+  right: var(--space-xxs);
+  z-index: 1;
+  min-height: calc(24px * var(--ui-scale, 1));
+  padding: 0 calc(6px * var(--ui-scale, 1));
+  border: 0;
+  border-radius: var(--border-radius);
+  background: rgb(36 36 36 / 75%);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+.acs-tile__size:hover {
+  background: rgb(36 36 36 / 90%);
+}
+
+.acs-tile__size:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-panel__links {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+}
+
 /* ---- Dark basemap ---- */
 
 /* The band, the legend card and the popups stay light; only the chrome drawn on the map itself changes, and the
@@ -1684,6 +2127,11 @@
 }
 
 @media (width <= 600px) { /* --breakpoint-sm */
+  /* The panel covers the map at this width; it then takes no map padding (the drawer's rule). */
+  .acs-panel {
+    width: 100%;
+  }
+
   .acs-dock__body {
     grid-template-columns: 1fr;
   }

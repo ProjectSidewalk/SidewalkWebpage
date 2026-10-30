@@ -96,6 +96,14 @@ describe('LabelMiniCard', () => {
     expect(el.querySelector('.lmc__open').getAttribute('aria-label')).toBe('mini-card.open label=curb-ramp, okay');
   });
 
+  test('the type\'s name heads the caption only where the host asks for it (#5748)', () => {
+    expect(mount(label()).element.querySelector('.lmc__type')).toBeNull();
+    const named = mount(label(), {showType: true});
+    expect(named.element.querySelector('.lmc__body .lmc__type').textContent).toBe('curb-ramp');
+    // A bare thumbnail has no caption to head.
+    expect(mount(label(), {showType: true, size: 'strip'}).element.querySelector('.lmc__type')).toBeNull();
+  });
+
   test('a crop without a recorded position marks the canvas fraction; a crop that fails to load loses its marker', () => {
     const card = mount(label({crop_marker: null}));
     const marker = card.element.querySelector('.lmc__marker');
