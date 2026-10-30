@@ -232,7 +232,7 @@ Parallel jobs:
   always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy
   `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. All
   three steps are **blocking**, and the job is a required status check.
-- **frontend** — `setup-node` (Node 24, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
+- **frontend** — `setup-node` (Node 26, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
   the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
   nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint

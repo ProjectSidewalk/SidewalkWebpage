@@ -69,9 +69,8 @@ function normalizedKeySet(parsed) {
   return parsed ? new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, ''))) : new Set();
 }
 
-// The reference's key sets are compared against once per locale file, so parse each namespace once rather than 63x.
-const referenceKeysByNamespace = new Map();
-const referencePlaceholdersByNamespace = new Map();
+// Every locale file is compared against the reference, so parse each reference namespace once rather than 63x.
+const referenceByNamespace = new Map();
 
 // `{{name}}` or `{{name, format(...)}}`; the name is what the caller passes, so it is all that has to match.
 const PLACEHOLDER = /\{\{\s*([\w.]+)/g;
@@ -96,31 +95,22 @@ function placeholders(value) {
 }
 
 /**
- * The placeholders the reference supplies for each normalized key of a base namespace: the union over its plural
- * forms, since `_one` may leave out a `{{count}}` that `_other` uses and a translation may use either.
+ * What the reference locale has for a base namespace. A key's placeholders are the union over its plural forms,
+ * since `_one` may leave out a `{{count}}` that `_other` uses and a translation may use either.
  *
- * @returns {Map<string, Set<string>>} Normalized key to placeholder names.
+ * @param {string} baseNamespace - Namespace name without any city suffix, e.g. `common`.
+ * @returns {{keys: Set<string>, placeholders: Map<string, Set<string>>}} Normalized keys, and each one's placeholders.
  */
-function referencePlaceholders(baseNamespace) {
-  if (!referencePlaceholdersByNamespace.has(baseNamespace)) {
+function reference(baseNamespace) {
+  return referenceByNamespace.getOrInsertComputed(baseNamespace, () => {
     const parsed = readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
-    const byKey = new Map();
+    const placeholdersByKey = new Map();
     for (const [path, value] of parsed ? leafEntries(parsed) : []) {
-      const key = path.replace(PLURAL_SUFFIX, '');
-      byKey.set(key, new Set([...(byKey.get(key) ?? []), ...placeholders(value)]));
+      const names = placeholdersByKey.getOrInsertComputed(path.replace(PLURAL_SUFFIX, ''), () => new Set());
+      placeholders(value).forEach(name => names.add(name));
     }
-    referencePlaceholdersByNamespace.set(baseNamespace, byKey);
-  }
-  return referencePlaceholdersByNamespace.get(baseNamespace);
-}
-
-/** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
-function referenceKeySet(baseNamespace) {
-  if (!referenceKeysByNamespace.has(baseNamespace)) {
-    const path = join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`);
-    referenceKeysByNamespace.set(baseNamespace, normalizedKeySet(readTranslations(path)));
-  }
-  return referenceKeysByNamespace.get(baseNamespace);
+    return { keys: normalizedKeySet(parsed), placeholders: placeholdersByKey };
+  });
 }
 
 /**
@@ -186,12 +176,11 @@ for (const locale of locales) {
     // nothing to compare against either -- but its values were still worth checking above.
     const comparable = baseNamespaces.includes(baseNamespace) && !(locale === REFERENCE_LOCALE && !isCityOverlay);
     if (comparable) {
-      const referenceKeys = referenceKeySet(baseNamespace);
+      const { keys: referenceKeys, placeholders: supplied } = reference(baseNamespace);
       const localeKeys = normalizedKeySet(parsed);
 
       problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
       // A placeholder the caller never passes: i18next leaves it as literal `{{name}}` text on screen.
-      const supplied = referencePlaceholders(baseNamespace);
       problem.strayPlaceholders = (parsed ? leafEntries(parsed) : []).flatMap(([path, value]) => {
         const allowed = supplied.get(path.replace(PLURAL_SUFFIX, ''));
         return allowed ? [...placeholders(value)].filter(name => !allowed.has(name)).map(name => `${path} {{${name}}}`)

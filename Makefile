@@ -389,7 +389,7 @@ test-e2e:
 	  -w $(container-dir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
-# doesn't have. Needs a host toolchain the containerized path does not: Node 24, `npm ci` at the repo root
+# doesn't have. Needs a host toolchain the containerized path does not: Node 26, `npm ci` at the repo root
 # (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
 # plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
 test-e2e-host:
