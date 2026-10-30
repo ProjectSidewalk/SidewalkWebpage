@@ -164,7 +164,7 @@ export class StreetStatusPage {
       this.#table?.clearHighlight();
       return;
     }
-    const segmentIds = regionIds.flatMap((id) => this.#segmentsByRegion.get(Number(id)) || []);
+    const segmentIds = regionIds.flatMap((id) => this.#segmentsByRegion.get(Number(id)));
     this.#map.highlightSegments(segmentIds);
     this.#table?.highlightRows(regionIds);
   }
@@ -178,7 +178,7 @@ export class StreetStatusPage {
       totals.disabled += r.disabled;
       totals.total += r.total;
     }
-    const pct = (n) => `${Math.round((totals.total ? n / totals.total : 0) * 100)}%`;
+    const pct = (n) => `${Math.round((n / totals.total) * 100)}%`;
     document.getElementById('kpi-total-streets').textContent = totals.total.toLocaleString();
     document.getElementById('kpi-no-imagery').textContent = pct(totals.no_imagery);
     document.getElementById('kpi-disabled').textContent = pct(totals.disabled);

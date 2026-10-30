@@ -108,3 +108,18 @@ describe('Across Cities — needs attention', () => {
     expect(items()[0].querySelector('strong').textContent).toBe('<img src=x onerror=alert(1)>');
   });
 });
+
+describe('Across Cities — needs attention, sparse rows', () => {
+  it('names a city without a display name by its id, and reads one with no anomaly list as clear', async () => {
+    await render([
+      makeCity('kappa', { city_name: null, lifecycle: 'stalled' }), makeCity('lima', { anomalies: undefined }),
+    ]);
+    expect(items().map((a) => a.querySelector('strong').textContent)).toEqual(['kappa']);
+  });
+
+  it('reads a re-audit backlog in a city with nothing mapped as 0% rather than NaN', async () => {
+    await render([makeCity('a', { anomalies: ['reaudit_backlog'], reaudit_km: 0, mapped_km: 0 })],
+      { reaudit_backlog_share: 0.2, min_mapped_km_for_reaudit_flag: 50 });
+    expect(items()[0].querySelector('.ov-attention-text').textContent).toContain('0 km of 0 km mapped (0%)');
+  });
+});

@@ -22,15 +22,11 @@ export class CoverageColors {
   static forRate(rate) {
     const r = Math.max(0, Math.min(1, Number.isFinite(rate) ? rate : 0));
     const stops = CoverageColors.STOPS;
-    for (let i = 1; i < stops.length; i++) {
-      if (r <= stops[i][0]) {
-        const [lo, loHex] = stops[i - 1];
-        const [hi, hiHex] = stops[i];
-        const t = (r - lo) / (hi - lo || 1);
-        return CoverageColors.#lerpHex(loHex, hiHex, t);
-      }
-    }
-    return stops[stops.length - 1][1];
+    let i = 1;
+    while (r > stops[i][0]) i++;
+    const [lo, loHex] = stops[i - 1];
+    const [hi, hiHex] = stops[i];
+    return CoverageColors.#lerpHex(loHex, hiHex, (r - lo) / (hi - lo));
   }
 
   /** Builds a Mapbox 'interpolate' expression over completion_rate using the same stops. */
@@ -84,15 +80,15 @@ export class CoverageMap {
 
   /**
    * @param {string} containerId - ID of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} opts
+   * @param {{mapboxToken: string, onRegionClick: (id: number) => void, onRegionHover: (id: number) => void,
+   *          onRegionHoverEnd: () => void}} opts
    */
   constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
-    this.#onRegionClick = opts.onRegionClick || (() => {});
-    this.#onRegionHover = opts.onRegionHover || (() => {});
-    this.#onRegionHoverEnd = opts.onRegionHoverEnd || (() => {});
+    this.#onRegionClick = opts.onRegionClick;
+    this.#onRegionHover = opts.onRegionHover;
+    this.#onRegionHoverEnd = opts.onRegionHoverEnd;
   }
 
   /**

@@ -27,15 +27,15 @@ export class StreetStatusTable {
   /**
    * @param {string} tableId - ID of the <table> element.
    * @param {string} searchId - ID of the search <input> element.
-   * @param {{onRowClick?: (id: number) => void, onRowHover?: (id: number) => void,
-   *          onRowHoverEnd?: () => void}} [opts]
+   * @param {{onRowClick: (id: number) => void, onRowHover: (id: number) => void,
+   *          onRowHoverEnd: () => void}} opts
    */
-  constructor(tableId, searchId, opts = {}) {
+  constructor(tableId, searchId, opts) {
     this.#tableId = tableId;
     this.#searchId = searchId;
-    this.#onRowClick = opts.onRowClick || (() => {});
-    this.#onRowHover = opts.onRowHover || (() => {});
-    this.#onRowHoverEnd = opts.onRowHoverEnd || (() => {});
+    this.#onRowClick = opts.onRowClick;
+    this.#onRowHover = opts.onRowHover;
+    this.#onRowHoverEnd = opts.onRowHoverEnd;
   }
 
   /**
@@ -45,23 +45,23 @@ export class StreetStatusTable {
   render(rows) {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);
-    table.innerHTML = this.#headerHtml();
+    table.innerHTML = `<thead>${this.#headerRowHtml()}</thead>`;
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     this.#renderBody();
     this.#wireEvents(table, tbody);
   }
 
-  #headerHtml() {
+  #headerRowHtml() {
     const arrowFor = (key) => (key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '');
-    const th = (key, label) =>
-      `<th data-key="${key}" role="button" tabindex="0" scope="col">${label}${arrowFor(key)}</th>`;
+    const th = (key, label) => `<th data-key="${util.escapeHTML(key)}" role="button" tabindex="0" scope="col">
+      ${util.escapeHTML(label)}${arrowFor(key)}</th>`;
     const statusThs = StreetStatusTable.#STATUS_COLS.map((c) => th(c.key, c.label)).join('');
     // The distribution (stacked-bar) column is purely visual, so it is not a sortable header.
-    return `<thead><tr>
+    return `<tr>
       ${th('name', 'Region')}${statusThs}${th('total', 'Total')}
       <th scope="col">Distribution</th>
-    </tr></thead>`;
+    </tr>`;
   }
 
   #renderBody() {
@@ -78,30 +78,33 @@ export class StreetStatusTable {
 
     tbody.innerHTML = visible.map((r) => {
       const statusCells = StreetStatusTable.#STATUS_COLS
-        .map((c) => `<td>${(r[c.key] || 0).toLocaleString()}</td>`).join('');
+        .map((c) => `<td>${r[c.key].toLocaleString()}</td>`).join('');
       return `<tr data-region-id="${util.escapeHTML(r.region_id)}">`
-        + `<td>${util.escapeHTML(r.name)}</td>${statusCells}<td>${(r.total || 0).toLocaleString()}</td>`
+        + `<td>${util.escapeHTML(r.name)}</td>${statusCells}<td>${r.total.toLocaleString()}</td>`
         + `<td>${StreetStatusTable.#barHtml(r)}</td></tr>`;
     }).join('');
   }
 
   /** Builds an inline 100%-stacked bar (one span per status, sized by share) for a region row. */
   static #barHtml(r) {
-    const total = r.total || 0;
-    if (!total) return '<div class="street-status-bar" aria-hidden="true"></div>';
     const segments = StreetStatusTable.#STATUS_COLS
-      .filter((c) => (r[c.key] || 0) > 0)
+      .filter((c) => r[c.key] > 0)
       .map((c) => {
-        const pct = ((r[c.key] / total) * 100).toFixed(2);
-        const tip = `${util.escapeHTML(c.label)}: ${(r[c.key] || 0).toLocaleString()}`;
+        const pct = ((r[c.key] / r.total) * 100).toFixed(2);
+        const tip = `${util.escapeHTML(c.label)}: ${r[c.key].toLocaleString()}`;
         return `<span style="width:${pct}%;background:${util.escapeHTML(c.color)}" data-ps-tooltip="${tip}"></span>`;
       }).join('');
     return `<div class="street-status-bar" aria-hidden="true">${segments}</div>`;
   }
 
   #wireEvents(table, tbody) {
+    // Redraws only the row, so the listeners on <thead> survive, and keeps focus on the header a key press sorted.
     const refreshHeader = () => {
-      table.querySelector('thead').outerHTML = this.#headerHtml();
+      const thead = table.querySelector('thead');
+      const focused = /** @type {HTMLElement} */ (document.activeElement);
+      const focusedKey = thead.contains(focused) ? focused.dataset.key : null;
+      thead.innerHTML = this.#headerRowHtml();
+      if (focusedKey) /** @type {HTMLElement} */ (thead.querySelector(`th[data-key="${focusedKey}"]`)).focus();
     };
 
     table.querySelector('thead').addEventListener('click', (e) => {

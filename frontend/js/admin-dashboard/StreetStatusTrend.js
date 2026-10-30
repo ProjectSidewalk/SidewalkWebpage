@@ -27,13 +27,13 @@ export class StreetStatusTrend {
    * @param {string} opts.trendUrl - URL of the trend JSON endpoint, without the `weeks` parameter.
    * @param {number} [opts.weeks] - Initial window size in weeks, injected from the server's own default so the two
    *   can't drift. Omitted leaves the window off the request, which lets the server apply that same default.
-   * @param {(streetId: number) => boolean} [opts.onShowStreet] - Asks the page to point its status map at one street,
-   *   returning false if it can't yet. Omitted renders the reopen queue's street ids as plain text.
+   * @param {(streetId: number) => boolean} opts.onShowStreet - Asks the page to point its status map at one street,
+   *   returning false if it can't yet.
    */
   constructor(opts) {
     this.#trendUrl = opts.trendUrl;
     this.#weeks = Number(opts.weeks) || null;
-    this.#onShowStreet = opts.onShowStreet || null;
+    this.#onShowStreet = opts.onShowStreet;
   }
 
   /** Loads the initial window and wires the range selector. */
@@ -127,7 +127,7 @@ export class StreetStatusTrend {
       const id = Number(r.street_edge_id);
       return `
       <tr data-street-id="${id}">
-        <td>${StreetStatusTrend.#streetCell(id, !!this.#onShowStreet)}</td>
+        <td>${StreetStatusTrend.#streetCell(id)}</td>
         <td>${util.escapeHTML(r.region_name)}</td>
         <td>${AdminShell.num(r.n_panos)}</td>
         <td class="ac-muted">${util.escapeHTML(r.newest_capture || '—')}</td>
@@ -159,11 +159,9 @@ export class StreetStatusTrend {
    * to the status map above rather than to Explore — which would answer a 500 for exactly these streets.
    *
    * @param {number} streetEdgeId - The street the row is about.
-   * @param {boolean} canShowOnMap - Whether a map handler was supplied; without one the id is plain text.
    * @returns {string} The cell's inner HTML.
    */
-  static #streetCell(streetEdgeId, canShowOnMap) {
-    if (!canShowOnMap) return AdminShell.num(streetEdgeId);
+  static #streetCell(streetEdgeId) {
     return `<button type="button" class="reopen-queue-locate" data-action="locate"
                     aria-label="Show street ${streetEdgeId} on the status map above"
             >${AdminShell.num(streetEdgeId)}</button>`;
@@ -176,8 +174,7 @@ export class StreetStatusTrend {
    * @param {HTMLButtonElement} button - The clicked street id, inside a data-street-id row.
    */
   #showCandidateOnMap(button) {
-    const streetEdgeId = Number(button.closest('tr')?.dataset.streetId);
-    if (!Number.isInteger(streetEdgeId)) return;
+    const streetEdgeId = Number(button.closest('tr').dataset.streetId);
     if (!this.#onShowStreet(streetEdgeId)) {
       this.#setQueueError('The status map is still loading; try again in a moment.');
     }
@@ -194,8 +191,7 @@ export class StreetStatusTrend {
    */
   async #actOnReopenCandidate(button) {
     const row = button.closest('tr');
-    const streetEdgeId = Number(row?.dataset.streetId);
-    if (!Number.isInteger(streetEdgeId)) return;
+    const streetEdgeId = Number(row.dataset.streetId);
     const reopen = button.dataset.action === 'reopen';
     if (reopen) {
       const ok = await ConfirmDialog.confirm({

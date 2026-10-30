@@ -53,7 +53,7 @@ export class ApiAnalyticsPage {
     this.#setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
     this.#setText('kpi-external-clients', (ext.unique_ips || 0).toLocaleString());
     this.#setText('kpi-busiest', busiest ? ApiAnalyticsPage.#short(busiest.endpoint) : '—');
-    this.#setText('kpi-busiest-note', busiest ? `${(busiest.external || 0).toLocaleString()} external calls` : '');
+    this.#setText('kpi-busiest-note', busiest ? `${busiest.external.toLocaleString()} external calls` : '');
     this.#setText('kpi-pct-external', total ? ApiAnalyticsPage.#pct(extCalls / total) : '—');
     this.#setText('kpi-pct-external-note', `${total.toLocaleString()} total calls`);
   }
@@ -67,7 +67,7 @@ export class ApiAnalyticsPage {
   #renderTrend(d) {
     const el = document.getElementById('api-trend');
     if (!(d.total_calls > 0)) {
-      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(0, d.last_api_call)}</p>`;
+      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(d.last_api_call)}</p>`;
       return;
     }
     const monthly = this.#days === 0;
@@ -81,8 +81,10 @@ export class ApiAnalyticsPage {
     }
     const dataKeys = [...byBucket.keys()].sort();
     const keys = ApiAnalyticsPage.#axisKeys(dataKeys[0], monthly, this.#days);
+    // Only "All time" can come up one bucket short: all activity lands in the current month, so there's no second
+    // point to draw a line to yet.
     if (keys.length < 2) {
-      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(d.total_calls || 0, d.last_api_call)}</p>`;
+      el.innerHTML = '<p class="dq-empty">Only one month of API activity so far; no trend to plot yet.</p>';
       return;
     }
     const at = (k) => byBucket.get(k) || { ext: 0, docs: 0 };
@@ -133,27 +135,19 @@ export class ApiAnalyticsPage {
   }
 
   /**
-   * Explains why the trend can't be drawn, naming the selected range and (when known) when activity last happened so
-   * the admin knows whether to widen the range or whether the API is simply unused.
+   * Explains an empty window, naming the selected range and (when known) when activity last happened so the admin
+   * knows whether to widen the range or whether the API is simply unused.
    *
-   * @param {number} total - Total calls in the current window.
    * @param {?string} lastApiCall - ISO date of the most recent call ever (window-independent), or null/undefined.
    * @returns {string} Human-readable empty-state message.
    */
-  #trendEmptyMsg(total, lastApiCall) {
+  #trendEmptyMsg(lastApiCall) {
+    if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
     const range = this.#days > 0 ? `in the past ${this.#days} days` : 'over all time';
-    if (total === 0) {
-      if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
-      const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
-      const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
-      return `No API calls ${range}. The last was on ${lastDate}${agoText}. `
-        + 'Try a longer range.';
-    }
-    // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
-    // there's no second point to draw a line to yet.
-    const unit = this.#days > 0 ? 'day' : 'month';
-    return `Only one ${unit} of API activity so far; no trend to plot yet.`;
+    const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
+    const agoText = ago === null ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
+    const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
+    return `No API calls ${range}. The last was on ${lastDate}${agoText}. Try a longer range.`;
   }
 
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */
@@ -327,7 +321,7 @@ export class ApiAnalyticsPage {
         if (legend) legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
-        else if (chart === 'formats') this.#renderFormats(this.#data);
+        else this.#renderFormats(this.#data);
       });
     });
   }

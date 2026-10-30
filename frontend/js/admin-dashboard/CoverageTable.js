@@ -33,15 +33,15 @@ export class CoverageTable {
   /**
    * @param {string} tableId - ID of the <table> element.
    * @param {string} searchId - ID of the search <input> element.
-   * @param {{onRowClick?: (id: number) => void, onRowHover?: (id: number) => void,
-   *          onRowHoverEnd?: () => void}} [opts]
+   * @param {{onRowClick: (id: number) => void, onRowHover: (id: number) => void,
+   *          onRowHoverEnd: () => void}} opts
    */
-  constructor(tableId, searchId, opts = {}) {
+  constructor(tableId, searchId, opts) {
     this.#tableId = tableId;
     this.#searchId = searchId;
-    this.#onRowClick = opts.onRowClick || (() => {});
-    this.#onRowHover = opts.onRowHover || (() => {});
-    this.#onRowHoverEnd = opts.onRowHoverEnd || (() => {});
+    this.#onRowClick = opts.onRowClick;
+    this.#onRowHover = opts.onRowHover;
+    this.#onRowHoverEnd = opts.onRowHoverEnd;
   }
 
   /**
@@ -51,19 +51,19 @@ export class CoverageTable {
   render(rows) {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);
-    table.innerHTML = this.#headerHtml();
+    table.innerHTML = `<thead>${this.#headerRowHtml()}</thead>`;
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     this.#renderBody();
     this.#wireEvents(table, tbody);
   }
 
-  #headerHtml() {
+  #headerRowHtml() {
     const ths = CoverageTable.#COLS.map((c) => {
       const arrow = c.key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '';
       return `<th data-key="${c.key}" role="button" tabindex="0" scope="col">${c.label}${arrow}</th>`;
     }).join('');
-    return `<thead><tr>${ths}</tr></thead>`;
+    return `<tr>${ths}</tr>`;
   }
 
   #renderBody() {
@@ -85,9 +85,13 @@ export class CoverageTable {
   }
 
   #wireEvents(table, tbody) {
-    // Update the sort indicator in the header without rebuilding the whole table.
+    // Redraws only the row, so the listeners on <thead> survive, and keeps focus on the header a key press sorted.
     const refreshHeader = () => {
-      table.querySelector('thead').outerHTML = this.#headerHtml();
+      const thead = table.querySelector('thead');
+      const focused = /** @type {HTMLElement} */ (document.activeElement);
+      const focusedKey = thead.contains(focused) ? focused.dataset.key : null;
+      thead.innerHTML = this.#headerRowHtml();
+      if (focusedKey) /** @type {HTMLElement} */ (thead.querySelector(`th[data-key="${focusedKey}"]`)).focus();
     };
 
     table.querySelector('thead').addEventListener('click', (e) => {

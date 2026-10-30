@@ -104,8 +104,7 @@ export class TeamPage {
   }
 
   #sortedMembers() {
-    const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key && c.sort) || cols[0];
+    const col = this.#columns().find((c) => c.key === this.#sort.key);
     const dir = this.#sort.dir === 'asc' ? 1 : -1;
     return this.#members.slice().sort((a, b) => {
       const av = col.sort(a);

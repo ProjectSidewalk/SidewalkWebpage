@@ -35,11 +35,10 @@ export class ActivityPage {
   };
 
   /**
-   * Makes a formatter for a whole-number count in the given unit.
-   * @param {string} unit - What is being counted, e.g. "labels".
-   * @returns {(v: number) => string} Formats a count, e.g. "1,234 labels".
+   * @param {string} unit - What one of them is called, e.g. "label".
+   * @returns {(v: number) => string} Formats a count rounded to a whole number, e.g. "1 label" or "1,234 labels".
    */
-  static #counted = (unit) => (v) => `${Math.round(v).toLocaleString()} ${unit}`;
+  static #counted = (unit) => (v) => AdminShell.count(Math.round(v), unit);
 
   /**
    * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a bucket's
@@ -47,15 +46,15 @@ export class ActivityPage {
    * labels that axis with its unit and decimals, since a few km a day would otherwise label as 0, 1, 1, 2.
    */
   static #VOLUME = [
-    { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('labels') },
-    { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validations') },
+    { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('label') },
+    { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validation') },
     { title: 'Distance explored', fields: ['explored_distance_m'], fmt: (m) => util.metersToLongDistanceString(m, 1),
       toChart: (m) => util.metersToLongDistance(m),
       tickFormat: (v) => `${new Intl.NumberFormat(i18next.language, { maximumFractionDigits: 2 }).format(v)} `
         + `${util.unitWords().unitAbbr}` },
-    { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('missions') },
-    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-ins') },
-    { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('users') },
+    { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('mission') },
+    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-in') },
+    { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('user') },
   ];
 
   /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
@@ -121,7 +120,7 @@ export class ActivityPage {
   #renderBanner() {
     const el = document.getElementById('activity-latest');
     if (!el) return;
-    const top = this.#recent && this.#recent[0];
+    const top = this.#recent[0];
     if (!top && !this.#series.length) {
       el.innerHTML = 'No activity yet.';
       return;
@@ -320,8 +319,8 @@ export class ActivityPage {
       const a = buckets.get(k);
       return {
         key: a.key, label: a.label, days: a.days, vol: a.vol,
-        activeRegistered: a.days ? a.activeRegSum / a.days : 0,
-        activeAnon: a.days ? a.activeAnonSum / a.days : 0,
+        activeRegistered: a.activeRegSum / a.days,
+        activeAnon: a.activeAnonSum / a.days,
       };
     });
   }
@@ -344,7 +343,7 @@ export class ActivityPage {
 
   #renderFeed() {
     const el = document.getElementById('activity-feed');
-    const all = this.#recent || [];
+    const all = this.#recent;
     if (!all.length) {
       el.innerHTML = '<p class="dq-empty">No recent activity yet.</p>';
       return;

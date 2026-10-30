@@ -172,7 +172,7 @@ export class OverviewPage {
       }
       values.push(sum);
     }
-    return { values, thisWeek: values[values.length - 1], priorWeek: values[values.length - 2] || 0 };
+    return { values, thisWeek: values[values.length - 1], priorWeek: values[values.length - 2] };
   }
 
   /** Sets a card's trend line: a direction arrow, this-week total, and unit, colored by direction vs last week. */
@@ -192,36 +192,23 @@ export class OverviewPage {
    * stretch via vector-effect, and the last point is dotted so "now" is easy to find.
    *
    * @param {number[]} values - Weekly sums, oldest → newest.
-   * @returns {string} An <svg> string, or '' when there's too little data to draw.
+   * @returns {string} An <svg> string.
    */
   #sparkline(values) {
-    const present = values.filter((v) => v !== null && v !== undefined);
-    if (present.length < 2) return '';
     const W = 200;
     const H = 36;
     const pad = 3;
-    const max = Math.max(...present);
-    const min = Math.min(...present, 0);
+    const max = Math.max(...values);
+    const min = Math.min(...values, 0);
     const range = max - min || 1;
     const n = values.length;
     const x = (i) => pad + (i / (n - 1)) * (W - 2 * pad);
     const y = (v) => pad + (1 - (v - min) / range) * (H - 2 * pad);
-    let d = '';
-    let move = true;
-    values.forEach((v, i) => {
-      if (v === null || v === undefined) {
-        move = true;
-        return;
-      }
-      d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
-      move = false;
-    });
-    const lastV = values[n - 1];
-    const dot = lastV !== null && lastV !== undefined
-      ? `<circle class="ov-spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="2.4"/>`
-      : '';
+    const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const last = n - 1;
+    const dot = `<circle class="ov-spark-dot" cx="${x(last).toFixed(1)}" cy="${y(values[last]).toFixed(1)}" r="2.4"/>`;
     return `<svg class="ov-spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">`
-      + `<path class="ov-spark-line" d="${d.trim()}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
+      + `<path class="ov-spark-line" d="${d}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
   }
 
   // --- Needs attention --------------------------------------------------------------------------------------------
@@ -249,7 +236,7 @@ export class OverviewPage {
     // row below reports the needs-re-audit subset separately.
     const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0);
     if (streetsLeft > 0) {
-      const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
+      const pctLeft = Math.round((streetsLeft / s.total_streets) * 100);
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
         html: `<strong>${this.#num(streetsLeft)}</strong> streets not yet audited (${pctLeft}% of all streets)` });
     }

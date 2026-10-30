@@ -95,4 +95,27 @@ describe('Across Cities — stories', () => {
     expect(items[0].getAttribute('href')).toBe('https://alpha.example.org/admin/stories');
     expect(items[0].textContent).toContain('2 new stories in the last 7 days');
   });
+
+  describe('wording', () => {
+    it('says there is nothing to count when no city came back', async () => {
+      await render([]);
+      expect(summary()).toBe('No cities to count.');
+    });
+
+    it('counts several cities with no stories in the plural', async () => {
+      await render([entry('a', counts(0, null)), entry('b', counts(0, null))]);
+      expect(summary()).toBe('None of the 2 cities counted has stories yet.');
+    });
+
+    it('words a single story, several cities without one, and a city without a display name', async () => {
+      const quito = {
+        city_id: 'quito', url: 'https://quito.example.org/', counts: counts(1, '2026-09-01', { visible7d: 1 }),
+      };
+      await render([quito, entry('b', counts(0, null)), entry('c', counts(0, null))]);
+      expect(summary()).toBe('1 story in 1 city; 2 cities have none.');
+      expect(rows()[0].cells[0].textContent).toBe('quito');
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('quito — 1 new story in the last 7 days');
+    });
+  });
 });

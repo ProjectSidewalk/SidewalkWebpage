@@ -225,4 +225,54 @@ describe('Across Cities — most active cities', () => {
     // The top table keeps its own sort while the Activity table moves.
     expect(topCityOrder()).toEqual(['bravo', 'alpha', 'charlie', 'delta', 'echo']);
   });
+
+  describe('sparse rows', () => {
+    it('names a top city without a display name by its id', async () => {
+      const unnamed = structuredClone(FIXTURE[0]);
+      unnamed.city.city_name = null;
+      await render([unnamed]);
+      expect(document.getElementById('now-top-city').textContent).toBe('alpha');
+      expect(document.querySelector('#ac-top-tbody [aria-label]').getAttribute('aria-label'))
+        .toBe('alpha · Activity, last 7 days: 120');
+    });
+
+    it('reads fields a rolling window left out as zero', async () => {
+      await render([
+        { city: structuredClone(FIXTURE[0].city), window: { labels_7d: 4 } },
+        { city: structuredClone(FIXTURE[1].city), window: { validations_7d: 3 } },
+      ]);
+      const cells = (i) => [...document.querySelectorAll('#ac-top-tbody tr')[i].cells]
+        .map((td) => td.textContent.trim()).slice(1, 5);
+      expect(cells(0)).toEqual(['4', '4▲ new', '0', '0']);
+      expect(cells(1)).toEqual(['3', '0', '3▲ new', '0']);
+    });
+
+    it('draws no sparkline without a weekly trend, and reads a week missing its count as zero', async () => {
+      const noTrend = structuredClone(FIXTURE[0]);
+      delete noTrend.city.weekly_trend;
+      const blankWeek = structuredClone(FIXTURE[1]);
+      blankWeek.city.weekly_trend = [{ week_start: '2026-07-27' }];
+      await render([noTrend, blankWeek]);
+      const sparks = (tbodyId, cell) => [...document.querySelectorAll(`#${tbodyId} tr`)]
+        .map((tr) => [tr.cells[0].textContent.trim(), tr.cells[cell].querySelector('svg') !== null]);
+      expect(sparks('ac-top-tbody', 6)).toEqual([['bravo', true], ['alpha', false]]);
+      expect(sparks('ac-activity-tbody', 5)).toEqual([['alpha', false], ['bravo', true]]);
+      expect(document.getElementById('ac-top-status').textContent).toBe('2 cities active in the past 7 days.');
+    });
+
+    it('flags a stalled city in the Activity table, and lists one never active last, as never', async () => {
+      const stalled = structuredClone(FIXTURE[0]);
+      stalled.city.lifecycle = 'stalled';
+      const idle = structuredClone(FIXTURE[6]);
+      idle.city.last_activity = null;
+      idle.city.days_since_activity = null;
+      const recent = structuredClone(FIXTURE[1]);
+      recent.city.days_since_activity = 3;
+      await render([idle, stalled, recent]);
+      const rows = [...document.querySelectorAll('#ac-activity-tbody tr')];
+      expect(rows.map((tr) => tr.cells[0].textContent.trim())).toEqual(['alpha', 'bravo', 'ghost']);
+      expect(rows.map((tr) => tr.classList.contains('ac-row--flagged'))).toEqual([true, false, false]);
+      expect(rows[2].cells[4].textContent.trim()).toBe('never');
+    });
+  });
 });
