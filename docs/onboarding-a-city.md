@@ -281,7 +281,7 @@ make create-new-schema name=sidewalk_<city> donor=sidewalk_<donor>
 docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U sidewalk_<city> -d sidewalk -f /opt/onboarding/<city-id>/qgis_tables.sql
 make fill-new-schema                      # schema, tutorial region, regions to open
 make check-imagery id=<city-id> args="--<provider>"
-make hide-streets-without-imagery         # schema, onboarding/<city-id>/streets_with_no_imagery.csv
+make hide-streets-without-imagery         # schema, onboarding/<city-id>/street_imagery_summary.csv
 make import-street-imagery                # schema, onboarding/<city-id>/street_imagery_summary.csv
 make export-street-gradient-input args="sidewalk_<city> <city-id> --structures onboarding/<city-id>/street_structures.csv"
 make street-gradient id=<city-id>         # or args="--dem-dir ..." for a country with no registered model

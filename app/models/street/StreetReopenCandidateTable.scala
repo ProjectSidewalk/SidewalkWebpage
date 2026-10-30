@@ -66,10 +66,11 @@ trait StreetReopenCandidateTableRepository {}
 /**
  * DAO over the regained-imagery review queue (#4929).
  *
- * Rows are written only by the nightly poll's no_imagery rotation and removed three ways: the admin reopens the
+ * Rows are written only by the nightly poll's no_imagery rotation and removed four ways: the admin reopens the
  * street, a later conclusive poll attributes nothing to it (stale evidence is retracted rather than left under a
- * Reopen button), or mark_streets_no_imagery re-retires the street (checker evidence outranks poll evidence). A
- * dismissal is the one judgement that keeps the row: see [[StreetReopenCandidateTable.dismiss]].
+ * Reopen button), or the imagery checker settles the street either way (mark_streets_no_imagery,
+ * reopen_streets_with_imagery: a full-street scan outranks poll evidence). A dismissal is the one judgement that
+ * keeps the row: see [[StreetReopenCandidateTable.dismiss]].
  */
 @Singleton
 class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
