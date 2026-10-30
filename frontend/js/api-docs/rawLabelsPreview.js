@@ -181,8 +181,7 @@ export const RawLabelsPreview = {
     // The legend lists only the types actually drawn, so it never advertises one this region has none of.
     const typesInData = [...new Set(labels.features.map((feature) => feature.properties.label_type))];
     const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
-    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo,
-      'No labels in this region');
+    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo);
   },
 
   /**

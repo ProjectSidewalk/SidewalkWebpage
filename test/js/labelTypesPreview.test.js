@@ -11,7 +11,9 @@ stubApiDocsLibraries();
 function labelType(name, color, isPrimary) {
   return {
     name, color, is_primary: isPrimary, display_name: `${name} display`, description: `About ${name}.`,
-    icon_url: `/icons/${name}.png`, small_icon_url: `/icons/${name}_small.png`, tiny_icon_url: `/icons/${name}_tiny.png`,
+    icon_url: `/icons/${name}.png`,
+    small_icon_url: `/icons/${name}_small.png`,
+    tiny_icon_url: `/icons/${name}_tiny.png`,
   };
 }
 

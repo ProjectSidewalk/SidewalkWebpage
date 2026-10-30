@@ -321,22 +321,24 @@ export const ApiDocsMap = (function () {
    * @param {Array<string>} typeNames - Label type names present in the data.
    * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
    *     to its info, from /v3/api/labelTypes.
-   * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
    */
-  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
+  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo) {
+    // A type the API doesn't list is still drawn, in labelTypeColorExpression's fallback gray, so it's listed too.
+    const fallback = { color: ApiDocsTheme.color('--color-neutral-500'), display: '' };
     const rows = typeNames
-      .filter((name) => labelTypeInfo[name])
-      .map((name) => `
-        <div class="map-legend-item">
-          <span class="map-legend-swatch"
-                style="background-color: ${util.escapeHTML(labelTypeInfo[name].color)};"></span>
-          ${util.escapeHTML(labelTypeInfo[name].display || name)}
-        </div>
-      `)
+      .map((name) => {
+        const info = labelTypeInfo[name] ?? fallback;
+        return `
+          <div class="map-legend-item">
+            <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(info.color)};"></span>
+            ${util.escapeHTML(info.display || name)}
+          </div>
+        `;
+      })
       .join('');
     element.innerHTML = `
       <h4>${util.escapeHTML(heading)}</h4>
-      ${rows || `<div>${util.escapeHTML(emptyMessage)}</div>`}
+      ${rows}
     `;
   }
 

@@ -182,8 +182,7 @@ export const LabelClustersPreview = {
     // The legend lists only the types actually drawn, so it never advertises one this region has none of.
     const typesInData = [...new Set(clusters.features.map((feature) => feature.properties.label_type))];
     const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
-    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo,
-      'No clusters in this region');
+    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo);
   },
 
   /**

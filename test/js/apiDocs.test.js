@@ -16,7 +16,9 @@ mockModule('i18next', () => ({ default: { t: (key) => key } }));
 /** A docs page as layout.scala.html lays it out, with the given content and download buttons. */
 function pageMarkup({ content = defaultContent(), buttons = defaultButtons() } = {}) {
   return `
-    <div class="page-sidebar"><nav class="page-nav"><a class="page-nav-item" href="#endpoint">Endpoint</a></nav></div>
+    <div class="page-sidebar">
+      <nav class="page-nav"><a class="page-nav-item" href="/v3/api-docs/streets">Streets</a></nav>
+    </div>
     <div class="page-content">${content}${buttons}</div>
     <div class="page-toc"><ul></ul></div>`;
 }
@@ -204,13 +206,6 @@ describe('clicking a link to a heading', () => {
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 440, behavior: 'smooth' });
   });
 
-  it('works from the sidebar too', async () => {
-    await loadPage();
-    vi.spyOn(document.getElementById('endpoint'), 'getBoundingClientRect').mockReturnValue({ top: 0 });
-    document.querySelector('.page-nav a').click();
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 240, behavior: 'smooth' });
-  });
-
   it('leaves a link to a missing heading, or to another page, alone', async () => {
     await loadPage();
     const toc = document.querySelector('.page-toc ul');
@@ -323,6 +318,8 @@ describe('the download buttons', () => {
     expect(window.fetch).toHaveBeenCalledWith('/v3/api/streets?filetype=csv', { cache: 'no-store' });
     expect(status()).toEqual({ state: 'working', message: 'Preparing the CSV file', detail: '', bar: null });
     expect(document.querySelector('.download-status-icon').className).toContain('loading-spinner');
+    stream.end();
+    await settle();
   });
 
   it('shows progress against a declared size, and saves the file under the name the server gave it', async () => {
@@ -407,6 +404,8 @@ describe('the download buttons', () => {
     stream.push('a,b\n');
     await settle();
     expect(status().bar).toBe('25');
+    stream.end();
+    await settle();
   });
 
   it.each([

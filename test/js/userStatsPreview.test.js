@@ -100,8 +100,10 @@ describe('the top labelers', () => {
     const chart = chartTitled('Top Labelers in Seattle');
     expect(chart.data.labels).toEqual(['bbbbbbbb...', 'aaaaaaaa...', 'cccccccc...', 'dddddddd...']);
     expect(chart.data.datasets[0].data).toEqual([100, 40, 12, 11]);
-    expect(tooltip(chart, 1)).toEqual({ title: 'User: aaaaaaaa-1111', label: ['Labels: 40', 'Meters explored: 1235'] });
-    expect(textOf(container().querySelector('.preview-note'))).toBe('Showing data for 4 users with at least 10 labels.');
+    expect(tooltip(chart, 1))
+      .toEqual({ title: 'User: aaaaaaaa-1111', label: ['Labels: 40', 'Meters explored: 1235'] });
+    expect(textOf(container().querySelector('.preview-note')))
+      .toBe('Showing data for 4 users with at least 10 labels.');
   });
 
   it('shows no more users than configured', async () => {
@@ -110,7 +112,8 @@ describe('the top labelers', () => {
   });
 
   it("asks only for users past the configured label minimum", async () => {
-    const fetchStub = await renderPreview({ setup: { minLabels: 25 }, routes: { '/v3/api/userStats?minLabels=25': [] } });
+    const fetchStub = await renderPreview(
+      { setup: { minLabels: 25 }, routes: { '/v3/api/userStats?minLabels=25': [] } });
     expect(fetchStub.mock.calls.map(([url]) => url)).toContain('/v3/api/userStats?minLabels=25&utm_source=apiDocs');
   });
 });
@@ -130,7 +133,8 @@ describe("the top labelers' label types", () => {
   });
 
   it('says the data is malformed when a user row lacks its label-type breakdown', async () => {
-    await renderPreview({ routes: { '/v3/api/userStats?minLabels=10': [user('aaaaaaaa', 40, { stats_by_label_type: undefined })] } });
+    const malformed = user('aaaaaaaa', 40, { stats_by_label_type: undefined });
+    await renderPreview({ routes: { '/v3/api/userStats?minLabels=10': [malformed] } });
     const alert = section('Top Labelers with Label Type in Seattle').querySelector('[role="alert"]');
     expect(textOf(alert)).toBe('Unable to render chart: Invalid data structure');
     expect(console.error).toHaveBeenCalledWith("User data doesn't have the expected structure for label types");

@@ -98,13 +98,13 @@ describe('a region with clusters', () => {
     expect(textOf(container.querySelector('.map-message'))).toBe('No label clusters found in this region.');
   });
 
-  it('calls the region "Sample Region" when it has no name, and shows an empty legend for unknown types', async () => {
+  it('calls the region "Sample Region" when it has no name, and lists an unknown type by its name', async () => {
     const { container } = await renderPreview({
       clusters: { type: 'FeatureCollection', features: [cluster(1, { label_type: 'Mystery' })] },
       routes: { '/v3/api/regionWithMostLabels': regionFeature({ region_id: 7 }) },
     });
     expect(textOf(container.querySelector('.map-chip'))).toBe('Region: Sample Region');
-    expect(textOf(container.querySelector('.map-legend'))).toBe('Label Types No clusters in this region');
+    expect(textOf(container.querySelector('.map-legend'))).toBe('Label Types Mystery');
   });
 });
 

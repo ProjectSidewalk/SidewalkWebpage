@@ -4,7 +4,9 @@
  */
 
 import { loadModules } from './loader.js';
-import { flush, resetWorld, routeFetch, stampColorTokens, stubApiDocsLibraries, textOf, world } from './support/apiDocsHarness.js';
+import {
+  flush, resetWorld, routeFetch, stampColorTokens, stubApiDocsLibraries, textOf, world,
+} from './support/apiDocsHarness.js';
 
 stubApiDocsLibraries();
 
@@ -15,7 +17,7 @@ const LABEL_TYPES = {
   ],
 };
 
-/** A city's overall stats: CurbRamp and Obstacle carry severity, Signal has none, and NoSidewalk was never validated. */
+/** A city's stats: CurbRamp and Obstacle carry severity, Signal has none, and NoSidewalk was never validated. */
 function stats() {
   return {
     launch_date: '2019-04-01',
@@ -102,6 +104,16 @@ describe('the summary', () => {
     data.labels.avg_timestamp_last_100_labels = null;
     await renderPreview({ routes: { '/v3/api/overallStats': data } });
     expect(textOf(container().querySelector('.preview-note'))).toBe('Last activity: N/A');
+  });
+
+  it('gives no accuracy, and charts no type, before anything has been validated', async () => {
+    const data = stats();
+    data.validations.combined.Overall.accuracy = null;
+    // The API sends null rather than leaving the field out.
+    data.validations.combined.CurbRamp.accuracy = null;
+    await renderPreview({ routes: { '/v3/api/overallStats': data } });
+    expect(cards()['Overall Accuracy']).toBe('N/A');
+    expect(chartTitled('Label Accuracy by Type').data.labels).not.toContain('Curb Ramp');
   });
 });
 

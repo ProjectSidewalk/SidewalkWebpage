@@ -226,12 +226,6 @@ pre > code {
   color: var(--color-neutral-900);
 }
 
-.page-nav-subitem.is-active {
-  color: var(--color-link-200);
-  background-color: var(--color-blue-300);
-  font: var(--text-caption-medium);
-}
-
 /* ---- Sidebar Toggle ---- */
 
 /*

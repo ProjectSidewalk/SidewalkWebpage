@@ -64,8 +64,7 @@ export function generateTableOfContents() {
 }
 
 /**
- * Sets up scroll spy to highlight active TOC items based on scroll position. Left sidebar H1/H2 links are NOT
- * dynamically highlighted by scroll spy.
+ * Sets up scroll spy to highlight active TOC items based on scroll position.
  * @returns {void}
  */
 export function setupScrollSpy() {
@@ -129,39 +128,36 @@ export function setupScrollSpy() {
 }
 
 /**
- * Sets up smooth scrolling for TOC and sidebar hash links. Does NOT update left sidebar highlighting on click.
+ * Sets up smooth scrolling for the TOC's links to headings on this page.
  * @returns {void}
  */
 function setupSmoothScrolling() {
-  // Target both TOC and Sidebar nav container.
-  const scrollContainers = document.querySelectorAll('.page-toc, .page-sidebar .page-nav');
-  if (scrollContainers.length === 0) return;
+  const toc = document.querySelector('.page-toc');
+  if (!toc) return;
 
   const headerHeight = parseInt(
     getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
   );
   const scrollPadding = 10; // Extra space above the target.
 
-  scrollContainers.forEach((container) => {
-    container.addEventListener('click', (event) => {
-      const link = /** @type {Element} */ (event.target).closest('a');
+  toc.addEventListener('click', (event) => {
+    const link = /** @type {Element} */ (event.target).closest('a');
 
-      // Check if it's an internal hash link.
-      if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
-        event.preventDefault();
-        const targetId = link.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
+    // Check if it's an internal hash link.
+    if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
+      event.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
 
-        if (targetElement) {
-          // Perform smooth scroll.
-          const elementPosition = targetElement.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.scrollY - headerHeight - scrollPadding;
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        } else {
-          console.warn(`Smooth scroll target element not found for id: ${targetId}`);
-        }
+      if (targetElement) {
+        // Perform smooth scroll.
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - headerHeight - scrollPadding;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+      } else {
+        console.warn(`Smooth scroll target element not found for id: ${targetId}`);
       }
-    });
+    }
   });
 }
 

@@ -395,7 +395,7 @@ export const OverallStatsPreview = {
     // Get label types with validation data.
     const labelTypes = Object.keys(data.validations.combined)
       .filter((key) => key !== 'total_validations' && key !== 'Overall'
-        && data.validations.combined[key].accuracy !== undefined
+        && typeof data.validations.combined[key].accuracy === 'number'
         && data.validations.combined[key].validated > 0);
 
     // Sort label types by accuracy (descending).
@@ -495,7 +495,9 @@ export const OverallStatsPreview = {
       util.parseDate(data.launch_date).toLocaleDateString(undefined, { dateStyle: 'long' }));
     this.addStatItem(grid, 'Total Labels', data.labels.count.toLocaleString());
     this.addStatItem(grid, 'Total Validations', data.validations.combined.total_validations.toLocaleString());
-    this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.combined.Overall.accuracy * 100).toFixed(1)}%`);
+    // Accuracy is null until something has been validated; null * 100 would read as 0% accurate.
+    const { accuracy } = data.validations.combined.Overall;
+    this.addStatItem(grid, 'Overall Accuracy', accuracy === null ? 'N/A' : `${(accuracy * 100).toFixed(1)}%`);
     this.addStatItem(grid, 'Distance Explored', `${data.km_explored.toFixed(2)} km`);
     this.addStatItem(grid, 'Distance Explored (No Overlap)', `${data.km_explored_no_overlap.toFixed(2)} km`);
     this.addStatItem(grid, 'Total Users', data.user_counts.all_users.toLocaleString());

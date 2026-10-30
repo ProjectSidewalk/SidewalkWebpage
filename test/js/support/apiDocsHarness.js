@@ -260,8 +260,9 @@ export function stubApiDocsLibraries() {
 
 /**
  * Answers `fetch` from a table of URL prefixes, ignoring the `utm_source` marker the docs add. A route's value is
- * the JSON body, or `{ status, body }` for an error, or a function of the URL returning either. Anything unrouted
- * fails the test with the URL it asked for.
+ * the JSON body, or `{ status, body }` (a numeric status and nothing else) for an error, or a function of the URL
+ * returning either. Anything unrouted fails the test with the URL it asked for. The stub is undone before the next
+ * test, so one that forgets to route its own requests hits setup.js's throwing fetch, not this test's routes.
  *
  * @param {Record<string, any>} routes - URL prefix (path plus any query) to the answer.
  * @returns {import('vitest').Mock} The stub, whose calls are the URLs asked for.
@@ -274,7 +275,7 @@ export function routeFetch(routes) {
     let answer = routes[prefix];
     if (typeof answer === 'function') answer = answer(url);
     if (answer instanceof Error) throw answer;
-    const { status = 200, body } = answer?.status ? answer : { body: answer };
+    const { status = 200, body } = isErrorSpec(answer) ? answer : { body: answer };
     return {
       ok: status < 400,
       status,
@@ -284,8 +285,13 @@ export function routeFetch(routes) {
       },
     };
   });
-  window.fetch = stub;
+  vi.stubGlobal('fetch', stub);
   return stub;
+}
+
+/** @returns {boolean} Whether a route's answer is `{ status, body }`, rather than a body that has a `status` field. */
+function isErrorSpec(answer) {
+  return typeof answer?.status === 'number' && Object.keys(answer).every((key) => key === 'status' || key === 'body');
 }
 
 /** Lets pending promise callbacks (fetches, map loads) run. */

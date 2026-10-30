@@ -27,7 +27,9 @@ function label(id, properties = {}) {
 }
 
 /** Loads the preview onto a page with its container, and runs it against the given responses. */
-async function renderPreview({ labels = { type: 'FeatureCollection', features: [label(1), label(2)] }, routes = {} } = {}) {
+async function renderPreview({
+  labels = { type: 'FeatureCollection', features: [label(1), label(2)] }, routes = {},
+} = {}) {
   document.body.innerHTML = '<div id="raw-labels-preview"></div>';
   const fetchStub = routeFetch({
     '/v3/api/labelTypes': LABEL_TYPES,
@@ -80,10 +82,12 @@ describe('a region with labels', () => {
     expect([...legend.querySelectorAll('.map-legend-item')].map(textOf)).toEqual(['Curb Ramp', 'Obstacle']);
   });
 
-  it('shows the legend as empty when none of the drawn types is one the API knows', async () => {
+  it('lists a drawn type the API doesn\'t know by its name, in the gray the map draws it in', async () => {
     const labels = { type: 'FeatureCollection', features: [label(1, { label_type: 'Mystery' })] };
     const { container } = await renderPreview({ labels });
-    expect(textOf(container.querySelector('.map-legend'))).toBe('Label Types No labels in this region');
+    const item = container.querySelector('.map-legend .map-legend-item');
+    expect(textOf(item)).toBe('Mystery');
+    expect(item.querySelector('.map-legend-swatch').style.backgroundColor).toBe('rgb(68, 68, 68)');
   });
 
   it('shows a pointer over a label, and the arrow again off it', async () => {

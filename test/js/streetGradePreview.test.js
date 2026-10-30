@@ -309,8 +309,6 @@ describe("a pinned street's popup", () => {
 });
 
 describe('hovering the streets', () => {
-  beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }));
-
   const hover = (map, id) => map.fireOn(
     'street-grade-lines', 'mousemove', [{ id, properties: streets().features[id - 1].properties }]);
 

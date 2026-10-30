@@ -29,7 +29,8 @@ describe('the street types table', () => {
   it('lists the street types, most common first, with their description and count', async () => {
     const container = await renderPreview();
     const table = container.querySelector('table');
-    expect([...table.querySelectorAll('th')].map(textOf)).toEqual(['Street Type', 'Description', 'Street Segment Count']);
+    expect([...table.querySelectorAll('th')].map(textOf))
+      .toEqual(['Street Type', 'Description', 'Street Segment Count']);
     expect([...table.querySelectorAll('tbody tr')].map((tr) => [...tr.cells].map(textOf))).toEqual([
       ['residential', 'A street people live on.', '1,000'],
       ['service', 'An alley or driveway.', '500'],
