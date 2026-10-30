@@ -2,9 +2,6 @@
 
 These pin the policy arithmetic the evidence report is built on, so a transcription slip between
 `models.validation.ValidationQueuePolicy` and the analysis shows up here rather than as a wrong number in a doc.
-
-Both halves of `make test-python` collect this directory, so everything here must run under Python 3.8 as well as
-3.13: no `match`, no PEP 604 unions, no builtin generics in annotations.
 """
 
 import csv

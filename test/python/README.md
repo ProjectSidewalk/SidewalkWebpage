@@ -22,32 +22,30 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
 - `test_street_gradient.py` — the street-gradient sampler (#5223): point spacing along a street, the bilinear lookup,
   gap filling and smoothing, the windowed grade statistics, the structure / suspect / no-data verdicts, USGS tile
   naming, the hand-downloaded-directory locator, the raster sampler, and `main` with `--resume`. Rasters are synthetic
-  planes written to `tmp_path`, so expected grades are arithmetic and nothing touches the network. 3.13-only
-  (rasterio).
+  planes written to `tmp_path`, so expected grades are arithmetic and nothing touches the network.
 - `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/city/`](../../tools/city) (#4291): the id/URL/date
   derivations, the cityparams/messages/docs edits (run against copies of the real files so a structural change there
   fails here first), the docker-backed steps with `subprocess` faked (the one-shot evolutions boot and its hash
   verification, the imagery scan, the dump), and `main` end to end with the prompts scripted — dry run, a full run,
-  and every resume gate. Stdlib-only, so it runs in both halves.
+  and every resume gate. Stdlib-only.
 - `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/city/`](../../tools/city): the naming
   convention and cityparams lookups, the paged property search, idempotent reruns, the placeholder rewrite, and the
-  dry run, with `urllib` faked. Stdlib-only, both halves.
+  dry run, with `urllib` faked. Stdlib-only.
 - `test_maps_key_referrers.py` — the Maps key referrer tool in [`tools/city/`](../../tools/city) (#5339): which referrer forms
   cover a site, the append-only update, `--check`'s dedup and exit codes, and gcloud errors, with `subprocess` faked.
-  Stdlib-only, both halves.
+  Stdlib-only.
 - `test_analyze_validation_queue.py` — the Validate queue evidence tool in [`tools/validation_queue/`](../../tools/validation_queue) (#4715, #5285):
   the retirement rule and triage predicates, the scores and sort keys, the mission and type selection, the historical
   replay, the forward simulations, NoSidewalk's block-face evidence and spread, CSV loading and the report; plus a
-  pin of the tool's mirrored policy constants against `ValidationQueuePolicy.scala` and `pool.sql`. numpy only, so
-  it runs in both halves.
+  pin of the tool's mirrored policy constants against `ValidationQueuePolicy.scala` and `pool.sql`. numpy only.
 - `test_osm_lineage.py` / `test_backfill_osm_lineage.py` — the street-to-OSM-way matcher in [`tools/city/`](../../tools/city)
   (#5741) and the live-city backfill around it: the export reader, the tiling of a city's streets into small Overpass
   requests (far-apart towns, a long street across tiles), the dry run, the output and review files, and the exit code
-  when Overpass will not answer, with the fetch and the probe faked. 3.13-only (shapely).
+  when Overpass will not answer, with the fetch and the probe faked.
 - `test_overpass.py` — how the fetchers talk to Overpass (`tools/city/overpass.py`): the retry schedule on a fake clock
   (at least 30 s after a 429, a 502 or a refused connection, doubling, giving up only when the window runs out, an
   attempt cut off at its deadline), what counts as a refusal, the probe query and its identity, osmnx's settings and
-  the day cache's pruning, and the paced multi-request fetch. Stdlib + requests, both halves.
+  the day cache's pruning, and the paced multi-request fetch. Stdlib + requests.
 
 ### Resilience coverage
 
@@ -67,33 +65,27 @@ that the bounding-box radius is in kilometers.
 make test-python
 ```
 
-That runs `pytest` inside the running `projectsidewalk-web` container **twice**, once per interpreter, because the
-scripts run on different ones (#4396): `label_clustering.py` on the `python3` (3.8) the deployed server uses, the
-offline tooling on `python3.13`. `make test-python-app` / `make test-python-tools` run one half each; both take `args=`.
+That runs `pytest` inside the running `projectsidewalk-web` container, whose `python3` (3.12) is the same minor as
+the `python3.12` the deployed server shells out to (#4396). It takes `args=` for pytest flags or a single file.
 
-Dependencies are preinstalled in the container — `requirements.txt` into 3.8, `requirements-offline-tools.txt` into
-3.13, `requirements-dev.txt` into both. To run a half directly (from a worktree, `cd` to
-`/home/.claude/worktrees/<name>` instead of `/home`), or on the host:
+Dependencies are preinstalled in the container (`requirements-offline-tools.txt`, which includes `requirements.txt`,
+plus `requirements-dev.txt`). To run pytest directly (from a worktree, `cd` to `/home/.claude/worktrees/<name>`
+instead of `/home`), or on the host with Python >= 3.12:
 
 ```bash
-docker exec -it -e COVERAGE_OMIT=scripts/label_clustering.py projectsidewalk-web \
-  sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py"
+docker exec -it projectsidewalk-web sh -c "cd /home && python3 -m pytest test/python/test_check_streets_for_imagery.py"
 
 pip install -r requirements-offline-tools.txt -r requirements-dev.txt
-COVERAGE_OMIT=scripts/label_clustering.py pytest test/python/test_check_streets_for_imagery.py
+pytest test/python/test_check_streets_for_imagery.py
 ```
 
-There are no `--cov` flags to pass; `COVERAGE_OMIT` is the one thing a direct invocation needs, and omitting it fails
-the run rather than skipping the gate. See [Coverage](#coverage).
+There are no `--cov` flags to pass; the gate is always on. See [Coverage](#coverage).
 
 Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_options]` + `[tool.coverage.*]`): it scopes
 collection to `test/python/` and puts the script folders on `sys.path` so the tests can `import label_clustering` /
 `import check_streets_for_imagery` directly.
 
-**Adding a test file:** nothing to register. Each half runs the whole directory *minus* the files the other
-interpreter owns (`--ignore`, in the [`Makefile`](../../Makefile) and the `python-tests` matrix in
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), so a new file runs in **both**. If it only works on one,
-add an `--ignore` to the other; until you do, that half fails on import.
+**Adding a test file:** nothing to register; pytest collects the whole directory.
 
 ## Coverage
 
@@ -106,25 +98,14 @@ guards (never run under pytest) and one provably-unreachable loop-exit branch in
 branch`, justified inline).
 
 Scoping is a bare `--cov` plus `source = ["scripts", "tools"]`. `source` is what reports a file nothing imported as 0%, so a
-script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop. It applies
-to the scripts the running interpreter *cannot* import too, so each half omits those files via **`COVERAGE_OMIT`**
-(plus **`COVERAGE_OMIT2`** and **`COVERAGE_OMIT3`** on the 3.8 half, which can't import any of the three offline
-scripts) — `cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit`/`-2`/`-3` in the CI matrix; unset, a
-hand-run fails loudly instead. `tools/one-off/` is omitted: those scripts are unmaintained by design.
+script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop.
+`tools/one-off/` and `tools/experiments/` are omitted: those scripts are unmaintained by design.
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.
 
 ## CI status
 
-Run by the `python-tests` job in `.github/workflows/ci.yml` — a two-leg matrix mirroring `make test-python`:
-`Python tests (in-band script)` on 3.8 and `Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one
-half failing still reports the other.
-
-The legs gate differently, via `continue-on-error: ${{ matrix.advisory }}` rather than a job-level flag. The **in-band**
-leg is **blocking** and a required status check, because `label_clustering.py` is shelled out to by the running app, so
-breaking it breaks production. The **offline tooling** leg is **advisory**: `check_streets_for_imagery.py` is an
-operator utility run out-of-band, and a red run there is worth seeing but not worth blocking app changes on.
-
-`half` also spells the check name, so renaming a leg renames the required check — branch protection would then wait on
-a check no PR produces. Update both together.
+Run by the `python-tests` job in `.github/workflows/ci.yml` (`Python tests`, on 3.12), mirroring `make test-python`.
+**Blocking**, and a required status check, because `label_clustering.py` is shelled out to by the running app, so
+breaking it breaks production. The job's name is the check's name, so renaming it means updating branch protection too.

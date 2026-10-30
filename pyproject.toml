@@ -18,10 +18,7 @@ branch = true
 # tools/README.md) and the
 # route lint, which its own CI step exercises.
 source = ["scripts", "tools"]
-# Each half of the interpreter-split suite omits the scripts it cannot import (`make test-python` sets these; the 3.8
-# half needs all five slots). Unset, nothing is omitted, so a hand-run fails loudly rather than quietly measuring less.
-omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "${COVERAGE_OMIT4-}", "${COVERAGE_OMIT5-}",
-        "tools/lint/check_route_reachability.py", "tools/one-off/*", "tools/experiments/*"]
+omit = ["tools/lint/check_route_reachability.py", "tools/one-off/*", "tools/experiments/*"]
 
 [tool.coverage.report]
 show_missing = true

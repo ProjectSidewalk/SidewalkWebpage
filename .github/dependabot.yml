@@ -114,9 +114,9 @@ updates:
         patterns: ["*"]
         update-types: ["major"]
     ignore:
-      # Stay on JDK 17 (an LTS). Dependabot keeps re-proposing odd, non-LTS temurin majors (19, 21-preview…);
-      # 19 was already rejected as EOL (#4247). The Java 17→21 LTS move is a deliberate, tracked migration
-      # (#4385, #3936), not a bot bump. Minor/OS bumps within 17 (e.g. focal→jammy) are still allowed.
+      # Stay on JDK 21 (an LTS, the one prod runs). Dependabot keeps re-proposing non-LTS temurin majors; 19 was
+      # already rejected as EOL (#4247). The next LTS move (25) is a deliberate migration that has to land on prod
+      # first (#4385), not a bot bump. Minor/OS bumps within 21 (e.g. noble→a later Ubuntu) are still allowed.
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
 
@@ -133,7 +133,3 @@ updates:
       pip-major:
         patterns: ["*"]
         update-types: ["major"]
-    # requirements.txt is frozen for the app's Python 3.8 (docs/upgrading-libraries.md): every bump fails CI and no
-    # security fix can install there either. Retiring 3.8 (#4396) brings it back.
-    exclude-paths:
-      - "requirements.txt"

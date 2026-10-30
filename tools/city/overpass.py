@@ -13,7 +13,7 @@ is the whole network, and it has happened to us (#5741). So, as streetscape-trac
   mirror, which has its own usage policy;
 - pause between requests, and never run two Overpass clients from one network at once (the fleet driver checks).
 
-``python3.13 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
+``python3 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
 does not; the fleet driver runs it before starting. Everything else is imported. Stdlib and ``requests`` only, so it
 runs under both interpreters (``.claude/rules/python-scripts.md``).
 

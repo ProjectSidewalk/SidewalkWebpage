@@ -160,18 +160,12 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   covered by mocking the network wrappers + `tmp_path`; the only exclusions are the `__main__` guards and one
   provably-unreachable loop branch (`# pragma: no branch`). Scoping is a bare `--cov` plus `source = ["scripts",
   "tools"]`, so the gate is always on and covers both arms — an uncovered *branch*, and a script nothing imports, which
-  `source` reports at 0%. Each half sets `COVERAGE_OMIT` to the script its interpreter can't import; unset, the gate
-  fails loudly rather than silently measuring less.
-- **Split by interpreter (#4396).** Each script is tested on the Python that runs it: `label_clustering.py` on
-  **`python3` (3.8)**, since the app shells out to it and prod's system Python is 3.8; the offline tooling
-  (`check_streets_for_imagery.py`, `onboard_city.py`, `osm_lineage.py`, `backfill_osm_lineage.py`, `street_gradient.py`)
-  on **`python3.13`**, since its libraries need ≥ 3.12. `make test-python` runs both halves (`test-python-app` /
-  `test-python-tools` for one). Each takes the whole directory minus the files the other owns, so a new test file runs
-  in both by default; one that only works on one gets an `--ignore` in the other.
-- Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
-  `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
-  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both;
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says why the pins fall where they do.
+  `source` reports at 0%.
+- **One interpreter (#4396).** The container's `python3` is 3.12, the same minor as the `python3.12` prod's app shells
+  out to for `label_clustering.py`, so every script is tested on the Python that runs it.
+- Deps, all installed into the web container by the `Dockerfile`: `requirements-offline-tools.txt`, which includes the
+  in-band script's `requirements.txt`, and `requirements-dev.txt` (`pytest`, `pytest-cov`);
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says which file a library belongs in.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
@@ -190,19 +184,14 @@ Parallel jobs:
   **Blocking**, and a required status check once promoted (#5589; a new job can only be made required after it's on
   `develop`, see the branch-protection note below). The scripts have no tests of their own: they are developer tools,
   and a test framework for them isn't worth the upkeep.
-- **route-lint** — `setup-python` (3.8, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a
+- **route-lint** — `setup-python` (3.12, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a
   `conf/routes` entry is unreachable because an earlier same-method route already matches all of its request paths —
   Play commits to the first path-pattern match and 400s on a typed-param mismatch rather than falling through, which is
   how a wildcard above a literal sibling silently broke `/label/tags` (#456). **Blocking**, and a required status check.
   The compiled-router counterpart is `RouteReachabilitySpec` in `backend-tests`, which also covers sub-router includes.
-- **python-tests** — a two-leg `setup-python` matrix (`fail-fast: false`) mirroring `make test-python`: **`Python tests
-  (in-band script)`** installs `requirements.txt` + `requirements-dev.txt` on **3.8**, **`Python tests (offline
-  tooling)`** installs `requirements-offline-tools.txt` + `requirements-dev.txt` on **3.13**, and each runs
-  `test/python` minus the other interpreter's file. No DB/network. `continue-on-error` is `${{ matrix.advisory }}`
-  rather than a job-level flag, so the two legs gate differently: the **in-band** leg is **blocking** and required,
-  because `label_clustering.py` is shelled out to by the running app; the **offline tooling** leg stays **advisory**,
-  because `check_streets_for_imagery.py` is an operator utility that never runs on the server. Note that `half` also
-  spells the check name — renaming a leg renames a required check, which branch protection then waits on forever.
+- **python-tests** — `setup-python` (3.12, the web container's and prod's minor) + `requirements-offline-tools.txt` +
+  `requirements-dev.txt`, then `pytest` over `test/python`, mirroring `make test-python`. No DB/network. **Blocking**,
+  and a required status check (`Python tests`), because `label_clustering.py` is shelled out to by the running app.
 - **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck`
   schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
   required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
@@ -306,7 +295,7 @@ can't read Scala, so the backend isn't scanned. Python is skipped too: the tools
 and flagged on the PR that causes them. It is **not a required check**.
 
 **Vulnerable dependencies (#5614):** the **`Dependency review`** job in `ci.yml` flags a PR that adds a dependency with
-a known vulnerability. It is **not a required check**, because some fixes can't install on the app's Python 3.8 (#4396).
+a known vulnerability. It is **not a required check**.
 
 ## Coverage
 

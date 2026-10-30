@@ -34,7 +34,7 @@ import service.PanoDataService.{
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
-import java.net.{SocketTimeoutException, URL}
+import java.net.{SocketTimeoutException, URI, URL}
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.Base64
@@ -937,7 +937,7 @@ class PanoDataServiceImpl @Inject() (
    */
   def signUrl(urlString: String): String = {
     // Convert to Java URL for easy parsing of URL parts.
-    val url: URL = URL(urlString)
+    val url: URL = URI(urlString).toURL
 
     // Gets everything but URL protocol and host that we want to sign.
     val resource: String = url.getPath() + '?' + url.getQuery()

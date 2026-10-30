@@ -306,7 +306,7 @@ class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite 
     }
 
     "only widen the capture-date range on conflict, leaving n_panos, data_source, the median, and polled_at alone" in {
-      // Truncated because Postgres keeps microseconds while Java 17's clock has nanoseconds.
+      // Truncated because Postgres keeps microseconds while Java's clock has nanoseconds.
       val staleStamp = OffsetDateTime.now.minusYears(1).truncatedTo(ChronoUnit.MICROS)
 
       val row = runRolledBack(for {

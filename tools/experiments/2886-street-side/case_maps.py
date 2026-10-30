@@ -8,7 +8,7 @@ One file per example, each with its own legend, so the report can show every pai
 caption under it; a single grid of six shrank each map below legibility in the artifact column.
 
 Run inside the web container after analyze_street_side.py and fetch_share_images.py:
-    python3.13 tools/experiments/2886-street-side/case_maps.py
+    python3 tools/experiments/2886-street-side/case_maps.py
 Connection env is the same as street_side.py (PGHOST / PGDATABASE / PGUSER / PGPASSWORD, --exp for the scratch schema).
 """
 import argparse

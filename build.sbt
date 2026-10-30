@@ -256,7 +256,7 @@ scalacOptions ++= Seq(
 // A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.
 Test / scalacOptions += "-Wconf:msg=discarded non-Unit value of type org.scalatest.Assertion:s"
 
-javacOptions ++= Seq("-source", "17", "-target", "17")
+javacOptions ++= Seq("-source", "21", "-target", "21")
 // Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).
 // Measured: the suite uses ~160MB, peaking near 1.3GB under scoverage. A bigger ceiling isn't free, since the JVM
 // stops bothering to collect and grows into it, and -Xms is claimed up front even to run one spec.

@@ -150,7 +150,7 @@ class ClusterServiceImpl @Inject() (
           // Run the clustering script for this region. Pass the internal key via the subprocess environment rather than
           // an argv flag so it can't leak into the process table / `ps` output.
           val process = Process(
-            Seq("/usr/bin/python3", script.getAbsolutePath, "--region_id", regionId.toString),
+            Seq("/usr/bin/python3.12", script.getAbsolutePath, "--region_id", regionId.toString),
             None,
             "INTERNAL_API_KEY" -> key
           )

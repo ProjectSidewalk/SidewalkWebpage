@@ -3,8 +3,8 @@
 Only what the running app shells out to lives here, because `build.sbt` bundles this whole directory into the
 staged package. Everything a person or CI runs is under [`tools/`](../tools/README.md).
 
-`label_clustering.py` runs on `python3` (3.8) with [`requirements.txt`](../requirements.txt): the server's system
-Python, currently EOL (#4396), so never add a library there that has dropped 3.8.
+`label_clustering.py` runs on the server's `python3.12` with [`requirements.txt`](../requirements.txt), which the
+deploy installs into that interpreter (#4396).
 
 ## `label_clustering.py`
 
@@ -35,8 +35,8 @@ dependencies must be installed in the `python3` interpreter the app shells out t
 ## Testing
 
 ```bash
-make test-python          # both halves, in the web container
-make test-python-app      # just label_clustering.py, on python3 (3.8)
+make test-python                                              # everything, in the web container
+make test-python args=test/python/test_label_clustering.py    # just this script
 ```
 
 See [`test/python/README.md`](../test/python/README.md).

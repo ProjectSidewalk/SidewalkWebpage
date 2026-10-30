@@ -5,8 +5,6 @@ Covers the pure helpers — the Overpass filter builder, osmnx tag flattening/no
 short-segment and region-stats QA logic, boundary-coverage, and the COPY/EWKB serialization used to build the SQL
 load file — plus the I/O layer (fetches, geopackage/SQL/report writers, the CLI, and ``main``) with the network and
 osmnx mocked out.
-
-The geo stack (requirements-offline-tools.txt) needs >= 3.12, so the whole module skips on the in-band 3.8 half.
 """
 
 import hashlib

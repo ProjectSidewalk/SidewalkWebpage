@@ -4,7 +4,7 @@ How to upgrade what Project Sidewalk depends on, and what to watch when you do. 
 manifests the bots bump**: [`build.sbt`](../build.sbt) and `project/` for Scala, [`package.json`](../package.json) for
 JavaScript, the `requirements*.txt` files for Python. Scala Steward and Dependabot open the monthly bumps, and patch and
 minor ones merge on their own once CI is green (#4395), so a version written down here would be stale within the month.
-Other docs mention only stable *major* versions (Scala 3.9, Play 3.0, Java 17).
+Other docs mention only stable *major* versions (Scala 3.9, Play 3.0, Java 21).
 
 What this page carries instead is the part a bot can't know: a library gets an entry below only when a bump needs a
 human to know something (a hold and why, a private API we reach into, a file to edit alongside, a check to run after).
@@ -23,24 +23,23 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 
 | | Ours | Latest | Upstream EOL | Set in |
 |---|---|---|---|---|
-| Java (JDK) | Temurin **17** | 25 LTS | Oct 2027 | web base image, `build.sbt`, `ci.yml` |
+| Java (JDK) | Temurin **21** | 25 LTS | Sep 2029 | web base image, `build.sbt`, `ci.yml`; prod's `java_sdk_21` in sidewalk-tools |
 | Node (+ npm) | **26.x** (npm ≥ 11) | 26.x (checked 2026-10-30) | Apr 2029 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
-| Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
-| Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
-| web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
+| Python | **3.12** (noble's `python3`; prod's `python3.12`) | 3.14.7 | Oct 2028 | web base image ([details](#interpreter)), `ci.yml` |
+| web image | **`eclipse-temurin:21-jdk-noble`** | noble | Apr 2029 (Ubuntu 24.04) | `Dockerfile` |
 | db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
-- **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
-  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
-  2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
-  `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
-  move has to say what happens to 3.8 first.
+- **The base image's Ubuntu release picks the Python.** Noble's `python3` is 3.12, chosen to match the `python3.12`
+  prod's app shells out to ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)); a later Ubuntu
+  would move it, so the two change together. Noble's glibc (2.39) also lets sbt's native client run in the container
+  (#5268).
 - **The db image updates by rebuilding.** It's Debian 13 with Postgres from the official image and PostGIS, GEOS and
   PROJ from Postgres's own package server, the same source as prod's.
-- **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
-  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
-  `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported until Apr 2029; 27 takes over as
+- **Java 21** everywhere, prod included (`sidewalk-tools/conf/server.conf` pins `java_sdk_21`, Rocky's
+  `java-21-openjdk-devel`). A Java move changes there, in the base image, `build.sbt` and `ci.yml` together, and
+  prod has to have the JDK first ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)).
+  Dependabot deliberately ignores major `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported until Apr 2029; 27 takes over as
   LTS on 2027-10-20.
 
 ### Database server
@@ -108,7 +107,7 @@ are, since a 3.10 or 3.1 would otherwise merge as a "minor".
   so 7 breaks core Play functionality until Play migrates (watch the
   [Play changelog](https://www.playframework.com/changelog)).
 - **GeoTools (`gt-shapefile`, `gt-epsg-hsql`, `gt-geopkg`)** — Shapefile/GeoPackage generation, served by the OSGeo
-  resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are usually
+  resolver in `build.sbt`, not Maven Central. Needs Java ≥ 17. We use a tiny corner of the API, so bumps are usually
   mechanical; check both exports afterward (#4393). The GeoPackage writer relies on gt-geopkg handing back a
   `JDBCDataStore` and on it leaving the `gpkg_contents` bounds to us (#5275), so after a bump confirm
   `ogrinfo -so <file>.gpkg <layer>` shows a real Extent, not (0, 0) - (0, 0).
@@ -202,34 +201,20 @@ Versions are pinned in the `requirements*.txt` files at the repo root (look one 
 and installed by the [`Dockerfile`](../Dockerfile). After a bump, rebuild the web image (`docker compose build web`) and
 run `make test-python`.
 
-### Interpreters
+### Interpreter
 
-The web image carries two, and **which one a package targets decides which file it goes in**
-([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)):
-
-- **Python 3.8** (`python3`) — the base image's own, and past EOL. **Note:** kept only because the deployed app
-  shells out to it for in-band clustering (prod runs on Rocky's system Python).
-  Retiring it means changing the base image, tracked in
-  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396) — until then, don't add libraries to
-  `requirements.txt`, because current releases have all dropped 3.8.
-- **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
-  CPython fetched by **uv 0.12.15** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
-  runs. Both interpreters are pinned to exact patch versions in the `Dockerfile` (the installer URL and the
-  `uv python install` argument); those patches are in the [runtimes table](#runtimes-and-base-images), so bump the
-  `Dockerfile` and that table together. [Python releases](https://www.python.org/downloads/) ·
-  [uv releases](https://github.com/astral-sh/uv/releases)
+One, **Python 3.12** ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)): the web image's
+`python3` is noble's own, and prod's app shells out to `/usr/bin/python3.12`, Rocky 9's add-on package beside its
+system 3.9. The same minor on both means a library that installs in the container installs on the server. Which file a
+package goes in is decided by **where it has to be installed**, not which Python runs it.
 
 ### Packages
 
-- **`requirements.txt`** (3.8, the in-band `label_clustering.py`: pandas, scipy, haversine, requests) — **frozen** at
-  the last releases that install on 3.8, until the interpreter moves; Dependabot skips the file.
-- **`requirements-offline-tools.txt`** (3.13: `check_streets_for_imagery.py`, `onboard_city.py`, `street_gradient.py`;
-  pandas, requests, shapely, geopy, tenacity, tqdm, the onboarding geo stack of osmnx, geopandas, pyogrio and scipy, and
-  the street-gradient raster stack of rasterio, whose wheel bundles GDAL so nothing comes from the OS, and pyproj) —
-  self-contained rather than layered on `requirements.txt`, since the two files target different interpreters and so
-  can't share a pin. **Requires Python ≥ 3.12**, set by scipy, rasterio and pyproj: re-check that floor when bumping any
-  of them, and update the docs that quote it.
-- **`requirements-dev.txt`** (both: pytest, pytest-cov) — two pinned pairs by environment marker, pytest 9 on 3.10+ and
-  pytest 8.3.5 below. **The boundary is pytest 9's own floor, not the 3.8 side**: 8.3.5 is both the last pytest
-  supporting 3.8 and the first supporting 3.13, so it covers the 3.8–3.9 gap. Keep the ranges adjacent and re-check that
-  overlap before changing either.
+- **`requirements.txt`** (the in-band `label_clustering.py`: pandas, scipy, haversine, requests) — the one file the
+  deploy installs on the server (`sidewalk-tools/lib/build.sh`, into `python3.12`), so only what that script needs.
+- **`requirements-offline-tools.txt`** (`check_streets_for_imagery.py`, `onboard_city.py`, `street_gradient.py`, the
+  OSM lineage pair; shapely, geopy, tenacity, tqdm, the onboarding geo stack of osmnx, geopandas and pyogrio, and the
+  street-gradient raster stack of rasterio, whose wheel bundles GDAL so nothing comes from the OS, and pyproj) — layers
+  on `requirements.txt` with `-r`, and is installed only in the container. **Requires Python ≥ 3.12**, set by scipy,
+  rasterio and pyproj: re-check that floor when bumping any of them, and update the docs that quote it.
+- **`requirements-dev.txt`** (pytest, pytest-cov).

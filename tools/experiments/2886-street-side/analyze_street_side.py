@@ -2,7 +2,7 @@
 """Score the two street-side methods from the tables street_side.py export writes (out/*.csv).
 
 Writes out/summary.json (every number the report quotes), out/tables.md (the tables, ready to paste) and
-out/fig_*.png. Run inside the web container: python3.13 tools/experiments/2886-street-side/analyze_street_side.py
+out/fig_*.png. Run inside the web container: python3 tools/experiments/2886-street-side/analyze_street_side.py
 """
 import json
 from pathlib import Path
