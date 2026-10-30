@@ -39,7 +39,7 @@ function days(count) {
 async function renderPreview(response = { data: TWO_DAYS }, setup = {}) {
   document.body.innerHTML = '<div id="overall-stats-by-day-preview"></div>';
   const fetchStub = routeFetch({ '/v3/api/overallStatsByDay': response });
-  const { OverallStatsByDayPreview } = await loadModules('frontend/js/api-docs/overallStatsByDayPreview.js');
+  const { OverallStatsByDayPreview } = await loadModules('frontend/js/api-docs/statsByDayPreview.js');
   await OverallStatsByDayPreview.setup({ apiBaseUrl: '/v3/api', ...setup }).init();
   await flush();
   return fetchStub;
@@ -126,7 +126,7 @@ describe('the period shown', () => {
 
   it('gives no agreement rate when nothing was validated', async () => {
     await renderPreview({ data: [row('2026-10-01', 'CurbRamp', { human_labels: 2 })] });
-    expect(cards()['Agreement rate']).toBe('N/A%');
+    expect(cards()['Agreement rate']).toBe('N/A');
     expect(world.charts[2].data.datasets[0].pointRadius).toBe(2);
   });
 
@@ -150,7 +150,7 @@ describe('when something fails', () => {
 
   it('rejects when the page lacks the container', async () => {
     document.body.innerHTML = '';
-    const { OverallStatsByDayPreview } = await loadModules('frontend/js/api-docs/overallStatsByDayPreview.js');
+    const { OverallStatsByDayPreview } = await loadModules('frontend/js/api-docs/statsByDayPreview.js');
     await expect(OverallStatsByDayPreview.init()).rejects.toThrow('Container not found');
   });
 });
