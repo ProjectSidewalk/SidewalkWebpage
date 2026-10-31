@@ -1,6 +1,6 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
+# Every job blocks a merge except dependency-review.
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
@@ -566,6 +566,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
       # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
       - name: Install dependencies

@@ -30,7 +30,7 @@ INTERNAL_API_KEY=<internal-api-key> python3 scripts/label_clustering.py --region
 Because this one runs in-band, the deployed app has to be able to both **find** and **run** it: `scripts/` is bundled
 into the staged package via `Universal / mappings` in [`build.sbt`](../build.sbt) and `ClusterService` resolves it
 against the app root (not the process working directory), and its [`requirements.txt`](../requirements.txt)
-dependencies must be installed in the `python3` interpreter the app shells out to.
+dependencies must be installed in the `python3.12` the app shells out to.
 
 ## Testing
 

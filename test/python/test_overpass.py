@@ -273,8 +273,8 @@ def test_configure_identifies_us_declares_the_limits_and_caches_by_day(tmp_path)
 
 
 def test_osmnx_still_formats_the_query_and_logs_remarks_the_way_this_module_expects():
-    osmnx = pytest.importorskip('osmnx', reason='the 3.13 half has osmnx')
     import inspect
+    import osmnx
     from osmnx import _http, _overpass, features
     assert 'settings.overpass_settings.format(timeout=settings.requests_timeout, maxsize=maxsize)' in \
         inspect.getsource(_overpass)

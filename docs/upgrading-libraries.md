@@ -39,8 +39,8 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 - **Java 21** everywhere, prod included (`sidewalk-tools/conf/server.conf` pins `java_sdk_21`, Rocky's
   `java-21-openjdk-devel`). A Java move changes there, in the base image, `build.sbt` and `ci.yml` together, and
   prod has to have the JDK first ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)).
-  Dependabot deliberately ignores major `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported until Apr 2029; 27 takes over as
-  LTS on 2027-10-20.
+  Dependabot deliberately ignores major `eclipse-temurin` bumps. **Node 26** became LTS on 2026-10-28 and is supported
+  until Apr 2029; 27 takes over as LTS on 2027-10-20.
 
 ### Database server
 

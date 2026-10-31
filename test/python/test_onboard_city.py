@@ -14,16 +14,14 @@ import re
 import sys
 from types import SimpleNamespace
 
+import geopandas as gpd
 import pandas as pd
 import pytest
 import requests
-
-gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.12')
-
-import shapely  # noqa: E402
-import shapely.errors  # noqa: E402
-from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping  # noqa: E402
-from shapely.ops import substring  # noqa: E402
+import shapely
+import shapely.errors
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping
+from shapely.ops import substring
 
 import onboard_city as oc  # noqa: E402
 import overpass as op  # noqa: E402

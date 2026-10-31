@@ -116,7 +116,8 @@ updates:
     ignore:
       # Stay on JDK 21 (an LTS, the one prod runs). Dependabot keeps re-proposing non-LTS temurin majors; 19 was
       # already rejected as EOL (#4247). The next LTS move (25) is a deliberate migration that has to land on prod
-      # first (#4385), not a bot bump. Minor/OS bumps within 21 (e.g. noble→a later Ubuntu) are still allowed.
+      # first (#4385), not a bot bump. Patch bumps within 21 still come through; the tag's Ubuntu suffix stays put, since
+      # it is what makes the image's python3 the 3.12 prod runs (#4396).
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
 
