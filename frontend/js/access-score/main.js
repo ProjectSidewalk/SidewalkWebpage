@@ -285,6 +285,7 @@ export const AccessScoreApp = (function () {
       feed,
       gradeSources,
       streetCenter,
+      streetLine,
       // A reader's close is a deselect: the street or the place, whichever the panel is headed by.
       onClose: () => {
         if (places?.selected) places.select(null);
@@ -872,11 +873,16 @@ export const AccessScoreApp = (function () {
 
     /** A street's midpoint, from its geometry. */
     function streetCenter(id) {
-      const f = streets.features.find((feature) => feature.properties.street_edge_id === id);
-      if (!f) return null;
-      const coords = f.geometry.coordinates;
+      const coords = streetLine(id);
+      if (!coords) return null;
       const [lng, lat] = coords[Math.floor(coords.length / 2)];
       return { lng, lat };
+    }
+
+    /** A street's vertices in their digitized order, which its elevation profile runs in. */
+    function streetLine(id) {
+      const f = streets.features.find((feature) => feature.properties.street_edge_id === id);
+      return f ? f.geometry.coordinates : null;
     }
 
     /** A region's bounding-box center, from its polygon. */

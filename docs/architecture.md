@@ -589,10 +589,12 @@ loaded by the corresponding Twirl view:
   every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
   per histogram bin, since a symbol's image can't read feature-state, #5311), the street panel
   (`AccessScoreStreetPanel.js`, #5748: what a click on a street or a place opens, a drawer on the map's right that
-  says why the street scores what it does, verdict first — a sentence, the block and its two crossings drawn in their
-  score colors, a signed effect bar per label type with grade among them, the elevation profile — and backs it with
-  the evidence, one `LabelMiniCard` tile per cluster along the block and at each crossing, worst first, each wearing
-  what that cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
+  says why the street scores what it does in figures, every explanation in words behind an "i" — the block and its
+  two crossings drawn in their score colors, the block as its elevation profile where the city has one with the
+  problems along it pinned where they are (`AccessScoreElevationProfile` markers), a signed effect bar per label type
+  totaled over the block and its scored crossings with grade among them — and backs it with the evidence, one
+  `LabelMiniCard` tile per cluster along the block and at each crossing, costliest first, each wearing what that
+  cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
   type since the engine scores a cluster from its median rating and tag counts); a row lights its tiles, a tile its
   dot on the map; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
   through `ps-map/mapPadding.js`, which keeps the padding the map is heading for so no owner eases to another's

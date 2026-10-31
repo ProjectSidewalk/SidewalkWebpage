@@ -1,10 +1,11 @@
 /**
  * Tests for AccessScoreStreetPanel (frontend/js/access-score/AccessScoreStreetPanel.js, #5748): the panel that
- * says why a street scores what it does. It leads with the verdict and the three components, lists each type's
- * effect worst first with grade among them, draws one tile per cluster along the block and at each crossing from
- * the shared feed, caps a group at twelve until asked for all, lights rows and tiles both ways, re-reads its numbers
- * on a reweighting without refetching a picture, owns the map's right padding, and hands a reader's close to the
- * host.
+ * says why a street scores what it does. It leads with the headline and the three components, draws the block as
+ * its elevation profile where there is one with the problems pinned along it, lists each type's effect worst first
+ * over the block and its scored crossings with grade among them, draws one tile per cluster along the block and at
+ * each crossing from the shared feed, costliest first, caps a group at twelve until asked for all and folds it back,
+ * lights rows and tiles both ways, re-reads its numbers on a reweighting without refetching a picture, owns the
+ * map's right padding, and hands a reader's close to the host.
  */
 
 import {FIXTURE, RAMP, stubI18next, stubFetch, feature} from './support/accessScoreDockHarness.js';
@@ -126,13 +127,16 @@ describe('AccessScoreStreetPanel', () => {
     expect(document.getElementById('acs-panel-meta').textContent).toContain('length meters=100');
     const street = model.explainStreet(id);
     expect(root.querySelector('.acs-panel__score').textContent).toBe(`${(street.score * 100).toFixed(1)}/ 100`);
-    // The sentence: the block helped most by its one good ramp, and with no scored crossing the street is the block.
-    const sentence = root.querySelector('.acs-panel__sentence').textContent;
-    expect(sentence).toContain('panel-verdict-block-good');
-    expect(sentence).toContain('type=curb-ramp value=+0.75');
-    expect(sentence).toContain('panel-verdict-crossings-none');
-    expect(root.querySelector('.acs-panel__components')).not.toBeNull();
+    // No sentence: the explanation in words is behind the "i", which is also the button's name.
+    expect(root.querySelector('.acs-panel__sentence')).toBeNull();
+    expect(root.querySelector('.acs-panel__headline .acs-info').getAttribute('aria-label')).toBe('panel-score-help');
+    expect(root.querySelector('.acs-panel__headline .acs-info').getAttribute('data-ps-tooltip')).toBe('panel-score-help');
+    // The components: the block's figures on its bar, and with no scored crossing a grey dot at either end.
+    expect(root.querySelector('.acs-panel__block').textContent.replace(/\s+/g, ' ').trim())
+      .toBe(`panel-block ${(street.segmentScore * 100).toFixed(1)} · length meters=100`);
     expect(root.querySelectorAll('.acs-panel__dot--none')).toHaveLength(2);
+    expect(root.querySelector('[data-acs-profile]').hidden).toBe(true);
+    expect(root.querySelector('.acs-panel__components--profile')).toBeNull();
     // One row for the one type with a cluster, nothing for grade on a street with no slope.
     expect(rows().map((r) => r.dataset.type)).toEqual(['CurbRamp']);
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+0.75');
@@ -154,8 +158,9 @@ describe('AccessScoreStreetPanel', () => {
     expect(tile.querySelector('.lmc__type').textContent).toBe('curb-ramp');
     expect(tile.querySelector('.acs-tile__effect').textContent).toBe('+0.75');
     expect(tile.querySelector('.acs-tile__size')).toBeNull();
-    expect(root.querySelector('[data-acs-group="block"] .acs-group__caption').textContent)
-      .toBe('panel-group-caption-block count=1');
+    expect(root.querySelector('[data-acs-group="block"] .acs-group__count').textContent).toBe('panel-clusters count=1');
+    // Twelve or fewer: nothing to show more of, and the button that would is gone, not just empty.
+    expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(true);
     expect(root.querySelector('[data-acs-group="block"] .acs-group__score').textContent)
       .toBe((street.segmentScore * 100).toFixed(1));
   });
@@ -168,25 +173,38 @@ describe('AccessScoreStreetPanel', () => {
     expect(panel.showStreet(99999)).toBe(false);
   });
 
-  test('a group shows twelve tiles worst first until asked for all, and a cluster of several labels opens the sheet',
+  test('a group shows twelve tiles costliest first until asked for all, folds back, and a cluster of several labels opens the sheet',
     async () => {
       const id = streetId('mixed street');
       panel.showStreet(id);
       await settle();
       const shown = tiles('block');
       expect(shown).toHaveLength(12);
-      // Worst first: the High obstacles lead, then the Medium ones.
-      const severities = shown.map((t) => Number(t.querySelector('.lmc__rating')?.textContent.endsWith('high') ? 3
-        : t.querySelector('.lmc__rating')?.textContent.endsWith('medium') ? 2 : 1));
-      expect(severities).toEqual([...severities].sort((a, b) => b - a));
+      // Costliest first: the High obstacles (−1.00) lead, then the Medium ones; every chip reads in that order.
+      const effects = shown.map((t) => parseFloat(t.querySelector('.acs-tile__effect').textContent.replace('−', '-')));
+      expect(effects).toEqual([...effects].sort((a, b) => a - b));
+      expect(effects[0]).toBe(-1);
       const more = root.querySelector('[data-acs-group="block"] .acs-group__more');
       expect(more.hidden).toBe(false);
       expect(more.textContent).toBe('panel-all count=15');
+      expect(more.getAttribute('aria-expanded')).toBe('false');
       more.click();
       await settle();
       expect(tiles('block')).toHaveLength(15);
-      expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(true);
       expect(callbacks.log).toHaveBeenCalledWith('PanelExpandGroup', 'block');
+      // The Signal cluster earns the block something, so it trails every problem.
+      expect(tiles('block').at(-1).dataset.clusterId).toBe('300');
+      // The same button folds the group back to its twelve.
+      expect(more.hidden).toBe(false);
+      expect(more.textContent).toBe('panel-fewer');
+      expect(more.getAttribute('aria-expanded')).toBe('true');
+      more.click();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      expect(callbacks.log).toHaveBeenCalledWith('PanelCollapseGroup', 'block');
+      expect(more.textContent).toBe('panel-all count=15');
+      more.click();
+      await settle();
       // The Signal cluster of two labels is shown by its newest and carries the way to both.
       const signal = root.querySelector('.acs-tile[data-cluster-id="300"]');
       expect(signal.querySelector('.lmc').dataset.labelId).toBe('302');
@@ -240,7 +258,6 @@ describe('AccessScoreStreetPanel', () => {
     panel.refresh();
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+2.00');
     expect(tiles('block')[0].querySelector('.acs-tile__effect').textContent).toBe('+2.00');
-    expect(root.querySelector('.acs-panel__sentence').textContent).toContain('value=+2.00');
     expect(fetchMock.mock.calls.length).toBe(before);
     panel.refreshLabel({...label(11, 'CurbRamp', 1), num_agree: 7});
     expect(tiles('block')[0].querySelector('.lmc__vote--agree .lmc__vote-count').textContent).toBe('7');
@@ -269,6 +286,123 @@ describe('AccessScoreStreetPanel', () => {
     root.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
     expect(callbacks.onClose).not.toHaveBeenCalled();
   });
+
+  test('the rows total a type over the block and its scored crossings, so a bare block with busy corners is not empty',
+    async () => {
+      // The fixture street's one good ramp, with "four good ramps" as the crossing at its start.
+      const ramp = streetId('one good curb ramp');
+      const corner = FIXTURE.intersections.find((c) => c.name === 'four good ramps');
+      const intersections = {type: 'FeatureCollection', features: [{
+        type: 'Feature', geometry: null,
+        properties: {
+          intersection_id: 7, region_id: 1, degree: 4, grade_separated: false, street_edge_ids: [ramp],
+          audit_count: 1, severity_counts: corner.severity_counts, tag_adjustments: corner.tag_adjustments,
+          cluster_counts: corner.cluster_counts,
+        },
+      }]};
+      const streets = {type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i,
+        i + 1 === ramp ? {start_intersection_id: 7} : {}))};
+      const joined = new AccessScoreModel(FIXTURE.config, streets, intersections, [REGION]);
+      const busy = new AccessScoreStreetPanel(root, {
+        model: joined, config: FIXTURE.config, map,
+        feed: new AccessScoreClusterFeed({types: FIXTURE.config.scored_types}), ...callbacks,
+      });
+      busy.showStreet(ramp);
+      const street = joined.explainStreet(ramp);
+      const crossing = joined.explainIntersection(7);
+      expect(crossing.terms.CurbRamp.clusterCount).toBe(4);
+      const row = rows().find((r) => r.dataset.type === 'CurbRamp');
+      expect(row.querySelector('.acs-row__count').textContent).toBe('5');
+      const total = street.terms.CurbRamp.term + crossing.terms.CurbRamp.term;
+      expect(row.querySelector('.acs-row__effect').textContent).toBe(`+${total.toFixed(2)}`);
+      expect(root.querySelector('.acs-panel__end--start .acs-panel__end-score').textContent)
+        .toBe((crossing.score * 100).toFixed(1));
+      expect(root.querySelector('[data-acs-rows] .acs-info').getAttribute('aria-label')).toBe('panel-rows-help');
+      // The same street with its corner emptied has rows for the block alone.
+      panel.showStreet(ramp);
+      expect(rows().find((r) => r.dataset.type === 'CurbRamp').querySelector('.acs-row__count').textContent).toBe('1');
+    });
+
+  test('a street with a profile draws it between the crossings, pins its problems where they are, and lights a pin from its tile',
+    async () => {
+      const many = streetId('mixed street');
+      const slope = {
+        mean_grade: 0.03, max_grade: 0.05, net_grade: 0.02, total_climb_meters: 2, total_descent_meters: 0,
+        meters_over_5pct: 0, meters_over_8pct: 0, grade_confidence: 'high', grade_quality: 'measured',
+        dem_source: 'fixture-dem',
+      };
+      const streets = {type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i,
+        i + 1 === many ? slope : {}))};
+      const config = {...FIXTURE.config, grade: {map_class_breaks: [1 / 48, 0.05, 1 / 12, 0.125], sources: []}};
+      const sloped = new AccessScoreModel(config, streets, {type: 'FeatureCollection', features: []}, [REGION]);
+      // A straight 100 m street north from (-74, 40.8); one obstacle a quarter of the way along it, one at the end.
+      const line = [[-74, 40.8], [-74, 40.8009]];
+      const inner = fetchMock;
+      window.fetch = vi.fn((input) => {
+        const url = new URL(String(input), 'http://localhost');
+        if (url.pathname === '/v3/api/streetGrade') {
+          return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({
+            street_edge_id: many, max_grade: 0.05, max_grade_from_meters: 20, max_grade_to_meters: 50,
+            profile: {spacing_meters: 50, elevations_meters: [100, 101, 102]},
+          })});
+        }
+        return inner(input);
+      });
+      const feedClusters = {
+        1: [
+          cluster(100, 'Obstacle', many, 3, [200], {coordinates: [-74, 40.800225]}),
+          cluster(101, 'Obstacle', many, 1, [201], {coordinates: [-74, 40.8009]}),
+          cluster(300, 'Signal', many, null, [302], {coordinates: [-74, 40.8005]}),
+        ],
+      };
+      inner.mockImplementation((input) => {
+        const url = new URL(String(input), 'http://localhost');
+        if (url.pathname === '/v3/api/labelClusters') {
+          return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({type: 'FeatureCollection',
+            features: feedClusters[1].map(({coordinates, ...properties}) => ({
+              type: 'Feature', geometry: {type: 'Point', coordinates}, properties}))})});
+        }
+        const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
+        const labels = {200: label(200, 'Obstacle', 3), 201: label(201, 'Obstacle', 1), 302: label(302, 'Signal', null)};
+        return Promise.resolve({ok: Boolean(labels[m?.[1]]), status: 200, json: () => Promise.resolve(labels[m?.[1]] ?? {})});
+      });
+      const hilly = new AccessScoreStreetPanel(root, {
+        model: sloped, config, map, feed: new AccessScoreClusterFeed({types: config.scored_types}),
+        ...callbacks, streetLine: () => line,
+      });
+      hilly.showStreet(many);
+      // The bar stands in until the profile arrives.
+      expect(root.querySelector('[data-acs-profile]').hidden).toBe(true);
+      await settle();
+      const components = root.querySelector('.acs-panel__components');
+      expect(components.classList.contains('acs-panel__components--profile')).toBe(true);
+      expect(components.querySelector('svg.elevation-profile__chart')).not.toBeNull();
+      expect(root.querySelector('[data-acs-grade]').hidden).toBe(false);
+      expect(root.querySelector('[data-acs-grade] .acs-panel__meta').textContent).toContain('slope-headline');
+      // A grade with nothing to explain has no "i"; the block's pill keeps its figures under the chart.
+      expect(root.querySelector('[data-acs-grade] .acs-info')).toBeNull();
+      expect(root.querySelector('.acs-panel__block').textContent).toContain('panel-block');
+      // Two problems pinned, the signal (a feature) not; the first a quarter of the way along the 100 m chart.
+      const pins = [...components.querySelectorAll('.elevation-profile__marker')];
+      expect(pins.map((p) => p.dataset.id).sort()).toEqual(['100', '101']);
+      const x = (id) => Number(pins.find((p) => p.dataset.id === id).getAttribute('cx'));
+      expect(x('100')).toBeGreaterThan(48);
+      expect(x('100')).toBeLessThan(48 + 244 * 0.3);
+      expect(x('101')).toBeCloseTo(340 - 48, 0);
+      expect(pins[0].querySelector('title').textContent).toContain('cluster-effect');
+      // A tile lights its pin; a pin lights its tile and reaches the map.
+      hilly.lightCluster(100);
+      expect(pins.find((p) => p.dataset.id === '100').classList.contains('elevation-profile__marker--on')).toBe(true);
+      pins.find((p) => p.dataset.id === '101').dispatchEvent(new Event('pointerenter'));
+      expect(root.querySelector('.acs-tile[data-cluster-id="101"]').classList.contains('is-on')).toBe(true);
+      expect(callbacks.onHoverCluster).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 101}));
+      expect(callbacks.log).toHaveBeenCalledWith('PanelHoverCluster_labelClusterId', 101);
+      // A reweighting keeps the chart and re-pins: at a zero obstacle weight nothing costs, so nothing is pinned.
+      sloped.setState({weights: {...sloped.state.weights, Obstacle: 0}});
+      hilly.refresh();
+      expect(root.querySelector('.acs-panel__components--profile svg.elevation-profile__chart')).not.toBeNull();
+      expect(components.querySelectorAll('.elevation-profile__marker')).toHaveLength(0);
+    });
 
   test('an unaudited street has a verdict and no evidence; a place heads its nearest street\'s panel', async () => {
     const streets = {type: 'FeatureCollection', features: [feature(FIXTURE.streets[1], 0, {audit_count: 0})]};

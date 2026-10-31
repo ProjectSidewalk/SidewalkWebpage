@@ -145,10 +145,11 @@ the street panel's (#5748) `AccessScore_Panel_value=open` (the panel opened by a
 selection a link carried in is not logged, nor is a street swapped for another while it is open),
 `AccessScore_PanelClose_value=<button|escape>` (closed by the reader; a deselect by a click on bare map is not logged),
 `AccessScore_PanelRow_value=<labelType|grade>` (a row in "What drives this score" hovered or focused, once per type per
-open), `AccessScore_PanelHoverCluster_labelClusterId_value=<id>` (an evidence tile hovered or focused, once per
-cluster per open), `AccessScore_PanelOpenLabel_labelId_value=<id>` (a tile opening the full label card),
+open), `AccessScore_PanelHoverCluster_labelClusterId_value=<id>` (an evidence tile, or its pin on the elevation
+profile, hovered or focused, once per cluster per open), `AccessScore_PanelOpenLabel_labelId_value=<id>` (a tile opening the full label card),
 `AccessScore_PanelSheet_labelClusterId_value=<id>` (a tile's "N labels" opening the cluster sheet) and
-`AccessScore_PanelExpandGroup_value=<block|start|end>` ("Show all" on a group of tiles),
+`AccessScore_PanelExpandGroup_value=<block|start|end>` / `AccessScore_PanelCollapseGroup_value=<…>` ("Show all" and
+"Show fewer" on a group of tiles),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
 and the panel's and popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds

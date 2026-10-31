@@ -505,12 +505,15 @@ test.describe('/accessScore', () => {
       await expect(panel).toBeVisible();
       await expect(panel.locator('#acs-panel-title')).toHaveText('Cedar Lane · Street 1');
       await expect(panel.locator('.acs-panel__score')).toHaveText('81.8/ 100');
-      // The stubbed intersections feed is empty: no scored crossing, so the street's score is the block's.
-      await expect(panel.locator('.acs-panel__sentence'))
-        .toContainText('The block scores 81.8, helped most by Curb Ramp (+1.50).');
-      await expect(panel.locator('.acs-panel__sentence')).toContainText('No crossing at either end has a score');
-      await expect(panel.locator('.acs-panel__components'))
-        .toHaveAttribute('aria-label', 'Segment 81.8 · Start crossing — · End crossing —');
+      // No prose: the explanation is the "i" beside the score, which is also its name for a screen reader.
+      await expect(panel.locator('.acs-panel__sentence')).toHaveCount(0);
+      await expect(panel.locator('.acs-panel__headline .acs-info')).toHaveAttribute('aria-label', /averaged with/);
+      // The stubbed intersections feed is empty: no scored crossing, so the street's score is the block's, and the
+      // block is drawn as a bar (the fixture city has no elevation profile) between two grey dots.
+      await expect(panel.locator('.acs-panel__block')).toContainText('Block 81.8');
+      await expect(panel.locator('.acs-panel__end--start')).toContainText('no crossing');
+      await expect(panel.locator('.acs-panel__dot--none')).toHaveCount(2);
+      await expect(panel.locator('.acs-panel__components--profile')).toHaveCount(0);
       await expect(panel.locator('.acs-row')).toHaveCount(1);
       await expect(panel.locator('.acs-row[data-type="CurbRamp"] .acs-row__effect')).toHaveText('+1.50');
       // A link's selection steals no focus from the document.
@@ -614,7 +617,9 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
       const panel = page.locator('#acs-panel');
       await expect(panel).toContainText('Steepest 8.1% · average 6.2%');
-      await expect(panel.locator('svg.elevation-profile__chart')).toBeVisible();
+      // The profile takes the block's place between the crossings, the block's figures in a pill beneath it.
+      await expect(panel.locator('.acs-panel__components--profile svg.elevation-profile__chart')).toBeVisible();
+      await expect(panel.locator('.acs-panel__components--profile .acs-panel__block')).toContainText('Block');
       // The bracket marks the stretch the backend placed; the legend's rows are toggles that highlight the chart.
       await expect(panel.locator('.elevation-profile__callout')).toContainText('8.1%');
       const rows = panel.locator('.elevation-profile__legend').getByRole('button');
@@ -697,7 +702,9 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
       await expect(page.locator('#acs-slope')).toBeVisible();
       await expect(page.locator('#acs-slope-barrier')).toBeChecked();
-      await expect(page.locator('#acs-panel')).toContainText('The segment scores 0: steeper than the 10% barrier.');
+      await expect(page.locator('.acs-panel__block')).toContainText('barrier: 0');
+      await expect(page.locator('[data-acs-grade] .acs-info'))
+        .toHaveAttribute('aria-label', 'The segment scores 0: steeper than the 10% barrier.');
       await expect(page.locator('.acs-row[data-type="grade"] .acs-row__effect')).toHaveText('barrier: 0');
 
       await page.locator('#acs-slope-reset').click();

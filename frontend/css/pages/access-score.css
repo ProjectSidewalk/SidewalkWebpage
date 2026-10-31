@@ -689,18 +689,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The panel's grade section (#5223). The note says why a number is missing or approximate, and the credit is the
-   elevation model's licence condition, so both are text-sized rather than fine print. */
-.acs-panel__note,
+/* The panel's grade section (#5223). The credit is the elevation model's licence condition, so it is text-sized
+   rather than fine print. */
 .acs-panel__credit {
   margin: var(--space-xxs) 0 0;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
-.acs-panel__profile {
-  min-height: calc(20px * var(--ui-scale, 1));
-  margin-top: var(--space-xxs);
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
@@ -1765,12 +1757,22 @@
 }
 
 .acs-panel__empty,
-.acs-panel__status,
-.acs-panel__sum,
-.acs-panel__how {
+.acs-panel__status {
   margin: var(--space-xs) 0 0;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
+}
+
+/* A section's heading with the "i" that holds its explanation, as the sidebar's headings have. */
+.acs-panel__heading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-bottom: var(--space-xs);
+}
+
+.acs-panel__heading-row .acs-panel__subtitle {
+  margin-bottom: 0;
 }
 
 .acs-panel__status:empty {
@@ -1784,11 +1786,23 @@
   color: var(--color-neutral-700);
 }
 
-/* ---- The verdict: headline, sentence, and the three components drawn as the street ---- */
+/* ---- The verdict: the headline and the three components drawn as the street ---- */
 
 .acs-panel__verdict {
   padding: var(--space-sm) 0 var(--space-md);
   border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* The score, its "i", and the link to the scoring model's docs on one line. */
+.acs-panel__headline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.acs-panel__docs {
+  margin-left: auto;
+  font: var(--text-caption-regular);
 }
 
 .acs-panel__score {
@@ -1813,7 +1827,9 @@
   font: var(--text-small-bold);
 }
 
-/* Crossing · block · crossing, in a row: the dots take their score color, the bar the block's. */
+/* Crossing · block · crossing, in a row: the dots take their score color, the bar the block's. Where the city has
+   the block's elevation profile, the chart takes the bar's place between the dots (its figure and the slot around it
+   are flattened into the grid, so the legend can span the full width under the chart) and the bar becomes a pill. */
 .acs-panel__components {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1827,9 +1843,43 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  grid-row: 1;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
   text-align: center;
+}
+
+.acs-panel__end--start {
+  grid-column: 1;
+}
+
+.acs-panel__end--end {
+  grid-column: 3;
+}
+
+.acs-panel__profile,
+.acs-panel__components .elevation-profile {
+  display: contents;
+}
+
+/* display: contents would otherwise beat the user-agent's [hidden] rule. */
+.acs-panel__profile[hidden] {
+  display: none;
+}
+
+.acs-panel__components .elevation-profile__chart {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.acs-panel__components .elevation-profile__legend-title,
+.acs-panel__components .elevation-profile__legend,
+.acs-panel__components .elevation-profile__readout {
+  grid-column: 1 / -1;
+}
+
+.acs-panel__components .elevation-profile__legend-title {
+  margin-top: var(--space-xs);
 }
 
 .acs-panel__dot {
@@ -1852,9 +1902,37 @@
 
 .acs-panel__block {
   position: relative;
+  grid-column: 2;
+  grid-row: 1;
   height: calc(14px * var(--ui-scale, 1));
   border-radius: calc(7px * var(--ui-scale, 1));
   margin-bottom: calc(44px * var(--ui-scale, 1));
+  background-color: var(--acs-block-color);
+}
+
+/* Under the chart, the bar is a pill: a dot in the block's color and its figures, centered. */
+.acs-panel__components--profile .acs-panel__block {
+  grid-row: 2;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  height: auto;
+  margin-bottom: 0;
+  background: none;
+}
+
+.acs-panel__components--profile .acs-panel__block::before {
+  content: "";
+  width: calc(10px * var(--ui-scale, 1));
+  height: calc(10px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background-color: var(--acs-block-color);
+}
+
+.acs-panel__components--profile .acs-panel__block span {
+  position: static;
+  transform: none;
 }
 
 .acs-panel__block span {
@@ -1945,10 +2023,11 @@
   font: var(--text-caption-semibold);
 }
 
+/* Jade 800, not the ramp's 700: at caption size the lighter green is under 4.5:1 on white. */
 .acs-row__effect--feature,
 .acs-group__score--feature,
 .acs-tile__effect--feature {
-  color: var(--color-jade-700);
+  color: var(--color-jade-800);
 }
 
 .acs-row__effect--problem,
@@ -2008,7 +2087,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-xs);
-  margin: 0;
+  margin: 0 0 var(--space-xs);
   font: var(--text-caption-semibold);
 }
 
@@ -2017,8 +2096,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.acs-group__caption {
-  margin: 2px 0 var(--space-xs);
+.acs-group__count {
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
 }
@@ -2035,6 +2113,11 @@
 
 .acs-group__more {
   margin-top: var(--space-xs);
+}
+
+/* .button's display: inline-flex would otherwise beat the user-agent's [hidden] rule. */
+.acs-group__more[hidden] {
+  display: none;
 }
 
 .acs-tile {
