@@ -29,6 +29,7 @@ import { initLabelMapLocationSearch } from '../labelMapLocationSearch.js';
 import { MapLoadingOverlay } from '../ps-map/MapLoadingOverlay.js';
 import { MapSidebarUrlSync } from '../ps-map/MapSidebarUrlSync.js';
 import { MapStatusPill } from '../ps-map/MapStatusPill.js';
+import { paddingTarget } from '../ps-map/mapPadding.js';
 import { ViewportLabelLoader } from '../ps-map/ViewportLabelLoader.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
 import { PanoViewer } from '../common/pano-viewer/PanoViewer.js';
@@ -217,6 +218,15 @@ export const AccessScoreApp = (function () {
       if (!fromUrl) log(`Select_${selection.unit === 'streets' ? 'street' : 'region'}Id`, selection.id);
     };
 
+    /**
+     * Flies to a street at a zoom where its clusters load, landing already padded for the panel the selection just
+     * opened: the fly carries the padding target so the panel's own ease, which it cancels, still ends up applied.
+     * @param {{lng: number, lat: number}} lngLat - The street's center.
+     */
+    const flyToStreet = (lngLat) => {
+      map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), STREET_ZOOM), padding: paddingTarget(map) });
+    };
+
     // The cluster and place layers are built after the map view so they draw above the streets, but the map view
     // has to be able to ask about them from its own handlers, hence the late binding.
     let evidence = null;
@@ -254,8 +264,8 @@ export const AccessScoreApp = (function () {
         if (unit === 'streets') {
           const lngLat = streetCenter(id);
           if (!lngLat) return;
-          map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), STREET_ZOOM) });
           select({ unit, id, lngLat });
+          flyToStreet(lngLat);
           return;
         }
         mapView.flyToRegion(id);
@@ -411,8 +421,12 @@ export const AccessScoreApp = (function () {
       const unit = model.state.unit;
       const lngLat = unit === 'regions' ? regionCenter(urlState.selection) : streetCenter(urlState.selection);
       if (lngLat) {
-        if (unit === 'regions' && !MapSidebarUrlSync.hasUrlViewport()) mapView.flyToRegion(urlState.selection);
+        // Without a viewport of its own, the link lands where a click on the rank list would: on the region, or on
+        // the street at a zoom where its clusters load.
+        const fly = !MapSidebarUrlSync.hasUrlViewport();
+        if (fly && unit === 'regions') mapView.flyToRegion(urlState.selection);
         select({ unit, id: urlState.selection, lngLat }, { fromUrl: true });
+        if (fly && unit === 'streets') flyToStreet(lngLat);
       }
     }
     // After the selection: a Selected scope has nothing to stand on before it.

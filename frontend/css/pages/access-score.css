@@ -980,6 +980,8 @@
 
 .acs-dock__kpis {
   display: flex;
+  flex-wrap: wrap; /* The folded bar beside the street panel can be narrower than one row of tiles. */
+  justify-content: flex-end;
   gap: var(--space-md);
   margin-left: auto;
 }
@@ -1679,7 +1681,7 @@
   z-index: 13;
   display: flex;
   flex-direction: column;
-  width: min(calc(500px * var(--ui-scale, 1)), 48vw);
+  width: min(calc(500px * var(--ui-scale, 1)), 42vw);
   background: var(--color-neutral-white);
   box-shadow: -2px 0 6px rgb(0 0 0 / 12%);
   font: var(--text-small-regular);
@@ -2126,12 +2128,28 @@
   }
 }
 
-@media (width <= 600px) { /* --breakpoint-sm */
-  /* The panel covers the map at this width; it then takes no map padding (the drawer's rule). */
+/* Under --breakpoint-md the drawer, the panel and a map worth looking at don't fit side by side, so the panel
+   covers the map to the right of the drawer (all of it once the drawer covers too, under --breakpoint-sm) and takes
+   no map padding, the drawer's rule; the band and the map controls stop making room for it, and the status pill,
+   which sits above the panel, is put away while the panel covers what it would point at. The same width is the
+   panel's NARROW_QUERY. */
+@media (width <= 992px) {
   .acs-panel {
-    width: 100%;
+    left: var(--map-inset-left, 0);
+    width: auto;
   }
 
+  .acs-dock,
+  #acs-map .mapboxgl-ctrl-top-right {
+    right: 0;
+  }
+
+  #acs-map-holder:has(#acs-panel:not([hidden])) .map-status-pill {
+    display: none;
+  }
+}
+
+@media (width <= 600px) { /* --breakpoint-sm */
   .acs-dock__body {
     grid-template-columns: 1fr;
   }

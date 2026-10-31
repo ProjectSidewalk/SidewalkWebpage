@@ -594,7 +594,9 @@ loaded by the corresponding Twirl view:
   the evidence, one `LabelMiniCard` tile per cluster along the block and at each crossing, worst first, each wearing
   what that cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
   type since the engine scores a cluster from its median rating and tag counts); a row lights its tiles, a tile its
-  dot on the map; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, the
+  dot on the map; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
+  through `ps-map/mapPadding.js`, which keeps the padding the map is heading for so no owner eases to another's
+  half-way value or cuts short a fly-to; the
   dock folds to its bar while it is open, and a place's panel is its nearest street's headed by the place; a region
   keeps a Mapbox popup), the clusters' shared cache (`AccessScoreClusterFeed.js`: a region's `/v3/api/labelClusters`
   feed and the `/label/id` JSON behind each picture, fetched once for the panel and the photo strip), the cluster

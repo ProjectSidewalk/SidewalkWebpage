@@ -20,6 +20,7 @@ import { AccessScoreElevationProfile } from '../common/AccessScoreElevationProfi
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { util } from '../common/utilities.js';
+import { setPaddingEdges } from '../ps-map/mapPadding.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
 import {
   formatElevation, formatLength, formatScore, hopLinksHtml, percentHtml, signed, streetTitle,
@@ -66,8 +67,12 @@ export class AccessScoreStreetPanel {
   /** Below this headline the block "scores low" in the verdict; the score ramp's first class. */
   static LOW_SCORE = 0.2;
 
-  /** The window width under which the panel covers the map and takes no padding, the drawer's rule. */
-  static NARROW_QUERY = '(width <= 600px)';
+  /**
+   * The window width under which the panel covers the map to the right of the controls drawer and takes no map
+   * padding, the drawer's rule: narrower, the drawer, the panel and a map worth looking at don't fit side by side.
+   * Matches the stylesheet's breakpoint for the panel (`--breakpoint-md`).
+   */
+  static NARROW_QUERY = '(width <= 992px)';
 
   #root;
   #els;
@@ -294,16 +299,19 @@ export class AccessScoreStreetPanel {
 
   /**
    * Owns the map's right edge: pads it by the panel's width while open (not when the panel covers a narrow window,
-   * where padding that wide would project the center off the canvas), publishes the width for the stylesheet, and
-   * brings the selected street into the part of the map still visible when the panel would cover it.
+   * where padding that wide would project the center off the canvas), publishes the width for the stylesheet and
+   * how much of the map's right edge it covers as `--map-inset-right` (what centers the status pill on the part of
+   * the map still visible, with the drawer's `--map-inset-left`), and brings the selected street into that part
+   * when the panel would cover it.
    * @param {?{lng: number, lat: number}} [reveal] - A point to keep in view, if any.
    */
   #applyPadding(reveal = null) {
     const open = !this.#root.hidden;
     const width = open ? this.#root.offsetWidth : 0;
-    this.#root.parentElement?.style.setProperty('--acs-panel-width', `${width}px`);
     const right = open && !this.#narrowMq.matches ? width : 0;
-    const padding = { ...this.#map.getPadding(), right };
+    const style = this.#root.parentElement?.style;
+    style?.setProperty('--acs-panel-width', `${width}px`);
+    style?.setProperty('--map-inset-right', `${right}px`);
     let center = null;
     if (reveal && right > 0 && typeof this.#map.project === 'function') {
       const p = this.#map.project(reveal);
@@ -312,7 +320,7 @@ export class AccessScoreStreetPanel {
     }
     if (right === this.#paddingRight && !center) return;
     this.#paddingRight = right;
-    this.#map.easeTo({ padding, duration: 300, ...(center ? { center } : {}) });
+    setPaddingEdges(this.#map, { right }, { camera: center ? { center } : {} });
   }
 
   // ---- The explanation ----

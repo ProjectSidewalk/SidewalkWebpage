@@ -107,11 +107,12 @@
  */
 
 /* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
-   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder. */
+   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder; a panel on the right (the
+   AccessScore street panel) publishes --map-inset-right the same way. */
 .map-status-pill {
   position: absolute;
   top: 12px;
-  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px)) / 2);
+  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px) - var(--map-inset-right, 0px)) / 2);
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */
   transition: opacity var(--transition-medium);
