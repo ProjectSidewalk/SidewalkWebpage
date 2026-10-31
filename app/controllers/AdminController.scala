@@ -1433,7 +1433,7 @@ class AdminController @Inject() (
       .toSeq
       .sortBy { case (thread, _) => thread.getName }
       .foreach { case (thread, frames) =>
-        val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
+        val cpuSeconds = threadCpu.getThreadCpuTime(thread.threadId()) / 1e9
         info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
         frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
       }

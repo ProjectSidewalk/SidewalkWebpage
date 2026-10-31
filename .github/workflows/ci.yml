@@ -1,6 +1,6 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
+# Every job blocks a merge except dependency-review.
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
@@ -15,11 +15,9 @@ name: CI
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
 #                      core page in headless Chromium and fails on uncaught console/page errors; also carries the
 #                      axe-core accessibility gate (a11y.spec.js, #5060).
-#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
-#                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
-#                      an operator utility that never runs on the server).
-#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
-#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
+#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/, on the 3.12 the web container
+#                      and prod share.
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory).
 
 on:
   pull_request:
@@ -41,11 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
@@ -190,10 +188,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
-          python-version: '3.8'
+          python-version: '3.12'
 
       # Fails if any conf/routes entry is unreachable because an earlier same-method route already matches all of its
       # request paths. Play commits to the first path-pattern match and 400s on a typed-param mismatch instead of
@@ -243,11 +241,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
@@ -427,11 +425,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
@@ -557,61 +555,26 @@ jobs:
           retention-days: 7
 
   python-tests:
-    name: Python tests (${{ matrix.half }})
+    # The job's name is a required check; renaming it means updating branch protection in the same breath.
+    name: Python tests
     runs-on: ubuntu-latest
-    # Per leg, not per job: the in-band half gates merges because the running app shells out to label_clustering.py,
-    # while the offline half only covers an operator utility that never runs on the server.
-    continue-on-error: ${{ matrix.advisory }}
-    strategy:
-      fail-fast: false
-      # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
-      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
-      # new test file runs in both rather than in neither.
-      # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
-      # renames the check, which branch protection then waits forever for. Update both together.
-      matrix:
-        include:
-          - half: in-band script
-            advisory: false
-            python: '3.8'
-            requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: >-
-              test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
-              --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
-            coverage-omit: tools/city/check_streets_for_imagery.py
-            coverage-omit-2: tools/city/onboard_city.py
-            coverage-omit-3: tools/city/street_gradient.py
-            coverage-omit-4: tools/city/osm_lineage.py
-            coverage-omit-5: tools/city/backfill_osm_lineage.py
-          - half: offline tooling
-            advisory: true
-            python: '3.13'
-            requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
-            pytest-args: test/python --ignore=test/python/test_label_clustering.py
-            coverage-omit: scripts/label_clustering.py
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python }}
+      # Matches the web container's python3 and prod's python3.12 (#4396).
+      - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
-      # The pure-logic unit tests need no DB and no network, only this half's runtime deps plus pytest.
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
       - name: Install dependencies
-        run: pip install ${{ matrix.requirements }}
+        run: pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 
       - name: Run pytest
-        run: pytest ${{ matrix['pytest-args'] }}
-        env:
-          COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
-          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
-          COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
-          COVERAGE_OMIT4: ${{ matrix['coverage-omit-4'] }}
-          COVERAGE_OMIT5: ${{ matrix['coverage-omit-5'] }}
+        run: pytest
 
   dependency-review:
     name: Dependency review

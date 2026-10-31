@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 21).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
   native DOM and CSS on the `main.css` design tokens.
@@ -789,11 +789,11 @@ what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validatio
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
 find and run it: `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`,
 `ClusterService` resolves the script against the app root rather than the process working directory (a staged app
-runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installable on the `python3` the
-app invokes. Don't add libraries to `requirements.txt` that have dropped 3.8.
+runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installed into the `python3.12`
+the app invokes (the deploy does that).
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%) — one CI
-run per interpreter, the in-band leg blocking and the offline-tooling leg advisory. See
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%, a blocking
+CI check). See
 [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types

@@ -34,7 +34,7 @@ import service.PanoDataService.{
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
-import java.net.{SocketTimeoutException, URL}
+import java.net.SocketTimeoutException
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.Base64
@@ -936,11 +936,9 @@ class PanoDataServiceImpl @Inject() (
    * https://developers.google.com/maps/documentation/maps-static/get-api-key#dig-sig-manual
    */
   def signUrl(urlString: String): String = {
-    // Convert to Java URL for easy parsing of URL parts.
-    val url: URL = URL(urlString)
-
-    // Gets everything but URL protocol and host that we want to sign.
-    val resource: String = url.getPath() + '?' + url.getQuery()
+    // The signed part is everything after the host. Sliced rather than parsed: java.net.URI rejects characters a stored
+    // pano id can carry, and a throw here would fail the whole batch of lookups instead of only that pano's.
+    val resource: String = urlString.substring(urlString.indexOf('/', urlString.indexOf("://") + 3))
 
     // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key.
     val mac: Mac = Mac.getInstance("HmacSHA1")

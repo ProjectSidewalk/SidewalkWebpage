@@ -8,18 +8,17 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
      WKB hex) to ``db/onboarding/<city-id>/street_edge_endpoints.csv`` — every scan file lives in that per-city dir.
   2. Run one of (from anywhere — all data files are resolved relative to the repo root, not your working directory):
 
-         python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv
-         python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary
-         python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d
-         python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
+         python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv
+         python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary
+         python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d
+         python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax
 
      ``--panoramax`` needs no credential (the API is public);
      ``--gsv`` needs ``GOOGLE_MAPS_SERVER_KEY`` (else ``GOOGLE_MAPS_API_KEY``);
      ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
-     one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
-     need Python >= 3.12.
+     one campaign. Its libraries need Python >= 3.12, which the web container's ``python3`` is.
   3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.

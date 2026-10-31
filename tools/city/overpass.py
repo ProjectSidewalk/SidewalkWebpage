@@ -13,9 +13,8 @@ is the whole network, and it has happened to us (#5741). So, as streetscape-trac
   mirror, which has its own usage policy;
 - pause between requests, and never run two Overpass clients from one network at once (the fleet driver checks).
 
-``python3.13 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
-does not; the fleet driver runs it before starting. Everything else is imported. Stdlib and ``requests`` only, so it
-runs under both interpreters (``.claude/rules/python-scripts.md``).
+``python3 tools/city/overpass.py --check`` asks the server one tiny question and exits 0 when it answers, 75 when it
+does not; the fleet driver runs it before starting. Everything else is imported. Stdlib and ``requests`` only.
 
 Every entry point takes the instance's base URL, since the main one has days when it admits nothing and the other
 public instances are run by other people, with their own usage policy and their own copy of the data (minutes behind

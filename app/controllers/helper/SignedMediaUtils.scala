@@ -13,6 +13,10 @@ import scala.util.Try
  */
 object SignedMediaUtils {
 
+  // The host between "://" and the first "/", "?" or "#", less any userinfo and port. A regex rather than java.net.URI:
+  // browsers send "|", "[" and "^" unencoded in a page's path, URI rejects them, and an unparseable header would pass.
+  private val HostInUrl = """^[A-Za-z][A-Za-z0-9+.-]*://(?:[^/?#@]*@)?(\[[^\]/?#]*\]|[^:/?#]*)""".r
+
   /**
    * Returns true if the request's Referer or Origin header (when present) points to an allowed host.
    *
@@ -28,8 +32,7 @@ object SignedMediaUtils {
       if (patternHost.startsWith(".")) host.endsWith(patternHost) || host == patternHost.drop(1)
       else host == patternHost
     }
-    def extractHost(header: String): Option[String] =
-      Try(java.net.URL(header).getHost).toOption
+    def extractHost(header: String): Option[String] = HostInUrl.findFirstMatchIn(header).map(_.group(1))
 
     val originOk  = request.headers.get("Origin").flatMap(extractHost).forall(hostAllowed)
     val refererOk = request.headers.get("Referer").flatMap(extractHost).forall(hostAllowed)
