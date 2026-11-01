@@ -1,0 +1,24 @@
+@import models.report.{NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import service.CommonPageData
+
+@*
+ * Everything needed to reproduce or question this report: when it was computed, from what, and by which rule.
+ *
+ * @param report     The computed report.
+ * @param preset     The audience it was written for.
+ * @param commonData Per-page config, for the app version.
+ *@
+@(report: NeighborhoodReport, preset: ReportPreset, commonData: CommonPageData)(using messages: Messages)
+
+<footer class="report-section report-provenance" aria-labelledby="report-provenance-title">
+  <h2 class="report-section__title" id="report-provenance-title">@Messages("report.provenance.title")</h2>
+  <dl class="report-provenance__list">
+    <div><dt>@Messages("report.provenance.generated")</dt><dd>@report.generatedAt.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
+    <div><dt>@Messages("report.provenance.version")</dt><dd>@commonData.versionId</dd></div>
+    <div><dt>@Messages("report.provenance.rule")</dt><dd>@RankingRule.Version</dd></div>
+    <div><dt>@Messages("report.provenance.preset")</dt><dd>@Messages(s"report.preset.${preset.name}")</dd></div>
+    <div><dt>@Messages("report.provenance.data")</dt><dd><a href="@ReportLinks.csv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv")</a></dd></div>
+  </dl>
+  <p class="report-note">@Messages("report.provenance.reviewers")</p>
+  <p class="report-note">@Messages("report.provenance.imagery")</p>
+</footer>

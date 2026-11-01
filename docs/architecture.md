@@ -419,6 +419,21 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
 `/clusteringResults`, `/ai/submitLabelsOnPano`.
 
+### Neighborhood reports (`/report/neighborhood/:regionId`)
+
+A report tells rather than explores (#3889): one server-rendered page per region, public and responsive, so it can be
+forwarded and printed with no session and no JavaScript. Its rule is that no number appears without a way to see the
+labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its filters
+past that list's cap (`ReportLinks`). It builds no pano and no map, so viewing one costs no billable Google call.
+
+`ReportService` reads only what the public API serves (the raw labels, region completion, street names and lengths), so
+a third party can reproduce a report from the CSV it links to. The rules live in `models/report/NeighborhoodReport.scala`
+as pure code: `RankingRule` is versioned and printed on the page, and bumping its `Version` is how two reports say they
+aren't comparable. Streets are grouped by OSM name within the region, because a `street_edge` is one block of a road and
+ranking edges would list the same name several times. Reviewers are people: AI votes aren't counted as reviewers,
+though they do feed the `correct` verdict that leaves a label out. A preset changes vocabulary and section order, never
+a number. Photos come from `/cropImage/:type/:id/thumbnail`, because a page of full-size crops weighs around 100 MB.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.

@@ -68,6 +68,10 @@ Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for
 a discrete action (e.g. `Click_module=SaveSettings` — which the `/welcome` privacy toggles also emit, see `Click_module=WelcomePrivacy_*` below —, `Click_module=CreateTeam`, `Click_module=LeaveTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
 Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
+A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_Preset=<advocate|coordinator>` from the
+server, and its links and buttons add `Report_OpenLabel`, `Report_OpenGallery`, `Report_OpenLabelMap`,
+`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_CopyLink` and `Report_Print` (any way of
+printing, not just the button), each suffixed `_Region=<id>_Preset=<preset>`.
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can

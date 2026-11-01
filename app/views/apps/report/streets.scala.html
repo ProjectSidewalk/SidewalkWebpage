@@ -1,0 +1,65 @@
+@import controllers.helper.ControllerUtils
+@import models.report.{NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import models.utils.CommonUtils
+@import views.html.apps.report as reportViews
+
+@*
+ * The ranked streets, each with its photo strip and per-type counts, and the rule that ordered them printed beneath.
+ *
+ * @param report The computed report.
+ * @param preset The audience, for the section's vocabulary.
+ *@
+@(report: NeighborhoodReport, preset: ReportPreset)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
+
+@distance(meters: Double) = @{
+  val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
+  BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
+}
+
+@streetName(row: models.report.RankedStreetRow) = @{
+  row.street.name.getOrElse(Messages("report.street.unnamed", row.street.streetEdgeIds.head.toString))
+}
+
+<section class="report-section report-streets" aria-labelledby="report-streets-title">
+  <h2 class="report-section__title" id="report-streets-title">@Messages(s"report.streets.title.${preset.name}")</h2>
+  @if(report.streets.isEmpty) {
+    <p class="report-empty">@Messages("report.streets.none")</p>
+  } else {
+    <p class="report-section__intro">@Messages("report.streets.intro", report.streets.size, report.streetsRanked)</p>
+    <ol class="report-street-list">
+      @for(row <- report.streets) {
+        <li class="report-street">
+          <header class="report-street__head">
+            <span class="report-street__rank" aria-hidden="true">@row.rank</span>
+            <h3 class="report-street__name">@streetName(row)</h3>
+            <p class="report-street__meta">
+              @Messages("report.street.score", row.score) ·
+              @Messages("report.street.length", distance(row.street.lengthMeters), ControllerUtils.distanceUnitWords.abbr)
+            </p>
+          </header>
+          <ul class="report-counts">
+            @for((labelType, ids) <- row.typeIds) {
+              <li>
+                <a class="report-count" href="@ReportLinks.count(ids, ReportLinks.galleryFilter(report.regionId, Some(labelType)))"
+                   data-report-event="Report_OpenGallery">
+                  <img src='@assets.path(labelType.smallIconSvgPath)' alt="" width="16" height="16">
+                  <span class="report-count__number">@Messages("report.count", ids.size)</span>
+                  @Messages(labelType.nameKey)
+                </a>
+              </li>
+            }
+          </ul>
+          @if(row.photos.nonEmpty) {
+            <div class="report-strip">
+              @for(photo <- row.photos) { @reportViews.photo(photo, streetName(row)) }
+            </div>
+          }
+        </li>
+      }
+    </ol>
+    <p class="report-rule">
+      <strong>@Messages("report.rule.label", RankingRule.Version)</strong>
+      @Messages("report.rule.text", RankingRule.WorstRatingWeight, RankingRule.NextRatingWeight, RankingRule.NoAlternateRouteBonus)
+    </p>
+  }
+</section>

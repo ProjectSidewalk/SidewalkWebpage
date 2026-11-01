@@ -25,6 +25,8 @@ const PAGES = [
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
+  // Region 18 is the one region in CI's seed (fixtures/ci-seed.sql).
+  {path: '/report/neighborhood/18'},
   {path: '/labelingGuide'},
   {path: '/labelingGuide/curbRamps'},
   {path: '/labelingGuide/surfaceProblems'},

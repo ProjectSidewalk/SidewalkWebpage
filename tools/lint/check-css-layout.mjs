@@ -64,6 +64,7 @@ const PAGES = {
   'pages/mobile-landing.css': { importers: ['frontend/js/pages/mobileLanding.js'] },
   'pages/mobile-validate.css': { importers: ['frontend/js/pages/mobileValidate.js', 'frontend/js/mobileValidate.js'] },
   'pages/route-builder.css': { importers: ['frontend/js/pages/routeBuilder.js', 'frontend/js/route-builder/'] },
+  'pages/report.css': { importers: ['frontend/js/pages/report.js'], prefixes: ['report-'] },
   'pages/shared-label.css': { importers: ['frontend/js/pages/sharedLabel.js', 'frontend/js/shared-label/'] },
   'pages/user-dashboard.css': {
     importers: ['frontend/js/pages/dashboard/', 'frontend/js/user-dashboard/'],

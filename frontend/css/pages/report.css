@@ -1,0 +1,425 @@
+/* A neighborhood report (#5876): a long, printable document rather than a tool, so it doesn't use --ui-scale's tool
+   sizing beyond what the tokens already carry. */
+
+.report-page {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md) var(--space-xxl);
+  color: var(--color-neutral-900);
+}
+
+.report-page a {
+  color: var(--color-link-200);
+}
+
+/* ---- Title block ---------------------------------------------------------------------------------------------- */
+
+.report-eyebrow {
+  margin: 0;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+/* The primary font rather than the accent one: region names can hold digits, which Raleway doesn't render well. */
+.report-title {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-h3-bold);
+  font-size: 32px;
+  line-height: 38px;
+}
+
+.report-city,
+.report-generated {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-md);
+}
+
+.report-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.report-presets__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.report-page .report-presets__option {
+  padding: var(--space-xxs) var(--space-sm);
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  text-decoration: none;
+  border: 1px solid var(--color-neutral-500);
+  border-radius: 999px;
+}
+
+.report-page .report-presets__option[aria-current="page"] {
+  color: var(--color-neutral-white);
+  background: var(--color-neutral-900);
+  border-color: var(--color-neutral-900);
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* The display: flex above beats the UA stylesheet's [hidden] rule. */
+.report-actions[hidden] {
+  display: none;
+}
+
+/* ---- Sections ------------------------------------------------------------------------------------------------- */
+
+.report-section {
+  margin-top: var(--space-xl);
+}
+
+.report-section__title {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-title-bold);
+}
+
+.report-section__intro,
+.report-empty {
+  margin: 0 0 var(--space-md);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-note,
+.report-rule {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-rule {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+}
+
+/* ---- Coverage ------------------------------------------------------------------------------------------------- */
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.report-stat {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+}
+
+.report-stat__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.report-stat__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: var(--space-xxs) 0 0;
+}
+
+.report-stat__value {
+  font: var(--text-subtitle-bold);
+}
+
+.report-stat__detail {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-disclaimer {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-body-medium);
+}
+
+/* ---- Headline ------------------------------------------------------------------------------------------------- */
+
+.report-headline {
+  margin: 0;
+  font: var(--text-h3-bold);
+}
+
+.report-headline__evidence {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-body-regular);
+}
+
+/* ---- Ranked streets ------------------------------------------------------------------------------------------- */
+
+.report-street-list,
+.report-punch-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-street {
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-neutral-300);
+}
+
+.report-street__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: baseline;
+}
+
+.report-street__rank {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-800);
+}
+
+.report-street__name {
+  margin: 0;
+  font: var(--text-subtitle-bold);
+}
+
+.report-street__meta {
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-md);
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  list-style: none;
+}
+
+.report-count {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-small-regular);
+}
+
+.report-count__number {
+  font: var(--text-small-bold);
+}
+
+.report-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* ---- Photos --------------------------------------------------------------------------------------------------- */
+
+.report-photo {
+  min-width: 0;
+  margin: 0;
+}
+
+/* ReportService.PhotoFrameAspect is this ratio: the server places the marker for a photo cover-fitted to it. */
+.report-photo__frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+}
+
+.report-photo__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.report-photo__marker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
+}
+
+.report-photo__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+  text-align: center;
+}
+
+.report-photo__caption {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xxs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+/* ---- Punch list ----------------------------------------------------------------------------------------------- */
+
+.report-punch-item {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-neutral-300);
+}
+
+.report-punch-item__street {
+  margin: 0;
+  font: var(--text-subtitle-bold);
+}
+
+.report-punch-item__type,
+.report-punch-item__rating,
+.report-punch-item__id {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-body-regular);
+}
+
+.report-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  padding: 0;
+  margin: var(--space-xxs) 0 0;
+  list-style: none;
+}
+
+.report-tag {
+  padding: 2px var(--space-xs);
+  font: var(--text-caption-regular);
+  background: var(--color-neutral-100);
+  border-radius: 999px;
+}
+
+/* ---- Inventory ------------------------------------------------------------------------------------------------ */
+
+.report-inventory__type {
+  white-space: nowrap;
+}
+
+.report-inventory__type img {
+  vertical-align: text-bottom;
+}
+
+/* Without a floor the tags column collapses to one word a line on a phone, which makes every row several lines tall. */
+.report-inventory__table .report-tags {
+  min-width: 260px;
+}
+
+/* ---- Go deeper and provenance ------------------------------------------------------------------------------- */
+
+.report-deeper__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-lg);
+  padding: 0;
+  margin: 0;
+  font: var(--text-body-regular);
+  list-style: none;
+}
+
+.report-provenance {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-neutral-300);
+}
+
+.report-provenance__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font: var(--text-small-regular);
+}
+
+.report-provenance__list dt {
+  font: var(--text-small-bold);
+}
+
+.report-provenance__list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Small screens: var(--breakpoint-sm) ---------------------------------------------------------------------- */
+
+@media (width <= 768px) {
+  .report-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-punch-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Print: the photos stay, small, and the page's own chrome goes ------------------------------------------- */
+
+@media print {
+  nav,
+  footer:not(.report-provenance),
+  .test-server-banner,
+  .report-toolbar,
+  .report-deeper {
+    display: none !important;
+  }
+
+  .report-page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .report-section {
+    margin-top: var(--space-md);
+  }
+
+  .report-street,
+  .report-punch-item,
+  .report-stat,
+  .report-inventory__table tr {
+    break-inside: avoid;
+  }
+
+  .report-punch-item {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
+  /* A printed link can't be followed, so a reader of the paper copy gets the numbers and the provenance's URL. */
+  .report-page a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

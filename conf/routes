@@ -256,9 +256,13 @@ GET     /r/:slug                                        controllers.RouteBuilder
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
 GET     /cropImage/:labelType/:labelId/metadata         controllers.ImageController.getCropImageMetadata(labelType: String, labelId: Int)
+GET     /cropImage/:labelType/:labelId/thumbnail        controllers.ImageController.serveCropThumbnail(labelType: String, labelId: Int)
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
+
+# Neighborhood reports (#3889). Public, like the API they are built from.
+GET     /report/neighborhood/:regionId                  controllers.ReportController.neighborhood(regionId: Int, preset: Option[String] ?= None)
 
 # Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
 # The per-label read lives under /label/:labelId (two segments, so it can't shadow the /label/:labelId wildcard).
