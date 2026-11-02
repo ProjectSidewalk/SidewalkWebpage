@@ -13,6 +13,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { Protocol } from 'pmtiles';
 import i18next from 'i18next';
 import { MinimapBasemapStyle } from '../explore/navigation/MinimapBasemapStyle.js';
+import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
@@ -26,6 +27,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {number} wayId
  * @property {?number} score
  * @property {boolean} explored
+ * @property {?number} grade - The steepest grade, as a fraction; null where it has not been sampled.
  * @property {number[][]} coordinates
  *
  * @typedef {object} ReportMapLocation
@@ -48,6 +50,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 const STREETS_SOURCE = 'report-streets';
 const SIDEWALKS_SOURCE = 'report-sidewalks';
 const VIEWPOINT_SOURCE = 'report-viewpoint';
+const CURSOR_SOURCE = 'report-cursor';
 const CONTEXT_LAYER = 'report-streets-context';
 const LIT_STREET_LAYER = 'report-street-lit';
 const SCORED_LAYER = 'report-streets-scored';
@@ -136,6 +139,7 @@ export class ReportMap {
       this.#addStreets(edges, focusEdgeIds);
       this.#addSidewalks();
       this.#addViewpoint();
+      this.#addCursor();
       this.#loaded = true;
       for (const work of this.#pending) work();
       this.#pending = [];
@@ -161,7 +165,13 @@ export class ReportMap {
         type: 'FeatureCollection',
         features: edges.map((e) => ({
           type: 'Feature',
-          properties: { wayId: e.wayId, score: e.score ?? -1, explored: e.explored, focused: focused.has(e.id) },
+          properties: {
+            wayId: e.wayId,
+            score: e.score ?? -1,
+            grade: e.grade ?? -1,
+            explored: e.explored,
+            focused: focused.has(e.id),
+          },
           geometry: { type: 'LineString', coordinates: e.coordinates },
         })),
       },
@@ -243,6 +253,22 @@ export class ReportMap {
     });
   }
 
+  /** The dot that follows the pointer along the street's elevation profile. */
+  #addCursor() {
+    this.#map.addSource(CURSOR_SOURCE, { type: 'geojson', data: EMPTY });
+    this.#map.addLayer({
+      id: 'report-cursor',
+      type: 'circle',
+      source: CURSOR_SOURCE,
+      paint: {
+        'circle-color': token('--color-neutral-900'),
+        'circle-radius': 6,
+        'circle-stroke-color': token('--color-neutral-white'),
+        'circle-stroke-width': 2,
+      },
+    });
+  }
+
   /**
    * A real button rather than a circle in a layer, so that the keyboard and screen readers can reach it, and with the
    * same icon the photo wears, so the two read as one thing.
@@ -306,6 +332,33 @@ export class ReportMap {
         : [];
       /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(VIEWPOINT_SOURCE))
         ?.setData({ type: 'FeatureCollection', features });
+    });
+  }
+
+  /** @param {?number[]} lngLat - Where the profile's cursor falls on this map, or null for nowhere. */
+  showCursor(lngLat) {
+    this.#whenLoaded(() => {
+      const features = lngLat
+        ? [({
+            type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: lngLat },
+          })]
+        : [];
+      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(CURSOR_SOURCE))
+        ?.setData(/** @type {GeoJSON.FeatureCollection} */ ({ type: 'FeatureCollection', features }));
+    });
+  }
+
+  /**
+   * Colors the streets by AccessScore or, with the city's slope classes, by how steep they are.
+   * @param {?number[]} gradeBreaks - The classes' breaks, or null for score.
+   */
+  colorBy(gradeBreaks) {
+    this.#whenLoaded(() => {
+      const noneColor = token('--color-neutral-400');
+      const color = gradeBreaks
+        ? AccessScoreGradeRamp.expression(['get', 'grade'], gradeBreaks, { noneColor })
+        : ScoreRamp.expression(['get', 'score'], { noneColor });
+      this.#map.setPaintProperty(SCORED_LAYER, 'line-color', /** @type {any} */ (color));
     });
   }
 

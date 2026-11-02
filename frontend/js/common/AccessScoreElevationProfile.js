@@ -75,6 +75,7 @@ export class AccessScoreElevationProfile {
   /** @type {AccessScoreProfile} */ #profile;
   /** @type {{stretches: AccessScoreProfileStretch[], lengths: Map<number, number>, length: number}} */ #analysis;
   /** @type {(kind: string, value?: string) => void} */ #onLog;
+  /** @type {(meters: ?number) => void} */ #onCursor;
   /** Classes pinned by pressing their legend rows. */
   #pinned = new Set();
   /**
@@ -104,11 +105,16 @@ export class AccessScoreElevationProfile {
    * @param {AccessScoreProfileMarker[]} [options.markers] - Markers to pin along the line; see [[setMarkers]].
    * @param {(id: ?number) => void} [options.onMarkerHover] - A marker's id as the pointer reaches it, null as it
    *   leaves.
+   * @param {(meters: ?number) => void} [options.onCursor] - How far along the street the pointer or key cursor is, so
+   *   a host can show the place on a map; null as it leaves.
    */
-  constructor(slot, profile, { breaks, steepest, label, onLog = () => {}, markers = [], onMarkerHover = () => {} }) {
+  constructor(slot, profile, {
+    breaks, steepest, label, onLog = () => {}, markers = [], onMarkerHover = () => {}, onCursor = () => {},
+  }) {
     this.#profile = profile;
     this.#onLog = onLog;
     this.#onMarkerHover = onMarkerHover;
+    this.#onCursor = onCursor;
     this.#analysis = AccessScoreElevationProfile.analyze(profile, breaks);
     const colors = AccessScoreGradeRamp.colors(breaks.length + 1);
     const { length } = this.#analysis;
@@ -486,9 +492,12 @@ export class AccessScoreElevationProfile {
     if (!stretch) {
       this.#cursorLine.setAttribute('visibility', 'hidden');
       this.#paint();
+      this.#onCursor(null);
       return;
     }
-    const x = this.#scales().x((this.#cursor + 0.5) * this.#profile.spacing_meters).toFixed(1);
+    const meters = (this.#cursor + 0.5) * this.#profile.spacing_meters;
+    this.#onCursor(meters);
+    const x = this.#scales().x(meters).toFixed(1);
     this.#cursorLine.setAttribute('x1', x);
     this.#cursorLine.setAttribute('x2', x);
     this.#cursorLine.setAttribute('visibility', 'visible');

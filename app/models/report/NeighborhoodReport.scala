@@ -733,6 +733,7 @@ case class ReportMapEdge(
     osmWayId: Long,
     score: Option[Double],
     explored: Boolean,
+    maxGrade: Option[Double],
     coordinates: Seq[(Double, Double)]
 )
 
@@ -904,6 +905,7 @@ object ReportClientData {
           "wayId"       -> e.osmWayId,
           "score"       -> e.score,
           "explored"    -> e.explored,
+          "grade"       -> e.maxGrade,
           "coordinates" -> e.coordinates.map { case (lng, lat) => Json.arr(rounded(lng), rounded(lat)) }
         )
       },

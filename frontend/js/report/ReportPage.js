@@ -4,6 +4,7 @@
  * browser has room for only a few live maps.
  */
 
+import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';
 import { ReportStreetSection } from './ReportStreetSection.js';
 
@@ -19,12 +20,14 @@ export class ReportPage {
   /** Sections close enough to be worth a map; #assignMaps picks from these. */
   /** @type {Set<ReportStreetSection>} */ #near = new Set();
   /** @type {?Promise<GeoJSON.FeatureCollection>} */ #sidewalks = null;
+  /** @type {?Promise<?number[]>} */ #gradeBreaks = null;
   /** @type {?IntersectionObserver} */ #observer = null;
   /** @type {any} */ #regionMap = null;
   /** @type {?IntersectionObserver} */ #slotObserver = null;
   /** @type {(event: string) => void} */ #log;
   /** @type {HTMLElement[]} */ #fixSlots = [];
   #fixesLoaded = false;
+  /** @type {?number[]} */ #colorBreaks = null;
 
   /**
    * @param {Record<string, any>} data - The page's `report-data` JSON.
@@ -50,6 +53,8 @@ export class ReportPage {
       fetchCards: this.#deps.fetchCards,
       buildCard: (entry) => this.#deps.buildCard(entry, this.#log),
       sidewalks: () => this.#fetchSidewalks(),
+      fetchGrade: (edgeId) => util.fetchJson(`/v3/api/streetGrade?streetEdgeId=${edgeId}`),
+      gradeBreaks: () => this.#fetchGradeBreaks(),
       log: this.#log,
     };
     for (const street of streets) {
@@ -62,6 +67,50 @@ export class ReportPage {
     this.#watchFixes();
     this.#wireFilter();
     this.#wireSidewalkToggle();
+    this.#wireColorBy();
+  }
+
+  /** @returns {Promise<?number[]>} The city's slope classes, or null where it has no gradient data. */
+  #fetchGradeBreaks() {
+    this.#gradeBreaks ??= util.fetchJson('/v3/api/accessScoreConfig').then(({ grade }) => (
+      grade?.sources?.length > 0 && grade.map_class_breaks?.length > 0 ? grade.map_class_breaks : null));
+    return this.#gradeBreaks;
+  }
+
+  /** The score-or-slope switch, which only appears where a street in the region has a grade to color by. */
+  async #wireColorBy() {
+    const group = document.getElementById('report-color-by');
+    if (!group || !this.#data.edges.some((e) => Number.isFinite(e.grade))) return;
+    let breaks = null;
+    try {
+      breaks = await this.#fetchGradeBreaks();
+    } catch (err) {
+      console.warn('Report slope classes failed to load', err);
+    }
+    if (!breaks) return;
+    group.hidden = false;
+    const legend = document.getElementById('report-slope-legend');
+    const { percent } = AccessScoreGradeRamp;
+    legend.replaceChildren(...AccessScoreGradeRamp.classes(breaks).map(({ from, to, color }) => {
+      const row = document.createElement('li');
+      const swatch = document.createElement('span');
+      swatch.className = 'report-legend__line';
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.style.background = color;
+      let range = `${percent(from ?? 0)}–${percent(to ?? 0)}`;
+      if (from === null) range = `< ${percent(to)}`;
+      if (to === null) range = `≥ ${percent(from)}`;
+      row.append(swatch, range);
+      return row;
+    }));
+    group.addEventListener('change', (e) => {
+      const slope = /** @type {HTMLInputElement} */ (e.target).value === 'slope';
+      legend.hidden = !slope;
+      this.#log(`Report_ColorBy_${slope ? 'Slope' : 'Score'}`);
+      this.#regionMap?.colorBy(slope ? breaks : null);
+      this.#colorBreaks = slope ? breaks : null;
+      for (const section of this.#sections) section.colorBy(this.#colorBreaks);
+    });
   }
 
   /** @returns {Promise<GeoJSON.FeatureCollection>} The region's faces, down to what the maps read. */
@@ -102,6 +151,7 @@ export class ReportPage {
           window.location.hash = `street-${wayId}`;
         },
       });
+      this.#regionMap.colorBy(this.#colorBreaks);
     }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
     observer.observe(host);
     for (const [wayId, row] of rows) {
@@ -124,6 +174,7 @@ export class ReportPage {
         if (entry.isIntersecting) {
           this.#near.add(section);
           section.loadCards();
+          section.loadProfile();
         } else {
           this.#near.delete(section);
         }

@@ -480,6 +480,22 @@
   background: var(--color-label-no-sidewalk);
 }
 
+.report-color-by {
+  padding: 0;
+  margin: 0 0 var(--space-xs);
+  border: 0;
+}
+
+.report-color-by[hidden] {
+  display: none;
+}
+
+.report-color-by__title {
+  margin: 0 0 var(--space-xxs);
+  font: var(--text-small-medium);
+  border: 0;
+}
+
 /* ---- Ranked streets ------------------------------------------------------------------------------------------- */
 
 .report-street-list,
@@ -583,6 +599,14 @@
   .report-street__where {
     position: static;
   }
+}
+
+.report-street__profile {
+  margin-top: var(--space-sm);
+}
+
+.report-street__profile[hidden] {
+  display: none;
 }
 
 .report-cards {

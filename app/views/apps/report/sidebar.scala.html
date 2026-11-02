@@ -43,6 +43,19 @@
     }
     <div class="report-control" id="report-map-controls" hidden>
       <h2 class="report-control__title">@Messages("report.map.title")</h2>
+      @* report.js reveals this only where the city's streets have a grade. *@
+      <fieldset class="report-color-by" id="report-color-by" hidden>
+        <legend class="report-color-by__title">@Messages("report.map.color.title")</legend>
+        <div class="report-toggle">
+          <input type="radio" name="report-color" id="report-color-score" value="score" checked>
+          <label for="report-color-score">@Messages("report.map.color.score")</label>
+        </div>
+        <div class="report-toggle">
+          <input type="radio" name="report-color" id="report-color-slope" value="slope">
+          <label for="report-color-slope">@Messages("report.map.color.slope")</label>
+        </div>
+        <ul class="report-legend" id="report-slope-legend" hidden></ul>
+      </fieldset>
       <div class="report-toggle">
         <input type="checkbox" id="report-sidewalks-toggle" checked>
         <label for="report-sidewalks-toggle">@Messages("report.map.sidewalks")</label>

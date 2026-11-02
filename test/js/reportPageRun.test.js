@@ -11,6 +11,9 @@ mockModule('i18next', () => ({ default: { language: 'en', t: (key) => key } }));
 useUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }) } });
 
 const STREET_COUNT = 8;
+const flush = () => new Promise((resolve) => { setTimeout(resolve); });
+/** @param {object} grade - The config's `grade`. @returns {Function} `util.fetchJson`, answering the config only. */
+const fetchJsonStub = (grade) => vi.fn(async () => ({ grade }));
 
 describe('ReportPage', () => {
   let ReportPage;
@@ -55,6 +58,11 @@ describe('ReportPage', () => {
         <button class="report-chip" aria-pressed="true" data-label-type="Obstacle"></button>
         <button class="report-chip" aria-pressed="true" data-label-type="CurbRamp"></button>
       </div>
+      <fieldset id="report-color-by" hidden>
+        <input type="radio" name="c" id="report-color-score" value="score" checked>
+        <input type="radio" name="c" id="report-color-slope" value="slope">
+        <ul id="report-slope-legend" hidden></ul>
+      </fieldset>
       <div id="report-map-controls" hidden>
         <input type="checkbox" id="report-sidewalks-toggle" checked><ul id="report-sidewalk-legend"></ul>
       </div>`;
@@ -69,6 +77,7 @@ describe('ReportPage', () => {
           setVisibleTypes: vi.fn(),
           setSidewalks: vi.fn(),
           setSidewalksVisible: vi.fn(),
+          colorBy: vi.fn(),
         };
         maps.push(map);
         return map;
@@ -183,6 +192,46 @@ describe('ReportPage', () => {
     expect(maps[0].setSidewalksVisible).toHaveBeenLastCalledWith(false);
     expect(document.getElementById('report-sidewalk-legend').hidden).toBe(true);
     expect(deps.log).toHaveBeenCalledWith('Report_SidewalksToggle_Shown=false');
+  });
+
+  describe('coloring by slope', () => {
+    const graded = () => {
+      const d = data();
+      d.edges[0].grade = 0.09;
+      return d;
+    };
+
+    test('stays hidden, and asks for nothing, in a region with no grade', async () => {
+      useUtil({ fetchJson: fetchJsonStub({ sources: ['x'], map_class_breaks: [0.05] }) });
+      new ReportPage(data(), deps).start();
+      await flush();
+      expect(document.getElementById('report-color-by').hidden).toBe(true);
+    });
+
+    test('stays hidden where the city has no slope classes', async () => {
+      useUtil({ fetchJson: fetchJsonStub({ sources: [], map_class_breaks: [] }) });
+      new ReportPage(graded(), deps).start();
+      await flush();
+      expect(document.getElementById('report-color-by').hidden).toBe(true);
+    });
+
+    test('reaches the region map and every street map, and a map built later', async () => {
+      useUtil({ fetchJson: fetchJsonStub({ sources: ['x'], map_class_breaks: [0.05, 0.083] }) });
+      new ReportPage(graded(), deps).start();
+      await flush();
+      const group = document.getElementById('report-color-by');
+      expect(group.hidden).toBe(false);
+      intersect(document.getElementById('report-region-map'), true);
+      const slope = document.getElementById('report-color-slope');
+      slope.checked = true;
+      slope.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(maps[0].colorBy).toHaveBeenLastCalledWith([0.05, 0.083]);
+      expect(document.getElementById('report-slope-legend').hidden).toBe(false);
+      expect(deps.log).toHaveBeenCalledWith('Report_ColorBy_Slope');
+
+      intersect(document.querySelector('.report-street'), true);
+      expect(maps[1].colorBy).toHaveBeenLastCalledWith([0.05, 0.083]);
+    });
   });
 
   test('printing draws the fixes\' cards, once, however many ask', async () => {

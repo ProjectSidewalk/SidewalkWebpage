@@ -197,6 +197,7 @@ object ReportService {
           s.osmWayId,
           s.score,
           s.auditCount > 0,
+          s.gradient.flatMap(_.maxGrade),
           s.geometry.getCoordinates.toSeq.map(c => (c.x, c.y))
         )
       }

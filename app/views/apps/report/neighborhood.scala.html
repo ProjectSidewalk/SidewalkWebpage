@@ -30,7 +30,7 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@common.main(commonData, Messages("report.seo.title", report.regionName), i18Namespaces = Seq("common", "gallery", "labelmap", "report"), url = "/report") {
+@common.main(commonData, Messages("report.seo.title", report.regionName), i18Namespaces = Seq("common", "gallery", "labelmap", "accessscore", "report"), url = "/report") {
   @common.navbar(commonData, user)
 
   <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId" data-preset="@preset.name">

@@ -10,7 +10,13 @@ import { loadModules, mockModule, useUtil } from './loader.js';
 mockModule('i18next', () => ({
   default: { language: 'en', t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}` },
 }));
-useUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }) } });
+useUtil({
+  misc: {
+    getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }),
+    getLabelColors: () => '#123456',
+    labelTypeName: (type) => type,
+  },
+});
 
 const EDGES = [
   { id: 1, wayId: 7, score: 0.4, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]] },
@@ -31,7 +37,7 @@ const cardData = (id, labelType = 'Obstacle', costPoints = 2) => ({
 /** @returns {HTMLElement} A section as the template renders it. */
 function sectionElement() {
   document.body.innerHTML = `<li class="report-street" data-street="7">
-    <div data-street-map></div><ul data-street-cards></ul><button data-street-more hidden></button></li>`;
+    <div data-street-map></div><div data-street-profile hidden></div><ul data-street-cards></ul><button data-street-more hidden></button></li>`;
   return document.querySelector('.report-street');
 }
 
@@ -44,6 +50,8 @@ function fakeMap() {
     setVisibleTypes: vi.fn(),
     setSidewalks: vi.fn(),
     setSidewalksVisible: vi.fn(),
+    colorBy: vi.fn(),
+    showCursor: vi.fn(),
     destroy: vi.fn(),
   };
 }
@@ -82,6 +90,13 @@ describe('ReportStreetSection', () => {
         loadImage: vi.fn(() => Promise.resolve(true)),
       })),
       sidewalks: vi.fn(() => Promise.resolve({ type: 'FeatureCollection', features: [] })),
+      fetchGrade: vi.fn(async () => ({
+        profile: { spacing_meters: 100, elevations_meters: [10, 12, 15, 11, 10, 9, 8, 7, 6] },
+        max_grade: 0.03,
+        max_grade_from_meters: 100,
+        max_grade_to_meters: 200,
+      })),
+      gradeBreaks: vi.fn(async () => [0.05, 0.083]),
       log: vi.fn(),
     };
   });
@@ -228,5 +243,73 @@ describe('ReportStreetSection', () => {
     mapOptions.onLocationHover(2);
     mapOptions.onLocationHover(1);
     expect(deps.log.mock.calls.filter(([event]) => event === 'Report_LinkedHover')).toHaveLength(1);
+  });
+
+  describe('the elevation profile', () => {
+    const gradedDeps = () => {
+      deps.edges = [{ ...EDGES[0], grade: 0.03 }, EDGES[1]];
+    };
+
+    test('asks for nothing and shows no box on a street with no sampled edge', async () => {
+      const section = build([cardData(1)]);
+      await section.loadProfile();
+      expect(deps.fetchGrade).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-street-profile]').hidden).toBe(true);
+    });
+
+    test('draws for a sampled street, asking only for its own sampled edges, once', async () => {
+      gradedDeps();
+      const section = build([cardData(1)]);
+      await Promise.all([section.loadProfile(), section.loadProfile()]);
+      expect(deps.fetchGrade.mock.calls).toEqual([[1]]);
+      expect(document.querySelector('[data-street-profile]').hidden).toBe(false);
+      expect(document.querySelector('.elevation-profile__marker')).not.toBeNull();
+    });
+
+    test('lights a pin from the card, and the card from a pin', async () => {
+      gradedDeps();
+      const section = build([cardData(1)]);
+      await Promise.all([section.loadCards(), section.loadProfile()]);
+      itemOf(1).dispatchEvent(new MouseEvent('mouseenter'));
+      const pin = document.querySelector('.elevation-profile__marker');
+      expect(pin.classList.contains('elevation-profile__marker--on')).toBe(true);
+      itemOf(1).dispatchEvent(new MouseEvent('mouseleave'));
+      expect(pin.classList.contains('elevation-profile__marker--on')).toBe(false);
+
+      pin.dispatchEvent(new Event('pointerenter'));
+      expect(itemOf(1).classList.contains('is-lit')).toBe(true);
+    });
+
+    test('moving along the chart moves a dot along the street on the map', async () => {
+      gradedDeps();
+      const section = build([cardData(1)]);
+      await section.loadProfile();
+      const chart = document.querySelector('.elevation-profile__chart');
+      chart.dispatchEvent(new FocusEvent('focus'));
+      chart.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+      const lngLat = map.showCursor.mock.lastCall[0];
+      expect(lngLat[0]).toBeGreaterThan(-122.33);
+      expect(lngLat[0]).toBeLessThanOrEqual(-122.32);
+      chart.dispatchEvent(new FocusEvent('blur'));
+      expect(map.showCursor).toHaveBeenLastCalledWith(null);
+    });
+
+    test('the type filter takes pins off the hill too', async () => {
+      gradedDeps();
+      const section = build([cardData(1, 'Obstacle')]);
+      await section.loadProfile();
+      section.setVisibleTypes(new Set(['CurbRamp']));
+      expect(document.querySelector('.elevation-profile__marker')).toBeNull();
+    });
+
+    test('a failed fetch leaves no box and no error for the reader', async () => {
+      gradedDeps();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      deps.fetchGrade.mockRejectedValue(new Error('offline'));
+      const section = build([cardData(1)]);
+      await expect(section.loadProfile()).resolves.toBeUndefined();
+      expect(document.querySelector('[data-street-profile]').hidden).toBe(true);
+      warn.mockRestore();
+    });
   });
 });

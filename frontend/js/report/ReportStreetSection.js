@@ -12,7 +12,10 @@ import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 import '../common/pano-viewer/panoUtilities.js';
+import { AccessScoreElevationProfile } from '../common/AccessScoreElevationProfile.js';
+import { formatElevation } from '../access-score/AccessScoreText.js';
 import { reportSketch } from './reportSketch.js';
+import { stitchProfile } from './stitchProfile.js';
 import { viewpointOf } from './viewWedge.js';
 
 /**
@@ -42,6 +45,8 @@ import { viewpointOf } from './viewWedge.js';
  * @property {(labelIds: number[]) => Promise<Map<number, Record<string, any>>>} fetchCards
  * @property {(entry: Record<string, any>) => any} buildCard
  * @property {() => Promise<GeoJSON.FeatureCollection>} sidewalks - The region's faces, fetched once however many ask.
+ * @property {(edgeId: number) => Promise<any>} fetchGrade - An edge's `/v3/api/streetGrade` answer.
+ * @property {() => Promise<?number[]>} gradeBreaks - The city's slope classes, or null if it has none.
  * @property {(event: string) => void} log
  */
 
@@ -66,6 +71,11 @@ export class ReportStreetSection {
   /** @type {?number} */ #lit = null;
   #hoverLogged = false;
   /** @type {?ResizeObserver} */ #resize = null;
+  /** @type {?HTMLElement} */ #profileSlot;
+  /** @type {?AccessScoreElevationProfile} */ #profile = null;
+  /** @type {?import('./stitchProfile.js').ReportStitchedProfile} */ #stitched = null;
+  #profileRequested = false;
+  /** @type {?number[]} */ #colorBreaks = null;
 
   /**
    * @param {HTMLElement} element - The section: `[data-street-map]`, `[data-street-cards]`, `[data-street-more]`.
@@ -79,6 +89,7 @@ export class ReportStreetSection {
     this.#mapHost = element.querySelector('[data-street-map]');
     this.#list = element.querySelector('[data-street-cards]');
     this.#more = element.querySelector('[data-street-more]');
+    this.#profileSlot = element.querySelector('[data-street-profile]');
     this.#visibleTypes = new Set(street.cards.map((c) => c.labelType));
     for (const data of street.cards) {
       this.#entries.set(data.clusterId, { data, item: null, label: null, card: null });
@@ -123,6 +134,7 @@ export class ReportStreetSection {
     });
     this.#map.setVisibleTypes(this.#visibleTypes);
     this.#map.setSidewalksVisible(this.#sidewalksVisible);
+    this.#map.colorBy(this.#colorBreaks);
     const map = this.#map;
     this.#deps.sidewalks().then((faces) => {
       if (this.#map === map) map.setSidewalks(faces);
@@ -138,6 +150,64 @@ export class ReportStreetSection {
   /** @returns {boolean} Whether the map is up. */
   get hasMap() {
     return this.#map !== null;
+  }
+
+  /**
+   * Fetches and draws the street's elevation profile, once. A street with no sampled edge asks for nothing and shows no
+   * empty box.
+   * @returns {Promise<void>}
+   */
+  async loadProfile() {
+    if (this.#profileRequested || !this.#profileSlot) return;
+    this.#profileRequested = true;
+    const focus = new Set(this.#street.edgeIds);
+    const sampled = this.#deps.edges.filter((e) => focus.has(e.id) && Number.isFinite(e.grade));
+    if (sampled.length === 0) return;
+    try {
+      const [breaks, responses] = await Promise.all([
+        this.#deps.gradeBreaks(),
+        Promise.all(sampled.map((e) => this.#deps.fetchGrade(e.id))),
+      ]);
+      if (!breaks) return;
+      this.#stitched = stitchProfile(sampled.map((e, i) => ({ coordinates: e.coordinates, response: responses[i] })));
+      if (this.#stitched) this.#drawProfile(breaks);
+    } catch (err) {
+      // The street still reads without its hill.
+      console.warn('Report elevation profile failed to load', err);
+    }
+  }
+
+  /** @param {number[]} breaks - The city's slope classes. */
+  #drawProfile(breaks) {
+    const { profile, steepest } = this.#stitched;
+    const elevations = profile.elevations_meters;
+    const plain = { escape: false };
+    this.#profile = new AccessScoreElevationProfile(this.#profileSlot, profile, {
+      breaks,
+      steepest,
+      label: i18next.t('accessscore:profile-label', {
+        start: formatElevation(elevations[0], plain),
+        end: formatElevation(elevations.at(-1), plain),
+        low: formatElevation(Math.min(...elevations), plain),
+        high: formatElevation(Math.max(...elevations), plain),
+        interpolation: { escapeValue: false },
+      }),
+      markers: this.#profileMarkers(),
+      onLog: (kind, value) => this.#deps.log(`Report_${kind}${value ? `_${value}` : ''}`),
+      onMarkerHover: (id) => this.#light(id),
+      onCursor: (meters) => this.#map?.showCursor(meters === null ? null : this.#stitched.lngLatAt(meters)),
+    });
+    this.#profileSlot.hidden = false;
+  }
+
+  /** @returns {import('../common/AccessScoreElevationProfile.js').AccessScoreProfileMarker[]} The pins on the hill. */
+  #profileMarkers() {
+    return this.#visible().map((c) => ({
+      id: c.clusterId,
+      meters: this.#stitched.metersAt([c.lng, c.lat]),
+      color: util.misc.getLabelColors(c.labelType),
+      title: util.misc.labelTypeName(c.labelType),
+    }));
   }
 
   /** @returns {ReportCardData[]} The locations the filter allows, in the order they're shown. */
@@ -253,6 +323,7 @@ export class ReportStreetSection {
     const entry = clusterId === null ? null : this.#entries.get(clusterId);
     entry?.item?.classList.add('is-lit');
     this.#map?.lightLocation(clusterId);
+    this.#profile?.lightMarker(clusterId);
     if (this.#map) {
       const viewpoint = entry?.label
         ? viewpointOf(entry.label, util.pano.zoomToFov(entry.label.zoom), this.#map.viewpointMinRadiusMeters())
@@ -304,7 +375,14 @@ export class ReportStreetSection {
   setVisibleTypes(types) {
     this.#visibleTypes = types;
     this.#map?.setVisibleTypes(types);
+    this.#profile?.setMarkers(this.#profileMarkers());
     if (this.#list.childElementCount > 0) this.loadCards();
+  }
+
+  /** @param {?number[]} breaks - The slope classes to color streets by, or null for score. */
+  colorBy(breaks) {
+    this.#colorBreaks = breaks;
+    this.#map?.colorBy(breaks);
   }
 
   /** @param {boolean} visible */
