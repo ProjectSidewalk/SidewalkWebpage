@@ -94,7 +94,7 @@ export class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883), or Enter
     // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
     if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
     if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
@@ -187,13 +187,13 @@ export class ExpandedView {
   }
 
   /**
-   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card. Looked up
+   * by id, like #handleDelete, since a quick A then S pages on before the vote lands (#5883).
+   * @param {?('Agree'|'Disagree'|'Unsure')} action - The vote now on record, or null when it was cleared.
+   * @param {{label_id: number}} meta - The metadata of the label voted on.
    */
-  #handleVote = (action) => {
-    if (this.refCard) {
-      this.refCard.updateUserValidation(action);
-    }
+  #handleVote = (action, meta) => {
+    this.#cardContainer.findCardByLabelId(meta.label_id)?.updateUserValidation(action);
   };
 
   /**

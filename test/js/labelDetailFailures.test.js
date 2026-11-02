@@ -37,7 +37,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
     });
 
-    test('that lands after paging leaves the new label\'s counts and the host alone', async () => {
+    test('that lands after paging leaves the new label\'s counts alone, but still tells the host', async () => {
       const vote = deferred();
       const onVote = vi.fn();
       const { show, q } = await mountCard({
@@ -51,7 +51,8 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(count(q, 'agree')).toBe('5');
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
-      expect(onVote).not.toHaveBeenCalled();
+      // A quick A then S pages on before the vote lands (#5883); the Gallery's grid card still has to record it.
+      expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({ label_id: 42 }));
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
     });
 

@@ -90,7 +90,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
-  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883), or Enter
   // or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 

@@ -4,7 +4,7 @@
 /**
  * Handles the Gallery-specific keyboard shortcuts for the expanded view.
  *
- * Paging (left/right arrows) and voting (A/Y, D/N, U) belong to the label detail card itself, which owns them on
+ * Paging (left/right arrows, and S for next) and voting (A/Y, D/N, U) belong to the label detail card itself, which owns them on
  * every host it has (#5194) — see LabelDetail's `#wireKeyboard`. What is left here is the pair only the Gallery
  * offers: Z / Shift+Z to zoom the imagery, and Escape to close the expanded view and restore the card grid.
  */

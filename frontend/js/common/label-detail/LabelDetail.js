@@ -14,6 +14,7 @@
 import i18next from 'i18next';
 import { BadgeAchievements } from '../BadgeAchievements.js';
 import { ConfirmDialog } from '../ConfirmDialog.js';
+import { KeyboardShortcuts } from '../KeyboardShortcuts.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';
 import { LabelVisibilityToggle } from '../LabelVisibilityToggle.js';
 import { Toast } from '../Toast.js';
@@ -638,17 +639,23 @@ export class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * The vote each shortcut casts, keyed by `KeyboardEvent.code` so a shortcut stays on the same physical key
-   * whatever the layout — the convention Validate's KeyboardManager already follows. A/Y for agree and D/N for
-   * disagree are the pairs Validate and the Gallery have long offered, kept so the muscle memory carries over.
+   * The vote each shortcut casts, keyed the way KeyboardShortcuts.keyOf names a key: by the letter printed on it, so
+   * the card reads the same keys as Validate on any layout (#5618). A/Y for agree and D/N for disagree are the pairs
+   * Validate and the Gallery have long offered, kept so the muscle memory carries over.
    */
   static #VOTE_KEYS = {
     KeyA: 'Agree', KeyY: 'Agree', KeyD: 'Disagree', KeyN: 'Disagree', KeyU: 'Unsure',
   };
 
   /**
-   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, S also pages to the next
-   * one (#5883), and A/Y, D/N and U cast agree, disagree and unsure (#5194).
+   * Which way each paging shortcut moves. S sits between A and D, so the left hand can vote and move on without
+   * reaching for the arrows, the way S submits and moves on in Validate (#5883).
+   */
+  static #PAGING_KEYS = { ArrowLeft: 'prev', ArrowRight: 'next', KeyS: 'next' };
+
+  /**
+   * Listens for the card's shortcuts: left/right arrows (and S) page to the previous/next label, and A/Y, D/N and U
+   * cast agree, disagree and unsure (#5194).
    *
    * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
    * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
@@ -678,17 +685,18 @@ export class LabelDetail {
     }
     if (!this.#ownsKeyboard(e)) return;
 
+    const key = KeyboardShortcuts.keyOf(e);
     // Focus on a reason chip (#5475): the arrows move along the chips (ReasonChips' own handler), not through the
     // labels; every other key is still the card's, so A/D/U vote from a chip as from anywhere else.
-    if (e.code.startsWith('Arrow') && reasonPopover().containsFocus()) return;
+    if (key.startsWith('Arrow') && reasonPopover().containsFocus()) return;
 
-    const vote = LabelDetail.#VOTE_KEYS[e.code];
+    const vote = LabelDetail.#VOTE_KEYS[key];
+    const paging = LabelDetail.#PAGING_KEYS[key];
+    // Paging away throws out words typed into "Other…" but not yet saved, so a paging key waits until they are.
+    if (paging && reasonPopover().isOpenFor(this.#root) && reasonPopover().hasUnsavedWords) return;
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
-    else if (e.code === 'ArrowLeft') button = this.#els.pagingPrev;
-    // S sits between A and D, so the left hand can vote and move on without reaching for the arrows, the same way
-    // S submits on Validate (#5883).
-    else if (e.code === 'ArrowRight' || e.code === 'KeyS') button = this.#els.pagingNext;
+    else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
     if (!button || button.hidden || button.disabled) return;
 
     e.preventDefault();
@@ -1280,8 +1288,7 @@ export class LabelDetail {
 
     // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
     // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
-    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
-    // still landed server-side; reopening this label shows it.
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses.
     const votedLabelMeta = this.#currentLabelMeta;
 
     this.#postJson('/labelmap/validate', data).then(async (res) => {
@@ -1294,8 +1301,12 @@ export class LabelDetail {
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (this.#currentLabelMeta !== votedLabelMeta) return;
       const newAction = undone ? null : action;
+      if (this.#currentLabelMeta !== votedLabelMeta) {
+        // The card has moved on, but the host still has to hear about the vote, or paging back shows none.
+        if (typeof this.#onVote === 'function') this.#onVote(newAction, votedLabelMeta);
+        return;
+      }
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
       if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
