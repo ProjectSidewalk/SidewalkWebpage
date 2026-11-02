@@ -64,6 +64,20 @@
   stroke-dasharray: 3 2;
 }
 
+/* A host's marker on the line: filled in the host's color, cased in white to stand off the ground; lifted when the
+   thing it stands for is pointed at elsewhere. `r` is a geometry property CSS may set on SVG 2 circles. */
+.elevation-profile__marker {
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: r var(--transition-fast);
+}
+
+.elevation-profile__marker--on {
+  r: 6.5px;
+  stroke: var(--color-neutral-900);
+}
+
 .elevation-profile__bracket {
   fill: none;
   stroke: var(--color-neutral-900);

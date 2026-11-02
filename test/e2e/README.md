@@ -40,9 +40,10 @@ Three details worth knowing when something looks odd:
   400s anything else — including `web:9000` and any other port — and because `localhost` now resolves inside
   the web container rather than on your host.
 - It inherits the web container's **mounts** (not its image filesystem), so the repo is at `/home` and worktree
-  paths resolve unchanged. The one exception is `/home/node_modules`, which is deliberately masked with an empty
-  tmpfs so `require('@playwright/test')` resolves to the runner in the image instead of the repo's own copy —
-  two copies in one process makes Playwright abort with *"did not expect `test()` to be called here"*.
+  paths resolve unchanged. The one exception is `/home/node_modules` (and a worktree's own `node_modules`, where
+  `make qa-worktree` has installed one), deliberately masked with an empty tmpfs so `require('@playwright/test')`
+  resolves to the runner in the image instead of the repo's own copy — two copies in one process makes Playwright
+  abort with *"did not expect `test()` to be called here"*.
 - Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
   `--user`), so you can read and delete them from the host like any other file.
 

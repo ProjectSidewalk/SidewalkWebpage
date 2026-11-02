@@ -16,6 +16,10 @@
  * The vertical scale is exaggerated to fit, as every elevation profile is, but never beyond a minimum span, so a
  * gentle street reads as gentle; the colors and the legend carry the grade the shape cannot.
  *
+ * A host may pin markers along the line (the street panel's problem clusters, #5748): each sits on the line at its
+ * distance along the street, in the color the host gives it, and reports its hover so the host can light the thing
+ * it stands for. Markers are decoration over the pointer's slider: the host names what they are elsewhere.
+ *
  * @typedef {object} AccessScoreProfile
  * @property {number} spacing_meters - Distance between consecutive samples.
  * @property {number[]} elevations_meters - Elevations from the street's first vertex to its last.
@@ -32,6 +36,12 @@
  * @typedef {object} AccessScoreProfileStretch
  * @property {number} grade - Signed grade over the stretch, positive uphill in the street's digitized direction.
  * @property {number} classIndex - Its slope class, an index into `AccessScoreGradeRamp.classes`.
+ *
+ * @typedef {object} AccessScoreProfileMarker
+ * @property {number} id - What the host lights on hover; unique among the markers.
+ * @property {number} meters - Distance along the street, from its first vertex; clamped to the profile.
+ * @property {string} color - The marker's fill, a CSS color.
+ * @property {string} title - What it stands for, as plain text; the pointer's own tooltip.
  */
 
 import i18next from 'i18next';
@@ -60,6 +70,8 @@ export class AccessScoreElevationProfile {
   /** @type {HTMLElement} */ #readout;
   /** @type {HTMLButtonElement[]} */ #rows;
   /** @type {Element[]} */ #marks;
+  /** @type {Element} The group the host's markers are drawn in. */ #markers;
+  /** @type {(id: ?number) => void} */ #onMarkerHover;
   /** @type {AccessScoreProfile} */ #profile;
   /** @type {{stretches: AccessScoreProfileStretch[], lengths: Map<number, number>, length: number}} */ #analysis;
   /** @type {(kind: string, value?: string) => void} */ #onLog;
@@ -89,10 +101,14 @@ export class AccessScoreElevationProfile {
    *   reaching past the drawn street (whose geometry has changed since it was sampled), is not drawn.
    * @param {string} options.label - The chart's accessible name, as plain text.
    * @param {(kind: string, value?: string) => void} [options.onLog] - Records an interaction.
+   * @param {AccessScoreProfileMarker[]} [options.markers] - Markers to pin along the line; see [[setMarkers]].
+   * @param {(id: ?number) => void} [options.onMarkerHover] - A marker's id as the pointer reaches it, null as it
+   *   leaves.
    */
-  constructor(slot, profile, { breaks, steepest, label, onLog = () => {} }) {
+  constructor(slot, profile, { breaks, steepest, label, onLog = () => {}, markers = [], onMarkerHover = () => {} }) {
     this.#profile = profile;
     this.#onLog = onLog;
+    this.#onMarkerHover = onMarkerHover;
     this.#analysis = AccessScoreElevationProfile.analyze(profile, breaks);
     const colors = AccessScoreGradeRamp.colors(breaks.length + 1);
     const { length } = this.#analysis;
@@ -105,6 +121,7 @@ export class AccessScoreElevationProfile {
     this.#readout = /** @type {HTMLElement} */ (this.#root.querySelector('.elevation-profile__readout'));
     this.#rows = /** @type {HTMLButtonElement[]} */ ([...this.#root.querySelectorAll('.elevation-profile__class')]);
     this.#marks = [...this.#svg.querySelectorAll('[data-class]')];
+    this.#markers = this.#svg.querySelector('.elevation-profile__markers');
     // The colors are data read from the tokens, set as properties like the map legend's swatches.
     for (const el of this.#root.querySelectorAll('[data-class]')) {
       const color = colors[Number(/** @type {HTMLElement} */ (el).dataset.class)];
@@ -119,6 +136,42 @@ export class AccessScoreElevationProfile {
       if (share !== undefined) style.width = `${share}%`;
     }
     this.#wire();
+    this.setMarkers(markers);
+  }
+
+  /**
+   * Pins the host's markers along the line, replacing any there were. Each sits on the line at its distance along
+   * the street, so a reader sees where on the climb a problem is.
+   * @param {AccessScoreProfileMarker[]} markers - The markers, in the order they should stack where they overlap.
+   */
+  setMarkers(markers) {
+    const self = AccessScoreElevationProfile;
+    const pts = this.#points();
+    const { x } = this.#scales();
+    this.#markers.innerHTML = markers.map((m) => {
+      const cx = x(m.meters);
+      const cy = self.#lineYAt(pts, cx);
+      return `<circle class="elevation-profile__marker" data-id="${Number(m.id)}" cx="${cx.toFixed(1)}"
+          cy="${cy.toFixed(1)}" r="4.5"><title>${util.escapeHTML(m.title)}</title></circle>`;
+    }).join('');
+    for (const el of this.#markers.querySelectorAll('.elevation-profile__marker')) {
+      const marker = markers.find((m) => String(m.id) === el.getAttribute('data-id'));
+      // The color is data from the host, set as the presentation attribute like the classes' fills are as styles.
+      el.setAttribute('fill', marker.color);
+      el.addEventListener('pointerenter', () => this.#onMarkerHover(marker.id));
+      el.addEventListener('pointerleave', () => this.#onMarkerHover(null));
+    }
+  }
+
+  /**
+   * Lifts one marker above the rest, as the host does when the thing it stands for is pointed at elsewhere.
+   * @param {?number} id - The marker's id; null lifts none.
+   */
+  lightMarker(id) {
+    for (const el of this.#markers.querySelectorAll('.elevation-profile__marker')) {
+      const on = id !== null && el.getAttribute('data-id') === String(id);
+      el.classList.toggle('elevation-profile__marker--on', on);
+    }
   }
 
   /**
@@ -193,6 +246,7 @@ export class AccessScoreElevationProfile {
             ${text(xn, base + 14, self.#length(this.#analysis.length), 'end', 'tick')}
             <line class="elevation-profile__cursor" x1="0" x2="0" y1="${top - 6}" y2="${base}"
                   visibility="hidden"></line>
+            <g class="elevation-profile__markers"></g>
           </g>
         </svg>
         <p class="elevation-profile__legend-title" id="${titleId}">${legendTitle}</p>

@@ -689,25 +689,26 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Slope's row in the terms table has no label type to take a color from; it takes the slope map's mid blue. */
-.acs-popup__swatch--slope {
-  background-color: var(--color-grade-ramp-3);
+/* The panel's last word (#5223, #5748): the elevation model's credit, its licence condition, and the clusters'
+   date. Text-sized rather than fine print, set off from the evidence by a rule. */
+.acs-panel__credits {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-neutral-200);
 }
 
-/* The popup's slope block (#5223). The note says why a number is missing or approximate, and the credit is the
-   elevation model's licence condition, so both are text-sized rather than fine print. */
-.acs-popup__note,
-.acs-popup__credit {
+.acs-panel__credits[hidden] {
+  display: none;
+}
+
+.acs-panel__credit {
   margin: var(--space-xxs) 0 0;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
-.acs-popup__profile {
-  min-height: calc(20px * var(--ui-scale, 1));
-  margin-top: var(--space-xxs);
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
+.acs-panel__credit:first-child {
+  margin-top: 0;
 }
 
 /* ---- Map legend: a card beside the zoom buttons ---- */
@@ -715,6 +716,7 @@
 /* Mapbox floats its corner controls into a column; a reversed flex row puts the legend beside the zoom buttons
    (the navigation control is added first, so it stays at the corner). */
 #acs-map .mapboxgl-ctrl-top-right {
+  right: var(--acs-panel-width, 0);
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-start;
@@ -871,7 +873,9 @@
    the loading overlay (20) covers it. Mapbox's attribution and logo lift above it (below). */
 .acs-dock {
   position: absolute;
-  right: 0;
+
+  /* The band ends where the street panel begins (#5748); the panel publishes its width on the holder. */
+  right: var(--acs-panel-width, 0);
   bottom: 0;
   left: 0;
   z-index: 12;
@@ -887,6 +891,7 @@
 .filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-dock {
   left: var(--filter-sidebar-width, 350px);
 }
+
 
 /* The band covers the map's bottom edge, where Mapbox keeps its attribution and logo; the dock publishes its
    height on the holder and the controls ride up by it. */
@@ -981,6 +986,8 @@
 
 .acs-dock__kpis {
   display: flex;
+  flex-wrap: wrap; /* The folded bar beside the street panel can be narrower than one row of tiles. */
+  justify-content: flex-end;
   gap: var(--space-md);
   margin-left: auto;
 }
@@ -1576,8 +1583,20 @@
 
 /* ---- The cluster sheet: every label in a cluster at once ---- */
 
+/* Sized to its cards (the sheet's script sets --acs-sheet-cards): a cluster of one is a title wide, a cluster of
+   seven five cards wide and two deep, a cluster of twenty as wide as the window allows. Wide before tall, which
+   fit-content would not give: with an indefinite width the grid's own contribution is one column. */
 .acs-sheet {
-  width: min(960px, calc(100vw - 2 * var(--space-lg)));
+  --acs-sheet-card: calc(170px * var(--ui-scale, 1));
+
+  width: min(
+    calc(var(--acs-sheet-cards, 1) * (var(--acs-sheet-card) + var(--space-sm)) - var(--space-sm) + 2 * var(--space-lg)),
+    960px,
+    calc(100vw - 2 * var(--space-lg))
+  );
+
+  /* Room for the title, the arrows and the close in one row even at one card. */
+  min-width: min(calc(440px * var(--ui-scale, 1)), calc(100vw - 2 * var(--space-lg)));
   max-height: calc(100vh - 2 * var(--space-lg));
   padding: var(--space-md) var(--space-lg) var(--space-lg);
   border: 0;
@@ -1620,6 +1639,52 @@
   color: var(--color-neutral-700);
 }
 
+/* Prev and next, the label card's chips brought into the head beside the close: always visible here, since the
+   sheet has no picture to keep clean. */
+.acs-sheet__paging {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.acs-sheet__paging[hidden] {
+  display: none;
+}
+
+.acs-sheet__paging:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-black);
+}
+
+.acs-sheet__paging:disabled {
+  color: var(--color-neutral-400);
+  cursor: default;
+}
+
+.acs-sheet__paging:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-sheet__paging img {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.acs-sheet__paging:disabled img {
+  opacity: 0.4;
+}
+
 .acs-sheet__close {
   flex: none;
   width: 32px;
@@ -1656,15 +1721,767 @@
   display: none;
 }
 
-/* Cards shrink to fit: as many across as the width allows, a small cluster spreading out and a large one packing
-   in, every card the same 3:2 picture over a short caption. */
+/* Fixed-width cards, as many across as the sheet's width allows. */
 .acs-sheet__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, var(--acs-sheet-card));
   gap: var(--space-sm);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+
+/* ---- The street panel (#5748): why a street scores what it does, with the pictures behind it ---- */
+
+/* A drawer on the map's right, the mirror of the controls drawer on the left. Over the dock (12) and under the
+   status pill (15). It stays light on the dark basemap, as the band and the popups do. */
+.acs-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  width: min(calc(500px * var(--ui-scale, 1)), 42vw);
+  background: var(--color-neutral-white);
+  box-shadow: -2px 0 6px rgb(0 0 0 / 12%);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+
+  /* Named so the header can re-flow on the panel's own width, which is a fraction of the window's. */
+  container: acs-panel / inline-size;
+}
+
+.acs-panel[hidden] {
+  display: none;
+}
+
+
+/* Title and meta, then the one call to action, then the close: the hop sits in the header so it is never below
+   the fold of a long evidence list. */
+.acs-panel__head {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: start;
+  column-gap: var(--space-sm);
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-panel__titles {
+  min-width: 0;
+}
+
+.acs-panel__actions {
+  display: flex;
+  padding-top: 2px;
+}
+
+.acs-panel__actions .acs-popup__links {
+  margin: 0;
+}
+
+.acs-panel__actions .button {
+  white-space: nowrap;
+}
+
+.acs-panel__title {
+  margin: 0;
+  font: var(--text-title-bold);
+  overflow-wrap: anywhere;
+}
+
+.acs-panel__title:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-panel__meta {
+  margin: 2px 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__close {
+  flex: none;
+  width: calc(32px * var(--ui-scale, 1));
+  height: calc(32px * var(--ui-scale, 1));
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.acs-panel__close:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-panel__close:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-panel__close img {
+  width: 100%;
+  height: 100%;
+}
+
+.acs-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 0 var(--space-md) var(--space-lg);
+}
+
+.acs-panel__section {
+  margin-top: var(--space-md);
+}
+
+.acs-panel__subtitle {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-small-bold);
+}
+
+.acs-panel__empty,
+.acs-panel__status {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* A section's heading with the "i" that holds its explanation, as the sidebar's headings have. */
+.acs-panel__heading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-bottom: var(--space-xs);
+}
+
+.acs-panel__heading-row .acs-panel__subtitle {
+  margin-bottom: 0;
+}
+
+.acs-panel__status:empty {
+  display: none;
+}
+
+/* Where a place heads the panel: the line that names the street the rest of it is about. */
+.acs-panel__place-street {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- The verdict: the headline and the three components drawn as the street ---- */
+
+.acs-panel__verdict {
+  padding: var(--space-sm) 0 var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* The score, its "i", and the link to the scoring model's docs on one line. */
+.acs-panel__headline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.acs-panel__docs {
+  margin-left: auto;
+  font: var(--text-caption-regular);
+}
+
+.acs-panel__score {
+  font: var(--text-h2-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-panel__score small {
+  margin-left: var(--space-xxs);
+  font: var(--text-small-medium);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__sentence {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-small-regular);
+  max-width: 60ch;
+}
+
+.acs-panel__sentence b {
+  font: var(--text-small-bold);
+}
+
+/* Crossing · block · crossing, in a row: the dots take their score color, the bar the block's. Where the city has
+   the block's elevation profile, the chart takes the bar's place between the dots (its figure and the slot around it
+   are flattened into the grid, so the legend can span the full width under the chart) and the bar becomes a pill. */
+.acs-panel__components {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0 var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.acs-panel__end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  grid-row: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  text-align: center;
+}
+
+/* A scored crossing's dot is a button: hovered or focused it opens the crossing card, pressed it flies the map. */
+button.acs-panel__end {
+  cursor: pointer;
+  border-radius: var(--border-radius);
+}
+
+button.acs-panel__end:hover .acs-panel__dot,
+button.acs-panel__end:focus-visible .acs-panel__dot {
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
+}
+
+button.acs-panel__end:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-panel__end--start {
+  grid-column: 1;
+}
+
+.acs-panel__end--end {
+  grid-column: 3;
+}
+
+.acs-panel__profile,
+.acs-panel__components .elevation-profile {
+  display: contents;
+}
+
+/* display: contents would otherwise beat the user-agent's [hidden] rule. */
+.acs-panel__profile[hidden] {
+  display: none;
+}
+
+.acs-panel__components .elevation-profile__chart {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.acs-panel__components .elevation-profile__legend-title,
+.acs-panel__components .elevation-profile__legend,
+.acs-panel__components .elevation-profile__readout {
+  grid-column: 1 / -1;
+}
+
+.acs-panel__components .elevation-profile__legend-title {
+  margin-top: var(--space-xs);
+}
+
+.acs-panel__dot {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  border-radius: 50%;
+  border: 3px solid var(--color-neutral-white);
+  box-shadow: 0 0 0 1px var(--color-neutral-200);
+}
+
+.acs-panel__dot--none {
+  background: var(--color-neutral-200);
+}
+
+/* Where the road carries on as another street: an arrow in place of a score, pointing the way. */
+.acs-panel__dot--continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-neutral-100);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__end--continue .acs-panel__end-note {
+  max-width: calc(96px * var(--ui-scale, 1));
+  color: var(--color-neutral-black);
+}
+
+.acs-panel__end-score {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The block is a button too: hovered it lights its clusters, pressed it flies the map to the street. */
+.acs-panel__block {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  height: calc(14px * var(--ui-scale, 1));
+  padding: 0;
+  border: 0;
+  border-radius: calc(7px * var(--ui-scale, 1));
+  margin-bottom: calc(44px * var(--ui-scale, 1));
+  background-color: var(--acs-block-color);
+  font: inherit;
+  cursor: pointer;
+}
+
+.acs-panel__block:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* The grade's figures sit right under the profile they describe; the "i" beside them holds the caveats. */
+.acs-panel__grade-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- The crossing card (#5748): a top-down view of the crossing and the crops of what is there ---- */
+
+/* Floats over whatever follows the dots, full width, with a tail up to the dot that opened it (the panel sets
+   --acs-card-top and --acs-card-tail-left from where the dot is). Out of the flow on purpose: a card in the flow
+   pushed the rows down while the pointer was on its way to them. A tooltip: it is pictures and figures only, and it
+   closes as the pointer or focus leaves the dot. */
+.acs-crossing-card {
+  position: absolute;
+  top: var(--acs-card-top, 100%);
+  right: 0;
+  left: 0;
+  z-index: 2;
+  padding: var(--space-xs);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow);
+}
+
+.acs-crossing-card[hidden] {
+  display: none;
+}
+
+.acs-crossing-card::before {
+  content: "";
+  position: absolute;
+  top: calc(-7px * var(--ui-scale, 1));
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+  border-top: 1px solid var(--color-neutral-200);
+  border-left: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-white);
+  left: var(--acs-card-tail-left, calc(20px * var(--ui-scale, 1)));
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.acs-crossing-card__map {
+  height: calc(150px * var(--ui-scale, 1));
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.acs-crossing-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-crossing-card__row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--text-caption-regular);
+}
+
+.acs-crossing-card__row--empty {
+  grid-template-columns: 1fr;
+  color: var(--color-neutral-700);
+}
+
+.acs-crossing-card__type {
+  font: var(--text-caption-semibold);
+  min-width: 0;
+}
+
+/* A row of crops, each the mini card's 3:2 picture with the type's icon in the corner. */
+.acs-crossing-card__crops {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xxs);
+  margin-top: var(--space-xs);
+}
+
+.acs-crossing-card__crops:empty {
+  display: none;
+}
+
+.acs-crossing-card__crop {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  margin: 0;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.acs-crossing-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acs-crossing-card__icon {
+  position: absolute;
+  top: var(--space-xxs);
+  left: var(--space-xxs);
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+}
+
+.acs-crossing-card__more {
+  grid-column: 1 / -1;
+  margin: 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Under the chart, the bar is a pill: a dot in the block's color and its figures, centered. */
+.acs-panel__components--profile .acs-panel__block {
+  grid-row: 2;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  width: auto;
+  height: auto;
+  padding: 0 var(--space-xxs);
+  margin-bottom: 0;
+  background: none;
+}
+
+.acs-panel__components--profile .acs-panel__block::before {
+  content: "";
+  width: calc(10px * var(--ui-scale, 1));
+  height: calc(10px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background-color: var(--acs-block-color);
+}
+
+.acs-panel__components--profile .acs-panel__block span {
+  position: static;
+  transform: none;
+}
+
+.acs-panel__block span {
+  position: absolute;
+  top: calc(100% + var(--space-xxs));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-panel__block b {
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+}
+
+/* ---- The rows: one per type, grade among them, each effect a bar on one shared scale ---- */
+
+.acs-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A type's row is a button: hovered it keeps only that type's tiles, pressed it pins that. The grade row, which has
+   no tiles to keep, is a plain row. */
+.acs-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-xs);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-xxs) var(--space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  background: none;
+  font: var(--text-caption-regular);
+  color: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+button.acs-row {
+  cursor: pointer;
+}
+
+.acs-row:hover,
+.acs-row.is-on {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+}
+
+.acs-row.is-pinned {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-900);
+}
+
+/* The way out of a pinned filter, beside the evidence heading. */
+.acs-panel__filter {
+  margin-left: auto;
+}
+
+.acs-panel__filter[hidden] {
+  display: none;
+}
+
+.acs-row:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-row__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Grade has no label type to take a color from; it takes the slope map's mid blue. */
+.acs-row__swatch--grade {
+  background-color: var(--color-grade-ramp-3);
+}
+
+.acs-row__label {
+  font: var(--text-caption-semibold);
+  min-width: 0;
+}
+
+.acs-row__label small {
+  display: block;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-row__count,
+.acs-row__effect {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-row__count {
+  min-width: 3ch;
+  color: var(--color-neutral-700);
+}
+
+.acs-row__effect {
+  min-width: 6ch;
+  font: var(--text-caption-semibold);
+}
+
+/* Jade 800, not the ramp's 700: at caption size the lighter green is under 4.5:1 on white. */
+.acs-row__effect--feature,
+.acs-group__score--feature,
+.acs-tile__effect--feature {
+  color: var(--color-jade-800);
+}
+
+.acs-row__effect--problem,
+.acs-group__score--problem,
+.acs-tile__effect--problem {
+  color: var(--color-orange-600);
+}
+
+.acs-row__effect--none,
+.acs-group__score--none,
+.acs-tile__effect--none {
+  color: var(--color-neutral-500);
+}
+
+/* Zero in the middle: a problem's bar grows to the left, a feature's to the right. */
+.acs-row__bar {
+  position: relative;
+  grid-column: 2 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-neutral-100);
+  overflow: hidden;
+}
+
+.acs-row__bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--color-neutral-400);
+}
+
+.acs-row__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.acs-row__fill--problem {
+  background: var(--color-orange-500);
+}
+
+.acs-row__fill--feature {
+  background: var(--color-jade-600);
+}
+
+/* ---- The evidence: a tile per cluster, in three groups ---- */
+
+.acs-group {
+  margin-top: var(--space-sm);
+}
+
+/* The crossing whose dot is hovered: its heading reads as the lit thing while the other groups' tiles dim. */
+.acs-group.is-on .acs-group__title {
+  color: var(--color-neutral-black);
+  text-decoration: underline;
+  text-decoration-color: var(--color-neutral-400);
+  text-underline-offset: 3px;
+}
+
+.acs-group__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+}
+
+.acs-group__score {
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-group__count {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Cards shrink to fit: as many across as the width allows, every tile the same 3:2 picture over a short caption. */
+.acs-group__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(140px * var(--ui-scale, 1)), 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-group__more {
+  margin-top: var(--space-xs);
+}
+
+/* .button's display: inline-flex would otherwise beat the user-agent's [hidden] rule. */
+.acs-group__more[hidden] {
+  display: none;
+}
+
+.acs-tile {
+  position: relative;
+  transition: opacity var(--transition-fast);
+}
+
+.acs-tile.is-dim {
+  opacity: 0.4;
+}
+
+.acs-tile.is-on .lmc--sheet {
+  border-color: var(--color-neutral-900);
+  box-shadow: var(--box-shadow);
+}
+
+/* The Gallery card's look on the shared mini card: rounder, a lined caption, chips with an edge. */
+.acs-tile__card.lmc--sheet {
+  height: 100%;
+  border-radius: calc(12px * var(--ui-scale, 1));
+}
+
+.acs-tile__card .lmc__tag {
+  border: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-white);
+}
+
+/* What the cluster does to the score, on the picture's top-left corner; above the card's button for the click. */
+.acs-tile__effect {
+  position: absolute;
+  top: var(--space-xxs);
+  left: var(--space-xxs);
+  z-index: 1;
+  padding: 0 calc(6px * var(--ui-scale, 1));
+  border-radius: var(--border-radius);
+  background: rgb(255 255 255 / 92%);
+  font: var(--text-tiny-semibold);
+  line-height: calc(18px * var(--ui-scale, 1));
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.acs-tile__effect[hidden] {
+  display: none;
+}
+
+/* "6 labels": the way to the whole cluster, on the picture's top-right corner. */
+.acs-tile__size {
+  position: absolute;
+  top: var(--space-xxs);
+  right: var(--space-xxs);
+  z-index: 1;
+  min-height: calc(24px * var(--ui-scale, 1));
+  padding: 0 calc(6px * var(--ui-scale, 1));
+  border: 0;
+  border-radius: var(--border-radius);
+  background: rgb(36 36 36 / 75%);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+.acs-tile__size:hover {
+  background: rgb(36 36 36 / 90%);
+}
+
+.acs-tile__size:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
 }
 
 /* ---- Dark basemap ---- */
@@ -1680,6 +2497,39 @@
 @media (width <= 1100px) {
   .acs-dock__body {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Under --breakpoint-md the drawer, the panel and a map worth looking at don't fit side by side, so the panel
+   covers the map to the right of the drawer (all of it once the drawer covers too, under --breakpoint-sm) and takes
+   no map padding, the drawer's rule; the band and the map controls stop making room for it, and the status pill,
+   which sits above the panel, is put away while the panel covers what it would point at. The same width is the
+   panel's NARROW_QUERY. */
+@media (width <= 992px) {
+  .acs-panel {
+    left: var(--map-inset-left, 0);
+    width: auto;
+  }
+
+  .acs-dock,
+  #acs-map .mapboxgl-ctrl-top-right {
+    right: 0;
+  }
+
+  #acs-map-holder:has(#acs-panel:not([hidden])) .map-status-pill {
+    display: none;
+  }
+}
+
+/* A header too narrow for title, hop and close in one row drops the hop under the title. */
+@container acs-panel (width <= 360px) {
+  .acs-panel__head {
+    grid-template-columns: 1fr auto;
+  }
+
+  .acs-panel__actions {
+    grid-column: 1 / -1;
+    padding-top: var(--space-xs);
   }
 }
 
