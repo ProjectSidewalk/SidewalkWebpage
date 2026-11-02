@@ -30,6 +30,7 @@ import { MapLoadingOverlay } from '../ps-map/MapLoadingOverlay.js';
 import { MapSidebarUrlSync } from '../ps-map/MapSidebarUrlSync.js';
 import { MapStatusPill } from '../ps-map/MapStatusPill.js';
 import { createLabelSpotlight } from '../ps-map/labelSpotlight.js';
+import { createNearbyLabelNavigator } from '../ps-map/nearbyLabelNavigator.js';
 import { paddingTarget } from '../ps-map/mapPadding.js';
 import { ViewportLabelLoader } from '../ps-map/ViewportLabelLoader.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
@@ -509,6 +510,11 @@ export const AccessScoreApp = (function () {
         onLoaded: (clusterId) => {
           if (clusterId !== null && clusterDots.has(clusterId) && sheet.dialog.open) spotlight.spotlight(clusterId);
         },
+        // An arrow lands on a drawn cluster: opened as its dot's click would be, beacon and tail included.
+        onNavigate: (clusterId) => {
+          const props = layer.cluster(clusterId);
+          if (props) selectCluster(props);
+        },
       });
       const spotlight = createLabelSpotlight({
         dialog: sheet.dialog,
@@ -562,7 +568,18 @@ export const AccessScoreApp = (function () {
         keys: { belowFloor: 'accessscore:zoom-in-for-clusters', loading: 'accessscore:loading-clusters' },
       });
       let visible = model.state.showClusters;
-      loader.onData((featureCollection) => layer.setData(featureCollection));
+      // The sheet's arrows tour the clusters on the map as LabelMap's tour its labels: nearest unvisited next,
+      // the trail back. The navigator reads the layer's live collection, re-read on every refetch.
+      const clusterNav = createNearbyLabelNavigator({
+        get sortedLabels() {
+          return layer.sortedClusters;
+        },
+      }, { idKey: 'label_cluster_id' });
+      sheet.setNavigator(clusterNav);
+      loader.onData((featureCollection) => {
+        layer.setData(featureCollection);
+        clusterNav.refresh();
+      });
       loader.onError((e) => console.error('AccessScore cluster feed failed', e));
       loader.onStateChange((state) => pill.setState(visible ? state : 'idle'));
       loader.start();

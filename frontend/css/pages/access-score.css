@@ -1637,6 +1637,46 @@
   color: var(--color-neutral-700);
 }
 
+/* Prev and next, the label card's chips brought into the head beside the close: always visible here, since the
+   sheet has no picture to keep clean. */
+.acs-sheet__paging {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.acs-sheet__paging[hidden] {
+  display: none;
+}
+
+.acs-sheet__paging:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-black);
+}
+
+.acs-sheet__paging:disabled {
+  color: var(--color-neutral-400);
+  cursor: default;
+}
+
+.acs-sheet__paging:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-sheet__paging svg {
+  display: block;
+}
+
 .acs-sheet__close {
   flex: none;
   width: 32px;

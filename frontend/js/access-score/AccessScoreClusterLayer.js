@@ -95,6 +95,30 @@ export class AccessScoreClusterLayer {
   }
 
   /**
+   * The clusters drawn, per type, in the shape `createNearbyLabelNavigator` tours (#5748): a nearby-cluster
+   * navigator reads this on every step, so it is the live collection, not a copy.
+   * @returns {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} Features by label type.
+   */
+  get sortedClusters() {
+    /** @type {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} */
+    const byType = Object.fromEntries(this.#types.map((type) => [type, []]));
+    for (const feature of this.#data.features || []) {
+      byType[feature.properties.label_type]?.push(/** @type {GeoJSON.Feature<GeoJSON.Point>} */ (feature));
+    }
+    return byType;
+  }
+
+  /**
+   * One drawn cluster's properties, as a click would hand them over, coordinates included.
+   * @param {number} clusterId - A `label_cluster_id`.
+   * @returns {?AccessScoreClusterProps} Null when the cluster is not among those drawn.
+   */
+  cluster(clusterId) {
+    const feature = (this.#data.features || []).find((f) => f.properties.label_cluster_id === clusterId);
+    return feature ? AccessScoreClusterLayer.#props(feature) : null;
+  }
+
+  /**
    * Rebuilds the sources and layers after a `map.setStyle`, with the last data and the visibility in force. The
    * pointer handlers are keyed by layer id and survive the swap, so they are not bound again.
    */

@@ -610,7 +610,9 @@ loaded by the corresponding Twirl view:
   sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop cards, the sheet as many
   cards wide as the cluster has up to the window's width, and tied to its dot as LabelMap's card is to its label
   through the shared `ps-map/labelSpotlight.js`: a beacon on the dot, the camera parking it in the free gutter
-  beside the sheet, between the drawers, and a tail from sheet to dot), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  beside the sheet, between the drawers, and a tail from sheet to dot, with prev and next arrows that tour the
+  clusters on the map through the same `ps-map/nearbyLabelNavigator.js` LabelMap's card uses, nearest unvisited
+  next and the trail back), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood

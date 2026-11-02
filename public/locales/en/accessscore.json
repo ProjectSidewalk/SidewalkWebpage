@@ -133,6 +133,8 @@
   "sheet-meta_one": "{{count}} label on street {{street}}",
   "sheet-meta_other": "{{count}} labels on street {{street}}",
   "sheet-loading": "Loading labels…",
+  "sheet-prev": "Previous cluster",
+  "sheet-next": "Next cluster",
   "sheet-error_one": "{{count}} label couldn't be loaded.",
   "sheet-error_other": "{{count}} labels couldn't be loaded.",
   "sheet-more_one": "{{count}} more label not shown.",

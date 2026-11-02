@@ -133,6 +133,8 @@
   "sheet-meta_one": "{{count}} étiquette sur la rue {{street}}",
   "sheet-meta_other": "{{count}} étiquettes sur la rue {{street}}",
   "sheet-loading": "Chargement des étiquettes…",
+  "sheet-prev": "Groupe précédent",
+  "sheet-next": "Groupe suivant",
   "sheet-error_one": "{{count}} étiquette n'a pas pu être chargée.",
   "sheet-error_other": "{{count}} étiquettes n'ont pas pu être chargées.",
   "sheet-more_one": "{{count}} étiquette de plus non affichée.",

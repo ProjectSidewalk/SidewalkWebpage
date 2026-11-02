@@ -2,6 +2,9 @@
  * The labels behind one cluster, all at once (#5217): a modal sheet of `LabelMiniCard`s opened from a cluster dot,
  * so the reader sees the agreement a cluster stands for, and can add to it, without paging. Crops rather than
  * live panos: a cluster of ten would otherwise be ten street-view loads.
+ *
+ * Prev and next arrows (#5748), as the label card has, step to the next cluster on the map through a navigator
+ * the host supplies: the nearest not yet visited, and back along the trail. The arrow keys do the same.
  */
 
 import i18next from 'i18next';
@@ -18,6 +21,10 @@ export class AccessScoreClusterSheet {
   #onOpenLabel;
   #log;
   #onLoaded;
+  #onNavigate;
+  /** @type {?{next: (id: number) => ?number, prev: (id: number) => ?number, hasNext: (id: number) => boolean,
+   *   hasPrev: (id: number) => boolean, onRefresh: (cb: () => void) => void}} */
+  #nav = null;
   #els;
   #openToken = 0;
   /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
@@ -32,11 +39,14 @@ export class AccessScoreClusterSheet {
    *   the cluster it was showing.
    * @param {(clusterId: ?number) => void} [options.onLoaded] - Called once a cluster's cards are on show, when the
    *   sheet has its full size: a host placing something beside it (#5748) can only do so then.
+   * @param {(clusterId: number) => void} [options.onNavigate] - Called with the cluster an arrow lands on; the
+   *   host opens it as a click on its dot would.
    */
-  constructor({ onOpenLabel, log = () => {}, onClose = () => {}, onLoaded = () => {} }) {
+  constructor({ onOpenLabel, log = () => {}, onClose = () => {}, onLoaded = () => {}, onNavigate = () => {} }) {
     this.#onOpenLabel = onOpenLabel;
     this.#log = log;
     this.#onLoaded = onLoaded;
+    this.#onNavigate = onNavigate;
     this.#dialog = document.createElement('dialog');
     this.#dialog.className = 'acs-sheet';
     this.#dialog.setAttribute('aria-labelledby', 'acs-sheet-title');
@@ -47,6 +57,18 @@ export class AccessScoreClusterSheet {
           <h2 class="acs-sheet__title" id="acs-sheet-title"></h2>
           <p class="acs-sheet__meta"></p>
         </div>
+        <button type="button" class="acs-sheet__paging acs-sheet__paging--prev" data-acs-page="prev"
+            aria-label="${util.escapeHTML(i18next.t('accessscore:sheet-prev'))}" aria-keyshortcuts="ArrowLeft" hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="14.5 18 8.5 12 14.5 6"/></svg>
+        </button>
+        <button type="button" class="acs-sheet__paging acs-sheet__paging--next" data-acs-page="next"
+            aria-label="${util.escapeHTML(i18next.t('accessscore:sheet-next'))}" aria-keyshortcuts="ArrowRight" hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9.5 18 15.5 12 9.5 6"/></svg>
+        </button>
         <button type="button" class="acs-sheet__close" aria-label="${util.escapeHTML(i18next.t('common:close'))}">
           <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
         </button>
@@ -62,7 +84,18 @@ export class AccessScoreClusterSheet {
       status: this.#dialog.querySelector('.acs-sheet__status'),
       grid: this.#dialog.querySelector('.acs-sheet__grid'),
       more: this.#dialog.querySelector('.acs-sheet__more'),
+      prev: this.#dialog.querySelector('.acs-sheet__paging--prev'),
+      next: this.#dialog.querySelector('.acs-sheet__paging--next'),
     };
+    this.#els.prev.addEventListener('click', () => this.#page('prev'));
+    this.#els.next.addEventListener('click', () => this.#page('next'));
+    // The arrow keys page as the chips do, unless the reader is typing in something of the sheet's own.
+    this.#dialog.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+      this.#page(e.key === 'ArrowLeft' ? 'prev' : 'next');
+    });
     this.#dialog.querySelector('.acs-sheet__close').addEventListener('click', () => this.close());
     // The dialog's own event, so Escape and the backdrop count as well as the button.
     this.#dialog.addEventListener('close', () => onClose(this.#clusterId));
@@ -87,6 +120,36 @@ export class AccessScoreClusterSheet {
   /** @returns {?number} The cluster on show, or null. */
   get clusterId() {
     return this.#clusterId;
+  }
+
+  /**
+   * Gives the arrows somewhere to go: a navigator over the clusters on the map, in `nearbyLabelNavigator.js`'s
+   * shape. The arrows appear with it and follow its refreshes, since a viewport refetch changes what is reachable.
+   * @param {{next: (id: number) => ?number, prev: (id: number) => ?number, hasNext: (id: number) => boolean,
+   *   hasPrev: (id: number) => boolean, onRefresh: (cb: () => void) => void}} nav - The navigator.
+   */
+  setNavigator(nav) {
+    if (nav !== this.#nav) nav.onRefresh(() => this.#updatePaging());
+    this.#nav = nav;
+    this.#els.prev.hidden = false;
+    this.#els.next.hidden = false;
+    this.#updatePaging();
+  }
+
+  #updatePaging() {
+    const id = this.#clusterId;
+    const can = (fn) => this.#nav !== null && id !== null && fn(id);
+    this.#els.prev.disabled = !can((i) => this.#nav.hasPrev(i));
+    this.#els.next.disabled = !can((i) => this.#nav.hasNext(i));
+  }
+
+  /** Steps to the previous or next cluster, if there is one, and hands it to the host to open. */
+  #page(direction) {
+    if (!this.#nav || this.#clusterId === null) return;
+    const id = direction === 'prev' ? this.#nav.prev(this.#clusterId) : this.#nav.next(this.#clusterId);
+    if (id === null || id === undefined) return;
+    this.#log('SheetPage', direction);
+    this.#onNavigate(id);
   }
 
   /**
@@ -119,6 +182,7 @@ export class AccessScoreClusterSheet {
     const shown = ids.slice(0, AccessScoreClusterSheet.MAX_CARDS);
     // The stylesheet sizes the sheet from this: as many cards wide as the cluster has, up to the window's width.
     this.#dialog.style.setProperty('--acs-sheet-cards', String(Math.max(1, shown.length)));
+    this.#updatePaging();
     if (!this.#dialog.open) this.#dialog.showModal();
 
     const results = await Promise.allSettled(shown.map((id) => fetch(`/label/id/${id}`).then((r) => {

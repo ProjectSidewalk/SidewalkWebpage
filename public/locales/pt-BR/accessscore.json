@@ -133,6 +133,8 @@
   "sheet-meta_one": "{{count}} etiqueta na rua {{street}}",
   "sheet-meta_other": "{{count}} etiquetas na rua {{street}}",
   "sheet-loading": "Carregando etiquetas…",
+  "sheet-prev": "Grupo anterior",
+  "sheet-next": "Próximo grupo",
   "sheet-error_one": "{{count}} etiqueta não pôde ser carregada.",
   "sheet-error_other": "{{count}} etiquetas não puderam ser carregadas.",
   "sheet-more_one": "{{count}} etiqueta a mais não mostrada.",

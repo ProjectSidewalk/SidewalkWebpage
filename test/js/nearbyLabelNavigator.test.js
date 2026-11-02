@@ -31,6 +31,20 @@ describe('createNearbyLabelNavigator', () => {
   // Five labels along a street: 1..4 clustered 111m apart, 5 further down the block.
   const LINE = { CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0], [4, 0.003, 0], [5, 0.01, 0]] };
 
+  test('idKey names the property that identifies a feature, for touring AccessScore clusters (#5748)', async () => {
+    const sortedLabels = {
+      CurbRamp: [[1, 0, 0], [2, 0.001, 0]].map(([id, lng, lat]) => ({
+        properties: { label_cluster_id: id }, geometry: { coordinates: [lng, lat] },
+      })),
+    };
+    const nav = (await loadFactory())({ sortedLabels }, { idKey: 'label_cluster_id' });
+    expect(nav.getCoords(1)).toEqual([0, 0]);
+    expect(nav.hasNext(1)).toBe(true);
+    expect(nav.next(1)).toBe(2);
+    expect(nav.next(2)).toBeNull();
+    expect(nav.prev(2)).toBe(1);
+  });
+
   test('next() tours nearest-first without revisiting, and returns null when exhausted', async () => {
     const nav = (await loadFactory())(mapDataWith(LINE));
     expect(nav.next(1)).toBe(2);

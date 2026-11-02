@@ -571,6 +571,17 @@ test.describe('/accessScore', () => {
       await expect(page.locator('.labelmap-beacon--spotlight')).toHaveCount(1);
       await expect(page.locator('.labelmap-tail')).toBeVisible();
       await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).toBeGreaterThanOrEqual(16);
+      // The arrows tour the clusters on the map: next is the nearest not yet visited, the obstacle cluster on
+      // street 2; prev retraces.
+      const nextArrow = sheet.locator('.acs-sheet__paging--next');
+      await expect(nextArrow).toBeEnabled();
+      await expect(sheet.locator('.acs-sheet__paging--prev')).toBeDisabled();
+      await page.keyboard.press('ArrowRight');
+      await expect(sheet.locator('.acs-sheet__title')).toContainText('Obstacle');
+      await expect(sheet.locator('.lmc')).toHaveCount(2);
+      await expect(nextArrow).toBeDisabled();
+      await sheet.locator('.acs-sheet__paging--prev').click();
+      await expect(sheet.locator('.acs-sheet__title')).toContainText('Curb Ramp');
       // Closing leaves one flash on the dot and takes the tail away.
       await page.keyboard.press('Escape');
       await expect(sheet).toBeHidden();

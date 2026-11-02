@@ -89,6 +89,20 @@ describe('AccessScoreClusterLayer', () => {
     }));
   });
 
+  test('the drawn clusters are readable by type and by id, with their coordinates, for the sheet\'s arrows', () => {
+    const map = fakeMap();
+    const layer = new AccessScoreClusterLayer(map, { types: ['CurbRamp', 'Obstacle'], tooltipHtml: () => null, onSelect: vi.fn() });
+    const f = (id, type, lng) => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [lng, 40.8] },
+      properties: { label_cluster_id: id, label_type: type, label_ids: JSON.stringify([id * 10]) },
+    });
+    layer.setData({ type: 'FeatureCollection', features: [f(1, 'CurbRamp', -74), f(2, 'Obstacle', -74.001), f(3, 'CurbRamp', -74.002)] });
+    expect(Object.keys(layer.sortedClusters)).toEqual(['CurbRamp', 'Obstacle']);
+    expect(layer.sortedClusters.CurbRamp.map((x) => x.properties.label_cluster_id)).toEqual([1, 3]);
+    expect(layer.cluster(2)).toMatchObject({ label_cluster_id: 2, label_type: 'Obstacle', label_ids: [20], coordinates: [-74.001, 40.8] });
+    expect(layer.cluster(9)).toBeNull();
+  });
+
   test('setHovered lights a dot from outside without a tooltip, and puts it out; hidden layers take no hover', () => {
     const map = fakeMap();
     const onHover = vi.fn();

@@ -156,7 +156,8 @@ profile, hovered or focused, once per cluster per open), `AccessScore_PanelOpenL
 which opens the crossing card, once per crossing per open) and `AccessScore_PanelFlyTo_value=<start|end|block>` (a
 crossing's dot or the block pressed, which flies the map there),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
-`AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
+`AccessScore_SheetPage_value=<prev|next>` (the sheet's arrows or arrow keys stepping to the nearest cluster not yet
+visited, or back along the trail), `AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
 and the panel's and popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
 `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
 `AccessScore_PlaceCategoryOnly_value=<category>` (a row's hover-revealed "Only") and
