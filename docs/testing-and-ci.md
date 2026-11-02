@@ -272,12 +272,11 @@ checks list.
 **Branch protection (`develop`, set 2026-06-29; extended 2026-09-01 with #4743).** The deterministic jobs are wired as
 **required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend
 (compile + scalafmt)`**, **`Frontend (build)`**, **`Route reachability lint`**, **`Evolutions lint`**, **`Backend tests
-(API, PostGIS)`**, **`Python tests`**, and **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115
-made both of its steps blocking). **`Shell script lint`** (#5589) is next in line, to be required once that job is on
-`develop`. Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required
-reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)),
-`strict=false` (no "branch up to date" churn). Repo **auto-merge** is enabled (opt-in per PR: queue a merge that fires
-when checks pass; merges nothing on its own).
+(API, PostGIS)`**, **`Python tests`**, **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115 made both of its
+steps blocking) and **`Shell script lint`** (#5589). Settings: `enforce_admins=true` (no admin bypass — it only ever
+blocks a *red* merge), **no required reviews** (maintainers self-merge; review stays a convention, not a gate — see
+[`CONTRIBUTING.md`](../CONTRIBUTING.md)), `strict=false` (no "branch up to date" churn). Repo **auto-merge** is enabled
+(opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
 
 **Dependency automation:** **Scala Steward** (VirtusLab's hosted instance, `.scala-steward.conf`) for sbt deps —
 Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, `docker`, and

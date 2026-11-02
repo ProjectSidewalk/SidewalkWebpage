@@ -36,7 +36,7 @@ dependencies must be installed in the `python3.12` the app shells out to.
 
 ```bash
 make test-python                                              # everything, in the web container
-make test-python args=test/python/test_label_clustering.py    # just this script
+make test-python args="--no-cov test/python/test_label_clustering.py"    # one file (the 100% gate is suite-wide)
 ```
 
 See [`test/python/README.md`](../test/python/README.md).

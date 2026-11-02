@@ -66,7 +66,8 @@ make test-python
 ```
 
 That runs `pytest` inside the running `projectsidewalk-web` container, whose `python3` (3.12) is the same minor as
-the `python3.12` the deployed server shells out to (#4396). It takes `args=` for pytest flags or a single file.
+the `python3.12` the deployed server shells out to (#4396). It takes `args=` for pytest flags or a single file; a
+single file needs `--no-cov` too, since the 100% coverage gate counts every script.
 
 Dependencies are preinstalled in the container (`requirements-offline-tools.txt`, which includes `requirements.txt`,
 plus `requirements-dev.txt`). To run pytest directly (from a worktree, `cd` to `/home/.claude/worktrees/<name>`

@@ -570,8 +570,12 @@ jobs:
           cache-dependency-path: requirements*.txt
 
       # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
+      # Prod installs requirements.txt with Rocky 9's python3.12-pip, so a Dependabot bump has to resolve with that pip,
+      # not only the runner's newest one. The image's pip is newer than this, so passing here covers it too.
       - name: Install dependencies
-        run: pip install -r requirements-offline-tools.txt -r requirements-dev.txt
+        run: |
+          pip install pip==23.2.1
+          pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 
       - name: Run pytest
         run: pytest

@@ -23,8 +23,8 @@ import shapely.errors
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping
 from shapely.ops import substring
 
-import onboard_city as oc  # noqa: E402
-import overpass as op  # noqa: E402
+import onboard_city as oc
+import overpass as op
 
 
 @pytest.fixture(autouse=True)
