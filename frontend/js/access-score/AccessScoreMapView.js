@@ -597,9 +597,13 @@ export class AccessScoreMapView {
     };
     bind(AccessScoreMapView.STREET_LAYER, AccessScoreMapView.STREET_SOURCE, 'streets');
     bind(AccessScoreMapView.REGION_FILL_LAYER, AccessScoreMapView.REGION_SOURCE, 'regions');
-    // A click on bare map clears the selection; Mapbox marks layer clicks with defaultPrevented.
+    // A click on bare map clears the selection. Mapbox marks a layer click with defaultPrevented, but only once
+    // that layer's handler has run, and the cluster and place layers are mounted after this view, so their clicks
+    // reach here unmarked: they are asked directly, or a click on a cluster dot would close the street panel under
+    // the sheet it opens (#5748).
     this.#map.on('click', (e) => {
-      if (!e.defaultPrevented && this.#selected.id !== null) this.#onSelect(null);
+      if (e.defaultPrevented || this.#selected.id === null || this.#clickClaimed(e)) return;
+      this.#onSelect(null);
     });
     // Leaving the canvas for a DOM element over it — the address-search pin and its popup, a control — fires no
     // layer mouseleave, and the tooltip would otherwise sit open beside the pin's own popup.
