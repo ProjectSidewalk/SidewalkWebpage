@@ -771,21 +771,28 @@ export class AccessScoreModel {
    * One cluster's own part of its street's score under the current state (#5748), so a picture of the cluster can
    * carry what it costs or earns. Exact for a per-cluster type: the engine scores a cluster from its median rating and
    * from the tags on at least the config's `tag_active_threshold` of its labels, and the cluster feed carries both.
-   * A corner cluster
-   * at one of the street's crossings scores that crossing, where no length factor applies; anything else on the
-   * street scores the block. A street-condition type (NoSidewalk) is pooled once per street, so its clusters have no
-   * number of their own: the street's whole term comes back, flagged `pooled`.
+   * A corner cluster scores its own crossing, where no length factor applies, so its number is the same whichever
+   * street asks and needs no street at all; a cluster on the street scores the block. A street-condition type
+   * (NoSidewalk) is pooled once per street, so its clusters have no number of their own: the street's whole term
+   * comes back, flagged `pooled`, with how many clusters share it.
    *
    * @param {{label_type: string, median_severity: ?number, cluster_size: number, intersection_id: ?number,
    *   tag_counts?: Record<string, number>}} cluster - A cluster as `/v3/api/labelClusters` describes it.
-   * @param {AccessScoreStreetExplanation} street - The street the cluster scores, from `explainStreet`.
-   * @returns {?{term: number, pooled: boolean}} The signed term, or null for a type the engine does not score.
+   * @param {?AccessScoreStreetExplanation} street - The street the cluster scores, from `explainStreet`; may be
+   *   null for a corner cluster, whose crossing is its own.
+   * @returns {?{term: number, pooled: boolean, count?: number}} The signed term, or null for a type the engine does
+   *   not score, or a block cluster of a street it cannot see.
    */
   clusterTerm(cluster, street) {
     const type = cluster.label_type;
     const t = this.#types.indexOf(type);
-    if (t < 0 || !street?.terms?.[type]) return null;
-    if (this.#scoring[t] === 'street_condition') return { term: street.terms[type].term, pooled: true };
+    if (t < 0) return null;
+    const corner = cluster.intersection_id !== null && cluster.intersection_id !== undefined;
+    if (this.#scoring[t] === 'street_condition') {
+      const pooled = street?.terms?.[type];
+      return pooled ? { term: pooled.term, pooled: true, count: pooled.clusterCount } : null;
+    }
+    if (!corner && !street?.terms?.[type]) return null;
     const bucket = String(cluster.median_severity ?? 'null');
     let tags = 0;
     const deltas = this.#tagDeltas.get(type);
@@ -796,13 +803,7 @@ export class AccessScoreModel {
         }
       }
     }
-    const ends = [street.startIntersection?.id, street.endIntersection?.id];
-    const corner = cluster.intersection_id !== null && cluster.intersection_id !== undefined;
-    const atCrossing = corner && ends.includes(cluster.intersection_id);
-    // A corner cluster scores its own intersection only; at a crossing that is not this street's end it moves this
-    // street by nothing, and the engine's zero is better said as "no number" than as a signed 0.00.
-    if (corner && !atCrossing) return null;
-    const lengthFactor = atCrossing ? 1 : street.terms[type].lengthFactor;
+    const lengthFactor = corner ? 1 : street.terms[type].lengthFactor;
     const term = (this.signedWeight(type) * this.#multiplier(this.#scoring[t], bucket) + tags) * lengthFactor;
     return { term, pooled: false };
   }

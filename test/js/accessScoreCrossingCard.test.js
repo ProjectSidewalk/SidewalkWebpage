@@ -124,11 +124,11 @@ describe('AccessScoreCrossingCard', () => {
         {type: 'Feature', geometry: {type: 'Point', coordinates: [-74, 40.8]},
           properties: {label_type: 'NoCurbRamp', label_cluster_id: 1}},
       ]);
-      // The next crossing reuses the map: a resize for the container that was hidden, a jump, fresh data.
+      // The next crossing reuses the map, and at once: only the first build waits. A resize for the container
+      // that was hidden, a jump, fresh data.
       card.close();
       expect(card.open).toBe(false);
       card.show({...crossing([cluster(2, 'CurbRamp', 1, 11, -73.9)]), key: 'end', lngLat: {lng: -73.9, lat: 40.8}});
-      beat();
       expect(maps).toHaveLength(1);
       expect(maps[0].resize).toHaveBeenCalled();
       expect(maps[0].jumpTo).toHaveBeenCalledWith({center: [-73.9, 40.8], zoom: AccessScoreCrossingCard.ZOOM});

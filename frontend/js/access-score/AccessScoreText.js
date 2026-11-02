@@ -49,6 +49,22 @@ export function signed(value) {
 }
 
 /**
+ * What a cluster does to its street, in words: "Curb Ramp on this street: +0.75", or for a pooled type, whose
+ * clusters share one number, "No Sidewalk on this street: part of −3.00". Plain text; the sink escapes it.
+ * @param {string} type - The cluster's label type.
+ * @param {{term: number, pooled: boolean}} term - Its term, from `AccessScoreModel#clusterTerm`.
+ * @returns {string} The sentence.
+ */
+export function effectText(type, term) {
+  const value = term.pooled
+    ? i18next.t('accessscore:panel-effect-pooled', { value: signed(term.term), interpolation: { escapeValue: false } })
+    : signed(term.term);
+  return i18next.t('accessscore:cluster-effect', {
+    type: util.misc.labelTypeName(type), value, interpolation: { escapeValue: false },
+  });
+}
+
+/**
  * A grade as a percentage, escaped for markup.
  * @param {number} grade - A grade as a fraction (0.05 is 5%).
  * @returns {string} "5.0%".

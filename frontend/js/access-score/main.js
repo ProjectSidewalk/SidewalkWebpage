@@ -17,9 +17,7 @@ import { AccessScoreModel } from './AccessScoreModel.js';
 import { AccessScorePlacesLayer } from './AccessScorePlacesLayer.js';
 import { AccessScoreSidebar } from './AccessScoreSidebar.js';
 import { AccessScoreStreetPanel } from './AccessScoreStreetPanel.js';
-import {
-  componentsHtml, formatScore, hopLinksHtml, signed, streetTitle,
-} from './AccessScoreText.js';
+import { componentsHtml, effectText, formatScore, hopLinksHtml, signed, streetTitle } from './AccessScoreText.js';
 import { AccessScoreUrlSync } from './AccessScoreUrlSync.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { featureCollectionBounds } from '../common/geoBounds.js';
@@ -296,7 +294,7 @@ export const AccessScoreApp = (function () {
         else select(null);
       },
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
-      onOpenSheet: (props, effect) => evidence.openSheet(props, effect),
+      onOpenSheet: (props) => evidence.openSheet(props),
       onHoverCluster: (props) => evidence.layer.setHovered(props),
       onHoverGroup: (list) => evidence.layer.setHighlighted(list),
       // The block flies as a rank row does; a crossing closer, to its corners.
@@ -514,7 +512,7 @@ export const AccessScoreApp = (function () {
         // can lead back to a cluster a refetch has since dropped from the layer; the click that opened it is kept.
         onNavigate: (clusterId) => {
           const props = layer.cluster(clusterId) ?? clusterDots.get(clusterId)?.props ?? null;
-          if (props) selectCluster(props);
+          if (props) selectCluster(props, { log: false });
         },
       });
       const spotlight = createLabelSpotlight({
@@ -533,18 +531,14 @@ export const AccessScoreApp = (function () {
         },
       });
       map.on('move', spotlight.updateTail);
-      const selectCluster = (props) => {
+      /**
+       * Opens a cluster's sheet, beacon and tail included. `log` is for a click on the dot; an arrow press and a
+       * panel tile are logged by their own events.
+       */
+      const selectCluster = (props, { log: logClick = true } = {}) => {
         if (!props.label_ids?.length) return;
-        log('SelectCluster_labelType', props.label_type);
-        // The cluster's own share of its street's score, the figure its tile in the panel wears, so the sheet
-        // says the same number however it was opened.
-        const street = model.explainStreet(props.street_edge_id);
-        const term = street?.audited ? model.clusterTerm(props, street) : null;
-        const effect = term
-          ? i18next.t('accessscore:cluster-effect', {
-              type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
-            })
-          : '';
+        if (logClick) log('SelectCluster_labelType', props.label_type);
+        const effect = clusterEffect(props);
         if (Array.isArray(props.coordinates)) {
           clusterDots.set(props.label_cluster_id, { coordinates: props.coordinates, type: props.label_type, props });
         }
@@ -594,8 +588,11 @@ export const AccessScoreApp = (function () {
         selectCluster,
         /** The label card, paging over a list — the cluster sheet's, the photo strip's and the panel's shared exit. */
         openLabel,
-        /** The cluster sheet, for a panel tile whose cluster holds more than one label (#5748). */
-        openSheet: (props, effect) => sheet.open(props, effect),
+        /**
+         * The cluster sheet for a panel tile whose cluster holds more than one label (#5748), opened as its dot's
+         * click would be, so the arrows can find their way back to it and it is beaconed like any other.
+         */
+        openSheet: (props) => selectCluster(props, { log: false }),
         /** Subscribes to the pointer landing on, and leaving, a cluster dot. */
         onHover: (listener) => hoverListeners.push(listener),
         setVisible(show) {
@@ -747,10 +744,24 @@ export const AccessScoreApp = (function () {
      * A cluster's hover card: what it is, how many labels agree on it, and — the point of drawing clusters at all —
      * what its type is doing to the score of the street it sits on.
      */
+    /**
+     * The cluster's own share of its street's score, the figure its tile in the panel wears, so the dot's tooltip,
+     * its sheet and the panel say the same number: a corner cluster's crossing term (whichever street asks), a
+     * block cluster's share of its audited street's term, a pooled type's "part of".
+     * @param {import('./AccessScoreClusterLayer.js').AccessScoreClusterProps} props - The cluster.
+     * @returns {string} The sentence, or '' where the engine has no number for it.
+     */
+    function clusterEffect(props) {
+      const street = model.explainStreet(props.street_edge_id);
+      const term = model.clusterTerm(props, street?.audited ? street : null);
+      return term ? effectText(props.label_type, term) : '';
+    }
+
     function clusterTooltipHtml(props) {
       // A rating's words differ by type — a curb ramp is good/okay/bad, an obstacle low/medium/high — so the
       // wording comes from util.misc rather than a mapping written here.
       const type = props.label_type;
+      const typeName = util.misc.labelTypeName(type);
       const rating = util.misc.labelTypeHasSeverity(type) && props.median_severity
         ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
         : null;
@@ -760,15 +771,9 @@ export const AccessScoreApp = (function () {
         }),
         rating,
       ].filter(Boolean).join(' · ');
-      const street = model.explainStreet(props.street_edge_id);
-      const term = street?.audited ? street.terms[type] : null;
-      // The term is this type's whole contribution to the street, not this one cluster's, so the wording says
-      // "on this street" rather than pinning the number to the dot under the pointer.
-      const typeName = util.misc.labelTypeName(type);
-      const effect = term
-        ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: typeName, value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
-        : '';
+      // The same figure the click's sheet and the panel's tile carry for this cluster.
+      const effectLine = clusterEffect(props);
+      const effect = effectLine ? `<div class="acs-tooltip__meta">${util.escapeHTML(effectLine)}</div>` : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
         util.misc.getLabelColors(type)};"></span>${typeName}</strong>
         <div class="acs-tooltip__meta">${meta}</div>

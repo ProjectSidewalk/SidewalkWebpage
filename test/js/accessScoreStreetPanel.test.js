@@ -357,16 +357,20 @@ describe('AccessScoreStreetPanel', () => {
       panel.refresh();
       expect(rows().find((r) => r.dataset.type === 'Obstacle').getAttribute('aria-pressed')).toBe('true');
       expect(chip.hidden).toBe(false);
-      // The chip lifts it.
+      // The chip lifts it, and focus, which the hidden chip could not keep, lands on the evidence heading.
+      chip.focus();
       chip.click();
+      expect(document.activeElement).toBe(root.querySelector('#acs-panel-evidence-title'));
       await settle();
       expect(callbacks.log).toHaveBeenCalledWith('PanelUnpinRow', 'Obstacle');
       expect(chip.hidden).toBe(true);
       expect(tiles('block')).toHaveLength(12);
       expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
-      // Pressing the pinned row again lifts it too.
-      obstacleRow.click();
-      obstacleRow.click();
+      // Pressing the pinned row again lifts it too (the rows were rebuilt by the reweighting above).
+      const rebuiltRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      rebuiltRow.click();
+      expect(rebuiltRow.getAttribute('aria-pressed')).toBe('true');
+      rebuiltRow.click();
       await settle();
       expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
       // Every tile on show, the unrated Signal cluster included, for the hover checks below.

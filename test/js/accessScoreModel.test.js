@@ -709,7 +709,11 @@ describe('AccessScoreModel#clusterTerm (#5748)', () => {
         }
         if (FIXTURE.config.type_weights[cluster.label_type].scoring === 'street_condition') {
           // Pooled once per street: the cluster carries the street's whole term, flagged as such.
-          expect(result).toEqual({ term: street.terms[cluster.label_type].term, pooled: true });
+          // The whole term, flagged, with how many clusters share it: the panel ranks each by its share.
+          expect(result).toEqual({
+            term: street.terms[cluster.label_type].term, pooled: true,
+            count: street.terms[cluster.label_type].clusterCount,
+          });
           continue;
         }
         expect(result.pooled).toBe(false);
@@ -745,9 +749,10 @@ describe('AccessScoreModel#clusterTerm (#5748)', () => {
     // Fifty meters of street: a problem per 100 m counts double.
     expect(model.clusterTerm(onBlock, street).term).toBeCloseTo(base * 2, 9);
     expect(model.clusterTerm({ ...onBlock, intersection_id: 7 }, street).term).toBeCloseTo(base, 9);
-    // A corner cluster scores its own crossing only: at one that is not this street's end it is not this
-    // street's number at all, whatever its street_edge_id says.
-    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, street)).toBeNull();
+    // A corner cluster scores its own crossing, with no length factor, whichever street asks and even with none.
+    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, street).term).toBeCloseTo(base, 9);
+    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, null).term).toBeCloseTo(base, 9);
+    expect(model.clusterTerm(onBlock, null)).toBeNull();
     model.setState({ weights: { ...model.state.weights, Obstacle: 2 } });
     expect(model.clusterTerm(onBlock, model.explainStreet(1)).term).toBeCloseTo(base * 2 * 2, 9);
     expect(model.clusterTerm({ ...onBlock, label_type: 'Occlusion' }, street)).toBeNull();

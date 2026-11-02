@@ -32,7 +32,7 @@ import { setPaddingEdges } from '../ps-map/mapPadding.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
 import { AccessScoreCrossingCard } from './AccessScoreCrossingCard.js';
 import {
-  formatElevation, formatLength, formatScore, hopLinksHtml, percentHtml, signed, streetTitle,
+  effectText, formatElevation, formatLength, formatScore, hopLinksHtml, percentHtml, signed, streetTitle,
 } from './AccessScoreText.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreModel} AccessScoreModel */
@@ -315,6 +315,8 @@ export class AccessScoreStreetPanel {
       for (const key of AccessScoreStreetPanel.GROUPS) this.#renderGroup(key, this.#token);
     }
     this.#applyMarkers();
+    // A card open while a slider moves (by keyboard) re-reads its rows and crops too.
+    if (this.#card.open && this.#hoveredEnd !== null && this.#hoveredEnd !== 'block') this.#openCard(this.#hoveredEnd);
   }
 
   /**
@@ -1078,9 +1080,7 @@ export class AccessScoreStreetPanel {
         id: p.label_cluster_id,
         meters: along,
         color: util.misc.getLabelColors(p.label_type),
-        title: i18next.t('accessscore:cluster-effect', {
-          type: util.misc.labelTypeName(p.label_type), value: signed(term.term), interpolation: { escapeValue: false },
-        }),
+        title: effectText(p.label_type, term),
       });
     }
     return markers;
@@ -1152,7 +1152,12 @@ export class AccessScoreStreetPanel {
    */
   #rank(list) {
     const standing = AccessScoreClusterFeed.standing;
-    const term = (p) => this.#model.clusterTerm(p, this.#street)?.term ?? 0;
+    // A pooled type's clusters share one term: each ranks by its share of it, not as if it carried the whole.
+    const term = (p) => {
+      const t = this.#model.clusterTerm(p, this.#street);
+      if (!t) return 0;
+      return t.pooled ? t.term / Math.max(1, t.count ?? 1) : t.term;
+    };
     const order = (p) => this.#model.types.indexOf(p.label_type);
     return [...list].sort((a, b) => term(a) - term(b)
       || AccessScoreClusterFeed.compareWorstFirst(standing(a), standing(b))
@@ -1271,12 +1276,7 @@ export class AccessScoreStreetPanel {
       size.addEventListener('click', () => {
         this.#callbacks.log('PanelSheet_labelClusterId', props.label_cluster_id);
         const term = this.#model.clusterTerm(props, this.#street);
-        const effectLine = term
-          ? i18next.t('accessscore:cluster-effect', {
-              type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
-            })
-          : '';
-        this.#callbacks.onOpenSheet(props, effectLine);
+        this.#callbacks.onOpenSheet(props, term ? effectText(props.label_type, term) : '');
       });
       el.appendChild(size);
     }
@@ -1318,15 +1318,12 @@ export class AccessScoreStreetPanel {
     }
     el.hidden = false;
     const value = signed(term.term);
-    el.textContent = value;
-    if (term.pooled) el.textContent = i18next.t('accessscore:panel-effect-pooled', { value });
+    el.textContent = term.pooled ? i18next.t('accessscore:panel-effect-pooled', { value }) : value;
     let tone = 'none';
     if (term.term < 0) tone = 'problem';
     else if (term.term > 0) tone = 'feature';
     el.className = `acs-tile__effect acs-tile__effect--${tone}`;
-    el.setAttribute('data-ps-tooltip', esc(i18next.t('accessscore:cluster-effect', {
-      type: util.misc.labelTypeName(tile.props.label_type), value,
-    })));
+    el.setAttribute('data-ps-tooltip', esc(effectText(tile.props.label_type, term)));
   }
 
   #clearTiles() {

@@ -112,8 +112,11 @@ export class AccessScorePhotoStrip {
     if (token !== this.#token) return; // The scope moved on while the feed loaded.
     let clusters = perRegion.flat();
     if (streetId !== null) {
-      clusters = clusters.filter((p) => p.street_edge_id === streetId
-        || (intersectionIds && intersectionIds.has(p.intersection_id)));
+      // A corner cluster is its crossing's, not its street's: one at a crossing outside the street's ends scores
+      // nothing here, so it is not pictured here either (#5748).
+      const at = (p) => p.intersection_id ?? null;
+      clusters = clusters.filter((p) => (at(p) === null && p.street_edge_id === streetId)
+        || (intersectionIds && at(p) !== null && intersectionIds.has(at(p))));
     }
     if (bounds !== null) {
       const [west, south, east, north] = bounds;

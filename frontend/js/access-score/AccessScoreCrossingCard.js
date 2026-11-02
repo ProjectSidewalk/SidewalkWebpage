@@ -30,8 +30,8 @@ export class AccessScoreCrossingCard {
   static ZOOM = 18;
 
   /**
-   * How long the card is open before its inset is built or moved: a map load is what Mapbox bills, and a focus
-   * that is only passing through on its way down the panel should not pay for one.
+   * How long the card is open before its inset is first built: a map load is what Mapbox bills, and a focus that
+   * is only passing through on its way down the panel should not pay for one. A built inset moves at once.
    */
   static MAP_DELAY_MS = 250;
 
@@ -92,6 +92,10 @@ export class AccessScoreCrossingCard {
     this.#renderRows(explanation);
     this.#renderCrops(clusters, termOf, token);
     this.#cancelMapTimer();
+    if (this.#map) {
+      this.#showMap(lngLat, line, clusters ?? []);
+      return;
+    }
     this.#mapTimer = setTimeout(() => {
       this.#mapTimer = null;
       this.#showMap(lngLat, line, clusters ?? []);
