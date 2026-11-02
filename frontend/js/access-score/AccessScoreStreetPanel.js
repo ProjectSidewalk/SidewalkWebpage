@@ -176,8 +176,9 @@ export class AccessScoreStreetPanel {
    * @param {(lngLat: {lng: number, lat: number}, where: string) => void} [options.onFlyTo] - A dot or the block
    *   pressed: where the map should fly, and 'start', 'end' or 'block'.
    * @param {string} [options.cardStyleUrl] - The basemap style for the crossing card's inset.
-   * @param {(id: number, end: 'start'|'end') => ?number} [options.continuation] - The street that carries on from
-   *   an end of this one where there is no crossing, or null for a dead end.
+   * @param {(id: number, end: 'start'|'end') => ?{next: ?number, others: number}} [options.continuation] - What
+   *   is at an end of this street where there is no crossing: the one street that carries on from it as `next`,
+   *   and how many other streets meet there; null, or none, for a dead end.
    * @param {(id: ?number) => void} [options.onHoverStreet] - The continuing street hovered, or none.
    * @param {(id: number) => void} [options.onSelectStreet] - The continuing street pressed: select it.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
@@ -226,6 +227,9 @@ export class AccessScoreStreetPanel {
       this.#requestClose('escape');
     });
     this.#narrowMq.addEventListener?.('change', () => this.#applyPadding());
+    // The panel is a fraction of the window below about 1190px, so its width follows the window; what is laid out
+    // against it (the dock, the map's controls and padding) has to follow too.
+    if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.#applyPadding()).observe(root);
     this.#setShown(false);
   }
 
@@ -280,6 +284,7 @@ export class AccessScoreStreetPanel {
     this.#filterType = null;
     this.#pinnedType = null;
     this.#cancelRowTimer();
+    this.#leaveEndNow();
     // The card's element outlives the body's markup: the inset map inside it would otherwise be built again.
     this.#cardEl.remove();
     this.#els.body.innerHTML = '';
@@ -298,12 +303,17 @@ export class AccessScoreStreetPanel {
     if (this.#root.hidden) return;
     if (this.#street) this.#street = this.#model.explainStreet(this.#street.streetId);
     this.#renderExplanation();
-    for (const tile of this.#tiles.values()) this.#paintEffect(tile);
+    // Every tile built this open, not only those on show: a cached tile comes back under the new weights.
+    for (const tile of this.#tileCache.values()) this.#paintEffect(tile);
     for (const key of AccessScoreStreetPanel.GROUPS) {
       const score = this.#root.querySelector(`[data-acs-group="${key}"] .acs-group__score`);
       if (score) score.outerHTML = this.#groupScoreHtml(key);
     }
-    this.#reorder();
+    // Re-ranked and re-capped: a cluster the new weights make the costliest must be among the twelve on show.
+    if (this.#groups) {
+      for (const key of AccessScoreStreetPanel.GROUPS) this.#groups[key] = this.#rank(this.#groups[key]);
+      for (const key of AccessScoreStreetPanel.GROUPS) this.#renderGroup(key, this.#token);
+    }
     this.#applyMarkers();
   }
 
@@ -349,8 +359,13 @@ export class AccessScoreStreetPanel {
    */
   pin(type) {
     const next = this.#pinnedType === type ? null : type;
-    this.#callbacks.log(next ? 'PanelPinRow' : 'PanelUnpinRow', type);
+    this.#callbacks.log(next ? 'PanelPinRow' : 'PanelUnpinRow', next ?? this.#pinnedType);
     this.#pinnedType = next;
+    // The chip hides itself on unpin; focus on it would fall to the document, so it goes to the evidence heading.
+    const chip = this.#els.body.querySelector('[data-acs-filter-clear]');
+    if (next === null && chip && document.activeElement === chip) {
+      this.#els.body.querySelector('#acs-panel-evidence-title')?.focus();
+    }
     this.#applyFilter();
   }
 
@@ -422,6 +437,7 @@ export class AccessScoreStreetPanel {
     this.#filterType = null;
     this.#pinnedType = null;
     this.#cancelRowTimer();
+    this.#leaveEndNow();
     this.#renderShell();
     this.#renderExplanation();
     this.#setShown(true);
@@ -507,6 +523,7 @@ export class AccessScoreStreetPanel {
       this.#els.meta.innerHTML = [region ? esc(region.name) : null, formatLength(street.lengthM)]
         .filter(Boolean).join(' · ');
     }
+    const evidenceTitle = i18next.t('accessscore:panel-evidence');
     this.#els.body.innerHTML = `
       ${place ? '<p class="acs-panel__place-street" data-acs-place-street></p>' : ''}
       <div class="acs-panel__verdict" data-acs-verdict></div>
@@ -514,7 +531,7 @@ export class AccessScoreStreetPanel {
       <section class="acs-panel__section" data-acs-rows aria-labelledby="acs-panel-rows-title"></section>
       <section class="acs-panel__section" data-acs-evidence aria-labelledby="acs-panel-evidence-title">
         <div class="acs-panel__heading-row">
-          <h3 class="acs-panel__subtitle" id="acs-panel-evidence-title">${i18next.t('accessscore:panel-evidence')}</h3>
+          <h3 class="acs-panel__subtitle" id="acs-panel-evidence-title" tabindex="-1">${evidenceTitle}</h3>
           ${AccessScoreStreetPanel.#infoHtml(i18next.t('accessscore:panel-evidence-help'))}
           <button type="button" class="acs-panel__filter button button--small button--secondary"
             data-acs-filter-clear hidden></button>
@@ -606,8 +623,10 @@ export class AccessScoreStreetPanel {
       if (!e) {
         // No crossing here: either the road carries on as another street (the engine's intersections need three
         // streets to meet) or it ends. The first is a button to the next segment; the second is just said.
-        const nextId = this.#callbacks.continuation(street.streetId, which);
-        const next = nextId === null || nextId === undefined ? null : this.#model.explainStreet(nextId);
+        const carried = this.#callbacks.continuation(street.streetId, which);
+        const next = carried?.next === null || carried?.next === undefined
+          ? null
+          : this.#model.explainStreet(carried.next);
         const arrow = which === 'start' ? '←' : '→';
         if (next) {
           return `<button type="button" class="acs-panel__end acs-panel__end--${which} acs-panel__end--continue"
@@ -617,10 +636,13 @@ export class AccessScoreStreetPanel {
             <span class="acs-panel__end-name">${esc(i18next.t('accessscore:panel-continues'))}</span>
             <span class="acs-panel__end-note">${streetTitle(next)}</span></button>`;
         }
+        // Other streets meet here but the engine has no crossing (out of the ask, or a way split beside one):
+        // not a dead end, just nothing scored.
+        const note = carried?.others > 0 ? 'panel-no-crossing' : 'panel-dead-end';
         return `<div class="acs-panel__end acs-panel__end--${which}">
           <span class="acs-panel__dot acs-panel__dot--none"></span>
           <span class="acs-panel__end-score">—</span><span class="acs-panel__end-name">${esc(name)}</span>
-          <span class="acs-panel__end-note">${esc(i18next.t('accessscore:panel-dead-end'))}</span></div>`;
+          <span class="acs-panel__end-note">${esc(i18next.t(`accessscore:${note}`))}</span></div>`;
       }
       if (e.score === null) {
         return `<div class="acs-panel__end acs-panel__end--${which}">
@@ -771,11 +793,16 @@ export class AccessScoreStreetPanel {
    */
   #leaveEnd() {
     this.#cancelEndTimer();
-    this.#endTimer = setTimeout(() => {
-      this.#hoveredEnd = null;
-      this.#lightGroup(null);
-      this.#closeCard();
-    }, AccessScoreStreetPanel.CARD_LINGER_MS);
+    this.#endTimer = setTimeout(() => this.#leaveEndNow(), AccessScoreStreetPanel.CARD_LINGER_MS);
+  }
+
+  /** The pointer is off the dots, now: nothing lit on the map or in the groups, no card. */
+  #leaveEndNow() {
+    this.#cancelEndTimer();
+    const was = this.#hoveredEnd;
+    this.#hoveredEnd = null;
+    if (was !== null) this.#lightGroup(null);
+    this.#closeCard();
   }
 
   /** Lights a group's tiles and heading, dims the rest, and hands its clusters to the map; null lifts it. */
@@ -1132,21 +1159,6 @@ export class AccessScoreStreetPanel {
       || order(a) - order(b));
   }
 
-  /** Re-sorts each group under new weights and moves the tiles on show into that order, fetching nothing. */
-  #reorder() {
-    if (!this.#groups) return;
-    for (const key of AccessScoreStreetPanel.GROUPS) {
-      this.#groups[key] = this.#rank(this.#groups[key]);
-      const list = this.#els.body.querySelector(`[data-acs-group="${key}"] .acs-group__tiles`);
-      if (!list) continue;
-      for (const p of this.#groups[key]) {
-        const tile = this.#tiles.get(p.label_cluster_id);
-        if (tile && tile.group === key) list.appendChild(tile.el);
-      }
-    }
-    this.#labelIds = [...this.#tiles.values()].map((t) => t.card.labelId);
-  }
-
   /** A group's heading with its score and count, and its empty list; a crossing the street lacks is left out. */
   #groupShellHtml(key) {
     const esc = util.escapeHTML;
@@ -1219,7 +1231,10 @@ export class AccessScoreStreetPanel {
       list.appendChild(tile.el);
     }
     this.#cards = new Map([...this.#tiles.values()].map((t) => [t.card.labelId, t.card]));
-    this.#labelIds = [...this.#tiles.values()].map((t) => t.card.labelId);
+    // The full card pages in the order the tiles are seen, group by group, which the Map's insertion order is not.
+    this.#labelIds = [...this.#els.body.querySelectorAll('.acs-group__tiles .acs-tile')]
+      .map((el) => this.#tiles.get(Number(el.dataset.clusterId))?.card.labelId)
+      .filter((id) => id !== undefined);
     if (failed > 0) {
       const status = this.#els.body.querySelector('[data-acs-status]');
       status.textContent = i18next.t('accessscore:sheet-error', { count: failed });

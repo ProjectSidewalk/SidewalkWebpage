@@ -498,7 +498,7 @@ export const AccessScoreApp = (function () {
       // The sheet is tied to its dot as LabelMap's card is to its label: a beacon on the dot, the camera placing
       // it in the free gutter beside the sheet, and a tail from the sheet to it (#5748). The dot's position and
       // type come with the click.
-      /** @type {Map<number, {coordinates: number[], type: string}>} */
+      /** @type {Map<number, {coordinates: number[], type: string, props: object}>} */
       const clusterDots = new Map();
       sheet = new AccessScoreClusterSheet({
         log,
@@ -510,9 +510,10 @@ export const AccessScoreApp = (function () {
         onLoaded: (clusterId) => {
           if (clusterId !== null && clusterDots.has(clusterId) && sheet.dialog.open) spotlight.spotlight(clusterId);
         },
-        // An arrow lands on a drawn cluster: opened as its dot's click would be, beacon and tail included.
+        // An arrow lands on a cluster: opened as its dot's click would be, beacon and tail included. The trail
+        // can lead back to a cluster a refetch has since dropped from the layer; the click that opened it is kept.
         onNavigate: (clusterId) => {
-          const props = layer.cluster(clusterId);
+          const props = layer.cluster(clusterId) ?? clusterDots.get(clusterId)?.props ?? null;
           if (props) selectCluster(props);
         },
       });
@@ -535,15 +536,17 @@ export const AccessScoreApp = (function () {
       const selectCluster = (props) => {
         if (!props.label_ids?.length) return;
         log('SelectCluster_labelType', props.label_type);
+        // The cluster's own share of its street's score, the figure its tile in the panel wears, so the sheet
+        // says the same number however it was opened.
         const street = model.explainStreet(props.street_edge_id);
-        const term = street?.audited ? street.terms[props.label_type] : null;
+        const term = street?.audited ? model.clusterTerm(props, street) : null;
         const effect = term
           ? i18next.t('accessscore:cluster-effect', {
               type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
             })
           : '';
         if (Array.isArray(props.coordinates)) {
-          clusterDots.set(props.label_cluster_id, { coordinates: props.coordinates, type: props.label_type });
+          clusterDots.set(props.label_cluster_id, { coordinates: props.coordinates, type: props.label_type, props });
         }
         sheet.open(props, effect);
         if (clusterDots.has(props.label_cluster_id)) spotlight.spotlight(props.label_cluster_id);
@@ -967,8 +970,9 @@ export const AccessScoreApp = (function () {
      * exactly, so the match is on the coordinates themselves, with a hair of tolerance for a re-serialized float.
      * @param {number} id - The street.
      * @param {'start'|'end'} end - Which end of it.
-     * @returns {?number} The continuing street's id, or null for a dead end (or a true crossing, which has its
-     *   own intersection and never asks).
+     * @returns {?{next: ?number, others: number}} The continuing street's id when exactly one other street meets
+     *   this end, else null, and how many other streets meet there (none for a dead end; two or more where
+     *   streets meet without an intersection of the engine's, which never asks for a true crossing).
      */
     function streetContinuation(id, end) {
       const line = streetLine(id);
@@ -980,7 +984,7 @@ export const AccessScoreApp = (function () {
         const c = f.geometry.coordinates;
         return c.length >= 2 && (near(c[0]) || near(c[c.length - 1]));
       });
-      return others.length === 1 ? others[0].properties.street_edge_id : null;
+      return { next: others.length === 1 ? others[0].properties.street_edge_id : null, others: others.length };
     }
 
     /** A region's bounding-box center, from its polygon. */

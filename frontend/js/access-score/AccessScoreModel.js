@@ -20,6 +20,8 @@
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
+ * @property {number} [tag_active_threshold] - The share of a cluster's labels a tag must be on to adjust its score
+ *     (#5748); optional so a config from before it is read with the engine's documented default.
  * @property {Array<{label_type: string, tag: string, delta: number}>} [tag_adjustments] - Every tag adjustment the
  *     engine applies, for scoring one cluster on its own (#5748); optional so a config from before it scores a
  *     cluster's tags as nothing rather than failing.
@@ -325,8 +327,11 @@ export class AccessScoreModel {
   /** The `streetBins` value of a street with no score. */
   static UNBINNED = 255;
 
-  /** The share of a cluster's labels a tag must be on to adjust its score: the engine's `tagActiveThreshold`. */
-  static TAG_ACTIVE_SHARE = 0.5;
+  /** The engine's `tagActiveThreshold`, the share of a cluster's labels a tag must be on to adjust its score. */
+  #tagActiveShare;
+
+  /** What an older config, from before it published `tag_active_threshold`, is taken to mean. */
+  static TAG_ACTIVE_SHARE_FALLBACK = 0.5;
 
   /**
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
@@ -351,6 +356,7 @@ export class AccessScoreModel {
     this.#lengthMinMeters = config.length_normalization?.min_length_meters ?? 0;
     this.#intTypeIdx = Int32Array.from((config.intersection_types || []).map((t) => this.#types.indexOf(t))
       .filter((t) => t >= 0));
+    this.#tagActiveShare = config.tag_active_threshold ?? AccessScoreModel.TAG_ACTIVE_SHARE_FALLBACK;
     this.#tagDeltas = new Map();
     for (const { label_type: type, tag, delta } of config.tag_adjustments ?? []) {
       if (!this.#tagDeltas.has(type)) this.#tagDeltas.set(type, new Map());
@@ -764,7 +770,8 @@ export class AccessScoreModel {
   /**
    * One cluster's own part of its street's score under the current state (#5748), so a picture of the cluster can
    * carry what it costs or earns. Exact for a per-cluster type: the engine scores a cluster from its median rating and
-   * from the tags on at least `TAG_ACTIVE_SHARE` of its labels, and the cluster feed carries both. A corner cluster
+   * from the tags on at least the config's `tag_active_threshold` of its labels, and the cluster feed carries both.
+   * A corner cluster
    * at one of the street's crossings scores that crossing, where no length factor applies; anything else on the
    * street scores the block. A street-condition type (NoSidewalk) is pooled once per street, so its clusters have no
    * number of their own: the street's whole term comes back, flagged `pooled`.
@@ -784,14 +791,17 @@ export class AccessScoreModel {
     const deltas = this.#tagDeltas.get(type);
     if (deltas && cluster.tag_counts && cluster.cluster_size > 0) {
       for (const [tag, count] of Object.entries(cluster.tag_counts)) {
-        if (deltas.has(tag) && count / cluster.cluster_size >= AccessScoreModel.TAG_ACTIVE_SHARE) {
+        if (deltas.has(tag) && count / cluster.cluster_size >= this.#tagActiveShare) {
           tags += deltas.get(tag);
         }
       }
     }
     const ends = [street.startIntersection?.id, street.endIntersection?.id];
-    const atCrossing = cluster.intersection_id !== null && cluster.intersection_id !== undefined
-      && ends.includes(cluster.intersection_id);
+    const corner = cluster.intersection_id !== null && cluster.intersection_id !== undefined;
+    const atCrossing = corner && ends.includes(cluster.intersection_id);
+    // A corner cluster scores its own intersection only; at a crossing that is not this street's end it moves this
+    // street by nothing, and the engine's zero is better said as "no number" than as a signed 0.00.
+    if (corner && !atCrossing) return null;
     const lengthFactor = atCrossing ? 1 : street.terms[type].lengthFactor;
     const term = (this.signedWeight(type) * this.#multiplier(this.#scoring[t], bucket) + tags) * lengthFactor;
     return { term, pooled: false };

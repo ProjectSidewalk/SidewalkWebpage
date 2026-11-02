@@ -745,8 +745,9 @@ describe('AccessScoreModel#clusterTerm (#5748)', () => {
     // Fifty meters of street: a problem per 100 m counts double.
     expect(model.clusterTerm(onBlock, street).term).toBeCloseTo(base * 2, 9);
     expect(model.clusterTerm({ ...onBlock, intersection_id: 7 }, street).term).toBeCloseTo(base, 9);
-    // Another street's crossing is not this street's: the cluster is read as on the block.
-    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, street).term).toBeCloseTo(base * 2, 9);
+    // A corner cluster scores its own crossing only: at one that is not this street's end it is not this
+    // street's number at all, whatever its street_edge_id says.
+    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, street)).toBeNull();
     model.setState({ weights: { ...model.state.weights, Obstacle: 2 } });
     expect(model.clusterTerm(onBlock, model.explainStreet(1)).term).toBeCloseTo(base * 2 * 2, 9);
     expect(model.clusterTerm({ ...onBlock, label_type: 'Occlusion' }, street)).toBeNull();

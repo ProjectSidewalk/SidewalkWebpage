@@ -229,6 +229,7 @@
   "panel-crossing-more": "下方還有 {{count}} 個",
   "panel-continues": "延續為",
   "panel-dead-end": "死路",
+  "panel-no-crossing": "未評分的路口",
   "panel-continue-open": "開啟下一段",
   "panel-filter-clear": "只顯示{{type}} · 顯示全部"
 }

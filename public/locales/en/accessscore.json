@@ -243,6 +243,7 @@
   "panel-crossing-more": "+{{count}} more below",
   "panel-continues": "Continues as",
   "panel-dead-end": "dead end",
+  "panel-no-crossing": "no crossing scored",
   "panel-continue-open": "Open the next segment",
   "panel-filter-clear": "Showing {{type}} only · show all"
 }

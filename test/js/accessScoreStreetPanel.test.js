@@ -60,6 +60,7 @@ describe('AccessScoreStreetPanel', () => {
   let AccessScoreModel;
   let AccessScoreClusterFeed;
   let AccessScoreStreetPanel;
+  let AccessScoreCrossingCard;
   let model;
   let map;
   let panel;
@@ -85,10 +86,10 @@ describe('AccessScoreStreetPanel', () => {
     stubI18next();
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     mockModule('frontend/js/common/mapboxgl.js', () => ({default: {Map: FakeInsetMap}}));
-    ({AccessScoreModel, AccessScoreClusterFeed, AccessScoreStreetPanel} = await loadModules(
+    ({AccessScoreModel, AccessScoreClusterFeed, AccessScoreStreetPanel, AccessScoreCrossingCard} = await loadModules(
       'frontend/js/common/scoreRamp.js', 'frontend/js/common/LabelMiniCard.js',
       'frontend/js/access-score/AccessScoreModel.js', 'frontend/js/access-score/AccessScoreClusterFeed.js',
-      'frontend/js/access-score/AccessScoreStreetPanel.js'));
+      'frontend/js/access-score/AccessScoreCrossingCard.js', 'frontend/js/access-score/AccessScoreStreetPanel.js'));
   });
 
   beforeEach(() => {
@@ -359,7 +360,7 @@ describe('AccessScoreStreetPanel', () => {
       // The chip lifts it.
       chip.click();
       await settle();
-      expect(callbacks.log).toHaveBeenCalledWith('PanelUnpinRow', null);
+      expect(callbacks.log).toHaveBeenCalledWith('PanelUnpinRow', 'Obstacle');
       expect(chip.hidden).toBe(true);
       expect(tiles('block')).toHaveLength(12);
       expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
@@ -393,7 +394,8 @@ describe('AccessScoreStreetPanel', () => {
       const ramp = streetId('one good curb ramp');
       const many = streetId('mixed street');
       // The host says "mixed street" carries on from this street's end; its start is a dead end.
-      callbacks.continuation.mockImplementation((id, end) => (id === ramp && end === 'end' ? many : null));
+      callbacks.continuation.mockImplementation((id, end) => (id === ramp && end === 'end'
+        ? {next: many, others: 1} : {next: null, others: 0}));
       panel.showStreet(ramp);
       const next = root.querySelector('button.acs-panel__end--end');
       expect(next.dataset.acsContinue).toBe(String(many));
@@ -417,6 +419,11 @@ describe('AccessScoreStreetPanel', () => {
       panel.showStreet(ramp);
       expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
       expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-dead-end');
+      // Where other streets meet with no crossing of the engine's, it is not a dead end: nothing is scored there.
+      callbacks.continuation.mockReturnValue({next: null, others: 2});
+      panel.showStreet(ramp);
+      expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
+      expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-no-crossing');
     });
 
   test('a reweighting re-reads every number and keeps the pictures; a vote elsewhere refreshes one card', async () => {
@@ -426,12 +433,57 @@ describe('AccessScoreStreetPanel', () => {
     // A weight is the whole magnitude a Good ramp earns, not a multiplier on the engine's 0.75.
     model.setState({weights: {...model.state.weights, CurbRamp: 2}});
     panel.refresh();
+    await settle();
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+2.00');
     expect(tiles('block')[0].querySelector('.acs-tile__effect').textContent).toBe('+2.00');
     expect(fetchMock.mock.calls.length).toBe(before);
     panel.refreshLabel({...label(11, 'CurbRamp', 1), num_agree: 7});
     expect(tiles('block')[0].querySelector('.lmc__vote--agree .lmc__vote-count').textContent).toBe('7');
   });
+
+  test('a reweighting repaints the tiles past the cap too, keeps the cap, and pages the full card in the order shown',
+    async () => {
+      panel.showStreet(streetId('mixed street'));
+      await settle();
+      const beat = () => vi.advanceTimersByTime(AccessScoreStreetPanel.ROW_DELAY_MS + 1);
+      // Pin Obstacle so every one of its fourteen tiles is built and cached, then unpin back to the capped dozen.
+      const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      obstacleRow.click();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      obstacleRow.click();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      // Halve the weight: the dozen on show re-read, and so do the two the cap left out when they are asked for.
+      model.setState({weights: {...model.state.weights, Obstacle: 0.5}});
+      panel.refresh();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      expect(tiles('block')[0].querySelector('.acs-tile__effect').textContent).toBe('−0.50');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      const street = model.explainStreet(streetId('mixed street'));
+      const expectedChip = (id) => {
+        const severity = ((id - 100) % 3) + 1;
+        const {term} = model.clusterTerm({label_type: 'Obstacle', median_severity: severity, cluster_size: 1,
+          intersection_id: null, tag_counts: {}}, street);
+        return (term >= 0 ? '+' : '−') + Math.abs(term).toFixed(2);
+      };
+      for (const t of tiles('block')) {
+        expect(t.querySelector('.acs-tile__effect').textContent).toBe(expectedChip(Number(t.dataset.clusterId)));
+      }
+      // The full card pages in the order the tiles are seen.
+      const shownIds = tiles('block').map((t) => Number(t.querySelector('.lmc').dataset.labelId));
+      tiles('block')[3].querySelector('.lmc__open').click();
+      expect(callbacks.onOpenLabel).toHaveBeenCalledWith(shownIds[3], shownIds);
+    });
 
   test('Escape and the close button ask the host to deselect; close() clears and returns focus to the map', () => {
     panel.showStreet(streetId('one good curb ramp'));
@@ -609,16 +661,19 @@ describe('AccessScoreStreetPanel', () => {
         i + 1 === ramp ? {start_intersection_id: 7} : {}))};
       const joined = new AccessScoreModel(FIXTURE.config, streets, intersections, [REGION]);
       const line = [[-74, 40.8], [-74, 40.8009]];
-      // The feed: the block's one ramp, and five corner ramps at crossing 7, so the card has a fifth to count.
+      // The feed: the block's one ramp, five corner ramps at crossing 7, so the card has a fifth to count, and one
+      // ramp attributed to crossing 99, which is not this street's end: it scores that crossing, not this street,
+      // so it is nobody's evidence here.
       const inner = fetchMock;
       const corners = Array.from({length: 5}, (_, k) => cluster(500 + k, 'CurbRamp', ramp, 1, [600 + k],
         {intersection_id: 7, coordinates: [-74.0001 + k * 0.00005, 40.8]}));
-      const labels = Object.fromEntries(corners.map((p) => [p.label_ids[0], label(p.label_ids[0], 'CurbRamp', 1)]));
+      const elsewhere = cluster(900, 'CurbRamp', ramp, 1, [901], {intersection_id: 99, coordinates: [-74, 40.8004]});
+      const labels = Object.fromEntries([...corners, elsewhere].map((p) => [p.label_ids[0], label(p.label_ids[0], 'CurbRamp', 1)]));
       inner.mockImplementation((input) => {
         const url = new URL(String(input), 'http://localhost');
         if (url.pathname === '/v3/api/labelClusters') {
           return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({type: 'FeatureCollection',
-            features: [cluster(1, 'CurbRamp', ramp, 1, [11]), ...corners].map(({coordinates, ...properties}) => ({
+            features: [cluster(1, 'CurbRamp', ramp, 1, [11]), ...corners, elsewhere].map(({coordinates, ...properties}) => ({
               type: 'Feature', geometry: {type: 'Point', coordinates}, properties}))})});
         }
         const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
@@ -642,6 +697,7 @@ describe('AccessScoreStreetPanel', () => {
       expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
       expect(root.querySelector('button.acs-panel__block')).not.toBeNull();
       expect(tiles('start')).toHaveLength(5);
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['1']);
 
       // A pass of the pointer opens nothing until it rests.
       start.dispatchEvent(new Event('mouseenter'));
@@ -659,7 +715,10 @@ describe('AccessScoreStreetPanel', () => {
       expect(root.querySelector('[data-acs-group="start"]').classList.contains('is-on')).toBe(true);
       expect(tiles('block')[0].classList.contains('is-dim')).toBe(true);
       expect(tiles('start').some((t) => t.classList.contains('is-dim'))).toBe(false);
-      // The card: one inset map centered on the line's first vertex, not interactive, on the light style.
+      // The card: one inset map centered on the line's first vertex, not interactive, on the light style, built
+      // once the card has stayed open a beat (a load is what Mapbox bills).
+      expect(insetMaps).toHaveLength(0);
+      vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
       expect(insetMaps).toHaveLength(1);
       expect(insetMaps[0].options).toMatchObject({
         center: [-74, 40.8], zoom: 18, interactive: false, attributionControl: false,
@@ -703,6 +762,7 @@ describe('AccessScoreStreetPanel', () => {
       start.focus();
       start.dispatchEvent(new Event('focus'));
       expect(card().hidden).toBe(false);
+      vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
       expect(insetMaps).toHaveLength(1);
       expect(insetMaps[0].jumpTo).toHaveBeenCalledWith({center: [-74, 40.8], zoom: 18});
       expect(insetMaps[0].resize).toHaveBeenCalled();

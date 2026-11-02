@@ -243,6 +243,7 @@
   "panel-crossing-more": "+{{count}} weitere unten",
   "panel-continues": "Weiter als",
   "panel-dead-end": "Sackgasse",
+  "panel-no-crossing": "keine bewertete Kreuzung",
   "panel-continue-open": "Nächsten Abschnitt öffnen",
   "panel-filter-clear": "Nur {{type}} · alle anzeigen"
 }

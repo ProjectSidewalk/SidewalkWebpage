@@ -243,6 +243,7 @@
   "panel-crossing-more": "+{{count}} más abajo",
   "panel-continues": "Continúa como",
   "panel-dead-end": "sin salida",
+  "panel-no-crossing": "sin cruce puntuado",
   "panel-continue-open": "Abrir el siguiente tramo",
   "panel-filter-clear": "Mostrando solo {{type}} · mostrar todo"
 }

@@ -65,6 +65,7 @@ describe('AccessScoreCrossingCard', () => {
   });
 
   beforeEach(() => {
+    vi.useFakeTimers();
     maps.length = 0;
     document.body.innerHTML = '<div id="card" role="tooltip" hidden></div>';
     el = document.getElementById('card');
@@ -78,9 +79,14 @@ describe('AccessScoreCrossingCard', () => {
     feed = {label: vi.fn((id) => (labels[id] ? Promise.resolve(labels[id]) : Promise.reject(new Error('nope'))))};
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const makeCard = () => new AccessScoreCrossingCard(el, {
     feed, types: ['CurbRamp', 'NoCurbRamp', 'Obstacle'], styleUrl: 'mapbox://styles/fixture/light',
   });
+  const beat = () => vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
 
   test('builds one inset on the first open, recenters it on the next, and draws the street and the clusters once loaded',
     () => {
@@ -90,6 +96,13 @@ describe('AccessScoreCrossingCard', () => {
       expect(card.open).toBe(true);
       expect(el.dataset.acsCardTail).toBe('start');
       expect(el.getAttribute('aria-label')).toBe('panel-crossing-card name=Start crossing');
+      // A card open for a moment only, as a focus passing through leaves it, builds no map: a load is billed.
+      expect(maps).toHaveLength(0);
+      card.close();
+      beat();
+      expect(maps).toHaveLength(0);
+      card.show(crossing([cluster(1, 'NoCurbRamp', 3, 10)]));
+      beat();
       expect(maps).toHaveLength(1);
       expect(maps[0].options).toMatchObject({
         center: [-74, 40.8], zoom: AccessScoreCrossingCard.ZOOM, interactive: false, attributionControl: false,
@@ -115,6 +128,7 @@ describe('AccessScoreCrossingCard', () => {
       card.close();
       expect(card.open).toBe(false);
       card.show({...crossing([cluster(2, 'CurbRamp', 1, 11, -73.9)]), key: 'end', lngLat: {lng: -73.9, lat: 40.8}});
+      beat();
       expect(maps).toHaveLength(1);
       expect(maps[0].resize).toHaveBeenCalled();
       expect(maps[0].jumpTo).toHaveBeenCalledWith({center: [-73.9, 40.8], zoom: AccessScoreCrossingCard.ZOOM});

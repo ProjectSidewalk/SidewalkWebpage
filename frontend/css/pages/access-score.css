@@ -1675,8 +1675,14 @@
   outline-offset: 2px;
 }
 
-.acs-sheet__paging svg {
+.acs-sheet__paging img {
   display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.acs-sheet__paging:disabled img {
+  opacity: 0.4;
 }
 
 .acs-sheet__close {

@@ -243,6 +243,7 @@
   "panel-crossing-more": "+{{count}} de plus ci-dessous",
   "panel-continues": "Se poursuit en",
   "panel-dead-end": "impasse",
+  "panel-no-crossing": "aucune traversée notée",
   "panel-continue-open": "Ouvrir le tronçon suivant",
   "panel-filter-clear": "Seulement {{type}} · tout afficher"
 }

@@ -29,6 +29,12 @@ export class AccessScoreCrossingCard {
   /** Close enough to tell the corners of one intersection apart. */
   static ZOOM = 18;
 
+  /**
+   * How long the card is open before its inset is built or moved: a map load is what Mapbox bills, and a focus
+   * that is only passing through on its way down the panel should not pay for one.
+   */
+  static MAP_DELAY_MS = 250;
+
   #el;
   #styleUrl;
   #feed;
@@ -40,6 +46,8 @@ export class AccessScoreCrossingCard {
   #pending = null;
   /** Bumped on every open and close, so a crop that arrives for an earlier crossing is dropped. */
   #token = 0;
+  /** The inset's pending build or move, until the card has been open long enough to deserve one. */
+  #mapTimer = null;
 
   /**
    * @param {HTMLElement} el - The card's own element, `hidden` until a crossing opens it.
@@ -83,13 +91,23 @@ export class AccessScoreCrossingCard {
     this.#el.setAttribute('aria-label', i18next.t('accessscore:panel-crossing-card', { name }));
     this.#renderRows(explanation);
     this.#renderCrops(clusters, termOf, token);
-    this.#showMap(lngLat, line, clusters ?? []);
+    this.#cancelMapTimer();
+    this.#mapTimer = setTimeout(() => {
+      this.#mapTimer = null;
+      this.#showMap(lngLat, line, clusters ?? []);
+    }, AccessScoreCrossingCard.MAP_DELAY_MS);
   }
 
-  /** Hides the card. The inset stays built for the next open. */
+  /** Hides the card. The inset stays built for the next open; one not yet built is not built. */
   close() {
     this.#token += 1;
+    this.#cancelMapTimer();
     this.#el.hidden = true;
+  }
+
+  #cancelMapTimer() {
+    if (this.#mapTimer !== null) clearTimeout(this.#mapTimer);
+    this.#mapTimer = null;
   }
 
   /** Drops the inset, for a panel that is going away for good. */

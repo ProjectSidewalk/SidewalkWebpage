@@ -59,15 +59,11 @@ export class AccessScoreClusterSheet {
         </div>
         <button type="button" class="acs-sheet__paging acs-sheet__paging--prev" data-acs-page="prev"
             aria-label="${util.escapeHTML(i18next.t('accessscore:sheet-prev'))}" aria-keyshortcuts="ArrowLeft" hidden>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="14.5 18 8.5 12 14.5 6"/></svg>
+          <img src="${util.assetPath('images/icons/chevron-left-feather.svg')}" alt="">
         </button>
         <button type="button" class="acs-sheet__paging acs-sheet__paging--next" data-acs-page="next"
             aria-label="${util.escapeHTML(i18next.t('accessscore:sheet-next'))}" aria-keyshortcuts="ArrowRight" hidden>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="9.5 18 15.5 12 9.5 6"/></svg>
+          <img src="${util.assetPath('images/icons/chevron-right-feather.svg')}" alt="">
         </button>
         <button type="button" class="acs-sheet__close" aria-label="${util.escapeHTML(i18next.t('common:close'))}">
           <img src="${util.assetPath('images/icons/cross.svg')}" alt="">

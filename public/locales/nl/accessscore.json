@@ -243,6 +243,7 @@
   "panel-crossing-more": "+{{count}} meer hieronder",
   "panel-continues": "Gaat verder als",
   "panel-dead-end": "doodlopend",
+  "panel-no-crossing": "geen beoordeelde oversteek",
   "panel-continue-open": "Volgend stuk openen",
   "panel-filter-clear": "Alleen {{type}} · alles tonen"
 }
