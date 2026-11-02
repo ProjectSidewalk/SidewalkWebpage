@@ -90,6 +90,7 @@
   "done-editing-tags-label": "Done editing tags",
   "edit-failed": "Your change couldn't be saved. Please try again.",
   "edit-failed-short": "Not saved",
+  "edit-failed-previous": "Your change to the previous label couldn't be saved.",
   "no-imagery-disabled": "You cannot validate or comment when no imagery is available for this label",
   "no-imagery-edit-disabled": "You cannot rate, edit, or delete this label when no imagery is available for it",
   "admin-only": "Admin only",

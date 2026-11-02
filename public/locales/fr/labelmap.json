@@ -90,6 +90,7 @@
   "done-editing-tags-label": "Terminer la modification des tags",
   "edit-failed": "Votre modification n'a pas pu être enregistrée. Veuillez réessayer.",
   "edit-failed-short": "Non enregistré",
+  "edit-failed-previous": "Votre modification de l'étiquette précédente n'a pas pu être enregistrée.",
   "no-imagery-disabled": "Vous ne pouvez pas valider ni commenter quand aucune image n'est disponible pour cette étiquette",
   "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer, modifier ni supprimer cette étiquette quand aucune image n'est disponible",
   "admin-only": "Réservé aux administrateurs",

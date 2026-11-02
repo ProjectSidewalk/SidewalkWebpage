@@ -84,6 +84,7 @@
   "done-editing-tags-label": "完成編輯標籤",
   "edit-failed": "無法儲存變更，請再試一次。",
   "edit-failed-short": "未儲存",
+  "edit-failed-previous": "無法儲存您對上一個標記的變更。",
   "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",
   "no-imagery-edit-disabled": "當此標記沒有可用的影像時，您無法評分、編輯或刪除它",
   "admin-only": "僅限管理員",

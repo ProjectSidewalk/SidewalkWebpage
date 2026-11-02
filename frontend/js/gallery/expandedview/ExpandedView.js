@@ -94,8 +94,8 @@ export class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883), or Enter
-    // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
+    // or Enter or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
     if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
     if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
 
@@ -257,6 +257,7 @@ export class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
+    this.labelDetail?.saveOpenEdits();
     // Hiding by visibility leaves the pop-up's host connected, so it wouldn't notice; one holding an "Other…" draft
     // even outlasts the click on ✕.
     closeReasonPopover();
