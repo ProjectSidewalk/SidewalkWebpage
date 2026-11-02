@@ -29,6 +29,7 @@ import { initLabelMapLocationSearch } from '../labelMapLocationSearch.js';
 import { MapLoadingOverlay } from '../ps-map/MapLoadingOverlay.js';
 import { MapSidebarUrlSync } from '../ps-map/MapSidebarUrlSync.js';
 import { MapStatusPill } from '../ps-map/MapStatusPill.js';
+import { createLabelSpotlight } from '../ps-map/labelSpotlight.js';
 import { paddingTarget } from '../ps-map/mapPadding.js';
 import { ViewportLabelLoader } from '../ps-map/ViewportLabelLoader.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
@@ -456,6 +457,8 @@ export const AccessScoreApp = (function () {
       clusterLayer: evidence.layer, placeSearch, placesLayer: places.layer,
       /** Opens a place's card by id, as a marker click does; the browser tests' way in. */
       selectPlace: (placeId) => places.select(places.layer.place(placeId)),
+      /** Opens a cluster's sheet from its properties, as a dot click does; the browser tests' way in. */
+      selectCluster: evidence.selectCluster,
     };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));
@@ -491,24 +494,60 @@ export const AccessScoreApp = (function () {
         popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
         popupLabelViewer.showLabel(labelId, 'AccessScore');
       };
-      sheet = new AccessScoreClusterSheet({ log, onOpenLabel: openLabel });
+      // The sheet is tied to its dot as LabelMap's card is to its label: a beacon on the dot, the camera placing
+      // it in the free gutter beside the sheet, and a tail from the sheet to it (#5748). The dot's position and
+      // type come with the click.
+      /** @type {Map<number, {coordinates: number[], type: string}>} */
+      const clusterDots = new Map();
+      sheet = new AccessScoreClusterSheet({
+        log,
+        onOpenLabel: openLabel,
+        onClose: (clusterId) => {
+          if (clusterId !== null) spotlight.pulse(clusterId);
+        },
+        // The sheet opens at its loading size and grows as its cards come: the dot is parked beside the grown sheet.
+        onLoaded: (clusterId) => {
+          if (clusterId !== null && clusterDots.has(clusterId) && sheet.dialog.open) spotlight.spotlight(clusterId);
+        },
+      });
+      const spotlight = createLabelSpotlight({
+        dialog: sheet.dialog,
+        getMap: () => map,
+        getMapData: () => null,
+        getCoords: (id) => clusterDots.get(id)?.coordinates ?? null,
+        getLabelType: (id) => clusterDots.get(id)?.type ?? null,
+        // The part of the map the drawer and the street panel leave uncovered, which they publish as insets.
+        getFreeBox: () => {
+          const r = map.getContainer().getBoundingClientRect();
+          const style = getComputedStyle(map.getContainer().parentElement ?? map.getContainer());
+          const left = Number.parseFloat(style.getPropertyValue('--map-inset-left')) || 0;
+          const right = Number.parseFloat(style.getPropertyValue('--map-inset-right')) || 0;
+          return { left: r.left + left, top: r.top, right: r.right - right, bottom: r.bottom };
+        },
+      });
+      map.on('move', spotlight.updateTail);
+      const selectCluster = (props) => {
+        if (!props.label_ids?.length) return;
+        log('SelectCluster_labelType', props.label_type);
+        const street = model.explainStreet(props.street_edge_id);
+        const term = street?.audited ? street.terms[props.label_type] : null;
+        const effect = term
+          ? i18next.t('accessscore:cluster-effect', {
+              type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
+            })
+          : '';
+        if (Array.isArray(props.coordinates)) {
+          clusterDots.set(props.label_cluster_id, { coordinates: props.coordinates, type: props.label_type });
+        }
+        sheet.open(props, effect);
+        if (clusterDots.has(props.label_cluster_id)) spotlight.spotlight(props.label_cluster_id);
+      };
       /** @type {Array<(props: ?import('./AccessScoreClusterLayer.js').AccessScoreClusterProps) => void>} */
       const hoverListeners = [];
       const layer = new AccessScoreClusterLayer(map, {
         types: config.scored_types,
         tooltipHtml: clusterTooltipHtml,
-        onSelect: (props) => {
-          if (!props.label_ids?.length) return;
-          log('SelectCluster_labelType', props.label_type);
-          const street = model.explainStreet(props.street_edge_id);
-          const term = street?.audited ? street.terms[props.label_type] : null;
-          const effect = term
-            ? i18next.t('accessscore:cluster-effect', {
-                type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
-              })
-            : '';
-          sheet.open(props, effect);
-        },
+        onSelect: selectCluster,
         onHover: (props) => hoverListeners.forEach((listener) => listener(props)),
       });
       const feedUrl = new URL('/v3/api/labelClusters', window.location.origin);
@@ -531,6 +570,8 @@ export const AccessScoreApp = (function () {
       return {
         loader,
         layer,
+        /** Opens a cluster's sheet as a click on its dot does, with its position for the beacon and tail. */
+        selectCluster,
         /** The label card, paging over a list — the cluster sheet's, the photo strip's and the panel's shared exit. */
         openLabel,
         /** The cluster sheet, for a panel tile whose cluster holds more than one label (#5748). */

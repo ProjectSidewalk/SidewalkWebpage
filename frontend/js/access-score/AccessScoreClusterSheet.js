@@ -17,6 +17,7 @@ export class AccessScoreClusterSheet {
   #dialog;
   #onOpenLabel;
   #log;
+  #onLoaded;
   #els;
   #openToken = 0;
   /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
@@ -27,10 +28,15 @@ export class AccessScoreClusterSheet {
    * @param {(labelId: number, clusterLabelIds: number[]) => void} options.onOpenLabel - Called when a card is
    *   chosen, with the cluster's label ids for the card's arrows to page through.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
+   * @param {(clusterId: ?number) => void} [options.onClose] - Called as the sheet closes, however it closes, with
+   *   the cluster it was showing.
+   * @param {(clusterId: ?number) => void} [options.onLoaded] - Called once a cluster's cards are on show, when the
+   *   sheet has its full size: a host placing something beside it (#5748) can only do so then.
    */
-  constructor({ onOpenLabel, log = () => {} }) {
+  constructor({ onOpenLabel, log = () => {}, onClose = () => {}, onLoaded = () => {} }) {
     this.#onOpenLabel = onOpenLabel;
     this.#log = log;
+    this.#onLoaded = onLoaded;
     this.#dialog = document.createElement('dialog');
     this.#dialog.className = 'acs-sheet';
     this.#dialog.setAttribute('aria-labelledby', 'acs-sheet-title');
@@ -58,6 +64,8 @@ export class AccessScoreClusterSheet {
       more: this.#dialog.querySelector('.acs-sheet__more'),
     };
     this.#dialog.querySelector('.acs-sheet__close').addEventListener('click', () => this.close());
+    // The dialog's own event, so Escape and the backdrop count as well as the button.
+    this.#dialog.addEventListener('close', () => onClose(this.#clusterId));
     // A click on the backdrop closes; a click inside the box (its padding included) does not.
     this.#dialog.addEventListener('click', (e) => {
       if (e.target !== this.#dialog) return;
@@ -68,6 +76,18 @@ export class AccessScoreClusterSheet {
   }
 
   #ids = [];
+  /** @type {?number} The cluster on show, so a host can tie the sheet to its dot. */
+  #clusterId = null;
+
+  /** @returns {HTMLDialogElement} The sheet's own element. */
+  get dialog() {
+    return this.#dialog;
+  }
+
+  /** @returns {?number} The cluster on show, or null. */
+  get clusterId() {
+    return this.#clusterId;
+  }
 
   /**
    * Opens the sheet for a cluster and loads its labels.
@@ -78,6 +98,7 @@ export class AccessScoreClusterSheet {
     const type = props.label_type;
     const ids = props.label_ids || [];
     this.#ids = ids;
+    this.#clusterId = props.label_cluster_id ?? null;
     const token = ++this.#openToken;
     this.#els.icon.src = util.misc.getIconImagePaths(type).iconImagePath;
     this.#els.title.textContent = i18next.t('accessscore:sheet-title', { type: util.misc.labelTypeName(type) });
@@ -95,9 +116,11 @@ export class AccessScoreClusterSheet {
     this.#els.more.textContent = i18next.t('accessscore:sheet-more',
       { count: Math.max(0, ids.length - AccessScoreClusterSheet.MAX_CARDS) });
     this.#els.status.textContent = i18next.t('accessscore:sheet-loading');
+    const shown = ids.slice(0, AccessScoreClusterSheet.MAX_CARDS);
+    // The stylesheet sizes the sheet from this: as many cards wide as the cluster has, up to the window's width.
+    this.#dialog.style.setProperty('--acs-sheet-cards', String(Math.max(1, shown.length)));
     if (!this.#dialog.open) this.#dialog.showModal();
 
-    const shown = ids.slice(0, AccessScoreClusterSheet.MAX_CARDS);
     const results = await Promise.allSettled(shown.map((id) => fetch(`/label/id/${id}`).then((r) => {
       if (!r.ok) throw new Error(`label ${id}: HTTP ${r.status}`);
       return r.json();
@@ -121,6 +144,7 @@ export class AccessScoreClusterSheet {
       this.#cards.set(label.label_id, card);
       this.#els.grid.appendChild(card.element);
     }
+    this.#onLoaded(this.#clusterId);
   }
 
   /**

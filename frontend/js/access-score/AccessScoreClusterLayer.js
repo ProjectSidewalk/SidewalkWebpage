@@ -6,6 +6,7 @@
  * @property {string} label_type
  * @property {number} street_edge_id - The street the cluster sits on.
  * @property {?number} intersection_id - The crossing a corner-type cluster scores toward; null for a segment's.
+ * @property {number[]} [coordinates] - The dot's `[lng, lat]`, from the feature's geometry, when the layer read it.
  * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
  * @property {number} agree_count
  * @property {number} disagree_count
@@ -250,6 +251,8 @@ export class AccessScoreClusterLayer {
    */
   static #props(feature) {
     const props = { ...feature.properties };
+    // The dot's own position, for a host that ties a card to it (the cluster sheet's beacon and tail, #5748).
+    if (feature.geometry?.type === 'Point') props.coordinates = feature.geometry.coordinates;
     for (const key of ['label_ids', 'users', 'tag_counts']) {
       if (typeof props[key] === 'string') {
         try {

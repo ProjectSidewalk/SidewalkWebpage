@@ -549,6 +549,36 @@ test.describe('/accessScore', () => {
       await expect.poll(() => urlParam(page, 'sel')).toBeNull();
     });
 
+  test('a cluster dot opens a sheet sized to its cards, beaconed and tail-tied to the dot as LabelMap does (#5748)',
+    async ({page, consoleErrors}) => {
+      await page.goto('/accessScore?sel=1');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      // The stubbed style draws no hit-testable dot, so open the cluster through the page's own entry point, with
+      // the dot's position as a click would carry it.
+      await page.evaluate(() => window.accessScore.selectCluster({
+        label_cluster_id: 1, label_type: 'CurbRamp', street_edge_id: 1, intersection_id: null, region_id: 1,
+        median_severity: 1, cluster_size: 1, label_ids: [11], coordinates: [-74.009, 40.8805],
+      }));
+      const sheet = page.locator('.acs-sheet');
+      await expect(sheet).toBeVisible();
+      await expect(sheet.locator('.acs-sheet__title')).toContainText('Curb Ramp');
+      await expect(sheet.locator('.lmc')).toHaveCount(1);
+      // One card: the sheet is a card and a title wide, not the width of the window.
+      const box = await sheet.boundingBox();
+      expect(box.width).toBeLessThan(620);
+      // The dot is beaconed and the sheet tail-tied to it; the camera parked the dot clear of the sheet.
+      await expect(page.locator('.labelmap-beacon--spotlight')).toHaveCount(1);
+      await expect(page.locator('.labelmap-tail')).toBeVisible();
+      await expect.poll(() => page.evaluate(() => window.accessScore.map.getZoom())).toBeGreaterThanOrEqual(16);
+      // Closing leaves one flash on the dot and takes the tail away.
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+      await expect(page.locator('.labelmap-beacon--flash')).toHaveCount(1);
+      await expect(page.locator('.labelmap-tail')).toBeHidden();
+      expect(consoleErrors).toEqual([]);
+    });
+
   test('a scored crossing\'s dot opens the crossing card, lights its clusters, and flies the map when pressed (#5748)',
     async ({page, context, consoleErrors}) => {
       // Street 1 gains a crossing at its start, intersection 7, with one Good ramp cluster at the corner.

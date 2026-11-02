@@ -70,6 +70,25 @@ describe('AccessScoreClusterLayer', () => {
     expect(onHover).toHaveBeenLastCalledWith(null);
   });
 
+  test('a click hands the host the parsed properties with the dot\'s own coordinates, and claims the click', () => {
+    const map = fakeMap();
+    const onSelect = vi.fn();
+    const layer = new AccessScoreClusterLayer(map, {
+      types: ['CurbRamp'], tooltipHtml: () => null, onSelect,
+    });
+    expect(layer).toBeTruthy();
+    const click = map.handlers.find((h) => h.event === 'click').handler;
+    const e = {
+      features: [{ ...feature(7, 'CurbRamp'), geometry: { type: 'Point', coordinates: [-74.01, 40.88] } }],
+      preventDefault: vi.fn(),
+    };
+    click(e);
+    expect(e.preventDefault).toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
+      label_cluster_id: 7, label_ids: [10, 11], coordinates: [-74.01, 40.88],
+    }));
+  });
+
   test('setHovered lights a dot from outside without a tooltip, and puts it out; hidden layers take no hover', () => {
     const map = fakeMap();
     const onHover = vi.fn();
