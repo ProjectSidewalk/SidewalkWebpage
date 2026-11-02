@@ -149,6 +149,7 @@ seo.title.welcome = Willkommen — Project Sidewalk
 seo.title.forgot.password = Passwort wiederherstellen — Project Sidewalk
 seo.title.reset.password = Passwort zurücksetzen — Project Sidewalk
 seo.title.service.hours = Informationen zu Freiwilligen — Project Sidewalk
+seo.title.unsubscribe = Abmelden — Project Sidewalk
 seo.title.time.check = Zeitkontrolle — Project Sidewalk
 seo.title.about = Über uns — Project Sidewalk
 seo.description.default = Helfen Sie mit, die Trottoirs von {0} virtuell zu kartieren und zu bewerten. Offene Daten zu Trottoirabsenkungen, Hindernissen und Oberflächenproblemen für eine barrierefreiere Welt.
@@ -385,6 +386,7 @@ authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</
 authenticate.confirm.password = Passwort wiederholen
 authenticate.service.hours.title = Haben Sie vor, Ihre Arbeit im Rahmen von Project Sidewalk als gemeinnützige/freiwillige Arbeit anrechnen zu lassen?
 authenticate.terms = Sie erklären sich mit unseren <a target="_blank" href="/terms">Nutzungsbedingungen und Datenschutzerklärung</a> einverstanden.
+authenticate.news.email = Gelegentlich Neuigkeiten zu Project Sidewalk per E-Mail erhalten
 authenticate.signup = Registrieren
 authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-sign-in">Anmelden</a>
 
@@ -500,6 +502,13 @@ reset.pw.email.hello = Hallo {0},
 reset.pw.email.reset.title = Passwort für den Project Sidewalk-Account zurücksetzen.
 reset.pw.email.send.link = E-Mail senden
 reset.pw.email.reset.pw.sent = Eine E-Mail zum Zurücksetzen Ihres Passwortes wurde versendet.
+unsubscribe.confirm.title = Von den Project-Sidewalk-Neuigkeiten abmelden?
+unsubscribe.confirm.intro = Sie erhalten dann keine Neuigkeiten und Updates zum Projekt mehr an die E-Mail-Adresse Ihres Kontos. E-Mails zu Ihrem Konto, etwa zum Zurücksetzen des Passworts, kommen weiterhin an.
+unsubscribe.confirm.submit = Abmelden
+unsubscribe.done.title = Sie sind abgemeldet
+unsubscribe.done.intro = Wir senden Ihnen keine Projektneuigkeiten mehr. Anders überlegt? In den <a href="{0}">Einstellungen</a> können Sie sie wieder einschalten.
+unsubscribe.invalid.title = Dieser Link ist ungültig
+unsubscribe.invalid.intro = Der Abmeldelink wurde beim Kopieren möglicherweise abgeschnitten. Sie können E-Mails auch in den <a href="{0}">Einstellungen</a> verwalten oder an <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a> schreiben.
 reset.pw.email.send.failed = Die E-Mail konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.
 reset.pw.email.reset.request.message = Sie haben kürzlich darum gebeten, das Passwort für Ihren Project Sidewalk-Account zurückzusetzen. Klicken Sie auf den Link, um Ihr Passwort zurückzusetzen:
 reset.pw.email.reset.not.requested = Wenn Sie kein Link für das Zurücksetzen Ihres Passwortes angefordert haben, ignorieren Sie bitte diese Nachricht oder senden Sie uns eine E-Mail, um uns darüber zu informieren.
@@ -816,6 +825,9 @@ dashboard.settings.service.hours = Ehrenamtliche Servicestunden
 dashboard.settings.service.hours.toggle = Für gemeinnützige Servicestunden anmelden
 dashboard.settings.service.hours.help = Meldet dich für die offizielle Anerkennung an – deine Betreuungsperson kann deine Stunden bestätigen – und fügt „Servicestunden“ und „Zeitkontrolle“ zu deinem Kontomenü hinzu.
 dashboard.settings.service.hours.link = So funktionieren Servicestunden
+dashboard.settings.news.email = E-Mail-Updates
+dashboard.settings.news.email.toggle = Neuigkeiten zu Project Sidewalk per E-Mail erhalten
+dashboard.settings.news.email.help = Gelegentliche Neuigkeiten zum Projekt, jede mit einem Abmeldelink. E-Mails zu Ihrem Konto, etwa zum Zurücksetzen des Passworts, kommen immer an.
 dashboard.settings.team = Team
 dashboard.settings.team.label = Ihr Team
 dashboard.settings.team.help = Treten Sie einem Team oder einer Klasse bei, um gemeinsam zu kartieren und in der Team-Bestenliste zu erscheinen.

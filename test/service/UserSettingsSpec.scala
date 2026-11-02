@@ -1,6 +1,13 @@
 package service
 
-import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserSettingsTableDef}
+import models.user.{
+  MeasurementSystem,
+  NewsEmailOptOutSource,
+  NewsEmailStatus,
+  Role,
+  SidewalkUserWithRole,
+  UserSettingsTableDef
+}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -67,6 +74,33 @@ class UserSettingsSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll
       val user = reload(newAnonUser().userId)
       user.communityService mustBe false
       user.measurementSystem mustBe None
+      await(userService.getNewsEmailStatus(user.userId)) mustBe NewsEmailStatus(None, None)
+    }
+
+    "opt out keeping the first time and reason, and consent back in, without touching other settings" in {
+      val userId = newAnonUser().userId
+      await(userService.setCommunityService(userId, enabled = true))
+      await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.Settings))
+      val firstOptOut = await(userService.getNewsEmailStatus(userId)).optOut.value
+      firstOptOut.source mustBe NewsEmailOptOutSource.Settings
+
+      // The Settings box and the newsletter link can both opt the same person out; the record keeps the first.
+      await(userService.optOutOfNewsEmail(userId, NewsEmailOptOutSource.UnsubscribeLink))
+      await(userService.getNewsEmailStatus(userId)).optOut.value mustBe firstOptOut
+      reload(userId).communityService mustBe true
+
+      // Ticking the box clears the opt-out and keeps the proof of consent.
+      await(userService.consentToNewsEmail(userId))
+      val consented = await(userService.getNewsEmailStatus(userId))
+      consented.optOut mustBe None
+      consented.consentedAt mustBe defined
+      reload(userId).communityService mustBe true
+    }
+
+    "record consent for a user with no settings row yet" in {
+      val userId = newAnonUser().userId
+      await(userService.consentToNewsEmail(userId)) mustBe 1
+      await(userService.getNewsEmailStatus(userId)).consentedAt mustBe defined
     }
 
     "save units and service-hours tracking without either one resetting the other" in {
