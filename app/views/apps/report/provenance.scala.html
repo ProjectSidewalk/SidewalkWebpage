@@ -1,8 +1,9 @@
-@import models.report.{NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, ReportLinks, ReportPreset}
 @import service.CommonPageData
 
 @*
- * Everything needed to reproduce or question this report: when it was computed, from what, and by which rule.
+ * Everything needed to reproduce or question this report: when it was computed, how old its scores are, and the three
+ * public API reads its numbers come from.
  *
  * @param report     The computed report.
  * @param preset     The audience it was written for.
@@ -15,9 +16,22 @@
   <dl class="report-provenance__list">
     <div><dt>@Messages("report.provenance.generated")</dt><dd>@report.generatedAt.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
     <div><dt>@Messages("report.provenance.version")</dt><dd>@commonData.versionId</dd></div>
-    <div><dt>@Messages("report.provenance.rule")</dt><dd>@RankingRule.Version</dd></div>
+    @for(updated <- report.clustersUpdatedAt) {
+      <div><dt>@Messages("report.provenance.scored")</dt><dd>@updated.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
+    }
     <div><dt>@Messages("report.provenance.preset")</dt><dd>@Messages(s"report.preset.${preset.name}")</dd></div>
-    <div><dt>@Messages("report.provenance.data")</dt><dd><a href="@ReportLinks.csv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv")</a></dd></div>
+    <div>
+      <dt>@Messages("report.provenance.data")</dt>
+      <dd>
+        <ul class="report-provenance__data">
+          <li><a href="@ReportLinks.streetsCsv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv.streets")</a></li>
+          @for(box <- report.evidenceBox) {
+            <li><a href="@ReportLinks.clustersCsv(box)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv.locations")</a></li>
+          }
+          <li><a href="@ReportLinks.csv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv")</a></li>
+        </ul>
+      </dd>
+    </div>
   </dl>
   <p class="report-note">@Messages("report.provenance.reviewers")</p>
   <p class="report-note">@Messages("report.provenance.imagery")</p>

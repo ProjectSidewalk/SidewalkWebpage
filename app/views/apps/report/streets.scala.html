@@ -1,10 +1,13 @@
 @import controllers.helper.ControllerUtils
-@import models.report.{NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks, ReportPreset}
 @import models.utils.CommonUtils
+@import service.{AccessScoreSpotlight, ReportService}
 @import views.html.apps.report as reportViews
 
 @*
- * The ranked streets, each with its photo strip and per-type counts, and the rule that ordered them printed beneath.
+ * The lowest-scoring streets, in the order and with the numbers AccessScore's own tool gives them. A row's number and
+ * everything under it describe its street's lowest stretch; the whole street's number sits beside it only as context.
+ * Scores link to the tool, where their parts can be seen, and counts link to their labels.
  *
  * @param report The computed report.
  * @param preset The audience, for the section's vocabulary.
@@ -15,36 +18,59 @@
   val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
   BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
 }
+@unit = @{ControllerUtils.distanceUnitWords.abbr}
+@listScore = @{math.round(AccessScoreSpotlight.LowestMaxScore * 100)}
+@titleKey = @{if (report.isProvisional) s"report.streets.title.sofar.${preset.name}" else s"report.streets.title.${preset.name}"}
 
-@streetName(row: models.report.RankedStreetRow) = @{
-  row.street.name.getOrElse(Messages("report.street.unnamed", row.street.streetEdgeIds.head.toString))
+@streetName(row: RankedStreetRow) = @{
+  row.street.worst.name.getOrElse(Messages("report.street.unnamed", row.street.worst.toolEdgeId.toString))
 }
 
 <section class="report-section report-streets" aria-labelledby="report-streets-title">
-  <h2 class="report-section__title" id="report-streets-title">@Messages(s"report.streets.title.${preset.name}")</h2>
+  <h2 class="report-section__title" id="report-streets-title">@Messages(titleKey)</h2>
+  @if(report.isProvisional && report.streetsRanked > 0) {
+    <p class="report-section__intro">@Messages("report.streets.sofar", report.score.percentExplored)</p>
+  }
   @if(report.streets.isEmpty) {
-    <p class="report-empty">@Messages("report.streets.none")</p>
+    <p class="report-empty">
+      @if(report.streetsRanked > 0) {
+        @Messages("report.streets.none.ranked", report.streetsRanked, listScore)
+      } else {
+        @Messages("report.streets.none.unranked")
+      }
+    </p>
   } else {
-    <p class="report-section__intro">@Messages("report.streets.intro", report.streets.size, report.streetsRanked)</p>
+    <p class="report-section__intro">@Messages("report.streets.intro", report.streets.size, listScore, report.streetsRanked)</p>
     <ol class="report-street-list">
       @for(row <- report.streets) {
         <li class="report-street">
           <header class="report-street__head">
             <span class="report-street__rank" aria-hidden="true">@row.rank</span>
             <h3 class="report-street__name">@streetName(row)</h3>
-            <p class="report-street__meta">
-              @Messages("report.street.score", row.score) ·
-              @Messages("report.street.length", distance(row.street.lengthMeters), ControllerUtils.distanceUnitWords.abbr)
-            </p>
+            <a class="report-street__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore">@Messages("report.street.score", ReportFormat.score(row.street.worst.score))</a>
           </header>
+          <p class="report-street__meta">
+            @for(block <- row.street.worst.blockScore) {<span>@Messages("report.street.block", ReportFormat.score(block))</span>}
+            @for(crossing <- row.street.worst.crossingScore) {<span>@Messages("report.street.crossings", ReportFormat.score(crossing))</span>}
+            @for(slope <- row.street.worst.slopePoints) {<span>@Messages("report.street.slope", ReportFormat.oneDecimal(slope))</span>}
+            <span>
+              @if(row.street.worst.exploredMeters < row.street.worst.totalMeters) {
+                @Messages("report.street.length.partial", distance(row.street.worst.exploredMeters), distance(row.street.worst.totalMeters), unit)
+              } else {
+                @Messages("report.street.length", distance(row.street.worst.exploredMeters), unit)
+              }
+            </span>
+          </p>
+          @if(row.street.stretchCount > 1) {
+            <p class="report-street__context">@Messages("report.street.whole", ReportFormat.score(row.street.wholeScore), distance(row.street.wholeExploredMeters), unit)</p>
+          }
           <ul class="report-counts">
-            @for((labelType, ids) <- row.typeIds) {
+            @for(evidence <- row.evidence) {
               <li>
-                <a class="report-count" href="@ReportLinks.count(ids, ReportLinks.galleryFilter(report.regionId, Some(labelType)))"
-                   data-report-event="Report_OpenGallery">
-                  <img src='@assets.path(labelType.smallIconSvgPath)' alt="" width="16" height="16">
-                  <span class="report-count__number">@Messages("report.count", ids.size)</span>
-                  @Messages(labelType.nameKey)
+                <a class="report-count" href="@ReportLinks.labelList(evidence.labelIds)" data-report-event="Report_OpenGallery">
+                  <img src='@assets.path(evidence.labelType.smallIconSvgPath)' alt="" width="16" height="16">
+                  @Messages(evidence.labelType.nameKey):
+                  <span class="report-count__number">@Messages("report.count.locations", evidence.locations, evidence.labelIds.size)</span>
                 </a>
               </li>
             }
@@ -57,9 +83,12 @@
         </li>
       }
     </ol>
+  }
+  @if(report.streetsRanked > 0) {
     <p class="report-rule">
-      <strong>@Messages("report.rule.label", RankingRule.Version)</strong>
-      @Messages("report.rule.text", RankingRule.WorstRatingWeight, RankingRule.NextRatingWeight, RankingRule.NoAlternateRouteBonus)
+      <strong>@Messages("report.rule.label")</strong>
+      @Messages("report.rule.text", AccessScoreSpotlight.MinStreetLengthMeters.toInt, AccessScoreSpotlight.MinStreetClusters)
+      <a href="@ReportLinks.scoreDocs" data-report-event="Report_OpenAccessScore">@Messages("report.rule.docs")</a>
     </p>
   }
 </section>

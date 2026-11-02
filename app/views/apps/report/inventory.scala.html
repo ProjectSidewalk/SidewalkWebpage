@@ -1,7 +1,8 @@
-@import models.report.{InventoryRow, NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import models.report.{InventoryRow, NeighborhoodReport, ReportLinks, ReportPreset, ReportRules}
 
 @*
- * The per-type table. A count over the Gallery's list cap links to its filtered view instead of an exact list; see
+ * The per-type table, in both of the units the page speaks in: labels, which is what people did, and locations, which
+ * is what a score counts. A count over the Gallery's list cap links to its filtered view instead of an exact list; see
  * [[models.report.ReportLinks]].
  *
  * @param report The computed report.
@@ -24,6 +25,7 @@
         <thead>
           <tr>
             <th scope="col">@Messages("report.inventory.type")</th>
+            <th scope="col" class="num">@Messages("report.inventory.locations")</th>
             <th scope="col" class="num">@Messages("report.inventory.observed")</th>
             <th scope="col" class="num">@Messages("report.inventory.worst")</th>
             <th scope="col" class="num">@Messages("report.inventory.reviewed")</th>
@@ -38,9 +40,14 @@
                 <img src='@assets.path(row.labelType.smallIconSvgPath)' alt="" width="16" height="16">
                 @Messages(row.labelType.nameKey)
               </th>
+              @row.locations.map { case (count, ids) =>
+                <td class="num"><a href="@ReportLinks.count(ids, typeFilter(row))" data-report-event="Report_OpenGallery">@Messages("report.count", count)</a></td>
+              }.getOrElse {
+                <td class="num"><span aria-hidden="true">–</span><span class="sr-only">@Messages("report.inventory.unscored")</span></td>
+              }
               @countCell(row.observedIds, typeFilter(row))
               @row.worstIds.map { ids =>
-                @countCell(ids, ReportLinks.galleryFilter(report.regionId, Some(row.labelType), RankingRule.worstRating(row.labelType.ratingScale).toSeq))
+                @countCell(ids, ReportLinks.galleryFilter(report.regionId, Some(row.labelType), ReportRules.worstRating(row.labelType.ratingScale).toSeq))
               }.getOrElse {
                 <td class="num"><span aria-hidden="true">–</span><span class="sr-only">@Messages("report.inventory.unrated")</span></td>
               }

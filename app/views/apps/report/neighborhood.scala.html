@@ -1,4 +1,4 @@
-@import models.report.{NeighborhoodReport, ReportPreset}
+@import models.report.{NeighborhoodReport, ReportFormat, ReportLinks, ReportPreset}
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
@@ -9,7 +9,8 @@
  * report.js only adds the print and copy-link buttons and the click logging. It builds no pano and no map, so a view
  * costs no billable Google call: the pano is one click away on each label's own card.
  *
- * The page's rule is that no number appears without a way to see the labels it counts, so every count is a link.
+ * Its scores are AccessScore's own, read from the tool's cache, so the two can't disagree. The page's rule is that no
+ * number appears without a way to see what's behind it: a count links to its labels, a score to the AccessScore tool.
  *
  * @param commonData Per-page config.
  * @param user       The signed-in user, if any (navbar only).
@@ -57,11 +58,21 @@
     @reportViews.coverage(report)
 
     <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
+      <div class="report-score">
+        <p class="report-score__label">@Messages("report.score.label")</p>
+        @report.score.score.map { score =>
+          <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
+          <p class="report-score__detail">@Messages("report.score.detail")</p>
+        }.getOrElse {
+          <p class="report-score__value">@Messages("report.score.none")</p>
+          <p class="report-score__detail">@Messages("report.score.none.detail", report.score.percentRequired, report.score.percentExplored)</p>
+        }
+      </div>
       <p class="report-headline">@Messages(s"${report.headline.key}.${preset.name}", report.headline.args*)</p>
       @if(report.headline.labelIds.nonEmpty) {
         <p class="report-headline__evidence">
-          <a href="@models.report.ReportLinks.count(report.headline.labelIds, models.report.ReportLinks.worstFilter(report.regionId))"
-             data-report-event="Report_OpenGallery">@Messages("report.headline.evidence", report.headline.labelIds.size)</a>
+          <a href="@ReportLinks.count(report.headline.labelIds, ReportLinks.worstFilter(report.regionId))"
+             data-report-event="Report_OpenGallery">@Messages("report.headline.evidence", report.headline.locationCount, report.headline.labelIds.size)</a>
         </p>
       }
     </section>
@@ -79,10 +90,10 @@
     <section class="report-section report-deeper" aria-labelledby="report-deeper-title">
       <h2 class="report-section__title" id="report-deeper-title">@Messages("report.deeper.title")</h2>
       <ul class="report-deeper__list">
-        <li><a href="@models.report.ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
-        <li><a href="@models.report.ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
-        <li><a href="@models.report.ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
-        <li><a href="@models.report.ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
+        <li><a href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
+        <li><a href="@ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
+        <li><a href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
+        <li><a href="@ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
       </ul>
     </section>
 

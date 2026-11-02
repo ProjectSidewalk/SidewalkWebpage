@@ -1,8 +1,9 @@
 @import models.pano.ImageryAttribution
-@import models.report.{ReportLinks, ReportPhoto}
+@import models.report.{ReportFormat, ReportLinks, ReportPhoto, ReportRules}
 
 @*
- * One label's photo, linking to its card, with the imagery date and review state a reader needs to weigh it.
+ * One label's photo, linking to its card, with the imagery date and review state a reader needs to weigh it, and what
+ * the location it shows costs its street's score.
  *
  * The marker is a nested SVG rather than a positioned element so that it needs neither JavaScript nor an inline style,
  * and so survives printing: percentages place the inner SVG's origin on the label, and the icon is centered on that
@@ -10,8 +11,9 @@
  *
  * @param photo      The label and its crop.
  * @param streetName The street's display name, for the alt text.
+ * @param showCost   Whether to state its cost here, for a caller that doesn't state it beside the photo.
  *@
-@(photo: ReportPhoto, streetName: String)(using messages: Messages, assets: AssetsFinder)
+@(photo: ReportPhoto, streetName: String, showCost: Boolean = true)(using messages: Messages, assets: AssetsFinder)
 
 @label = @{photo.label}
 @typeName = @{Messages(label.labelType.nameKey)}
@@ -41,6 +43,8 @@
   <figcaption class="report-photo__caption">
     <span>@label.imageCaptureDate.map(date => Messages("report.photo.date", date)).getOrElse(Messages("report.photo.date.unknown"))</span>
     <span>@if(label.humanVotes > 0) {@Messages("report.reviewers", label.humanAgree, label.humanVotes)} else {@Messages("report.reviewers.none")}</span>
+    @* Under a point says more about the sigmoid than the street: at the bottom of the scale one problem alone moves little. *@
+    @if(showCost && photo.costPoints >= ReportRules.FixMinPoints) {<span>@Messages("report.photo.cost", ReportFormat.oneDecimal(photo.costPoints))</span>}
     @for(line <- photo.attribution) {
       <span class="report-photo__credit">@{(Seq(line.holder) ++ line.provider).mkString(" · ")}@licenseLink(line)</span>
     }

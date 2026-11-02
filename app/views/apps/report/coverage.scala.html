@@ -77,5 +77,11 @@
          data-report-event="Report_OpenGallery">@Messages("report.coverage.excluded", coverage.excludedIds.size)</a>
     </p>
   }
+  @if(coverage.unclusteredIds.nonEmpty) {
+    <p class="report-note">
+      <a href="@ReportLinks.count(coverage.unclusteredIds, ReportLinks.gallery(report.regionId))"
+         data-report-event="Report_OpenGallery">@Messages("report.coverage.unclustered", coverage.unclusteredIds.size)</a>
+    </p>
+  }
   <p class="report-disclaimer">@Messages("report.coverage.disclaimer")</p>
 </section>

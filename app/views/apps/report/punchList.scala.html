@@ -1,9 +1,10 @@
-@import models.report.{NeighborhoodReport, RankingRule, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, ReportFix, ReportFormat, ReportLinks, ReportPreset, ReportRules}
 @import views.html.apps.report as reportViews
 
 @*
- * The short list a reader can act on: one label per street, photo first, each with what's needed to find it again.
- * Its `city:id` reference is the label's full identity, since label ids repeat across cities.
+ * One location per street. It walks every ranked street rather than only the listed ones, since a neighborhood with no
+ * street under the list's bar can still hold a clear fix. The `city:id` reference is there because label ids repeat
+ * across cities.
  *
  * @param report The computed report.
  * @param preset The audience, for the section's vocabulary.
@@ -12,35 +13,43 @@
 @(report: NeighborhoodReport, preset: ReportPreset, cityId: String
 )(using messages: Messages, assets: AssetsFinder)
 
-@streetName(street: models.report.ReportStreet) = @{
-  street.name.getOrElse(Messages("report.street.unnamed", street.streetEdgeIds.head.toString))
+@streetName(fix: ReportFix) = @{
+  fix.street.worst.name.getOrElse(Messages("report.street.unnamed", fix.street.worst.toolEdgeId.toString))
 }
 
 <section class="report-section report-punch" aria-labelledby="report-punch-title">
   <h2 class="report-section__title" id="report-punch-title">@Messages(s"report.punch.title.${preset.name}")</h2>
-  @if(report.punchList.isEmpty) {
+  @if(report.fixes.isEmpty) {
     <p class="report-empty">@Messages("report.punch.none")</p>
   } else {
     <ol class="report-punch-list">
-      @for((street, photo) <- report.punchList) {
+      @for(fix <- report.fixes) {
         <li class="report-punch-item">
-          @reportViews.photo(photo, streetName(street))
+          @reportViews.photo(fix.photo, streetName(fix), showCost = false)
           <div class="report-punch-item__body">
-            <h3 class="report-punch-item__street">@streetName(street)</h3>
-            <p class="report-punch-item__type">@Messages(photo.label.labelType.nameKey)</p>
-            @for(rating <- photo.label.severity) {
-              <p class="report-punch-item__rating">@Messages("report.rating", rating, RankingRule.worstRating(photo.label.labelType.ratingScale).getOrElse(rating))</p>
+            <h3 class="report-punch-item__street">@streetName(fix)</h3>
+            <p class="report-punch-item__type">@Messages(fix.item.labelType.nameKey)</p>
+            @for(rating <- fix.item.severity) {
+              <p class="report-punch-item__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
             }
-            @if(photo.label.tags.nonEmpty) {
+            <p class="report-punch-item__cost">
+              <a href="@ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore">@Messages("report.photo.cost", ReportFormat.oneDecimal(fix.item.costPoints))</a>
+            </p>
+            @if(fix.item.locations.size > 1) {
+              <p class="report-punch-item__pool">
+                <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size, fix.item.labelIds.size)</a>
+              </p>
+            }
+            @if(fix.photo.label.tags.nonEmpty) {
               <ul class="report-tags">
-                @for(tag <- photo.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
+                @for(tag <- fix.photo.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
               </ul>
             }
-            <p class="report-punch-item__id"><a href="@ReportLinks.label(photo.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@photo.label.labelId</a></p>
+            <p class="report-punch-item__id"><a href="@ReportLinks.label(fix.photo.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.photo.label.labelId</a></p>
           </div>
         </li>
       }
     </ol>
-    <p class="report-rule">@Messages("report.punch.rule")</p>
+    <p class="report-rule">@Messages("report.punch.rule", ReportRules.FixMinPoints.toInt)</p>
   }
 </section>

@@ -1,8 +1,11 @@
 package models.report
 
-import models.api.LabelDataForApi
-import models.label.{AccessImpact, LabelType, RatingScale}
-import models.utils.{NamedEnum, NamedEnumCompanion}
+import models.api.{LabelClusterForApi, LabelDataForApi, StreetAccessScoreForApi}
+import models.label.{LabelType, RatingScale}
+import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
+import play.api.i18n.Messages
+import service.AccessScoreCalculator.{ClusterScoreInput, Scoring}
+import service.{AccessScoreCalculator, AccessScoreSpotlight}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -56,6 +59,9 @@ case class ReportLabel(
   /** More human reviewers agreed than disagreed: what the report calls confirmed. */
   def confirmed: Boolean = humanAgree > humanDisagree
 
+  /** At least one person agreed and nobody disagreed: strong enough to put in front of someone as a thing to fix. */
+  def uncontested: Boolean = humanAgree > 0 && humanDisagree == 0
+
   /** The year the imagery was captured, when `capture_date` (free text, e.g. "2022-02") starts with one. */
   def imageryYear: Option[Int] =
     imageCaptureDate.map(_.trim).filter(_.matches("""\d{4}($|-.*)""")).map(_.take(4).toInt)
@@ -90,28 +96,258 @@ object ReportLabel {
 }
 
 /**
- * The street a reader recognizes: every labeled `street_edge` in the region sharing one OSM name, or a single edge when
- * it has no name. Ranking raw edges instead lists one road several times under one name (Houston region 10's ten
- * highest-scoring edges are only six roads), with nothing on the page to tell the rows apart.
+ * One location as AccessScore scores it: a label cluster, which is what several people labeling the same feature come
+ * to. The report counts these wherever it speaks about a score, and links each to the labels inside it.
  *
- * @param name          The OSM name, or None for an unnamed edge
- * @param streetEdgeIds The edges in this group
- * @param lengthMeters  The geodesic length of those edges, so of the part of the street that has observations
- * @param labels        The counted labels on those edges
+ * @param severity       The cluster's median rating, the one its score uses
+ * @param intersectionId The intersection it scores, or None when it scores its own street's block
+ * @param tagCounts      How many of those labels carry each tag
  */
-case class ReportStreet(name: Option[String], streetEdgeIds: Seq[Int], lengthMeters: Double, labels: Seq[ReportLabel])
+case class ReportLocation(
+    clusterId: Int,
+    labelType: LabelType,
+    severity: Option[Int],
+    streetEdgeId: Int,
+    intersectionId: Option[Int],
+    labelIds: Seq[Int],
+    tagCounts: Map[String, Int],
+    latitude: Double,
+    longitude: Double
+) {
+
+  def scoreInput: ClusterScoreInput = ClusterScoreInput(labelType.name, severity, labelIds.size, tagCounts)
+
+  /** @return Whether this location's rating sits at the worst end of its type's scale. */
+  def isWorst: Boolean = severity.isDefined && severity == ReportRules.worstRating(labelType.ratingScale)
+
+  /** @return Whether this is a missing curb ramp whose labelers recorded that there is no way around it. */
+  def hasNoAlternateRoute: Boolean =
+    labelType == LabelType.NoCurbRamp &&
+      AccessScoreCalculator.tagActive(tagCounts.getOrElse(ReportRules.NoAlternateRouteTag, 0), labelIds.size)
+}
+
+object ReportLocation {
+
+  def fromApi(cluster: LabelClusterForApi): ReportLocation =
+    ReportLocation(
+      clusterId = cluster.labelClusterId, labelType = LabelType.withName(cluster.labelType),
+      severity = cluster.medianSeverity, streetEdgeId = cluster.streetEdgeId, intersectionId = cluster.intersectionId,
+      labelIds = cluster.labelIds, tagCounts = cluster.tagCounts, latitude = cluster.avgLatitude,
+      longitude = cluster.avgLongitude
+    )
+}
 
 /**
- * The published, versioned ranking rule. Pure, so a report's order can be reproduced from the public API, and the
- * page prints this rule beside the list it produces. Bump [[Version]] whenever the arithmetic changes: the version is
- * printed in the report's footer, so two reports only compare if they share it.
+ * Locations indexed the way the scoring engine assigns them: to an intersection if the cluster has one, otherwise to
+ * its street's block. A crossing's clusters can sit on a street in the neighboring region, so this has to hold every
+ * location near the region and not only those whose street is in it.
  */
-object RankingRule {
-  val Version: String = "v1"
+case class ReportEvidence(locations: Seq[ReportLocation]) {
+  private val onBlock: Map[Int, Seq[ReportLocation]] =
+    locations.filter(_.intersectionId.isEmpty).groupBy(_.streetEdgeId)
+  private val atCrossing: Map[Int, Seq[ReportLocation]] =
+    locations.flatMap(l => l.intersectionId.map(_ -> l)).groupMap(_._1)(_._2)
 
-  val WorstRatingWeight: Int     = 2
-  val NextRatingWeight: Int      = 1
-  val NoAlternateRouteBonus: Int = 1
+  def block(streetEdgeId: Int): Seq[ReportLocation] = onBlock.getOrElse(streetEdgeId, Seq.empty)
+
+  def crossing(intersectionId: Int): Seq[ReportLocation] = atCrossing.getOrElse(intersectionId, Seq.empty)
+}
+
+/**
+ * One thing a street's score could be relieved of: a location, or for a type scored as a street's condition, one
+ * edge's whole pool of locations, since removing a single pin from a pool usually moves nothing.
+ *
+ * @param costPoints How far the stretch's score, on its 0-100 scale, would rise without this item
+ */
+case class ReportItem(locations: Seq[ReportLocation], costPoints: Double) {
+  def labelType: LabelType = locations.head.labelType
+
+  /** @return The rating to state for this item: the first location's median, which is also the pool's for an unrated type. */
+  def severity: Option[Int] = locations.head.severity
+
+  def labelIds: Seq[Int] = locations.flatMap(_.labelIds)
+}
+
+/**
+ * One OSM way's explored edges within the region, rolled up the way the AccessScore Spotlight rolls them: the name a
+ * reader recognizes, one number per stretch. Only explored edges carry a score here. An unexplored edge's published
+ * score comes from the crossings at its ends alone, which says nothing of the block.
+ *
+ * @param toolEdgeId         The longest explored edge, which the AccessScore tool opens on
+ * @param score              Length-weighted mean of the explored edges' published scores
+ * @param blockScore         The same mean of their block scores
+ * @param crossingScore      The same mean of their crossings' scores, over the edges with a scored crossing
+ * @param slopePoints        How many points slope takes off `score`, when sampled and big enough to state
+ * @param totalMeters        Length of the whole way in the region, explored or not
+ * @param blockLocationCount Locations along the blocks, excluding crossings: what Spotlight's evidence bar counts
+ * @param locations          Every location behind the score, blocks and crossings, once each
+ * @param items              What costs the stretch the most, costliest first; items that help the score aren't here
+ */
+case class ReportStretch(
+    osmWayId: Long,
+    name: Option[String],
+    toolEdgeId: Int,
+    score: Double,
+    blockScore: Option[Double],
+    crossingScore: Option[Double],
+    slopePoints: Option[Double],
+    exploredMeters: Double,
+    totalMeters: Double,
+    blockLocationCount: Int,
+    auditCount: Int,
+    locations: Seq[ReportLocation],
+    items: Seq[ReportItem]
+) {
+
+  def isRanked: Boolean =
+    AccessScoreSpotlight.stretchIsRanked(totalMeters, auditCount, blockLocationCount, Some(score))
+}
+
+object ReportStretch {
+
+  // Under half a point rounds to nothing on the page, so it isn't worth a sentence saying slope mattered.
+  private val MinSlopePoints: Double = 0.5
+
+  /** @return An edge's scored end intersections, as the engine averaged them. */
+  private def scoredEnds(edge: StreetAccessScoreForApi): Seq[(Int, Double)] =
+    Seq(
+      edge.startIntersectionId.zip(edge.startIntersectionScore),
+      edge.endIntersectionId.zip(edge.endIntersectionScore)
+    ).flatten
+
+  /**
+   * @param wayEdges Every edge of one way in one region
+   * @return The rolled-up stretch, or None when none of the edges has been explored.
+   */
+  def build(wayEdges: Seq[StreetAccessScoreForApi], evidence: ReportEvidence): Option[ReportStretch] = {
+    val edges = wayEdges.filter(e => e.auditCount > 0 && e.score.isDefined)
+    AccessScoreSpotlight.stretchScore(edges.flatMap(e => e.score.map(_ -> e.lengthMeters))).map { score =>
+      val locations = edges
+        .flatMap(e => evidence.block(e.streetEdgeId) ++ scoredEnds(e).flatMap { case (id, _) => evidence.crossing(id) })
+        .distinctBy(_.clusterId)
+      ReportStretch(
+        osmWayId = edges.head.osmWayId,
+        name = wayEdges.flatMap(_.streetName).headOption,
+        toolEdgeId = edges.maxBy(_.lengthMeters).streetEdgeId,
+        score = score,
+        blockScore = AccessScoreSpotlight.stretchScore(edges.flatMap(e => e.segmentScore.map(_ -> e.lengthMeters))),
+        crossingScore = AccessScoreSpotlight.stretchScore(
+          edges.flatMap { e =>
+            val ends = scoredEnds(e).map(_._2)
+            Option.when(ends.nonEmpty)((ends.sum / ends.size, e.lengthMeters))
+          }
+        ),
+        slopePoints = slopePoints(edges),
+        exploredMeters = edges.map(e => math.max(0.0, e.lengthMeters)).sum,
+        totalMeters = wayEdges.map(e => math.max(0.0, e.lengthMeters)).sum,
+        blockLocationCount = edges.map(_.clusterCounts.values.sum).sum,
+        auditCount = edges.map(_.auditCount).sum,
+        locations = locations,
+        items = costlyItems(edges, locations, evidence)
+      )
+    }
+  }
+
+  /** @return How far slope pulls the stretch's score down in points, or None when it isn't worth stating. */
+  private def slopePoints(edges: Seq[StreetAccessScoreForApi]): Option[Double] = {
+    val lost = edges.flatMap { e =>
+      e.score.map { published =>
+        val withoutSlope = AccessScoreCalculator.headlineScore(
+          Some(AccessScoreCalculator.scoreFromSubScores(e.subScores)),
+          scoredEnds(e).map(_._2)
+        )
+        (withoutSlope.getOrElse(published) - published, e.lengthMeters)
+      }
+    }
+    AccessScoreSpotlight.stretchScore(lost).map(_ * 100).filter(_ >= MinSlopePoints)
+  }
+
+  /**
+   * Prices every item by rebuilding the stretch's score without it. A crossing's location is priced across every edge
+   * meeting there, which is why the rebuild is of the stretch and not of the one edge the location sits on.
+   *
+   * @return The items that cost the stretch something, costliest first.
+   */
+  private def costlyItems(
+      edges: Seq[StreetAccessScoreForApi],
+      locations: Seq[ReportLocation],
+      evidence: ReportEvidence
+  ): Seq[ReportItem] = {
+    def scoreWithout(removed: Set[Int]): Double = {
+      def inputs(ls: Seq[ReportLocation]) = ls.filterNot(l => removed(l.clusterId)).map(_.scoreInput)
+      val rebuilt                         = edges.map { e =>
+        AccessScoreCalculator.headlineFromClusters(
+          inputs(evidence.block(e.streetEdgeId)),
+          e.lengthMeters,
+          e.slopeTerm,
+          scoredEnds(e).map { case (id, _) => inputs(evidence.crossing(id)) }
+        ) -> e.lengthMeters
+      }
+      AccessScoreSpotlight.stretchScore(rebuilt).getOrElse(0.0)
+    }
+
+    val baseline = scoreWithout(Set.empty)
+    groupIntoItems(locations)
+      .map(ls => ReportItem(ls, (scoreWithout(ls.map(_.clusterId).toSet) - baseline) * 100))
+      .filter(_.costPoints > 0)
+      .sortBy(i => (-i.costPoints, i.locations.head.clusterId))
+  }
+
+  /** @return The locations grouped into what the score treats as one thing; see [[ReportItem]]. */
+  private def groupIntoItems(locations: Seq[ReportLocation]): Seq[Seq[ReportLocation]] = {
+    val (pooled, points) = locations.partition { l =>
+      AccessScoreCalculator.typeWeights.get(l.labelType.name).exists(_.scoring == Scoring.StreetCondition)
+    }
+    points.map(Seq(_)) ++ pooled.groupBy(l => (l.labelType, l.streetEdgeId)).values.toSeq
+  }
+}
+
+/**
+ * A street as the page lists it: once per name, at its lowest ranked stretch. Averaging a whole name would bury a bad
+ * stretch under a good one (NW 61st St in Seattle's Adams is 5.5 over 404 m, 86.1 over 856 m and 53.5 over 189 m, 59.4
+ * as a whole), and would print a number that matches nothing a link to the AccessScore tool lands on.
+ *
+ * @param worst               The stretch the row's number and evidence describe
+ * @param wholeScore          Length-weighted across every explored stretch with this name in the region
+ */
+case class ReportStreet(worst: ReportStretch, wholeScore: Double, wholeExploredMeters: Double, stretchCount: Int)
+
+object ReportStreet {
+
+  /**
+   * Which street an edge or stretch belongs to. Names that differ only in case are one street; an unnamed way has
+   * nothing saying it joins any other.
+   *
+   * @return The key that identifies the street within a region.
+   */
+  def streetKey(name: Option[String], osmWayId: Long): Either[String, Long] =
+    name.map(_.trim.toLowerCase).toLeft(osmWayId)
+
+  /**
+   * @return The ranked streets, lowest score first. Ties go to the longer explored stretch, then to the name, then to
+   *         the way id, so two loads of the same data agree.
+   */
+  def rank(stretches: Seq[ReportStretch]): Seq[ReportStreet] =
+    stretches
+      .groupBy(s => streetKey(s.name, s.osmWayId))
+      .values
+      .flatMap { group =>
+        val ranked = group.filter(_.isRanked)
+        ranked.minByOption(s => (s.score, -s.exploredMeters, s.osmWayId)).map { worst =>
+          ReportStreet(
+            worst = worst,
+            wholeScore = AccessScoreSpotlight.stretchScore(group.map(s => s.score -> s.exploredMeters)).get,
+            wholeExploredMeters = group.map(_.exploredMeters).sum,
+            stretchCount = group.size
+          )
+        }
+      }
+      .toSeq
+      .sortBy(s => (s.worst.score, -s.worst.exploredMeters, s.worst.name.getOrElse(""), s.worst.osmWayId))
+}
+
+/** The rules that decide what the page calls bad and what it puts in front of a reader as a thing to fix. */
+object ReportRules {
 
   // The tag as the database spells it; AccessScoreCalculator weighs the same one.
   val NoAlternateRouteTag: String = "no alternate route"
@@ -131,148 +367,177 @@ object RankingRule {
   def isWorst(label: ReportLabel): Boolean =
     label.severity.isDefined && label.severity == worstRating(label.labelType.ratingScale)
 
-  /** @return Whether this label sits one step short of the worst end of its type's rating scale. */
-  def isOneStepFromWorst(label: ReportLabel): Boolean =
-    label.severity.isDefined && label.severity == worstRating(label.labelType.ratingScale).map(_ - 1)
-
   /** @return Whether the report counts this label: everything except what review marked incorrect. */
   def isCounted(label: ReportLabel): Boolean = !label.correct.contains(false)
 
-  /** @return Whether this is a missing curb ramp whose labeler recorded that there is no way around it. */
-  def hasNoAlternateRoute(label: ReportLabel): Boolean =
-    label.labelType == LabelType.NoCurbRamp && label.tags.contains(NoAlternateRouteTag)
+  /** How many points an item must cost its street to be listed as a fix. */
+  val FixMinPoints: Double = 1.0
 
-  /** @return This label's contribution to its street's score. */
-  def labelScore(label: ReportLabel): Int = {
-    val rating =
-      if (isWorst(label)) WorstRatingWeight
-      else if (isOneStepFromWorst(label)) NextRatingWeight
-      else 0
-    rating + (if (hasNoAlternateRoute(label)) NoAlternateRouteBonus else 0)
+  /** @return Whether an item's rating is bad enough to name as a fix: at or next to the worst, or a type with no scale. */
+  private def ratedAsFix(item: ReportItem): Boolean = worstRating(item.labelType.ratingScale) match {
+    case None        => true
+    case Some(worst) => item.severity.exists(_ >= worst - 1)
   }
-
-  /** @return A street's score. Labels are assumed already counted; see [[isCounted]]. */
-  def streetScore(labels: Seq[ReportLabel]): Int = labels.map(labelScore).sum
-
-  /**
-   * Streets from highest score down. Ties break on label count, then length, then name, and finally the lowest edge
-   * id, so the order never changes between two page loads of the same data.
-   *
-   * @return The streets in rank order, including those scoring zero.
-   */
-  def rank(streets: Seq[ReportStreet]): Seq[ReportStreet] =
-    streets.sortBy { s =>
-      (-streetScore(s.labels), -s.labels.size, -s.lengthMeters, s.name.getOrElse(""), s.streetEdgeIds.minOption)
-    }
-
-  /**
-   * How much a label's photo says about a street's barriers, lower first: the worst-rated, then the next, then an
-   * unrated problem such as a missing sidewalk, then a low-rated problem. A well-rated feature or a meta label says
-   * nothing about barriers, so it gets no rank and stays out of the strip.
-   *
-   * @return The rank, or None when the label shouldn't be shown as evidence of a problem.
-   */
-  private def concernRank(label: ReportLabel): Option[Int] =
-    if (isWorst(label)) Some(0)
-    else if (isOneStepFromWorst(label)) Some(1)
-    else if (label.labelType.accessImpact == AccessImpact.Problem)
-      Some(if (label.labelType.ratingScale == RatingScale.Unrated) 2 else 3)
-    else None
 
   // Confirmed before unchecked, and either before one that reviewers lean against.
   private def reviewRank(label: ReportLabel): Int =
     if (label.confirmed) 0 else if (label.humanDisagree == 0) 1 else 2
 
-  /**
-   * The labels to show as a street's photos: worst first, confirmed before unchecked. Labels with a crop come first,
-   * so a missing crop only shows its "no image" panel when the street hasn't enough photos to fill the strip.
-   *
-   * @param labels   A street's counted labels
-   * @param limit    How many to return
-   * @param hasCrop  Whether a label has a crop on disk
-   * @return At most `limit` labels, in the order to show them.
-   */
-  def selectPhotos(labels: Seq[ReportLabel], limit: Int, hasCrop: ReportLabel => Boolean): Seq[ReportLabel] = {
-    val ranked = labels
-      .flatMap(label => concernRank(label).map(rank => (rank, label)))
-      .sortBy { case (rank, l) => (rank, reviewRank(l), -l.humanAgree, l.labelId) }
-      .map(_._2)
-    val (withCrop, withoutCrop) = ranked.partition(hasCrop)
-    (withCrop ++ withoutCrop).take(limit)
+  /** @return The labels behind an item that carry the rating it's scored at, or all of them if none does. */
+  private def membersAtRating(item: ReportItem, labels: Map[Int, ReportLabel]): Seq[ReportLabel] = {
+    val members = item.locations.flatMap(l => l.labelIds.flatMap(labels.get).map(l -> _))
+    val exact   = members.collect { case (l, label) if label.severity == l.severity => label }
+    if (exact.nonEmpty) exact else members.map(_._2)
   }
 
   /**
-   * The punch list: at most `size` labels, at most one per street, walking down the ranked streets. A label qualifies
-   * when it is at the worst end of its scale with at least one human Agree and no human Disagree; a street's pick is
-   * its most-agreed qualifying label, preferring one with a crop since the photo leads the row, and between equally
-   * agreed labels the one scoring higher, so a missing ramp with no way around it beats a pole.
+   * The label to show for an item: one a reader looking at the photo would rate the way the score does, with a crop
+   * where one exists, confirmed before unchecked.
    *
-   * @param ranked  Streets in rank order
-   * @param size    How many labels to return
-   * @param hasCrop Whether a label has a crop on disk
-   * @return The picks with their streets, in rank order. Fewer than `size` when too few streets have a qualifying label.
+   * @return The label, or None when every label behind the item was marked incorrect since clustering.
    */
-  def punchList(
+  def representative(
+      item: ReportItem,
+      labels: Map[Int, ReportLabel],
+      hasCrop: ReportLabel => Boolean
+  ): Option[ReportLabel] =
+    membersAtRating(item, labels)
+      .sortBy(l => (!hasCrop(l), reviewRank(l), -l.humanAgree, l.labelId))
+      .headOption
+
+  /**
+   * The labels to show as a stretch's photos: one per item, costliest first. Items with a crop come first, so a missing
+   * crop only shows its "no image" panel when the stretch hasn't enough photos to fill the strip.
+   *
+   * @return At most `limit` pairs, in the order to show them.
+   */
+  def selectPhotos(
+      stretch: ReportStretch,
+      labels: Map[Int, ReportLabel],
+      limit: Int,
+      hasCrop: ReportLabel => Boolean
+  ): Seq[(ReportItem, ReportLabel)] = {
+    val shown              = stretch.items.flatMap(i => representative(i, labels, hasCrop).map(i -> _))
+    val (withCrop, noCrop) = shown.partition { case (_, l) => hasCrop(l) }
+    (withCrop ++ noCrop).take(limit)
+  }
+
+  /**
+   * The fixes list, at most one per street. An item qualifies when it costs its stretch at least [[FixMinPoints]], is
+   * rated at or next to the worst of its type's scale, and has a label at that rating which a reviewer agreed with and
+   * none disagreed with. A crossing can be the pick of two streets meeting there, and is listed for the first.
+   *
+   * @param ranked  Streets in rank order, whatever their score: a street above the bar for the list can still hold the
+   *                neighborhood's clearest fix
+   * @return The picks in rank order, each with the label to show. Fewer than `size` when too few streets qualify.
+   */
+  def fixes(
       ranked: Seq[ReportStreet],
+      labels: Map[Int, ReportLabel],
       size: Int,
       hasCrop: ReportLabel => Boolean
-  ): Seq[(ReportStreet, ReportLabel)] =
+  ): Seq[(ReportStreet, ReportItem, ReportLabel)] = {
+    val seen = scala.collection.mutable.Set.empty[Int]
     ranked.iterator
       .flatMap { street =>
-        street.labels
-          .filter(l => isWorst(l) && l.humanAgree > 0 && l.humanDisagree == 0)
-          .sortBy(l => (!hasCrop(l), -l.humanAgree, -labelScore(l), l.labelId))
-          .headOption
-          .map(street -> _)
+        street.worst.items.iterator
+          .filter(i => i.costPoints >= FixMinPoints && ratedAsFix(i) && !i.locations.exists(l => seen(l.clusterId)))
+          .flatMap { item =>
+            membersAtRating(item, labels)
+              .filter(_.uncontested)
+              .sortBy(l => (!hasCrop(l), -l.humanAgree, l.labelId))
+              .headOption
+              .map(label => (street, item, label))
+          }
+          .take(1)
+          .tapEach { case (_, item, _) => seen ++= item.locations.map(_.clusterId) }
       }
       .take(size)
       .toSeq
+  }
 }
 
 /**
- * The generated headline: a message key, without its preset suffix, its arguments, and the labels the sentence counts
- * so the page can link to them.
+ * The generated headline: a message key, without its preset suffix, its arguments, and the locations the sentence is
+ * about so the page can link to their labels.
  */
-case class ReportHeadline(key: String, args: Seq[Int], labelIds: Seq[Int])
+case class ReportHeadline(key: String, args: Seq[Int], locationCount: Int, labelIds: Seq[Int])
 
 /**
  * Picks the one sentence at the top of the report. Candidates are tried in order and each states the bar it has to
- * clear, so a sentence is never generated from too few observations to mean anything.
+ * clear, so a sentence is never generated from too few observations to mean anything. All of them speak about the
+ * region's distinct locations, not about listed streets, where a shared crossing would be counted once per street.
  */
 object HeadlineRule {
   val NoAlternateRouteMinCount: Int    = 5
   val NoAlternateRouteMinShare: Double = 0.1
+  val NoSidewalkMinStreets: Int        = 3
+  val NoSidewalkMinShare: Double       = 0.25
   val ConcentrationStreets: Int        = 3
   val ConcentrationMinWorst: Int       = 10
   val ConcentrationMinShare: Double    = 0.3
 
   /**
-   * @param ranked Streets in rank order, holding every counted label in the region
-   * @return The headline: no-alternate-route when that's substantial, else concentration on the top streets, else the
-   *         count of worst-rated observations, else a statement that there are none.
+   * @param streetKey     The street a location's own street edge belongs to, by edge id
+   * @param exploredCount How many distinct streets in the region have been explored
+   * @return The headline: no-alternate-route when that's substantial, else missing sidewalks when they span enough
+   *         streets, else concentration on a few streets, else the count at the worst rating, else a statement that
+   *         there are none.
    */
-  def select(ranked: Seq[ReportStreet]): ReportHeadline = {
-    val all      = ranked.flatMap(_.labels)
-    val worst    = all.filter(RankingRule.isWorst)
-    val missing  = all.filter(_.labelType == LabelType.NoCurbRamp)
-    val noWay    = missing.filter(RankingRule.hasNoAlternateRoute)
-    val topWorst = ranked
-      .sortBy(s => -s.labels.count(RankingRule.isWorst))
-      .take(ConcentrationStreets)
-      .flatMap(_.labels.filter(RankingRule.isWorst))
+  def select(locations: Seq[ReportLocation], streetKey: Int => Any, exploredCount: Int): ReportHeadline = {
+    def headline(key: String, args: Seq[Int], about: Seq[ReportLocation]) =
+      ReportHeadline(key, args, about.size, about.flatMap(_.labelIds))
+
+    val missing    = locations.filter(_.labelType == LabelType.NoCurbRamp)
+    val noWay      = missing.filter(_.hasNoAlternateRoute)
+    val noSidewalk = locations.filter(_.labelType == LabelType.NoSidewalk)
+    // Streets, because pins per street say how closely people labeled it, not how much sidewalk is missing.
+    val noSidewalkStreets = noSidewalk.map(l => streetKey(l.streetEdgeId)).distinct.size
+    val worst             = locations.filter(_.isWorst)
+    val byStreet          = worst.groupBy(l => streetKey(l.streetEdgeId)).values.toSeq
+    val topWorst = byStreet.sortBy(ls => (-ls.size, ls.map(_.clusterId).min)).take(ConcentrationStreets).flatten
 
     if (noWay.size >= NoAlternateRouteMinCount && noWay.size.toDouble / missing.size >= NoAlternateRouteMinShare) {
       val oneInN = math.round(missing.size.toDouble / noWay.size).toInt
-      ReportHeadline("report.headline.noalternate", Seq(oneInN, missing.size, noWay.size), noWay.map(_.labelId))
+      headline("report.headline.noalternate", Seq(oneInN, missing.size, noWay.size), noWay)
+    } else if (
+      noSidewalkStreets >= NoSidewalkMinStreets &&
+      exploredCount > 0 && noSidewalkStreets.toDouble / exploredCount >= NoSidewalkMinShare
+    ) {
+      headline("report.headline.nosidewalk", Seq(noSidewalkStreets, exploredCount), noSidewalk)
     } else if (worst.size >= ConcentrationMinWorst && topWorst.size.toDouble / worst.size >= ConcentrationMinShare) {
       val percent = math.round(100.0 * topWorst.size / worst.size).toInt
-      ReportHeadline("report.headline.concentration", Seq(ConcentrationStreets, percent), topWorst.map(_.labelId))
+      headline("report.headline.concentration", Seq(ConcentrationStreets, percent), topWorst)
     } else if (worst.nonEmpty) {
-      val streets = ranked.count(_.labels.exists(RankingRule.isWorst))
-      ReportHeadline("report.headline.worst", Seq(worst.size, streets), worst.map(_.labelId))
+      headline("report.headline.worst", Seq(worst.size, byStreet.size), worst)
     } else {
-      ReportHeadline("report.headline.none", Seq(all.size), Seq.empty)
+      headline("report.headline.none", Seq(locations.size), Seq.empty)
     }
+  }
+}
+
+/**
+ * The neighborhood's own number. Stated only once enough of it has been explored, by the same rule that ranks it on the
+ * landing page, so a reader never sees a score AccessScore itself holds back.
+ *
+ * @param score          The score, when the region clears the bar and has one
+ * @param percentExplored Its explored share, whole percent
+ * @param percentRequired The share needed before a score is stated
+ */
+case class NeighborhoodScore(score: Option[Double], percentExplored: Int, percentRequired: Int)
+
+object NeighborhoodScore {
+
+  /** @return The region's score, computed the way `/v3/api/accessScoreRegions` computes it. */
+  def from(streets: Seq[StreetAccessScoreForApi], completionRate: Double): NeighborhoodScore = {
+    val audited = streets.filter(_.auditCount > 0).flatMap(s => s.score.map(_ -> s.lengthMeters))
+    NeighborhoodScore(
+      score = AccessScoreCalculator
+        .scoreRegion(audited)
+        .filter(_ => AccessScoreSpotlight.completionQualifies(completionRate)),
+      percentExplored = math.round(completionRate * 100).toInt,
+      percentRequired = math.round(AccessScoreSpotlight.MinRegionCompletion * 100).toInt
+    )
   }
 }
 
@@ -283,6 +548,7 @@ object HeadlineRule {
  * @param auditedMeters      How much of that has been audited
  * @param observationIds     The counted labels
  * @param excludedIds        The labels left out because review marked them incorrect
+ * @param unclusteredIds     Counted labels of a scored type in no location, so behind no score
  * @param labelers           Distinct people behind the counted labels
  * @param firstObservation   The date of the earliest counted label
  * @param lastObservation    The date of the latest counted label
@@ -296,6 +562,7 @@ case class Coverage(
     auditedMeters: Double,
     observationIds: Seq[Int],
     excludedIds: Seq[Int],
+    unclusteredIds: Seq[Int],
     labelers: Int,
     firstObservation: Option[LocalDate],
     lastObservation: Option[LocalDate],
@@ -315,6 +582,7 @@ object Coverage {
   /**
    * @param counted       The counted labels
    * @param excluded      The labels review marked incorrect
+   * @param locations     Every location near the region
    * @param totalMeters   Length of the region's explorable streets
    * @param auditedMeters How much of that has been audited
    * @param today         The date imagery age is measured from
@@ -323,18 +591,23 @@ object Coverage {
   def from(
       counted: Seq[ReportLabel],
       excluded: Seq[ReportLabel],
+      locations: Seq[ReportLocation],
       totalMeters: Double,
       auditedMeters: Double,
       today: LocalDate
   ): Coverage = {
-    val years  = counted.flatMap(_.imageryYear).sorted
-    val dates  = counted.map(_.timeCreated.toLocalDate)
-    val cutoff = today.getYear - OldImageryYears
+    val years     = counted.flatMap(_.imageryYear).sorted
+    val dates     = counted.map(_.timeCreated.toLocalDate)
+    val cutoff    = today.getYear - OldImageryYears
+    val clustered = locations.flatMap(_.labelIds).toSet
     Coverage(
       totalMeters = totalMeters,
       auditedMeters = auditedMeters,
       observationIds = counted.map(_.labelId),
       excludedIds = excluded.map(_.labelId),
+      unclusteredIds = counted
+        .filter(l => AccessScoreCalculator.scoredTypeNames(l.labelType.name) && !clustered(l.labelId))
+        .map(_.labelId),
       labelers = counted.map(_.userId).distinct.size,
       firstObservation = dates.minOption,
       lastObservation = dates.maxOption,
@@ -347,13 +620,17 @@ object Coverage {
 }
 
 /**
- * One label type's row in the barrier inventory.
+ * One label type's row in the inventory, stated both ways: labels, which is what people did, and locations, which is
+ * what the score counts.
  *
- * @param worstIds None for a type with no rating, whose "worst" means nothing
- * @param topTags  The most-used tags, most used first, with their counts
+ * @param locationIds The labels of the type's locations in the region, and how many locations that is; None for a type
+ *                    AccessScore doesn't score
+ * @param worstIds    None for a type with no rating, whose "worst" means nothing
+ * @param topTags     The most-used tags, most used first, with their counts
  */
 case class InventoryRow(
     labelType: LabelType,
+    locations: Option[(Int, Seq[Int])],
     observedIds: Seq[Int],
     worstIds: Option[Seq[Int]],
     reviewedIds: Seq[Int],
@@ -364,20 +641,22 @@ case class InventoryRow(
 object InventoryRow {
   val TopTags: Int = 3
 
-  /**
-   * @param counted The counted labels
-   * @return One row per type that has labels, in the canonical type order.
-   */
-  def from(counted: Seq[ReportLabel]): Seq[InventoryRow] = {
-    val byType = counted.groupBy(_.labelType)
+  /** @return One row per type that has labels, in the canonical type order. */
+  def from(counted: Seq[ReportLabel], locations: Seq[ReportLocation]): Seq[InventoryRow] = {
+    val byType       = counted.groupBy(_.labelType)
+    val placesByType = locations.groupBy(_.labelType)
     LabelType.ordered.flatMap { labelType =>
       byType.get(labelType).map { labels =>
         val tagCounts = labels.flatMap(_.tags).groupMapReduce(identity)(_ => 1)(_ + _).toSeq
+        val places    = placesByType.getOrElse(labelType, Seq.empty)
         InventoryRow(
           labelType = labelType,
+          locations = Option.when(AccessScoreCalculator.scoredTypeNames(labelType.name))(
+            (places.size, places.flatMap(_.labelIds))
+          ),
           observedIds = labels.map(_.labelId),
           worstIds = Option.when(labelType.ratingScale != RatingScale.Unrated)(
-            labels.filter(RankingRule.isWorst).map(_.labelId)
+            labels.filter(ReportRules.isWorst).map(_.labelId)
           ),
           reviewedIds = labels.filter(_.humanVotes > 0).map(_.labelId),
           confirmedIds = labels.filter(_.confirmed).map(_.labelId),
@@ -393,60 +672,88 @@ object InventoryRow {
  *
  * @param cropUrl     The signed URL of the crop's thumbnail, or None to draw the "no image" panel
  * @param attribution The attribution line the imagery requires, when there is one
+ * @param costPoints  What the item this photo shows costs its street's score
  */
 case class ReportPhoto(
     label: ReportLabel,
     cropUrl: Option[String],
     markerX: Double,
     markerY: Double,
-    attribution: Option[models.pano.ImageryAttribution.Line]
+    attribution: Option[models.pano.ImageryAttribution.Line],
+    costPoints: Double
 )
 
 /**
- * A ranked street as the page draws it.
+ * One label type's evidence on a street row.
  *
- * @param typeIds Counted label ids per type, in the canonical type order, for the row's linked counts
+ * @param locations How many locations of this type are behind the row's score
  */
-case class RankedStreetRow(
-    rank: Int,
-    street: ReportStreet,
-    score: Int,
-    typeIds: Seq[(LabelType, Seq[Int])],
-    photos: Seq[ReportPhoto]
-)
+case class TypeEvidence(labelType: LabelType, locations: Int, labelIds: Seq[Int])
+
+/**
+ * A listed street as the page draws it.
+ *
+ * @param evidence What's behind the worst stretch's score, per type, in the canonical type order
+ */
+case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], photos: Seq[ReportPhoto])
+
+/**
+ * An item on the fixes list.
+ */
+case class ReportFix(street: ReportStreet, item: ReportItem, photo: ReportPhoto)
 
 /**
  * Everything a neighborhood report shows. Assembled by `ReportService` and rendered by `views.html.apps.report`.
  *
- * @param regionId     The region
- * @param regionName   The region's name
- * @param generatedAt  When this report was computed
- * @param coverage     What the report is based on
- * @param headline     The generated sentence
- * @param streets      The top ranked streets, with photos
- * @param streetsRanked How many streets had counted labels, so the page can say the list is a top N of them
- * @param punchList    The labels most worth fixing, each with its street's display name
- * @param inventory    The per-type table
+ * @param clustersUpdatedAt When the clusters behind its scores were last rebuilt
+ * @param streetsRanked     How many streets AccessScore's bars rank here, whatever their score
+ * @param evidenceBox       The area its locations were read from, for the data link that reproduces them
  */
 case class NeighborhoodReport(
     regionId: Int,
     regionName: String,
     generatedAt: OffsetDateTime,
+    clustersUpdatedAt: Option[OffsetDateTime],
+    score: NeighborhoodScore,
     coverage: Coverage,
     headline: ReportHeadline,
     streets: Seq[RankedStreetRow],
     streetsRanked: Int,
-    punchList: Seq[(ReportStreet, ReportPhoto)],
-    inventory: Seq[InventoryRow]
-)
+    fixes: Seq[ReportFix],
+    inventory: Seq[InventoryRow],
+    evidenceBox: Option[LatLngBBox]
+) {
+
+  /** @return Whether the region is too little explored for its score to be stated, so anything listed is provisional. */
+  def isProvisional: Boolean = score.score.isEmpty
+}
+
+/** The formats the page prints numbers in, one place so that its rows agree with each other. */
+object ReportFormat {
+
+  /**
+   * @param score A score in [0, 1]
+   * @return It on the 0-100 scale, to the one decimal the AccessScore Spotlight prints, in the reader's locale.
+   */
+  def score(score: Double)(using messages: Messages): String = oneDecimal(score * 100)
+
+  def oneDecimal(value: Double)(using messages: Messages): String = {
+    val format = java.text.NumberFormat.getNumberInstance(messages.lang.toLocale)
+    format.setMinimumFractionDigits(1)
+    format.setMaximumFractionDigits(1)
+    format.format(value)
+  }
+}
 
 /**
- * The URLs behind every count on the page, so "no number without a way to see the labels it counts" has one home.
+ * The URLs behind every number on the page, so "no number without a way to see what's behind it" has one home. A count
+ * links to its labels; a score links to the AccessScore tool, the one place its parts can all be seen.
  *
- * A count of at most [[MaxListedIds]] labels links to exactly those labels through the Gallery's review list (#5444).
- * Over the cap a list would be truncated, so the link falls back to the Gallery's filters, which select the same
+ * A region-wide count of at most [[MaxListedIds]] labels links to exactly those labels through the Gallery's review list
+ * (#5444). Over the cap a list would be truncated, so the link falls back to the Gallery's filters, which select the same
  * region, type and verdicts. Those can't express "has a human vote", so over the cap the reviewed and confirmed counts
- * land on the nearest filter rather than an exact list.
+ * land on the nearest filter rather than an exact list. A street's count has no such fallback, since no filter selects
+ * one street: it stays a list, and the Gallery says so on the page if the list went over its cap.
  */
 object ReportLinks {
 
@@ -456,7 +763,7 @@ object ReportLinks {
   // Everything except what review marked incorrect: the labels this report counts. The Gallery's default omits unsure.
   private val CountedValidationOptions = "correct,unsure,unvalidated"
 
-  /** @return The Gallery's review list for exactly these labels; only safe within [[MaxListedIds]]. */
+  /** @return The Gallery's review list for exactly these labels; truncated by it, with a notice, over [[MaxListedIds]]. */
   def labelList(ids: Seq[Int]): String = s"/gallery?labelIds=${ids.mkString(",")}"
 
   /**
@@ -492,7 +799,7 @@ object ReportLinks {
   def worstFilter(regionId: Int): String =
     galleryFilter(
       regionId,
-      severities = LabelType.ordered.flatMap(t => RankingRule.worstRating(t.ratingScale)).distinct
+      severities = LabelType.ordered.flatMap(t => ReportRules.worstRating(t.ratingScale)).distinct
     )
 
   /** @return The Gallery showing what this report counts in this region. */
@@ -501,11 +808,24 @@ object ReportLinks {
   /** @return AccessScore focused on this region. */
   def accessScore(regionId: Int): String = s"/accessScore?focus=$regionId"
 
+  def accessScoreStreet(streetEdgeId: Int): String = s"/accessScore?unit=streets&sel=$streetEdgeId"
+
+  val scoreDocs: String = "/v3/api-docs/accessScoreStreets"
+
   /** @return Explore started in this region. */
   def explore(regionId: Int): String = s"/explore?regionId=$regionId"
 
-  /** @return The Raw Labels API's CSV for this region, the data this report is built from. */
+  /** @return The Raw Labels API's CSV for this region: the labels this report counts. */
   def csv(regionId: Int): String = s"/v3/api/rawLabels?regionId=$regionId&filetype=csv"
+
+  def streetsCsv(regionId: Int): String = s"/v3/api/accessScoreStreets?regionId=$regionId&filetype=csv"
+
+  /**
+   * @param box The area the report read locations from. A region filter wouldn't do: a crossing at its edge pools
+   *            clusters from the streets just outside it.
+   */
+  def clustersCsv(box: LatLngBBox): String =
+    s"/v3/api/labelClusters?bbox=${box.minLng},${box.minLat},${box.maxLng},${box.maxLat}&filetype=csv"
 
   /** @return The label's own card, with its full panorama. */
   def label(labelId: Int): String = s"/label/$labelId"

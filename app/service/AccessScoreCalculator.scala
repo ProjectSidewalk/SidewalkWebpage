@@ -480,7 +480,7 @@ object AccessScoreCalculator {
   }
 
   /** Whether a tag carried by `count` of `labelCount` labels clears [[tagActiveThreshold]] (never with zero labels). */
-  private def tagActive(count: Int, labelCount: Int): Boolean =
+  def tagActive(count: Int, labelCount: Int): Boolean =
     labelCount > 0 && count.toDouble / labelCount >= tagActiveThreshold
 
   /** The logistic squashing function mapping the unbounded weighted sum to (0, 1). */
@@ -703,6 +703,26 @@ object AccessScoreCalculator {
   def headlineScore(segmentScore: Option[Double], endScores: Seq[Double]): Option[Double] = {
     val components: Seq[Double] = segmentScore.toSeq ++ endScores
     if (components.isEmpty) None else Some(components.sum / components.size)
+  }
+
+  /**
+   * A street's headline score rebuilt from its clusters, so a caller can ask what it would be with some of them gone.
+   * With every cluster present this is the published `score`, barring a slope barrier, which the engine's own settings
+   * leave off and which no cluster could lift anyway.
+   *
+   * @param slopeTerm       The segment's published slope term.
+   * @param endClusters     For each scored end intersection, the clusters pooled on it.
+   * @return                The headline score in (0, 1).
+   */
+  def headlineFromClusters(
+      segmentClusters: Seq[ClusterScoreInput],
+      lengthMeters: Double,
+      slopeTerm: Double,
+      endClusters: Seq[Seq[ClusterScoreInput]]
+  ): Double = {
+    val segment: Double   = sigmoid(scoreByType(segmentClusters, Some(lengthMeters)).valuesIterator.sum + slopeTerm)
+    val ends: Seq[Double] = endClusters.map(clusters => scoreStreet(clusters))
+    (segment +: ends).sum / (1 + ends.size)
   }
 
   /**

@@ -2,13 +2,14 @@ package controllers
 
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.ApiService
+import service.{ApiService, ReportOutcome, ReportService}
 import util.{SidewalkSpec, UserAgents}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
 
 /**
@@ -76,8 +77,32 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       body must not include "mapboxgl"
     }
 
-    "leave the CSV of the labels it counts one click away" in {
-      contentAsString(report()) must include(s"/v3/api/rawLabels?regionId=$regionId&amp;filetype=csv")
+    "leave the data that reproduces it one click away" in {
+      val body = contentAsString(report())
+      body must include(s"/v3/api/rawLabels?regionId=$regionId&amp;filetype=csv")
+      body must include(s"/v3/api/accessScoreStreets?regionId=$regionId&amp;filetype=csv")
+    }
+  }
+}
+
+/**
+ * While a city's AccessScores are being computed for the first time since a deploy, a report has nothing it can honestly
+ * print, so its URL says so and says when to come back (#5418).
+ */
+class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+  private val computing: ReportService = (_: Int) => Future.successful(ReportOutcome.StillComputing)
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder().disable[modules.ActorModule].overrides(bind[ReportService].toInstance(computing)).build()
+
+  "GET /report/neighborhood/:regionId" must {
+    "answer 503 with a page and a Retry-After, rather than a report with holes in it" in {
+      val resp = route(app, FakeRequest(GET, "/report/neighborhood/1")).get
+      status(resp) mustBe SERVICE_UNAVAILABLE
+      header(RETRY_AFTER, resp) mustBe Some(ReportController.StillComputingRetryAfterSeconds.toString)
+      contentType(resp) mustBe Some("text/html")
+      contentAsString(resp) must include("report-title")
+      contentAsString(resp) must not include "report-coverage-title"
     }
   }
 }

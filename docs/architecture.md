@@ -426,13 +426,19 @@ forwarded and printed with no session and no JavaScript. Its rule is that no num
 labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its filters
 past that list's cap (`ReportLinks`). It builds no pano and no map, so viewing one costs no billable Google call.
 
-`ReportService` reads only what the public API serves (the raw labels, region completion, street names and lengths), so
-a third party can reproduce a report from the CSV it links to. The rules live in `models/report/NeighborhoodReport.scala`
-as pure code: `RankingRule` is versioned and printed on the page, and bumping its `Version` is how two reports say they
-aren't comparable. Streets are grouped by OSM name within the region, because a `street_edge` is one block of a road and
-ranking edges would list the same name several times. Reviewers are people: AI votes aren't counted as reviewers,
-though they do feed the `correct` verdict that leaves a label out. A preset changes vocabulary and section order, never
-a number. Photos come from `/cropImage/:type/:id/thumbnail`, because a page of full-size crops weighs around 100 MB.
+The report's scores are AccessScore's, and they must agree with what the tool, the Spotlight and the API say about the
+same place. `ReportService` reads the city's `getFullCityScores` cache rather than scoring anything itself, and the same
+public data backs every figure: the street scores, the label clusters ("locations") and the raw labels, each linked as a
+CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-After` rather than an inferred number.
+`AccessScoreSpotlight` holds the bars for what gets ranked (`regionQualifies`, `stretchIsRanked`, `stretchScore`), so the
+report and the Spotlight can't disagree about them. Streets are ranked by stretch (one OSM way, audited edges only, length
+weighted), since a street is often fine along most of its length and bad along one part, and then collapsed by name so a
+reader sees each street once at its lowest stretch, with the whole-street score beside it. A fix's cost is how far the
+stretch's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+`ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
+labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
+Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
+out. A preset changes vocabulary and section order, never a number. Photos come from `/cropImage/:type/:id/thumbnail`, because a page of full-size crops weighs around 100 MB.
 
 ### Public label-share surface (`/label/:id`)
 
