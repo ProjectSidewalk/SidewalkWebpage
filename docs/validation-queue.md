@@ -309,6 +309,35 @@ The two metrics the issue names move the right way — 37% more faces per thousa
 face — and the pile-on drops from 68 votes on one face to 24. The constants are starting points; re-run the tool after
 the queue has been live for a while and tune them against the settled-face rate.
 
+## Training examples
+
+A new validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
+example" in the code): a label an
+admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree reason that explains it. The label is a
+real one the crowd has already voted wrong; the pin only says it teaches. `GoldExampleTable.ExamplesPerValidator`
+(3) is how many a validator is shown in a city before they get none, counted as answered examples.
+
+- **Who and where.** `LabelServiceImpl.goldExampleEligible`: the plain pages only (no `regions`, no
+  `unvalidatedOnly`, never Expert Validate), and never an admin, who pins the examples. Replacement labels
+  (`/validationTask/moreLabels`) are never examples.
+- **Which one.** `LabelTable.goldExampleForValidationQuery`: the pinned labels of the mission's type that pass every
+  rule the mission's own labels pass (`validationCandidates`: not the validator's, not voted on by them, imagery
+  their viewer renders), in random order, through the same imagery check. The example takes one of the mission's
+  slots, never the first.
+- **The answer is not a vote.** The examples are picked for being commonly mistaken, so counting beginners' Agrees
+  would vote a known-wrong label back to correct, and with it the labeler's accuracy and the API's `correct`. The
+  serve is recorded in `gold_example_response` (label, user, mission), and when the vote arrives the controller files
+  it there instead of `label_validation`, keyed on the mission it was served in, since the same label can still be
+  voted on for real from Expert Validate or the Gallery. The first answer stands: a validator told the answer could
+  otherwise undo and get it "right". A served example answered in no mission is re-served on reload.
+- **What they see.** Nothing on a Disagree. On Agree or Unsure, `ModalGoldFeedback` explains the pinned reason, with
+  the reason menu's own text, tooltip and example image, before the mission moves on.
+- **Afterwards.** A label the validator has answered as an example is excluded from their queue
+  (`answeredAsGoldExample`, in both the label query and the per-type counts), the same way a label they voted on is.
+  The answer counts toward the mission's ten but not toward the validator's validation count or stats.
+- **Expiry.** An example whose pano the provider dropped is served through its backup like any label; one without a
+  backup fails `imageryViewable` and is simply not picked, and `/admin/goldExamples` marks it for replacement.
+
 ## Expert Validate's `?triage=`
 
 `GET /expertValidate?triage=<bool>` and `GET /adminValidate?triage=<bool>` take an optional boolean that **defaults to

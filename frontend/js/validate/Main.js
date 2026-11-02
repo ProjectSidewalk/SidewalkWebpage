@@ -23,6 +23,7 @@ import { MobileValidationMenu } from './menu/MobileValidationMenu.js';
 import { UndoValidation } from './menu/UndoValidation.js';
 import { MissionContainer } from './mission/MissionContainer.js';
 import { ModalMission } from './modal/ModalMission.js';
+import { ModalGoldFeedback } from './modal/ModalGoldFeedback.js';
 import { ModalMissionComplete } from './modal/ModalMissionComplete.js';
 import { ModalNoNewMission } from './modal/ModalNoNewMission.js';
 import { PanoControlMenu } from './panorama/PanoControlMenu.js';
@@ -413,14 +414,16 @@ export class Main {
       statusField, modalMission, modalMissionComplete, missionLiveMarker, tracker,
     );
 
+    const reasonButtonInfo = buildReasonButtonInfo();
+    const modalGoldFeedback = new ModalGoldFeedback(ui.modalMission, reasonButtonInfo, keyboardLock, tracker);
+
     // Nothing renders yet: what describes a label subscribes to the container first, then the first label is drawn.
     const labelContainer = new LabelContainer(labels, labelType, ui, config, panoManager, panoLoadingStatus,
-      modalMissionComplete, modalNoNewMission, missionContainer, tracker);
+      modalMissionComplete, modalNoNewMission, missionContainer, tracker, modalGoldFeedback);
 
     labelVisibilityControl = new LabelVisibilityControl(ui.viewer, config, labelContainer, panoManager, tracker);
     const labelCard = labelVisibilityControl.getLabelCard();
 
-    const reasonButtonInfo = buildReasonButtonInfo();
     const validationMenu = util.isMobile()
       ? new MobileValidationMenu(ui.validationMenu, reasonButtonInfo, labelContainer, tracker)
       : new DesktopValidationMenu(

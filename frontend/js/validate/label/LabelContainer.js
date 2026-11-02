@@ -13,6 +13,7 @@ import { Label } from './Label.js';
 /** @typedef {import('../panorama/PanoLoadingStatus.js').PanoLoadingStatus} PanoLoadingStatus */
 /** @typedef {import('../modal/ModalMissionComplete.js').ModalMissionComplete} ModalMissionComplete */
 /** @typedef {import('../modal/ModalNoNewMission.js').ModalNoNewMission} ModalNoNewMission */
+/** @typedef {import('../modal/ModalGoldFeedback.js').ModalGoldFeedback} ModalGoldFeedback */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
 
@@ -88,6 +89,8 @@ export class LabelContainer {
   #modalMissionComplete;
   /** @type {ModalNoNewMission} */
   #modalNoNewMission;
+  /** @type {?ModalGoldFeedback} */
+  #modalGoldFeedback;
   /** @type {MissionContainer} */
   #missionContainer;
   /** @type {Tracker} */
@@ -123,15 +126,17 @@ export class LabelContainer {
    * @param {ModalNoNewMission} modalNoNewMission - Shown when the mission runs out of labels that will load.
    * @param {MissionContainer} missionContainer - The mission each validation counts toward.
    * @param {Tracker} tracker - Logs loads, drops and verdicts.
+   * @param {?ModalGoldFeedback} [modalGoldFeedback] - Explains a known-answer example got wrong (#1445).
    */
   constructor(labelList, labelType, ui, config, panoManager, panoLoadingStatus, modalMissionComplete,
-    modalNoNewMission, missionContainer, tracker) {
+    modalNoNewMission, missionContainer, tracker, modalGoldFeedback = null) {
     this.#ui = ui;
     this.#config = config;
     this.#panoManager = panoManager;
     this.#panoLoadingStatus = panoLoadingStatus;
     this.#modalMissionComplete = modalMissionComplete;
     this.#modalNoNewMission = modalNoNewMission;
+    this.#modalGoldFeedback = modalGoldFeedback;
     this.#missionContainer = missionContainer;
     this.#tracker = tracker;
     this.resetLabelList(labelList, labelType);
@@ -558,21 +563,35 @@ export class LabelContainer {
     if (comment) this.#tracker.push('ValidationTextField_DataEntered', { validation: action, text: comment });
 
     const mission = this.#missionContainer.getCurrentMission();
-    if (['Agree', 'Disagree', 'Unsure'].includes(action)) {
-      mission.updateValidationResult(action, false);
-      this.pushToLabelsToSubmit(
-        label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
-      );
-      // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
-      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
-      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
-      this.#tracker.flushSoon();
-      this.#missionContainer.updateAMission();
-    }
+    const record = () => {
+      if (['Agree', 'Disagree', 'Unsure'].includes(action)) {
+        mission.updateValidationResult(action, false);
+        this.pushToLabelsToSubmit(
+          label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
+        );
+        // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+        // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+        // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
+        this.#tracker.flushSoon();
+        this.#missionContainer.updateAMission();
+      }
 
-    // A completed mission's next label arrives with the mission-complete response (Form.js), not from here.
-    if (!mission.isComplete()) {
-      this.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
+      // A completed mission's next label arrives with the mission-complete response (Form.js), not from here.
+      if (!mission.isComplete()) {
+        this.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
+      }
+    };
+
+    // Explained before the mission moves on (#1445), with the pano still up behind. Held busy meanwhile, so a second
+    // tap can't vote again, and a mission this verdict completes shows "Great job!" only once the explanation is read.
+    if (label.getAuditProperty('goldReason') && action !== 'Disagree' && this.#modalGoldFeedback) {
+      this.#setUiBusy(true);
+      this.#modalGoldFeedback.show(label, action).then(() => {
+        this.#setUiBusy(false);
+        record();
+      });
+    } else {
+      record();
     }
   }
 

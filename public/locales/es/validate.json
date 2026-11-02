@@ -33,6 +33,11 @@
     "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
   },
+  "gold-feedback": {
+    "title": "Una a tener en cuenta",
+    "body": "Esta etiqueta es una que validadores con experiencia han marcado como un error:",
+    "ok": "Entendido"
+  },
   "pano-loading": {
     "skipping": "Sigue cargando; pasamos a la siguiente etiqueta..."
   },

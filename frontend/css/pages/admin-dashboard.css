@@ -2975,3 +2975,39 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   align-items: center;
   gap: 6px;
 }
+
+/* ---- Gold Examples page (#1445) --------------------------------------------------------------------------------- */
+
+.gold-examples-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-sm) 0;
+}
+
+/* The crop is 3:2; the neutral backing shows where a crop is missing. */
+.gold-examples-thumb {
+  display: block;
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+}
+
+.gold-examples-thumb--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-600);
+}
+
+.gold-examples-label {
+  white-space: nowrap;
+}
+
+.gold-examples-type {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin-left: var(--space-xs);
+}

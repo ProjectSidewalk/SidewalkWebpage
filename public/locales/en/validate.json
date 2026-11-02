@@ -33,6 +33,11 @@
     "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
     "retry": "Try Again"
   },
+  "gold-feedback": {
+    "title": "One to watch out for",
+    "body": "This label is one that experienced validators have marked as a mistake:",
+    "ok": "Got it"
+  },
   "pano-loading": {
     "skipping": "Still loading, trying the next label..."
   },

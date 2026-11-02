@@ -38,11 +38,14 @@ import models.utils.{
   SqlFragments
 }
 import models.validation.{
+  GoldExampleResponseTableDef,
+  GoldExampleTableDef,
   LabelValidation,
   LabelValidationTableDef,
   ValidationLabelFilter,
   ValidationOption,
   ValidationQueuePolicy,
+  ValidationReason,
   ValidationTaskCommentTableDef
 }
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -356,7 +359,9 @@ case class LabelValidationMetadata(
     aiGenerated: Boolean,
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false,
-    panoMetadata: Option[PanoViewerMetadata] = None
+    panoMetadata: Option[PanoViewerMetadata] = None,
+    // Set when the label is in the mission as a known-answer example (#1445): the reason the tool explains on a miss.
+    goldReason: Option[ValidationReason] = None
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -920,6 +925,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
   val mistakeResponses       = TableQuery[MistakeResponseTableDef]
+  val goldExamples           = TableQuery[GoldExampleTableDef]
+  val goldExampleResponses   = TableQuery[GoldExampleResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1517,7 +1524,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId)
+      if !validatedByUser(_lb, userId) && !answeredAsGoldExample(_lb, userId)
     } yield _lb
   }
 
@@ -1547,6 +1554,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   private def validatedByUser(l: LabelTableDef, userId: String): Rep[Boolean] =
     labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
+
+  /**
+   * Answered as a known-answer example (#1445): they were told the answer, so serving it to validate would be a repeat.
+   * An unanswered serve doesn't count, so a mission abandoned on the example can offer it again.
+   */
+  private def answeredAsGoldExample(l: LabelTableDef, userId: String): Rep[Boolean] =
+    goldExampleResponses
+      .filter(r => r.userId === userId && r.labelId === l.labelId && r.validationResult.isDefined)
+      .exists
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1787,6 +1803,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .map { case (row, _) => asValidationMetadata(row, includeAiTags) }
   }
 
+  /**
+   * The pinned examples of this type the user could be shown (#1445), in random order, under every rule the mission's
+   * own labels pass. The reason is a second column because the metadata projection is the ordinary queue's.
+   */
+  def goldExampleForValidationQuery(
+      userId: String,
+      viewer: PanoSource,
+      labelType: LabelType,
+      includeAiTags: Boolean
+  ): Query[(LabelValidationMetadataRep, Rep[ValidationReason]), (LabelValidationMetadata, ValidationReason), Seq] = {
+    validationCandidates(userId, viewer, labelType, ValidationLabelFilter(), unvalidatedOnly = false, Set.empty,
+      Set.empty)
+      .join(goldExamples)
+      .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
+      .sortBy(_ => random)
+      .map { case (row, g) => (asValidationMetadata(row, includeAiTags), g.reason) }
+  }
+
   // The row the Validate queue's stages pass along, lifted and plain: the label, its point, pano, labeler's stats and
   // audit task, then the type name, region, whether an AI placed it, and the AI's assessment and vote if any.
   private type ValidationCandidateRep = (
@@ -1844,7 +1878,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if !onExcludedFace(_lb, _lp, StreetSide.Left, excludedFaces) &&
         !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
+      if !validatedByUser(_lb, userId) && !answeredAsGoldExample(_lb, userId) // Anti-joins; see validatedByUser.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a

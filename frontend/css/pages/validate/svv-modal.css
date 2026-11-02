@@ -144,3 +144,25 @@
 #modal-mission-complete-close-button-secondary {
   flex: 2 1 auto;
 }
+
+/* The known-answer explanation (ModalGoldFeedback, #1445), painted into the mission modal's box. */
+.modal-gold-feedback__intro,
+.modal-gold-feedback__explanation {
+  text-align: center;
+  margin: 0 0 calc(10px * var(--ui-scale, 1));
+}
+
+.modal-gold-feedback__reason {
+  font: var(--text-subtitle-bold);
+  text-align: center;
+  margin: 0 0 calc(10px * var(--ui-scale, 1));
+}
+
+.modal-gold-feedback__image {
+  display: block;
+  width: 62%;
+  max-width: calc(360px * var(--ui-scale, 1));
+  height: auto;
+  margin: 0 auto;
+  border-radius: calc(5px * var(--ui-scale, 1));
+}

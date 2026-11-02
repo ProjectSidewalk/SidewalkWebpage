@@ -391,6 +391,14 @@ class AdminDashboardController @Inject() (
     }
   }
 
+  /** The known-answer examples new validators are shown (#1445), and how they have done on each. */
+  def goldExamples = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_GoldExamples")
+      Ok(views.html.admin.dashboard.goldExamples(commonData, request.identity))
+    }
+  }
+
   /**
    * The Imagery page's pipeline endpoint: nightly poll/flag counts and job state as snake_case JSON (#4908).
    *

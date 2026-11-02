@@ -33,6 +33,11 @@
     "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
     "retry": "Erneut versuchen"
   },
+  "gold-feedback": {
+    "title": "Darauf solltest du achten",
+    "body": "Dieses Label haben erfahrene Prüfer als Fehler markiert:",
+    "ok": "Verstanden"
+  },
   "pano-loading": {
     "skipping": "Lädt noch – wir versuchen die nächste Beschriftung …"
   },

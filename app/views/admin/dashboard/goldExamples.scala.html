@@ -1,0 +1,37 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.validation.GoldExampleTable
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* Admin Training Examples page (#1445, "gold examples" in the code): labels pinned as common validation mistakes, and
+* how new validators have done on them. Pinning happens on a label's admin page; this page lists and removes.
+* Admin-only surface, English only.
+*@
+
+@content = {
+  <div class="page-section" id="gold-examples-intro-section">
+    <h1 class="page-heading" id="gold-examples">Training examples <a href="#gold-examples" class="permalink">#</a></h1>
+    <p>
+      Labels the crowd voted wrong, shown to new validators as common mistakes: one per mission in their first
+      @GoldExampleTable.ExamplesPerValidator missions, and anyone who doesn't disagree is told why it's wrong. Their
+      answer never counts as a vote.
+    </p>
+    <p>
+      To add one, open a label at <code>/admin/label/&lt;id&gt;</code>. One whose imagery is gone is marked here so it
+      can be replaced.
+    </p>
+    <div class="gold-examples-status" id="gold-examples-status" role="status" aria-live="polite">Loading examples…</div>
+    <div id="gold-examples-list"></div>
+  </div>
+
+  @ViteAssets.stylesheets("admin/goldExamples", alreadyLinked = "admin/shell")
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/goldExamples.js")'></script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Training Examples") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("gold-examples", commonData, user)(content)
+}

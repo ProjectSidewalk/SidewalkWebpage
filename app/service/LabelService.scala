@@ -8,11 +8,17 @@ import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
 import models.route.UserRouteTable
-import models.user.SidewalkUserWithRole
+import models.user.{Role, SidewalkUserWithRole}
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api.*
 import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
-import models.validation.{LabelValidationTable, ValidationLabelFilter, ValidationResultCounts}
+import models.validation.{
+  GoldExampleTable,
+  LabelValidationTable,
+  ValidationLabelFilter,
+  ValidationReason,
+  ValidationResultCounts
+}
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
@@ -118,6 +124,9 @@ object LabelServiceImpl {
 
   /** Most mistakes per label type the user dashboard can ask for; a huge count would check imagery for thousands. */
   val MaxMistakesPerType: Int = 50
+
+  /** Examples read per mission (#1445), so one whose imagery just dropped doesn't cost the validator the example. */
+  val GoldExampleCandidates: Int = 3
 
   /**
    * How many batches with nothing viewable in them a fixed-order walk reads past before giving up (#2705).
@@ -245,12 +254,69 @@ class LabelServiceImpl @Inject() (
     labelValidationTable: LabelValidationTable,
     labelHistoryTable: LabelHistoryTable,
     userRouteTable: UserRouteTable,
-    missionService: MissionService
+    missionService: MissionService,
+    goldExampleTable: GoldExampleTable
 )(using ec: ExecutionContext)
     extends LabelService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+
+  /**
+   * Only the plain Validate pages carry an example (#1445): a filtered page or Expert Validate asked for particular
+   * labels. Admins pin the examples, so they are never quizzed on them.
+   */
+  private def goldExampleEligible(user: SidewalkUserWithRole, validateParams: ValidateParams): Boolean =
+    !validateParams.adminVersion && validateParams.regionIds.isEmpty && !validateParams.unvalidatedOnly &&
+      !Role.ADMIN_ROLES.contains(user.role)
+
+  /**
+   * The mission's labels with one known-answer example slipped in while the validator is owed one (#1445). It takes
+   * one of the `n` slots, never the first so they have settled in, and its serve is recorded so the vote on it can be
+   * told from a real validation (`ValidateController`). A mission of only the example is no mission.
+   *
+   * @param fetch The ordinary labels: how many, and which ids to leave out.
+   */
+  private def withGoldExample(
+      user: SidewalkUserWithRole,
+      missionId: Int,
+      labelType: LabelType,
+      n: Int,
+      viewer: PanoSource,
+      validateParams: ValidateParams
+  )(fetch: (Int, Set[Int]) => Future[Seq[LabelValidationMetadata]]): Future[Seq[LabelValidationMetadata]] = {
+    def pickExample: Future[Option[(LabelValidationMetadata, ValidationReason)]] = db
+      .run(
+        labelTable
+          .goldExampleForValidationQuery(user.userId, viewer, labelType, configService.getAiTagSuggestionsEnabled)
+          .take(LabelServiceImpl.GoldExampleCandidates)
+          .result
+      )
+      .flatMap { candidates =>
+        checkImageryBatch(candidates.map(_._1), useCrops = false).map { viewable =>
+          candidates.find { case (meta, _) => viewable.exists(_.labelId == meta.labelId) }
+        }
+      }
+
+    if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n, Set.empty)
+    else
+      db.run(goldExampleTable.answeredCount(user.userId)).flatMap { answered =>
+        if (answered >= GoldExampleTable.ExamplesPerValidator) fetch(n, Set.empty)
+        else
+          pickExample.flatMap {
+            case None                 => fetch(n, Set.empty)
+            case Some((meta, reason)) =>
+              fetch(n - 1, Set(meta.labelId)).flatMap { labels =>
+                if (labels.isEmpty) Future.successful(labels)
+                else
+                  db.run(goldExampleTable.recordServe(meta.labelId, user.userId, missionId, reason)).map { _ =>
+                    val at: Int = 1 + Random.nextInt(labels.size)
+                    labels.patch(at, Seq(meta.copy(goldReason = Some(reason))), 0)
+                  }
+              }
+          }
+      }
+  }
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
 
@@ -824,8 +890,11 @@ class LabelServiceImpl @Inject() (
             labelsProgress: Int   = mission.labelsProgress.get
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
-            labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
-              validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
+            labelMetadata <- withGoldExample(user, mission.missionId, labelType, labelsToRetrieve, viewerType,
+              validateParams) { (n, excluded) =>
+              retrieveLabelListForValidation(user.userId, n, viewerType, labelType, validateParams.queueCascade,
+                validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
+            }
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
@@ -902,9 +971,17 @@ class LabelServiceImpl @Inject() (
               missionProgress,
               Some(nextMissionLabelType)
             )
-            labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              viewerType, nextMissionLabelType, validateParams.queueCascade, validateParams.labelFilter,
-              validateParams.unvalidatedOnly)
+            labelList: Seq[LabelValidationMetadata] <- {
+              val fetch = (n: Int, excluded: Set[Int]) =>
+                retrieveLabelListForValidation(user.userId, n, viewerType, nextMissionLabelType,
+                  validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
+              newMission match {
+                case Some(m) =>
+                  withGoldExample(user, m.missionId, nextMissionLabelType, labelsToRetrieve, viewerType,
+                    validateParams)(fetch)
+                case None => fetch(labelsToRetrieve, Set.empty)
+              }
+            }
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
