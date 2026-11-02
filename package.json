@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "1.8.0",
-    "@inovitas/infra3dapi": "1.13.1",
+    "@inovitas/infra3dapi": "1.13.2",
     "@mapbox/mapbox-gl-language": "1.0.1",
     "@mapbox/search-js-web": "1.6.0",
     "@photo-sphere-viewer/core": "5.15.1",
