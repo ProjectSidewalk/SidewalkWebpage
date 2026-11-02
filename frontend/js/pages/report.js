@@ -8,6 +8,9 @@ import { copyToClipboard } from '../common/copyToClipboard.js';
 import { PageToc } from '../common/PageToc.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
+import { AccessScoreClusterFeed } from '../access-score/AccessScoreClusterFeed.js';
+import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
+import { AccessScoreUrlSync } from '../access-score/AccessScoreUrlSync.js';
 import { ReportPage } from '../report/ReportPage.js';
 import { ReportMap } from '../report/ReportMap.js';
 import { buildCard, fetchCardData } from '../report/reportCards.js';
@@ -62,6 +65,16 @@ window.appManager.ready(() => {
     fetchCards: fetchCardData,
     buildCard,
     log,
+    createModel: (config, streets, intersections, regions) => new AccessScoreModel(
+      config, streets, intersections, regions,
+    ),
+    loadClusters: (config, regionId) => new AccessScoreClusterFeed({ types: config.scored_types })
+      .regionClusters(regionId),
+    linkedWeights: (config) => {
+      const { state } = AccessScoreUrlSync.read(config);
+      if (!state.weights && state.slope?.weight === undefined) return null;
+      return { weights: state.weights, slopeWeight: state.slope?.weight };
+    },
   });
   page.start();
 

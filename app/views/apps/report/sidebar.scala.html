@@ -66,6 +66,14 @@
         <li><span class="report-legend__line report-legend__line--absent" aria-hidden="true"></span>@Messages("report.map.sidewalks.absent")</li>
       </ul>
     </div>
+    <div class="report-control" id="report-weights-control" hidden>
+      <h2 class="report-control__title">
+        @Messages("report.weights.title")
+        @reportViews.info(Messages("report.weights.help"))
+      </h2>
+      <div class="report-weights" id="report-weights"></div>
+      <button type="button" class="button button--secondary button--small" id="report-weights-reset" hidden>@Messages("report.weights.reset")</button>
+    </div>
     <div class="report-actions" id="report-actions" hidden>
       <button type="button" class="button button--secondary button--small" id="report-print">@Messages("report.print")</button>
       <button type="button" class="button button--secondary button--small" id="report-copy-link">@Messages("report.copy.link")</button>

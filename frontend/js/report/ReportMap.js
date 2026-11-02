@@ -136,7 +136,7 @@ export class ReportMap {
     this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
     this.#map.once('load', () => {
-      this.#addStreets(edges, focusEdgeIds);
+      this.#addStreets(focusEdgeIds);
       this.#addSidewalks();
       this.#addViewpoint();
       this.#addCursor();
@@ -153,29 +153,30 @@ export class ReportMap {
     else this.#pending.push(work);
   }
 
+  /** @returns {GeoJSON.FeatureCollection} The streets as they now stand; a host may change an edge's score in place. */
+  #streetFeatures() {
+    const focused = new Set(this.#options.focusEdgeIds ?? []);
+    return {
+      type: 'FeatureCollection',
+      features: this.#options.edges.map((e) => ({
+        type: 'Feature',
+        properties: {
+          wayId: e.wayId,
+          score: e.score ?? -1,
+          grade: e.grade ?? -1,
+          explored: e.explored,
+          focused: focused.has(e.id),
+        },
+        geometry: { type: 'LineString', coordinates: e.coordinates },
+      })),
+    };
+  }
+
   /**
-   * @param {ReportMapEdge[]} edges
    * @param {?Array<number>} focusEdgeIds
    */
-  #addStreets(edges, focusEdgeIds) {
-    const focused = new Set(focusEdgeIds ?? []);
-    this.#map.addSource(STREETS_SOURCE, {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: edges.map((e) => ({
-          type: 'Feature',
-          properties: {
-            wayId: e.wayId,
-            score: e.score ?? -1,
-            grade: e.grade ?? -1,
-            explored: e.explored,
-            focused: focused.has(e.id),
-          },
-          geometry: { type: 'LineString', coordinates: e.coordinates },
-        })),
-      },
-    });
+  #addStreets(focusEdgeIds) {
+    this.#map.addSource(STREETS_SOURCE, { type: 'geojson', data: this.#streetFeatures() });
     const scoreColor = ScoreRamp.expression(['get', 'score'], { noneColor: token('--color-neutral-400') });
     const line = (id, filter, paint) => this.#map.addLayer({
       id, type: 'line', source: STREETS_SOURCE, filter, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint,
@@ -359,6 +360,13 @@ export class ReportMap {
         ? AccessScoreGradeRamp.expression(['get', 'grade'], gradeBreaks, { noneColor })
         : ScoreRamp.expression(['get', 'score'], { noneColor });
       this.#map.setPaintProperty(SCORED_LAYER, 'line-color', /** @type {any} */ (color));
+    });
+  }
+
+  /** Redraws the streets from their edges' current scores. */
+  refreshStreets() {
+    this.#whenLoaded(() => {
+      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(STREETS_SOURCE))?.setData(this.#streetFeatures());
     });
   }
 

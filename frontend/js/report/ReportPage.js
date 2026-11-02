@@ -6,7 +6,9 @@
 
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';
+import { crossingsBbox, ReportRescorer } from './ReportRescorer.js';
 import { ReportStreetSection } from './ReportStreetSection.js';
+import { ReportWeights } from './ReportWeights.js';
 
 export class ReportPage {
   /** Well under the browser's limit of about 16, and more than fit on a screen. */
@@ -20,7 +22,7 @@ export class ReportPage {
   /** Sections close enough to be worth a map; #assignMaps picks from these. */
   /** @type {Set<ReportStreetSection>} */ #near = new Set();
   /** @type {?Promise<GeoJSON.FeatureCollection>} */ #sidewalks = null;
-  /** @type {?Promise<?number[]>} */ #gradeBreaks = null;
+  /** @type {?Promise<Record<string, any>>} */ #config = null;
   /** @type {?IntersectionObserver} */ #observer = null;
   /** @type {any} */ #regionMap = null;
   /** @type {?IntersectionObserver} */ #slotObserver = null;
@@ -36,6 +38,10 @@ export class ReportPage {
    * @param {(labelIds: number[]) => Promise<Map<number, Record<string, any>>>} deps.fetchCards
    * @param {(entry: Record<string, any>, log: (event: string) => void) => any} deps.buildCard
    * @param {(event: string) => void} deps.log
+   * @param {(config: any, streets: any, intersections: any, regions: any) => any} deps.createModel
+   * @param {(config: any, regionId: number) => Promise<any[]>} deps.loadClusters
+   * @param {(config: any) => ?Partial<import('./ReportWeights.js').ReportWeightValues>} deps.linkedWeights - What a
+   *   link's address asks for, or null.
    */
   constructor(data, deps) {
     this.#data = data;
@@ -68,13 +74,60 @@ export class ReportPage {
     this.#wireFilter();
     this.#wireSidewalkToggle();
     this.#wireColorBy();
+    this.#wireWeights();
+  }
+
+  /** @returns {Promise<Record<string, any>>} `/v3/api/accessScoreConfig`'s answer, fetched once. */
+  #fetchConfig() {
+    this.#config ??= util.fetchJson('/v3/api/accessScoreConfig');
+    return this.#config;
   }
 
   /** @returns {Promise<?number[]>} The city's slope classes, or null where it has no gradient data. */
-  #fetchGradeBreaks() {
-    this.#gradeBreaks ??= util.fetchJson('/v3/api/accessScoreConfig').then(({ grade }) => (
-      grade?.sources?.length > 0 && grade.map_class_breaks?.length > 0 ? grade.map_class_breaks : null));
-    return this.#gradeBreaks;
+  async #fetchGradeBreaks() {
+    const { grade } = await this.#fetchConfig();
+    return grade?.sources?.length > 0 && grade.map_class_breaks?.length > 0 ? grade.map_class_breaks : null;
+  }
+
+  /** The sidebar's weights, which appear once the config says what there is to weigh. */
+  async #wireWeights() {
+    const control = document.getElementById('report-weights-control');
+    if (!control) return;
+    let config;
+    try {
+      config = await this.#fetchConfig();
+    } catch (err) {
+      console.warn('Report weights could not load', err);
+      return;
+    }
+    const { regionId } = this.#data;
+    const rescorer = new ReportRescorer(this.#data, {
+      loadModel: async () => {
+        const streets = await util.fetchJson(`/v3/api/accessScoreStreets?regionId=${regionId}`);
+        const [intersections, completion] = await Promise.all([
+          util.fetchJson(`/v3/api/accessScoreIntersections?bbox=${crossingsBbox(streets)}`),
+          util.fetchJson('/regions/completionRates'),
+        ]);
+        return this.#deps.createModel(config, streets, intersections, completion);
+      },
+      loadClusters: () => this.#deps.loadClusters(config, regionId),
+      sections: () => this.#sections,
+      regionMap: () => this.#regionMap,
+    });
+    const weights = new ReportWeights(control, config, (values, { kind, value, final }) => {
+      if (final) this.#log(`Report_${kind}${value ? `_${value}` : ''}`);
+      rescorer.apply(values, { isDefault: weights.isDefault, final });
+    });
+    document.getElementById('report-custom-reset')?.addEventListener('click', () => {
+      document.getElementById('report-weights-reset').click();
+    });
+    control.hidden = false;
+
+    const linked = this.#deps.linkedWeights(config);
+    if (linked) {
+      weights.show(linked);
+      rescorer.apply(weights.values, { isDefault: weights.isDefault, final: true });
+    }
   }
 
   /** The score-or-slope switch, which only appears where a street in the region has a grade to color by. */

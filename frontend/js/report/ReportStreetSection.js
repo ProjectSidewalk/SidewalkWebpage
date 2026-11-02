@@ -76,6 +76,7 @@ export class ReportStreetSection {
   /** @type {?import('./stitchProfile.js').ReportStitchedProfile} */ #stitched = null;
   #profileRequested = false;
   /** @type {?number[]} */ #colorBreaks = null;
+  /** @type {?((card: ReportCardData) => number)} */ #weigher = null;
 
   /**
    * @param {HTMLElement} element - The section: `[data-street-map]`, `[data-street-cards]`, `[data-street-more]`.
@@ -210,9 +211,19 @@ export class ReportStreetSection {
     }));
   }
 
+  /** @returns {ReportCardData[]} Every location, in the order to show them. */
+  #ordered() {
+    if (!this.#weigher) return this.#street.cards;
+    const weigher = this.#weigher;
+    return this.#street.cards
+      .map((card, index) => ({ card, index, weight: weigher(card) }))
+      .sort((a, b) => b.weight - a.weight || a.index - b.index)
+      .map(({ card }) => card);
+  }
+
   /** @returns {ReportCardData[]} The locations the filter allows, in the order they're shown. */
   #visible() {
-    return this.#street.cards.filter((c) => this.#visibleTypes.has(c.labelType));
+    return this.#ordered().filter((c) => this.#visibleTypes.has(c.labelType));
   }
 
   /**
@@ -301,7 +312,7 @@ export class ReportStreetSection {
   #arrange() {
     const visible = this.#visible();
     const shown = new Set(visible.slice(0, this.#limit).map((c) => c.clusterId));
-    for (const data of this.#street.cards) {
+    for (const data of this.#ordered()) {
       const { item } = this.#entries.get(data.clusterId);
       if (!item) continue;
       item.hidden = !shown.has(data.clusterId);
@@ -377,6 +388,20 @@ export class ReportStreetSection {
     this.#map?.setVisibleTypes(types);
     this.#profile?.setMarkers(this.#profileMarkers());
     if (this.#list.childElementCount > 0) this.loadCards();
+  }
+
+  /**
+   * Re-orders the cards by what the reader's weights make them matter, or back to the server's order.
+   * @param {?((card: ReportCardData) => number)} weigher - How much a card matters; null for the server's order.
+   */
+  setCardWeigher(weigher) {
+    this.#weigher = weigher;
+    if (this.#list.childElementCount > 0) this.loadCards();
+  }
+
+  /** Redraws the street's map from its edges' current scores. */
+  refreshStreets() {
+    this.#map?.refreshStreets();
   }
 
   /** @param {?number[]} breaks - The slope classes to color streets by, or null for score. */

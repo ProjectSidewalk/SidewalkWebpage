@@ -16,7 +16,8 @@
   color: var(--color-neutral-900);
 }
 
-.report-sidebar__body {
+/* Doubled up for the same reason as .page-content.report-page: the shell's .page-nav rule may load after this file. */
+.page-nav.report-sidebar__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -61,14 +62,14 @@
     display: none;
   }
 
-  .report-page {
-    max-width: calc(100% - var(--sidebar-width));
+  .page-content.report-page {
+    max-width: none;
+    margin-right: 0;
   }
 }
 
 @media (width <= 768px) {
-  .report-page {
-    max-width: 100%;
+  .page-content.report-page {
     padding-inline: var(--space-md);
   }
 }
@@ -496,6 +497,63 @@
   border: 0;
 }
 
+.report-weights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.report-weight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xxs);
+  align-items: baseline;
+  font: var(--text-caption-regular);
+}
+
+.report-weight label {
+  margin: 0;
+  font: inherit;
+}
+
+.report-weight output {
+  font: var(--text-caption-medium);
+}
+
+.report-weight input {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+/* A reader's weights are a what-if: the stamp says so, and what only the server can compute gives way rather than
+   stand beside numbers it no longer matches. */
+.report-custom-stamp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  background: var(--color-warning-100);
+  border-left: 4px solid var(--color-warning-200);
+  border-radius: var(--border-radius);
+}
+
+.report-custom-stamp[hidden] {
+  display: none;
+}
+
+.is-custom-weights .report-street__meta,
+.is-custom-weights .report-street__context,
+.is-custom-weights .report-card__cost,
+.is-custom-weights .report-punch,
+.is-custom-weights .report-toc a[href="#report-punch-title"] {
+  display: none;
+}
+
 /* ---- Ranked streets ------------------------------------------------------------------------------------------- */
 
 .report-street-list,
@@ -812,6 +870,10 @@
 
   .report-section {
     margin-top: var(--space-md);
+  }
+
+  .report-custom-stamp button {
+    display: none;
   }
 
   .report-map .maplibregl-canvas-container,

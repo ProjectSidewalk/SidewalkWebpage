@@ -45,6 +45,11 @@
           @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))
           @for(last <- report.coverage.lastObservation) {@Messages("report.latest.observation", dateLabel(last))}
         </p>
+        @* Shown while a reader's weights are in force, on paper too: a forwarded report must not pass them off. *@
+        <p class="report-custom-stamp" id="report-custom-stamp" role="status" hidden>
+          @Messages("report.weights.custom")
+          <button type="button" class="button button--secondary button--small" id="report-custom-reset">@Messages("report.weights.reset")</button>
+        </p>
       </header>
 
       <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
