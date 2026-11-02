@@ -360,7 +360,7 @@ case class LabelValidationMetadata(
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false,
     panoMetadata: Option[PanoViewerMetadata] = None,
-    // Set when the label is in the mission as a known-answer example (#1445): the reason the tool explains on a miss.
+    // Set when the label is in the mission as a training example (#1445): the reason the tool explains on a miss.
     goldReason: Option[ValidationReason] = None
 ) extends BasicLabelMetadata
 
@@ -1524,7 +1524,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId) && !answeredAsGoldExample(_lb, userId)
+      if !validatedByUser(_lb, userId) && !isGoldExample(_lb)
     } yield _lb
   }
 
@@ -1556,8 +1556,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
 
   /**
-   * Answered as a known-answer example (#1445): they were told the answer, so serving it to validate would be a repeat.
-   * An unanswered serve doesn't count, so a mission abandoned on the example can offer it again.
+   * Pinned as a training example (#1445), so never served as an ordinary label: it is known wrong and commonly
+   * mistaken, and a beginner's Agree would count toward voting it back to correct.
+   */
+  private def isGoldExample(l: LabelTableDef): Rep[Boolean] =
+    goldExamples.filter(_.labelId === l.labelId).exists
+
+  /**
+   * Answered as a training example (#1445): they were told the answer, so serving it again would be a repeat. An
+   * unanswered serve doesn't count, so a mission abandoned on the example can offer it again.
    */
   private def answeredAsGoldExample(l: LabelTableDef, userId: String): Rep[Boolean] =
     goldExampleResponses
@@ -1814,7 +1821,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       includeAiTags: Boolean
   ): Query[(LabelValidationMetadataRep, Rep[ValidationReason]), (LabelValidationMetadata, ValidationReason), Seq] = {
     validationCandidates(userId, viewer, labelType, ValidationLabelFilter(), unvalidatedOnly = false, Set.empty,
-      Set.empty)
+      Set.empty, asGoldExample = true)
       .join(goldExamples)
       .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
       .sortBy(_ => random)
@@ -1852,6 +1859,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * The labels a user could be asked to validate, with the AI's current assessment, before any queue is applied.
    * Parameters are those of `retrieveLabelListForValidationQuery`, documented there.
    *
+   * @param asGoldExample Keep the pinned training examples (#1445), minus those this user has answered, instead of
+   *                      leaving every pinned label out as the ordinary queue does; see [[isGoldExample]].
    * @return One row per candidate; see [[ValidationCandidateRep]].
    */
   private def validationCandidates(
@@ -1861,7 +1870,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean,
       excludedLabelIds: Set[Int],
-      excludedFaces: Set[(Int, StreetSide)]
+      excludedFaces: Set[(Int, StreetSide)],
+      asGoldExample: Boolean = false
   ): Query[ValidationCandidateRep, ValidationCandidate, Seq] = {
     // Join all necessary tables and filter potential labels according to the given parameters.
     val labelInfo = for {
@@ -1878,7 +1888,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if !onExcludedFace(_lb, _lp, StreetSide.Left, excludedFaces) &&
         !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId) && !answeredAsGoldExample(_lb, userId) // Anti-joins; see validatedByUser.
+      if !validatedByUser(_lb, userId) // Anti-join; see validatedByUser.
+      if (if (asGoldExample) !answeredAsGoldExample(_lb, userId) else !isGoldExample(_lb))
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a

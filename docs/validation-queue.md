@@ -315,11 +315,15 @@ A new validator's first missions on `/validate` and `/mobile` each carry one **t
 example" in the code): a label an
 admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree reason that explains it. The label is a
 real one the crowd has already voted wrong; the pin only says it teaches. `GoldExampleTable.ExamplesPerValidator`
-(3) is how many a validator is shown in a city before they get none, counted as answered examples.
+(3) is how many a validator is shown in a city before they get none, counted as answered examples; a seasoned
+validator gets them too, since a high count says nothing about how well they vote. A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the
+label query and the per-type counts): it is a known-wrong label, so an ordinary vote on it is noise and a beginner's
+Agree would count toward voting it back to correct.
 
 - **Who and where.** `LabelServiceImpl.goldExampleEligible`: the plain pages only (no `regions`, no
   `unvalidatedOnly`, never Expert Validate), and never an admin, who pins the examples. Replacement labels
-  (`/validationTask/moreLabels`) are never examples.
+  (`/validationTask/moreLabels`) are never examples. `owedGoldExample` then checks their answered count and whether
+  the city has a pin at all, both cheap, before the label query runs.
 - **Which one.** `LabelTable.goldExampleForValidationQuery`: the pinned labels of the mission's type that pass every
   rule the mission's own labels pass (`validationCandidates`: not the validator's, not voted on by them, imagery
   their viewer renders), in random order, through the same imagery check. The example takes one of the mission's
@@ -332,9 +336,9 @@ real one the crowd has already voted wrong; the pin only says it teaches. `GoldE
   otherwise undo and get it "right". A served example answered in no mission is re-served on reload.
 - **What they see.** Nothing on a Disagree. On Agree or Unsure, `ModalGoldFeedback` explains the pinned reason, with
   the reason menu's own text, tooltip and example image, before the mission moves on.
-- **Afterwards.** A label the validator has answered as an example is excluded from their queue
-  (`answeredAsGoldExample`, in both the label query and the per-type counts), the same way a label they voted on is.
-  The answer counts toward the mission's ten but not toward the validator's validation count or stats.
+- **Afterwards.** A label the validator has answered as an example is not offered to them again
+  (`answeredAsGoldExample`). The answer counts toward the mission's ten and its end-of-mission tally
+  (`LabelServiceImpl.missionTally`), but not toward the validator's validation count or stats.
 - **Expiry.** An example whose pano the provider dropped is served through its backup like any label; one without a
   backup fails `imageryViewable` and is simply not picked, and `/admin/goldExamples` marks it for replacement.
 

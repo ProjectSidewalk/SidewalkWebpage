@@ -1,7 +1,8 @@
 /**
- * The known-answer example's explanation in Validate (#1445): ModalGoldFeedback paints the mission modal with the
- * pinned reason and holds the keyboard until it is dismissed, and LabelContainer shows it before a wrong vote on an
- * example moves the mission on, while a right vote, or a vote on an ordinary label, moves on at once.
+ * The training example's explanation in Validate (#1445): ModalGoldFeedback paints the mission modal with the
+ * pinned reason, holds the keyboard until it is dismissed and leaves the modal as it found it, and LabelContainer
+ * shows it before a wrong vote on an example moves the mission on, while a right vote, or a vote on an ordinary
+ * label, moves on at once.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
@@ -12,8 +13,9 @@ useUtil({ assetPath: (p) => `/assets/${p}`, isMobile: () => false });
 
 /** The mission modal's elements, as Main collects them. */
 function modalMissionUi() {
+  // Desktop keeps the holder display:none (class ps-hidden): its mission briefing is the phone's.
   document.body.innerHTML = `
-    <div id="holder"><div id="bg"></div><div id="fg"><h1 id="title"></h1><div id="instruction"></div>
+    <div id="holder" class="ps-hidden"><div id="bg"></div><div id="fg"><h1 id="title"></h1><div id="instruction"></div>
     <button type="button" id="close"></button></div></div>`;
   const byId = (id) => document.getElementById(id);
   return {
@@ -21,6 +23,9 @@ function modalMissionUi() {
     missionTitle: byId('title'), instruction: byId('instruction'), closeButton: byId('close'),
   };
 }
+
+/** Lets the vote's promise chain run to its end. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** A label as the mission payload carries one; `gold_reason` makes it an example. */
 function labelParams(goldReason = null) {
@@ -56,7 +61,9 @@ describe('ModalGoldFeedback', () => {
     const shown = modal.show(label, 'Agree').then(() => { resolved = true; });
     await Promise.resolve();
 
-    expect(modal.isShowing()).toBe(true);
+    expect(ui.holder.classList.contains('ps-hidden')).toBe(false);
+    expect(ui.holder.style.visibility).toBe('visible');
+    expect(ui.foreground.classList.contains('modal-foreground--gold-feedback')).toBe(true);
     expect(gate.hold).toHaveBeenCalledWith('gold-feedback');
     expect(ui.missionTitle.textContent).toBe('gold-feedback.title');
     expect(ui.instruction.innerHTML).toContain('common:validation-reason.driveway.text');
@@ -70,14 +77,37 @@ describe('ModalGoldFeedback', () => {
     await shown;
 
     expect(resolved).toBe(true);
-    expect(modal.isShowing()).toBe(false);
     expect(gate.release).toHaveBeenCalledWith('gold-feedback');
     expect(ui.holder.style.visibility).toBe('hidden');
     expect(tracker.push).toHaveBeenCalledWith('ModalGoldFeedback_ClickOK');
+    // Left as found, so desktop's next mission briefing stays display:none and the box is a plain box again.
+    expect(ui.holder.classList.contains('ps-hidden')).toBe(true);
+    expect(ui.foreground.classList.contains('modal-foreground--gold-feedback')).toBe(false);
+    expect(ui.closeButton.style.width).toBe('');
+  });
+
+  test('a held Enter, the vote\'s own key still down, does not press the button; a fresh press does', async () => {
+    const ui = modalMissionUi();
+    const modal = new ModalGoldFeedback(ui, {}, fakeGate(), fakeTracker());
+    let resolved = false;
+    const shown = modal.show(new Label(labelParams('driveway'), {}), 'Unsure').then(() => { resolved = true; });
+
+    const held = new KeyboardEvent('keydown', { key: 'Enter', repeat: true, cancelable: true, bubbles: true });
+    ui.closeButton.dispatchEvent(held);
+    expect(held.defaultPrevented).toBe(true);
+    const fresh = new KeyboardEvent('keydown', { key: 'Enter', repeat: false, cancelable: true, bubbles: true });
+    ui.closeButton.dispatchEvent(fresh);
+    expect(fresh.defaultPrevented).toBe(false);
+
+    // jsdom doesn't turn Enter into a click, so the press is the click the browser would send.
+    ui.closeButton.click();
+    await shown;
+    expect(resolved).toBe(true);
+    expect(ui.closeButton.onkeydown).toBeNull();
   });
 });
 
-describe('LabelContainer.validateCurrentLabel on a known-answer example', () => {
+describe('LabelContainer.validateCurrentLabel on a training example', () => {
   let LabelContainer;
   let feedback;
   let resolveFeedback;
@@ -110,6 +140,7 @@ describe('LabelContainer.validateCurrentLabel on a known-answer example', () => 
     const container = containerWith(labelParams('driveway'));
 
     container.validateCurrentLabel('Agree', new Date(), '');
+    await Promise.resolve();
 
     expect(feedback.show).toHaveBeenCalledTimes(1);
     expect(feedback.show.mock.calls[0][1]).toBe('Agree');
@@ -119,8 +150,7 @@ describe('LabelContainer.validateCurrentLabel on a known-answer example', () => 
     expect(container.dropInputWhileLoading('test')).toBe(true);
 
     resolveFeedback();
-    await Promise.resolve();
-    await Promise.resolve();
+    await settle();
 
     expect(container.getLabelsToSubmit()).toHaveLength(1);
     expect(mission.updateValidationResult).toHaveBeenCalledWith('Agree', false);
@@ -145,5 +175,20 @@ describe('LabelContainer.validateCurrentLabel on a known-answer example', () => 
 
     expect(feedback.show).not.toHaveBeenCalled();
     expect(container.moveToNextLabel).toHaveBeenCalledTimes(1);
+  });
+
+  test('an explanation that fails to open still records the vote and frees the tool', async () => {
+    feedback.show = vi.fn(() => { throw new Error('no modal'); });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const container = containerWith(labelParams('driveway'));
+
+    container.validateCurrentLabel('Unsure', new Date(), '');
+    await settle();
+
+    expect(container.getLabelsToSubmit()).toHaveLength(1);
+    expect(container.moveToNextLabel).toHaveBeenCalledTimes(1);
+    expect(container.dropInputWhileLoading('test')).toBe(false);
+    expect(errors).toHaveBeenCalled();
+    errors.mockRestore();
   });
 });

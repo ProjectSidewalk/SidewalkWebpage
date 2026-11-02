@@ -9,7 +9,7 @@ import service.{GoldExampleRejection, GoldExampleService, PanoDataService}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-/** Known-answer examples (#1445) are per city, so any admin may pin and unpin. */
+/** Training examples (#1445) are per city, so any admin may pin and unpin. */
 @Singleton
 class GoldExampleController @Inject() (
     cc: CustomControllerComponents,
@@ -18,6 +18,7 @@ class GoldExampleController @Inject() (
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
+  /** Every pin in the city, newest first, with how validators have done on it. */
   def getGoldExamples = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     goldExampleService.listSummaries.map(summaries => Ok(Json.obj("gold_examples" -> summaries.map(summaryJson))))
   }
@@ -41,6 +42,7 @@ class GoldExampleController @Inject() (
     }
   }
 
+  /** Stops serving the label as an example; the answers already given stay on record. 404 when it isn't pinned. */
   def unpinGoldExample(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(
       request.identity.userId,

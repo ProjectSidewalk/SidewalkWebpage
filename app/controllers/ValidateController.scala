@@ -416,7 +416,7 @@ class ValidateController @Inject() (
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
-      // A vote on a known-answer example is filed beside its serve, never on the label (#1445); the serve's mission
+      // A vote on a training example is filed beside its serve, never on the label (#1445); the serve's mission
       // tells it from a real vote on the same label elsewhere. An undo is dropped: the first answer counts.
       goldServed <- goldExampleService.servedIn(user.userId, data.validations.map(v => (v.labelId, v.missionId)))
       (goldAnswers, realValidations) = data.validations.partition(v => goldServed.contains((v.labelId, v.missionId)))

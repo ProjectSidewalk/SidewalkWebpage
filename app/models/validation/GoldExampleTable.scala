@@ -13,7 +13,7 @@ import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
- * A label an admin pinned as a known-answer example of a common validation mistake (#1445). The right answer is always
+ * A label an admin pinned as a training example of a common validation mistake (#1445). The right answer is always
  * Disagree, and `reason` is the canned reason that explains why, which is what the validator is told on a wrong answer.
  */
 case class GoldExample(labelId: Int, reason: ValidationReason, userId: String, pinnedAt: OffsetDateTime)
@@ -144,6 +144,25 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
   /** What gates whether the user is shown another example. */
   def answeredCount(userId: String): DBIO[Int] =
     goldExampleResponses.filter(r => r.userId === userId && r.validationResult.isDefined).length.result
+
+  /** Whether this city has anything pinned at all; a cheap check before the label query, which most cities fail. */
+  def anyPinned: DBIO[Boolean] = goldExamples.exists.result
+
+  /** The answers given in a mission, by vote, for the mission's tally. */
+  def answersInMission(missionId: Int): DBIO[ValidationResultCounts] =
+    goldExampleResponses
+      .filter(r => r.missionId === missionId && r.validationResult.isDefined)
+      .groupBy(_.validationResult)
+      .map { case (result, rs) => (result, rs.length) }
+      .result
+      .map { rows =>
+        val byResult: Map[Option[ValidationOption], Int] = rows.toMap
+        ValidationResultCounts(
+          agreeCount = byResult.getOrElse(Some(ValidationOption.Agree), 0),
+          disagreeCount = byResult.getOrElse(Some(ValidationOption.Disagree), 0),
+          unsureCount = byResult.getOrElse(Some(ValidationOption.Unsure), 0)
+        )
+      }
 
   /** A serve never answered (they left mid-mission) is re-pointed at the new mission, so a reload can serve it again. */
   def recordServe(labelId: Int, userId: String, missionId: Int, reason: ValidationReason): DBIO[Int] =

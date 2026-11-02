@@ -43,7 +43,7 @@ export class Label {
     aiGenerated: false,
     expired: false,
     backupImage: null,
-    // Set when the label is in the mission as a known-answer example (#1445): the reason the tool explains on a miss.
+    // Set when the label is in the mission as a training example (#1445): the reason the tool explains on a miss.
     goldReason: null,
   };
 

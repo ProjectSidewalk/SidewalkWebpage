@@ -32,7 +32,7 @@ trait GoldExampleService {
 }
 
 /**
- * The admin side of known-answer examples (#1445) and the filing of answers to them. Choosing which one a mission
+ * The admin side of training examples (#1445) and the filing of answers to them. Choosing which one a mission
  * carries is LabelService's, beside the queue the rest of the mission comes from.
  */
 @Singleton

@@ -271,11 +271,20 @@ class LabelServiceImpl @Inject() (
       !Role.ADMIN_ROLES.contains(user.role)
 
   /**
-   * The mission's labels with one known-answer example slipped in while the validator is owed one (#1445). It takes
-   * one of the `n` slots, never the first so they have settled in, and its serve is recorded so the vote on it can be
+   * Owed a training example (#1445): short of their share, and the city has a pin. Two cheap lookups before the
+   * label query.
+   */
+  private def owedGoldExample(userId: String): DBIO[Boolean] =
+    goldExampleTable.answeredCount(userId).flatMap { answered =>
+      if (answered >= GoldExampleTable.ExamplesPerValidator) DBIO.successful(false) else goldExampleTable.anyPinned
+    }
+
+  /**
+   * The mission's labels with one training example slipped in while the validator is owed one (#1445). It takes one
+   * of the `n` slots, never the first so they have settled in, and its serve is recorded so the vote on it can be
    * told from a real validation (`ValidateController`). A mission of only the example is no mission.
    *
-   * @param fetch The ordinary labels: how many, and which ids to leave out.
+   * @param fetch The ordinary labels, given how many; pinned labels are never among them (`LabelTable.isGoldExample`).
    */
   private def withGoldExample(
       user: SidewalkUserWithRole,
@@ -284,7 +293,7 @@ class LabelServiceImpl @Inject() (
       n: Int,
       viewer: PanoSource,
       validateParams: ValidateParams
-  )(fetch: (Int, Set[Int]) => Future[Seq[LabelValidationMetadata]]): Future[Seq[LabelValidationMetadata]] = {
+  )(fetch: Int => Future[Seq[LabelValidationMetadata]]): Future[Seq[LabelValidationMetadata]] = {
     def pickExample: Future[Option[(LabelValidationMetadata, ValidationReason)]] = db
       .run(
         labelTable
@@ -298,15 +307,15 @@ class LabelServiceImpl @Inject() (
         }
       }
 
-    if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n, Set.empty)
+    if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n)
     else
-      db.run(goldExampleTable.answeredCount(user.userId)).flatMap { answered =>
-        if (answered >= GoldExampleTable.ExamplesPerValidator) fetch(n, Set.empty)
+      db.run(owedGoldExample(user.userId)).flatMap { owed =>
+        if (!owed) fetch(n)
         else
           pickExample.flatMap {
-            case None                 => fetch(n, Set.empty)
+            case None                 => fetch(n)
             case Some((meta, reason)) =>
-              fetch(n - 1, Set(meta.labelId)).flatMap { labels =>
+              fetch(n - 1).flatMap { labels =>
                 if (labels.isEmpty) Future.successful(labels)
                 else
                   db.run(goldExampleTable.recordServe(meta.labelId, user.userId, missionId, reason)).map { _ =>
@@ -317,6 +326,17 @@ class LabelServiceImpl @Inject() (
           }
       }
   }
+
+  /** A mission's tally of votes, with the training example's answer counted as the vote the validator gave (#1445). */
+  private def missionTally(missionId: Int): DBIO[ValidationResultCounts] =
+    for {
+      votes   <- labelValidationTable.getValidationProgress(missionId)
+      answers <- goldExampleTable.answersInMission(missionId)
+    } yield ValidationResultCounts(
+      votes.agreeCount + answers.agreeCount,
+      votes.disagreeCount + answers.disagreeCount,
+      votes.unsureCount + answers.unsureCount
+    )
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
 
@@ -882,18 +902,16 @@ class LabelServiceImpl @Inject() (
             mission: Mission <- missionService
               .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelType)
               .map(_.get)
-            missionProgress: ValidationResultCounts <- db.run(
-              labelValidationTable.getValidationProgress(mission.missionId)
-            )
+            missionProgress: ValidationResultCounts <- db.run(missionTally(mission.missionId))
 
             // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Expert Validate.
             labelsProgress: Int   = mission.labelsProgress.get
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- withGoldExample(user, mission.missionId, labelType, labelsToRetrieve, viewerType,
-              validateParams) { (n, excluded) =>
+              validateParams) { n =>
               retrieveLabelListForValidation(user.userId, n, viewerType, labelType, validateParams.queueCascade,
-                validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
+                validateParams.labelFilter, validateParams.unvalidatedOnly)
             }
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
@@ -972,14 +990,14 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- {
-              val fetch = (n: Int, excluded: Set[Int]) =>
+              val fetch = (n: Int) =>
                 retrieveLabelListForValidation(user.userId, n, viewerType, nextMissionLabelType,
-                  validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
+                  validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
               newMission match {
                 case Some(m) =>
                   withGoldExample(user, m.missionId, nextMissionLabelType, labelsToRetrieve, viewerType,
                     validateParams)(fetch)
-                case None => fetch(labelsToRetrieve, Set.empty)
+                case None => fetch(labelsToRetrieve)
               }
             }
             adminData <- {
@@ -992,7 +1010,7 @@ class LabelServiceImpl @Inject() (
               .flatMap(
                 _.fold(
                   Future.successful(None: Option[ValidationResultCounts])
-                )(m => db.run(labelValidationTable.getValidationProgress(m.missionId)).map(Some(_)))
+                )(m => db.run(missionTally(m.missionId)).map(Some(_)))
               )
           } yield {
             ValidationTaskPostReturnValue(Some(labelList.nonEmpty), newMission, labelList, adminData, progress)

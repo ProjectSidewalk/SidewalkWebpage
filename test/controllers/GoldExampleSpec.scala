@@ -21,14 +21,14 @@ import util.{RoleSession, SidewalkSpec}
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for known-answer examples (#1445): a pinned label rides a new validator's mission with its reason,
+ * Functional tests for training examples (#1445): a pinned label rides a new validator's mission with its reason,
  * the vote on it is filed as an answer and never as a validation, the first answer stands, and admins are neither
  * quizzed nor able to pin what can't teach.
  *
  * Follows the real client bootstrap, as ValidateSubmissionSpec does: the page asks POST /validationTask/mission for
  * its mission, and the spec votes on the example in that real batch. One label of every primary type is pinned, since
- * the mission's type is the lottery's to choose. The pins and every row written under the suite's users are removed
- * in `afterAll`.
+ * the mission's type is the lottery's to choose. The schema may hold a developer's own pins, so the suite pins
+ * unpinned labels and accepts any pin of the type as the example. Its pins and rows are removed in `afterAll`.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
@@ -61,7 +61,7 @@ class GoldExampleSpec
   /**
    * A label of the type that plain Validate could serve: not deleted or tutorial, its labeler not excluded, on a
    * pano of the page's source that is unexpired and was checked recently enough that the imagery check answers
-   * from the row. None when the schema has no such label of that type.
+   * from the row, and not already pinned. None when the schema has no such label of that type.
    */
   private def servableLabel(labelType: LabelType): Option[Int] = run(
     sql"""SELECT label.label_id
@@ -76,6 +76,7 @@ class GoldExampleSpec
             AND pano_data.source = $viewer AND NOT pano_data.expired
             AND pano_data.last_checked >= now() - INTERVAL '6 days'
             AND label.street_edge_id <> (SELECT config.tutorial_street_edge_id FROM config)
+            AND NOT EXISTS (SELECT 1 FROM gold_example WHERE gold_example.label_id = label.label_id)
           ORDER BY label.label_id
           LIMIT 1""".as[Int].headOption
   )
@@ -130,6 +131,14 @@ class GoldExampleSpec
   }
 
   private def goldReason(label: JsObject): Option[String] = (label \ "gold_reason").asOpt[String]
+
+  /** Every pin of the type in the schema, the suite's and a developer's alike. */
+  private def pinsOfType(labelType: LabelType): Map[Int, String] = run(
+    sql"""SELECT gold_example.label_id, gold_example.reason::text
+          FROM gold_example
+          INNER JOIN label ON label.label_id = gold_example.label_id
+          WHERE label.label_type = ${labelType.name}::label_type""".as[(Int, String)]
+  ).toMap
 
   /** A vote as the Validate frontend submits one, with no severity or tag change. */
   private def validationJson(
@@ -206,12 +215,17 @@ class GoldExampleSpec
       val session = freshAnonSession()
       val b       = bootstrap(session)
       val lt      = LabelType.withName((b.mission \ "label_type").as[String])
-      val goldId  = pinned.getOrElse(lt, cancel(s"no servable $lt label to pin in this schema"))
+      if (!pinned.contains(lt)) cancel(s"no servable $lt label to pin in this schema")
+      val pins = pinsOfType(lt)
 
       val examples = b.labels.filter(l => goldReason(l).isDefined)
-      examples.map(l => (l \ "label_id").as[Int]) mustBe Seq(goldId)
-      goldReason(examples.head) mustBe Some(reasonFor(lt).name)
+      examples.size mustBe 1
+      val goldId = (examples.head \ "label_id").as[Int]
+      pins.keySet must contain(goldId)
+      goldReason(examples.head) mustBe pins.get(goldId)
       (b.labels.head \ "label_id").as[Int] must not be goldId
+      // A pinned label is only ever the example, never one of the ordinary labels a real vote would land on.
+      b.labels.map(l => (l \ "label_id").as[Int]).filter(pins.contains) mustBe Seq(goldId)
       // The serve is on record before any vote, keyed to this mission.
       answer(goldId, b.userId) mustBe Some((None, b.missionId))
 

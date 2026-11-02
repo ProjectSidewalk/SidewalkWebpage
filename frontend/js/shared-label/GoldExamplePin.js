@@ -45,8 +45,11 @@ export class GoldExamplePin {
     this.#render();
   }
 
+  /** A pinned reason the menu no longer offers (the label's type changed) is left unselected and said so. */
   #render() {
-    if (this.#reason) this.#select.value = this.#reason;
+    const offered = this.#reason && [...this.#select.options].some((o) => o.value === this.#reason);
+    if (offered) this.#select.value = this.#reason;
+    else if (this.#reason) this.#status.textContent = 'The pinned reason no longer fits this label type; pick another.';
     this.#pinButton.textContent = this.#reason ? 'Update reason' : 'Use as training example';
     this.#unpinButton.hidden = !this.#reason;
   }
@@ -62,11 +65,11 @@ export class GoldExamplePin {
       });
       this.#reason = reason;
       this.#status.textContent = 'Saved. New validators will see this label.';
+      this.#render();
     } catch (err) {
       this.#status.textContent = 'Could not save.';
       console.error('Gold example pin failed.', err);
     }
-    this.#render();
   }
 
   async #unpin() {

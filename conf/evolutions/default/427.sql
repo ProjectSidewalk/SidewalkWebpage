@@ -1,6 +1,6 @@
 # --- !Ups
--- Known-answer examples of common validation mistakes, shown to new validators (#1445): an admin pins a label the
--- crowd has already voted wrong, with the canned reason. The label stays a real label, and the row only says it teaches.
+-- Training examples of common validation mistakes, shown to new validators (#1445): an admin pins a label the crowd
+-- has already voted wrong, with the canned reason. The label stays a real label, and the row only says it teaches.
 CREATE TABLE gold_example (
   label_id INT PRIMARY KEY REFERENCES label (label_id),
   reason validation_reason NOT NULL,
@@ -14,12 +14,13 @@ ALTER TABLE gold_example OWNER TO sidewalk;
 -- mistaken, so counting beginners' Agrees would vote a known-wrong label back to correct. The mission ties the vote
 -- the client sends to this serve, since the same label can still be voted on for real from Expert Validate or the
 -- Gallery. The reason is copied from the pin at serve time, so the record stays true if the pin later changes, and
--- the row outlives the pin for the same reason, hence the FK to label rather than gold_example.
+-- the row outlives the pin for the same reason, hence the FK to label rather than gold_example. A deleted mission
+-- (account clean-up, a spec's teardown) takes its serve record with it, as it does the mission's votes.
 CREATE TABLE gold_example_response (
   gold_example_response_id SERIAL PRIMARY KEY,
   label_id INT NOT NULL REFERENCES label (label_id),
   user_id TEXT NOT NULL REFERENCES sidewalk_login.sidewalk_user (user_id),
-  mission_id INT NOT NULL REFERENCES mission (mission_id),
+  mission_id INT NOT NULL REFERENCES mission (mission_id) ON DELETE CASCADE,
   reason validation_reason NOT NULL,
   served_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   validation_result validation_option,

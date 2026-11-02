@@ -66,6 +66,12 @@
   opacity: 0.6;
 }
 
+/* The busy dim also switches the holder's pointer events off, which its children inherit; a modal shown while the
+   tool is busy (the training example's explanation, #1445) still has to take its own button's click. */
+#svv-application-holder.validate-disabled > [id^="modal-mission"] {
+  pointer-events: auto;
+}
+
 /* Solid, not a translucent scrim: over the boxed page's white a translucent backdrop took the text under 4.5:1, and
    the darkest asphalt keeps white text far past it on every layout and over imagery. */
 .svv-pano-loading__box {

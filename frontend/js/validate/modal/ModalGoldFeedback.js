@@ -1,5 +1,5 @@
 /**
- * Explains a known-answer example the validator just got wrong (#1445), in the mission modal's elements (as
+ * Explains a training example the validator just got wrong (#1445), in the mission modal's elements (as
  * ModalNoNewMission does), with the reason menu's own text and example image. A right answer gets nothing: the
  * examples are there to correct, not to quiz.
  */
@@ -35,11 +35,6 @@ export class ModalGoldFeedback {
     this.#reasonButtonInfo = reasonButtonInfo;
     this.#keyboardLock = keyboardLock;
     this.#tracker = tracker;
-  }
-
-  /** @returns {boolean} Whether the explanation is on screen. */
-  isShowing() {
-    return this.#dismiss !== null;
   }
 
   /**
@@ -81,10 +76,13 @@ export class ModalGoldFeedback {
     ui.missionTitle.style.fontSize = '';
     ui.closeButton.innerHTML = i18next.t('gold-feedback.ok');
     if (!util.isMobile()) ui.closeButton.style.width = 'fit-content';
+    ui.foreground.classList.add('modal-foreground--gold-feedback');
     ui.background.style.visibility = 'visible';
     ui.holder.style.visibility = 'visible';
     ui.foreground.style.visibility = 'visible';
     ui.foreground.scrollTop = 0;
+    // Desktop keeps this holder display:none; put back on close, or every later briefing shows this explanation.
+    const wasHidden = ui.holder.classList.contains('ps-hidden');
     ui.holder.classList.remove('ps-hidden');
     this.#keyboardLock.hold('gold-feedback');
 
@@ -95,12 +93,20 @@ export class ModalGoldFeedback {
         ui.background.style.visibility = 'hidden';
         ui.holder.style.visibility = 'hidden';
         ui.foreground.style.visibility = 'hidden';
+        ui.foreground.classList.remove('modal-foreground--gold-feedback');
+        ui.closeButton.style.width = '';
+        ui.closeButton.onkeydown = null;
+        if (wasHidden) ui.holder.classList.add('ps-hidden');
         this.#keyboardLock.release('gold-feedback');
         resolve();
       };
       // Assigned, not added: ModalMission and ModalNoNewMission use this same button, and each show must replace
       // the other's handler.
       ui.closeButton.onclick = this.#dismiss;
+      // Enter is the vote shortcut and may still be held: its repeats would press this button before anything was read.
+      ui.closeButton.onkeydown = (e) => {
+        if (e.repeat) e.preventDefault();
+      };
       ui.closeButton.focus();
     });
   }

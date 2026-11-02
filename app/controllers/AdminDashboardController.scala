@@ -391,7 +391,7 @@ class AdminDashboardController @Inject() (
     }
   }
 
-  /** The known-answer examples new validators are shown (#1445), and how they have done on each. */
+  /** The training examples new validators are shown (#1445), and how they have done on each. */
   def goldExamples = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_GoldExamples")

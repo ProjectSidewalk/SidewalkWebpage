@@ -89,7 +89,7 @@ export class LabelContainer {
   #modalMissionComplete;
   /** @type {ModalNoNewMission} */
   #modalNoNewMission;
-  /** @type {?ModalGoldFeedback} */
+  /** @type {ModalGoldFeedback} */
   #modalGoldFeedback;
   /** @type {MissionContainer} */
   #missionContainer;
@@ -126,10 +126,10 @@ export class LabelContainer {
    * @param {ModalNoNewMission} modalNoNewMission - Shown when the mission runs out of labels that will load.
    * @param {MissionContainer} missionContainer - The mission each validation counts toward.
    * @param {Tracker} tracker - Logs loads, drops and verdicts.
-   * @param {?ModalGoldFeedback} [modalGoldFeedback] - Explains a known-answer example got wrong (#1445).
+   * @param {ModalGoldFeedback} modalGoldFeedback - Explains a training example got wrong (#1445).
    */
   constructor(labelList, labelType, ui, config, panoManager, panoLoadingStatus, modalMissionComplete,
-    modalNoNewMission, missionContainer, tracker, modalGoldFeedback = null) {
+    modalNoNewMission, missionContainer, tracker, modalGoldFeedback) {
     this.#ui = ui;
     this.#config = config;
     this.#panoManager = panoManager;
@@ -584,12 +584,16 @@ export class LabelContainer {
 
     // Explained before the mission moves on (#1445), with the pano still up behind. Held busy meanwhile, so a second
     // tap can't vote again, and a mission this verdict completes shows "Great job!" only once the explanation is read.
-    if (label.getAuditProperty('goldReason') && action !== 'Disagree' && this.#modalGoldFeedback) {
+    // The vote is recorded even if the explanation can't be shown: the tool must not stay busy over a missing picture.
+    if (label.getAuditProperty('goldReason') && action !== 'Disagree') {
       this.#setUiBusy(true);
-      this.#modalGoldFeedback.show(label, action).then(() => {
-        this.#setUiBusy(false);
-        record();
-      });
+      Promise.resolve()
+        .then(() => this.#modalGoldFeedback.show(label, action))
+        .catch((err) => console.error('Could not explain the training example.', err))
+        .then(() => {
+          this.#setUiBusy(false);
+          record();
+        });
     } else {
       record();
     }
