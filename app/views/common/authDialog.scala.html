@@ -1,6 +1,6 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import views.html.helper.{form, CSRF => htmlCSRF}
-@(user: Option[SidewalkUserWithRole]
+@(user: Option[SidewalkUserWithRole], newsEmailPreChecked: Boolean
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @* The shared sign-in / sign-up <dialog> (#4375), opened by any element carrying data-au-open="signIn"|"signUp"
@@ -9,7 +9,9 @@
    already carries the full-page auth forms must NOT also render this dialog — the two share every form id — and
    that is the caller's call, not a path check here: the same views render from multiple paths (/signIn, /signUp,
    and /authenticate/credentials' no-JS error branch), so those views suppress it via navbar's renderAuthDialog
-   parameter (#4889). *@
+   parameter (#4889).
+
+   @param newsEmailPreChecked Whether the sign-up form's project-news box starts checked (#5864). *@
 @if(!user || user.get.role == Role.Anonymous) {
   <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
     <div class="au-body">
@@ -74,6 +76,7 @@
           </div>
           @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
+          <label class="au-check" for="sign-up-news-email"><input type="checkbox" id="sign-up-news-email" name="newsEmail" value="true" @if(newsEmailPreChecked){checked}> <span>@Messages("authenticate.news.email")</span></label>
           <button type="submit" class="button button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>

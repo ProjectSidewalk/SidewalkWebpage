@@ -374,7 +374,7 @@ export class SidewalksPage {
     const rows = Array.from(byRegion.values()).map((row) => ({
       ...row,
       absent_share: row.audited ? row.absent / row.audited : 0,
-      audited_share: row.sides ? row.audited / row.sides : 0,
+      audited_share: row.audited / row.sides,
     }));
 
     this.#regionTable = new StreetPriorityTable('sidewalks-region-table', {
