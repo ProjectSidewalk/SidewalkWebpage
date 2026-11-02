@@ -107,7 +107,7 @@ describe('ReportRescorer', () => {
       <p id="report-custom-stamp" hidden></p><a class="report-score__value">41.6 of 100</a>
       <ol id="rank">
         <li class="report-rank__row" data-street="1"><span class="report-rank__position">1</span>
-          <span class="report-rank__bar"></span><a class="report-rank__score">20.0</a></li>
+          <span class="report-rank__bar"></span><a class="report-rank__score" aria-label="AccessScore 20.0">20.0</a></li>
         <li class="report-rank__row" data-street="2"><span class="report-rank__position">2</span>
           <span class="report-rank__bar"></span><a class="report-rank__score">60.0</a></li>
       </ol>
@@ -167,6 +167,9 @@ describe('ReportRescorer', () => {
     const rescorer = new ReportRescorer(data, deps);
     await rescorer.apply(CUSTOM, { isDefault: false, final: false });
     expect(text('[data-street="1"] .report-rank__score')).toBe('90.0');
+    // A screen reader reads this rather than the text, so it has to move too.
+    expect(document.querySelector('[data-street="1"] .report-rank__score').getAttribute('aria-label'))
+      .toBe('AccessScore 90.0');
     expect(text('.report-street[data-street="1"] .report-street__score')).toBe('Score 90.0');
     expect(text('.report-score__value')).toBe('60.0 of 100');
     expect(ways('#rank > li')).toEqual([1, 2]);
@@ -250,6 +253,8 @@ describe('ReportRescorer', () => {
     await rescorer.apply(CUSTOM, { isDefault: true, final: true });
 
     expect(text('.report-score__value')).toBe('41.6 of 100');
+    expect(document.querySelector('[data-street="1"] .report-rank__score').getAttribute('aria-label'))
+      .toBe('AccessScore 20.0');
     expect(text('.report-street[data-street="1"] .report-street__score')).toBe('Score 20.0');
     expect(ways('#rank > li')).toEqual([1, 2]);
     expect(text('[data-street="1"] .report-rank__position')).toBe('1');

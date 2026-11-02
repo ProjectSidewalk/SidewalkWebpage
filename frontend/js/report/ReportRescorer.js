@@ -25,7 +25,7 @@ export function crossingsBbox(streets) {
   return [
     Math.min(...lngs) - PAD_DEGREES, Math.min(...lats) - PAD_DEGREES,
     Math.max(...lngs) + PAD_DEGREES, Math.max(...lats) + PAD_DEGREES,
-  ].join(',');
+  ].map((degrees) => degrees.toFixed(5)).join(',');
 }
 
 export class ReportRescorer {
@@ -33,8 +33,8 @@ export class ReportRescorer {
   /** @type {any} */ #deps;
   /** @type {?Promise<any>} */ #modelPromise = null;
   /** @type {?Promise<Map<number, Record<string, any>>>} */ #clusters = null;
-  /** What the server said, to go back to exactly rather than to our recomputation of it. */
-  /** @type {Map<Element, string>} */ #originalText = new Map();
+  // What the server said, so Reset returns its words rather than our recomputation of them.
+  /** @type {Map<Element, {text: string, label: ?string}>} */ #originals = new Map();
   /** @type {Map<number, ?number>} */ #originalEdgeScores;
   /** @type {?number[]} */ #currentOrder = null;
   #custom = false;
@@ -150,15 +150,22 @@ export class ReportRescorer {
   }
 
   /**
-   * Swaps the number inside a sentence the server translated, keeping the sentence.
+   * Swaps the number inside a sentence the server translated, keeping the sentence. The number in an `aria-label` moves
+   * with it, or a screen reader would keep announcing the score the page opened with.
    * @param {?Element} [element]
    * @param {?number} [score] - On the 0 to 1 scale.
    */
   #writeNumber(element, score) {
     if (!element || score === null || score === undefined) return;
-    if (!this.#originalText.has(element)) this.#originalText.set(element, element.textContent);
-    const text = (score * 100).toLocaleString(i18next.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    element.textContent = this.#originalText.get(element).replace(/\d[\d.,]*/, text);
+    if (!this.#originals.has(element)) {
+      this.#originals.set(element, { text: element.textContent, label: element.getAttribute('aria-label') });
+    }
+    const { text, label } = this.#originals.get(element);
+    const number = (score * 100).toLocaleString(i18next.language, {
+      minimumFractionDigits: 1, maximumFractionDigits: 1,
+    });
+    element.textContent = text.replace(/\d[\d.,]*/, number);
+    if (label) element.setAttribute('aria-label', label.replace(/\d[\d.,]*/, number));
   }
 
   /**
@@ -218,7 +225,10 @@ export class ReportRescorer {
   #restore() {
     this.#setCustom(false);
     for (const edge of this.#data.edges) edge.score = this.#originalEdgeScores.get(edge.id);
-    for (const [element, text] of this.#originalText) element.textContent = text;
+    for (const [element, { text, label }] of this.#originals) {
+      element.textContent = text;
+      if (label) element.setAttribute('aria-label', label);
+    }
     for (const { wayId, score } of this.#data.streets) this.#paintColors(wayId, score);
     this.#deps.regionMap()?.refreshStreets();
     for (const section of this.#deps.sections()) {

@@ -1,6 +1,6 @@
 /**
  * The sidebar's weight sliders: one per scored label type, plus the grade's where the city has slope data. It knows
- * nothing of scores; a host hears what moved. The engine's config supplies every type, sign-free default and range.
+ * nothing of scores; a host hears what moved. Every type, default and grade range comes from the engine's config.
  *
  * @typedef {object} ReportWeightValues
  * @property {Record<string, number>} weights - By label type.
@@ -12,7 +12,7 @@ import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 
 export class ReportWeights {
-  // A slider this fine can land on any weight a link from the tool names.
+  // Matches the tool's sliders, so a link from it lands exactly on a step.
   static #STEP = 0.05;
 
   /** @type {Array<{type: ?string, input: HTMLInputElement, output: HTMLOutputElement, fallback: number}>} */
@@ -31,6 +31,7 @@ export class ReportWeights {
     this.#reset = root.querySelector('#report-weights-reset');
     const defaults = config.presets.default;
     const largest = Math.max(0, ...Object.values(defaults).map((w) => Math.abs(Number(w))));
+    // The tool's ceiling, `AccessScoreSidebar.MAX_WEIGHT`; importing that class would bring its whole page's markup.
     const max = Math.max(3, Math.ceil(largest) + 1);
     for (const type of config.scored_types) {
       const fallback = Math.abs(defaults[type] ?? 0);

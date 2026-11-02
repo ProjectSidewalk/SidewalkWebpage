@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { loadModules, mockModule, useUtil } from './loader.js';
 
 mockModule('i18next', () => ({ default: { language: 'en', t: (key) => key } }));
-useUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }) } });
+useUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }), labelTypeName: (type) => type } });
 
 const STREET_COUNT = 8;
 const flush = () => new Promise((resolve) => { setTimeout(resolve); });
@@ -231,6 +231,91 @@ describe('ReportPage', () => {
 
       intersect(document.querySelector('.report-street'), true);
       expect(maps[1].colorBy).toHaveBeenLastCalledWith([0.05, 0.083]);
+    });
+  });
+
+  describe('weights', () => {
+    const CONFIG = {
+      scored_types: ['Obstacle'], presets: { default: { Obstacle: 1 } }, grade: { sources: [] },
+    };
+    const STREETS = { features: [{ geometry: { coordinates: [[-122.33, 47.6], [-122.32, 47.61]] } }] };
+    let fetchJson;
+    const asked = (path) => fetchJson.mock.calls.map(([url]) => url).filter((url) => url.startsWith(path));
+
+    beforeEach(() => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="report-weights-control" hidden><div id="report-weights"></div>
+          <button id="report-weights-reset" hidden></button></div>
+        <button id="report-custom-reset"></button><p id="report-custom-stamp" hidden></p>`);
+      fetchJson = vi.fn(async (url) => {
+        if (url.startsWith('/v3/api/accessScoreConfig')) return CONFIG;
+        if (url.startsWith('/v3/api/accessScoreStreets')) return STREETS;
+        return { features: [] };
+      });
+      useUtil({ fetchJson });
+      deps.createModel = vi.fn(() => ({
+        setState: vi.fn(), explainStreet: () => ({ score: 0.7, lengthM: 10, audited: true }),
+      }));
+      deps.loadClusters = vi.fn(async () => []);
+      deps.linkedWeights = vi.fn(() => null);
+    });
+
+    test('appear with the config, and fetch nothing else until a slider moves', async () => {
+      new ReportPage(data(), deps).start();
+      await flush();
+      expect(document.getElementById('report-weights-control').hidden).toBe(false);
+      expect(asked('/v3/api/accessScoreStreets')).toHaveLength(0);
+      expect(deps.createModel).not.toHaveBeenCalled();
+    });
+
+    test('stay away if the config fails, leaving the report as it is', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      fetchJson.mockRejectedValue(new Error('offline'));
+      new ReportPage(data(), deps).start();
+      await flush();
+      expect(document.getElementById('report-weights-control').hidden).toBe(true);
+      warn.mockRestore();
+    });
+
+    test('a moved slider logs on release, and asks for crossings by bbox, not by region', async () => {
+      new ReportPage(data(), deps).start();
+      await flush();
+      const slider = document.getElementById('report-weight-Obstacle');
+      slider.value = '2';
+      slider.dispatchEvent(new Event('input'));
+      expect(deps.log).not.toHaveBeenCalledWith(expect.stringContaining('Report_Weight'));
+      slider.dispatchEvent(new Event('change'));
+      expect(deps.log).toHaveBeenCalledWith('Report_Weight_Type=Obstacle_Value=2');
+      await flush();
+      await flush();
+      expect(deps.createModel).toHaveBeenCalledTimes(1);
+      expect(asked('/v3/api/accessScoreStreets')).toEqual(['/v3/api/accessScoreStreets?regionId=10']);
+      expect(asked('/v3/api/accessScoreIntersections')[0]).toBe(
+        '/v3/api/accessScoreIntersections?bbox=-122.33050,47.59950,-122.31950,47.61050',
+      );
+      expect(document.getElementById('report-custom-stamp').hidden).toBe(false);
+    });
+
+    test('a link\'s weights apply on arrival, with the sliders showing them', async () => {
+      deps.linkedWeights.mockReturnValue({ weights: { Obstacle: 2 } });
+      new ReportPage(data(), deps).start();
+      await flush();
+      await flush();
+      await flush();
+      expect(document.getElementById('report-weight-Obstacle').value).toBe('2');
+      expect(document.getElementById('report-custom-stamp').hidden).toBe(false);
+    });
+
+    test('the stamp\'s Reset is the sidebar\'s Reset', async () => {
+      deps.linkedWeights.mockReturnValue({ weights: { Obstacle: 2 } });
+      new ReportPage(data(), deps).start();
+      await flush();
+      await flush();
+      await flush();
+      document.getElementById('report-custom-reset').click();
+      expect(document.getElementById('report-weight-Obstacle').value).toBe('1');
+      expect(document.getElementById('report-custom-stamp').hidden).toBe(true);
+      expect(deps.log).toHaveBeenCalledWith('Report_WeightsReset');
     });
   });
 

@@ -421,10 +421,13 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 
 ### Neighborhood reports (`/report/neighborhood/:regionId`)
 
-A report tells rather than explores (#3889): one server-rendered page per region, public and responsive, so it can be
-forwarded and printed with no session and no JavaScript. Its rule is that no number appears without a way to see the
-labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its filters
-past that list's cap (`ReportLinks`). It builds no pano and no map, so viewing one costs no billable Google call.
+A report ties a map, which says where something is, to photos, which show what it is (#3889, #5876): one public,
+responsive page per region. The title, numbers and full street list are server-rendered, so they survive a failed
+script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
+the labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its
+filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so
+viewing one costs no billable Google or Mapbox call. A card's image is its crop's thumbnail or a placeholder, never the
+Gallery's Street View still.
 
 The report's scores are AccessScore's, and they must agree with what the tool, the Spotlight and the API say about the
 same place. `ReportService` reads the city's `getFullCityScores` cache rather than scoring anything itself, and the same
@@ -438,7 +441,25 @@ stretch's score would rise without that location, computed by re-running `Access
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
 Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
-out. A preset changes vocabulary and section order, never a number. Photos come from `/cropImage/:type/:id/thumbnail`, because a page of full-size crops weighs around 100 MB.
+out. A preset changes vocabulary and section order, never a number. Photos come from `/cropImage/:type/:id/thumbnail`,
+because a page of full-size crops weighs around 100 MB.
+
+`ReportPage` decides when each piece exists, since a region can have fifty streets and a browser about 16 WebGL contexts:
+a street's map and cards start as its section nears the viewport, and at most `MAX_LIVE_MAPS` maps live at once, given to
+the near sections closest to it. Each `ReportStreetSection` keeps one source of what's lit, whichever side the pointer is
+on: hover a Gallery `Card` and its map icon and elevation-profile pin light, with the photo's view wedge drawn, and hover
+an icon and its card lights. Under the map sits `AccessScoreElevationProfile`, fed by `stitchProfile`, which joins a
+stretch's per-edge `/v3/api/streetGrade` answers end to end. For print, a small SVG sketch stands in for each canvas.
+Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend says so.
+
+A reader can try their own weights: `ReportWeights` holds the sliders and `ReportRescorer` runs them through the same
+`AccessScoreModel` as the tool, rolling edges up with `stretchRollup`, the JS twin of `stretchScore` and `scoreRegion`.
+It asks for crossings by bbox rather than `regionId`, because a street on the region's edge counts the crossing at its
+far end, which belongs to the neighbor. Custom weights change the numbers, the order, and the card order (by
+`|clusterTerm|`), never the stretch a section shows or the set of streets. They must not pass for AccessScore's: a stamp
+stays in the header and in print, the link carries them in the tool's `w` and `gs` parameters, and what only the server
+can compute (the fixes, a card's cost in points, per-street context) is hidden until Reset, which restores the server's
+own text rather than recomputing it.
 
 ### Public label-share surface (`/label/:id`)
 

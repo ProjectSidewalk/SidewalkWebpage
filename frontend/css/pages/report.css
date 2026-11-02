@@ -56,6 +56,13 @@
   margin-left: var(--space-sm);
 }
 
+/* The contents are all links, stacked, so each needs the 24 px a pointer can hit. */
+.report-toc a {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
 /* Three columns need this much room before each is usable; the contents give way first. */
 @media (width <= 1280px) {
   .report-toc {
@@ -203,6 +210,8 @@
 }
 
 .report-stat__value {
+  display: inline-block;
+  min-height: 24px;
   font: var(--text-subtitle-bold);
 }
 
@@ -353,9 +362,10 @@
 
 /* Over MapLibre's own .maplibregl-marker, whose transform this must not touch: the icon inside it scales instead. */
 .report-map-marker {
-  width: 20px;
-  height: 20px;
-  padding: 0;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 2px;
   background: none;
   border: 0;
   border-radius: 50%;
@@ -441,6 +451,7 @@
   display: flex;
   gap: var(--space-xxs);
   align-items: center;
+  min-height: 24px;
   font: var(--text-small-regular);
 }
 
@@ -448,6 +459,11 @@
 .report-toggle input {
   margin: 0;
   font: inherit;
+}
+
+.report-toggle input {
+  width: 16px;
+  height: 16px;
 }
 
 .report-legend {

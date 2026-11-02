@@ -70,8 +70,13 @@ a discrete action (e.g. `Click_module=SaveSettings` — which the `/welcome` pri
 Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
 A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_Preset=<advocate|coordinator>` from the
 server, and its links and buttons add `Report_OpenLabel`, `Report_OpenGallery`, `Report_OpenLabelMap`,
-`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_CopyLink` and `Report_Print` (any way of
-printing, not just the button), each suffixed `_Region=<id>_Preset=<preset>`.
+`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_CopyLink`, `Report_Print` (any way of
+printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_SidebarToggle_Open=<bool>`,
+`Report_RegionMapClick`, `Report_MapLocationClick`, `Report_LinkedHover` (at most once per card or icon),
+`Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions), `Report_FilterType_Type=<type>_Shown=<bool>`,
+`Report_SidewalksToggle_Shown=<bool>`, `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
+`Report_ProfileClass_<index>_value=<bool>`, `Report_Weight_Type=<type>_Value=<n>`, `Report_GradeWeight_Value=<n>` (each
+when the slider is let go, not during the drag) and `Report_WeightsReset`, each suffixed `_Region=<id>_Preset=<preset>`.
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can

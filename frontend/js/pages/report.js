@@ -68,8 +68,8 @@ window.appManager.ready(() => {
     createModel: (config, streets, intersections, regions) => new AccessScoreModel(
       config, streets, intersections, regions,
     ),
-    loadClusters: (config, regionId) => new AccessScoreClusterFeed({ types: config.scored_types })
-      .regionClusters(regionId),
+    loadClusters: (config, region) => new AccessScoreClusterFeed({ types: config.scored_types })
+      .regionClusters(region),
     linkedWeights: (config) => {
       const { state } = AccessScoreUrlSync.read(config);
       if (!state.weights && state.slope?.weight === undefined) return null;
