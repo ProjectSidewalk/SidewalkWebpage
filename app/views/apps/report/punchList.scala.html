@@ -25,9 +25,9 @@
     <ol class="report-punch-list">
       @for(fix <- report.fixes) {
         <li class="report-punch-item">
-          @reportViews.photo(fix.photo, streetName(fix), showCost = false)
+          <div class="report-card-slot" data-label-id="@fix.label.labelId"></div>
           <div class="report-punch-item__body">
-            <h3 class="report-punch-item__street">@streetName(fix)</h3>
+            <h3 class="report-punch-item__street"><a href="#street-@fix.street.worst.osmWayId" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
             <p class="report-punch-item__type">@Messages(fix.item.labelType.nameKey)</p>
             @for(rating <- fix.item.severity) {
               <p class="report-punch-item__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
@@ -40,12 +40,12 @@
                 <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size, fix.item.labelIds.size)</a>
               </p>
             }
-            @if(fix.photo.label.tags.nonEmpty) {
+            @if(fix.label.tags.nonEmpty) {
               <ul class="report-tags">
-                @for(tag <- fix.photo.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
+                @for(tag <- fix.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
               </ul>
             }
-            <p class="report-punch-item__id"><a href="@ReportLinks.label(fix.photo.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.photo.label.labelId</a></p>
+            <p class="report-punch-item__id"><a href="@ReportLinks.label(fix.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId</a></p>
           </div>
         </li>
       }

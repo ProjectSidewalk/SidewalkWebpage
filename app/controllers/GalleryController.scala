@@ -194,9 +194,10 @@ class GalleryController @Inject() (
                     panoDataService.backupImageUrl(l.panoId),
                     currUsername = request.identity.map(_.username)
                   ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
-                  "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                  "cropMarker"  -> markers.get(l.labelId),
-                  "gsvImageUrl" ->
+                  "cropUrl"      -> panoDataService.cropUrl(l.labelId, l.labelType),
+                  "thumbnailUrl" -> panoDataService.cropThumbnailUrl(l.labelId, l.labelType),
+                  "cropMarker"   -> markers.get(l.labelId),
+                  "gsvImageUrl"  ->
                     panoDataService.getBrowserImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
                       l.canvasWidth, l.canvasHeight)
                 )

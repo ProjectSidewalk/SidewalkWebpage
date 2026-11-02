@@ -62,11 +62,17 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       order(contentAsString(report("?preset=advocate"))) mustBe false
     }
 
-    "never build a pano or a map, so that viewing it costs no billable Google call" in {
+    "never build a pano or a Mapbox map, so that viewing it costs no per-load charge" in {
       val body = contentAsString(report())
       body must not include "pano-viewer"
       body must not include "StreetViewPanorama"
       body must not include "mapboxgl"
+    }
+
+    "hand the browser what its maps and cards are drawn from" in {
+      val body = contentAsString(report())
+      body must include("""id="report-data"""")
+      body must include("""id="report-region-map"""")
     }
 
     "leave the data that reproduces it one click away" in {

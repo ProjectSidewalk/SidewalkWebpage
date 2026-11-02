@@ -353,7 +353,7 @@ export class AccessScoreStreetPanel {
    */
   static #infoHtml(text) {
     const esc = util.escapeHTML(text);
-    return `<button type="button" class="acs-info" data-ps-tooltip="${esc}" aria-label="${esc}">
+    return `<button type="button" class="acs-info info-button" data-ps-tooltip="${esc}" aria-label="${esc}">
       <span aria-hidden="true">i</span></button>`;
   }
 

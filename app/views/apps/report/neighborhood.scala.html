@@ -1,6 +1,8 @@
 @import models.report.{NeighborhoodReport, ReportFormat, ReportLinks, ReportPreset}
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
+@import play.api.libs.json.JsValue
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import views.html.apps.report as reportViews
 
@@ -17,9 +19,10 @@
  * @param report     The computed report.
  * @param preset     Which audience to write for. Changes vocabulary and section order, never a number.
  * @param cityName   The deployment's formatted name, when known.
+ * @param clientData What the maps and cards are drawn from; see [[models.report.ReportClientData]].
  *@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport, preset: ReportPreset,
-    cityName: Option[String]
+    cityName: Option[String], clientData: JsValue
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @dateLabel(date: java.time.LocalDate) = @{
@@ -27,11 +30,11 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@common.main(commonData, Messages("report.seo.title", report.regionName), url = "/report") {
+@common.main(commonData, Messages("report.seo.title", report.regionName), i18Namespaces = Seq("common", "gallery", "labelmap", "report"), url = "/report") {
   @common.navbar(commonData, user)
 
   <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId" data-preset="@preset.name">
-    @reportViews.sidebar(preset)
+    @reportViews.sidebar(report, preset)
 
     <main class="page-content report-page" id="report-page">
       <header class="report-head" id="report-summary">
@@ -96,6 +99,7 @@
     @reportViews.toc(report, preset)
   </div>
 
+  <script type="application/json" id="report-data">@jsonForScript(clientData)</script>
   @ViteAssets.stylesheets("report")
   <script type="module" src='@assets.path("build/js/report.js")'></script>
 }

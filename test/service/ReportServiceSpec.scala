@@ -1,8 +1,8 @@
 package service
 
 import models.api.{IntersectionAccessScoreForApi, StreetAccessScoreForApi}
-import models.label.{CropMarker, LabelType}
-import models.report.{ReportLabel, ReportLocation, ReportRules}
+import models.label.LabelType
+import models.report.{ReportLocation, ReportRules}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.concurrent.ScalaFutures
@@ -11,11 +11,8 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.SidewalkSpec
 
-import java.time.{OffsetDateTime, ZoneOffset}
-
 /**
- * ReportService's marker math, plus a whole report built against the connected database (#5876). What the database half
- * guards is the page's central promise: its numbers are AccessScore's, every label in the region is accounted for, and
+ * A whole report built against the connected database (#5876). What it guards is the page's central promise: its numbers are AccessScore's, every label in the region is accounted for, and
  * what a street's row links to is behind that street's score.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
@@ -27,39 +24,6 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val service: ReportService = app.injector.instanceOf[ReportService]
-
-  private def label(id: Int, edge: Int, canvasX: Option[Int] = None, canvasY: Option[Int] = None): ReportLabel =
-    ReportLabel(id, LabelType.Obstacle, Some(3), Nil, edge, "u", "p", OffsetDateTime.now(ZoneOffset.UTC), None, 0, 0, 0,
-      None, canvasX, canvasY, None, None)
-
-  "markerFraction" must {
-    "use the recorded position as is when the crop already has the frame's shape" in {
-      val marker = CropMarker(0.25, 0.75, Some(720), Some(480))
-      ReportService.markerFraction(label(1, 1), Some(marker)) mustBe ((0.25, 0.75))
-    }
-
-    "re-express the position in the visible part of a crop the frame trims" in {
-      val wide     = CropMarker(0.5, 0.25, Some(960), Some(480))
-      val (wx, wy) = ReportService.markerFraction(label(1, 1), Some(wide))
-      wx mustBe 0.5
-      wy mustBe 0.25
-      val offCenter = CropMarker(0.75, 0.5, Some(960), Some(480))
-      ReportService.markerFraction(label(1, 1), Some(offCenter))._1 mustBe (0.8333 +- 0.001)
-      val tall = CropMarker(0.5, 0.75, Some(480), Some(480))
-      ReportService.markerFraction(label(1, 1), Some(tall))._2 mustBe 0.875
-    }
-
-    "fall back to the canvas fraction without a row, and to the center without a position" in {
-      ReportService.markerFraction(label(1, 1, Some(180), Some(120)), None) mustBe ((0.25, 0.25))
-      ReportService.markerFraction(label(1, 1), None) mustBe ((0.5, 0.5))
-    }
-
-    "keep the marker on the photo when a position falls outside it" in {
-      ReportService.markerFraction(label(1, 1, Some(9000), Some(-40)), None) mustBe ((1.0, 0.0))
-      val trimmedAway = CropMarker(0.01, 0.5, Some(1440), Some(480))
-      ReportService.markerFraction(label(1, 1), Some(trimmedAway))._1 mustBe 0.0
-    }
-  }
 
   "neighborhoodReport" must {
     "say so for a region that doesn't exist" in {
@@ -85,13 +49,13 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
         report.inventory.flatMap(_.observedIds) must contain theSameElementsAs report.coverage.observationIds
         report.coverage.excludedIds.toSet.intersect(counted) mustBe empty
 
-        // A row's linked counts are exactly its stretch's locations, and each photo is a label behind one of them.
+        // A row's linked counts are exactly its stretch's locations, and each card is a label behind one of them.
         report.streets.foreach { row =>
           val locations = row.street.worst.locations
           row.evidence.map(_.locations).sum mustBe locations.size
           row.evidence.flatMap(_.labelIds) must contain theSameElementsAs locations.flatMap(_.labelIds)
-          row.photos.map(_.label.labelId).toSet.subsetOf(locations.flatMap(_.labelIds).toSet) mustBe true
-          row.photos.size must be <= ReportService.PhotosPerStreet
+          row.cards.map(_.label.labelId).toSet.subsetOf(locations.flatMap(_.labelIds).toSet) mustBe true
+          row.cards.map(_.location.clusterId).toSet.subsetOf(locations.map(_.clusterId).toSet) mustBe true
           row.street.worst.isRanked mustBe true
         }
 
@@ -103,8 +67,8 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
         report.fixes.map(_.street.worst.osmWayId).distinct.size mustBe report.fixes.size
         report.fixes.foreach { fix =>
           fix.item.costPoints must be >= ReportRules.FixMinPoints
-          fix.item.labelIds must contain(fix.photo.label.labelId)
-          fix.photo.label.uncontested mustBe true
+          fix.item.labelIds must contain(fix.label.labelId)
+          fix.label.uncontested mustBe true
         }
       }
     }

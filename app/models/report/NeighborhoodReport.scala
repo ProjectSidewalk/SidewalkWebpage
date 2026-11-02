@@ -4,6 +4,7 @@ import models.api.{LabelClusterForApi, LabelDataForApi, StreetAccessScoreForApi}
 import models.label.{LabelType, RatingScale}
 import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
 import play.api.i18n.Messages
+import play.api.libs.json.{JsObject, JsValue, Json}
 import service.AccessScoreCalculator.{ClusterScoreInput, Scoring}
 import service.{AccessScoreCalculator, AccessScoreSpotlight}
 
@@ -174,6 +175,7 @@ case class ReportItem(locations: Seq[ReportLocation], costPoints: Double) {
  * score comes from the crossings at its ends alone, which says nothing of the block.
  *
  * @param toolEdgeId         The longest explored edge, which the AccessScore tool opens on
+ * @param edgeIds            The explored edges, which are what the map highlights and the score describes
  * @param score              Length-weighted mean of the explored edges' published scores
  * @param blockScore         The same mean of their block scores
  * @param crossingScore      The same mean of their crossings' scores, over the edges with a scored crossing
@@ -187,6 +189,7 @@ case class ReportStretch(
     osmWayId: Long,
     name: Option[String],
     toolEdgeId: Int,
+    edgeIds: Seq[Int],
     score: Double,
     blockScore: Option[Double],
     crossingScore: Option[Double],
@@ -229,6 +232,7 @@ object ReportStretch {
         osmWayId = edges.head.osmWayId,
         name = wayEdges.flatMap(_.streetName).headOption,
         toolEdgeId = edges.maxBy(_.lengthMeters).streetEdgeId,
+        edgeIds = edges.map(_.streetEdgeId),
         score = score,
         blockScore = AccessScoreSpotlight.stretchScore(edges.flatMap(e => e.segmentScore.map(_ -> e.lengthMeters))),
         crossingScore = AccessScoreSpotlight.stretchScore(
@@ -406,20 +410,29 @@ object ReportRules {
       .headOption
 
   /**
-   * The labels to show as a stretch's photos: one per item, costliest first. Items with a crop come first, so a missing
-   * crop only shows its "no image" panel when the stretch hasn't enough photos to fill the strip.
+   * Everything a street's section shows: each location with the label that pictures it, costliest first, then those
+   * that cost nothing, which is where its curb ramps and other features sit.
    *
-   * @return At most `limit` pairs, in the order to show them.
+   * @return One card per location, leaving out any whose labels have all been marked incorrect since clustering.
    */
-  def selectPhotos(
+  def cards(
       stretch: ReportStretch,
       labels: Map[Int, ReportLabel],
-      limit: Int,
       hasCrop: ReportLabel => Boolean
-  ): Seq[(ReportItem, ReportLabel)] = {
-    val shown              = stretch.items.flatMap(i => representative(i, labels, hasCrop).map(i -> _))
-    val (withCrop, noCrop) = shown.partition { case (_, l) => hasCrop(l) }
-    (withCrop ++ noCrop).take(limit)
+  ): Seq[ReportCard] = {
+    val itemOf    = stretch.items.flatMap(i => i.locations.map(_.clusterId -> i)).toMap
+    val typeOrder = LabelType.ordered.zipWithIndex.toMap
+    stretch.locations
+      .flatMap { location =>
+        val item = itemOf.get(location.clusterId)
+        val cost = item.fold(0.0)(_.costPoints)
+        representative(ReportItem(Seq(location), cost), labels, hasCrop)
+          .map(ReportCard(location, _, cost, item.fold(1)(_.locations.size)))
+      }
+      // By each location's own share, so a street with fifty of one pooled item doesn't open on fifty alike.
+      .sortBy(c =>
+        (-c.costPoints / c.poolSize, typeOrder.getOrElse(c.location.labelType, Int.MaxValue), c.location.clusterId)
+      )
   }
 
   /**
@@ -668,20 +681,13 @@ object InventoryRow {
 }
 
 /**
- * A label's photo as the page draws it. `markerX`/`markerY` are fractions of the crop, already resolved.
+ * One location as a street's section shows it: an icon on the map, and beside it a Gallery card for one label there.
  *
- * @param cropUrl     The signed URL of the crop's thumbnail, or None to draw the "no image" panel
- * @param attribution The attribution line the imagery requires, when there is one
- * @param costPoints  What the item this photo shows costs its street's score
+ * @param label      The label the card pictures
+ * @param costPoints What this location costs its stretch's score; 0 for one that costs nothing
+ * @param poolSize   How many locations share that cost, for a type the score pools along a block
  */
-case class ReportPhoto(
-    label: ReportLabel,
-    cropUrl: Option[String],
-    markerX: Double,
-    markerY: Double,
-    attribution: Option[models.pano.ImageryAttribution.Line],
-    costPoints: Double
-)
+case class ReportCard(location: ReportLocation, label: ReportLabel, costPoints: Double, poolSize: Int)
 
 /**
  * One label type's evidence on a street row.
@@ -695,7 +701,7 @@ case class TypeEvidence(labelType: LabelType, locations: Int, labelIds: Seq[Int]
  *
  * @param evidence What's behind the worst stretch's score, per type, in the canonical type order
  */
-case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], photos: Seq[ReportPhoto]) {
+case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], cards: Seq[ReportCard]) {
 
   /** @return The id of this street's detail section, which stays the same from one day's report to the next. */
   def anchor: String = s"street-${street.worst.osmWayId}"
@@ -710,8 +716,25 @@ object RankedStreetRow {
 
 /**
  * An item on the fixes list.
+ *
+ * @param label The label to picture it with
  */
-case class ReportFix(street: ReportStreet, item: ReportItem, photo: ReportPhoto)
+case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel)
+
+/**
+ * One street edge in the region, as the page's maps draw it.
+ *
+ * @param score       Its published score, when it has one
+ * @param explored    Whether anyone has audited it
+ * @param coordinates Its line, as `(lng, lat)` pairs
+ */
+case class ReportMapEdge(
+    streetEdgeId: Int,
+    osmWayId: Long,
+    score: Option[Double],
+    explored: Boolean,
+    coordinates: Seq[(Double, Double)]
+)
 
 /**
  * Everything a neighborhood report shows. Assembled by `ReportService` and rendered by `views.html.apps.report`.
@@ -719,6 +742,7 @@ case class ReportFix(street: ReportStreet, item: ReportItem, photo: ReportPhoto)
  * @param clustersUpdatedAt When the clusters behind its scores were last rebuilt
  * @param streetsRanked     How many streets AccessScore's bars rank here, whatever their score
  * @param evidenceBox       The area its locations were read from, for the data link that reproduces them
+ * @param edges             Every street edge in the region, for its maps
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -732,7 +756,8 @@ case class NeighborhoodReport(
     streetsRanked: Int,
     fixes: Seq[ReportFix],
     inventory: Seq[InventoryRow],
-    evidenceBox: Option[LatLngBBox]
+    evidenceBox: Option[LatLngBBox],
+    edges: Seq[ReportMapEdge]
 ) {
 
   /** @return Whether the region is too little explored for its score to be stated, so anything listed is provisional. */
@@ -840,4 +865,55 @@ object ReportLinks {
 
   /** @return The label's own card, with its full panorama. */
   def label(labelId: Int): String = s"/label/$labelId"
+}
+
+/** What the page's scripts need from a report, written into it as JSON: the maps and cards are drawn in the browser. */
+object ReportClientData {
+
+  // Five decimal places of a degree is about a meter, and a region's lines are most of this payload's weight.
+  private def rounded(value: Double): Double = BigDecimal(value).setScale(5, BigDecimal.RoundingMode.HALF_UP).toDouble
+
+  private def cardJson(card: ReportCard): JsObject =
+    Json.obj(
+      "clusterId"  -> card.location.clusterId,
+      "labelId"    -> card.label.labelId,
+      "labelType"  -> card.location.labelType.name,
+      "severity"   -> card.location.severity,
+      "lat"        -> card.location.latitude,
+      "lng"        -> card.location.longitude,
+      "labelIds"   -> card.location.labelIds,
+      "atCrossing" -> card.location.intersectionId.isDefined,
+      "costPoints" -> card.costPoints,
+      "poolSize"   -> card.poolSize
+    )
+
+  /**
+   * @param report  The computed report
+   * @param basemap The tile and glyph URLs, from `BasemapController.pageData`
+   * @param cityId  The deployment's id, which qualifies each label id on the page
+   * @return The JSON to embed.
+   */
+  def toJson(report: NeighborhoodReport, basemap: JsObject, cityId: String): JsValue =
+    Json.obj(
+      "regionId" -> report.regionId,
+      "cityId"   -> cityId,
+      "basemap"  -> basemap,
+      "edges"    -> report.edges.map { e =>
+        Json.obj(
+          "id"          -> e.streetEdgeId,
+          "wayId"       -> e.osmWayId,
+          "score"       -> e.score,
+          "explored"    -> e.explored,
+          "coordinates" -> e.coordinates.map { case (lng, lat) => Json.arr(rounded(lng), rounded(lat)) }
+        )
+      },
+      "streets" -> report.streets.map { row =>
+        Json.obj(
+          "wayId"   -> row.street.worst.osmWayId,
+          "score"   -> row.street.worst.score,
+          "edgeIds" -> row.street.worst.edgeIds,
+          "cards"   -> row.cards.map(cardJson)
+        )
+      }
+    )
 }

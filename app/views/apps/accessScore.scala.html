@@ -9,7 +9,7 @@
 @* An "i" button whose tooltip carries an explanation the panel has no room to print. psTooltip.js is loaded
    site-wide and shows it on hover and on focus; the same string is the button's accessible name, so a screen
    reader hears the explanation itself rather than a bare "more information". *@
-@info(key: String) = {<button type="button" class="acs-info" data-i18n-tooltip="accessscore:@key" data-i18n-aria-label="accessscore:@key" aria-label="More information"><span aria-hidden="true">i</span></button>}
+@info(key: String) = {<button type="button" class="acs-info info-button" data-i18n-tooltip="accessscore:@key" data-i18n-aria-label="accessscore:@key" aria-label="More information"><span aria-hidden="true">i</span></button>}
 
 @* A sidebar section: heading row plus content, with an optional info button beside the heading. Mirrors the
    shared filter sidebar's section markup so the two panels read the same, while the controls are this tool's own. *@

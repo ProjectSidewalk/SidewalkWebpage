@@ -318,13 +318,21 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportRules.representative(item, Map.empty, allCrops) shouldBe None
   }
 
-  test("a strip holds one photo per item, costliest first, keeping a missing crop for when nothing else fills it") {
+  test("a street's cards hold one per location, by each one's share of what its item costs") {
     val evidence = ReportEvidence(Seq(loc(1), loc(2, severity = Some(2)), loc(3, severity = Some(1))))
     val s        = stretch(Seq(edge(1, evidence)), evidence)
     val labels   = Map(10 -> label(10), 20 -> label(20, severity = Some(2)), 30 -> label(30, severity = Some(1)))
-    ReportRules.selectPhotos(s, labels, 2, allCrops).map(_._2.labelId) shouldBe Seq(10, 20)
-    ReportRules.selectPhotos(s, labels, 2, l => l.labelId != 10).map(_._2.labelId) shouldBe Seq(20, 30)
-    ReportRules.selectPhotos(s, labels, 3, l => l.labelId != 10).map(_._2.labelId) shouldBe Seq(20, 30, 10)
+    val cards    = ReportRules.cards(s, labels, allCrops)
+    cards.map(_.location.clusterId).toSet shouldBe s.locations.map(_.clusterId).toSet
+    val shares = cards.map(c => c.costPoints / c.poolSize)
+    shares shouldBe shares.sorted.reverse
+    cards.foreach(c => c.location.labelIds should contain(c.label.labelId))
+  }
+
+  test("a location with no label left to show has no card, and the street's other locations keep theirs") {
+    val evidence = ReportEvidence(Seq(loc(1), loc(2, severity = Some(2))))
+    val s        = stretch(Seq(edge(1, evidence)), evidence)
+    ReportRules.cards(s, Map(20 -> label(20, severity = Some(2))), allCrops).map(_.label.labelId) shouldBe Seq(20)
   }
 
   private def rankedStreet(name: String, way: Long, first: Int, severity: Int = 3): (ReportStreet, ReportStretch) = {
@@ -551,9 +559,6 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       streets.map(s => s.streetEdgeId -> ReportStreet.streetKey(s.streetName, s.osmWayId)).toMap,
       data,
       selection,
-      _ => None,
-      Map.empty,
-      Map.empty,
       None,
       created
     )
@@ -563,7 +568,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     val row = report.streets.head
     row.evidence.map(e => (e.labelType, e.locations)) shouldBe Seq((NoCurbRamp, 1), (Obstacle, 3))
     row.evidence.flatMap(_.labelIds) should contain theSameElementsAs (low :+ shared).flatMap(_.labelIds)
-    row.photos.map(_.label.labelId).toSet.subsetOf(row.evidence.flatMap(_.labelIds).toSet) shouldBe true
+    row.cards.map(_.label.labelId).toSet.subsetOf(row.evidence.flatMap(_.labelIds).toSet) shouldBe true
     report.fixes.map(_.street.worst.name.get) should contain("High St")
     report.score.score shouldBe AccessScoreCalculator.scoreRegion(streets.map(s => s.score.get -> s.lengthMeters))
     report.coverage.observationIds should contain theSameElementsAs own.map(_.labelId)

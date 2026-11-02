@@ -8,20 +8,14 @@ import { copyToClipboard } from '../common/copyToClipboard.js';
 import { PageToc } from '../common/PageToc.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
+import { ReportPage } from '../report/ReportPage.js';
+import { ReportMap } from '../report/ReportMap.js';
+import { buildCard, fetchCardData } from '../report/reportCards.js';
 import '../../css/components/page-shell.css';
 import '../../css/components/info-button.css';
+import '../../css/components/gallery-card.css';
+import '../../css/components/gallery-tags.css';
 import '../../css/pages/report.css';
-
-/**
- * Asks for every lazy photo now and waits until they have settled. A browser prints what it has, so without this a
- * photo below the fold would print as a blank box.
- * @returns {Promise<void>} Resolves once every photo has loaded or failed.
- */
-async function loadAllPhotos() {
-  const photos = /** @type {HTMLImageElement[]} */ ([...document.querySelectorAll('.report-photo__image')]);
-  for (const photo of photos) photo.loading = 'eager';
-  await Promise.allSettled(photos.map((photo) => photo.decode()));
-}
 
 /**
  * Paints each overview bar and contents dot from the score the server states, so they use the ramp's own colors.
@@ -62,16 +56,23 @@ window.appManager.ready(() => {
     if (link) log(/** @type {HTMLElement} */ (link).dataset.reportEvent);
   });
 
-  // Started before the button opens the dialog too, so a Ctrl+P also gets its photos as far as there's time for.
+  const data = JSON.parse(document.getElementById('report-data').textContent);
+  const page = new ReportPage(data, {
+    createMap: (container, options) => new ReportMap(container, options),
+    fetchCards: fetchCardData,
+    buildCard,
+    log,
+  });
+  page.start();
+
+  // Started before the button opens the dialog too, so a Ctrl+P also gets its cards as far as there's time for.
   window.addEventListener('beforeprint', () => {
     log('Report_Print');
-    for (const photo of document.querySelectorAll('.report-photo__image')) {
-      /** @type {HTMLImageElement} */ (photo).loading = 'eager';
-    }
+    page.prepareForPrint();
   });
 
   document.getElementById('report-print').addEventListener('click', async () => {
-    await loadAllPhotos();
+    await page.prepareForPrint();
     window.print();
   });
 

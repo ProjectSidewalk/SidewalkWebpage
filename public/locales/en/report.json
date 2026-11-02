@@ -1,0 +1,16 @@
+{
+  "card": {
+    "cost": "Costs {{points}} points",
+    "cost-shared": "Costs {{points}} points, with {{others}} more",
+    "labels_one": "{{count}} label",
+    "labels_other": "{{count}} labels",
+    "more_one": "Show {{count}} more",
+    "more_other": "Show {{count}} more"
+  },
+  "map": {
+    "location": "{{type}}: show its photo",
+    "gesture-windows": "Use Ctrl + scroll to zoom the map",
+    "gesture-mac": "Use ⌘ + scroll to zoom the map",
+    "gesture-touch": "Use two fingers to move the map"
+  }
+}

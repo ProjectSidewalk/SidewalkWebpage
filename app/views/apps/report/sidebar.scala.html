@@ -1,13 +1,15 @@
-@import models.report.ReportPreset
+@import models.report.{NeighborhoodReport, ReportPreset}
+@import views.html.apps.report as reportViews
 
 @*
  * The report's controls. On a narrow screen the column folds into a strip holding its disclosure button, the same as
  * every other `.page-*` shell; the button is rendered here rather than built in JS so its label goes through Play's
  * i18n. Print and copy-link need JavaScript, so report.js reveals them.
  *
+ * @param report The computed report, for which label types it holds.
  * @param preset The audience the report is written for.
  *@
-@(preset: ReportPreset)(using messages: Messages)
+@(report: NeighborhoodReport, preset: ReportPreset)(using messages: Messages, assets: AssetsFinder)
 
 <aside class="page-sidebar report-sidebar" id="report-sidebar" aria-label="@Messages("report.sidebar.label")">
   <button type="button" class="page-sidebar-toggle" id="report-sidebar-toggle" hidden>
@@ -25,6 +27,32 @@
         }
       </div>
     </nav>
+    @* The next two only act on what report.js draws, so it reveals them. *@
+    @if(report.inventory.nonEmpty) {
+      <div class="report-control" id="report-type-filter" role="group" aria-labelledby="report-types-label" hidden>
+        <h2 class="report-control__title" id="report-types-label">@Messages("report.filter.title")</h2>
+        <div class="report-chips">
+          @for(row <- report.inventory) {
+            <button type="button" class="report-chip" aria-pressed="true" data-label-type="@row.labelType.name">
+              <img src='@assets.path(row.labelType.smallIconSvgPath)' alt="" width="16" height="16">
+              @Messages(row.labelType.nameKey)
+            </button>
+          }
+        </div>
+      </div>
+    }
+    <div class="report-control" id="report-map-controls" hidden>
+      <h2 class="report-control__title">@Messages("report.map.title")</h2>
+      <div class="report-toggle">
+        <input type="checkbox" id="report-sidewalks-toggle" checked>
+        <label for="report-sidewalks-toggle">@Messages("report.map.sidewalks")</label>
+        @reportViews.info(Messages("report.map.sidewalks.help"))
+      </div>
+      <ul class="report-legend" id="report-sidewalk-legend">
+        <li><span class="report-legend__line report-legend__line--present" aria-hidden="true"></span>@Messages("report.map.sidewalks.present")</li>
+        <li><span class="report-legend__line report-legend__line--absent" aria-hidden="true"></span>@Messages("report.map.sidewalks.absent")</li>
+      </ul>
+    </div>
     <div class="report-actions" id="report-actions" hidden>
       <button type="button" class="button button--secondary button--small" id="report-print">@Messages("report.print")</button>
       <button type="button" class="button button--secondary button--small" id="report-copy-link">@Messages("report.copy.link")</button>

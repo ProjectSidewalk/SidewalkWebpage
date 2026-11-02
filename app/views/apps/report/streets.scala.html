@@ -1,7 +1,6 @@
 @import controllers.helper.ControllerUtils
 @import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks, ReportPreset}
 @import models.utils.CommonUtils
-@import views.html.apps.report as reportViews
 
 @*
  * Every ranked street in detail, in the overview's order. A section's number and everything under it describe its
@@ -56,11 +55,15 @@
               </li>
             }
           </ul>
-          @if(row.photos.nonEmpty) {
-            <div class="report-strip">
-              @for(photo <- row.photos) { @reportViews.photo(photo, RankedStreetRow.displayName(row.street.worst)) }
+          <div class="report-street__body">
+            <div class="report-street__where">
+              <div class="report-map" data-street-map role="group" aria-label="@Messages("report.map.street.label", RankedStreetRow.displayName(row.street.worst))"></div>
             </div>
-          }
+            <div class="report-street__what">
+              <ul class="report-cards" data-street-cards></ul>
+              <button type="button" class="button button--secondary button--small report-cards__more" data-street-more hidden></button>
+            </div>
+          </div>
         </li>
       }
     </ol>

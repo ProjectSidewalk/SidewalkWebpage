@@ -1,0 +1,16 @@
+{
+  "card": {
+    "cost": "Kostet {{points}} Punkte",
+    "cost-shared": "Kostet {{points}} Punkte, mit {{others}} weiteren",
+    "labels_one": "{{count}} Markierung",
+    "labels_other": "{{count}} Markierungen",
+    "more_one": "{{count}} weitere anzeigen",
+    "more_other": "{{count}} weitere anzeigen"
+  },
+  "map": {
+    "location": "{{type}}: Foto anzeigen",
+    "gesture-windows": "Strg + Scrollen zum Zoomen der Karte",
+    "gesture-mac": "⌘ + Scrollen zum Zoomen der Karte",
+    "gesture-touch": "Karte mit zwei Fingern bewegen"
+  }
+}

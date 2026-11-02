@@ -8,11 +8,11 @@
 }
 
 /* `clip` rather than the shell's `hidden`: a hidden overflow makes the column a scroll container, and a sticky map
-   inside would then stick to a box that never scrolls. */
-.report-page {
+   inside would then stick to a box that never scrolls. Doubled up because page-shell.css may load after this. */
+.page-content.report-page {
   min-width: 0;
   padding: var(--space-lg) var(--space-lg) var(--space-xxl);
-  overflow-x: clip;
+  overflow: clip;
   color: var(--color-neutral-900);
 }
 
@@ -309,6 +309,177 @@
   text-align: right;
 }
 
+/* The list scrolls past while the map stays beside it, so a row never loses the street it lights. */
+.report-overview__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.report-overview__where {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--space-sm));
+}
+
+/* ---- Maps ----------------------------------------------------------------------------------------------------- */
+
+.report-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+}
+
+/* Fills the map's place until the canvas lands on top of it, and in print. */
+.report-map__sketch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-map__sketch-street path {
+  fill: none;
+  stroke: var(--color-neutral-700);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+/* Over MapLibre's own .maplibregl-marker, whose transform this must not touch: the icon inside it scales instead. */
+.report-map-marker {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.report-map-marker img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--transition-fast);
+}
+
+.report-map-marker[hidden] {
+  display: none;
+}
+
+.report-map-marker:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.report-map-marker.is-lit {
+  z-index: 2;
+}
+
+.report-map-marker.is-lit img {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--color-neutral-white), 0 0 0 5px var(--color-neutral-900);
+  transform: scale(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-map-marker img {
+    transition: none;
+  }
+}
+
+/* ---- Sidebar controls ----------------------------------------------------------------------------------------- */
+
+.report-control[hidden] {
+  display: none;
+}
+
+.report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
+.report-chip {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  min-height: 28px;
+  padding: var(--space-xxs) var(--space-xs);
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-500);
+  border-radius: 999px;
+}
+
+/* A switched-off type reads as switched off without color alone: struck through and faded. */
+.report-chip[aria-pressed="false"] {
+  color: var(--color-neutral-700);
+  text-decoration: line-through;
+  background: transparent;
+  border-color: var(--color-neutral-300);
+}
+
+.report-chip[aria-pressed="false"] img {
+  opacity: 0.4;
+}
+
+.report-chip:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.report-toggle {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-small-regular);
+}
+
+.report-toggle label,
+.report-toggle input {
+  margin: 0;
+  font: inherit;
+}
+
+.report-legend {
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  list-style: none;
+}
+
+.report-legend[hidden] {
+  display: none;
+}
+
+.report-legend li {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.report-legend__line {
+  flex: none;
+  width: 24px;
+  height: 3px;
+}
+
+.report-legend__line--present {
+  background: var(--color-success-200);
+}
+
+.report-legend__line--absent {
+  background: var(--color-label-no-sidewalk);
+}
+
 /* ---- Ranked streets ------------------------------------------------------------------------------------------- */
 
 .report-street-list,
@@ -383,66 +554,96 @@
   font: var(--text-small-bold);
 }
 
-.report-strip {
+/* ---- A street: where things are, beside what they look like ---------------------------------------------------- */
+
+/* Sized from the report's own column rather than the window, since the sidebar and contents come and go around it. */
+.report-streets {
+  container-type: inline-size;
+}
+
+/* The map stays in view beside any number of cards, because a map that scrolls away can no longer answer a hover. */
+.report-street__body {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-sm);
+  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  gap: var(--space-md);
+  align-items: start;
   margin-top: var(--space-sm);
 }
 
-/* ---- Photos --------------------------------------------------------------------------------------------------- */
+.report-street__where {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--space-sm));
+}
 
-.report-photo {
-  min-width: 0;
+@container (width <= 720px) {
+  .report-street__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-street__where {
+    position: static;
+  }
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-sm);
+  padding: 0;
   margin: 0;
+  list-style: none;
 }
 
-/* ReportService.PhotoFrameAspect is this ratio: the server places the marker for a photo cover-fitted to it. */
-.report-photo__frame {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  aspect-ratio: 3 / 2;
-  background: var(--color-neutral-100);
+.report-card {
+  min-width: 0;
   border-radius: var(--border-radius);
+  transition: box-shadow var(--transition-fast);
 }
 
-.report-photo__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.report-card[hidden] {
+  display: none;
 }
 
-.report-photo__marker {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer-events: none;
-  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
+.report-card.is-lit {
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
 }
 
-.report-photo__empty {
+@media (prefers-reduced-motion: reduce) {
+  .report-card {
+    transition: none;
+  }
+}
+
+.report-card__host {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xxs);
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: var(--space-xs);
-  font: var(--text-small-regular);
-  color: var(--color-neutral-800);
-  text-align: center;
-}
-
-.report-photo__caption {
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-xxs);
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-xs);
+  padding: var(--space-xxs) var(--space-xs);
   font: var(--text-caption-regular);
   color: var(--color-neutral-800);
+}
+
+.report-card__host a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+.report-card__cost {
+  width: 100%;
+  font: var(--text-caption-medium);
+}
+
+.report-cards__more {
+  margin-top: var(--space-sm);
+}
+
+.report-cards__more[hidden] {
+  display: none;
+}
+
+/* Holds its place in the fixes until report.js draws the card in it. */
+.report-card-slot {
+  min-height: 160px;
 }
 
 /* ---- Punch list ----------------------------------------------------------------------------------------------- */
@@ -548,10 +749,7 @@
 /* ---- Small screens: var(--breakpoint-sm) ---------------------------------------------------------------------- */
 
 @media (width <= 768px) {
-  .report-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
+  .report-overview__body,
   .report-punch-item {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -578,12 +776,29 @@
     overflow: visible;
   }
 
+  .report-overview__where,
+  .report-street__where {
+    position: static;
+  }
+
+  /* Paper has no hover, so a street's map can be small and its cards the point. */
+  .report-street__body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
   .report-section {
     margin-top: var(--space-md);
   }
 
-  .report-street,
+  .report-map .maplibregl-canvas-container,
+  .report-map .maplibregl-control-container,
+  .report-map .maplibregl-marker,
+  .report-cards__more {
+    display: none !important;
+  }
+
   .report-punch-item,
+  .report-card,
   .report-stat,
   .report-inventory__table tr {
     break-inside: avoid;

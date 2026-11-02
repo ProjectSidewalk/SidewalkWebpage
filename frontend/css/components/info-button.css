@@ -1,7 +1,6 @@
 /* The "i" button that stands in for a paragraph of explanation. Sized to the 24px touch-comfortable minimum while
    drawing as a small circle, so it sits quietly beside a heading or a checkbox rather than competing with it. */
-.info-button,
-.acs-info {
+.info-button {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -17,8 +16,7 @@
   vertical-align: middle;
 }
 
-.info-button span,
-.acs-info span {
+.info-button span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,14 +29,11 @@
 }
 
 .info-button:hover,
-.info-button:focus-visible,
-.acs-info:hover,
-.acs-info:focus-visible {
+.info-button:focus-visible {
   color: var(--color-link-200);
 }
 
-.info-button:focus-visible,
-.acs-info:focus-visible {
+.info-button:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 1px;
   border-radius: 50%;

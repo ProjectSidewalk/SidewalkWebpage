@@ -7,8 +7,7 @@ import models.api.{
   RawLabelFiltersForApi,
   StreetAccessScoreForApi
 }
-import models.label.{CropMarker, LabelType}
-import models.pano.ImageryAttribution
+import models.label.LabelType
 import models.region.NamedRegionCompletion
 import models.report.*
 import models.utils.LatLngBBox
@@ -58,8 +57,7 @@ case class ReportData(
 )
 
 object ReportService {
-  val PhotosPerStreet: Int = 4
-  val FixListSize: Int     = 5
+  val FixListSize: Int = 5
 
   // Well past the 25 m a corner-type cluster can be attributed to an intersection from, so that every location the
   // engine pooled on a street's far end is inside the box, including on a street that bends away at a high latitude.
@@ -69,13 +67,6 @@ object ReportService {
   // between runs, so an hour-old copy is only ever late in saying how many labels there are.
   val DataFreshFor: FiniteDuration = 10.minutes
   val DataMaxAge: FiniteDuration   = 1.hour
-
-  // The boxed Explore canvas, which is the frame a label's canvas_x/canvas_y refer to when the label doesn't say.
-  private val DefaultCanvasWidth: Int  = 720
-  private val DefaultCanvasHeight: Int = 480
-
-  // Width:height of `.report-photo__frame`, where the photos are cover-fitted.
-  val PhotoFrameAspect: Double = 3.0 / 2.0
 
   /** @return The smallest box holding them, widened by [[EvidencePaddingMeters]], or None with no streets. */
   def evidenceBox(streets: Seq[StreetAccessScoreForApi]): Option[LatLngBBox] =
@@ -90,34 +81,6 @@ object ReportService {
         LatLngBBox(minLat = e.getMinY, minLng = e.getMinX, maxLat = e.getMaxY, maxLng = e.getMaxX)
           .padded(EvidencePaddingMeters)
       }
-
-  /**
-   * Where a label sits in the report's photo frame, which cover-fits each crop into a [[PhotoFrameAspect]] box. A
-   * crop's `label_crop` row says where the label is in the image and the image's shape; without one, as on every other
-   * crop surface, the crop is taken to be the Explore frame, where the label is at its canvas fraction. Mirrors
-   * `util.misc.labelMarkerFraction`, because this page draws its markers without JavaScript so that they print.
-   *
-   * @return The marker's position as fractions of the box's width and height, each clamped to the box.
-   */
-  def markerFraction(label: ReportLabel, marker: Option[CropMarker]): (Double, Double) = {
-    def clamp(fraction: Double): Double                      = math.min(1.0, math.max(0.0, fraction))
-    def fraction(position: Option[Int], extent: Int): Double =
-      position.map(p => clamp(p.toDouble / extent)).getOrElse(0.5)
-
-    val frameWidth  = label.canvasWidth.getOrElse(DefaultCanvasWidth)
-    val frameHeight = label.canvasHeight.getOrElse(DefaultCanvasHeight)
-    val (x, y)      = marker
-      .map(m => (m.x, m.y))
-      .getOrElse((fraction(label.canvasX, frameWidth), fraction(label.canvasY, frameHeight)))
-    val imageAspect = marker
-      .flatMap(m => m.width.zip(m.height))
-      .collect { case (w, h) if w > 0 && h > 0 => w.toDouble / h }
-      .getOrElse(frameWidth.toDouble / frameHeight)
-
-    // A wider image loses its sides to the box and a taller one its top and bottom, both centered.
-    if (imageAspect > PhotoFrameAspect) (clamp((x - 0.5) * (imageAspect / PhotoFrameAspect) + 0.5), clamp(y))
-    else (clamp(x), clamp((y - 0.5) * (PhotoFrameAspect / imageAspect) + 0.5))
-  }
 
   /**
    * The region's distinct locations, as AccessScore's Spotlight counts a region's evidence: those scoring a block on
@@ -140,24 +103,19 @@ object ReportService {
   }
 
   /**
-   * What a report shows, decided before anything is fetched for the shown labels alone.
+   * What a report shows.
    *
    * @param ranked The region's ranked streets, lowest first
-   * @param strips The ranked streets, each with the items and labels to show as its photos
+   * @param cards  Each of them with what its section shows
    */
   case class ReportSelection(
       ranked: Seq[ReportStreet],
-      strips: Seq[(ReportStreet, Seq[(ReportItem, ReportLabel)])],
+      cards: Seq[(ReportStreet, Seq[ReportCard])],
       picks: Seq[(ReportStreet, ReportItem, ReportLabel)]
-  ) {
-
-    /** @return Every label whose photo appears on the page, once each. */
-    def shown: Seq[ReportLabel] =
-      (strips.flatMap(_._2.map(_._2)) ++ picks.map(_._3)).distinctBy(_.labelId)
-  }
+  )
 
   /**
-   * Rolls the region's streets up, ranks them and picks which labels the page will show.
+   * Rolls the region's streets up, ranks them and decides what each one shows.
    *
    * @param evidence Every location near the region
    * @param labels   Counted labels by id, including those on a street outside the region
@@ -173,19 +131,16 @@ object ReportService {
     val ranked    = ReportStreet.rank(stretches)
     ReportSelection(
       ranked = ranked,
-      strips = ranked.map(s => s -> ReportRules.selectPhotos(s.worst, labels, PhotosPerStreet, hasCrop)),
+      cards = ranked.map(s => s -> ReportRules.cards(s.worst, labels, hasCrop)),
       picks = ReportRules.fixes(ranked, labels, FixListSize, hasCrop)
     )
   }
 
   /**
-   * Puts the report together once everything it shows is known.
+   * Puts the report together.
    *
    * @param streetKeys        Which street each location's own street edge belongs to
    * @param selection         The result of [[select]]
-   * @param cropUrl           A shown label's signed thumbnail URL, if it has a crop
-   * @param markers           Recorded crop markers by label id
-   * @param attributions      Attribution by pano id
    * @param clustersUpdatedAt When the clusters were last rebuilt
    * @return The report.
    */
@@ -197,24 +152,17 @@ object ReportService {
       streetKeys: Map[Int, Either[String, Long]],
       data: ReportData,
       selection: ReportSelection,
-      cropUrl: ReportLabel => Option[String],
-      markers: Map[Int, CropMarker],
-      attributions: Map[String, ImageryAttribution.Line],
       clustersUpdatedAt: Option[OffsetDateTime],
       now: OffsetDateTime
   ): NeighborhoodReport = {
-    def photo(item: ReportItem, label: ReportLabel): ReportPhoto = {
-      val (x, y) = markerFraction(label, markers.get(label.labelId))
-      ReportPhoto(label, cropUrl(label), x, y, attributions.get(label.panoId), item.costPoints)
-    }
-    val rows = selection.strips.zipWithIndex.map { case ((street, photos), index) =>
+    val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
       RankedStreetRow(
         rank = index + 1,
         street = street,
         evidence =
           LabelType.ordered.flatMap { t => byType.get(t).map(ls => TypeEvidence(t, ls.size, ls.flatMap(_.labelIds))) },
-        photos = photos.map { case (item, label) => photo(item, label) }
+        cards = cards
       )
     }
     val (counted, excluded) = data.labels.partition(ReportRules.isCounted)
@@ -240,9 +188,18 @@ object ReportService {
       ),
       streets = rows,
       streetsRanked = selection.ranked.size,
-      fixes = selection.picks.map { case (street, item, label) => ReportFix(street, item, photo(item, label)) },
+      fixes = selection.picks.map { case (street, item, label) => ReportFix(street, item, label) },
       inventory = InventoryRow.from(counted, regionWide),
-      evidenceBox = evidenceBox(streets)
+      evidenceBox = evidenceBox(streets),
+      edges = streets.map { s =>
+        ReportMapEdge(
+          s.streetEdgeId,
+          s.osmWayId,
+          s.score,
+          s.auditCount > 0,
+          s.geometry.getCoordinates.toSeq.map(c => (c.x, c.y))
+        )
+      }
     )
   }
 }
@@ -253,7 +210,6 @@ class ReportServiceImpl @Inject() (
     apiService: ApiService,
     regionService: RegionService,
     panoDataService: PanoDataService,
-    cropService: CropService,
     swrCache: SwrCache
 )(using ec: ExecutionContext, mat: Materializer)
     extends ReportService {
@@ -336,31 +292,15 @@ class ReportServiceImpl @Inject() (
       data <- reportData(regionId, streets)
       counted     = (data.labels ++ data.foreignLabels).filter(ReportRules.isCounted).map(l => l.labelId -> l).toMap
       selection   = select(streets, ReportEvidence(data.locations), counted, hasCrop)
-      shownIds    = selection.shown.map(_.labelId)
       regionWide  = regionLocations(data.locations, streets, intersections, regionId)
       wantedEdges = regionWide.map(_.streetEdgeId).toSet
       streetKeys  = cityStreets.iterator
         .filter(s => wantedEdges(s.streetEdgeId))
         .map(s => s.streetEdgeId -> ReportStreet.streetKey(s.streetName, s.osmWayId))
         .toMap
-      markersF      = cropService.cropMarkers(shownIds)
-      attributionsF = panoDataService.getAttributions(selection.shown.map(_.panoId).distinct)
-      updatedAtF    = accessScoreService.clustersUpdatedAt
-      markers      <- markersF
-      attributions <- attributionsF
-      updatedAt    <- updatedAtF
+      updatedAt <- accessScoreService.clustersUpdatedAt
     } yield assemble(
-      regionId,
-      regionName,
-      streets,
-      regionWide,
-      streetKeys,
-      data,
-      selection,
-      l => panoDataService.cropThumbnailUrl(l.labelId, l.labelType),
-      markers,
-      attributions,
-      updatedAt,
+      regionId, regionName, streets, regionWide, streetKeys, data, selection, updatedAt,
       OffsetDateTime.now(ZoneOffset.UTC)
     )
   }
