@@ -647,8 +647,8 @@ export class LabelDetail {
   };
 
   /**
-   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, and A/Y, D/N and U cast
-   * agree, disagree and unsure (#5194).
+   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, S also pages to the next
+   * one (#5883), and A/Y, D/N and U cast agree, disagree and unsure (#5194).
    *
    * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
    * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
@@ -686,7 +686,9 @@ export class LabelDetail {
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
     else if (e.code === 'ArrowLeft') button = this.#els.pagingPrev;
-    else if (e.code === 'ArrowRight') button = this.#els.pagingNext;
+    // S sits between A and D, so the left hand can vote and move on without reaching for the arrows, the same way
+    // S submits on Validate (#5883).
+    else if (e.code === 'ArrowRight' || e.code === 'KeyS') button = this.#els.pagingNext;
     if (!button || button.hidden || button.disabled) return;
 
     e.preventDefault();

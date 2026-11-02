@@ -397,6 +397,26 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(prev.mock.calls[0][0].detail).toBe(0);
     });
 
+    test('S presses the next arrow too, as it moves on in Validate (#5883)', async () => {
+      await showLabel();
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+
+      const event = press('KeyS');
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    test('S is left alone on a host with no arrows', async () => {
+      await mount({ paging: false });
+      await showLabel();
+
+      const event = press('KeyS');
+
+      expect(event.defaultPrevented).toBe(false);
+    });
+
     test('a disabled arrow is left alone, and the key stays the page\'s to use', async () => {
       // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
       await showLabel();
