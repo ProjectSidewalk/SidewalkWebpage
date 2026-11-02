@@ -234,5 +234,10 @@
   "panel-effect-pooled": "partie de {{value}}",
   "panel-open-sheet": "Voir les {{count}} étiquettes de ce groupe",
   "panel-loading": "Chargement des groupes…",
-  "panel-load-failed": "Les groupes n'ont pas pu être chargés."
+  "panel-load-failed": "Les groupes n'ont pas pu être chargés.",
+  "panel-crossing-fly": "Zoomer la carte sur cette traversée",
+  "panel-block-fly": "Zoomer la carte sur ce tronçon",
+  "panel-crossing-card": "{{name}} : ce qui s'y trouve",
+  "panel-crossing-no-clusters": "Aucun groupe noté à cette traversée.",
+  "panel-crossing-more": "+{{count}} de plus ci-dessous"
 }

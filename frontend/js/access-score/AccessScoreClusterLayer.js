@@ -51,6 +51,8 @@ export class AccessScoreClusterLayer {
   #data = { type: 'FeatureCollection', features: [] };
   /** The dot under the pointer, as `{source, id}` for feature-state, or null. */
   #hovered = null;
+  /** Dots lit together from the street panel (a crossing's clusters), as `{source, id}` each. */
+  #highlighted = [];
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -101,6 +103,7 @@ export class AccessScoreClusterLayer {
       if (this.#map.getSource(id)) this.#map.removeSource(id);
     }
     this.#hovered = null;
+    this.#highlighted = [];
     this.#tooltip.remove();
     // The ids are the same strings, so the handlers bound to `#layers` keep matching.
     for (const type of this.#types) this.#addLayer(type);
@@ -115,7 +118,10 @@ export class AccessScoreClusterLayer {
   setVisible(visible) {
     this.#visible = visible;
     this.#applyVisibility();
-    if (!visible) this.#clearHover();
+    if (!visible) {
+      this.#clearHover();
+      this.setHighlighted(null);
+    }
   }
 
   #applyVisibility() {
@@ -134,6 +140,22 @@ export class AccessScoreClusterLayer {
     if (!props || !this.#visible) return;
     this.#hovered = { source: AccessScoreClusterLayer.#layerId(props.label_type), id: props.label_cluster_id };
     this.#map.setFeatureState(this.#hovered, { hover: true });
+  }
+
+  /**
+   * Lights several dots at once, as the panel's crossing dot does for a crossing's clusters (#5748), replacing the
+   * last such set; null or an empty list puts them out. Independent of the pointer's own hover.
+   * @param {?AccessScoreClusterProps[]} list - The clusters, or null to clear.
+   */
+  setHighlighted(list) {
+    for (const key of this.#highlighted) this.#map.setFeatureState(key, { hover: false });
+    this.#highlighted = [];
+    if (!list || !this.#visible) return;
+    for (const props of list) {
+      const key = { source: AccessScoreClusterLayer.#layerId(props.label_type), id: props.label_cluster_id };
+      this.#highlighted.push(key);
+      this.#map.setFeatureState(key, { hover: true });
+    }
   }
 
   /**

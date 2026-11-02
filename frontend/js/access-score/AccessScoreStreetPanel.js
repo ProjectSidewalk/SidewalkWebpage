@@ -6,10 +6,13 @@
  * crossing, each in its score color), the block drawn as its elevation profile where the city has one, with the
  * problems along it pinned where they are; a row per label type with its signed effect as a bar on one shared scale,
  * grade among them, totaled over the block and the crossings at its ends, since those three are what the headline
- * averages; the grade's figures; then the evidence, one tile per cluster along the block and at each crossing, worst
- * first (the costliest effect leads), each tile a `LabelMiniCard` wearing what that cluster costs or earns. A row
- * lights its tiles, a tile lights its row, its dot on the map and its pin on the profile, so the arithmetic and the
- * pictures are one thing. Every explanation in words sits behind an "i" button, as the sidebar's do.
+ * averages, the grade's figures under the profile; then the evidence, one tile per cluster along the block and at each
+ * crossing, worst first (the costliest effect leads), each tile a `LabelMiniCard` wearing what that cluster costs or
+ * earns; and last the credits for the data. A row lights its tiles, a tile lights its row, its dot on the map and its
+ * pin on the profile, so the arithmetic and the pictures are one thing. A crossing's dot, hovered or focused, lights
+ * that crossing's clusters here and on the map and opens the crossing card (`AccessScoreCrossingCard`), a top-down
+ * view of the intersection with the crops of what is there; pressed, it flies the map to the crossing. Every
+ * explanation in words sits behind an "i" button, as the sidebar's do.
  *
  * A panel beside the map rather than a popup over it: the pictures need the width, and the street they explain
  * should stay in view. It owns the map's right padding, as the drawer owns the left and the dock the bottom. The
@@ -25,6 +28,7 @@ import { ScoreRamp } from '../common/scoreRamp.js';
 import { util } from '../common/utilities.js';
 import { setPaddingEdges } from '../ps-map/mapPadding.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
+import { AccessScoreCrossingCard } from './AccessScoreCrossingCard.js';
 import {
   formatElevation, formatLength, formatScore, hopLinksHtml, percentHtml, signed, streetTitle,
 } from './AccessScoreText.js';
@@ -83,6 +87,12 @@ export class AccessScoreStreetPanel {
    */
   static NARROW_QUERY = '(width <= 992px)';
 
+  /** How long the pointer rests on a crossing's dot before its card opens: past a pass-through, short of a wait. */
+  static CARD_DELAY_MS = 180;
+
+  /** How long the card lingers after the pointer leaves the dot, long enough to reach the card itself. */
+  static CARD_LINGER_MS = 120;
+
   #root;
   #els;
   /** @type {AccessScoreModel} */
@@ -95,6 +105,15 @@ export class AccessScoreStreetPanel {
   #gradeSources;
   #callbacks;
   #narrowMq;
+  /** @type {AccessScoreCrossingCard} */
+  #card;
+  /** The card's element, kept across renders: the inset map inside it is built once. */
+  #cardEl;
+  /** The crossing whose dot is hovered or focused, 'start' or 'end', or null. */
+  #hoveredEnd = null;
+  /** The delay before a pass of the pointer over a dot opens the card. */
+  #endTimer = null;
+  #loggedEnds = new Set();
   /** Bumped on every show and close, so a late feed or profile answer for an earlier street is dropped. */
   #token = 0;
   /** @type {?AccessScoreStreetExplanation} */
@@ -135,11 +154,17 @@ export class AccessScoreStreetPanel {
    * @param {(props: AccessScoreFeedCluster, effect: string) => void} options.onOpenSheet - Opens the cluster
    *   sheet for a tile whose cluster holds more than one label.
    * @param {(props: ?AccessScoreFeedCluster) => void} [options.onHoverCluster] - A tile hovered, or none.
+   * @param {(list: ?AccessScoreFeedCluster[]) => void} [options.onHoverGroup] - A crossing's dot or the block
+   *   hovered: its clusters, for the map to light together; null as the pointer leaves.
+   * @param {(lngLat: {lng: number, lat: number}, where: string) => void} [options.onFlyTo] - A dot or the block
+   *   pressed: where the map should fly, and 'start', 'end' or 'block'.
+   * @param {string} [options.cardStyleUrl] - The basemap style for the crossing card's inset.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    */
   constructor(root, {
     model, config, map, feed, gradeSources = [], streetCenter, streetLine = () => null, onClose, onOpenLabel,
-    onOpenSheet, onHoverCluster = () => {}, log = () => {},
+    onOpenSheet, onHoverCluster = () => {}, onHoverGroup = () => {}, onFlyTo = () => {}, cardStyleUrl = '',
+    log = () => {},
   }) {
     this.#root = root;
     this.#model = model;
@@ -147,20 +172,36 @@ export class AccessScoreStreetPanel {
     this.#map = map;
     this.#feed = feed;
     this.#gradeSources = gradeSources;
-    this.#callbacks = { streetCenter, streetLine, onClose, onOpenLabel, onOpenSheet, onHoverCluster, log };
+    this.#callbacks = {
+      streetCenter, streetLine, onClose, onOpenLabel, onOpenSheet, onHoverCluster, onHoverGroup, onFlyTo, log,
+    };
     this.#narrowMq = window.matchMedia ? window.matchMedia(AccessScoreStreetPanel.NARROW_QUERY) : { matches: false };
     this.#els = {
       title: root.querySelector('#acs-panel-title'),
       meta: root.querySelector('#acs-panel-meta'),
       close: root.querySelector('#acs-panel-close'),
+      actions: root.querySelector('#acs-panel-actions'),
       body: root.querySelector('#acs-panel-body'),
     };
+    this.#cardEl = document.createElement('div');
+    this.#cardEl.className = 'acs-crossing-card';
+    this.#cardEl.id = 'acs-crossing-card';
+    this.#cardEl.setAttribute('role', 'tooltip');
+    this.#cardEl.hidden = true;
+    // Resting on the card keeps it open, as resting on a tooltip does.
+    this.#cardEl.addEventListener('mouseenter', () => this.#cancelEndTimer());
+    this.#cardEl.addEventListener('mouseleave', () => this.#leaveEnd());
+    this.#card = new AccessScoreCrossingCard(this.#cardEl, { feed, types: model.types, styleUrl: cardStyleUrl });
     this.#els.close.addEventListener('click', () => this.#requestClose('button'));
     root.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        this.#requestClose('escape');
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      // The card goes first: a reader who opened it from the keyboard closes that, not the whole panel.
+      if (this.#card.open) {
+        this.#closeCard();
+        return;
       }
+      this.#requestClose('escape');
     });
     this.#narrowMq.addEventListener?.('change', () => this.#applyPadding());
     this.#setShown(false);
@@ -207,13 +248,17 @@ export class AccessScoreStreetPanel {
     this.#token += 1;
     const hadFocus = this.#root.contains(document.activeElement);
     this.#setShown(false);
+    this.#closeCard();
     this.#clearTiles();
     this.#street = null;
     this.#place = null;
     this.#groups = null;
     this.#profile = null;
     this.#expanded.clear();
+    // The card's element outlives the body's markup: the inset map inside it would otherwise be built again.
+    this.#cardEl.remove();
     this.#els.body.innerHTML = '';
+    if (this.#els.actions) this.#els.actions.innerHTML = '';
     this.#applyPadding();
     // Focus went into the panel on open; it must not vanish into the document when the panel does.
     if (hadFocus) this.#map.getCanvas?.()?.focus?.();
@@ -291,6 +336,8 @@ export class AccessScoreStreetPanel {
     this.#expanded.clear();
     this.#loggedRows.clear();
     this.#loggedClusters.clear();
+    this.#loggedEnds.clear();
+    this.#closeCard();
     this.#litType = null;
     this.#renderShell();
     this.#renderExplanation();
@@ -374,7 +421,7 @@ export class AccessScoreStreetPanel {
     } else {
       const region = this.#model.explainRegion(street.regionId);
       this.#els.title.innerHTML = streetTitle(street);
-      this.#els.meta.innerHTML = [region ? esc(region.name) : null, formatLength(street.lengthM), this.#updatedHtml()]
+      this.#els.meta.innerHTML = [region ? esc(region.name) : null, formatLength(street.lengthM)]
         .filter(Boolean).join(' · ');
     }
     this.#els.body.innerHTML = `
@@ -382,7 +429,6 @@ export class AccessScoreStreetPanel {
       <div class="acs-panel__verdict" data-acs-verdict></div>
       <p class="sr-only" role="status" data-acs-profile-status></p>
       <section class="acs-panel__section" data-acs-rows aria-labelledby="acs-panel-rows-title"></section>
-      <section class="acs-panel__section" data-acs-grade aria-labelledby="acs-panel-grade-title"></section>
       <section class="acs-panel__section" data-acs-evidence aria-labelledby="acs-panel-evidence-title">
         <div class="acs-panel__heading-row">
           <h3 class="acs-panel__subtitle" id="acs-panel-evidence-title">${i18next.t('accessscore:panel-evidence')}</h3>
@@ -391,10 +437,10 @@ export class AccessScoreStreetPanel {
         <p class="acs-panel__status" role="status" data-acs-status></p>
         <div data-acs-groups></div>
       </section>
-      <div class="acs-panel__links" data-acs-links></div>`;
+      <footer class="acs-panel__credits" data-acs-credits hidden></footer>`;
   }
 
-  /** "Scores from the clusters of Oct 29, 2026", or nothing before the first clustering run. */
+  /** "scored Oct 29, 2026", or nothing before the first clustering run. */
   #updatedHtml() {
     const iso = this.#config.clusters_updated_at;
     if (!iso) return null;
@@ -411,21 +457,29 @@ export class AccessScoreStreetPanel {
     const q = (sel) => this.#els.body.querySelector(sel);
     if (this.#place) q('[data-acs-place-street]').innerHTML = this.#placeStreetHtml();
     const drawn = q('[data-acs-profile]:not([hidden])');
+    // The card's element is lifted out before the verdict is rewritten around it, as the drawn profile is.
+    this.#cardEl.remove();
     q('[data-acs-verdict]').innerHTML = street ? this.#verdictHtml(street) : '';
     if (drawn) {
       q('[data-acs-profile]').replaceWith(drawn);
       q('.acs-panel__components')?.classList.add('acs-panel__components--profile');
     }
+    // Inside the components grid, as its own full-width row right under the dots, so its tail reaches the dot it
+    // hangs from even when the profile's legend follows.
+    q('.acs-panel__components')?.appendChild(this.#cardEl);
+    this.#bindEnds();
     // An unaudited street has nothing scored on it to list or to picture; its grade, from the elevation model, it
     // still has.
     const scored = Boolean(street?.audited);
     q('[data-acs-rows]').innerHTML = scored ? this.#rowsHtml(street) : '';
     q('[data-acs-rows]').hidden = !scored;
-    this.#renderGrade(street);
     const evidence = q('[data-acs-evidence]');
     evidence.hidden = !scored;
+    const credits = this.#creditsHtml(street);
+    q('[data-acs-credits]').innerHTML = credits;
+    q('[data-acs-credits]').hidden = credits === '';
     const lngLat = this.#hopLngLat();
-    q('[data-acs-links]').innerHTML = lngLat ? hopLinksHtml(lngLat) : '';
+    if (this.#els.actions) this.#els.actions.innerHTML = lngLat ? hopLinksHtml(lngLat) : '';
     for (const row of this.#els.body.querySelectorAll('.acs-row')) this.#bindRow(row);
     if (this.#litType !== null) this.#light(this.#litType);
   }
@@ -449,14 +503,18 @@ export class AccessScoreStreetPanel {
   /**
    * The headline with its "i", and the three components drawn as the street: the crossing at the start, the block,
    * the crossing at the end, each in its score color. The block is a bar until its elevation profile arrives, which
-   * then takes its place between the crossings, the bar shrinking to a pill beneath it.
+   * then takes its place between the crossings, the bar shrinking to a pill beneath it; the grade's figures sit
+   * right under. A scored crossing's dot and the block are buttons: hovered they light their clusters, pressed they
+   * fly the map there. A crossing without a score has nothing to show, so its dot stays inert.
    */
   #verdictHtml(street) {
     const esc = util.escapeHTML;
     if (!street.audited) {
       return `<div class="acs-panel__score">${esc(i18next.t('accessscore:unaudited'))}</div>
-        <p class="acs-panel__sentence">${esc(i18next.t('accessscore:panel-verdict-unaudited'))}</p>`;
+        <p class="acs-panel__sentence">${esc(i18next.t('accessscore:panel-verdict-unaudited'))}</p>
+        ${this.#gradeLineHtml(street)}`;
     }
+    const fly = esc(i18next.t('accessscore:panel-crossing-fly'));
     const end = (e, which) => {
       const name = i18next.t(`accessscore:panel-${which}-crossing`);
       if (!e || e.score === null) {
@@ -466,14 +524,16 @@ export class AccessScoreStreetPanel {
           <span class="acs-panel__end-score">—</span><span class="acs-panel__end-name">${esc(name)}</span>
           <span class="acs-panel__end-note">${esc(note)}</span></div>`;
       }
-      return `<div class="acs-panel__end acs-panel__end--${which}">
+      return `<button type="button" class="acs-panel__end acs-panel__end--${which}" data-acs-end="${which}"
+          aria-describedby="acs-crossing-card" data-ps-tooltip="${fly}">
         <span class="acs-panel__dot" style="background-color: ${ScoreRamp.at(e.score)};"></span>
         <span class="acs-panel__end-score">${formatScore(e.score)}</span>
-        <span class="acs-panel__end-name">${esc(name)}</span></div>`;
+        <span class="acs-panel__end-name">${esc(name)}</span></button>`;
     };
     const blockWords = street.barrier
       ? i18next.t('accessscore:popup-slope-barrier')
       : `<b>${formatScore(street.segmentScore)}</b> · ${formatLength(street.lengthM)}`;
+    const blockFly = esc(i18next.t('accessscore:panel-block-fly'));
     return `<div class="acs-panel__headline">
         <div class="acs-panel__score">${formatScore(street.score)}<small>/ 100</small></div>
         ${AccessScoreStreetPanel.#infoHtml(i18next.t('accessscore:panel-score-help'))}
@@ -483,11 +543,177 @@ export class AccessScoreStreetPanel {
       <div class="acs-panel__components">
         ${end(street.startIntersection, 'start')}
         <div class="acs-panel__profile" data-acs-profile hidden></div>
-        <div class="acs-panel__block" style="--acs-block-color: ${ScoreRamp.at(street.segmentScore)};">
+        <button type="button" class="acs-panel__block" data-acs-block data-ps-tooltip="${blockFly}"
+          style="--acs-block-color: ${ScoreRamp.at(street.segmentScore)};">
           <span>${esc(i18next.t('accessscore:panel-block'))} ${blockWords}</span>
-        </div>
+        </button>
         ${end(street.endIntersection, 'end')}
-      </div>`;
+      </div>
+      ${this.#gradeLineHtml(street)}`;
+  }
+
+  /**
+   * The grade's figures, right under the profile they describe: steepest, average, climb and descent, or the net
+   * grade where that is all the city has, with an "i" for why they are approximate or what a barrier did. Nothing
+   * for a street that has not been sampled, so a city with no slope data shows no sign of the feature.
+   */
+  #gradeLineHtml(street) {
+    const g = street?.gradient;
+    if (!g) return '';
+    const t = (key, values = {}) => i18next.t(`accessscore:${key}`, {
+      // The values are this file's own escaped figures.
+      ...values, interpolation: { escapeValue: false },
+    });
+    let line = '';
+    if (g.meanGrade !== null && g.maxGrade !== null) {
+      line = t('slope-headline', {
+        max: percentHtml(g.maxGrade), mean: percentHtml(g.meanGrade),
+        climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
+      });
+    } else if (g.netGrade !== null) {
+      line = t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) });
+    }
+    if (!line) return '';
+    // Plain text for the "i": the sentences are ours, the one figure a percentage.
+    const notes = [];
+    // A barrier zeroes the block, not the street: the headline still averages that 0 with the crossings.
+    if (street.audited && street.barrier) {
+      notes.push(i18next.t('accessscore:slope-barrier-effect', {
+        limit: AccessScoreGradeRamp.percent(this.#model.state.slope.barrierThreshold),
+        interpolation: { escapeValue: false },
+      }));
+    }
+    if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
+    else if (g.confidence !== 'high') notes.push(t('slope-approximate'));
+    return `<p class="acs-panel__grade-line" data-acs-grade-line><span>${line}</span>
+      ${notes.length ? AccessScoreStreetPanel.#infoHtml(notes.join(' ')) : ''}</p>`;
+  }
+
+  /** The panel's last word: where the elevation came from and when the clusters were last computed. */
+  #creditsHtml(street) {
+    const esc = util.escapeHTML;
+    const lines = [];
+    const source = this.#gradeSources.find((d) => d.dem_source === street?.gradient?.demSource);
+    if (source) lines.push(esc(source.credit));
+    const updated = this.#updatedHtml();
+    if (updated) lines.push(updated);
+    return lines.map((line) => `<p class="acs-panel__credit">${line}</p>`).join('');
+  }
+
+  /**
+   * Wires the crossing dots and the block: a pass of the pointer (after a beat, so a pointer crossing the row on
+   * its way elsewhere opens nothing) or focus lights the clusters and, for a crossing, opens the card; leaving
+   * closes; a press flies the map there.
+   */
+  #bindEnds() {
+    for (const el of this.#els.body.querySelectorAll('[data-acs-end], [data-acs-block]')) {
+      const key = el.dataset.acsEnd ?? 'block';
+      el.addEventListener('mouseenter', () => {
+        this.#cancelEndTimer();
+        this.#endTimer = setTimeout(() => this.#enterEnd(key), AccessScoreStreetPanel.CARD_DELAY_MS);
+      });
+      el.addEventListener('mouseleave', () => this.#leaveEnd());
+      el.addEventListener('focus', () => {
+        this.#cancelEndTimer();
+        this.#enterEnd(key);
+      });
+      el.addEventListener('blur', () => this.#leaveEnd());
+      el.addEventListener('click', () => {
+        const lngLat = this.#endLngLat(key);
+        if (!lngLat) return;
+        this.#callbacks.log('PanelFlyTo', key);
+        this.#callbacks.onFlyTo(lngLat, key);
+      });
+    }
+  }
+
+  #cancelEndTimer() {
+    if (this.#endTimer !== null) clearTimeout(this.#endTimer);
+    this.#endTimer = null;
+  }
+
+  /** The pointer or focus has settled on a crossing's dot or the block. */
+  #enterEnd(key) {
+    this.#hoveredEnd = key;
+    this.#lightGroup(key);
+    if (key === 'block') {
+      this.#closeCard();
+      return;
+    }
+    if (!this.#loggedEnds.has(key)) {
+      this.#loggedEnds.add(key);
+      this.#callbacks.log('PanelCrossing', key);
+    }
+    this.#openCard(key);
+  }
+
+  /**
+   * The pointer or focus has left. The card stays for a beat so the pointer can travel from the dot onto the card;
+   * that path is the card's own `mouseenter`, which cancels this.
+   */
+  #leaveEnd() {
+    this.#cancelEndTimer();
+    this.#endTimer = setTimeout(() => {
+      this.#hoveredEnd = null;
+      this.#lightGroup(null);
+      this.#closeCard();
+    }, AccessScoreStreetPanel.CARD_LINGER_MS);
+  }
+
+  /** Lights a group's tiles and heading, dims the rest, and hands its clusters to the map; null lifts it. */
+  #lightGroup(key) {
+    for (const section of this.#els.body.querySelectorAll('[data-acs-group]')) {
+      section.classList.toggle('is-on', key !== null && section.dataset.acsGroup === key);
+    }
+    for (const tile of this.#tiles.values()) {
+      tile.el.classList.toggle('is-dim', key !== null && tile.group !== key);
+    }
+    this.#callbacks.onHoverGroup(key === null ? null : (this.#groups?.[key] ?? []));
+  }
+
+  /** Opens, or refreshes, the card for a crossing: the panel's street, its line, its clusters if they have come. */
+  #openCard(key) {
+    const street = this.#street;
+    const e = street?.[`${key}Intersection`];
+    const lngLat = this.#endLngLat(key);
+    if (!e || e.score === null || !lngLat) return;
+    this.#cardEl.dataset.acsCardTail = key;
+    // The tail sits under the dot's center, wherever the panel's width has put it.
+    const dot = this.#els.body.querySelector(`[data-acs-end="${key}"]`);
+    if (dot) {
+      this.#cardEl.style.setProperty('--acs-card-tail-left',
+        `${dot.offsetLeft + dot.offsetWidth / 2 - this.#cardEl.offsetLeft}px`);
+    }
+    this.#card.show({
+      key,
+      name: i18next.t(`accessscore:panel-${key}-crossing`),
+      lngLat,
+      line: this.#callbacks.streetLine(street.streetId) ?? [],
+      explanation: this.#model.explainIntersection(e.id),
+      clusters: this.#groups?.[key] ?? null,
+      termOf: (props) => this.#model.clusterTerm(props, street),
+    });
+  }
+
+  #closeCard() {
+    this.#cancelEndTimer();
+    if (this.#card.open) this.#card.close();
+  }
+
+  /**
+   * Where a crossing is: the model keeps no intersection geometry, so it is the street line's first or last vertex,
+   * in the street's digitized order, which is the order the profile runs in too. The block is its center.
+   * @param {'start'|'end'|'block'} key
+   * @returns {?{lng: number, lat: number}}
+   */
+  #endLngLat(key) {
+    const street = this.#street;
+    if (!street) return null;
+    if (key === 'block') return this.#callbacks.streetCenter(street.streetId);
+    const line = this.#callbacks.streetLine(street.streetId);
+    if (!line || line.length < 2) return null;
+    const [lng, lat] = key === 'start' ? line[0] : line[line.length - 1];
+    return { lng, lat };
   }
 
   /**
@@ -607,55 +833,6 @@ export class AccessScoreStreetPanel {
   /** `light` without the public name, for the rows' own handlers. */
   #light(type) {
     this.light(type);
-  }
-
-  /**
-   * The grade section (#5223): one line of grades and climb, the credit, and behind an "i" why the numbers are
-   * missing or approximate when they are, and what a barrier did. Empty for a street that has not been sampled, so
-   * a city with no slope data shows no sign of the feature. The profile itself is drawn up in the verdict.
-   */
-  #renderGrade(street) {
-    const section = this.#els.body.querySelector('[data-acs-grade]');
-    const g = street?.gradient;
-    if (!g) {
-      section.hidden = true;
-      section.innerHTML = '';
-      return;
-    }
-    section.hidden = false;
-    const t = (key, values = {}) => i18next.t(`accessscore:${key}`, {
-      // The values are this file's own escaped figures.
-      ...values, interpolation: { escapeValue: false },
-    });
-    const lines = [];
-    if (g.meanGrade !== null && g.maxGrade !== null) {
-      lines.push(t('slope-headline', {
-        max: percentHtml(g.maxGrade), mean: percentHtml(g.meanGrade),
-        climb: formatElevation(g.climbM ?? 0), descent: formatElevation(g.descentM ?? 0),
-      }));
-    } else if (g.netGrade !== null) {
-      lines.push(t('slope-net-only', { grade: percentHtml(Math.abs(g.netGrade)) }));
-    }
-    // Plain text for the "i": the sentences are ours, the one figure a percentage.
-    const notes = [];
-    // A barrier zeroes the block, not the street: the headline still averages that 0 with the crossings.
-    if (street.audited && street.barrier) {
-      notes.push(i18next.t('accessscore:slope-barrier-effect', {
-        limit: AccessScoreGradeRamp.percent(this.#model.state.slope.barrierThreshold),
-        interpolation: { escapeValue: false },
-      }));
-    }
-    if (g.quality !== 'measured') notes.push(t(`slope-quality-${g.quality.replace('_', '-')}`));
-    else if (g.confidence !== 'high') notes.push(t('slope-approximate'));
-    const source = this.#gradeSources.find((d) => d.dem_source === g.demSource);
-    // eslint-disable-next-line ps/escape-in-markup -- translated strings of ours around figures escaped above
-    const linesHtml = lines.map((line) => `<p class="acs-panel__meta">${line}</p>`).join('');
-    section.innerHTML = `<div class="acs-panel__heading-row">
-        <h3 class="acs-panel__subtitle" id="acs-panel-grade-title">${t('popup-slope')}</h3>
-        ${notes.length ? AccessScoreStreetPanel.#infoHtml(notes.join(' ')) : ''}
-      </div>
-      ${linesHtml}
-      ${source ? `<p class="acs-panel__credit">${util.escapeHTML(source.credit)}</p>` : ''}`;
   }
 
   /**
@@ -783,6 +960,9 @@ export class AccessScoreStreetPanel {
     this.#groups = { block: this.#rank(usable(groups.block)), start: this.#rank(usable(groups.start)),
       end: this.#rank(usable(groups.end)) };
     status.textContent = '';
+    // A card opened before the clusters came has no crops yet; it gets them now, as does the map's lighting.
+    if (this.#hoveredEnd) this.#lightGroup(this.#hoveredEnd);
+    if (this.#hoveredEnd && this.#hoveredEnd !== 'block') this.#openCard(this.#hoveredEnd);
     const holder = this.#els.body.querySelector('[data-acs-groups]');
     holder.innerHTML = AccessScoreStreetPanel.GROUPS.map((key) => this.#groupShellHtml(key)).join('');
     for (const key of AccessScoreStreetPanel.GROUPS) {

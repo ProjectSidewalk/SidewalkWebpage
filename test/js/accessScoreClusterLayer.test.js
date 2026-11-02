@@ -89,4 +89,35 @@ describe('AccessScoreClusterLayer', () => {
     layer.setHovered({ label_cluster_id: 9, label_type: 'CurbRamp' });
     expect(map.setFeatureState).not.toHaveBeenCalledWith(expect.anything(), { hover: true });
   });
+
+  test('setHighlighted lights a crossing\'s dots together, swaps them for the next set, and clears with the layers', () => {
+    const map = fakeMap();
+    const layer = new AccessScoreClusterLayer(map, {
+      types: ['CurbRamp', 'Obstacle'], tooltipHtml: () => null, onSelect: vi.fn(),
+    });
+    layer.setHighlighted([
+      { label_cluster_id: 1, label_type: 'CurbRamp' }, { label_cluster_id: 2, label_type: 'Obstacle' },
+    ]);
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-CurbRamp', id: 1 }, { hover: true });
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-Obstacle', id: 2 }, { hover: true });
+    map.setFeatureState.mockClear();
+    layer.setHighlighted([{ label_cluster_id: 3, label_type: 'CurbRamp' }]);
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-CurbRamp', id: 1 }, { hover: false });
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-Obstacle', id: 2 }, { hover: false });
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-CurbRamp', id: 3 }, { hover: true });
+    // The pointer's own hover is a separate thing: clearing it leaves the set lit.
+    map.setFeatureState.mockClear();
+    layer.setHovered(null);
+    expect(map.setFeatureState).not.toHaveBeenCalledWith({ source: 'acs-clusters-CurbRamp', id: 3 }, { hover: false });
+    layer.setHighlighted(null);
+    expect(map.setFeatureState).toHaveBeenLastCalledWith({ source: 'acs-clusters-CurbRamp', id: 3 }, { hover: false });
+    // Hidden layers take no highlight, and hiding puts a lit set out.
+    layer.setHighlighted([{ label_cluster_id: 4, label_type: 'CurbRamp' }]);
+    map.setFeatureState.mockClear();
+    layer.setVisible(false);
+    expect(map.setFeatureState).toHaveBeenCalledWith({ source: 'acs-clusters-CurbRamp', id: 4 }, { hover: false });
+    map.setFeatureState.mockClear();
+    layer.setHighlighted([{ label_cluster_id: 4, label_type: 'CurbRamp' }]);
+    expect(map.setFeatureState).not.toHaveBeenCalled();
+  });
 });

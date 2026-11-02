@@ -158,7 +158,9 @@ open), `AccessScore_PanelHoverCluster_labelClusterId_value=<id>` (an evidence ti
 profile, hovered or focused, once per cluster per open), `AccessScore_PanelOpenLabel_labelId_value=<id>` (a tile opening the full label card),
 `AccessScore_PanelSheet_labelClusterId_value=<id>` (a tile's "N labels" opening the cluster sheet) and
 `AccessScore_PanelExpandGroup_value=<block|start|end>` / `AccessScore_PanelCollapseGroup_value=<…>` ("Show all" and
-"Show fewer" on a group of tiles),
+"Show fewer" on a group of tiles), `AccessScore_PanelCrossing_value=<start|end>` (a crossing's dot hovered or focused,
+which opens the crossing card, once per crossing per open) and `AccessScore_PanelFlyTo_value=<start|end|block>` (a
+crossing's dot or the block pressed, which flies the map there),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
 `AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
 and the panel's and popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds

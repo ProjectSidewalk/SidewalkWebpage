@@ -649,12 +649,26 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The panel's grade section (#5223). The credit is the elevation model's licence condition, so it is text-sized
-   rather than fine print. */
+/* The panel's last word (#5223, #5748): the elevation model's credit, its licence condition, and the clusters'
+   date. Text-sized rather than fine print, set off from the evidence by a rule. */
+.acs-panel__credits {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.acs-panel__credits[hidden] {
+  display: none;
+}
+
 .acs-panel__credit {
   margin: var(--space-xxs) 0 0;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
+}
+
+.acs-panel__credit:first-child {
+  margin-top: 0;
 }
 
 /* ---- Map legend: a card beside the zoom buttons ---- */
@@ -1638,23 +1652,42 @@
   box-shadow: -2px 0 6px rgb(0 0 0 / 12%);
   font: var(--text-small-regular);
   color: var(--color-neutral-900);
+
+  /* Named so the header can re-flow on the panel's own width, which is a fraction of the window's. */
+  container: acs-panel / inline-size;
 }
 
 .acs-panel[hidden] {
   display: none;
 }
 
+
+/* Title and meta, then the one call to action, then the close: the hop sits in the header so it is never below
+   the fold of a long evidence list. */
 .acs-panel__head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: start;
+  column-gap: var(--space-sm);
   padding: var(--space-md) var(--space-md) var(--space-sm);
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .acs-panel__titles {
-  flex: 1 1 auto;
   min-width: 0;
+}
+
+.acs-panel__actions {
+  display: flex;
+  padding-top: 2px;
+}
+
+.acs-panel__actions .acs-popup__links {
+  margin: 0;
+}
+
+.acs-panel__actions .button {
+  white-space: nowrap;
 }
 
 .acs-panel__title {
@@ -1804,9 +1837,29 @@
   align-items: center;
   gap: 2px;
   grid-row: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
   text-align: center;
+}
+
+/* A scored crossing's dot is a button: hovered or focused it opens the crossing card, pressed it flies the map. */
+button.acs-panel__end {
+  cursor: pointer;
+  border-radius: var(--border-radius);
+}
+
+button.acs-panel__end:hover .acs-panel__dot,
+button.acs-panel__end:focus-visible .acs-panel__dot {
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
+}
+
+button.acs-panel__end:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
 }
 
 .acs-panel__end--start {
@@ -1860,14 +1913,146 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The block is a button too: hovered it lights its clusters, pressed it flies the map to the street. */
 .acs-panel__block {
   position: relative;
   grid-column: 2;
   grid-row: 1;
+  width: 100%;
   height: calc(14px * var(--ui-scale, 1));
+  padding: 0;
+  border: 0;
   border-radius: calc(7px * var(--ui-scale, 1));
   margin-bottom: calc(44px * var(--ui-scale, 1));
   background-color: var(--acs-block-color);
+  font: inherit;
+  cursor: pointer;
+}
+
+.acs-panel__block:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* The grade's figures sit right under the profile they describe; the "i" beside them holds the caveats. */
+.acs-panel__grade-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- The crossing card (#5748): a top-down view of the crossing and the crops of what is there ---- */
+
+/* A full-width row of the components grid right under the dots, with a tail up to the dot that opened it (the
+   panel sets --acs-card-tail-left from where the dot is). A tooltip: it is pictures and figures only, and it closes
+   as the pointer or focus leaves the dot. */
+.acs-crossing-card {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow);
+}
+
+.acs-crossing-card[hidden] {
+  display: none;
+}
+
+.acs-crossing-card::before {
+  content: "";
+  position: absolute;
+  top: calc(-7px * var(--ui-scale, 1));
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+  border-top: 1px solid var(--color-neutral-200);
+  border-left: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-white);
+  left: var(--acs-card-tail-left, calc(20px * var(--ui-scale, 1)));
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.acs-crossing-card__map {
+  height: calc(150px * var(--ui-scale, 1));
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.acs-crossing-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-crossing-card__row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--text-caption-regular);
+}
+
+.acs-crossing-card__row--empty {
+  grid-template-columns: 1fr;
+  color: var(--color-neutral-700);
+}
+
+.acs-crossing-card__type {
+  font: var(--text-caption-semibold);
+  min-width: 0;
+}
+
+/* A row of crops, each the mini card's 3:2 picture with the type's icon in the corner. */
+.acs-crossing-card__crops {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xxs);
+  margin-top: var(--space-xs);
+}
+
+.acs-crossing-card__crops:empty {
+  display: none;
+}
+
+.acs-crossing-card__crop {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  margin: 0;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.acs-crossing-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acs-crossing-card__icon {
+  position: absolute;
+  top: var(--space-xxs);
+  left: var(--space-xxs);
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+}
+
+.acs-crossing-card__more {
+  grid-column: 1 / -1;
+  margin: 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Under the chart, the bar is a pill: a dot in the block's color and its figures, centered. */
@@ -1877,7 +2062,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
+  width: auto;
   height: auto;
+  padding: 0 var(--space-xxs);
   margin-bottom: 0;
   background: none;
 }
@@ -2043,6 +2230,14 @@
   margin-top: var(--space-sm);
 }
 
+/* The crossing whose dot is hovered: its heading reads as the lit thing while the other groups' tiles dim. */
+.acs-group.is-on .acs-group__title {
+  color: var(--color-neutral-black);
+  text-decoration: underline;
+  text-decoration-color: var(--color-neutral-400);
+  text-underline-offset: 3px;
+}
+
 .acs-group__title {
   display: flex;
   align-items: baseline;
@@ -2149,12 +2344,6 @@
   outline-offset: 1px;
 }
 
-.acs-panel__links {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-
 /* ---- Dark basemap ---- */
 
 /* The band, the legend card and the popups stay light; only the chrome drawn on the map itself changes, and the
@@ -2189,6 +2378,18 @@
 
   #acs-map-holder:has(#acs-panel:not([hidden])) .map-status-pill {
     display: none;
+  }
+}
+
+/* A header too narrow for title, hop and close in one row drops the hop under the title. */
+@container acs-panel (width <= 360px) {
+  .acs-panel__head {
+    grid-template-columns: 1fr auto;
+  }
+
+  .acs-panel__actions {
+    grid-column: 1 / -1;
+    padding-top: var(--space-xs);
   }
 }
 
