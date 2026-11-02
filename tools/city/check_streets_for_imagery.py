@@ -1148,15 +1148,31 @@ def street_has_no_imagery(points: Iterable[tuple[bool, float, float]], length_m:
     return walk.verdict() == NO_IMAGERY
 
 
+class TransientApiError(requests.exceptions.RequestException):
+    """
+    A provider answer worth asking for again, so ``make_fetch`` retries it like a dropped connection.
+
+    Google answers about one metadata call in a hundred with ``UNKNOWN_ERROR`` and ``OK`` on the next try, at any
+    request rate. Without a retry here, one such answer fails the whole street and every point on it is queried again
+    on the next pass, which on a long street turned a 1% call failure into a 20% street failure.
+    """
+
+
 def _get_json(url: str, **kwargs) -> dict:
     """
     Requests a URL and returns the decoded JSON (with a bounded per-attempt timeout).
 
     GET by default; ``kwargs`` (``method``, ``headers``, ...) pass through to ``requests.request`` for providers that
     need more, like Infra3d's POST + bearer token.
+
+    Raises:
+        TransientApiError: On GSV's ``UNKNOWN_ERROR``, so the caller's retry asks again instead of failing the street.
     """
     kwargs.setdefault('method', 'GET')
-    return requests.request(url=url, timeout=REQUEST_TIMEOUT, **kwargs).json()
+    response_json = requests.request(url=url, timeout=REQUEST_TIMEOUT, **kwargs).json()
+    if isinstance(response_json, dict) and response_json.get('status') == 'UNKNOWN_ERROR':
+        raise TransientApiError('GSV metadata status UNKNOWN_ERROR')
+    return response_json
 
 
 def make_fetch(max_attempts: int = MAX_ATTEMPTS, sleep: Callable[[float], None] | None = None,
