@@ -1221,7 +1221,7 @@ export class RouteBuilder {
     const coords = feats.flatMap((f) => f.geometry.coordinates);
     const cumDist = [0];
     for (let i = 1; i < coords.length; i++) {
-      cumDist.push(cumDist[i - 1] + RouteGraph.distanceM(coords[i - 1], coords[i]));
+      cumDist.push(cumDist[i - 1] + turf.distance(coords[i - 1], coords[i], { units: 'meters' }));
     }
     const totalDist = cumDist[cumDist.length - 1];
     if (totalDist === 0) return;

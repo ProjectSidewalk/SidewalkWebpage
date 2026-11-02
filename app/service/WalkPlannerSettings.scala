@@ -1,0 +1,26 @@
+package service
+
+import play.api.Configuration
+import play.api.libs.json.{Json, Writes}
+
+/**
+ * The client-side walk planner's thresholds (WalkPlanner.js, #5526), read from `walk-planner.*` in application.conf,
+ * which says what each means and why the backend owns them. The Explore page hands them over as JSON.
+ *
+ * @param priorityTolerance How far below the best remaining priority a connected street may be and still be walked
+ *                          next rather than jumped from.
+ * @param tinyStreetM Streets strictly shorter than this (metres) are walked whenever adjacent, whatever their priority.
+ */
+case class WalkPlannerSettings(priorityTolerance: Double, tinyStreetM: Double)
+
+object WalkPlannerSettings {
+  given walkPlannerSettingsWrites: Writes[WalkPlannerSettings] = Json.writes[WalkPlannerSettings]
+
+  /** @return The settings for this deployment; a malformed value fails at startup rather than silently defaulting. */
+  def fromConfig(config: Configuration): WalkPlannerSettings = {
+    val tolerance = config.get[Double]("walk-planner.priority-tolerance")
+    // Below zero no street is ever in tier, and the planner has nothing to jump to.
+    require(tolerance >= 0, s"walk-planner.priority-tolerance must be 0 or more, got $tolerance")
+    WalkPlannerSettings(tolerance, tinyStreetM = config.get[Double]("walk-planner.tiny-street-m"))
+  }
+}

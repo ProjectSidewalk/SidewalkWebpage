@@ -139,6 +139,8 @@ export class LabelDetail {
    */
   static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+  /** How long a vote refresh may take; edits queued behind it wait this long at most. */
+  static #REFRESH_TIMEOUT_MS = 10000;
   // A type change's status carries the Undo, which needs time to be read and hit.
   static #EDIT_STATUS_HOLD_UNDO_MS = 8000;
 
@@ -2517,8 +2519,9 @@ export class LabelDetail {
     if (!sameTags) columns.push('tags');
 
     if (typeChange) {
-      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one.
-      if (this.#tagEditor.isOpen) this.#tagEditor.close();
+      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one. A pick
+      // open on a label paged to since is left alone.
+      if (this.#currentLabelMeta === meta && this.#tagEditor.isOpen) this.#tagEditor.close();
     } else {
       meta.severity = severity;
       meta.tags = tags;
@@ -2537,17 +2540,19 @@ export class LabelDetail {
       const conflict = res.status === 409;
       if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
-      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
-      if (this.#currentLabelMeta !== meta) return;
+      // Kept even after paging on, since saves queued behind this one for the same label start from these values.
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
+      if (!conflict) this.#logEdit(meta, prev, change, sameTags);
+      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
+      if (this.#currentLabelMeta !== meta) return;
       render();
       if (conflict) {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
+          await this.#refreshVotes(meta);
           if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-          this.#refreshVotes(meta);
         }
         return;
       }
@@ -2564,25 +2569,39 @@ export class LabelDetail {
       } else {
         this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       }
-      if (meta.label_type !== prev.labelType) {
-        const undoNote = change.undo ? '_undo=true' : '';
-        this.#logAction(`EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`, !!change.viaKeyboard);
-      }
-      if (meta.severity !== prev.severity) {
-        this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
-      }
-      if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
+      if (typeChange) await this.#refreshVotes(meta);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-      if (typeChange) this.#refreshVotes(meta);
     } catch (err) {
       console.error(err);
-      if (this.#currentLabelMeta !== meta) return;
+      // Rolled back even after paging on, or saves queued behind this one would resend the values the server refused.
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
+      if (this.#currentLabelMeta !== meta) return;
       render();
       this.#showEditFailure(columns);
     }
+  }
+
+  /**
+   * Logs each field a saved edit changed, under the label it was made on even if the reader has paged on.
+   * @param {Record<string, any>} meta - The label's metadata, holding the saved values.
+   * @param {{labelType: string, severity: ?number, tags: string[]}} prev - The values before the edit.
+   * @param {{undo?: boolean, viaKeyboard?: boolean}} change - The change as submitted.
+   * @param {boolean} sameTags - The edit left the tags as they were.
+   */
+  #logEdit(meta, prev, change, sameTags) {
+    const id = meta.label_id;
+    if (meta.label_type !== prev.labelType) {
+      const undoNote = change.undo ? '_undo=true' : '';
+      const action = `EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`;
+      this.#logAction(action, !!change.viaKeyboard, id);
+    }
+    if (meta.severity !== prev.severity) {
+      this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`, false, id);
+    }
+    if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`, false, id);
   }
 
   /**
@@ -2593,8 +2612,14 @@ export class LabelDetail {
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
+    // A vote cast now would be overwritten by the older counts on their way back.
+    this.#setVoteButtonsDisabled(true);
     try {
-      const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(LabelDetail.#REFRESH_TIMEOUT_MS),
+      });
       if (!response.ok) return;
       const fresh = await response.json();
       if (this.#currentLabelMeta !== meta) return;
@@ -2607,7 +2632,8 @@ export class LabelDetail {
       this.#prevAction = meta.user_validation;
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
-      this.#renderVoteIcons();
+      // The border and pressed button show the user's own vote, which may be gone under the new type.
+      this.#highlightVote(this.#readonly ? null : meta.user_validation);
       if (this.#commentWrites === commentWrites) {
         this.#loadComments(fresh.comments);
         this.#commentsChanged(meta);
@@ -2615,6 +2641,8 @@ export class LabelDetail {
       this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
+    } finally {
+      if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(false);
     }
   }
 

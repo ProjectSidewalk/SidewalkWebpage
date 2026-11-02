@@ -23,7 +23,7 @@
  * @property {string} glyphsUrl - The URL pattern for the map's label fonts.
  *
  * @typedef {object} MinimapStreetLine
- * @property {'audited'|'remaining'|'completed'|'other'} kind - How to draw it; see MinimapStyle.streetLayers.
+ * @property {'audited'|'remaining'|'completed'|'other'|'jump'} kind - How to draw it; see MinimapStyle.streetLayers.
  * @property {number[][]} coordinates - The line as [lng, lat] pairs, in walking order (chevrons point along it).
  */
 

@@ -224,6 +224,7 @@ seo.title.welcome = 歡迎 — Project Sidewalk
 seo.title.forgot.password = 找回密碼 — Project Sidewalk
 seo.title.reset.password = 重設密碼 — Project Sidewalk
 seo.title.service.hours = 志工資訊 — Project Sidewalk
+seo.title.unsubscribe = 取消訂閱 — Project Sidewalk
 seo.title.time.check = 時間檢查 — Project Sidewalk
 seo.title.about = 關於我們 — Project Sidewalk
 seo.description.default = 透過虛擬探索，協助繪製並評估{0}的人行道。提供路緣斜坡、障礙物與鋪面問題的開放資料，打造更無障礙的世界。
@@ -459,6 +460,7 @@ authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">�
 authenticate.confirm.password = 確認密碼
 authenticate.service.hours.title = 您是否有打畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
 authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用條款和隱私政策</a>
+authenticate.news.email = 不定期寄送 Project Sidewalk 的最新消息給我
 authenticate.signup = 註冊
 authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-in">請登入</a>
 
@@ -574,6 +576,13 @@ reset.pw.email.hello = {0}您好,
 reset.pw.email.reset.title = 請重設您的Project Sidewalk密碼
 reset.pw.email.send.link = 傳送電子郵件
 reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
+unsubscribe.confirm.title = 要取消訂閱 Project Sidewalk 的消息嗎？
+unsubscribe.confirm.intro = 您帳戶的電子郵件將不再收到專案的消息與更新。與您帳戶有關的郵件（例如重設密碼）仍會寄送。
+unsubscribe.confirm.submit = 取消訂閱
+unsubscribe.done.title = 已取消訂閱
+unsubscribe.done.intro = 我們不會再寄送專案消息給您。改變主意了嗎？可在<a href="{0}">設定</a>中重新開啟。
+unsubscribe.invalid.title = 此連結無效
+unsubscribe.invalid.intro = 取消訂閱連結可能在複製時被截斷。您也可以在<a href="{0}">設定</a>中管理電子郵件，或來信 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>。
 reset.pw.email.send.failed = 目前無法寄送電子郵件，請稍後再試。
 reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結以重設密碼：
 reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息，或發送電子郵件通知我們。
@@ -890,6 +899,9 @@ dashboard.settings.service.hours = 志工服務時數
 dashboard.settings.service.hours.toggle = 報名社區服務時數
 dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。
 dashboard.settings.service.hours.link = 服務時數如何運作
+dashboard.settings.news.email = 電子郵件更新
+dashboard.settings.news.email.toggle = 寄送 Project Sidewalk 的最新消息給我
+dashboard.settings.news.email.help = 不定期的專案消息，每封都附有取消訂閱連結。與您帳戶有關的郵件（例如重設密碼）一律會寄送。
 dashboard.settings.team = 團隊
 dashboard.settings.team.label = 您的團隊
 dashboard.settings.team.help = 加入團隊或班級，一起標記並出現在團隊排行榜上。

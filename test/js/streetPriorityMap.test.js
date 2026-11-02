@@ -377,3 +377,30 @@ describe('StreetPriorityMap.highlightSegments', () => {
     expect(state.featureStates).toEqual([]);
   });
 });
+
+describe('StreetPriorityMap edge cases (#5840)', () => {
+  test('a tier the page does not know is drawn in the fallback color and named by its raw key', () => {
+    expect(StreetPriorityTiers.colorFor('archived')).toBe(StreetPriorityTiers.FALLBACK);
+    expect(StreetPriorityTiers.labelFor('archived')).toBe('archived');
+  });
+
+  test('runs without any callbacks, and ignores a pointer move that hit no street', async () => {
+    const state = stubMapbox();
+    document.body.innerHTML = '<div id="priority-map"></div>';
+    const map = new StreetPriorityMap('priority-map', { mapboxToken: 'pk.test' });
+    const ready = map.init(geojson());
+    state.mapInstance.finishLoad();
+    await ready;
+    const fire = (event, payload) => state.handlers.find((h) => h.event === event).handler(payload);
+
+    fire('mousemove', { features: [] });
+    expect(state.popup.attached).toBe(false);
+    const feature = geojson().features[0];
+    fire('mousemove', { features: [{ id: 1, properties: feature.properties }], lngLat: { lng: 0, lat: 0 } });
+    fire('mouseleave', {});
+    fire('click', { features: [{ id: 1, properties: feature.properties }] });
+    expect(state.featureStates.at(-1)).toEqual({
+      target: { source: 'imagery-priority-streets', id: 1 }, value: { hover: false },
+    });
+  });
+});

@@ -232,7 +232,7 @@ Parallel jobs:
   always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy
   `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. All
   three steps are **blocking**, and the job is a required status check.
-- **frontend** — `setup-node` (Node 24, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
+- **frontend** — `setup-node` (Node 26, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
   the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
   nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
@@ -327,7 +327,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 56.48 / 52.13 / 52.67 / 57.27 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 60.25 / 56.56 / 56.12 / 61.06 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)

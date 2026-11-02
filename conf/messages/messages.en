@@ -152,6 +152,7 @@ seo.title.welcome = Welcome — Project Sidewalk
 seo.title.forgot.password = Recover Password — Project Sidewalk
 seo.title.reset.password = Reset Password — Project Sidewalk
 seo.title.service.hours = Volunteer Info — Project Sidewalk
+seo.title.unsubscribe = Unsubscribe — Project Sidewalk
 seo.title.time.check = Time Check — Project Sidewalk
 seo.title.about = About — Project Sidewalk
 seo.description.default = Help map and assess sidewalks in {0} through virtual exploration. Open data on curb ramps, obstacles, and surface problems for a more accessible world.
@@ -389,6 +390,7 @@ authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.confirm.password = Confirm password
 authenticate.service.hours.title = Are you planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
+authenticate.news.email = Send me occasional news about Project Sidewalk
 authenticate.signup = Sign up
 authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
 authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
@@ -505,6 +507,13 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
 reset.pw.email.send.link = Send Email
 reset.pw.email.reset.pw.sent = An email to reset your password has been sent.
+unsubscribe.confirm.title = Unsubscribe from Project Sidewalk news?
+unsubscribe.confirm.intro = You''ll stop getting news and updates about the project at the email on your account. Emails about your account, like password resets, still arrive.
+unsubscribe.confirm.submit = Unsubscribe
+unsubscribe.done.title = You''re unsubscribed
+unsubscribe.done.intro = We won''t send you project news anymore. Changed your mind? Turn it back on in <a href="{0}">Settings</a>.
+unsubscribe.invalid.title = This link isn''t valid
+unsubscribe.invalid.intro = The unsubscribe link may have been cut off when it was copied. You can also manage email in <a href="{0}">Settings</a>, or write to <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
 reset.pw.email.send.failed = We couldn''t send the email right now. Please try again later.
 reset.pw.email.reset.request.message = You recently asked to reset your password for your Project Sidewalk account. Click the link below to reset your password:
 reset.pw.email.reset.not.requested = If you did not request a password reset, please ignore this message or send us an email to let us know.
@@ -821,6 +830,9 @@ dashboard.settings.service.hours = Volunteer service hours
 dashboard.settings.service.hours.toggle = Sign me up for community service hours
 dashboard.settings.service.hours.help = Opts you in to official recognition — your supervisor can verify your hours — and adds "Service hours" and "Time check" to your account menu.
 dashboard.settings.service.hours.link = How service hours work
+dashboard.settings.news.email = Email updates
+dashboard.settings.news.email.toggle = Send me news about Project Sidewalk
+dashboard.settings.news.email.help = Occasional updates about the project, each with an unsubscribe link. Emails about your account, like password resets, always arrive.
 dashboard.settings.team = Team
 dashboard.settings.team.label = Your team
 dashboard.settings.team.help = Join a team or class to map together and appear on the team leaderboard.

@@ -244,12 +244,6 @@
   transform: translateY(-100%);
 }
 
-/* Pin a message to the pano's top-right corner. */
-#onboarding-message-holder.onboarding-message-top-right {
-  left: auto;
-  right: 0;
-}
-
 /* Full-page intro/outro takeover: center the panel on the viewport, above all UI except the navbar. z-index sits just
    below the navbar (#header, z-index: 1030) so the takeover covers everything but it. */
 #onboarding-message-holder.onboarding-message-takeover {

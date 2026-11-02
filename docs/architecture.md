@@ -58,12 +58,26 @@ The backend follows a consistent layering: **routes → Controller → Service �
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
-  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
-  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
-  password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
-  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking, and project news by
+  email, #5864) and `user_account_state` holds what the site records about them (having finished the Explore tutorial,
+  and when a password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both
+  only get a row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's
+  `user_stat` table.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
+  `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
+  turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a
+  bounce, or a spam complaint. `news_email_consented_at` is when the user ticked the box themselves, the proof of
+  consent EU-style rules ask for; the backfill never overrides it, the sync must never re-subscribe a `complaint`, and
+  a future email-change flow should clear a `bounce`. The sign-up box starts checked only in the opt-out-law countries
+  in `news-email-opt-out-countries`, since a pre-ticked box isn't consent elsewhere. The unsubscribe link is
+  `/unsubscribe?token=`, the user id signed by `NewsEmailTokenService` with the app secret (shared by every city, so
+  a link verifies anywhere); its GET only confirms, and its `nocsrf` POST opts out and is what `List-Unsubscribe-Post`
+  points at. Admin → Management exports the send list (`Role.NEWS_EMAIL_ROLES` accounts not opted out, each with its
+  unsubscribe link); the mailing service never holds the list of record. Accounts from before the box that first
+  signed up in a consent-law country were opted out by `tools/one-off/5864-opt-out-consent-country-signups.sql`,
+  stamped at their sign-up time, so ticking the Settings box is their consent. Password resets are never opt-out-able.
 - **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
@@ -84,8 +98,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
 and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
-inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
-proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission walks
+(#5526), is walks that make sense on the ground: routes that end at intersections rather than at an
 arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
@@ -149,6 +163,22 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   regular mission. Everything downstream reads `audit_task.completed` as usual. `start_offset_m` marks drop-in rows
   and keeps them out of the regular-mission resume paths, though the region task list still returns their coverage
   so a reload redraws a part-walked street. Sessions from before #5733 are credited by a one-off backfill.
+- **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
+  region's unwalked streets to `WalkPlanner` (`frontend/js/common/`), stamps each task with its planned position and
+  direction, and `nextTask` follows that order the way it follows a route's saved one. It replans when a street is
+  given up for lack of imagery and when another labeler's audit changes the priority of a previewed street or which
+  streets are in the top priority tier; a replan asked for while a jump is armed waits until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
+  deterministic, so a reload that resumes the same street replans the same remaining walk. If planning fails, the
+  greedy next-street rule takes over.
+  - *Why the client, and what would move it.* The next-street choice was already client-side (the greedy rule), the
+    client holds every street with its live priority and gets priority deltas on every task POST, and both consumers
+    (the next-street pick and the minimap preview) are on the client, so a server plan would add a table, an
+    endpoint and an invalidation story for no consumer. The server's part is the first street of a session and the
+    thresholds (`walk-planner.*` in `application.conf`, env-overridable per deployment), which reach the page as its
+    `walkPlanner` data. Move the planning itself only for a need a client can't meet: coordinating several labelers
+    in one region (reservations, which the planner would consume as excluded streets), a plan that must survive a
+    device switch, or a planned route shown outside Explore. `WalkPlanner` has no DOM or map dependency, so such a
+    port would be a transcription.
 
 ### Media storage
 
@@ -442,7 +472,8 @@ loaded by the corresponding Twirl view:
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission.
+  path already resumes the user's own open drop-in mission. The order in which a neighborhood mission walks its
+  streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's

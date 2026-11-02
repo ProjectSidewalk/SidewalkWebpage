@@ -130,6 +130,8 @@ describe('TaskContainer.updateTaskPriorities', () => {
   /** A loaded task, remembering what priority it was set to. */
   const makeTask = (streetEdgeId) => ({
     getStreetEdgeId: () => streetEdgeId,
+    getStreetPriority: () => 1,
+    isPlannedAhead: () => false,
     setProperty: vi.fn(),
   });
 

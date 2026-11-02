@@ -1,5 +1,5 @@
 /** Entry point for the /v3/api-docs/overallStatsByDay page. */
-import { OverallStatsByDayPreview } from '../../api-docs/overallStatsByDayPreview.js';
+import { OverallStatsByDayPreview } from '../../api-docs/statsByDayPreview.js';
 
 // apiDocs.js reads these for the download buttons; a preview or two read the base URL as well.
 Object.assign(document.documentElement.dataset, { apiBaseUrl: '/v3/api', apiEndpoint: 'overallStatsByDay' });

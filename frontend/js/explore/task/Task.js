@@ -33,6 +33,11 @@ export class Task {
   #streetCoverage;
   #geojson;
 
+  // This street's step in a neighborhood mission's planned walk (#5526), and whether the minimap previews it as one
+  // of the next streets. Kept off #properties, which get serialized: both change on every replan and are never saved.
+  #plannedPosition = null;
+  #plannedAhead = false;
+
   /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
 
@@ -169,12 +174,10 @@ export class Task {
    * @param {{lat: number, lng: number}} currentLatLng - User's current position
    */
   setStreetEdgeDirection(currentLatLng) {
-    const lat1 = this.#geojson.geometry.coordinates[0][1];
-    const lng1 = this.#geojson.geometry.coordinates[0][0];
-    const lat2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][1];
-    const lng2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][0];
-    const d1 = util.math.haversine({ lat: lat1, lng: lng1 }, currentLatLng);
-    const d2 = util.math.haversine({ lat: lat2, lng: lng2 }, currentLatLng);
+    const coords = this.#geojson.geometry.coordinates;
+    const here = turf.point([currentLatLng.lng, currentLatLng.lat]);
+    const d1 = turf.distance(coords[0], here, { units: 'meters' });
+    const d2 = turf.distance(coords[coords.length - 1], here, { units: 'meters' });
 
     // If current position is closer to the end point than the start point, reverse the street direction.
     if (d2 < d1) {
@@ -303,6 +306,17 @@ export class Task {
   }
 
   /**
+   * Where a walk enters this street: its start, or on a part-walked street (#5370) where the labeler left it, since
+   * the walked part is never walked again.
+   * @returns {{lat: number, lng: number}}
+   */
+  getEntryCoordinate() {
+    if (!this.isResumed() || !this.#furthestPoint) return this.getStartCoordinate();
+    const [lng, lat] = this.#furthestPoint.geometry.coordinates;
+    return { lat, lng };
+  }
+
+  /**
    * Returns the street edge id of the current task.
    */
   getStreetEdgeId() {
@@ -323,6 +337,37 @@ export class Task {
    */
   getWalkOrder() {
     return this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+  }
+
+  /**
+   * Stamps this street's step in the neighborhood mission's planned walk, which nextTask follows the way it follows a
+   * route's saved order (#5526). Kept apart from getWalkOrder: the stuck-pano set and the crumbs memo key on a route's
+   * order, which names a walk for good, while a planned position changes on every replan.
+   *
+   * @param {?number} position - The step index in the plan, or null to take the street out of the plan.
+   */
+  setPlannedPosition(position) {
+    this.#plannedPosition = position;
+  }
+
+  /** @returns {?number} This street's step in the current planned walk, or null when it is not in one. */
+  getPlannedPosition() {
+    return this.#plannedPosition;
+  }
+
+  /**
+   * Marks whether the minimap previews this street as one of the next few of the planned walk. WalkPlanLayer decides;
+   * the task only remembers it so minimapLines can draw the street as the path ahead.
+   *
+   * @param {boolean} plannedAhead - True to draw the street as the route ahead, false for quiet context.
+   */
+  setPlannedAhead(plannedAhead) {
+    this.#plannedAhead = plannedAhead;
+  }
+
+  /** @returns {boolean} Whether the minimap is previewing this street as part of the planned walk ahead. */
+  isPlannedAhead() {
+    return this.#plannedAhead;
   }
 
   /**
@@ -496,15 +541,14 @@ export class Task {
   isAtEnd(latLng, threshold = 10) {
     if (!this.#geojson) return false;
     const coords = this.#geojson.geometry.coordinates;
-    const end = { lat: coords[coords.length - 1][1], lng: coords[coords.length - 1][0] };
     const streetLengthM = this.lineDistance({ units: 'meters' });
     const effectiveThreshold = streetLengthM > 0
       ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
       : threshold;
-    const distToEnd = util.math.haversine(latLng, end);
+    const point = turf.point([latLng.lng, latLng.lat]);
+    const distToEnd = turf.distance(point, coords[coords.length - 1], { units: 'meters' });
     if (distToEnd < effectiveThreshold) return true;
     if (distToEnd >= threshold) return false;
-    const point = turf.point([latLng.lng, latLng.lat]);
     return turf.pointToLineDistance(point, this.#geojson, { units: 'meters' }) < Task.ON_STREET_MAX_DISTANCE_M
       && this.getDistanceFromStart(latLng, { units: 'meters' }) >= streetLengthM - effectiveThreshold;
   }
@@ -678,13 +722,14 @@ export class Task {
       // street the branch above draws the same split with the route styling.
       return [
         { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
-        { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
+        { kind: this.#plannedAhead ? 'remaining' : 'other', coordinates: this.#getPointsOnUnauditedSegments() },
       ];
     }
     // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
     // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
-    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
-    return wholeStreet(route ? 'remaining' : 'other');
+    // route reads as one arrowed path. A neighborhood mission's planned walk gets the same treatment only for the next
+    // few streets WalkPlanLayer previews (#5526), since chevrons on the whole region would bury the path ahead.
+    return wholeStreet(route || this.#plannedAhead ? 'remaining' : 'other');
   }
 
   /**

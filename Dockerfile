@@ -1,6 +1,6 @@
 FROM eclipse-temurin:17-jdk-focal
 
-RUN curl -sL https://deb.nodesource.com/setup_24.x | bash -
+RUN curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
 
 # Add repository for sbt.
 RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list

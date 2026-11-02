@@ -7,7 +7,7 @@
 
 import { MapboxSearchBox } from '@mapbox/search-js-web';
 import i18next from 'i18next';
-import { RouteGraph } from './RouteGraph.js';
+import * as turf from '@turf/turf';
 
 export class DirectionsPanel {
   // Skip a reverse-geocode when an endpoint moved less than this — the label wouldn't meaningfully change.
@@ -214,10 +214,10 @@ export class DirectionsPanel {
   #reverseGeocodeInto(which, lngLat) {
     const coord = [lngLat.lng, lngLat.lat];
     const last = this.#lastGeocoded[which];
-    if (last && RouteGraph.distanceM(last, coord) < DirectionsPanel.MIN_MOVE_FOR_GEOCODE_M) return;
+    if (last && turf.distance(last, coord, { units: 'meters' }) < DirectionsPanel.MIN_MOVE_FOR_GEOCODE_M) return;
     // A user-typed address stays in the field while the endpoint is still near it (e.g. after route snapping).
     const typedAt = this.#userLabelCoord[which];
-    if (typedAt && RouteGraph.distanceM(typedAt, coord) < DirectionsPanel.KEEP_USER_LABEL_M) return;
+    if (typedAt && turf.distance(typedAt, coord, { units: 'meters' }) < DirectionsPanel.KEEP_USER_LABEL_M) return;
     const slot = document.getElementById(`directions-${which}-slot`);
     if (slot?.contains(document.activeElement)) return; // Don't clobber what the user is typing.
     this.#lastGeocoded[which] = coord;

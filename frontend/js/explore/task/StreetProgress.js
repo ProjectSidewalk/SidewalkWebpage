@@ -192,8 +192,7 @@ export class StreetProgress {
 
     this.#missionJump = mission;
     const nextTask = this.#taskContainer.nextTask(task);
-    const connected = nextTask
-      && task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
+    const connected = Boolean(nextTask) && this.#continuesInto(task, nextTask);
 
     // Before a jump, or at the very end, this is their last chance to label here, so ask first.
     if (this.#regionModel.isRouteOrRegionComplete() || !connected) {
@@ -218,6 +217,25 @@ export class StreetProgress {
       // The pano at the junction shows the next street's start too; the first landing on it is a window further on.
       nextTask.recordVisit(this.#panoManager.getPosition());
     }
+  }
+
+  /**
+   * Whether finishing `task` carries the labeler straight onto `nextTask` with no jump.
+   *
+   * On a planned walk (#5526) the plan fixed which end of `nextTask` is its start, so only that end (or, for a
+   * part-walked street, where the labeler left it) counts: accepting its far end as well, as isConnectedTo does, would
+   * switch seamlessly onto a street that begins a block away, and the first move would teleport the labeler there
+   * unannounced.
+   *
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street chosen to follow it.
+   * @returns {boolean}
+   */
+  #continuesInto(task, nextTask) {
+    if (!this.#taskContainer.hasWalkPlan()) {
+      return task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
+    }
+    return TaskContainer.jumpGapKm(task, nextTask) < TaskContainer.CONNECTED_TASK_KM;
   }
 
   /** The last street had no imagery, so the route or region is done where the labeler stands. */
