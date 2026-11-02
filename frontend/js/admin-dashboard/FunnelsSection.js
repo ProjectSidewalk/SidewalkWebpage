@@ -119,7 +119,7 @@ export class FunnelsSection {
   #render() {
     const host = document.getElementById(this.#hostId);
     if (!host) return;
-    const segs = FunnelsSection.#DIMS[this.#dim] || FunnelsSection.#DIMS.all;
+    const segs = FunnelsSection.#DIMS[this.#dim];
     const types = FunnelsSection.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     if (!types.length) {
       host.innerHTML = '';
@@ -141,14 +141,14 @@ export class FunnelsSection {
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
-    const meta = FunnelsSection.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+    const meta = FunnelsSection.#FUNNEL_META[funnelType];
     const steps = funnel.steps || [];
     const segments = funnel.segments || {};
     const palette = FunnelsSection.#SEG_COLORS;
 
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" `
-      + `style="background:${palette[i] || palette[0]}"></span>${util.escapeHTML(s.label)}</span>`).join('');
+      + `style="background:${palette[i]}"></span>${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
 
     const stepRows = steps.map((k, i) => {
@@ -166,7 +166,7 @@ export class FunnelsSection {
         return `
           <div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">
             <span class="ac-funnel-bar-fill"
-              style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
+              style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>
           </div>`;
       }).join('');

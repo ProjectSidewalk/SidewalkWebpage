@@ -4,6 +4,7 @@
  */
 
 import { mockModule } from '../loader.js';
+import { flush, routeFetch as routeFetchBy, textOf } from './routeFetch.js';
 
 /** Every map, chart and popup made so far, for the test to read. */
 export const world = { maps: [], charts: [], popups: [] };
@@ -250,43 +251,15 @@ export function stubApiDocsLibraries() {
 }
 
 /**
- * Answers `fetch` by URL prefix. A route gives the JSON body, `{ status, body }` for an error, or a function of the
- * URL giving either. An unrouted URL fails the test, and the stub is undone after each test.
+ * Answers `fetch` by URL prefix, ignoring the tracking param the previews add.
  * @param {Record<string, any>} routes - URL prefix (path plus any query) to the answer.
  * @returns {import('vitest').Mock} The stub, whose calls are the URLs asked for.
  */
 export function routeFetch(routes) {
-  const stub = vi.fn(async (input) => {
-    const url = String(input).replace(/[?&]utm_source=apiDocs$/, '');
-    const prefix = Object.keys(routes).sort((a, b) => b.length - a.length).find((p) => url.startsWith(p));
-    if (prefix === undefined) throw new Error(`unrouted fetch: ${url}`);
-    let answer = routes[prefix];
-    if (typeof answer === 'function') answer = answer(url);
-    if (answer instanceof Error) throw answer;
-    const { status = 200, body } = isErrorSpec(answer) ? answer : { body: answer };
-    return {
-      ok: status < 400,
-      status,
-      json: async () => {
-        if (body === undefined) throw new SyntaxError('Unexpected end of JSON input');
-        return structuredClone(body);
-      },
-    };
-  });
-  vi.stubGlobal('fetch', stub);
-  return stub;
+  return routeFetchBy(routes, (url) => url.replace(/[?&]utm_source=apiDocs$/, ''));
 }
 
-/** @returns {boolean} Whether an answer is `{ status, body }`, not a body that happens to have a `status`. */
-function isErrorSpec(answer) {
-  return typeof answer?.status === 'number' && Object.keys(answer).every((key) => key === 'status' || key === 'body');
-}
-
-/** Lets pending promise callbacks (fetches, map loads) run. */
-export const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
-
-/** @returns {string} An element's text, whitespace collapsed. */
-export const textOf = (el) => el.textContent.replace(/\s+/g, ' ').trim();
+export { flush, textOf };
 
 /** Sets the color tokens the previews read, which jsdom has no stylesheet for. */
 export function stampColorTokens() {

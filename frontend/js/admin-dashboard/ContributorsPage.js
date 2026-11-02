@@ -70,8 +70,8 @@ export class ContributorsPage {
 
   #renderKpis(labelers) {
     const highQ = labelers.filter((u) => u.high_quality).length;
-    const totalLabels = labelers.reduce((s, u) => s + (u.labels || 0), 0);
-    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
+    const totalLabels = labelers.reduce((s, u) => s + u.labels, 0);
+    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? u.labels : 0), 0);
 
     this.#setText('kpi-contributors', labelers.length.toLocaleString());
     this.#setText('kpi-high-quality', highQ.toLocaleString());
@@ -94,8 +94,8 @@ export class ContributorsPage {
 
   /** Stacked bar of how many labels come from high- vs low-quality contributors. */
   #renderLabelSource(labelers) {
-    const high = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
-    const low = labelers.reduce((s, u) => s + (!u.high_quality ? (u.labels || 0) : 0), 0);
+    const high = labelers.reduce((s, u) => s + (u.high_quality ? u.labels : 0), 0);
+    const low = labelers.reduce((s, u) => s + (!u.high_quality ? u.labels : 0), 0);
     document.getElementById('contrib-label-source').innerHTML = ContributorsPage.#stackedBar([
       { label: 'From high-quality users', value: high, cls: 'contrib-seg--high' },
       { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' },
@@ -173,7 +173,7 @@ export class ContributorsPage {
   /** Stacked bar of labels by the contributor's account role, largest share first. */
   #renderLabelSourceByRole(labelers) {
     const byRole = new Map();
-    for (const u of labelers) byRole.set(u.role, (byRole.get(u.role) || 0) + (u.labels || 0));
+    for (const u of labelers) byRole.set(u.role, (byRole.get(u.role) || 0) + u.labels);
     const segments = [...byRole.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([role, value]) => ({ label: role, value, color: ContributorsPage.#ROLE_COLORS[role] || '#999999' }));

@@ -171,6 +171,24 @@ describe('AdminUser cross-city hours', () => {
     expect(document.getElementById('au-hours-note').textContent).toContain("Couldn't total this user's hours");
   });
 
+  it('treats an error status like a failed request', async () => {
+    buildDom();
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 502, json: () => Promise.resolve({}) }));
+    new AdminUser({
+      userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags',
+      hoursUrl: '/adminapi/users/u1/crossCityHours', pageUrlFor: (u) => `/admin/user/${u}/manage`,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(hoursText()).toBe('—');
+    expect(console.error).toHaveBeenCalledWith('Cross-city hours failed to load', expect.any(Error));
+  });
+
+  it('reads an answer with no city list or total as zero hours and no breakdown', async () => {
+    await load({ show_breakdown: true });
+    expect(hoursText()).toBe('0.0 h');
+    expect(document.getElementById('au-hours-cities').hidden).toBe(true);
+  });
+
   it('announces the loaded total to screen readers', async () => {
     await load(TWO_CITIES);
     expect(document.getElementById('au-hours-status').textContent).toBe('Logged hours loaded: 10.8 hours.');
