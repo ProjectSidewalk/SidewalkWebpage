@@ -5,7 +5,7 @@
  */
 
 import { deferred } from './labelDetailReasonFixture.js';
-import { flush, labelMeta, logged, mountCard } from './support/labelDetailHarness.js';
+import { collaborators, flush, labelMeta, logged, mountCard } from './support/labelDetailHarness.js';
 
 
 describe('the label card, when a reply goes wrong or comes late', () => {
@@ -37,7 +37,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
     });
 
-    test('that lands after paging leaves the new label\'s counts and the host alone', async () => {
+    test('that lands after paging leaves the new label\'s counts alone, but still tells the host', async () => {
       const vote = deferred();
       const onVote = vi.fn();
       const { show, q } = await mountCard({
@@ -51,7 +51,8 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(count(q, 'agree')).toBe('5');
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
-      expect(onVote).not.toHaveBeenCalled();
+      // A quick A then S pages on before the vote lands (#5883); the Gallery's grid card still has to record it.
+      expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({ label_id: 42 }));
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
     });
 
@@ -236,7 +237,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(tagsStatus.classList.contains('label-detail__edit-status--error')).toBe(true);
     });
 
-    test('a failed save after paging rolls back its label quietly, for the saves queued behind it', async () => {
+    test('a failed save after paging rolls back its label, and says so in a toast', async () => {
       const save = deferred();
       const { show, q } = await mountCard({ routes: { 'POST /label/edit': () => save.promise } });
       const first = await show(editable);
@@ -247,11 +248,15 @@ describe('the label card, when a reply goes wrong or comes late', () => {
 
       save.resolve({ status: 500, body: {} });
       await flush();
+      // Rolled back for the saves queued behind it; the new label's own status is left alone.
       expect(first.severity).toBe(2);
       expect(q('.label-detail__col--severity .label-detail__edit-status').textContent).toBe('');
+      expect(collaborators.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'labelmap:edit-failed-previous' }),
+      );
     });
 
-    test('a save that lands after paging is logged and kept on its label, but not drawn or passed on', async () => {
+    test('a save that lands after paging is logged, kept on its label and passed on, but not drawn', async () => {
       const save = deferred();
       const onEdit = vi.fn();
       const { show, q } = await mountCard({ routes: { 'POST /label/edit': () => save.promise }, options: { onEdit } });
@@ -264,7 +269,8 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(first).toMatchObject({ severity: 3, tags: [] });
       expect(logged()).toContain('Click_module=LabelDetail_action=EditSeverity_old=2_new=3_labelId=42');
-      expect(onEdit).not.toHaveBeenCalled();
+      // The host finds its copy by id, as the Gallery's grid does, so a save made just before paging still sticks.
+      expect(onEdit).toHaveBeenCalledWith(first);
       expect(q('.label-detail__col--severity .label-detail__edit-status').textContent).toBe('');
     });
 
@@ -283,6 +289,56 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(onEdit).not.toHaveBeenCalled();
       expect(q('.label-detail__title').textContent).not.toContain('Signal');
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
+    });
+
+    test('paging on with a tag pick open saves it to the label it was made on, as Done would', async () => {
+      const edits = [];
+      const { show, q } = await mountCard({
+        routes: {
+          'GET /label/tags': [
+            { label_type: 'Obstacle', tag: 'pole', tag_id: 1 }, { label_type: 'Obstacle', tag: 'cone', tag_id: 2 },
+          ],
+          'POST /label/edit': (url, opts) => {
+            edits.push(JSON.parse(opts.body));
+            return { label_type: 'Obstacle', severity: 2, tags: ['pole', 'cone'] };
+          },
+        },
+      });
+      await show(editable);
+      q('.label-detail__tags-edit').click();
+      await flush();
+      q('.label-detail__tags .tag-pill:not(.tag-pill--active)').click();
+
+      await show({ ...editable, label_id: 43 });
+      await flush();
+
+      expect(edits).toHaveLength(1);
+      expect(edits[0]).toMatchObject({ label_id: 42, tags: ['pole', 'cone'] });
+      expect(q('.label-detail__tags-edit').getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('a host closing the card saves a tag pick still open, as paging on does', async () => {
+      const edits = [];
+      const { show, q, detail } = await mountCard({
+        routes: {
+          'GET /label/tags': [
+            { label_type: 'Obstacle', tag: 'pole', tag_id: 1 }, { label_type: 'Obstacle', tag: 'cone', tag_id: 2 },
+          ],
+          'POST /label/edit': (url, opts) => {
+            edits.push(JSON.parse(opts.body));
+            return { label_type: 'Obstacle', severity: 2, tags: ['pole', 'cone'] };
+          },
+        },
+      });
+      await show(editable);
+      q('.label-detail__tags-edit').click();
+      await flush();
+      q('.label-detail__tags .tag-pill:not(.tag-pill--active)').click();
+
+      detail.saveOpenEdits();
+      await flush();
+
+      expect(edits).toEqual([expect.objectContaining({ label_id: 42, tags: ['pole', 'cone'] })]);
     });
 
     test('a type change queued before paging leaves the new label\'s tag pick open', async () => {
