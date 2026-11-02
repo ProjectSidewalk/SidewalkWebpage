@@ -20,6 +20,9 @@
  *     holds the engine's own weights, the ones every reset returns to.
  * @property {?string} clusters_updated_at - When the clusters were last rebuilt (ISO 8601), or null for never.
  * @property {string[]} place_categories - The place categories the map can show (#5311), in display order.
+ * @property {Array<{label_type: string, tag: string, delta: number}>} [tag_adjustments] - Every tag adjustment the
+ *     engine applies, for scoring one cluster on its own (#5748); optional so a config from before it scores a
+ *     cluster's tags as nothing rather than failing.
  * @property {AccessScoreSlopeConfig} [grade_scoring] - How grade enters a segment's score (#5223): the engine's default
  *     settings and what a control may offer. Optional so a config from before it scores exactly as it always did.
  * @property {AccessScoreGradientConfig} [grade] - How to read and credit the streets' grade fields (#5223);
@@ -249,6 +252,8 @@ export class AccessScoreModel {
   #lengthMinMeters;
   /** Indices into `#types` of the corner types an intersection is scored from (`config.intersection_types`). */
   #intTypeIdx;
+  /** @type {Map<string, Map<string, number>>} Per type, the engine's tag adjustments by tag (`clusterTerm`). */
+  #tagDeltas;
 
   // Per-street inputs, laid out type-major so a street's T values sit together: index i * T + t.
   #n = 0;
@@ -320,6 +325,9 @@ export class AccessScoreModel {
   /** The `streetBins` value of a street with no score. */
   static UNBINNED = 255;
 
+  /** The share of a cluster's labels a tag must be on to adjust its score: the engine's `tagActiveThreshold`. */
+  static TAG_ACTIVE_SHARE = 0.5;
+
   /**
    * @param {AccessScoreConfig} config - The `/v3/api/accessScoreConfig` response.
    * @param {GeoJSON.FeatureCollection} streets - The `/v3/api/accessScoreStreets` response; the properties are
@@ -343,6 +351,11 @@ export class AccessScoreModel {
     this.#lengthMinMeters = config.length_normalization?.min_length_meters ?? 0;
     this.#intTypeIdx = Int32Array.from((config.intersection_types || []).map((t) => this.#types.indexOf(t))
       .filter((t) => t >= 0));
+    this.#tagDeltas = new Map();
+    for (const { label_type: type, tag, delta } of config.tag_adjustments ?? []) {
+      if (!this.#tagDeltas.has(type)) this.#tagDeltas.set(type, new Map());
+      this.#tagDeltas.get(type).set(tag, delta);
+    }
 
     this.#loadIntersections((intersections && intersections.features) || []);
     this.#loadStreets(streets.features || []);
@@ -746,6 +759,42 @@ export class AccessScoreModel {
       barrier: this.#barriers[i] === 1,
       gradient: this.#gradients[i] ? { ...this.#gradients[i] } : null,
     };
+  }
+
+  /**
+   * One cluster's own part of its street's score under the current state (#5748), so a picture of the cluster can
+   * carry what it costs or earns. Exact for a per-cluster type: the engine scores a cluster from its median rating and
+   * from the tags on at least `TAG_ACTIVE_SHARE` of its labels, and the cluster feed carries both. A corner cluster
+   * at one of the street's crossings scores that crossing, where no length factor applies; anything else on the
+   * street scores the block. A street-condition type (NoSidewalk) is pooled once per street, so its clusters have no
+   * number of their own: the street's whole term comes back, flagged `pooled`.
+   *
+   * @param {{label_type: string, median_severity: ?number, cluster_size: number, intersection_id: ?number,
+   *   tag_counts?: Record<string, number>}} cluster - A cluster as `/v3/api/labelClusters` describes it.
+   * @param {AccessScoreStreetExplanation} street - The street the cluster scores, from `explainStreet`.
+   * @returns {?{term: number, pooled: boolean}} The signed term, or null for a type the engine does not score.
+   */
+  clusterTerm(cluster, street) {
+    const type = cluster.label_type;
+    const t = this.#types.indexOf(type);
+    if (t < 0 || !street?.terms?.[type]) return null;
+    if (this.#scoring[t] === 'street_condition') return { term: street.terms[type].term, pooled: true };
+    const bucket = String(cluster.median_severity ?? 'null');
+    let tags = 0;
+    const deltas = this.#tagDeltas.get(type);
+    if (deltas && cluster.tag_counts && cluster.cluster_size > 0) {
+      for (const [tag, count] of Object.entries(cluster.tag_counts)) {
+        if (deltas.has(tag) && count / cluster.cluster_size >= AccessScoreModel.TAG_ACTIVE_SHARE) {
+          tags += deltas.get(tag);
+        }
+      }
+    }
+    const ends = [street.startIntersection?.id, street.endIntersection?.id];
+    const atCrossing = cluster.intersection_id !== null && cluster.intersection_id !== undefined
+      && ends.includes(cluster.intersection_id);
+    const lengthFactor = atCrossing ? 1 : street.terms[type].lengthFactor;
+    const term = (this.signedWeight(type) * this.#multiplier(this.#scoring[t], bucket) + tags) * lengthFactor;
+    return { term, pooled: false };
   }
 
   /**

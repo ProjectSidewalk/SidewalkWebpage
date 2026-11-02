@@ -3,7 +3,8 @@
  * view, so the imagery behind a score is one glance away rather than a click into a cluster. A thumbnail opens the
  * full label card, whose arrows page through the strip.
  *
- * Source is the cluster feed for one region (`/v3/api/labelClusters?regionId=…`), cached for the page's life,
+ * Source is the cluster feed for one region (`/v3/api/labelClusters?regionId=…`), cached for the page's life by
+ * `AccessScoreClusterFeed` (shared with the street panel, #5748),
  * because a street is a filter over its region's clusters and a city has too many clusters to fetch for a
  * dozen pictures; the area in view pools the few nearest regions' feeds and keeps the clusters inside the
  * map's bounds. The brush never narrows the strip: a brush is a set of street ids across the city and the strip
@@ -15,32 +16,27 @@
 
 import i18next from 'i18next';
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
+import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
 
 export class AccessScorePhotoStrip {
   /** Enough to fill the ribbon with a scroll's worth; more is a wall of fetches for pictures nobody reaches. */
   static MAX_PHOTOS = 12;
 
   /**
-   * Worst first: 3 is the bad end of both rating scales (unrated trails), then confirmed over unchecked over
-   * disputed, then the more agreed, then `size` (a cluster's label count).
+   * The ranking the ribbon uses, the shared feed's (#5748).
    * @param {{severity: ?number, agree: number, disagree: number, size?: number}} a - One entry's rating and votes.
    * @param {{severity: ?number, agree: number, disagree: number, size?: number}} b - The other's.
    * @returns {number} Negative when `a` ranks ahead of `b`.
    */
   static compareWorstFirst(a, b) {
-    const verdict = (e) => Math.sign(e.agree - e.disagree);
-    return (b.severity ?? 0) - (a.severity ?? 0)
-      || verdict(b) - verdict(a)
-      || b.agree - a.agree
-      || (b.size ?? 0) - (a.size ?? 0);
+    return AccessScoreClusterFeed.compareWorstFirst(a, b);
   }
 
-  #types;
+  /** @type {AccessScoreClusterFeed} */
+  #feed;
   #onOpenLabel;
   #log;
   #els;
-  #clustersByRegion = new Map();
-  #labelsById = new Map();
   /** The cards on show, by label id, so a vote cast in the full label card can be reflected here. */
   #cards = new Map();
   /** The label ids on show, in ribbon order: the full label card pages through them in this order. */
@@ -56,9 +52,11 @@ export class AccessScorePhotoStrip {
    * @param {(labelId: number, stripLabelIds: number[]) => void} options.onOpenLabel - Called when a thumbnail is
    *   chosen, with the strip's label ids for the card's arrows to page through.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
+   * @param {AccessScoreClusterFeed} [options.feed] - The page's shared cluster cache; the strip makes its own when
+   *   it is the only reader.
    */
-  constructor(container, { types, onOpenLabel, log = () => {} }) {
-    this.#types = types;
+  constructor(container, { types, onOpenLabel, log = () => {}, feed = null }) {
+    this.#feed = feed ?? new AccessScoreClusterFeed({ types });
     this.#onOpenLabel = onOpenLabel;
     this.#log = log;
     // An <ol>: the ribbon is a ranking, and the CSS numbers it. The explicit role keeps it a list in Safari, which
@@ -107,7 +105,7 @@ export class AccessScorePhotoStrip {
     }
     if (!keepWhileLoading) this.#els.status.textContent = i18next.t('accessscore:photos-loading');
     // A region whose feed fails contributes nothing rather than sinking the others.
-    const perRegion = await Promise.all(ids.map((id) => this.#clusters(id).catch((e) => {
+    const perRegion = await Promise.all(ids.map((id) => this.#feed.regionClusters(id).catch((e) => {
       console.warn('AccessScore photo strip: cluster feed failed', e);
       return [];
     })));
@@ -123,12 +121,10 @@ export class AccessScorePhotoStrip {
         && p.coordinates[0] >= west && p.coordinates[0] <= east
         && p.coordinates[1] >= south && p.coordinates[1] <= north);
     }
-    const standing = (p) => ({
-      severity: p.median_severity, agree: p.agree_count || 0, disagree: p.disagree_count || 0, size: p.cluster_size,
-    });
+    const standing = AccessScoreClusterFeed.standing;
     const picked = clusters
       .filter((p) => Array.isArray(p.label_ids) && p.label_ids.length > 0)
-      .sort((a, b) => AccessScorePhotoStrip.compareWorstFirst(standing(a), standing(b)))
+      .sort((a, b) => AccessScoreClusterFeed.compareWorstFirst(standing(a), standing(b)))
       .slice(0, AccessScorePhotoStrip.MAX_PHOTOS);
     if (picked.length === 0) {
       this.#els.ribbon.innerHTML = '';
@@ -137,8 +133,8 @@ export class AccessScorePhotoStrip {
       this.#els.status.textContent = i18next.t('accessscore:photos-empty');
       return;
     }
-    // A cluster's newest label stands for it: label ids are a serial, so the highest is the latest placed.
-    const newest = (p) => Math.max(...p.label_ids);
+    // A cluster's newest label stands for it, the feed's rule.
+    const newest = AccessScoreClusterFeed.newestLabelId;
     const wanted = picked.map(newest);
     // Only a ribbon with pictures on it is worth keeping: a draw whose every label failed to load retries instead.
     const unchanged = wanted.length === this.#wanted.length && wanted.every((id, k) => id === this.#wanted[k]);
@@ -147,7 +143,7 @@ export class AccessScorePhotoStrip {
       return;
     }
     if (keepWhileLoading) this.#els.status.textContent = i18next.t('accessscore:photos-loading');
-    const labels = await Promise.all(picked.map((p) => this.#label(newest(p)).then(
+    const labels = await Promise.all(picked.map((p) => this.#feed.label(newest(p)).then(
       (label) => ({ label, cluster: p }),
       () => null,
     )));
@@ -157,7 +153,7 @@ export class AccessScorePhotoStrip {
     const own = ({ label }) => ({
       severity: label.severity, agree: label.num_agree || 0, disagree: label.num_disagree || 0,
     });
-    const loaded = labels.filter(Boolean).sort((a, b) => AccessScorePhotoStrip.compareWorstFirst(own(a), own(b)));
+    const loaded = labels.filter(Boolean).sort((a, b) => AccessScoreClusterFeed.compareWorstFirst(own(a), own(b)));
     this.#wanted = wanted;
     this.#ids = loaded.map(({ label }) => label.label_id);
     this.#els.status.textContent = loaded.length === 0 ? i18next.t('accessscore:photos-empty') : '';
@@ -184,41 +180,7 @@ export class AccessScorePhotoStrip {
    * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    */
   refreshLabel(label) {
-    this.#labelsById.set(label.label_id, Promise.resolve(label));
+    this.#feed.rememberLabel(label);
     this.#cards.get(label.label_id)?.update(label);
-  }
-
-  /** One region's scored clusters, fetched once. */
-  #clusters(regionId) {
-    if (!this.#clustersByRegion.has(regionId)) {
-      const url = new URL('/v3/api/labelClusters', window.location.origin);
-      url.searchParams.set('labelType', this.#types.join(','));
-      url.searchParams.set('regionId', String(regionId));
-      const request = fetch(url).then((r) => {
-        if (!r.ok) throw new Error(`labelClusters regionId=${regionId}: HTTP ${r.status}`);
-        return r.json();
-      }).then((fc) => (fc.features || []).map((f) => ({
-        ...f.properties,
-        // The point is what a viewport filter tests; it lives on the geometry, which the properties don't carry.
-        coordinates: f.geometry?.coordinates ?? f.properties.coordinates ?? null,
-      })));
-      // A failed fetch is not cached: the next scope change retries it.
-      request.catch(() => this.#clustersByRegion.delete(regionId));
-      this.#clustersByRegion.set(regionId, request);
-    }
-    return this.#clustersByRegion.get(regionId);
-  }
-
-  /** One label's card data, fetched once. */
-  #label(id) {
-    if (!this.#labelsById.has(id)) {
-      const request = fetch(`/label/id/${id}`).then((r) => {
-        if (!r.ok) throw new Error(`label ${id}: HTTP ${r.status}`);
-        return r.json();
-      });
-      request.catch(() => this.#labelsById.delete(id));
-      this.#labelsById.set(id, request);
-    }
-    return this.#labelsById.get(id);
   }
 }

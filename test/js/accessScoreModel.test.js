@@ -678,3 +678,77 @@ describe('AccessScoreModel', () => {
     expect(model.state.placeCategories).toEqual(['school']);
   });
 });
+
+describe('AccessScoreModel#clusterTerm (#5748)', () => {
+  let AccessScoreModel;
+  const tol = FIXTURE.tolerance;
+  const streets = { type: 'FeatureCollection', features: FIXTURE.streets.map((c, i) => feature(c, i)) };
+
+  beforeAll(async () => {
+    ({ AccessScoreModel } = await loadModules('frontend/js/access-score/AccessScoreModel.js'));
+  });
+
+  /** A fixture cluster (the engine's `ClusterScoreInput`) as the cluster feed describes one. */
+  const props = (c, extra = {}) => ({
+    label_cluster_id: 1, label_type: c.label_type, median_severity: c.severity, cluster_size: c.label_count,
+    tag_counts: c.tag_counts || {}, intersection_id: null, street_edge_id: 0, ...extra,
+  });
+
+  test('a per-cluster type\'s clusters add up to the street\'s term, tags and length factor included', () => {
+    const model = new AccessScoreModel(FIXTURE.config, streets, NO_INTERSECTIONS, [REGION]);
+    let checked = 0;
+    FIXTURE.streets.forEach((c, i) => {
+      const street = model.explainStreet(i + 1);
+      const sums = {};
+      for (const cluster of c.clusters) {
+        const result = model.clusterTerm(props(cluster), street);
+        // A type the engine does not score (Occlusion, Other) has no term: the fixture carries a few to prove it.
+        if (!FIXTURE.config.type_weights[cluster.label_type]) {
+          expect(result).toBeNull();
+          continue;
+        }
+        if (FIXTURE.config.type_weights[cluster.label_type].scoring === 'street_condition') {
+          // Pooled once per street: the cluster carries the street's whole term, flagged as such.
+          expect(result).toEqual({ term: street.terms[cluster.label_type].term, pooled: true });
+          continue;
+        }
+        expect(result.pooled).toBe(false);
+        sums[cluster.label_type] = (sums[cluster.label_type] || 0) + result.term;
+        checked += 1;
+      }
+      for (const [type, sum] of Object.entries(sums)) {
+        expect([c.name, Math.abs(sum - c.sub_scores[type]) < tol]).toEqual([c.name, true]);
+      }
+    });
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  test('follows the weights, scores a corner cluster at the street\'s crossing without the length factor, and knows '
+    + 'no unscored type', () => {
+    const zero = Object.fromEntries(FIXTURE.config.scored_types.map((t) => [t, {}]));
+    for (const t of FIXTURE.config.scored_types) {
+      for (const b of FIXTURE.config.severity_buckets) zero[t][b] = 0;
+    }
+    const counts = structuredClone(zero);
+    counts.Obstacle['3'] = 1;
+    const one = {
+      type: 'FeatureCollection',
+      features: [feature({ severity_counts: counts, tag_adjustments: {} }, 0,
+        { length_meters: 50, start_intersection_id: 7 })],
+    };
+    const crossing = intersectionFeature({ severity_counts: zero, tag_adjustments: {}, cluster_counts: {} }, 7);
+    const model = new AccessScoreModel(FIXTURE.config, one, { type: 'FeatureCollection', features: [crossing] },
+      [REGION]);
+    const street = model.explainStreet(1);
+    const base = FIXTURE.config.type_weights.Obstacle.base_weight;
+    const onBlock = { label_type: 'Obstacle', median_severity: 3, cluster_size: 1, intersection_id: null };
+    // Fifty meters of street: a problem per 100 m counts double.
+    expect(model.clusterTerm(onBlock, street).term).toBeCloseTo(base * 2, 9);
+    expect(model.clusterTerm({ ...onBlock, intersection_id: 7 }, street).term).toBeCloseTo(base, 9);
+    // Another street's crossing is not this street's: the cluster is read as on the block.
+    expect(model.clusterTerm({ ...onBlock, intersection_id: 8 }, street).term).toBeCloseTo(base * 2, 9);
+    model.setState({ weights: { ...model.state.weights, Obstacle: 2 } });
+    expect(model.clusterTerm(onBlock, model.explainStreet(1)).term).toBeCloseTo(base * 2 * 2, 9);
+    expect(model.clusterTerm({ ...onBlock, label_type: 'Occlusion' }, street)).toBeNull();
+  });
+});

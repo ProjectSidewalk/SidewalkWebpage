@@ -42,6 +42,7 @@ export class AccessScoreClusterLayer {
   #tooltip;
   #tooltipHtml;
   #onSelect;
+  #onHover;
   #visible = true;
   /**
    * The last collection drawn, kept so a basemap swap can redraw it.
@@ -58,12 +59,15 @@ export class AccessScoreClusterLayer {
    * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - A cluster's `properties` in, its
    *   tooltip's HTML out, or null for no tooltip.
    * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click, with its `properties`.
+   * @param {(props: ?AccessScoreClusterProps) => void} [options.onHover] - Called when the pointer lands on a dot,
+   *   with its `properties`, and with null when it leaves (#5748).
    */
-  constructor(map, { types, tooltipHtml, onSelect }) {
+  constructor(map, { types, tooltipHtml, onSelect, onHover = () => {} }) {
     this.#map = map;
     this.#types = types;
     this.#tooltipHtml = tooltipHtml;
     this.#onSelect = onSelect;
+    this.#onHover = onHover;
     this.#tooltip = new mapboxgl.Popup({
       closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'acs-tooltip', maxWidth: '280px',
     });
@@ -116,6 +120,20 @@ export class AccessScoreClusterLayer {
 
   #applyVisibility() {
     for (const id of this.#layers) this.#map.setLayoutProperty(id, 'visibility', this.#visible ? 'visible' : 'none');
+  }
+
+  /**
+   * Lights a cluster's dot as the pointer would, for a hover that starts elsewhere (a tile in the street panel,
+   * #5748), or puts it out. The tooltip stays down: the pointer is not on the map. Does not report through `onHover`,
+   * which is for the pointer's own hovers.
+   * @param {?AccessScoreClusterProps} props - The cluster, or null to clear.
+   */
+  setHovered(props) {
+    if (this.#hovered) this.#map.setFeatureState(this.#hovered, { hover: false });
+    this.#hovered = null;
+    if (!props || !this.#visible) return;
+    this.#hovered = { source: AccessScoreClusterLayer.#layerId(props.label_type), id: props.label_cluster_id };
+    this.#map.setFeatureState(this.#hovered, { hover: true });
   }
 
   /**
@@ -177,13 +195,15 @@ export class AccessScoreClusterLayer {
     this.#map.on('mousemove', this.#layers, (e) => {
       if (!this.#visible || !e.features.length) return;
       const feature = e.features[0];
+      const props = AccessScoreClusterLayer.#props(feature);
       if (this.#hovered?.id !== feature.id || this.#hovered?.source !== feature.layer.id) {
         this.#clearHover();
         this.#hovered = { source: feature.layer.id, id: feature.id };
         this.#map.setFeatureState(this.#hovered, { hover: true });
         this.#map.getCanvas().style.cursor = 'pointer';
+        this.#onHover(props);
       }
-      const html = this.#tooltipHtml(AccessScoreClusterLayer.#props(feature));
+      const html = this.#tooltipHtml(props);
       if (html) this.#tooltip.setLngLat(e.lngLat).setHTML(html).addTo(this.#map);
     });
     this.#map.on('mouseleave', this.#layers, () => this.#clearHover());
@@ -221,7 +241,10 @@ export class AccessScoreClusterLayer {
   }
 
   #clearHover() {
-    if (this.#hovered) this.#map.setFeatureState(this.#hovered, { hover: false });
+    if (this.#hovered) {
+      this.#map.setFeatureState(this.#hovered, { hover: false });
+      this.#onHover(null);
+    }
     this.#hovered = null;
     this.#tooltip.remove();
     this.#map.getCanvas().style.cursor = '';
