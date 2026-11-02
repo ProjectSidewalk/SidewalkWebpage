@@ -691,11 +691,22 @@ case class ReportPhoto(
 case class TypeEvidence(labelType: LabelType, locations: Int, labelIds: Seq[Int])
 
 /**
- * A listed street as the page draws it.
+ * A ranked street as the page draws it.
  *
  * @param evidence What's behind the worst stretch's score, per type, in the canonical type order
  */
-case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], photos: Seq[ReportPhoto])
+case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], photos: Seq[ReportPhoto]) {
+
+  /** @return The id of this street's detail section, which stays the same from one day's report to the next. */
+  def anchor: String = s"street-${street.worst.osmWayId}"
+}
+
+object RankedStreetRow {
+
+  /** @return The name a reader sees for a stretch; a way with no OSM name is told apart by the street the tool opens on. */
+  def displayName(stretch: ReportStretch)(using messages: Messages): String =
+    stretch.name.getOrElse(Messages("report.street.unnamed", stretch.toolEdgeId.toString))
+}
 
 /**
  * An item on the fixes list.

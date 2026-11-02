@@ -1,9 +1,9 @@
-@import models.report.{NeighborhoodReport, ReportLinks, ReportPreset}
-@import service.CommonPageData
+@import models.report.{NeighborhoodReport, ReportLinks, ReportPreset, ReportRules}
+@import service.{AccessScoreSpotlight, CommonPageData}
 
 @*
- * Everything needed to reproduce or question this report: when it was computed, how old its scores are, and the three
- * public API reads its numbers come from.
+ * Everything needed to reproduce or question this report: when it was computed, how old its scores are, the three
+ * public API reads its numbers come from, and the full rules that the rest of the page only points to.
  *
  * @param report     The computed report.
  * @param preset     The audience it was written for.
@@ -33,6 +33,23 @@
       </dd>
     </div>
   </dl>
-  <p class="report-note">@Messages("report.provenance.reviewers")</p>
-  <p class="report-note">@Messages("report.provenance.imagery")</p>
+  @if(report.coverage.excludedIds.nonEmpty) {
+    <p class="report-note">
+      <a href="@ReportLinks.count(report.coverage.excludedIds, ReportLinks.galleryFilter(report.regionId, validations = "incorrect"))"
+         data-report-event="Report_OpenGallery">@Messages("report.coverage.excluded", report.coverage.excludedIds.size)</a>
+    </p>
+  }
+  @if(report.coverage.unclusteredIds.nonEmpty) {
+    <p class="report-note">
+      <a href="@ReportLinks.count(report.coverage.unclusteredIds, ReportLinks.gallery(report.regionId))"
+         data-report-event="Report_OpenGallery">@Messages("report.coverage.unclustered", report.coverage.unclusteredIds.size)</a>
+    </p>
+  }
+  <details class="report-rules">
+    <summary>@Messages("report.provenance.rules")</summary>
+    <p class="report-note">@Messages("report.rule.text", AccessScoreSpotlight.MinStreetLengthMeters.toInt, AccessScoreSpotlight.MinStreetClusters) <a href="@ReportLinks.scoreDocs" data-report-event="Report_OpenAccessScore">@Messages("report.rule.docs")</a></p>
+    <p class="report-note">@Messages("report.punch.rule", ReportRules.FixMinPoints.toInt)</p>
+    <p class="report-note">@Messages("report.inventory.note")</p>
+    <p class="report-note">@Messages("report.provenance.reviewers")</p>
+  </details>
 </footer>

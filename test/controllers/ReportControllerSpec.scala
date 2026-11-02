@@ -37,15 +37,7 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val resp = report()
       status(resp) mustBe OK
       contentType(resp) mustBe Some("text/html")
-      contentAsString(resp) must include("report-coverage-title")
-    }
-
-    "state the screening limit on every report" in {
-      val messages = app.injector.instanceOf[play.api.i18n.MessagesApi]
-      val expected = messages("report.coverage.disclaimer")(using play.api.i18n.Lang("en"))
-      play.twirl.api.HtmlFormat.raw(contentAsString(report())).body must include(
-        play.twirl.api.HtmlFormat.escape(expected).body
-      )
+      contentAsString(resp) must include("report-overview-title")
     }
 
     "be a 404 for a region that doesn't exist" in {
@@ -64,8 +56,8 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       contentAsString(unknown) must include("""data-preset="advocate"""")
     }
 
-    "put the inventory first for a coordinator and last for an advocate, with the same numbers" in {
-      def order(body: String): Boolean = body.indexOf("report-inventory-title") < body.indexOf("report-streets-title")
+    "put the inventory ahead of the fixes for a coordinator and behind them for an advocate" in {
+      def order(body: String): Boolean = body.indexOf("report-inventory-title") < body.indexOf("report-punch-title")
       order(contentAsString(report("?preset=coordinator"))) mustBe true
       order(contentAsString(report("?preset=advocate"))) mustBe false
     }

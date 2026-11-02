@@ -1,0 +1,36 @@
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportPreset}
+
+@*
+ * Where you are in the report. Server-rendered so the links work before, and without, report.js; PageToc only marks the
+ * current one. Every street gets an entry, so the list is also a way to jump straight to one.
+ *
+ * @param report The computed report.
+ * @param preset The audience, which decides the order of the sections.
+ *@
+@(report: NeighborhoodReport, preset: ReportPreset)(using messages: Messages)
+
+@item(id: String, label: String) = {<li class="toc-level-1"><a href="#@id" data-report-event="Report_TocClick">@label</a></li>}
+
+<nav class="page-toc report-toc" id="report-toc" aria-labelledby="report-toc-title">
+  <h2 class="page-toc-header" id="report-toc-title">@Messages("report.toc.title")</h2>
+  <ul>
+    @item("report-summary", Messages("report.toc.summary"))
+    @item("report-overview", Messages("report.toc.streets"))
+    @if(preset == ReportPreset.Coordinator) {
+      @item("report-inventory-title", Messages(s"report.inventory.title.${preset.name}"))
+      @item("report-punch-title", Messages(s"report.punch.title.${preset.name}"))
+    } else {
+      @item("report-punch-title", Messages(s"report.punch.title.${preset.name}"))
+      @item("report-inventory-title", Messages(s"report.inventory.title.${preset.name}"))
+    }
+    @if(report.streets.nonEmpty) {
+      @item("report-streets-title", Messages("report.toc.details"))
+      @for(row <- report.streets) {
+        <li class="toc-level-2">
+          <a href="#@row.anchor" data-report-event="Report_TocClick" data-street="@row.street.worst.osmWayId"><span class="report-toc__dot" data-score="@row.street.worst.score" aria-hidden="true"></span>@RankedStreetRow.displayName(row.street.worst)</a>
+        </li>
+      }
+    }
+    @item("report-provenance-title", Messages("report.provenance.title"))
+  </ul>
+</nav>

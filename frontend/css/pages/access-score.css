@@ -28,46 +28,6 @@
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
-/* The "i" button that stands in for a paragraph of explanation. Sized to the 24px touch-comfortable minimum while
-   drawing as a small circle, so it sits quietly beside a heading or a checkbox rather than competing with it. */
-.acs-info {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  margin: -4px 0 -4px 2px;
-  border: 0;
-  background: none;
-  color: var(--color-neutral-600);
-  cursor: help;
-}
-
-.acs-info span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border: 1px solid currentcolor;
-  border-radius: 50%;
-  font: var(--text-tiny-semibold);
-  line-height: 1;
-}
-
-.acs-info:hover,
-.acs-info:focus-visible {
-  color: var(--color-link-200);
-}
-
-.acs-info:focus-visible {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: 1px;
-  border-radius: 50%;
-}
-
 /* A label and its info button on one line, above the control they describe. */
 .acs-subsection-head {
   display: flex;

@@ -5,9 +5,9 @@
 @import views.html.apps.report as reportViews
 
 @*
- * One neighborhood's report (#5876). Everything is server-rendered, so printing and saving as PDF need no JavaScript;
- * report.js only adds the print and copy-link buttons and the click logging. It builds no pano and no map, so a view
- * costs no billable Google call: the pano is one click away on each label's own card.
+ * One neighborhood's report (#5876), laid out as the site's other tools are: settings on the left, the report in the
+ * middle, and where you are in it on the right. Overview first, then detail: the full street list comes before any
+ * single street.
  *
  * Its scores are AccessScore's own, read from the tool's cache, so the two can't disagree. The page's rule is that no
  * number appears without a way to see what's behind it: a count links to its labels, a score to the AccessScore tool.
@@ -30,75 +30,71 @@
 @common.main(commonData, Messages("report.seo.title", report.regionName), url = "/report") {
   @common.navbar(commonData, user)
 
-  <main class="report-page" id="report-page" data-region-id="@report.regionId" data-preset="@preset.name">
-    <header class="report-head">
-      <p class="report-eyebrow">@Messages("report.eyebrow")</p>
-      <h1 class="report-title">@report.regionName</h1>
-      @for(city <- cityName) {<p class="report-city">@city</p>}
-      <p class="report-generated">
-        @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))
-        @for(last <- report.coverage.lastObservation) {@Messages("report.latest.observation", dateLabel(last))}
-      </p>
-      <div class="report-toolbar">
-        <nav class="report-presets" aria-label="@Messages("report.preset.label")">
-          <span class="report-presets__label" aria-hidden="true">@Messages("report.preset.label")</span>
-          @for(option <- ReportPreset.values) {
-            <a class="report-presets__option" href="?preset=@option.name"
-               @if(option == preset) {aria-current="page"}>@Messages(s"report.preset.${option.name}")</a>
-          }
-        </nav>
-        @* Both need JavaScript, so report.js reveals them. The browser's own print and address bar work without. *@
-        <div class="report-actions" id="report-actions" hidden>
-          <button type="button" class="button button--secondary button--small" id="report-print">@Messages("report.print")</button>
-          <button type="button" class="button button--secondary button--small" id="report-copy-link">@Messages("report.copy.link")</button>
-        </div>
-      </div>
-    </header>
+  <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId" data-preset="@preset.name">
+    @reportViews.sidebar(preset)
 
-    @reportViews.coverage(report)
-
-    <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
-      <div class="report-score">
-        <p class="report-score__label">@Messages("report.score.label")</p>
-        @report.score.score.map { score =>
-          <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
-          <p class="report-score__detail">@Messages("report.score.detail")</p>
-        }.getOrElse {
-          <p class="report-score__value">@Messages("report.score.none")</p>
-          <p class="report-score__detail">@Messages("report.score.none.detail", report.score.percentRequired, report.score.percentExplored)</p>
-        }
-      </div>
-      <p class="report-headline">@Messages(s"${report.headline.key}.${preset.name}", report.headline.args*)</p>
-      @if(report.headline.labelIds.nonEmpty) {
-        <p class="report-headline__evidence">
-          <a href="@ReportLinks.count(report.headline.labelIds, ReportLinks.worstFilter(report.regionId))"
-             data-report-event="Report_OpenGallery">@Messages("report.headline.evidence", report.headline.locationCount, report.headline.labelIds.size)</a>
+    <main class="page-content report-page" id="report-page">
+      <header class="report-head" id="report-summary">
+        <p class="report-eyebrow">@Messages("report.eyebrow")</p>
+        <h1 class="report-title">@report.regionName</h1>
+        <p class="report-generated">
+          @for(city <- cityName) {@city ·}
+          @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))
+          @for(last <- report.coverage.lastObservation) {@Messages("report.latest.observation", dateLabel(last))}
         </p>
+      </header>
+
+      <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
+        <div class="report-score">
+          <p class="report-score__label">
+            @Messages("report.score.label")
+            @reportViews.info(if(report.score.score.isDefined) Messages("report.score.detail") else Messages("report.score.none.detail", report.score.percentRequired, report.score.percentExplored))
+          </p>
+          @report.score.score.map { score =>
+            <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
+          }.getOrElse {
+            <p class="report-score__value">@Messages("report.score.none")</p>
+          }
+        </div>
+        <div class="report-headline-body">
+          <p class="report-headline">@Messages(s"${report.headline.key}.${preset.name}", report.headline.args*)</p>
+          @if(report.headline.labelIds.nonEmpty) {
+            <p class="report-headline__evidence">
+              <a href="@ReportLinks.count(report.headline.labelIds, ReportLinks.worstFilter(report.regionId))"
+                 data-report-event="Report_OpenGallery">@Messages("report.headline.evidence", report.headline.locationCount)</a>
+            </p>
+          }
+        </div>
+      </section>
+
+      @reportViews.coverage(report)
+      @reportViews.overview(report, preset)
+
+      @if(preset == ReportPreset.Coordinator) {
+        @reportViews.inventory(report, preset)
+        @reportViews.punchList(report, preset, commonData.cityId)
+      } else {
+        @reportViews.punchList(report, preset, commonData.cityId)
+        @reportViews.inventory(report, preset)
       }
-    </section>
 
-    @if(preset == ReportPreset.Coordinator) {
-      @reportViews.inventory(report, preset)
       @reportViews.streets(report, preset)
-      @reportViews.punchList(report, preset, commonData.cityId)
-    } else {
-      @reportViews.streets(report, preset)
-      @reportViews.punchList(report, preset, commonData.cityId)
-      @reportViews.inventory(report, preset)
-    }
 
-    <section class="report-section report-deeper" aria-labelledby="report-deeper-title">
-      <h2 class="report-section__title" id="report-deeper-title">@Messages("report.deeper.title")</h2>
-      <ul class="report-deeper__list">
-        <li><a href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
-        <li><a href="@ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
-        <li><a href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
-        <li><a href="@ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
-      </ul>
-    </section>
+      <section class="report-section report-deeper" aria-labelledby="report-deeper-title">
+        <h2 class="report-section__title" id="report-deeper-title">@Messages("report.deeper.title")</h2>
+        <ul class="report-deeper__list">
+          <li><a href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
+          <li><a href="@ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
+          <li><a href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
+          <li><a href="@ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
+        </ul>
+      </section>
 
-    @reportViews.provenance(report, preset, commonData)
-  </main>
+      @reportViews.provenance(report, preset, commonData)
+    </main>
+
+    @reportViews.toc(report, preset)
+  </div>
 
   @ViteAssets.stylesheets("report")
   <script type="module" src='@assets.path("build/js/report.js")'></script>

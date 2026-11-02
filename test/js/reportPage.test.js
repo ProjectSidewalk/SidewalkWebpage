@@ -14,7 +14,7 @@ mockModule('i18next', () => ({ default: { t: (key) => key } }));
 mockModule('frontend/js/common/copyToClipboard.js', () => ({ copyToClipboard }));
 
 const PAGE = `
-  <main id="report-page" data-region-id="10" data-preset="coordinator">
+  <div id="report-shell" data-region-id="10" data-preset="coordinator"><main id="report-page">
     <a id="gallery" href="#" data-report-event="Report_OpenGallery"><span id="gallery-inner">5</span></a>
     <a id="plain" href="#">unlogged</a>
     <img class="report-photo__image" id="photo-a" loading="lazy" alt="">
@@ -23,7 +23,7 @@ const PAGE = `
       <button id="report-print" type="button">Print</button>
       <button id="report-copy-link" type="button">Copy</button>
     </div>
-  </main>`;
+  </main><aside id="report-sidebar"><button id="report-sidebar-toggle" hidden></button><div id="report-sidebar-body"></div></aside><nav id="report-toc"></nav></div>`;
 
 describe('report page', () => {
   beforeAll(async () => {

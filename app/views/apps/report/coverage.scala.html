@@ -1,10 +1,11 @@
 @import controllers.helper.ControllerUtils
 @import models.report.{Coverage, NeighborhoodReport, ReportLinks}
 @import models.utils.CommonUtils
+@import views.html.apps.report as reportViews
 
 @*
  * What the report is based on, stated before anything it concludes: how much was looked at, by how many people, how
- * much of it a second person checked, and how old the imagery is. The screening sentence is fixed, on every report.
+ * much of it a second person checked, and how old the imagery is.
  *
  * @param report The computed report.
  *@
@@ -22,8 +23,7 @@
   <a class="report-stat__value" href="@ReportLinks.count(ids, fallback)" data-report-event="Report_OpenGallery">@label</a>
 }
 
-<section class="report-section report-coverage" aria-labelledby="report-coverage-title">
-  <h2 class="report-section__title" id="report-coverage-title">@Messages("report.coverage.title")</h2>
+<section class="report-section report-coverage" aria-label="@Messages("report.toc.summary")">
   <dl class="report-stats">
     <div class="report-stat">
       <dt class="report-stat__label">@Messages("report.coverage.screened.label")</dt>
@@ -46,17 +46,15 @@
       </dd>
     </div>
     <div class="report-stat">
-      <dt class="report-stat__label">@Messages("report.coverage.reviewed.label")</dt>
+      <dt class="report-stat__label">@Messages("report.coverage.reviewed.label") @reportViews.info(Messages("report.coverage.reviewed.detail"))</dt>
       <dd class="report-stat__body">
         @countLink(coverage.reviewedIds, ReportLinks.gallery(report.regionId), Messages("report.count", coverage.reviewedIds.size))
-        <span class="report-stat__detail">@Messages("report.coverage.reviewed.detail")</span>
       </dd>
     </div>
     <div class="report-stat">
-      <dt class="report-stat__label">@Messages("report.coverage.confirmed.label")</dt>
+      <dt class="report-stat__label">@Messages("report.coverage.confirmed.label") @reportViews.info(Messages("report.coverage.confirmed.detail"))</dt>
       <dd class="report-stat__body">
         @countLink(coverage.confirmedIds, ReportLinks.galleryFilter(report.regionId, validations = "correct"), Messages("report.count", coverage.confirmedIds.size))
-        <span class="report-stat__detail">@Messages("report.coverage.confirmed.detail")</span>
       </dd>
     </div>
     <div class="report-stat">
@@ -71,17 +69,4 @@
       </dd>
     </div>
   </dl>
-  @if(coverage.excludedIds.nonEmpty) {
-    <p class="report-note">
-      <a href="@ReportLinks.count(coverage.excludedIds, ReportLinks.galleryFilter(report.regionId, validations = "incorrect"))"
-         data-report-event="Report_OpenGallery">@Messages("report.coverage.excluded", coverage.excludedIds.size)</a>
-    </p>
-  }
-  @if(coverage.unclusteredIds.nonEmpty) {
-    <p class="report-note">
-      <a href="@ReportLinks.count(coverage.unclusteredIds, ReportLinks.gallery(report.regionId))"
-         data-report-event="Report_OpenGallery">@Messages("report.coverage.unclustered", coverage.unclusteredIds.size)</a>
-    </p>
-  }
-  <p class="report-disclaimer">@Messages("report.coverage.disclaimer")</p>
 </section>

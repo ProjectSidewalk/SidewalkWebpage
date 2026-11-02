@@ -58,7 +58,6 @@ case class ReportData(
 )
 
 object ReportService {
-  val TopStreets: Int      = 10
   val PhotosPerStreet: Int = 4
   val FixListSize: Int     = 5
 
@@ -144,7 +143,7 @@ object ReportService {
    * What a report shows, decided before anything is fetched for the shown labels alone.
    *
    * @param ranked The region's ranked streets, lowest first
-   * @param strips The listed streets, each with the items and labels to show as its photos
+   * @param strips The ranked streets, each with the items and labels to show as its photos
    */
   case class ReportSelection(
       ranked: Seq[ReportStreet],
@@ -172,10 +171,9 @@ object ReportService {
   ): ReportSelection = {
     val stretches = streets.groupBy(_.osmWayId).values.toSeq.flatMap(ReportStretch.build(_, evidence))
     val ranked    = ReportStreet.rank(stretches)
-    val listed    = ranked.filter(_.worst.score < AccessScoreSpotlight.LowestMaxScore).take(TopStreets)
     ReportSelection(
       ranked = ranked,
-      strips = listed.map(s => s -> ReportRules.selectPhotos(s.worst, labels, PhotosPerStreet, hasCrop)),
+      strips = ranked.map(s => s -> ReportRules.selectPhotos(s.worst, labels, PhotosPerStreet, hasCrop)),
       picks = ReportRules.fixes(ranked, labels, FixListSize, hasCrop)
     )
   }

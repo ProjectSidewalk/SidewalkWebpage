@@ -18,7 +18,7 @@
 }
 
 <section class="report-section report-punch" aria-labelledby="report-punch-title">
-  <h2 class="report-section__title" id="report-punch-title">@Messages(s"report.punch.title.${preset.name}")</h2>
+  <h2 class="report-section__title" id="report-punch-title">@Messages(s"report.punch.title.${preset.name}") @reportViews.info(Messages("report.punch.rule.short"))</h2>
   @if(report.fixes.isEmpty) {
     <p class="report-empty">@Messages("report.punch.none")</p>
   } else {
@@ -50,6 +50,5 @@
         </li>
       }
     </ol>
-    <p class="report-rule">@Messages("report.punch.rule", ReportRules.FixMinPoints.toInt)</p>
   }
 </section>

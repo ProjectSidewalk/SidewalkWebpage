@@ -1,0 +1,43 @@
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks, ReportPreset}
+@import service.AccessScoreSpotlight
+@import views.html.apps.report as reportViews
+
+@*
+ * Overview first: every street AccessScore ranks here, in its order and with its numbers, each row jumping down to that
+ * street's detail. The bars are painted by report.js from `data-score`, through the same ramp the landing page uses;
+ * the number beside each is the fact and works without them.
+ *
+ * @param report The computed report.
+ * @param preset The audience, for the section's vocabulary.
+ *@
+@(report: NeighborhoodReport, preset: ReportPreset)(using messages: Messages)
+
+@titleKey = @{if (report.isProvisional) s"report.streets.title.sofar.${preset.name}" else s"report.streets.title.${preset.name}"}
+
+<section class="report-section report-overview" id="report-overview" aria-labelledby="report-overview-title">
+  <h2 class="report-section__title" id="report-overview-title">
+    @Messages(titleKey)
+    @if(report.streetsRanked > 0) {
+      @reportViews.info(Messages("report.rule.short"))
+    }
+  </h2>
+  @if(report.isProvisional && report.streetsRanked > 0) {
+    <p class="report-section__intro">@Messages("report.streets.sofar", report.score.percentExplored)</p>
+  }
+  @if(report.streets.isEmpty) {
+    <p class="report-empty">@Messages("report.streets.none.unranked")</p>
+  } else {
+    <div class="report-overview__body">
+      <ol class="report-rank" id="report-rank">
+        @for(row <- report.streets) {
+          <li class="report-rank__row" data-street="@row.street.worst.osmWayId">
+            <span class="report-rank__position" aria-hidden="true">@row.rank</span>
+            <a class="report-rank__name" href="#@row.anchor" data-report-event="Report_OpenStreet">@RankedStreetRow.displayName(row.street.worst)</a>
+            <span class="report-rank__track" aria-hidden="true"><span class="report-rank__bar" data-score="@row.street.worst.score"></span></span>
+            <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>
+          </li>
+        }
+      </ol>
+    </div>
+  }
+</section>

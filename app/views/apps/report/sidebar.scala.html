@@ -1,0 +1,33 @@
+@import models.report.ReportPreset
+
+@*
+ * The report's controls. On a narrow screen the column folds into a strip holding its disclosure button, the same as
+ * every other `.page-*` shell; the button is rendered here rather than built in JS so its label goes through Play's
+ * i18n. Print and copy-link need JavaScript, so report.js reveals them.
+ *
+ * @param preset The audience the report is written for.
+ *@
+@(preset: ReportPreset)(using messages: Messages)
+
+<aside class="page-sidebar report-sidebar" id="report-sidebar" aria-label="@Messages("report.sidebar.label")">
+  <button type="button" class="page-sidebar-toggle" id="report-sidebar-toggle" hidden>
+    <span class="page-sidebar-toggle-label">@Messages("report.sidebar.label")</span>
+    <svg class="page-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <div class="page-nav report-sidebar__body" id="report-sidebar-body">
+    <nav class="report-control" aria-labelledby="report-preset-label">
+      <h2 class="report-control__title" id="report-preset-label">@Messages("report.preset.label")</h2>
+      <div class="report-presets">
+        @for(option <- ReportPreset.values) {
+          <a class="report-presets__option" href="?preset=@option.name"
+             @if(option == preset) {aria-current="page"}>@Messages(s"report.preset.${option.name}")</a>
+        }
+      </div>
+    </nav>
+    <div class="report-actions" id="report-actions" hidden>
+      <button type="button" class="button button--secondary button--small" id="report-print">@Messages("report.print")</button>
+      <button type="button" class="button button--secondary button--small" id="report-copy-link">@Messages("report.copy.link")</button>
+    </div>
+  </div>
+</aside>

@@ -1,12 +1,83 @@
-/* A neighborhood report (#5876): a long, printable document rather than a tool, so it doesn't use --ui-scale's tool
-   sizing beyond what the tokens already carry. */
+/* A neighborhood report (#5876), in the .page-* shell: controls on the left, the report in the middle, contents on the
+   right. A long, printable page rather than a tool canvas, so it doesn't use --ui-scale's tool sizing beyond what the
+   tokens already carry. */
 
+.report-shell {
+  --sidebar-width: 240px;
+  --toc-width: 220px;
+}
+
+/* `clip` rather than the shell's `hidden`: a hidden overflow makes the column a scroll container, and a sticky map
+   inside would then stick to a box that never scrolls. */
 .report-page {
-  width: 100%;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md) var(--space-xxl);
+  min-width: 0;
+  padding: var(--space-lg) var(--space-lg) var(--space-xxl);
+  overflow-x: clip;
   color: var(--color-neutral-900);
+}
+
+.report-sidebar__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+}
+
+.report-control__title {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+}
+
+/* A long contents list scrolls in its own column, so an anchor needs clearing from the navbar only on the page side. */
+.report-toc {
+  padding: var(--space-lg) var(--space-md);
+}
+
+.report-toc ul li {
+  margin-bottom: var(--space-xxs);
+}
+
+.report-toc__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--space-xxs);
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+}
+
+.report-page [id] {
+  scroll-margin-top: calc(var(--navbar-height) + var(--space-md));
+}
+
+.report-toc .toc-level-2 {
+  margin-left: var(--space-sm);
+}
+
+/* Three columns need this much room before each is usable; the contents give way first. */
+@media (width <= 1280px) {
+  .report-toc {
+    display: none;
+  }
+
+  .report-page {
+    max-width: calc(100% - var(--sidebar-width));
+  }
+}
+
+@media (width <= 768px) {
+  .report-page {
+    max-width: 100%;
+    padding-inline: var(--space-md);
+  }
+}
+
+/* The strip's disclosure button belongs to narrow screens only, whatever report.js reveals. */
+@media (width > 768px) {
+  .report-sidebar .page-sidebar-toggle {
+    display: none;
+  }
 }
 
 .report-page a {
@@ -29,35 +100,20 @@
   line-height: 38px;
 }
 
-.report-city,
 .report-generated {
   margin: var(--space-xxs) 0 0;
   font: var(--text-body-regular);
   color: var(--color-neutral-800);
 }
 
-.report-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-lg);
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-md);
-}
-
 .report-presets {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-xs);
-  align-items: center;
+  align-items: flex-start;
 }
 
-.report-presets__label {
-  font: var(--text-small-medium);
-  color: var(--color-neutral-800);
-}
-
-.report-page .report-presets__option {
+.report-sidebar .report-presets__option {
   padding: var(--space-xxs) var(--space-sm);
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
@@ -66,7 +122,7 @@
   border-radius: 999px;
 }
 
-.report-page .report-presets__option[aria-current="page"] {
+.report-sidebar .report-presets__option[aria-current="page"] {
   color: var(--color-neutral-white);
   background: var(--color-neutral-900);
   border-color: var(--color-neutral-900);
@@ -74,7 +130,8 @@
 
 .report-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-xs);
 }
 
@@ -101,17 +158,19 @@
   color: var(--color-neutral-800);
 }
 
-.report-note,
-.report-rule {
+.report-note {
   margin: var(--space-sm) 0 0;
   font: var(--text-small-regular);
   color: var(--color-neutral-800);
 }
 
-.report-rule {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-neutral-100);
-  border-radius: var(--border-radius);
+.report-rules {
+  margin-top: var(--space-md);
+}
+
+.report-rules summary {
+  font: var(--text-small-medium);
+  cursor: pointer;
 }
 
 /* ---- Coverage ------------------------------------------------------------------------------------------------- */
@@ -151,15 +210,23 @@
   color: var(--color-neutral-800);
 }
 
-.report-disclaimer {
-  margin: var(--space-sm) 0 0;
-  font: var(--text-body-medium);
-}
-
 /* ---- Headline ------------------------------------------------------------------------------------------------- */
 
+/* The score beside its one sentence: what a reader takes away if they read nothing else. */
+.report-headline-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  align-items: center;
+}
+
 .report-score {
-  margin-bottom: var(--space-md);
+  flex: none;
+}
+
+.report-headline-body {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .report-score__label {
@@ -174,12 +241,6 @@
   font: var(--text-h3-bold);
 }
 
-.report-score__detail {
-  margin: var(--space-xxs) 0 0;
-  font: var(--text-small-regular);
-  color: var(--color-neutral-800);
-}
-
 .report-headline {
   margin: 0;
   font: var(--text-h3-bold);
@@ -188,6 +249,64 @@
 .report-headline__evidence {
   margin: var(--space-xs) 0 0;
   font: var(--text-body-regular);
+}
+
+/* ---- Overview: every street ---------------------------------------------------------------------------------- */
+
+.report-rank {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* The landing page's Spotlight row, so a ranked street looks the same wherever it's ranked. */
+.report-rank__row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 96px 44px;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+.report-rank__row:hover,
+.report-rank__row:focus-within,
+.report-rank__row.is-highlighted {
+  background: var(--color-neutral-100);
+}
+
+.report-rank__position {
+  font: var(--text-caption-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+  text-align: right;
+}
+
+.report-rank__name {
+  overflow: hidden;
+  font: var(--text-small-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-rank__track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: var(--color-neutral-200);
+  border-radius: 4px;
+}
+
+.report-rank__bar {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.report-rank__score {
+  font: var(--text-small-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* ---- Ranked streets ------------------------------------------------------------------------------------------- */
@@ -441,10 +560,14 @@
 /* ---- Print: the photos stay, small, and the page's own chrome goes ------------------------------------------- */
 
 @media print {
+  .report-sidebar,
+  .report-toc {
+    display: none;
+  }
+
   nav,
   footer:not(.report-provenance),
   .test-server-banner,
-  .report-toolbar,
   .report-deeper {
     display: none !important;
   }
@@ -452,6 +575,7 @@
   .report-page {
     max-width: none;
     padding: 0;
+    overflow: visible;
   }
 
   .report-section {

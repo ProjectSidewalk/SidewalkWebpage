@@ -93,10 +93,9 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
           row.photos.map(_.label.labelId).toSet.subsetOf(locations.flatMap(_.labelIds).toSet) mustBe true
           row.photos.size must be <= ReportService.PhotosPerStreet
           row.street.worst.isRanked mustBe true
-          row.street.worst.score must be < AccessScoreSpotlight.LowestMaxScore
         }
 
-        report.streets.size must be <= ReportService.TopStreets
+        report.streets.size mustBe report.streetsRanked
         report.streets.map(_.rank) mustBe report.streets.indices.map(_ + 1)
         report.streets.map(_.street.worst.score) mustBe report.streets.map(_.street.worst.score).sorted
 

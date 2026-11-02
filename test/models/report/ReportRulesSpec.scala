@@ -559,7 +559,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     )
 
     report.streetsRanked shouldBe 2
-    report.streets.map(_.street.worst.name.get) shouldBe Seq("Low St")
+    report.streets.map(_.street.worst.name.get) shouldBe Seq("Low St", "High St")
     val row = report.streets.head
     row.evidence.map(e => (e.labelType, e.locations)) shouldBe Seq((NoCurbRamp, 1), (Obstacle, 3))
     row.evidence.flatMap(_.labelIds) should contain theSameElementsAs (low :+ shared).flatMap(_.labelIds)
