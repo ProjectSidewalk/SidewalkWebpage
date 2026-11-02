@@ -596,7 +596,11 @@ loaded by the corresponding Twirl view:
   `LabelMiniCard` tile per cluster along the block and at each crossing, costliest first, each wearing what that
   cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
   type since the engine scores a cluster from its median rating and tag counts); a row lights its tiles, a tile its
-  dot on the map; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
+  dot on the map; a crossing's dot, hovered or focused, lights that crossing's clusters and opens the crossing card
+  (`AccessScoreCrossingCard.js`: a Mapbox inset of the intersection, built once and recentered since Mapbox bills
+  the map load, never a Street View pano, with the crossing's clusters on it, the corner types' effects and the
+  crops of its costliest clusters as pictures only, the votable tiles being just below), and pressed flies the map
+  to the crossing; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
   through `ps-map/mapPadding.js`, which keeps the padding the map is heading for so no owner eases to another's
   half-way value or cuts short a fly-to; the
   dock folds to its bar while it is open, and a place's panel is its nearest street's headed by the place; a region

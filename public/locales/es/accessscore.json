@@ -234,5 +234,10 @@
   "panel-effect-pooled": "parte de {{value}}",
   "panel-open-sheet": "Ver las {{count}} etiquetas de este grupo",
   "panel-loading": "Cargando los grupos…",
-  "panel-load-failed": "No se pudieron cargar los grupos."
+  "panel-load-failed": "No se pudieron cargar los grupos.",
+  "panel-crossing-fly": "Acercar el mapa a este cruce",
+  "panel-block-fly": "Acercar el mapa a esta cuadra",
+  "panel-crossing-card": "{{name}}: qué hay allí",
+  "panel-crossing-no-clusters": "No hay grupos puntuados en este cruce.",
+  "panel-crossing-more": "+{{count}} más abajo"
 }

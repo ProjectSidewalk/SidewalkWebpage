@@ -364,8 +364,8 @@ test-js:
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
 # web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
 # then aborts with "did not expect test() to be called here ... two different versions of @playwright/test". An
-# empty dir at that path is what makes resolution fall through to the runner we installed. It covers worktrees
-# too, whose node_modules is a symlink to this one.
+# empty dir at that path is what makes resolution fall through to the runner we installed. A worktree that has run
+# `make qa-worktree` has a node_modules of its own at its path, masked the same way below.
 test-e2e:
 	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
 	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
@@ -385,6 +385,7 @@ test-e2e:
 	fi
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
+	  $(if $(filter /home,$(container-dir)),,--tmpfs $(container-dir)/node_modules) \
 	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL \
 	  -w $(container-dir) $(e2e-image):$(e2e-tag) playwright test $(args)
 

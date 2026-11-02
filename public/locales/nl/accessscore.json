@@ -234,5 +234,10 @@
   "panel-effect-pooled": "deel van {{value}}",
   "panel-open-sheet": "Alle {{count}} labels in dit cluster bekijken",
   "panel-loading": "Clusters laden…",
-  "panel-load-failed": "De clusters konden niet worden geladen."
+  "panel-load-failed": "De clusters konden niet worden geladen.",
+  "panel-crossing-fly": "Zoom de kaart in op deze oversteek",
+  "panel-block-fly": "Zoom de kaart in op dit blok",
+  "panel-crossing-card": "{{name}}: wat er is",
+  "panel-crossing-no-clusters": "Geen beoordeelde clusters bij deze oversteek.",
+  "panel-crossing-more": "+{{count}} meer hieronder"
 }

@@ -220,5 +220,10 @@
   "panel-effect-pooled": "{{value}} 的一部分",
   "panel-open-sheet": "查看這個群集的全部 {{count}} 個標記",
   "panel-loading": "正在載入群集…",
-  "panel-load-failed": "無法載入群集。"
+  "panel-load-failed": "無法載入群集。",
+  "panel-crossing-fly": "將地圖縮放至此路口",
+  "panel-block-fly": "將地圖縮放至此街段",
+  "panel-crossing-card": "{{name}}：那裡有什麼",
+  "panel-crossing-no-clusters": "此路口沒有已評分的群集。",
+  "panel-crossing-more": "下方還有 {{count}} 個"
 }

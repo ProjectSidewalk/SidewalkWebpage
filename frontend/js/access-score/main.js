@@ -52,6 +52,8 @@ export const AccessScoreApp = (function () {
   const DRAG_KINDS = new Set(['Weight', 'GradeWeight']);
   /** Close enough to read one block and its neighbors, where a rank row's street lands (#5223). */
   const STREET_ZOOM = 15;
+  /** Close enough to tell one intersection's corners apart, where a crossing dot's press lands (#5748). */
+  const CROSSING_ZOOM = 18;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
   /**
@@ -294,6 +296,13 @@ export const AccessScoreApp = (function () {
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
       onOpenSheet: (props, effect) => evidence.openSheet(props, effect),
       onHoverCluster: (props) => evidence.layer.setHovered(props),
+      onHoverGroup: (list) => evidence.layer.setHighlighted(list),
+      // The block flies as a rank row does; a crossing closer, to its corners.
+      onFlyTo: (lngLat, where) => {
+        if (where === 'block') flyToStreet(lngLat);
+        else map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), CROSSING_ZOOM), padding: paddingTarget(map) });
+      },
+      cardStyleUrl: MAP_STYLES.light,
       log,
     });
     evidence.onHover((props) => panel.lightCluster(props?.label_cluster_id ?? null));

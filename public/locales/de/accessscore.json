@@ -234,5 +234,10 @@
   "panel-effect-pooled": "Teil von {{value}}",
   "panel-open-sheet": "Alle {{count}} Labels dieses Clusters ansehen",
   "panel-loading": "Cluster werden geladen …",
-  "panel-load-failed": "Die Cluster konnten nicht geladen werden."
+  "panel-load-failed": "Die Cluster konnten nicht geladen werden.",
+  "panel-crossing-fly": "Karte auf diese Kreuzung zoomen",
+  "panel-block-fly": "Karte auf diesen Block zoomen",
+  "panel-crossing-card": "{{name}}: was dort ist",
+  "panel-crossing-no-clusters": "Keine bewerteten Cluster an dieser Kreuzung.",
+  "panel-crossing-more": "+{{count}} weitere unten"
 }
