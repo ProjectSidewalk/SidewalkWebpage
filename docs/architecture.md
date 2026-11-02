@@ -256,8 +256,9 @@ no query.
 
 `/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
 open longer holds URLs that 403. The client re-signs before using one near its `exp` (`freshBackupImage`,
-`freshCropUrl` in `utilitiesSidewalk.js`, from the two `/metadata` endpoints), and `LabelMiniCard` also re-signs once
-on any failed load of a signed URL, which covers a client clock running behind the server's (#5861).
+`freshCropUrl` in `utilitiesSidewalk.js`, from the two `/metadata` endpoints). `LabelMiniCard` and the label popup's
+crop fallback also re-sign once on any failed load of a signed URL, which covers a client clock running behind the
+server's; Pannellum's loads (Validate, the popup) rely on the margin alone (#5861).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,

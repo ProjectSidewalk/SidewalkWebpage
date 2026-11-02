@@ -42,10 +42,10 @@ export class LabelMiniCard {
    * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
    * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
-   * @param {Function} [options.onImageUrlRefresh] - Called with a copy of the label after its picture's signed URL
-   *     was re-signed (#5861), so a host that caches the label JSON can keep the fresh URL for its next render.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
+   * @param {Function} [options.onImageUrlRefresh] - Called with a copy of the label after its picture's signed URL
+   *     was re-signed (#5861), so a host that caches the label JSON can keep the fresh URL for its next render.
    */
   constructor(label, { size = 'sheet', onOpen = () => {}, onVote = () => {}, source, log = () => {}, className = '',
     tag = 'li', onImageUrlRefresh = () => {} }) {
@@ -197,7 +197,7 @@ export class LabelMiniCard {
    * @returns {Promise<void>}
    */
   async #onImageError(image) {
-    if (!image.dataset.resigned && isSignedUrl(image.src) && await this.#loadFreshImage(image)) return;
+    if (!image.dataset.resigned && isSignedUrl(image.src) && await this.#loadFreshImage(image, true)) return;
     this.#showPlaceholder(image);
   }
 
@@ -205,16 +205,18 @@ export class LabelMiniCard {
    * Re-signs the picture's URL (the crop's, or the backup pano's when there is no crop) and loads it. Marks the
    * picture so a second failure goes to the placeholder rather than round again.
    * @param {HTMLImageElement} image - The picture to reload.
+   * @param {boolean} [refused=false] - Whether the server just refused the URL, so a held backup URL that the client's
+   *     clock still thinks good must not be handed back.
    * @returns {Promise<boolean>} False when no fresh URL could be had. True once it is loading, or when a re-render
    *     replaced the picture meanwhile (that render's picture looks after itself).
    */
-  async #loadFreshImage(image) {
+  async #loadFreshImage(image, refused = false) {
     image.dataset.resigned = 'true';
     const label = this.#label;
     const field = label.crop_url ? 'crop_url' : 'backup_image_url';
     const fresh = field === 'crop_url'
       ? await fetchCropImageMetadata(label.label_type, label.label_id)
-      : await fetchBackupImageMetadata(label.pano_id);
+      : await fetchBackupImageMetadata(label.pano_id, { refresh: refused });
     if (image !== this.#els.image) return true;
     if (!fresh?.image_url) return false;
     label[field] = fresh.image_url;

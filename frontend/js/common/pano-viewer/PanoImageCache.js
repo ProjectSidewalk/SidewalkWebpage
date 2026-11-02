@@ -71,13 +71,18 @@ export class PanoImageCache {
    * The cache key for a network URL: the URL without its signature parameters, so a re-signed URL still finds the
    * bytes fetched under the old one.
    * @param {string} url - The network URL, absolute or path-relative.
-   * @returns {string} The key.
+   * @returns {string} The key; the URL itself when it doesn't parse, so a bad URL fails at its fetch, as it always
+   *     has, rather than here.
    */
   static keyFor(url) {
-    const parsed = new URL(url, window.location.origin);
-    parsed.searchParams.delete('exp');
-    parsed.searchParams.delete('sig');
-    return parsed.href;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      parsed.searchParams.delete('exp');
+      parsed.searchParams.delete('sig');
+      return parsed.href;
+    } catch {
+      return url;
+    }
   }
 
   /**

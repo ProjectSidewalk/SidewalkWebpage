@@ -974,10 +974,14 @@ const backupMetadataRequests = new Map();
  * Fetches a pano's backup metadata, with a signed `image_url` that is not about to expire, from
  * `/backupImage/:panoId/metadata`. Concurrent and repeat calls for one pano share a request while its URL is good.
  * @param {string} panoId
+ * @param {object} [options]
+ * @param {boolean} [options.refresh=false] - Ask the server even when a held URL looks good. For a URL the server just
+ *     refused: the client's clock, which judged it good, may be running behind the server's.
  * @returns {Promise<?BackupImage>} The metadata, or null if the pano has no backup or the request failed.
  */
-export async function fetchBackupImageMetadata(panoId) {
-  const held = backupMetadataRequests.get(panoId);
+export async function fetchBackupImageMetadata(panoId, { refresh = false } = {}) {
+  const held = refresh ? null : backupMetadataRequests.get(panoId);
+  if (refresh) backupMetadataRequests.delete(panoId);
   if (held) {
     const meta = await held;
     if (meta && !signedUrlIsExpired(meta.image_url)) return meta;

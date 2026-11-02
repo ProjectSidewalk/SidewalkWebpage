@@ -132,6 +132,14 @@ describe('re-signing', () => {
       expect(later.image_url).toBe(signedUrl(NOW_SEC + 7200, 'p-age'));
     });
 
+    test('refresh asks the server even while the held URL looks good', async () => {
+      const fetchMock = jsonFetch({ image_url: signedUrl(NOW_SEC + 3600, 'p-refresh') });
+      vi.stubGlobal('fetch', fetchMock);
+      await fetchBackupImageMetadata('p-refresh');
+      await fetchBackupImageMetadata('p-refresh', { refresh: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     test('a failed request is not kept, so the next call tries again', async () => {
       const fetchMock = vi.fn()
         .mockResolvedValueOnce({ ok: false, status: 500 })

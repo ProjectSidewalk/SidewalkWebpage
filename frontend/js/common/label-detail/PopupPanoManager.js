@@ -71,6 +71,13 @@ export class PopupPanoManager {
   #cropUrl;
   /** Whether this load's crop has already been re-signed after a failed load, so a second failure gives it up. */
   #cropRetried = false;
+
+  /**
+   * Called when the crop fallback, which setPano() already reported as shown, fails to load for good and gives way to
+   * the "imagery not available" panel, so the host can lock what it unlocked for an image there is no longer to see.
+   * @type {?Function}
+   */
+  onFallbackLost = null;
   #labelsHidden = false;
 
   /**
@@ -382,9 +389,11 @@ export class PopupPanoManager {
     // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     if (load !== this.#loadToken) return false;
-    // The crop's URL is signed like the backup's and expires with it (#5861).
-    if (this.#cropUrl) this.#cropUrl = await freshCropUrl(this.#cropUrl, this.label?.label_type, this.label?.labelId);
+    // The crop's URL is signed like the backup's and expires with it (#5861). Held locally until the token check, so
+    // a superseded load's answer can't land in the newer label's #cropUrl.
+    const signedCropUrl = await freshCropUrl(this.#cropUrl, this.label?.label_type, this.label?.labelId);
     if (load !== this.#loadToken) return false;
+    this.#cropUrl = signedCropUrl;
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
     this.#finishLoad(load, { showAttribution: cropShown, attribution: ownCopyAttribution });
@@ -513,6 +522,7 @@ export class PopupPanoManager {
     this.#cropUrl = null;
     this.#attribution?.hide();
     this.#panoFailureCallback();
+    this.onFallbackLost?.();
   }
 
   /**

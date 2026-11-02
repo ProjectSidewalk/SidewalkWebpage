@@ -162,6 +162,12 @@ describe('PanoImageCache (issue #5562)', () => {
     expect(cache.has('/backupImage/p1?exp=100&sig=old&maxWidth=8192')).toBe(false);
   });
 
+  test('an unparsable URL is its own key, so it fails at its fetch rather than throwing', async () => {
+    window.fetch = vi.fn(() => Promise.reject(new TypeError('bad URL')));
+    await expect(cache.prefetch('http://[bad')).resolves.toBe(false);
+    expect(() => cache.release('http://[bad')).not.toThrow();
+  });
+
   test('prefetchBackups downloads one at a time: the second starts once the first has settled', async () => {
     let finishFirst;
     window.fetch = vi.fn((url) => (url.includes('p1')

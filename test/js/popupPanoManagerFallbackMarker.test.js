@@ -126,5 +126,41 @@ describe('PopupPanoManager fallback marker', () => {
       expect(document.getElementById('pano-fallback-container').style.display).toBe('none');
       expect(svHolder.querySelector('.pano-not-avail').style.display).toBe('flex');
     });
+
+    test('a crop given up after setPano resolved tells the host, which locks what it unlocked', async () => {
+      answerCropMetadata(null);
+      const manager = await createManager();
+      manager.onFallbackLost = vi.fn();
+      manager.setLabel(popupLabel(null));
+      await expect(manager.setPano('pano-gone', POV, crop(NOW_SEC + 3600), true, null)).resolves.toBe(true);
+
+      document.getElementById('pano-fallback-image').dispatchEvent(new Event('error'));
+      await flush();
+
+      expect(manager.onFallbackLost).toHaveBeenCalledTimes(1);
+    });
+
+    test('a superseded load\'s re-signed crop never reaches the label that replaced it', async () => {
+      // Label 1's crop re-sign and label 2's backup lookup both hang; label 1's answers first.
+      const pending = {};
+      window.fetch = vi.fn((url) => new Promise((resolve) => { pending[url] = resolve; }));
+      const manager = await createManager();
+      manager.setLabel({ ...popupLabel(null), labelId: 1 });
+      const first = manager.setPano('pano-1', POV, crop(NOW_SEC - 60), true, null);
+      await flush();
+      pending['/backupImage/pano-1/metadata']({ ok: false, status: 404 });
+      await flush();
+      manager.setLabel({ ...popupLabel(null), labelId: 2 });
+      const second = manager.setPano('pano-2', POV, null, true, null);
+      await flush();
+
+      const freshFirst = { ok: true, json: () => Promise.resolve({ image_url: crop(NOW_SEC + 3600) }) };
+      pending['/cropImage/CurbRamp/1/metadata'](freshFirst);
+      await expect(first).resolves.toBe(false);
+      pending['/backupImage/pano-2/metadata']({ ok: false, status: 404 });
+
+      await expect(second).resolves.toBe(false);
+      expect(document.getElementById('pano-fallback-image').getAttribute('src')).not.toBe(crop(NOW_SEC + 3600));
+    });
   });
 });
