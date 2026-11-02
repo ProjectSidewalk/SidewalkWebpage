@@ -1,12 +1,10 @@
 # --- !Ups
--- When, and why, the user stopped getting project news by email (#5864). Both NULL, or no row, means they still get it.
--- news_email_consented_at is when they last ticked the box themselves (Settings, or a sign-up form where it starts
--- unchecked), which is the proof of consent the EU-style rules ask for and what the never-consented backfill must not
--- override. Named for the one category it covers, since password resets are never opt-out-able. The table is shared by
--- every city, and an ALTER locks it even when the column is already there, so each city's run after the first checks
--- before taking that lock. CREATE TYPE has no IF NOT EXISTS, hence the pg_type check, and the type needs the shared
--- owner or no other city could ever alter it.
--- Semicolons inside the block are doubled to survive Play's statement splitter (see docs/evolutions.md).
+-- When and why the user stopped getting project news by email (#5864). Both NULL, or no row, means they still get it.
+-- news_email_consented_at is when they last ticked the box themselves, the proof of consent EU-style rules ask for,
+-- which the never-consented backfill leaves alone. The table is shared by every city, and an ALTER locks it even when
+-- the column already exists, so each city's run checks first. CREATE TYPE has no IF NOT EXISTS, hence the pg_type
+-- check, and the type needs the shared owner or no other city could alter it. Semicolons inside the block are doubled
+-- to survive Play's statement splitter (see docs/evolutions.md).
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type

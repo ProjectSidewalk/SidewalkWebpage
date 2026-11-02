@@ -198,7 +198,7 @@ class UserDashboardController @Inject() (
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
    * Units, community service hours, and the project-news email choice are saved to the account, so they apply in
-   * every city (#3720, #5864).
+   * every city, not just this one (#3720, #5864).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user                    = request.identity

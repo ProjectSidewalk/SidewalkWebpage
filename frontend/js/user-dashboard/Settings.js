@@ -1,8 +1,7 @@
 /**
  * Saves the User Dashboard Settings form (#4323) in one request: an optional username change plus the two privacy
  * flags, the service-hours opt-in (#4375), the measurement-units choice (#4404), the project-news email choice
- * (#5864), and the user's team. Posts JSON to
- * the settings save endpoint through the shared `saveUserSettings` helper.
+ * (#5864), and the user's team. Posts JSON to the settings save endpoint through the shared `saveUserSettings` helper.
  * A rejected username (taken, too short, disallowed characters, profanity) comes back as a 400 with a message that
  * is shown inline without applying the rest.
  * Nothing saves as you type, so an UnsavedChangesGuard offers to save pending edits on the way out (#5226).
@@ -43,8 +42,7 @@ export class Settings {
 
   /**
    * @returns {{username: string, on_leaderboard: boolean, public_profile: boolean, community_service: boolean,
-   *     measurement_system: string, news_email?: boolean, team_id: ?number}} The form's current values, in the shape
-   *     the save endpoint takes.
+   *     measurement_system: string, news_email?: boolean, team_id: ?number}} The payload the save endpoint takes.
    */
   #payload() {
     const input = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
@@ -57,8 +55,8 @@ export class Settings {
       community_service: input('set-community-service')?.checked ?? false,
       // 'auto' = follow the site language, which the server saves as no choice.
       measurement_system: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
-      // Left out when the box isn't on the page, which the server reads as "leave it alone": a guessed value here
-      // could re-subscribe someone who opted out.
+      // Left out when the box isn't on the page, which the server reads as "leave it alone"; a guessed value could
+      // re-subscribe someone who opted out.
       ...(input('set-news-email') ? { news_email: input('set-news-email').checked } : {}),
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).

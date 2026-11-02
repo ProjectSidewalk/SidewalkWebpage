@@ -12,17 +12,17 @@ import javax.inject.{Inject, Singleton}
 /**
  * Signs and checks the tokens in the newsletter's unsubscribe links (#5864).
  *
- * A token is `<user id>.<HMAC-SHA256 of the user id>`, so a link works without signing in but can't be made up for
- * someone else, and nobody can walk the user ids. Tokens don't expire: a newsletter sits in inboxes for months, and
- * the worst a leaked token can do is unsubscribe its owner, who can opt back in from Settings.
+ * A token is `<user id>.<HMAC-SHA256 of the user id>`: a link works without signing in, can't be forged for someone
+ * else, and gives away no other user ids. Tokens don't expire, since a newsletter sits in inboxes for months and a
+ * leaked token can only unsubscribe its owner, who can opt back in from Settings.
  */
 @Singleton
 class NewsEmailTokenService @Inject() (config: Configuration) {
-  // The application secret, which every city shares, so a link made by one city's export verifies in any city.
+  // The app secret is shared by every city, so a link from one city's export verifies in any city.
   private val key =
     SecretKeySpec(config.get[String]("play.http.secret.key").getBytes(StandardCharsets.UTF_8), "HmacSHA256")
 
-  // Keyed to this purpose, so a signature made here can never pass as one of the image-serving signatures.
+  // The purpose prefix keeps these signatures from ever passing as image-serving ones.
   private def hmac(userId: String): String = {
     val mac = Mac.getInstance("HmacSHA256")
     mac.init(key)

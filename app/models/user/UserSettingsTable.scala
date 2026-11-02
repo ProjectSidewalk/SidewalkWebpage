@@ -94,7 +94,7 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
 
   /**
    * Opts the user out of project news by email without touching their other settings (#5864). A repeat opt-out
-   * (Settings box, then newsletter link) keeps the first time and reason rather than looking more recent.
+   * (Settings, then the newsletter link) keeps the first time and reason.
    * @return The number of `user_settings` rows written.
    */
   def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): DBIO[Int] = {
@@ -109,8 +109,8 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   }
 
   /**
-   * Records that the user ticked the news box themselves, which both subscribes them and is the proof of consent the
-   * never-consented backfill must leave alone. The latest tick is kept, being the one any question would be about.
+   * Records the user ticking the news box themselves, which subscribes them and is the proof of consent the backfill
+   * must leave alone. The latest tick is kept.
    * @return The number of `user_settings` rows written.
    */
   def consentToNewsEmail(userId: String): DBIO[Int] = {

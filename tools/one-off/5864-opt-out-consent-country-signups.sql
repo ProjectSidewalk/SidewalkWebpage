@@ -1,15 +1,15 @@
 -- =====================================================================
--- Opt existing accounts out of project news when they signed up in a country whose email law needs consent for a
--- newsletter (#5864). Written against evolution 426.
+-- Opt existing accounts out of project news when they first signed up in a country whose email law needs consent for
+-- a newsletter (#5864). Written against evolution 426.
 --
 -- Everyone was opted in by default when the setting arrived, which the EU, Swiss, Canadian, NZ, Brazilian, Ecuadorian
 -- and Chilean rules don't allow (see news-email-opt-out-countries in conf/application.conf). For each account this
 -- takes its EARLIEST SignUp row across every city (accounts were merged when cities stopped having their own logins,
--- so some have several) and, when that city's schema is in the list below, stamps news_email_opt_out_at with the
--- sign-up time and the source never_consented, keeping an existing earlier stamp and its reason. Only accounts made
--- before evolution 426 reached this city count, since later ones saw the box, and anyone who has since ticked the box
--- (news_email_consented_at) is left alone, which is what makes a rerun safe. Those users then see the Settings box
--- unchecked, and ticking it is the consent we never had. The schema list is every city whose country is NOT in news-email-opt-out-countries.
+-- so some have several) and, when that city is in the list below (every city whose country needs consent), stamps
+-- news_email_opt_out_at with the sign-up time and the source never_consented, keeping an earlier stamp and its reason.
+-- Only accounts made before evolution 426 reached this city count, since later ones saw the box, and anyone who has
+-- since ticked it (news_email_consented_at) is left alone, which is what makes a rerun safe. Those users then see the
+-- Settings box unchecked, and ticking it is the consent we never had.
 --
 -- Looks across every city schema by itself, so run it ONCE: -m -c "seattle" through
 -- sidewalk-server-tools/run-query-in-every-city.sh, whose read-only connections are why the SET below is here.

@@ -466,9 +466,8 @@ class UserController @Inject() (
                   value         <- silhouette.env.authenticatorService.init(authenticator)
                   result        <- silhouette.env.authenticatorService.embed(value, result)
                   _             <- saveUtms(user.userId)
-                  // Everyone starts subscribed, so a box left at its default writes nothing. A tick of a box that
-                  // started unchecked is consent and is recorded as such; an unchecked box is an opt-out, kept apart
-                  // by whether it was turned off or just left off.
+                  // A box left at its default writes nothing. Ticking a box that started unchecked is consent; an
+                  // unchecked box is an opt-out, recorded as turned off or left off.
                   _ <- (data.newsEmail, newsEmailPreChecked) match {
                     case (true, true)  => Future.successful(0)
                     case (true, false) => userService.consentToNewsEmail(user.userId)

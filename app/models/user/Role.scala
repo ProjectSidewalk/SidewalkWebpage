@@ -24,8 +24,8 @@ object Role extends PgEnumCompanion[Role]("role") {
   val SCISTARTER_ROLES: Set[Role] = Set(Registered, Researcher, Administrator, Owner)
 
   /**
-   * Roles that may get project news by email (#5864). Anonymous accounts carry a placeholder address at a
-   * real-looking domain, and AI and Turker accounts aren't ours to write to.
+   * Roles that may get project news by email (#5864). Anonymous accounts have a placeholder address, and AI and Turker
+   * accounts aren't ours to write to.
    */
   val NEWS_EMAIL_ROLES: Set[Role] = Set(Registered, Researcher, Administrator, Owner)
 

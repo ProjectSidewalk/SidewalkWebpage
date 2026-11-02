@@ -167,8 +167,8 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   `ai-label-submission-enabled` (all false by default).
 - **A new country** also needs a call on `news-email-opt-out-countries` in `conf/application.conf` (#5864): the
   sign-up form's project-news box starts checked only in countries listed there, whose email law is opt-out (CAN-SPAM
-  style). Leave a country off the list unless its law clearly allows newsletters without prior consent; the EU, UK,
-  Switzerland, Canada, New Zealand and Brazil all require consent, and a pre-ticked box isn't consent there.
+  style). Leave a country off unless its law clearly allows newsletters without prior consent; the EU, UK, Switzerland,
+  Canada, New Zealand and Brazil all require it, and a pre-ticked box isn't consent there.
 - **GA.** If step 2 was skipped, `python3 tools/city/create_ga_properties.py <city-id>` fills both id maps later; new
   properties go inside the existing "Project Sidewalk - Prod/Test" accounts, never new accounts.
 - **Docs.** The City IDs row is added for you; `docs/dev-environment.md` is a convenience copy of `cityparams.conf`.

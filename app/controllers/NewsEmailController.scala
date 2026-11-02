@@ -60,8 +60,7 @@ class NewsEmailController @Inject() (
 
   /**
    * Opts the token's account out. Mail clients' one-click unsubscribe (RFC 8058) POSTs here with no session or CSRF
-   * token, so the route is `nocsrf`; the skipped filter would have minted the token the navbar's forms render, so
-   * `addCsrfToken` does instead.
+   * token, so the route is `nocsrf`, and `addCsrfToken` mints the token the navbar's forms need in its place.
    */
   def unsubscribe(token: Option[String]) = addCsrfToken(silhouette.UserAwareAction.async { implicit request =>
     tokenOwner(token).flatMap { owner =>

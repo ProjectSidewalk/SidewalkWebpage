@@ -3,12 +3,11 @@ package models.user
 import models.utils.{NamedEnum, PgEnumCompanion}
 
 /**
- * Why an account stopped getting project news by email (#5864), stored as the `news_email_opt_out_source` enum in
- * `user_settings` beside the time it happened. Settings and the unsubscribe link are the user's own choice. The two
- * sign-up values tell an active decline (the box started checked and was turned off) from passive non-consent (it
- * started unchecked, as it does where email law needs consent, and was left so). `NeverConsented` is the backfill for
- * accounts from before the box existed that signed up where consent is needed. The last three come from the mailing
- * service: its own unsubscribe link, an address that bounced, and a spam report, which must never be re-mailed.
+ * Why an account stopped getting project news by email (#5864), stored as `news_email_opt_out_source` in
+ * `user_settings` beside when it happened. Settings and the unsubscribe link are the user's own choice. The two
+ * sign-up values split a box turned off from one left off where it starts unchecked. `NeverConsented` is the
+ * backfill for older accounts from consent-law countries. The last three will come from the mailing service: its own
+ * unsubscribe link, a bounced address, and a spam report, which must never be re-mailed.
  */
 enum NewsEmailOptOutSource(val name: String) extends NamedEnum {
   case Settings         extends NewsEmailOptOutSource("settings")

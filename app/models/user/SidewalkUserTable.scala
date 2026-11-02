@@ -117,9 +117,9 @@ class SidewalkUserTable @Inject() (
     sidewalkUserToRoleJoin.filter { case (_, role) => role.role =!= Role.Ai }.map { case (user, _) => user }
 
   /**
-   * Everyone project news may be emailed to (#5864). Email is unique per account, so no dedupe is needed. An anonymous
-   * account promoted to a real role keeps its placeholder address, so the address is checked as well as the role.
-   * @return (user id, username, email) per recipient, by email.
+   * Everyone project news may be emailed to (#5864). An anonymous account promoted to a real role keeps its
+   * placeholder address, so the address is checked as well as the role.
+   * @return (user id, username, email) per recipient, sorted by email.
    */
   def newsEmailRecipients: Future[Seq[(String, String, String)]] = db.run(
     sidewalkUserToRoleJoin
