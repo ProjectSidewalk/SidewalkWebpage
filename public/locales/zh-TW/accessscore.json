@@ -205,7 +205,6 @@
   "panel-block": "街段",
   "panel-start-crossing": "起點路口",
   "panel-end-crossing": "終點路口",
-  "panel-no-crossing": "沒有路口",
   "panel-no-score": "未評分",
   "panel-grade-steepest": "最陡 {{max}}",
   "panel-evidence": "證據",
@@ -225,5 +224,10 @@
   "panel-block-fly": "將地圖縮放至此街段",
   "panel-crossing-card": "{{name}}：那裡有什麼",
   "panel-crossing-no-clusters": "此路口沒有已評分的群集。",
-  "panel-crossing-more": "下方還有 {{count}} 個"
+  "panel-crossing-more": "下方還有 {{count}} 個",
+  "panel-continues": "延續為",
+  "panel-dead-end": "死路",
+  "panel-continue-open": "開啟下一段",
+  "panel-filter-clear": "只顯示{{type}} · 顯示全部",
+  "panel-row-pin": "按下以只保留此類型的照片"
 }

@@ -218,7 +218,6 @@
   "panel-block": "Cuadra",
   "panel-start-crossing": "Cruce inicial",
   "panel-end-crossing": "Cruce final",
-  "panel-no-crossing": "sin cruce",
   "panel-no-score": "sin puntuar",
   "panel-grade-steepest": "máxima {{max}}",
   "panel-evidence": "La evidencia",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Acercar el mapa a esta cuadra",
   "panel-crossing-card": "{{name}}: qué hay allí",
   "panel-crossing-no-clusters": "No hay grupos puntuados en este cruce.",
-  "panel-crossing-more": "+{{count}} más abajo"
+  "panel-crossing-more": "+{{count}} más abajo",
+  "panel-continues": "Continúa como",
+  "panel-dead-end": "sin salida",
+  "panel-continue-open": "Abrir el siguiente tramo",
+  "panel-filter-clear": "Mostrando solo {{type}} · mostrar todo",
+  "panel-row-pin": "Pulsa para ver solo las imágenes de este tipo"
 }

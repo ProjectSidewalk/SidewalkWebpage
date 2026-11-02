@@ -218,7 +218,6 @@
   "panel-block": "Quarteirão",
   "panel-start-crossing": "Travessia inicial",
   "panel-end-crossing": "Travessia final",
-  "panel-no-crossing": "sem travessia",
   "panel-no-score": "não pontuada",
   "panel-grade-steepest": "máxima {{max}}",
   "panel-evidence": "As evidências",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Aproximar o mapa deste quarteirão",
   "panel-crossing-card": "{{name}}: o que há ali",
   "panel-crossing-no-clusters": "Nenhum grupo pontuado neste cruzamento.",
-  "panel-crossing-more": "+{{count}} mais abaixo"
+  "panel-crossing-more": "+{{count}} mais abaixo",
+  "panel-continues": "Continua como",
+  "panel-dead-end": "sem saída",
+  "panel-continue-open": "Abrir o próximo trecho",
+  "panel-filter-clear": "Mostrando só {{type}} · mostrar tudo",
+  "panel-row-pin": "Pressione para manter só as fotos deste tipo"
 }

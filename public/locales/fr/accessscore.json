@@ -218,7 +218,6 @@
   "panel-block": "Tronçon",
   "panel-start-crossing": "Traversée de départ",
   "panel-end-crossing": "Traversée d'arrivée",
-  "panel-no-crossing": "pas de traversée",
   "panel-no-score": "non noté",
   "panel-grade-steepest": "maximum {{max}}",
   "panel-evidence": "Les preuves",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Zoomer la carte sur ce tronçon",
   "panel-crossing-card": "{{name}} : ce qui s'y trouve",
   "panel-crossing-no-clusters": "Aucun groupe noté à cette traversée.",
-  "panel-crossing-more": "+{{count}} de plus ci-dessous"
+  "panel-crossing-more": "+{{count}} de plus ci-dessous",
+  "panel-continues": "Se poursuit en",
+  "panel-dead-end": "impasse",
+  "panel-continue-open": "Ouvrir le tronçon suivant",
+  "panel-filter-clear": "Seulement {{type}} · tout afficher",
+  "panel-row-pin": "Appuyez pour ne garder que les photos de ce type"
 }

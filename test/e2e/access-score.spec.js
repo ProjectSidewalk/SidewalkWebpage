@@ -511,7 +511,7 @@ test.describe('/accessScore', () => {
       // The stubbed intersections feed is empty: no scored crossing, so the street's score is the block's, and the
       // block is drawn as a bar (the fixture city has no elevation profile) between two grey dots.
       await expect(panel.locator('.acs-panel__block')).toContainText('Block 81.8');
-      await expect(panel.locator('.acs-panel__end--start')).toContainText('no crossing');
+      await expect(panel.locator('.acs-panel__end--start')).toContainText('dead end');
       await expect(panel.locator('.acs-panel__dot--none')).toHaveCount(2);
       await expect(panel.locator('.acs-panel__components--profile')).toHaveCount(0);
       await expect(panel.locator('.acs-row')).toHaveCount(1);

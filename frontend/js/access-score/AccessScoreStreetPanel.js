@@ -8,8 +8,10 @@
  * grade among them, totaled over the block and the crossings at its ends, since those three are what the headline
  * averages, the grade's figures under the profile; then the evidence, one tile per cluster along the block and at each
  * crossing, worst first (the costliest effect leads), each tile a `LabelMiniCard` wearing what that cluster costs or
- * earns; and last the credits for the data. A row lights its tiles, a tile lights its row, its dot on the map and its
- * pin on the profile, so the arithmetic and the pictures are one thing. A crossing's dot, hovered or focused, lights
+ * earns; and last the credits for the data. A row hovered keeps only its type's tiles, every one of them, and pressed
+ * pins that; a tile lights its row, its dot on the map and its pin on the profile, so the arithmetic and the
+ * pictures are one thing. A street end with no crossing says whether the road continues (a button to the next
+ * segment) or ends. A crossing's dot, hovered or focused, lights
  * that crossing's clusters here and on the map and opens the crossing card (`AccessScoreCrossingCard`), a top-down
  * view of the intersection with the crops of what is there; pressed, it flies the map to the crossing. Every
  * explanation in words sits behind an "i" button, as the sidebar's do.
@@ -120,8 +122,16 @@ export class AccessScoreStreetPanel {
   #street = null;
   /** @type {?AccessScorePanelPlace} The place the panel is headed by, or null when it is a street's own. */
   #place = null;
-  /** @type {Map<number, AccessScorePanelTile>} By cluster id. */
+  /** @type {Map<number, AccessScorePanelTile>} The tiles on show, by cluster id. */
   #tiles = new Map();
+  /** @type {Map<number, AccessScorePanelTile>} Every tile built this open, so a filter swap rebuilds none. */
+  #tileCache = new Map();
+  /** @type {Map<string, number>} Per group, the serial of its last render: an older render's answer is dropped. */
+  #groupSerial = new Map();
+  /** The type a hovered row is filtering to, or null. */
+  #filterType = null;
+  /** The type a pressed row keeps filtering to after the pointer leaves, or null. */
+  #pinnedType = null;
   /** @type {Map<number, LabelMiniCard>} By label id, so a vote cast in the full card can be reflected here. */
   #cards = new Map();
   /** The label ids on show, in tile order: the full label card pages through them in this order. */
@@ -133,7 +143,6 @@ export class AccessScoreStreetPanel {
   /** @type {?AccessScoreElevationProfile} The block's profile once drawn, which the problem markers are pinned on. */
   #profile = null;
   #paddingRight = 0;
-  #litType = null;
   #loggedRows = new Set();
   #loggedClusters = new Set();
 
@@ -159,12 +168,16 @@ export class AccessScoreStreetPanel {
    * @param {(lngLat: {lng: number, lat: number}, where: string) => void} [options.onFlyTo] - A dot or the block
    *   pressed: where the map should fly, and 'start', 'end' or 'block'.
    * @param {string} [options.cardStyleUrl] - The basemap style for the crossing card's inset.
+   * @param {(id: number, end: 'start'|'end') => ?number} [options.continuation] - The street that carries on from
+   *   an end of this one where there is no crossing, or null for a dead end.
+   * @param {(id: ?number) => void} [options.onHoverStreet] - The continuing street hovered, or none.
+   * @param {(id: number) => void} [options.onSelectStreet] - The continuing street pressed: select it.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    */
   constructor(root, {
     model, config, map, feed, gradeSources = [], streetCenter, streetLine = () => null, onClose, onOpenLabel,
     onOpenSheet, onHoverCluster = () => {}, onHoverGroup = () => {}, onFlyTo = () => {}, cardStyleUrl = '',
-    log = () => {},
+    continuation = () => null, onHoverStreet = () => {}, onSelectStreet = () => {}, log = () => {},
   }) {
     this.#root = root;
     this.#model = model;
@@ -173,7 +186,8 @@ export class AccessScoreStreetPanel {
     this.#feed = feed;
     this.#gradeSources = gradeSources;
     this.#callbacks = {
-      streetCenter, streetLine, onClose, onOpenLabel, onOpenSheet, onHoverCluster, onHoverGroup, onFlyTo, log,
+      streetCenter, streetLine, onClose, onOpenLabel, onOpenSheet, onHoverCluster, onHoverGroup, onFlyTo,
+      continuation, onHoverStreet, onSelectStreet, log,
     };
     this.#narrowMq = window.matchMedia ? window.matchMedia(AccessScoreStreetPanel.NARROW_QUERY) : { matches: false };
     this.#els = {
@@ -255,6 +269,8 @@ export class AccessScoreStreetPanel {
     this.#groups = null;
     this.#profile = null;
     this.#expanded.clear();
+    this.#filterType = null;
+    this.#pinnedType = null;
     // The card's element outlives the body's markup: the inset map inside it would otherwise be built again.
     this.#cardEl.remove();
     this.#els.body.innerHTML = '';
@@ -292,16 +308,57 @@ export class AccessScoreStreetPanel {
   }
 
   /**
-   * Lights one type's tiles and dims the rest, as a hover on its row does; null lifts it.
+   * Keeps only one type's tiles, every one of them rather than the capped dozen, as a hover on its row does; null
+   * lifts it, back to whatever row is pinned. Hiding rather than fading: the two tiles that matter are otherwise
+   * below the fold among forty faded ones. 'grade' has no tiles and filters nothing.
    * @param {?string} type - A label type, 'grade', or null.
    */
   light(type) {
-    this.#litType = type;
-    for (const tile of this.#tiles.values()) {
-      tile.el.classList.toggle('is-dim', type !== null && tile.props.label_type !== type);
-    }
+    this.#filterType = type;
+    this.#applyFilter();
+  }
+
+  /**
+   * Pins a type's filter so it outlasts the pointer, as a press on its row does; pressing the pinned row, or the
+   * chip under the evidence heading, lifts it.
+   * @param {?string} type - A label type, or null to unpin.
+   */
+  pin(type) {
+    const next = this.#pinnedType === type ? null : type;
+    this.#callbacks.log(next ? 'PanelPinRow' : 'PanelUnpinRow', type);
+    this.#pinnedType = next;
+    this.#applyFilter();
+  }
+
+  /** The type the tiles are filtered to right now: the hovered row's, else the pinned one's. */
+  #tileFilter() {
+    const hover = this.#filterType === 'grade' ? null : this.#filterType;
+    return hover ?? this.#pinnedType;
+  }
+
+  /** Marks the rows and the chip for the current filter and re-renders the groups to it. */
+  #applyFilter() {
+    this.#markRows();
+    if (!this.#groups) return;
+    for (const key of AccessScoreStreetPanel.GROUPS) this.#renderGroup(key, this.#token);
+  }
+
+  /** The lit row is the hovered one, else the pinned one; the pinned one reads as pressed, and the chip names it. */
+  #markRows() {
+    const lit = this.#filterType ?? this.#pinnedType;
     for (const row of this.#root.querySelectorAll('.acs-row')) {
-      row.classList.toggle('is-on', type !== null && row.dataset.type === type);
+      row.classList.toggle('is-on', lit !== null && row.dataset.type === lit);
+      const pinned = this.#pinnedType !== null && row.dataset.type === this.#pinnedType;
+      row.classList.toggle('is-pinned', pinned);
+      if (row.hasAttribute('aria-pressed')) row.setAttribute('aria-pressed', String(pinned));
+    }
+    const chip = this.#els.body.querySelector('[data-acs-filter-clear]');
+    if (!chip) return;
+    chip.hidden = this.#pinnedType === null;
+    if (this.#pinnedType !== null) {
+      chip.textContent = i18next.t('accessscore:panel-filter-clear', {
+        type: util.misc.labelTypeName(this.#pinnedType),
+      });
     }
   }
 
@@ -338,7 +395,8 @@ export class AccessScoreStreetPanel {
     this.#loggedClusters.clear();
     this.#loggedEnds.clear();
     this.#closeCard();
-    this.#litType = null;
+    this.#filterType = null;
+    this.#pinnedType = null;
     this.#renderShell();
     this.#renderExplanation();
     this.#setShown(true);
@@ -433,11 +491,14 @@ export class AccessScoreStreetPanel {
         <div class="acs-panel__heading-row">
           <h3 class="acs-panel__subtitle" id="acs-panel-evidence-title">${i18next.t('accessscore:panel-evidence')}</h3>
           ${AccessScoreStreetPanel.#infoHtml(i18next.t('accessscore:panel-evidence-help'))}
+          <button type="button" class="acs-panel__filter button button--small button--secondary"
+            data-acs-filter-clear hidden></button>
         </div>
         <p class="acs-panel__status" role="status" data-acs-status></p>
         <div data-acs-groups></div>
       </section>
       <footer class="acs-panel__credits" data-acs-credits hidden></footer>`;
+    this.#els.body.querySelector('[data-acs-filter-clear]').addEventListener('click', () => this.pin(null));
   }
 
   /** "scored Oct 29, 2026", or nothing before the first clustering run. */
@@ -481,7 +542,7 @@ export class AccessScoreStreetPanel {
     const lngLat = this.#hopLngLat();
     if (this.#els.actions) this.#els.actions.innerHTML = lngLat ? hopLinksHtml(lngLat) : '';
     for (const row of this.#els.body.querySelectorAll('.acs-row')) this.#bindRow(row);
-    if (this.#litType !== null) this.#light(this.#litType);
+    this.#markRows();
   }
 
   /** Where "Explore here" opens: the place itself, else the street's midpoint. */
@@ -517,12 +578,30 @@ export class AccessScoreStreetPanel {
     const fly = esc(i18next.t('accessscore:panel-crossing-fly'));
     const end = (e, which) => {
       const name = i18next.t(`accessscore:panel-${which}-crossing`);
-      if (!e || e.score === null) {
-        const note = i18next.t(`accessscore:panel-${e ? 'no-score' : 'no-crossing'}`);
+      if (!e) {
+        // No crossing here: either the road carries on as another street (the engine's intersections need three
+        // streets to meet) or it ends. The first is a button to the next segment; the second is just said.
+        const nextId = this.#callbacks.continuation(street.streetId, which);
+        const next = nextId === null || nextId === undefined ? null : this.#model.explainStreet(nextId);
+        const arrow = which === 'start' ? '←' : '→';
+        if (next) {
+          return `<button type="button" class="acs-panel__end acs-panel__end--${which} acs-panel__end--continue"
+              data-acs-continue="${next.streetId}" data-ps-tooltip="${
+                esc(i18next.t('accessscore:panel-continue-open'))}">
+            <span class="acs-panel__dot acs-panel__dot--continue" aria-hidden="true">${arrow}</span>
+            <span class="acs-panel__end-name">${esc(i18next.t('accessscore:panel-continues'))}</span>
+            <span class="acs-panel__end-note">${streetTitle(next)}</span></button>`;
+        }
         return `<div class="acs-panel__end acs-panel__end--${which}">
           <span class="acs-panel__dot acs-panel__dot--none"></span>
           <span class="acs-panel__end-score">—</span><span class="acs-panel__end-name">${esc(name)}</span>
-          <span class="acs-panel__end-note">${esc(note)}</span></div>`;
+          <span class="acs-panel__end-note">${esc(i18next.t('accessscore:panel-dead-end'))}</span></div>`;
+      }
+      if (e.score === null) {
+        return `<div class="acs-panel__end acs-panel__end--${which}">
+          <span class="acs-panel__dot acs-panel__dot--none"></span>
+          <span class="acs-panel__end-score">—</span><span class="acs-panel__end-name">${esc(name)}</span>
+          <span class="acs-panel__end-note">${esc(i18next.t('accessscore:panel-no-score'))}</span></div>`;
       }
       return `<button type="button" class="acs-panel__end acs-panel__end--${which}" data-acs-end="${which}"
           aria-describedby="acs-crossing-card" data-ps-tooltip="${fly}">
@@ -606,6 +685,20 @@ export class AccessScoreStreetPanel {
    * closes; a press flies the map there.
    */
   #bindEnds() {
+    for (const el of this.#els.body.querySelectorAll('[data-acs-continue]')) {
+      const id = Number(el.dataset.acsContinue);
+      const on = () => this.#callbacks.onHoverStreet(id);
+      const off = () => this.#callbacks.onHoverStreet(null);
+      el.addEventListener('mouseenter', on);
+      el.addEventListener('focus', on);
+      el.addEventListener('mouseleave', off);
+      el.addEventListener('blur', off);
+      el.addEventListener('click', () => {
+        this.#callbacks.log('PanelContinue_streetId', id);
+        off();
+        this.#callbacks.onSelectStreet(id);
+      });
+    }
     for (const el of this.#els.body.querySelectorAll('[data-acs-end], [data-acs-block]')) {
       const key = el.dataset.acsEnd ?? 'block';
       el.addEventListener('mouseenter', () => {
@@ -767,14 +860,17 @@ export class AccessScoreStreetPanel {
       const parts = Object.entries(r.buckets)
         .filter(([, n]) => n > 0)
         .map(([bucket, n]) => `${n} ${ratingWord(bucket)}`);
-      return `<li class="acs-row" tabindex="0" data-type="${esc(r.type)}">
+      // A button, pressed to pin the filter; hovered, it filters for as long as the pointer rests.
+      const pressed = String(this.#pinnedType === r.type);
+      return `<li><button type="button" class="acs-row" data-type="${esc(r.type)}" aria-pressed="${pressed}"
+          data-ps-tooltip="${esc(i18next.t('accessscore:panel-row-pin'))}">
         <span class="acs-row__swatch" style="background-color: ${util.misc.getLabelColors(r.type)};"></span>
         <span class="acs-row__label">${esc(util.misc.labelTypeName(r.type))}<small>${
           esc(parts.join(' · '))}</small></span>
         <span class="acs-row__count">${r.count}</span>
         <span class="acs-row__effect acs-row__effect--${effectClass(r.term)}">${signed(r.term)}</span>
         ${bar(r.term)}
-      </li>`;
+      </button></li>`;
     });
     if (grade) {
       const g = street.gradient;
@@ -795,7 +891,7 @@ export class AccessScoreStreetPanel {
       if (street.barrier) effect = i18next.t('accessscore:popup-slope-barrier');
       else if (grade.term !== 0) effect = `−${Math.abs(grade.term).toFixed(2)}`;
       const tone = street.barrier || grade.term < 0 ? 'problem' : 'none';
-      typeRows.push(`<li class="acs-row" tabindex="0" data-type="grade">
+      typeRows.push(`<li class="acs-row acs-row--grade" tabindex="0" data-type="grade">
         <span class="acs-row__swatch acs-row__swatch--grade"></span>
         <span class="acs-row__label">${esc(i18next.t('accessscore:popup-slope'))}<small>${esc(note)}</small></span>
         <span class="acs-row__count">—</span>
@@ -817,22 +913,18 @@ export class AccessScoreStreetPanel {
   #bindRow(row) {
     const type = row.dataset.type;
     const on = () => {
-      this.#light(type);
+      this.light(type);
       if (!this.#loggedRows.has(type)) {
         this.#loggedRows.add(type);
         this.#callbacks.log('PanelRow', type);
       }
     };
-    const off = () => this.#light(null);
+    const off = () => this.light(null);
     row.addEventListener('mouseenter', on);
     row.addEventListener('focus', on);
     row.addEventListener('mouseleave', off);
     row.addEventListener('blur', off);
-  }
-
-  /** `light` without the public name, for the rows' own handlers. */
-  #light(type) {
-    this.light(type);
+    if (row.hasAttribute('aria-pressed')) row.addEventListener('click', () => this.pin(type));
   }
 
   /**
@@ -1050,29 +1142,39 @@ export class AccessScoreStreetPanel {
   async #renderGroup(key, token) {
     const section = this.#els.body.querySelector(`[data-acs-group="${key}"]`);
     if (!section) return;
+    const serial = (this.#groupSerial.get(key) ?? 0) + 1;
+    this.#groupSerial.set(key, serial);
     const all = this.#groups[key];
     const expanded = this.#expanded.has(key);
-    const shown = expanded ? all : all.slice(0, AccessScoreStreetPanel.MAX_TILES);
+    const filter = this.#tileFilter();
+    // A filter shows every cluster of its type, cap or no cap: the cap is against a wall of pictures, and one
+    // type's pictures are what was asked for.
+    let shown;
+    if (filter !== null) shown = all.filter((p) => p.label_type === filter);
+    else shown = expanded ? all : all.slice(0, AccessScoreStreetPanel.MAX_TILES);
     const more = section.querySelector('.acs-group__more');
-    more.hidden = all.length <= AccessScoreStreetPanel.MAX_TILES;
+    more.hidden = filter !== null || all.length <= AccessScoreStreetPanel.MAX_TILES;
     more.textContent = expanded
       ? i18next.t('accessscore:panel-fewer')
       : i18next.t('accessscore:panel-all', { count: all.length });
     more.setAttribute('aria-expanded', String(expanded));
-    const loaded = await Promise.all(shown.map((p) => this.#feed.label(AccessScoreClusterFeed.newestLabelId(p))
-      .then((label) => ({ label, props: p }), () => null)));
-    if (token !== this.#token) return;
+    const loaded = await Promise.all(shown.map((p) => {
+      const cached = this.#tileCache.get(p.label_cluster_id);
+      if (cached) return Promise.resolve({ tile: cached, props: p });
+      return this.#feed.label(AccessScoreClusterFeed.newestLabelId(p))
+        .then((label) => ({ label, props: p }), () => null);
+    }));
+    if (token !== this.#token || this.#groupSerial.get(key) !== serial) return;
     const list = section.querySelector('.acs-group__tiles');
-    for (const tile of list.querySelectorAll('.acs-tile')) {
-      const id = Number(tile.dataset.clusterId);
-      this.#tiles.delete(id);
-    }
+    for (const el of list.querySelectorAll('.acs-tile')) this.#tiles.delete(Number(el.dataset.clusterId));
     list.innerHTML = '';
     const failed = loaded.filter((x) => x === null).length;
     for (const entry of loaded) {
       if (!entry) continue;
-      const tile = this.#tile(entry.props, entry.label, key);
+      const tile = entry.tile ?? this.#tile(entry.props, entry.label, key);
+      this.#tileCache.set(entry.props.label_cluster_id, tile);
       this.#tiles.set(entry.props.label_cluster_id, tile);
+      tile.el.classList.toggle('is-dim', this.#hoveredEnd !== null && tile.group !== this.#hoveredEnd);
       list.appendChild(tile.el);
     }
     this.#cards = new Map([...this.#tiles.values()].map((t) => [t.card.labelId, t.card]));
@@ -1081,7 +1183,6 @@ export class AccessScoreStreetPanel {
       const status = this.#els.body.querySelector('[data-acs-status]');
       status.textContent = i18next.t('accessscore:sheet-error', { count: failed });
     }
-    if (this.#litType !== null) this.#light(this.#litType);
   }
 
   /** One tile: the cluster's card with the effect chip and, for a cluster of several labels, the way to them all. */
@@ -1174,6 +1275,8 @@ export class AccessScoreStreetPanel {
 
   #clearTiles() {
     this.#tiles.clear();
+    this.#tileCache.clear();
+    this.#groupSerial.clear();
     this.#cards.clear();
     this.#labelIds = [];
   }

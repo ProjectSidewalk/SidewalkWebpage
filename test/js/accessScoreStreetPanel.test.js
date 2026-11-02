@@ -115,6 +115,7 @@ describe('AccessScoreStreetPanel', () => {
     callbacks = {
       streetCenter: vi.fn(() => ({lng: -74, lat: 40.8})), onClose: vi.fn(), onOpenLabel: vi.fn(),
       onOpenSheet: vi.fn(), onHoverCluster: vi.fn(), onHoverGroup: vi.fn(), onFlyTo: vi.fn(), log: vi.fn(),
+      continuation: vi.fn(() => null), onHoverStreet: vi.fn(), onSelectStreet: vi.fn(),
       cardStyleUrl: 'mapbox://styles/fixture/light',
     };
     const ramp = streetId('one good curb ramp');
@@ -168,10 +169,13 @@ describe('AccessScoreStreetPanel', () => {
     expect(root.querySelector('.acs-panel__block').textContent.replace(/\s+/g, ' ').trim())
       .toBe(`panel-block ${(street.segmentScore * 100).toFixed(1)} · length meters=100`);
     expect(root.querySelectorAll('.acs-panel__dot--none')).toHaveLength(2);
+    expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-dead-end');
     expect(root.querySelector('[data-acs-profile]').hidden).toBe(true);
     expect(root.querySelector('.acs-panel__components--profile')).toBeNull();
     // One row for the one type with a cluster, nothing for grade on a street with no slope.
     expect(rows().map((r) => r.dataset.type)).toEqual(['CurbRamp']);
+    expect(rows()[0].tagName).toBe('BUTTON');
+    expect(rows()[0].getAttribute('aria-pressed')).toBe('false');
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+0.75');
     expect(rows()[0].querySelector('.acs-row__effect').classList.contains('acs-row__effect--feature')).toBe(true);
     // No slope: no grade line under the components, and nothing to credit, so no footer either.
@@ -262,35 +266,129 @@ describe('AccessScoreStreetPanel', () => {
       expect(callbacks.log).toHaveBeenCalledWith('PanelOpenLabel_labelId', 302);
     });
 
-  test('rows and tiles light each other, and a tile\'s hover reaches the map', async () => {
-    panel.showStreet(streetId('mixed street'));
-    await settle();
-    // Every tile on show, the unrated Signal cluster included (it ranks last, past the cap).
-    root.querySelector('[data-acs-group="block"] .acs-group__more').click();
-    await settle();
-    const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
-    obstacleRow.dispatchEvent(new Event('mouseenter'));
-    expect(callbacks.log).toHaveBeenCalledWith('PanelRow', 'Obstacle');
-    expect(tiles('block').filter((t) => t.classList.contains('is-dim')).map((t) => t.dataset.clusterId))
-      .toEqual(['300']);
-    obstacleRow.dispatchEvent(new Event('mouseleave'));
-    expect(tiles('block').some((t) => t.classList.contains('is-dim'))).toBe(false);
-    const tile = root.querySelector('.acs-tile[data-cluster-id="300"]');
-    tile.dispatchEvent(new Event('mouseenter'));
-    expect(callbacks.onHoverCluster).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
-    expect(callbacks.log).toHaveBeenCalledWith('PanelHoverCluster_labelClusterId', 300);
-    expect(tile.classList.contains('is-on')).toBe(true);
-    expect(rows().find((r) => r.dataset.type === 'Signal').classList.contains('is-on')).toBe(true);
-    tile.dispatchEvent(new Event('mouseleave'));
-    expect(callbacks.onHoverCluster).toHaveBeenLastCalledWith(null);
-    expect(tile.classList.contains('is-on')).toBe(false);
-    // From the map: the dot under the pointer marks its tile and row.
-    panel.lightCluster(100);
-    expect(root.querySelector('.acs-tile[data-cluster-id="100"]').classList.contains('is-on')).toBe(true);
-    expect(rows().find((r) => r.dataset.type === 'Obstacle').classList.contains('is-on')).toBe(true);
-    panel.lightCluster(null);
-    expect(root.querySelector('.acs-tile.is-on')).toBeNull();
-  });
+  test('a row hovered keeps only its type\'s tiles, uncapped; pressed it pins that; a tile\'s hover reaches the map',
+    async () => {
+      panel.showStreet(streetId('mixed street'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      const fetches = () => fetchMock.mock.calls.length;
+      // Hovering Signal: its one tile, past the cap a moment ago, is the only one on show; "Show all" is gone.
+      const signalRow = rows().find((r) => r.dataset.type === 'Signal');
+      signalRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelRow', 'Signal');
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(true);
+      expect(signalRow.classList.contains('is-on')).toBe(true);
+      // Hovering Obstacle: all fourteen, not the capped twelve.
+      signalRow.dispatchEvent(new Event('mouseleave'));
+      const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      expect(tiles('block').every((t) => t.querySelector('.lmc__type').textContent === 'obstacle')).toBe(true);
+      // Leaving restores the capped dozen; the tiles were kept, so no picture was fetched twice.
+      const before = fetches();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(false);
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(fetches()).toBe(before);
+      // Pressing pins: the filter outlasts the pointer, the row reads pressed, and the chip names the way out.
+      obstacleRow.click();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelPinRow', 'Obstacle');
+      expect(obstacleRow.getAttribute('aria-pressed')).toBe('true');
+      expect(obstacleRow.classList.contains('is-pinned')).toBe(true);
+      expect(tiles('block')).toHaveLength(14);
+      const chip = root.querySelector('[data-acs-filter-clear]');
+      expect(chip.hidden).toBe(false);
+      expect(chip.textContent).toBe('panel-filter-clear type=obstacle');
+      // Hovering another row previews it over the pin; leaving goes back to the pin.
+      signalRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      signalRow.dispatchEvent(new Event('mouseleave'));
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      // The grade row has no tiles and filters nothing: the pin stays.
+      const gradeRow = rows().find((r) => r.dataset.type === 'grade');
+      if (gradeRow) {
+        gradeRow.dispatchEvent(new Event('mouseenter'));
+        await settle();
+        expect(tiles('block')).toHaveLength(14);
+        gradeRow.dispatchEvent(new Event('mouseleave'));
+      }
+      // A reweighting keeps the pin through the rows' re-render.
+      model.setState({weights: {...model.state.weights, Obstacle: 0.5}});
+      panel.refresh();
+      expect(rows().find((r) => r.dataset.type === 'Obstacle').getAttribute('aria-pressed')).toBe('true');
+      expect(chip.hidden).toBe(false);
+      // The chip lifts it.
+      chip.click();
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelUnpinRow', null);
+      expect(chip.hidden).toBe(true);
+      expect(tiles('block')).toHaveLength(12);
+      expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
+      // Pressing the pinned row again lifts it too.
+      obstacleRow.click();
+      obstacleRow.click();
+      await settle();
+      expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
+      // Every tile on show, the unrated Signal cluster included, for the hover checks below.
+      root.querySelector('[data-acs-group="block"] .acs-group__more').click();
+      await settle();
+      const tile = root.querySelector('.acs-tile[data-cluster-id="300"]');
+      tile.dispatchEvent(new Event('mouseenter'));
+      expect(callbacks.onHoverCluster).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
+      expect(callbacks.log).toHaveBeenCalledWith('PanelHoverCluster_labelClusterId', 300);
+      expect(tile.classList.contains('is-on')).toBe(true);
+      expect(rows().find((r) => r.dataset.type === 'Signal').classList.contains('is-on')).toBe(true);
+      tile.dispatchEvent(new Event('mouseleave'));
+      expect(callbacks.onHoverCluster).toHaveBeenLastCalledWith(null);
+      expect(tile.classList.contains('is-on')).toBe(false);
+      // From the map: the dot under the pointer marks its tile and row.
+      panel.lightCluster(100);
+      expect(root.querySelector('.acs-tile[data-cluster-id="100"]').classList.contains('is-on')).toBe(true);
+      expect(rows().find((r) => r.dataset.type === 'Obstacle').classList.contains('is-on')).toBe(true);
+      panel.lightCluster(null);
+      expect(root.querySelector('.acs-tile.is-on')).toBeNull();
+    });
+
+  test('a street end with no crossing names the street the road continues as, a button that lights and selects it',
+    async () => {
+      const ramp = streetId('one good curb ramp');
+      const many = streetId('mixed street');
+      // The host says "mixed street" carries on from this street's end; its start is a dead end.
+      callbacks.continuation.mockImplementation((id, end) => (id === ramp && end === 'end' ? many : null));
+      panel.showStreet(ramp);
+      const next = root.querySelector('button.acs-panel__end--end');
+      expect(next.dataset.acsContinue).toBe(String(many));
+      expect(next.classList.contains('acs-panel__end--continue')).toBe(true);
+      expect(next.querySelector('.acs-panel__end-name').textContent).toBe('panel-continues');
+      expect(next.querySelector('.acs-panel__end-note').textContent).toBe(`popup-street id=${many}`);
+      expect(next.getAttribute('data-ps-tooltip')).toBe('panel-continue-open');
+      expect(root.querySelector('.acs-panel__end--start .acs-panel__end-note').textContent).toBe('panel-dead-end');
+      // No card for a continuation: it is not a crossing.
+      next.dispatchEvent(new Event('mouseenter'));
+      vi.advanceTimersByTime(AccessScoreStreetPanel.CARD_DELAY_MS + 1);
+      expect(card().hidden).toBe(true);
+      expect(callbacks.onHoverStreet).toHaveBeenCalledWith(many);
+      next.dispatchEvent(new Event('mouseleave'));
+      expect(callbacks.onHoverStreet).toHaveBeenLastCalledWith(null);
+      next.click();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelContinue_streetId', many);
+      expect(callbacks.onSelectStreet).toHaveBeenCalledWith(many);
+      // A street whose end the host knows nothing about is a dead end.
+      callbacks.continuation.mockReturnValue(null);
+      panel.showStreet(ramp);
+      expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
+      expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-dead-end');
+    });
 
   test('a reweighting re-reads every number and keeps the pictures; a vote elsewhere refreshes one card', async () => {
     panel.showStreet(streetId('one good curb ramp'));

@@ -595,8 +595,9 @@ loaded by the corresponding Twirl view:
   totaled over the block and its scored crossings with grade among them — and backs it with the evidence, one
   `LabelMiniCard` tile per cluster along the block and at each crossing, costliest first, each wearing what that
   cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
-  type since the engine scores a cluster from its median rating and tag counts); a row lights its tiles, a tile its
-  dot on the map; a crossing's dot, hovered or focused, lights that crossing's clusters and opens the crossing card
+  type since the engine scores a cluster from its median rating and tag counts); a row hovered keeps only its type's
+  tiles, uncapped, and pressed pins that; a tile lights its dot on the map; a street end with no crossing names the
+  street the road continues as, a button that selects it, or says dead end; a crossing's dot, hovered or focused, lights that crossing's clusters and opens the crossing card
   (`AccessScoreCrossingCard.js`: a Mapbox inset of the intersection, built once and recentered since Mapbox bills
   the map load, never a Street View pano, with the crossing's clusters on it, the corner types' effects and the
   crops of its costliest clusters as pictures only, the votable tiles being just below), and pressed flies the map

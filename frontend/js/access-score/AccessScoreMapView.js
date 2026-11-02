@@ -319,6 +319,18 @@ export class AccessScoreMapView {
   }
 
   /**
+   * Lights a street as the pointer would, for a hover that starts in the street panel (its "continues as" button,
+   * #5748), or puts it out. No tooltip, no legend mark, no report through `onHover`: the pointer is not on the map.
+   * @param {?number} streetId - The street, or null to clear.
+   */
+  hoverStreet(streetId) {
+    this.#clearHover();
+    if (streetId === null || streetId === undefined) return;
+    this.#hover = { source: AccessScoreMapView.STREET_SOURCE, id: streetId, html: null };
+    this.#map.setFeatureState({ source: AccessScoreMapView.STREET_SOURCE, id: streetId }, { hover: true });
+  }
+
+  /**
    * Fits the map to a region's polygon.
    * @param {number} regionId - The region to frame.
    */

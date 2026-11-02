@@ -218,7 +218,6 @@
   "panel-block": "Blok",
   "panel-start-crossing": "Oversteek aan het begin",
   "panel-end-crossing": "Oversteek aan het einde",
-  "panel-no-crossing": "geen oversteek",
   "panel-no-score": "niet beoordeeld",
   "panel-grade-steepest": "steilst {{max}}",
   "panel-evidence": "Het bewijs",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Zoom de kaart in op dit blok",
   "panel-crossing-card": "{{name}}: wat er is",
   "panel-crossing-no-clusters": "Geen beoordeelde clusters bij deze oversteek.",
-  "panel-crossing-more": "+{{count}} meer hieronder"
+  "panel-crossing-more": "+{{count}} meer hieronder",
+  "panel-continues": "Gaat verder als",
+  "panel-dead-end": "doodlopend",
+  "panel-continue-open": "Volgend stuk openen",
+  "panel-filter-clear": "Alleen {{type}} · alles tonen",
+  "panel-row-pin": "Druk om alleen de foto's van dit type te houden"
 }

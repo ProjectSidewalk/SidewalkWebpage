@@ -218,7 +218,6 @@
   "panel-block": "Block",
   "panel-start-crossing": "Start crossing",
   "panel-end-crossing": "End crossing",
-  "panel-no-crossing": "no crossing",
   "panel-no-score": "not scored",
   "panel-grade-steepest": "steepest {{max}}",
   "panel-evidence": "The evidence",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Zoom the map to this block",
   "panel-crossing-card": "{{name}}: what is there",
   "panel-crossing-no-clusters": "No scored clusters at this crossing.",
-  "panel-crossing-more": "+{{count}} more below"
+  "panel-crossing-more": "+{{count}} more below",
+  "panel-continues": "Continues as",
+  "panel-dead-end": "dead end",
+  "panel-continue-open": "Open the next segment",
+  "panel-filter-clear": "Showing {{type}} only · show all",
+  "panel-row-pin": "Press to keep only this type's pictures"
 }

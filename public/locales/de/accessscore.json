@@ -218,7 +218,6 @@
   "panel-block": "Block",
   "panel-start-crossing": "Kreuzung am Anfang",
   "panel-end-crossing": "Kreuzung am Ende",
-  "panel-no-crossing": "keine Kreuzung",
   "panel-no-score": "nicht bewertet",
   "panel-grade-steepest": "steilste Stelle {{max}}",
   "panel-evidence": "Die Belege",
@@ -239,5 +238,10 @@
   "panel-block-fly": "Karte auf diesen Block zoomen",
   "panel-crossing-card": "{{name}}: was dort ist",
   "panel-crossing-no-clusters": "Keine bewerteten Cluster an dieser Kreuzung.",
-  "panel-crossing-more": "+{{count}} weitere unten"
+  "panel-crossing-more": "+{{count}} weitere unten",
+  "panel-continues": "Weiter als",
+  "panel-dead-end": "Sackgasse",
+  "panel-continue-open": "Nächsten Abschnitt öffnen",
+  "panel-filter-clear": "Nur {{type}} · alle anzeigen",
+  "panel-row-pin": "Drücken, um nur die Bilder dieses Typs zu behalten"
 }

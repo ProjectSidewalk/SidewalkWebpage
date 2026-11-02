@@ -303,6 +303,15 @@ export const AccessScoreApp = (function () {
         else map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), CROSSING_ZOOM), padding: paddingTarget(map) });
       },
       cardStyleUrl: MAP_STYLES.light,
+      continuation: streetContinuation,
+      onHoverStreet: (id) => mapView.hoverStreet(id),
+      // The next segment is selected as a click on it would be, and flown to as a rank row is.
+      onSelectStreet: (id) => {
+        const lngLat = streetCenter(id);
+        if (!lngLat) return;
+        select({ unit: 'streets', id, lngLat });
+        flyToStreet(lngLat);
+      },
       log,
     });
     evidence.onHover((props) => panel.lightCluster(props?.label_cluster_id ?? null));
@@ -892,6 +901,28 @@ export const AccessScoreApp = (function () {
     function streetLine(id) {
       const f = streets.features.find((feature) => feature.properties.street_edge_id === id);
       return f ? f.geometry.coordinates : null;
+    }
+
+    /**
+     * The street that carries on from one end of another, where the engine has no crossing: the one other street
+     * with a vertex at that end. The street build splits a road into segments that share their end coordinates
+     * exactly, so the match is on the coordinates themselves, with a hair of tolerance for a re-serialized float.
+     * @param {number} id - The street.
+     * @param {'start'|'end'} end - Which end of it.
+     * @returns {?number} The continuing street's id, or null for a dead end (or a true crossing, which has its
+     *   own intersection and never asks).
+     */
+    function streetContinuation(id, end) {
+      const line = streetLine(id);
+      if (!line || line.length < 2) return null;
+      const [lng, lat] = end === 'start' ? line[0] : line[line.length - 1];
+      const near = (v) => Math.abs(v[0] - lng) < 1e-7 && Math.abs(v[1] - lat) < 1e-7;
+      const others = streets.features.filter((f) => {
+        if (f.properties.street_edge_id === id) return false;
+        const c = f.geometry.coordinates;
+        return c.length >= 2 && (near(c[0]) || near(c[c.length - 1]));
+      });
+      return others.length === 1 ? others[0].properties.street_edge_id : null;
     }
 
     /** A region's bounding-box center, from its polygon. */
