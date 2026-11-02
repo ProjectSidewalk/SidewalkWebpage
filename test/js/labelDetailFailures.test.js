@@ -286,6 +286,32 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
     });
 
+    test('paging on with a tag pick open saves it to the label it was made on, as Done would', async () => {
+      const edits = [];
+      const { show, q } = await mountCard({
+        routes: {
+          'GET /label/tags': [
+            { label_type: 'Obstacle', tag: 'pole', tag_id: 1 }, { label_type: 'Obstacle', tag: 'cone', tag_id: 2 },
+          ],
+          'POST /label/edit': (url, opts) => {
+            edits.push(JSON.parse(opts.body));
+            return { label_type: 'Obstacle', severity: 2, tags: ['pole', 'cone'] };
+          },
+        },
+      });
+      await show(editable);
+      q('.label-detail__tags-edit').click();
+      await flush();
+      q('.label-detail__tags .tag-pill:not(.tag-pill--active)').click();
+
+      await show({ ...editable, label_id: 43 });
+      await flush();
+
+      expect(edits).toHaveLength(1);
+      expect(edits[0]).toMatchObject({ label_id: 42, tags: ['pole', 'cone'] });
+      expect(q('.label-detail__tags-edit').getAttribute('aria-expanded')).toBe('false');
+    });
+
     test('a type change queued before paging leaves the new label\'s tag pick open', async () => {
       const first = deferred();
       let edits = 0;

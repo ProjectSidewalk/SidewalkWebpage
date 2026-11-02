@@ -177,6 +177,8 @@
   "delete-label-confirm-admin": "確定要刪除這個標記嗎？系統會記錄您的「不同意」投票。",
   "delete-label-failed": "無法刪除標記，請再試一次。",
   "restore-label": "還原標記",
+  "previous-label": "上一個標記",
+  "next-label": "下一個標記",
   "restore-label-brief": "還原",
   "restore-label-failed": "無法還原標記，請再試一次。",
   "you-deleted-label": "您已刪除這個標記",

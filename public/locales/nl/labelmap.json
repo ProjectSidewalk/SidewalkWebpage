@@ -185,6 +185,8 @@
   "delete-label-confirm-admin": "Weet je zeker dat je dit etiket wilt verwijderen? Je stem 'Het oneens zijn' wordt erbij vastgelegd.",
   "delete-label-failed": "Het etiket kon niet worden verwijderd. Probeer het opnieuw.",
   "restore-label": "Etiket herstellen",
+  "previous-label": "Vorig etiket",
+  "next-label": "Volgend etiket",
   "restore-label-brief": "Herstellen",
   "restore-label-failed": "Het etiket kon niet worden hersteld. Probeer het opnieuw.",
   "you-deleted-label": "Je hebt dit etiket verwijderd",

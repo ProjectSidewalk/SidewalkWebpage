@@ -185,6 +185,8 @@
   "delete-label-confirm-admin": "Tem certeza de que deseja excluir este rótulo? O seu voto \"Discordo\" fica registrado nele.",
   "delete-label-failed": "Não foi possível excluir o rótulo. Tente novamente.",
   "restore-label": "Restaurar rótulo",
+  "previous-label": "Rótulo anterior",
+  "next-label": "Próximo rótulo",
   "restore-label-brief": "Restaurar",
   "restore-label-failed": "Não foi possível restaurar o rótulo. Tente novamente.",
   "you-deleted-label": "Você excluiu este rótulo",

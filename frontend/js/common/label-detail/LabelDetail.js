@@ -891,6 +891,10 @@ export class LabelDetail {
    */
   #handleData(meta) {
     const els = this.#els;
+    // Paging on with a tag pick open saves it, as Done would; it was made on the label being left, so it is saved
+    // before that label stops being the current one. A redraw of the same label drops the pick instead, since the
+    // redraw is there because the label changed under it.
+    if (this.#tagEditor.isOpen && this.#currentLabelMeta?.label_id !== meta.label_id) this.#finishTagEditing();
     this.#currentLabelMeta = meta;
 
     // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
@@ -905,7 +909,7 @@ export class LabelDetail {
     this.#deleted = !!meta.deleted;
     this.#canRestore = !!meta.can_restore;
     this.#deletedHere = false;
-    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
+    if (this.#tagEditor.isOpen) this.#tagEditor.close();
     this.#applyInteractionLock();
 
     this.#showEditStatus('');

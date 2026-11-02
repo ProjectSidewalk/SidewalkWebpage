@@ -185,6 +185,8 @@
   "delete-label-confirm-admin": "¿Seguro que quieres eliminar esta etiqueta? Se registrará tu voto de «Discrepar» en ella.",
   "delete-label-failed": "No se pudo eliminar la etiqueta. Inténtalo de nuevo.",
   "restore-label": "Restaurar etiqueta",
+  "previous-label": "Etiqueta anterior",
+  "next-label": "Etiqueta siguiente",
   "restore-label-brief": "Restaurar",
   "restore-label-failed": "No se pudo restaurar la etiqueta. Inténtalo de nuevo.",
   "you-deleted-label": "Eliminaste esta etiqueta",

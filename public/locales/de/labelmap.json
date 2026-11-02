@@ -185,6 +185,8 @@
   "delete-label-confirm-admin": "Möchten Sie diese Beschriftung wirklich löschen? Ihre Bewertung „Nicht einverstanden“ wird dazu gespeichert.",
   "delete-label-failed": "Die Beschriftung konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
   "restore-label": "Beschriftung wiederherstellen",
+  "previous-label": "Vorherige Beschriftung",
+  "next-label": "Nächste Beschriftung",
   "restore-label-brief": "Wiederherstellen",
   "restore-label-failed": "Die Beschriftung konnte nicht wiederhergestellt werden. Bitte versuchen Sie es erneut.",
   "you-deleted-label": "Sie haben diese Beschriftung gelöscht",
