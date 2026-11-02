@@ -1594,6 +1594,7 @@
     960px,
     calc(100vw - 2 * var(--space-lg))
   );
+
   /* Room for the title, the arrows and the close in one row even at one card. */
   min-width: min(calc(440px * var(--ui-scale, 1)), calc(100vw - 2 * var(--space-lg)));
   max-height: calc(100vh - 2 * var(--space-lg));
