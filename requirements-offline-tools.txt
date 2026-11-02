@@ -8,7 +8,7 @@
 #   python3.13 -m pip install -r requirements-offline-tools.txt
 #
 # Self-contained rather than layered on requirements.txt: the two target different interpreters, so no shared pin.
-pandas==3.0.6
+pandas==3.1.0
 requests==2.34.2
 shapely==2.2.0
 geopy==2.5.0
