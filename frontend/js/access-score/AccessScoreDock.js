@@ -13,6 +13,7 @@ import { AccessScoreRankBars } from './AccessScoreRankBars.js';
 import { AccessScoreWhatsHere } from './AccessScoreWhatsHere.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';
+import { setPaddingEdges } from '../ps-map/mapPadding.js';
 /** @typedef {import('./AccessScoreSidebar.js').AccessScoreChangeMeta} AccessScoreChangeMeta */
 /** @typedef {import('./AccessScoreMapView.js').AccessScoreMapView} AccessScoreMapView */
 /** @typedef {import('./AccessScoreRankBars.js').AccessScoreRankRow} AccessScoreRankRow */
@@ -84,6 +85,8 @@ export class AccessScoreDock {
   static PHOTO_MOVE_DEBOUNCE_MS = 500;
 
   #open = true;
+  /** Whether the band is folded to its bar for the street panel (`setFolded`), whatever `#open` says. */
+  #folded = false;
   /** @type {?AccessScoreBrush} The brush in force, of either kind; null with none. */
   #brush = null;
   /** The ascending slope-class breaks, for reading a grade brush back into streets; null in an unsampled city. */
@@ -123,10 +126,12 @@ export class AccessScoreDock {
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
    * @param {?number[]} [options.gradeBreaks] - The slope-class breaks a grade brush is read against (#5223); null
    *   in a city whose streets have no slope.
+   * @param {?import('./AccessScoreClusterFeed.js').AccessScoreClusterFeed} [options.feed] - The page's shared
+   *   cluster cache for the photo strip (#5748); null to let the strip keep its own.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
-    gradeBreaks = null,
+    gradeBreaks = null, feed = null,
   }) {
     this.#gradeBreaks = gradeBreaks;
     this.#root = root;
@@ -170,6 +175,7 @@ export class AccessScoreDock {
       types: model.config.scored_types,
       onOpenLabel: (labelId, ids) => this.#callbacks.onOpenLabel(labelId, ids),
       log,
+      feed,
     });
     this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
       // A street row is a map selection, which arrives back through `setSelection` and scopes the band itself; a
@@ -278,11 +284,35 @@ export class AccessScoreDock {
    */
   setOpen(open, { log = true } = {}) {
     this.#open = open;
-    this.#root.classList.toggle('acs-dock--collapsed', !open);
-    this.#els.toggle.setAttribute('aria-expanded', String(open));
-    this.#els.body.hidden = !open;
+    this.#folded = false;
+    this.#applyOpen();
     if (log) this.#callbacks.log('Dock', open ? 'open' : 'closed');
     this.#callbacks.onStateChange();
+  }
+
+  /**
+   * Folds the band to its bar while something else needs the map (the street panel, #5748), or unfolds it. A fold
+   * is not a collapse: the reader's own open/closed choice is kept, left out of the URL and the log, and comes back
+   * when the fold lifts. A click on the bar's toggle while folded lifts the fold and opens.
+   * @param {boolean} folded - True to fold.
+   */
+  setFolded(folded) {
+    if (folded === this.#folded) return;
+    this.#folded = folded;
+    this.#applyOpen();
+  }
+
+  /**
+   * The band's shown state: open unless collapsed or folded. The new height is published at once rather than left
+   * to the resize observer, so a fly-to issued in the same tick as a fold (a rank row, a deep link) reads the whole
+   * padding target.
+   */
+  #applyOpen() {
+    const shown = this.#open && !this.#folded;
+    this.#root.classList.toggle('acs-dock--collapsed', !shown);
+    this.#els.toggle.setAttribute('aria-expanded', String(shown));
+    this.#els.body.hidden = !shown;
+    this.#publishHeight();
   }
 
   /**
@@ -927,7 +957,7 @@ export class AccessScoreDock {
   }
 
   #bind() {
-    this.#els.toggle.addEventListener('click', () => this.setOpen(!this.#open));
+    this.#els.toggle.addEventListener('click', () => this.setOpen(this.#folded ? true : !this.#open));
     this.#els.brushClear.addEventListener('click', () => this.setBrush(null));
     this.#els.rankOrder?.addEventListener('click', () => {
       this.setRankWorst(!this.#rankWorst);
@@ -941,21 +971,21 @@ export class AccessScoreDock {
    * than behind it.
    */
   #observeHeight() {
-    const publish = () => {
-      const height = this.#root.offsetHeight;
-      this.#root.parentElement?.style.setProperty('--acs-dock-height', `${height}px`);
-      // Never more than half the canvas: padding that tall projects the center off the map.
-      const canvas = this.#map.getContainer().getBoundingClientRect().height;
-      const bottom = Math.min(height, Math.floor(canvas / 2));
-      if (bottom === this.#paddingBottom) return;
-      const first = this.#paddingBottom === 0;
-      this.#paddingBottom = bottom;
-      const padding = { ...this.#map.getPadding(), bottom };
-      // The first publish is page setup and jumps; a collapse or expand eases, like the drawer's.
-      if (first) this.#map.setPadding(padding);
-      else this.#map.easeTo({ padding, duration: 300 });
-    };
-    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(publish).observe(this.#root);
-    publish();
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.#publishHeight()).observe(this.#root);
+    this.#publishHeight();
+  }
+
+  /** One publish of the band's current height (see `#observeHeight`). */
+  #publishHeight() {
+    const height = this.#root.offsetHeight;
+    this.#root.parentElement?.style.setProperty('--acs-dock-height', `${height}px`);
+    // Never more than half the canvas: padding that tall projects the center off the map.
+    const canvas = this.#map.getContainer().getBoundingClientRect().height;
+    const bottom = Math.min(height, Math.floor(canvas / 2));
+    if (bottom === this.#paddingBottom) return;
+    const first = this.#paddingBottom === 0;
+    this.#paddingBottom = bottom;
+    // The first publish is page setup and jumps; a collapse or expand eases, like the drawer's.
+    setPaddingEdges(this.#map, { bottom }, { animate: !first });
   }
 }
