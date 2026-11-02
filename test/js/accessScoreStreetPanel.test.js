@@ -258,8 +258,7 @@ describe('AccessScoreStreetPanel', () => {
       expect(signal.querySelector('.lmc').dataset.labelId).toBe('302');
       expect(signal.querySelector('.acs-tile__size').textContent).toBe('cluster-size count=2');
       signal.querySelector('.acs-tile__size').click();
-      expect(callbacks.onOpenSheet).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}),
-        expect.stringContaining('cluster-effect'));
+      expect(callbacks.onOpenSheet).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
       expect(callbacks.log).toHaveBeenCalledWith('PanelSheet_labelClusterId', 300);
       // A picture opens the full card, paging over every tile on show.
       signal.querySelector('.lmc__open').click();
@@ -744,7 +743,7 @@ describe('AccessScoreStreetPanel', () => {
       const crops = [...card().querySelectorAll('.acs-crossing-card__crop')];
       expect(crops).toHaveLength(4);
       expect(crops[0].querySelector('img.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/600.jpg');
-      expect(crops[0].title).toContain('cluster-effect');
+      expect(crops[0].title).toContain('crossing-effect');
       expect(card().querySelectorAll('button, a')).toHaveLength(0);
       expect(card().querySelector('.acs-crossing-card__more').textContent).toBe('panel-crossing-more count=1');
 

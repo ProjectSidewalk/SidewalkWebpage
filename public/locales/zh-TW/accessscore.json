@@ -61,6 +61,7 @@
   "click-for-details": "點選查看詳情",
   "cluster-size_other": "{{count}} 個標記",
   "cluster-effect": "本街道的{{type}}：{{value}}",
+  "crossing-effect": "此路口的{{type}}：{{value}}",
   "cluster-open": "點選以在影像中開啟",
   "zoom-in-for-clusters": "放大以查看群組",
   "loading-clusters": "正在載入群組…",

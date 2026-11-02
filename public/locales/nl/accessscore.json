@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} label",
   "cluster-size_other": "{{count}} labels",
   "cluster-effect": "{{type}} in deze straat: {{value}}",
+  "crossing-effect": "{{type}} bij deze oversteek: {{value}}",
   "cluster-open": "Klik om het in de beelden te openen",
   "zoom-in-for-clusters": "Zoom in om de clusters te zien",
   "loading-clusters": "Clusters laden…",

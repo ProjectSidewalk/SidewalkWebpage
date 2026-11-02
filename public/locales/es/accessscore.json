@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} etiqueta",
   "cluster-size_other": "{{count}} etiquetas",
   "cluster-effect": "{{type}} en esta calle: {{value}}",
+  "crossing-effect": "{{type}} en este cruce: {{value}}",
   "cluster-open": "Haga clic para verlo en las imágenes",
   "zoom-in-for-clusters": "Acérquese para ver los grupos",
   "loading-clusters": "Cargando grupos…",

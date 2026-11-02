@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} Markierung",
   "cluster-size_other": "{{count}} Markierungen",
   "cluster-effect": "{{type}} in dieser Straße: {{value}}",
+  "crossing-effect": "{{type}} an dieser Kreuzung: {{value}}",
   "cluster-open": "Klicken, um es im Bildmaterial zu öffnen",
   "zoom-in-for-clusters": "Hineinzoomen, um die Cluster zu sehen",
   "loading-clusters": "Cluster werden geladen …",

@@ -17,7 +17,7 @@ import mapboxgl from '../common/mapboxgl.js';
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { util } from '../common/utilities.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
-import { signed } from './AccessScoreText.js';
+import { effectText, signed } from './AccessScoreText.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreIntersectionExplanation} AccessScoreIntersectionExplanation */
 /** @typedef {import('./AccessScoreClusterFeed.js').AccessScoreFeedCluster} AccessScoreFeedCluster */
@@ -167,11 +167,7 @@ export class AccessScoreCrossingCard {
       figure.className = 'acs-crossing-card__crop';
       figure.dataset.clusterId = String(props.label_cluster_id);
       const term = termOf(props);
-      if (term) {
-        figure.title = i18next.t('accessscore:cluster-effect', {
-          type: util.misc.labelTypeName(type), value: signed(term.term),
-        });
-      }
+      if (term) figure.title = effectText(props, term);
       const src = label?.crop_url || label?.backup_image_url;
       if (src) {
         figure.innerHTML = `<img class="acs-crossing-card__image" src="${esc(src)}" alt="" loading="lazy">

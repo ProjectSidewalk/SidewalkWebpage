@@ -741,10 +741,6 @@ export const AccessScoreApp = (function () {
     }
 
     /**
-     * A cluster's hover card: what it is, how many labels agree on it, and — the point of drawing clusters at all —
-     * what its type is doing to the score of the street it sits on.
-     */
-    /**
      * The cluster's own share of its street's score, the figure its tile in the panel wears, so the dot's tooltip,
      * its sheet and the panel say the same number: a corner cluster's crossing term (whichever street asks), a
      * block cluster's share of its audited street's term, a pooled type's "part of".
@@ -754,9 +750,15 @@ export const AccessScoreApp = (function () {
     function clusterEffect(props) {
       const street = model.explainStreet(props.street_edge_id);
       const term = model.clusterTerm(props, street?.audited ? street : null);
-      return term ? effectText(props.label_type, term) : '';
+      return term ? effectText(props, term) : '';
     }
 
+    /**
+     * A cluster's hover card: what it is, how many labels agree on it, and — the point of drawing clusters at all —
+     * what it is doing to the score.
+     * @param {import('./AccessScoreClusterLayer.js').AccessScoreClusterProps} props - The cluster.
+     * @returns {string} The tooltip's HTML.
+     */
     function clusterTooltipHtml(props) {
       // A rating's words differ by type — a curb ramp is good/okay/bad, an obstacle low/medium/high — so the
       // wording comes from util.misc rather than a mapping written here.

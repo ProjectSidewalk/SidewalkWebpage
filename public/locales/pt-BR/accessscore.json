@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} etiqueta",
   "cluster-size_other": "{{count}} etiquetas",
   "cluster-effect": "{{type}} nesta rua: {{value}}",
+  "crossing-effect": "{{type}} neste cruzamento: {{value}}",
   "cluster-open": "Clique para abri-lo nas imagens",
   "zoom-in-for-clusters": "Aproxime para ver os agrupamentos",
   "loading-clusters": "Carregando agrupamentos…",

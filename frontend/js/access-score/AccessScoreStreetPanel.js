@@ -168,7 +168,7 @@ export class AccessScoreStreetPanel {
    * @param {(reason: string) => void} options.onClose - Called when the reader closes the panel; the host
    *   deselects, which closes it.
    * @param {(labelId: number, labelIds: number[]) => void} options.onOpenLabel - Opens the full label card.
-   * @param {(props: AccessScoreFeedCluster, effect: string) => void} options.onOpenSheet - Opens the cluster
+   * @param {(props: AccessScoreFeedCluster) => void} options.onOpenSheet - Opens the cluster
    *   sheet for a tile whose cluster holds more than one label.
    * @param {(props: ?AccessScoreFeedCluster) => void} [options.onHoverCluster] - A tile hovered, or none.
    * @param {(list: ?AccessScoreFeedCluster[]) => void} [options.onHoverGroup] - A crossing's dot or the block
@@ -1080,7 +1080,7 @@ export class AccessScoreStreetPanel {
         id: p.label_cluster_id,
         meters: along,
         color: util.misc.getLabelColors(p.label_type),
-        title: effectText(p.label_type, term),
+        title: effectText(p, term),
       });
     }
     return markers;
@@ -1275,8 +1275,7 @@ export class AccessScoreStreetPanel {
       size.setAttribute('aria-label', i18next.t('accessscore:panel-open-sheet', { count: props.cluster_size }));
       size.addEventListener('click', () => {
         this.#callbacks.log('PanelSheet_labelClusterId', props.label_cluster_id);
-        const term = this.#model.clusterTerm(props, this.#street);
-        this.#callbacks.onOpenSheet(props, term ? effectText(props.label_type, term) : '');
+        this.#callbacks.onOpenSheet(props);
       });
       el.appendChild(size);
     }
@@ -1309,7 +1308,6 @@ export class AccessScoreStreetPanel {
 
   /** Writes a tile's effect chip from the current weights. */
   #paintEffect(tile) {
-    const esc = util.escapeHTML;
     const term = this.#model.clusterTerm(tile.props, this.#street);
     const el = tile.effect;
     if (!term) {
@@ -1323,7 +1321,8 @@ export class AccessScoreStreetPanel {
     if (term.term < 0) tone = 'problem';
     else if (term.term > 0) tone = 'feature';
     el.className = `acs-tile__effect acs-tile__effect--${tone}`;
-    el.setAttribute('data-ps-tooltip', esc(effectText(tile.props.label_type, term)));
+    // Plain text: the tooltip reads this attribute as text, so it is not escaped here.
+    el.setAttribute('data-ps-tooltip', effectText(tile.props, term));
   }
 
   #clearTiles() {

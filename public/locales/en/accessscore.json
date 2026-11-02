@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} label",
   "cluster-size_other": "{{count}} labels",
   "cluster-effect": "{{type}} on this street: {{value}}",
+  "crossing-effect": "{{type}} at this crossing: {{value}}",
   "cluster-open": "Click to open it in the imagery",
   "zoom-in-for-clusters": "Zoom in to see the clusters",
   "loading-clusters": "Loading clusters…",

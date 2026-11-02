@@ -708,8 +708,8 @@ describe('AccessScoreModel#clusterTerm (#5748)', () => {
           continue;
         }
         if (FIXTURE.config.type_weights[cluster.label_type].scoring === 'street_condition') {
-          // Pooled once per street: the cluster carries the street's whole term, flagged as such.
-          // The whole term, flagged, with how many clusters share it: the panel ranks each by its share.
+          // Pooled once per street: the whole term, flagged, with how many clusters share it (the panel ranks each
+          // by its share).
           expect(result).toEqual({
             term: street.terms[cluster.label_type].term, pooled: true,
             count: street.terms[cluster.label_type].clusterCount,

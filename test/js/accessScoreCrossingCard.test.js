@@ -170,7 +170,8 @@ describe('AccessScoreCrossingCard', () => {
       // A crop, the backup image where there is no crop, and the shared placeholder where there is neither.
       expect(crops[0].querySelector('.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/10.jpg');
       expect(crops[0].querySelector('.acs-crossing-card__icon').getAttribute('src')).toContain('NoCurbRamp_small.svg');
-      expect(crops[0].title).toBe('cluster-effect type=no-curb-ramp value=−1.00');
+      // A corner cluster's number is its crossing's, and the title says so.
+      expect(crops[0].title).toBe('crossing-effect type=no-curb-ramp value=−1.00');
       expect(crops[1].querySelector('.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/pano11.jpg');
       expect(crops[2].querySelector('.acs-crossing-card__image')).toBeNull();
       expect(crops[2].querySelector('.lmc__placeholder img').getAttribute('src')).toContain('CurbRamp_small.svg');

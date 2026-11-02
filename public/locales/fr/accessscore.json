@@ -63,6 +63,7 @@
   "cluster-size_one": "{{count}} signalement",
   "cluster-size_other": "{{count}} signalements",
   "cluster-effect": "{{type}} dans cette rue : {{value}}",
+  "crossing-effect": "{{type}} à cette traversée : {{value}}",
   "cluster-open": "Cliquez pour l’ouvrir dans les images",
   "zoom-in-for-clusters": "Zoomez pour voir les groupes",
   "loading-clusters": "Chargement des groupes…",
