@@ -225,7 +225,7 @@
   "panel-group-empty": "Nenhum grupo pontuado aqui.",
   "panel-all": "Mostrar todos os {{count}}",
   "panel-score-help": "A pontuação do próprio quarteirão, em média com os cruzamentos nas pontas que têm uma. Ao longo do quarteirão os efeitos se somam e uma sigmoide transforma a soma em pontuação, então um quarteirão sem nada pontuado fica em 50.",
-  "panel-rows-help": "O efeito total de cada tipo de etiqueta com os pesos atuais, ao longo do quarteirão e nos cruzamentos das pontas. Um efeito negativo puxa a pontuação para baixo; um positivo a eleva.",
+  "panel-rows-help": "O efeito total de cada tipo de etiqueta com os pesos atuais, ao longo do quarteirão e nos cruzamentos das pontas. Um efeito negativo puxa a pontuação para baixo; um positivo a eleva. Deixe o ponteiro sobre uma linha para ver só as fotos desse tipo; pressione-a para mantê-las.",
   "panel-evidence-help": "Um cartão por grupo, o pior primeiro. Um grupo de esquina conta para todas as ruas que se encontram nesse cruzamento.",
   "panel-fewer": "Mostrar menos",
   "panel-clusters_one": "{{count}} grupo",
@@ -242,6 +242,5 @@
   "panel-continues": "Continua como",
   "panel-dead-end": "sem saída",
   "panel-continue-open": "Abrir o próximo trecho",
-  "panel-filter-clear": "Mostrando só {{type}} · mostrar tudo",
-  "panel-row-pin": "Pressione para manter só as fotos deste tipo"
+  "panel-filter-clear": "Mostrando só {{type}} · mostrar tudo"
 }

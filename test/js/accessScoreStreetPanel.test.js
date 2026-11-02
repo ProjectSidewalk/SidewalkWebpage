@@ -272,33 +272,58 @@ describe('AccessScoreStreetPanel', () => {
       await settle();
       expect(tiles('block')).toHaveLength(12);
       const fetches = () => fetchMock.mock.calls.length;
-      // Hovering Signal: its one tile, past the cap a moment ago, is the only one on show; "Show all" is gone.
+      const holder = root.querySelector('[data-acs-groups]');
+      Object.defineProperty(holder, 'offsetHeight', {value: 900, configurable: true});
+      const beat = () => vi.advanceTimersByTime(AccessScoreStreetPanel.ROW_DELAY_MS + 1);
+      // Hovering Signal: nothing until the pointer has rested; then its one tile, past the cap a moment ago, is
+      // the only one on show, "Show all" is gone, and the evidence keeps its height so no scroll is clamped.
       const signalRow = rows().find((r) => r.dataset.type === 'Signal');
       signalRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      beat();
       await settle();
       expect(callbacks.log).toHaveBeenCalledWith('PanelRow', 'Signal');
       expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
       expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(true);
       expect(signalRow.classList.contains('is-on')).toBe(true);
-      // Hovering Obstacle: all fourteen, not the capped twelve.
+      expect(holder.style.minHeight).toBe('900px');
+      // On to Obstacle: the move is one change, not a lift and a filter, and shows all fourteen, not the capped
+      // twelve.
       signalRow.dispatchEvent(new Event('mouseleave'));
       const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
       obstacleRow.dispatchEvent(new Event('mouseenter'));
       await settle();
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      beat();
+      await settle();
       expect(tiles('block')).toHaveLength(14);
       expect(tiles('block').every((t) => t.querySelector('.lmc__type').textContent === 'obstacle')).toBe(true);
-      // Leaving restores the capped dozen; the tiles were kept, so no picture was fetched twice.
+      expect(holder.style.minHeight).toBe('900px');
+      // Leaving restores the capped dozen and the evidence's own height; the tiles were kept, so no picture was
+      // fetched twice.
       const before = fetches();
       obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
       await settle();
       expect(tiles('block')).toHaveLength(12);
       expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(false);
+      expect(holder.style.minHeight).toBe('');
       obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
       await settle();
       expect(fetches()).toBe(before);
+      // The keyboard acts at once.
+      obstacleRow.dispatchEvent(new Event('blur'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      obstacleRow.dispatchEvent(new Event('focus'));
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
       // Pressing pins: the filter outlasts the pointer, the row reads pressed, and the chip names the way out.
       obstacleRow.click();
       obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
       await settle();
       expect(callbacks.log).toHaveBeenCalledWith('PanelPinRow', 'Obstacle');
       expect(obstacleRow.getAttribute('aria-pressed')).toBe('true');
@@ -309,18 +334,22 @@ describe('AccessScoreStreetPanel', () => {
       expect(chip.textContent).toBe('panel-filter-clear type=obstacle');
       // Hovering another row previews it over the pin; leaving goes back to the pin.
       signalRow.dispatchEvent(new Event('mouseenter'));
+      beat();
       await settle();
       expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
       signalRow.dispatchEvent(new Event('mouseleave'));
+      beat();
       await settle();
       expect(tiles('block')).toHaveLength(14);
       // The grade row has no tiles and filters nothing: the pin stays.
       const gradeRow = rows().find((r) => r.dataset.type === 'grade');
       if (gradeRow) {
         gradeRow.dispatchEvent(new Event('mouseenter'));
+        beat();
         await settle();
         expect(tiles('block')).toHaveLength(14);
         gradeRow.dispatchEvent(new Event('mouseleave'));
+        beat();
       }
       // A reweighting keeps the pin through the rows' re-render.
       model.setState({weights: {...model.state.weights, Obstacle: 0.5}});

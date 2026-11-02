@@ -225,7 +225,7 @@
   "panel-group-empty": "No hay grupos puntuados aquí.",
   "panel-all": "Mostrar los {{count}}",
   "panel-score-help": "La puntuación propia de la cuadra, promediada con los cruces de sus extremos que tienen una. A lo largo de la cuadra los efectos se suman y una sigmoide convierte la suma en puntuación, así que una cuadra sin nada puntuado queda en 50.",
-  "panel-rows-help": "El efecto total de cada tipo de etiqueta con los pesos actuales, a lo largo de la cuadra y en los cruces de sus extremos. Un efecto negativo baja la puntuación; uno positivo la sube.",
+  "panel-rows-help": "El efecto total de cada tipo de etiqueta con los pesos actuales, a lo largo de la cuadra y en los cruces de sus extremos. Un efecto negativo baja la puntuación; uno positivo la sube. Deja el puntero sobre una fila para ver solo las imágenes de ese tipo; púlsala para mantenerlas.",
   "panel-evidence-help": "Una tarjeta por grupo, el peor primero. Un grupo de esquina cuenta para todas las calles que se encuentran en ese cruce.",
   "panel-fewer": "Mostrar menos",
   "panel-clusters_one": "{{count}} grupo",
@@ -242,6 +242,5 @@
   "panel-continues": "Continúa como",
   "panel-dead-end": "sin salida",
   "panel-continue-open": "Abrir el siguiente tramo",
-  "panel-filter-clear": "Mostrando solo {{type}} · mostrar todo",
-  "panel-row-pin": "Pulsa para ver solo las imágenes de este tipo"
+  "panel-filter-clear": "Mostrando solo {{type}} · mostrar todo"
 }

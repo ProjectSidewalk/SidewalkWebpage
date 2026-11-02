@@ -225,7 +225,7 @@
   "panel-group-empty": "Geen beoordeelde clusters hier.",
   "panel-all": "Alle {{count}} tonen",
   "panel-score-help": "De eigen score van het blok, gemiddeld met de kruisingen aan de uiteinden die er een hebben. Langs het blok tellen de effecten op en een sigmoïde maakt van de som een score, dus een blok zonder beoordeelde labels staat op 50.",
-  "panel-rows-help": "Het totale effect van elk labeltype onder de huidige gewichten, langs het blok en bij de kruisingen aan de uiteinden. Een negatief effect trekt de score omlaag, een positief effect tilt hem op.",
+  "panel-rows-help": "Het totale effect van elk labeltype onder de huidige gewichten, langs het blok en bij de kruisingen aan de uiteinden. Een negatief effect trekt de score omlaag, een positief effect tilt hem op. Laat de aanwijzer op een rij rusten om alleen de foto's van dat type te zien; druk erop om ze te houden.",
   "panel-evidence-help": "Eén tegel per cluster, de slechtste eerst. Een hoekcluster telt mee voor elke straat die op die kruising samenkomt.",
   "panel-fewer": "Minder tonen",
   "panel-clusters_one": "{{count}} cluster",
@@ -242,6 +242,5 @@
   "panel-continues": "Gaat verder als",
   "panel-dead-end": "doodlopend",
   "panel-continue-open": "Volgend stuk openen",
-  "panel-filter-clear": "Alleen {{type}} · alles tonen",
-  "panel-row-pin": "Druk om alleen de foto's van dit type te houden"
+  "panel-filter-clear": "Alleen {{type}} · alles tonen"
 }

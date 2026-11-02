@@ -212,7 +212,7 @@
   "panel-group-empty": "這裡沒有評分的群集。",
   "panel-all": "顯示全部 {{count}} 個",
   "panel-score-help": "街段本身的分數，與兩端有分數的路口取平均。街段上的效應會相加，再由 S 型函數轉成分數，因此沒有任何評分標籤的街段會落在 50。",
-  "panel-rows-help": "在目前權重下，各標籤類型在街段及兩端路口的總效應。負的效應會拉低分數，正的效應則提高分數。",
+  "panel-rows-help": "在目前權重下，各標籤類型在街段及兩端路口的總效應。負的效應會拉低分數，正的效應則提高分數。將指標停在某一列上，只會顯示該類型的照片；按下即可保留。",
   "panel-evidence-help": "每個群集一張卡片，最差的排最前。路口轉角的群集會計入在該路口交會的每一條街。",
   "panel-fewer": "顯示較少",
   "panel-clusters_other": "{{count}} 個群集",
@@ -228,6 +228,5 @@
   "panel-continues": "延續為",
   "panel-dead-end": "死路",
   "panel-continue-open": "開啟下一段",
-  "panel-filter-clear": "只顯示{{type}} · 顯示全部",
-  "panel-row-pin": "按下以只保留此類型的照片"
+  "panel-filter-clear": "只顯示{{type}} · 顯示全部"
 }

@@ -95,6 +95,12 @@ export class AccessScoreStreetPanel {
   /** How long the card lingers after the pointer leaves the dot, long enough to reach the card itself. */
   static CARD_LINGER_MS = 120;
 
+  /**
+   * How long the pointer rests on a row before its filter applies, and how long after leaving before it lifts: a
+   * sweep down the rows then changes the evidence once, at the row the pointer stops on, not at every row crossed.
+   */
+  static ROW_DELAY_MS = 120;
+
   #root;
   #els;
   /** @type {AccessScoreModel} */
@@ -132,6 +138,8 @@ export class AccessScoreStreetPanel {
   #filterType = null;
   /** The type a pressed row keeps filtering to after the pointer leaves, or null. */
   #pinnedType = null;
+  /** The pending row hover or leave. */
+  #rowTimer = null;
   /** @type {Map<number, LabelMiniCard>} By label id, so a vote cast in the full card can be reflected here. */
   #cards = new Map();
   /** The label ids on show, in tile order: the full label card pages through them in this order. */
@@ -271,6 +279,7 @@ export class AccessScoreStreetPanel {
     this.#expanded.clear();
     this.#filterType = null;
     this.#pinnedType = null;
+    this.#cancelRowTimer();
     // The card's element outlives the body's markup: the inset map inside it would otherwise be built again.
     this.#cardEl.remove();
     this.#els.body.innerHTML = '';
@@ -315,7 +324,22 @@ export class AccessScoreStreetPanel {
    */
   light(type) {
     this.#filterType = type;
+    // A hover filter shortens the evidence, and a reader scrolled past the shorter height would be clamped
+    // upward, the row sliding out from under the pointer. The evidence keeps its height until the pointer leaves;
+    // the pinned view, a state the reader chose, takes its own.
+    if (type !== null) this.#lockEvidenceHeight();
     this.#applyFilter();
+    if (type === null) this.#unlockEvidenceHeight();
+  }
+
+  #lockEvidenceHeight() {
+    const holder = this.#els.body.querySelector('[data-acs-groups]');
+    if (holder && !holder.style.minHeight) holder.style.minHeight = `${holder.offsetHeight}px`;
+  }
+
+  #unlockEvidenceHeight() {
+    const holder = this.#els.body.querySelector('[data-acs-groups]');
+    if (holder) holder.style.minHeight = '';
   }
 
   /**
@@ -397,6 +421,7 @@ export class AccessScoreStreetPanel {
     this.#closeCard();
     this.#filterType = null;
     this.#pinnedType = null;
+    this.#cancelRowTimer();
     this.#renderShell();
     this.#renderExplanation();
     this.#setShown(true);
@@ -771,11 +796,11 @@ export class AccessScoreStreetPanel {
     const lngLat = this.#endLngLat(key);
     if (!e || e.score === null || !lngLat) return;
     this.#cardEl.dataset.acsCardTail = key;
-    // The tail sits under the dot's center, wherever the panel's width has put it.
+    // The card hangs just under the dot, its tail at the dot's center, wherever the panel's width has put it.
     const dot = this.#els.body.querySelector(`[data-acs-end="${key}"]`);
     if (dot) {
-      this.#cardEl.style.setProperty('--acs-card-tail-left',
-        `${dot.offsetLeft + dot.offsetWidth / 2 - this.#cardEl.offsetLeft}px`);
+      this.#cardEl.style.setProperty('--acs-card-top', `${dot.offsetTop + dot.offsetHeight + 10}px`);
+      this.#cardEl.style.setProperty('--acs-card-tail-left', `${dot.offsetLeft + dot.offsetWidth / 2}px`);
     }
     this.#card.show({
       key,
@@ -862,8 +887,7 @@ export class AccessScoreStreetPanel {
         .map(([bucket, n]) => `${n} ${ratingWord(bucket)}`);
       // A button, pressed to pin the filter; hovered, it filters for as long as the pointer rests.
       const pressed = String(this.#pinnedType === r.type);
-      return `<li><button type="button" class="acs-row" data-type="${esc(r.type)}" aria-pressed="${pressed}"
-          data-ps-tooltip="${esc(i18next.t('accessscore:panel-row-pin'))}">
+      return `<li><button type="button" class="acs-row" data-type="${esc(r.type)}" aria-pressed="${pressed}">
         <span class="acs-row__swatch" style="background-color: ${util.misc.getLabelColors(r.type)};"></span>
         <span class="acs-row__label">${esc(util.misc.labelTypeName(r.type))}<small>${
           esc(parts.join(' · '))}</small></span>
@@ -920,11 +944,28 @@ export class AccessScoreStreetPanel {
       }
     };
     const off = () => this.light(null);
-    row.addEventListener('mouseenter', on);
-    row.addEventListener('focus', on);
-    row.addEventListener('mouseleave', off);
-    row.addEventListener('blur', off);
+    // The pointer waits a beat each way, so a move from one row to the next is one change, not a lift and a
+    // filter; the keyboard, which lands on one row at a time, acts at once.
+    const later = (fn) => {
+      this.#cancelRowTimer();
+      this.#rowTimer = setTimeout(fn, AccessScoreStreetPanel.ROW_DELAY_MS);
+    };
+    row.addEventListener('mouseenter', () => later(on));
+    row.addEventListener('mouseleave', () => later(off));
+    row.addEventListener('focus', () => {
+      this.#cancelRowTimer();
+      on();
+    });
+    row.addEventListener('blur', () => {
+      this.#cancelRowTimer();
+      off();
+    });
     if (row.hasAttribute('aria-pressed')) row.addEventListener('click', () => this.pin(type));
+  }
+
+  #cancelRowTimer() {
+    if (this.#rowTimer !== null) clearTimeout(this.#rowTimer);
+    this.#rowTimer = null;
   }
 
   /**

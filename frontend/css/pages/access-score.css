@@ -1864,6 +1864,7 @@
    the block's elevation profile, the chart takes the bar's place between the dots (its figure and the slot around it
    are flattened into the grid, so the legend can span the full width under the chart) and the bar becomes a pill. */
 .acs-panel__components {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -2001,14 +2002,16 @@ button.acs-panel__end:focus-visible {
 
 /* ---- The crossing card (#5748): a top-down view of the crossing and the crops of what is there ---- */
 
-/* A full-width row of the components grid right under the dots, with a tail up to the dot that opened it (the
-   panel sets --acs-card-tail-left from where the dot is). A tooltip: it is pictures and figures only, and it closes
-   as the pointer or focus leaves the dot. */
+/* Floats over whatever follows the dots, full width, with a tail up to the dot that opened it (the panel sets
+   --acs-card-top and --acs-card-tail-left from where the dot is). Out of the flow on purpose: a card in the flow
+   pushed the rows down while the pointer was on its way to them. A tooltip: it is pictures and figures only, and it
+   closes as the pointer or focus leaves the dot. */
 .acs-crossing-card {
-  position: relative;
-  grid-column: 1 / -1;
-  grid-row: 3;
-  margin-top: var(--space-sm);
+  position: absolute;
+  top: var(--acs-card-top, 100%);
+  right: 0;
+  left: 0;
+  z-index: 2;
   padding: var(--space-xs);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius-lg);

@@ -225,7 +225,7 @@
   "panel-group-empty": "Keine bewerteten Cluster hier.",
   "panel-all": "Alle {{count}} anzeigen",
   "panel-score-help": "Die eigene Bewertung des Blocks, gemittelt mit den Kreuzungen an seinen Enden, die eine haben. Entlang des Blocks summieren sich die Effekte, und eine Sigmoidfunktion macht aus der Summe eine Bewertung; ein Block ohne bewertete Labels liegt daher bei 50.",
-  "panel-rows-help": "Der Gesamteffekt jedes Labeltyps unter den aktuellen Gewichten, entlang des Blocks und an den Kreuzungen an seinen Enden. Ein negativer Effekt senkt die Bewertung, ein positiver hebt sie.",
+  "panel-rows-help": "Der Gesamteffekt jedes Labeltyps unter den aktuellen Gewichten, entlang des Blocks und an den Kreuzungen an seinen Enden. Ein negativer Effekt senkt die Bewertung, ein positiver hebt sie. Auf einer Zeile verweilen zeigt nur die Bilder dieses Typs; Drücken behält sie.",
   "panel-evidence-help": "Eine Kachel pro Cluster, das schlechteste zuerst. Ein Eckcluster zählt für jede Straße, die an dieser Kreuzung zusammentrifft.",
   "panel-fewer": "Weniger anzeigen",
   "panel-clusters_one": "{{count}} Cluster",
@@ -242,6 +242,5 @@
   "panel-continues": "Weiter als",
   "panel-dead-end": "Sackgasse",
   "panel-continue-open": "Nächsten Abschnitt öffnen",
-  "panel-filter-clear": "Nur {{type}} · alle anzeigen",
-  "panel-row-pin": "Drücken, um nur die Bilder dieses Typs zu behalten"
+  "panel-filter-clear": "Nur {{type}} · alle anzeigen"
 }

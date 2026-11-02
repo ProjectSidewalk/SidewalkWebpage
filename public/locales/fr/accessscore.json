@@ -225,7 +225,7 @@
   "panel-group-empty": "Aucun groupe noté ici.",
   "panel-all": "Afficher les {{count}}",
   "panel-score-help": "Le score propre du tronçon, moyenné avec ceux des carrefours à ses extrémités qui en ont un. Le long du tronçon, les effets s'additionnent et une sigmoïde transforme la somme en score ; un tronçon sans rien de noté se situe donc à 50.",
-  "panel-rows-help": "L'effet total de chaque type d'étiquette selon les pondérations actuelles, le long du tronçon et aux carrefours à ses extrémités. Un effet négatif abaisse le score, un effet positif le relève.",
+  "panel-rows-help": "L'effet total de chaque type d'étiquette selon les pondérations actuelles, le long du tronçon et aux carrefours à ses extrémités. Un effet négatif abaisse le score, un effet positif le relève. Laissez le pointeur sur une ligne pour ne voir que les photos de ce type ; appuyez pour les garder.",
   "panel-evidence-help": "Une vignette par groupe, le pire en premier. Un groupe d'angle compte pour chaque rue qui se rejoint à ce carrefour.",
   "panel-fewer": "Afficher moins",
   "panel-clusters_one": "{{count}} groupe",
@@ -242,6 +242,5 @@
   "panel-continues": "Se poursuit en",
   "panel-dead-end": "impasse",
   "panel-continue-open": "Ouvrir le tronçon suivant",
-  "panel-filter-clear": "Seulement {{type}} · tout afficher",
-  "panel-row-pin": "Appuyez pour ne garder que les photos de ce type"
+  "panel-filter-clear": "Seulement {{type}} · tout afficher"
 }

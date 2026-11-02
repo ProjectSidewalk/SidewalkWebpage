@@ -225,7 +225,7 @@
   "panel-group-empty": "No scored clusters here.",
   "panel-all": "Show all {{count}}",
   "panel-score-help": "The block's own score, averaged with whichever crossings at its ends have one. Along the block the effects add up and a sigmoid turns the sum into a score, so a block with nothing scored on it sits at 50.",
-  "panel-rows-help": "Each label type's total effect under the current weights, along the block and at the crossings at its ends. A negative effect pulls the score down, a positive one lifts it.",
+  "panel-rows-help": "Each label type's total effect under the current weights, along the block and at the crossings at its ends. A negative effect pulls the score down, a positive one lifts it. Rest on a row to see only that type's pictures below; press it to keep them.",
   "panel-evidence-help": "One tile per cluster, worst first. A corner cluster counts for every street that meets at its crossing.",
   "panel-fewer": "Show fewer",
   "panel-clusters_one": "{{count}} cluster",
@@ -242,6 +242,5 @@
   "panel-continues": "Continues as",
   "panel-dead-end": "dead end",
   "panel-continue-open": "Open the next segment",
-  "panel-filter-clear": "Showing {{type}} only · show all",
-  "panel-row-pin": "Press to keep only this type's pictures"
+  "panel-filter-clear": "Showing {{type}} only · show all"
 }
