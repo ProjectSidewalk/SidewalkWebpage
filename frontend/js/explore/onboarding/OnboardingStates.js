@@ -2147,9 +2147,7 @@ export function OnboardingStates(contextMenu, compass, panoManager, uiMinimap) {
     {
       'id': 'end-onboarding',
       'progression': false,
-      'end-onboarding': {
-        skip: false,
-      },
+      'end-onboarding': true,
     },
   ];
 

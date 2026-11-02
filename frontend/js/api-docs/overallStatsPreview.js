@@ -1,21 +1,4 @@
-/**
- * Project Sidewalk Overall Stats Visualization Generator
- *
- * Generates visualizations for the Overall Stats API preview by fetching data directly from the API endpoint.
- *
- * @requires DOM element with id 'overall-stats-preview'
- * @requires Chart.js library
- *
- * @example
- * // Initialize with default settings.
- * OverallStatsPreview.init();
- *
- * // Initialize with custom options.
- * OverallStatsPreview.setup({
- *   apiBaseUrl: "https://projectsidewalk.io/v3/api",
- *   containerId: "custom-container"
- * }).init();
- */
+/** The /v3/api-docs/overallStats preview: a city's summary figures and charts, from the Overall Stats API. */
 
 import { Chart } from './apiDocsChart.js';
 import { util } from '../common/utilities.js';
@@ -395,14 +378,12 @@ export const OverallStatsPreview = {
     // Get label types with validation data.
     const labelTypes = Object.keys(data.validations.combined)
       .filter((key) => key !== 'total_validations' && key !== 'Overall'
-        && data.validations.combined[key].accuracy !== undefined
+        && typeof data.validations.combined[key].accuracy === 'number'
         && data.validations.combined[key].validated > 0);
 
     // Sort label types by accuracy (descending).
     labelTypes.sort((a, b) => data.validations.combined[b].accuracy - data.validations.combined[a].accuracy);
 
-    // Prepare data for chart.
-    // Convert to percentage.
     const accuracies = labelTypes.map((type) => data.validations.combined[type].accuracy * 100);
     const colors = labelTypes.map((type) => labelTypeColors[type] || ApiDocsTheme.color('--color-neutral-500'));
 
@@ -495,7 +476,8 @@ export const OverallStatsPreview = {
       util.parseDate(data.launch_date).toLocaleDateString(undefined, { dateStyle: 'long' }));
     this.addStatItem(grid, 'Total Labels', data.labels.count.toLocaleString());
     this.addStatItem(grid, 'Total Validations', data.validations.combined.total_validations.toLocaleString());
-    this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.combined.Overall.accuracy * 100).toFixed(1)}%`);
+    const { accuracy } = data.validations.combined.Overall;
+    this.addStatItem(grid, 'Overall Accuracy', accuracy === null ? 'N/A' : `${(accuracy * 100).toFixed(1)}%`);
     this.addStatItem(grid, 'Distance Explored', `${data.km_explored.toFixed(2)} km`);
     this.addStatItem(grid, 'Distance Explored (No Overlap)', `${data.km_explored_no_overlap.toFixed(2)} km`);
     this.addStatItem(grid, 'Total Users', data.user_counts.all_users.toLocaleString());

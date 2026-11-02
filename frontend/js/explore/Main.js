@@ -665,7 +665,7 @@ export class Main {
 
   /**
    * Skip the onboarding tutorial from the intro: mark the onboarding mission skipped/complete, submit, and reload into
-   * a real Explore mission. Mirrors how the onboarding itself ends on skip.
+   * a real Explore mission, the same way the finished onboarding ends.
    */
   #skipTutorial() {
     const { tracker, missionContainer, form } = this.#modules;

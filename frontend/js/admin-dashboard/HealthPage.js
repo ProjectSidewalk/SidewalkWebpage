@@ -456,10 +456,9 @@ export class HealthPage {
   /**
    * Age of the last successful load as "Ns ago" / "Nm ago".
    *
-   * @returns {string} The age text, or "—" before the first successful load.
+   * @returns {string} The age text.
    */
   #ageText() {
-    if (AdminShell.nil(this.#lastUpdatedMs)) return '—';
     const secs = Math.max(0, Math.round((Date.now() - this.#lastUpdatedMs) / 1000));
     return secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
   }

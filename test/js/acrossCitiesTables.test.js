@@ -265,3 +265,64 @@ describe('Across Cities — label-type mix', () => {
     expect(empty.querySelector('.ac-stack').getAttribute('aria-label')).toBe('No labels');
   });
 });
+
+describe('Across Cities — sections the endpoint left empty', () => {
+  it('draws empty states rather than failing when the scorecards carry nulls', async () => {
+    await renderAcrossCities({ markup: MARKUP, scorecards: {
+      cities: null, summary: null, over_time_all_time: null, over_time_daily: null, window_by_city: null,
+    } });
+    expect(document.getElementById('ac-tbody').textContent.trim()).toBe('No cities to show.');
+    expect(document.getElementById('hero-cities').textContent).toBe('0');
+    expect(document.getElementById('hero-agreement').textContent).toBe('—');
+  });
+
+  it('shows the multi-city headcount when the endpoint sends one', async () => {
+    await render([], { multi_city_users: 12 });
+    expect(document.getElementById('hero-multi-city').textContent).toBe('12');
+  });
+});
+
+describe('Across Cities — scorecard table details', () => {
+  it('chips an anomaly it has no wording for with the flag itself', async () => {
+    await render([makeCity('a', { anomalies: ['odd_flag'] })]);
+    const chip = rowFor('ac-tbody', 'a').querySelector('.ac-chip');
+    expect(chip.textContent).toBe('odd_flag');
+    expect(chip.classList).toContain('ac-chip--info');
+  });
+
+  it('reads a city with no anomaly list as having none', async () => {
+    await render([makeCity('a', { anomalies: undefined })]);
+    expect(rowFor('ac-tbody', 'a').classList).not.toContain('ac-row--flagged');
+    expect(rowFor('ac-quality-tbody', 'a').classList).not.toContain('ac-row--flagged');
+  });
+
+  it('says how long ago a city was last active', async () => {
+    await render([makeCity('a', { last_activity: new Date(Date.now() - 3 * 86_400_000).toISOString() })]);
+    expect(rowFor('ac-tbody', 'a').cells[7].textContent.trim()).toBe('3d ago');
+  });
+
+  it('sorts a city with no display name by its id', async () => {
+    await render([makeCity('mid'), makeCity('zed', { city_name: null }), makeCity('alpha')]);
+    sortBy('city_name');
+    expect(cityOrder('ac-tbody')).toEqual(['alpha', 'mid', 'zed']);
+  });
+
+  it('ignores keys other than Enter and Space on a header', async () => {
+    await render([makeCity('a', { coverage: 0.1 }), makeCity('b', { coverage: 0.9 })]);
+    const th = document.querySelector('#ac-table thead th[data-sort="city_name"]');
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(cityOrder('ac-tbody')).toEqual(['b', 'a']);
+  });
+
+  it('reads a zero walking time as 0s rather than a dash', async () => {
+    await render([makeCity('a', { seconds_per_100m: 0 })]);
+    expect(rowFor('ac-effort-tbody', 'a').cells[6].textContent.trim()).toBe('0s');
+  });
+
+  it('draws the label-type bars on a page without their legend', async () => {
+    await renderAcrossCities({ markup: '<div id="ac-patterns"></div>', scorecards: {
+      cities: [makeCity('a', { total_labels: 4, by_label_type: { CurbRamp: { labels: 4 } } })],
+    } });
+    expect(document.querySelectorAll('#ac-patterns .ac-stack-seg')).toHaveLength(1);
+  });
+});

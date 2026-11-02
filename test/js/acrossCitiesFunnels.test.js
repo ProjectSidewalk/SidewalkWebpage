@@ -178,3 +178,65 @@ describe('Across Cities — engagement funnels', () => {
   });
 
 });
+
+describe('Across Cities — engagement funnels, sparse data', () => {
+  it('says no funnel data yet when the response has no funnels block', async () => {
+    await render({});
+    expect(blocks()).toHaveLength(0);
+    expect(document.getElementById('ac-funnel-status').textContent).toBe('No funnel data yet.');
+  });
+
+  it('draws an empty table for a funnel with no steps or cities, one column wider when split by role', async () => {
+    await render({ funnels: { mapping: {} } });
+    expect(blocks()[0].querySelector('tbody td').getAttribute('colspan')).toBe('2');
+    click('ac-funnel-dim', 'dim', 'role');
+    expect(blocks()[0].querySelector('tbody td').getAttribute('colspan')).toBe('3');
+  });
+
+  it('keeps cities without an overall conversion, and puts cities without an all-users segment last', async () => {
+    const noOverall = (steps) => ({ ...seg(steps), overall_conversion: undefined });
+    await render({ funnels: { mapping: { steps: ['visited', 'labeled'], cities: [
+      { ...makeCity('alpha'), registered: seg([5, 1]) },
+      { ...makeCity('bravo'), all: noOverall([10, 2]) },
+      { ...makeCity('charlie'), registered: seg([7, 1]) },
+      { ...makeCity('delta'), all: noOverall([20, 2]) },
+    ] } } });
+    const panels = [...blocks()[0].querySelectorAll('.ac-funnel-panel-title')].map((t) => t.textContent);
+    expect(panels).toEqual(['delta', 'bravo', 'alpha', 'charlie']);
+    expect(tableText(blocks()[0]).map((r) => r[3])).toEqual(['0%', '0%']);
+  });
+
+  it('does nothing when the active breakdown is clicked again', async () => {
+    await render({ funnels: { mapping: MAPPING } });
+    document.getElementById('ac-funnels').innerHTML = 'untouched';
+    click('ac-funnel-dim', 'dim', 'all');
+    expect(document.getElementById('ac-funnels').textContent).toBe('untouched');
+  });
+
+  it('ignores a failure for a window no longer selected', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let fail90;
+    const slow90 = new Promise((_, reject) => { fail90 = reject; });
+    await render((win) => (win === '90d' ? slow90 : { funnels: { contribution: CONTRIBUTION } }));
+    click('ac-funnel-window', 'window', '90d');
+    click('ac-funnel-window', 'window', '30d');
+    await vi.waitFor(() =>
+      expect(document.getElementById('ac-funnel-status').textContent).toBe('1 city with funnel data.'));
+    fail90(new Error('late'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.getElementById('ac-funnel-status').textContent).toBe('1 city with funnel data.');
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('draws the funnels on a page without the window and breakdown controls', async () => {
+    await renderAcrossCities({ markup: '<div id="ac-funnel-status"></div><div id="ac-funnels"></div>',
+      scorecards: { cities: [makeCity('alpha')] }, funnels: { funnels: { contribution: CONTRIBUTION } } });
+    expect(blocks()).toHaveLength(1);
+  });
+
+  it('leaves the loading note on a page without a place to draw the funnels', async () => {
+    await renderAcrossCities({ markup: '<div id="ac-funnel-status"></div>',
+      scorecards: { cities: [makeCity('alpha')] }, funnels: { funnels: { contribution: CONTRIBUTION } } });
+    expect(document.getElementById('ac-funnel-status').textContent).toBe('Loading funnels…');
+  });
+});

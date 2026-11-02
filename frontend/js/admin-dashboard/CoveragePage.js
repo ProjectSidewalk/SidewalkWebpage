@@ -147,7 +147,7 @@ export class CoveragePage {
         this.#wireSortButtons();
       }
       await this.#bars.render(this.#barData);
-    } else if (mode === 'distribution') {
+    } else {
       if (!this.#histogram) {
         this.#histogram = new CoverageHistogram('coverage-histogram', {
           onBinClick: (idx) => this.#pin(this.#bucketRegionIds[idx]),
@@ -201,7 +201,7 @@ export class CoveragePage {
     }
     this.#map.highlightRegions(ids);
     if (this.#mode === 'bars') this.#bars?.highlightBars(ids);
-    if (this.#mode === 'distribution') this.#table?.highlightRows(ids);
+    else this.#table?.highlightRows(ids);
   }
 
   /** Wires the Per-region / Distribution view toggle. */

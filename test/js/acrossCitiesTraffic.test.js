@@ -220,4 +220,46 @@ describe('Across Cities — traffic section', () => {
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');
     console.error.mockRestore();
   });
+
+  describe('sparse traffic', () => {
+    it('copes with a row missing its counts and weekly series, an unknown flag, and an unreadable date', async () => {
+      await render([makeCity('alpha')], {
+        available: true, traffic_by_city: { alpha: { anomaly: 'odd_flag', ga_since: 'whenever' } },
+      });
+      const row = document.querySelector('#ac-traffic-tbody tr');
+      const chip = row.querySelector('.ac-chip');
+      expect(chip.textContent).toBe('odd_flag');
+      expect(chip.classList).toContain('ac-chip--info');
+      expect(row.cells[1].textContent).toBe('0');
+      expect(row.cells[1].querySelector('.ac-cell-delta')).toBeNull();
+      expect(row.cells[8].dataset.psTooltip).toBe('No weekly sessions to plot.');
+      expect(row.cells[5].dataset.psTooltip).toBe('Covers this property\'s whole GA4 history.');
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('alpha — 0 sessions in the last 7 days, down from a typical 0');
+    });
+
+    it('says a spike is up from the baseline', async () => {
+      await render([makeCity('alpha')], {
+        available: true,
+        traffic_by_city: { alpha: makeTraffic({ anomaly: 'traffic_spike', sessions_7d: 300, baseline_median: 99.6 }) },
+      });
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('alpha — 300 sessions in the last 7 days, up from a typical 100');
+    });
+
+    it('shows no rows when the payload has no per-city block', async () => {
+      await render([makeCity('alpha')], { available: true });
+      expect(document.getElementById('ac-traffic-tbody').textContent.trim()).toBe('No traffic data to show.');
+    });
+
+    it('still reports traffic as unavailable, or loads it, on a page without the table', async () => {
+      const markup = '<div id="ac-traffic-status"></div>';
+      await renderAcrossCities({ markup, scorecards: { cities: [makeCity('alpha')] }, traffic: { available: false } });
+      expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');
+      await renderAcrossCities({ markup, scorecards: { cities: [makeCity('alpha')] },
+        traffic: { available: true, traffic_by_city: { alpha: makeTraffic() } } });
+      // Nothing to draw into, so the loading note stays.
+      expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…');
+    });
+  });
 });

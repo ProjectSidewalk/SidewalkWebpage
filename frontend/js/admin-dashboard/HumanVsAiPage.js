@@ -71,7 +71,7 @@ export class HumanVsAiPage {
   /** Canonical label-type color via util.misc (falls back to null so the caller can use the API's color). */
   #canonicalColor(labelType) {
     try {
-      return util.misc.getLabelColors(labelType) || null;
+      return util.misc.getLabelColors(labelType);
     } catch {
       return null;
     }
@@ -158,7 +158,7 @@ export class HumanVsAiPage {
       human: this.#acceptanceCell(this.#typeStat(human, t)),
       ai: this.#acceptanceCell(this.#typeStat(ai, t)),
     }));
-    el.innerHTML = this.#pairedBars(rows, { format: 'rate', max: 100 });
+    el.innerHTML = this.#pairedBars(rows, { format: 'rate' });
   }
 
   /** One acceptance datum: percent correct of validated, the N it's based on, and whether N is too small to trust. */
@@ -198,7 +198,7 @@ export class HumanVsAiPage {
     document.getElementById('hva-val-volume').innerHTML = this.#pairedBars([{
       label: 'Validations',
       human: { value: human.total || 0 },
-      ai: { value: ai.total || 0 },
+      ai: { value: ai.total },
     }], { format: 'count' });
 
     document.getElementById('hva-verdicts').innerHTML
@@ -278,17 +278,17 @@ export class HumanVsAiPage {
 
   /**
    * Renders rows of paired human/AI bars with a shared legend. For counts, bars share a scale across all rows; for
-   * rates, each bar is a percentage of a fixed max (100). A datum may carry a `note` (shown after the value) and a
+   * rates, each bar is a percentage of 100. A datum may carry a `note` (shown after the value) and a
    * `muted` flag (rendered faded, for too-small samples).
    *
    * @param {Array<{label: string, human: Record<string, any>, ai: Record<string, any>}>} rows - Each side is
    *   {value, note?, muted?}.
-   * @param {{format: ('count'|'rate'), max?: number}} opts - Render options.
+   * @param {{format: ('count'|'rate')}} opts - Render options.
    * @returns {string} Grouped-bar HTML.
    */
   #pairedBars(rows, opts) {
     const isRate = opts.format === 'rate';
-    const max = isRate ? (opts.max || 100) : Math.max(1, ...rows.flatMap((r) => [r.human.value || 0, r.ai.value || 0]));
+    const max = isRate ? 100 : Math.max(1, ...rows.flatMap((r) => [r.human.value || 0, r.ai.value || 0]));
     const body = rows.map((r) => `
       <div class="hva-group">
         <div class="hva-group-label">${r.label}</div>
