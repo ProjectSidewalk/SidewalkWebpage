@@ -84,4 +84,47 @@ describe('PopupPanoManager fallback marker', () => {
   test('places the marker at the canvas fraction for a crop nothing has recorded yet', async () => {
     await expect(markerAfterFallback(null)).resolves.toEqual({ left: 180, top: 360 });
   });
+
+  describe('a signed crop that expired while the page was open (#5861)', () => {
+    const NOW_SEC = 1_800_000_000;
+    const crop = (exp) => `/cropImage/CurbRamp/1?exp=${exp}&sig=c${exp}`;
+    const flush = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+
+    beforeEach(() => vi.useFakeTimers({ now: NOW_SEC * 1000, toFake: ['Date'] }));
+    afterEach(() => vi.useRealTimers());
+
+    /** Answers the crop metadata endpoint with `freshUrl`, or a 404 when null. */
+    const answerCropMetadata = (freshUrl) => {
+      window.fetch = vi.fn((url) => Promise.resolve(url.startsWith('/cropImage') && freshUrl
+        ? { ok: true, json: () => Promise.resolve({ image_url: freshUrl }) }
+        : { ok: false, status: 404 }));
+    };
+
+    test('is re-signed before it is shown', async () => {
+      answerCropMetadata(crop(NOW_SEC + 3600));
+      const manager = await createManager();
+      manager.setLabel(popupLabel(null));
+      await expect(manager.setPano('pano-gone', POV, crop(NOW_SEC - 60), true, null)).resolves.toBe(true);
+      expect(document.getElementById('pano-fallback-image').getAttribute('src')).toBe(crop(NOW_SEC + 3600));
+    });
+
+    test('a crop that fails to load is re-signed once, then gives way to the not-available panel', async () => {
+      answerCropMetadata(crop(NOW_SEC + 7200));
+      const manager = await createManager();
+      manager.setLabel(popupLabel(null));
+      await manager.setPano('pano-gone', POV, crop(NOW_SEC + 3600), true, null);
+      const image = document.getElementById('pano-fallback-image');
+
+      image.dispatchEvent(new Event('error'));
+      await flush();
+      expect(image.getAttribute('src')).toBe(crop(NOW_SEC + 7200));
+
+      image.dispatchEvent(new Event('error'));
+      await flush();
+      expect(document.getElementById('pano-fallback-container').style.display).toBe('none');
+      expect(svHolder.querySelector('.pano-not-avail').style.display).toBe('flex');
+    });
+  });
 });

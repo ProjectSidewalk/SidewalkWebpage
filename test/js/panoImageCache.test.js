@@ -154,6 +154,14 @@ describe('PanoImageCache (issue #5562)', () => {
       .toEqual(['/backupImage/p1?maxWidth=8192', '/backupImage/p2?maxWidth=8192']);
   });
 
+  test('a re-signed URL finds the bytes fetched under the old signature (#5861)', async () => {
+    await cache.prefetch('/backupImage/p1?exp=100&sig=old&maxWidth=8192');
+    expect(cache.resolve('/backupImage/p1?exp=200&sig=new&maxWidth=8192')).toBeDefined();
+    expect(cache.resolve('/backupImage/p1?exp=200&sig=new&maxWidth=4096')).toBeUndefined();
+    cache.release('/backupImage/p1?exp=300&sig=newer&maxWidth=8192');
+    expect(cache.has('/backupImage/p1?exp=100&sig=old&maxWidth=8192')).toBe(false);
+  });
+
   test('prefetchBackups downloads one at a time: the second starts once the first has settled', async () => {
     let finishFirst;
     window.fetch = vi.fn((url) => (url.includes('p1')

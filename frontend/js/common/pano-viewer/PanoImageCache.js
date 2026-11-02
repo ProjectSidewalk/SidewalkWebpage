@@ -10,10 +10,12 @@
  * decoded bitmap, which at 8192 wide is 128 MB and on a phone the very thing #5561 was about. Decoding still happens
  * at load time; what the cache removes is the network.
  *
- * Entries are keyed by the exact network URL the viewer would otherwise request, so the two agree without either
- * knowing how the other builds it: `prefetchBackups` derives it from the pano's metadata the same way the viewer
- * does, and the viewer asks `resolve()` with the URL it was about to fetch. Pannellum takes a `blob:` URL where it
- * takes any other (its loader XHRs the URL to a Blob either way), so no change to the viewer library is needed.
+ * Entries are keyed by the network URL the viewer would otherwise request, less its signature (`exp`, `sig`), so the
+ * two agree without either knowing how the other builds it: `prefetchBackups` derives it from the pano's metadata the
+ * same way the viewer does, and the viewer asks `resolve()` with the URL it was about to fetch. The signature is left
+ * out because either side may have re-signed an expired URL (#5861), and a fresh signature names the same bytes.
+ * Pannellum takes a `blob:` URL where it takes any other (its loader XHRs the URL to a Blob either way), so no change
+ * to the viewer library is needed.
  *
  * Usage:
  *
@@ -40,10 +42,10 @@ export class PanoImageCache {
   /** The longest a refused download waits before its one retry, in seconds, whatever the server asks for. */
   static RETRY_AFTER_MAX_SEC = 10;
 
-  /** @type {Map<string, string>} Network URL to object URL, in insertion order, so the oldest is first. */
+  /** @type {Map<string, string>} Cache key (see keyFor) to object URL, in insertion order, so the oldest is first. */
   #entries = new Map();
 
-  /** @type {Map<string, Promise<boolean>>} Network URL to the download in flight for it. */
+  /** @type {Map<string, Promise<boolean>>} Cache key to the download in flight for it. */
   #inFlight = new Map();
 
   /**
@@ -66,6 +68,19 @@ export class PanoImageCache {
   }
 
   /**
+   * The cache key for a network URL: the URL without its signature parameters, so a re-signed URL still finds the
+   * bytes fetched under the old one.
+   * @param {string} url - The network URL, absolute or path-relative.
+   * @returns {string} The key.
+   */
+  static keyFor(url) {
+    const parsed = new URL(url, window.location.origin);
+    parsed.searchParams.delete('exp');
+    parsed.searchParams.delete('sig');
+    return parsed.href;
+  }
+
+  /**
    * Downloads a pano into the cache, unless it is already there or on its way.
    *
    * Never throws: a failed prefetch only means the load pays full price when it comes, which is what would have
@@ -76,27 +91,28 @@ export class PanoImageCache {
    */
   prefetch(url) {
     if (!url) return Promise.resolve(false);
-    this.#abandoned.delete(url); // Asking again is interest again, whatever a release said in between.
-    if (this.#entries.has(url)) return Promise.resolve(true);
-    if (this.#inFlight.has(url)) return this.#inFlight.get(url);
+    const key = PanoImageCache.keyFor(url);
+    this.#abandoned.delete(key); // Asking again is interest again, whatever a release said in between.
+    if (this.#entries.has(key)) return Promise.resolve(true);
+    if (this.#inFlight.has(key)) return this.#inFlight.get(key);
     if (!PanoImageCache.prefetchAllowed()) return Promise.resolve(false);
 
     const download = (async () => {
       try {
-        const response = await this.#fetchWithOneRetry(url);
+        const response = await this.#fetchWithOneRetry(url, key);
         if (!response.ok) return false;
         const blob = await response.blob();
-        if (this.#abandoned.has(url)) return false;
-        this.#store(url, URL.createObjectURL(blob));
+        if (this.#abandoned.has(key)) return false;
+        this.#store(key, URL.createObjectURL(blob));
         return true;
       } catch {
         return false;
       } finally {
-        this.#inFlight.delete(url);
-        this.#abandoned.delete(url);
+        this.#inFlight.delete(key);
+        this.#abandoned.delete(key);
       }
     })();
-    this.#inFlight.set(url, download);
+    this.#inFlight.set(key, download);
     return download;
   }
 
@@ -108,16 +124,17 @@ export class PanoImageCache {
    * cannot; one retry keeps a persistently full pool from turning into a polling loop.
    *
    * @param {string} url - The network URL.
+   * @param {string} key - Its cache key, which a release while waiting is recorded under.
    * @returns {Promise<Response>} The last response.
    */
-  async #fetchWithOneRetry(url) {
+  async #fetchWithOneRetry(url, key) {
     const response = await fetch(url);
     if (response.status !== 503) return response;
     const retryAfterSec = Number(response.headers?.get?.('Retry-After')) || PanoImageCache.RETRY_AFTER_DEFAULT_SEC;
     const waitMs = Math.min(retryAfterSec, PanoImageCache.RETRY_AFTER_MAX_SEC) * 1000;
     await new Promise((resolve) => setTimeout(resolve, waitMs));
     // Released while waiting: the bytes would be dropped on arrival, so don't spend a slot in a full pool on them.
-    if (this.#abandoned.has(url)) return response;
+    if (this.#abandoned.has(key)) return response;
     return fetch(url);
   }
 
@@ -134,8 +151,8 @@ export class PanoImageCache {
    */
   async prefetchBackups(backupImages) {
     for (const backupImage of backupImages) {
-      // Re-signed the same way the viewer re-signs at load time (#5861). Signatures are stable within a 15-minute
-      // quantum, so both arrive at the same URL and the prefetch is still a hit.
+      // Re-signed the same way the viewer re-signs at load time (#5861). The two may end up with different
+      // signatures, which the cache key leaves out, so the prefetch is still a hit.
       const signed = await freshBackupImage(backupImage);
       if (signed) await this.prefetch(panoramaUrlFor(signed));
     }
@@ -147,7 +164,7 @@ export class PanoImageCache {
    * @returns {boolean}
    */
   has(url) {
-    return this.#entries.has(url);
+    return this.#entries.has(PanoImageCache.keyFor(url));
   }
 
   /**
@@ -156,7 +173,7 @@ export class PanoImageCache {
    * @returns {string|undefined} A `blob:` URL to load instead, or undefined to load from the network.
    */
   resolve(url) {
-    return this.#entries.get(url);
+    return this.#entries.get(PanoImageCache.keyFor(url));
   }
 
   /**
@@ -171,8 +188,9 @@ export class PanoImageCache {
    * @returns {Promise<string|undefined>} A `blob:` URL to load instead, or undefined to load from the network.
    */
   async settle(url, timeoutMs) {
-    this.#abandoned.delete(url); // The viewer wants these bytes after all; a download in flight must keep them.
-    const download = this.#inFlight.get(url);
+    const key = PanoImageCache.keyFor(url);
+    this.#abandoned.delete(key); // The viewer wants these bytes after all; a download in flight must keep them.
+    const download = this.#inFlight.get(key);
     if (download) {
       let timer;
       const timeout = new Promise((resolve) => {
@@ -190,11 +208,12 @@ export class PanoImageCache {
    * @param {string} url - The network URL.
    */
   release(url) {
-    if (this.#inFlight.has(url)) this.#abandoned.add(url);
-    const objectUrl = this.#entries.get(url);
+    const key = PanoImageCache.keyFor(url);
+    if (this.#inFlight.has(key)) this.#abandoned.add(key);
+    const objectUrl = this.#entries.get(key);
     if (objectUrl === undefined) return;
     URL.revokeObjectURL(objectUrl);
-    this.#entries.delete(url);
+    this.#entries.delete(key);
   }
 
   /** Drops everything held. */
@@ -204,11 +223,11 @@ export class PanoImageCache {
 
   /**
    * Records a download, evicting the oldest entries past the cap.
-   * @param {string} url - The network URL.
+   * @param {string} key - The network URL's cache key.
    * @param {string} objectUrl - The object URL holding its bytes.
    */
-  #store(url, objectUrl) {
-    this.#entries.set(url, objectUrl);
+  #store(key, objectUrl) {
+    this.#entries.set(key, objectUrl);
     while (this.#entries.size > PanoImageCache.MAX_ENTRIES) {
       this.release(this.#entries.keys().next().value);
     }
