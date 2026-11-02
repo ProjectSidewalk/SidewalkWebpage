@@ -1,5 +1,5 @@
 # Test dependencies for test/python/, installed beside the scripts' own requirements (see the Dockerfile):
 #
 #   python3 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
-pytest==9.1.1
+pytest==9.2.0
 pytest-cov==7.1.0

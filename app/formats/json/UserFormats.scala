@@ -18,7 +18,8 @@ object UserFormats {
       publicProfile: Boolean,
       teamId: Option[Int],
       communityService: Option[Boolean],
-      measurementSystem: Option[String]
+      measurementSystem: Option[String],
+      newsEmail: Option[Boolean]
   )
 
   given settingsSubmissionReads: Reads[SettingsSubmission] =

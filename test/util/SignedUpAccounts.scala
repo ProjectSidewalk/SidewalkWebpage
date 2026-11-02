@@ -29,8 +29,14 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOne
   /** Ids of the accounts this suite created, deleted in `afterAll`. */
   protected var createdUserIds: Set[String] = Set.empty
 
-  /** @return A new signed-in account's user id, email, and session cookies. */
-  protected def signUpFreshUser(requestCookies: Seq[Cookie] = Seq.empty): (String, String, Seq[Cookie]) = {
+  /**
+   * @param newsEmail Whether the sign-up form's project-news box is checked (its default on the page).
+   * @return          A new signed-in account's user id, email, and session cookies.
+   */
+  protected def signUpFreshUser(
+      requestCookies: Seq[Cookie] = Seq.empty,
+      newsEmail: Boolean = true
+  ): (String, String, Seq[Cookie]) = {
     val tag    = UUID.randomUUID().toString.replace("-", "").take(20)
     val email  = s"spec.$tag@example.test"
     val signUp = route(
@@ -44,6 +50,7 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOne
           "password"        -> signUpPassword,
           "passwordConfirm" -> signUpPassword,
           "terms"           -> "true",
+          "newsEmail"       -> newsEmail.toString,
           "returnUrl"       -> "/"
         )
         .withCSRFToken

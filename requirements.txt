@@ -2,7 +2,7 @@
 # to it during admin-triggered clustering), so its libraries must ship in the web image and be installed into the
 # python3.12 the deployed app shells out to. Libraries used only by the offline tools under tools/ live in
 # requirements-offline-tools.txt, which layers on this file.
-pandas==3.0.6
+pandas==3.1.0
 haversine==2.9.0
 scipy==1.18.1
 requests==2.34.2
