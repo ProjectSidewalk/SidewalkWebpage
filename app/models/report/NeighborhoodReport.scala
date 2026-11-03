@@ -447,22 +447,25 @@ object ReportRules {
    * end of its type's scale. The same set the headline counts, so the two never state different numbers. A type with no
    * scale has no worst end, so missing sidewalks never appear here.
    *
-   * The pictured label is picked without a crop check: its card is fetched only when a reader opens it, and each check
-   * is a file stat on prod's spinning disks, for every worst location on every load.
-   *
    * @param locations The region's locations, each once
    * @param labels    Counted labels by id
+   * @param knownCrop Whether a label is known to have a crop, without looking: every worst location on every load
+   *                  would be a file stat on prod's spinning disks, for a card fetched only on click. Answering from the
+   *                  street sections' checks still pictures a location the same way its street's card does.
    * @return One per location, in the canonical type order and then by cluster id, so a reload draws the same map.
    */
-  def worstProblems(locations: Seq[ReportLocation], labels: Map[Int, ReportLabel]): Seq[WorstProblem] = {
+  def worstProblems(
+      locations: Seq[ReportLocation],
+      labels: Map[Int, ReportLabel],
+      knownCrop: ReportLabel => Boolean
+  ): Seq[WorstProblem] = {
     val typeOrder = LabelType.ordered.zipWithIndex.toMap
     locations
       .filter(_.isWorst)
       .sortBy(l => (typeOrder.getOrElse(l.labelType, Int.MaxValue), l.clusterId))
-      .flatMap { l =>
-        // A location whose labels were all rejected since clustering still counts in the score, so it keeps its dot.
-        val pictured = representative(ReportItem(Seq(l), 0.0), labels, _ => false).map(_.labelId)
-        pictured.orElse(l.labelIds.headOption).map(WorstProblem(l, _, l.labelIds.filter(labels.contains)))
+      .map { l =>
+        val pictured = representative(ReportItem(Seq(l), 0.0), labels, knownCrop).map(_.labelId)
+        WorstProblem(l, pictured, l.labelIds.filter(labels.contains))
       }
   }
 
@@ -743,10 +746,11 @@ case class ReportCard(location: ReportLocation, label: ReportLabel, costPoints: 
 /**
  * A dot on the worst-problems map.
  *
- * @param labelId    The label its card shows
+ * @param labelId    The label its card shows; None when review has rejected all of them since clustering, which still
+ *                   leaves it in the score, and so on the map
  * @param countedIds Its labels less any review rejected, which are what its count links to
  */
-case class WorstProblem(location: ReportLocation, labelId: Int, countedIds: Seq[Int])
+case class WorstProblem(location: ReportLocation, labelId: Option[Int], countedIds: Seq[Int])
 
 /**
  * One label type's evidence on a street row.

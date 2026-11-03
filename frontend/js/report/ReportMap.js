@@ -68,7 +68,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  *
  * @typedef {object} ReportMapProblem
  * @property {number} clusterId
- * @property {number} labelId - The label that pictures it.
+ * @property {?number} labelId - The label that pictures it; null when review has rejected them all.
  * @property {string} labelType
  * @property {number} lat
  * @property {number} lng
@@ -502,8 +502,9 @@ export class ReportMap {
       paint: {
         'circle-color': ['get', 'color'],
         'circle-radius': radius,
-        'circle-stroke-color': token('--color-neutral-white'),
-        'circle-stroke-width': 1.5,
+        // Dark, not white: the palest type color (Other's grey) needs it to stand off the grey streets (WCAG 1.4.11).
+        'circle-stroke-color': token('--color-neutral-900'),
+        'circle-stroke-width': 1,
       },
     });
     this.#map.addLayer({
@@ -542,7 +543,8 @@ export class ReportMap {
     });
     // The popup's own close-on-click would also hear the click that opens it, so a click off every dot closes it here.
     this.#map.on('click', (e) => {
-      if (this.#map.queryRenderedFeatures(e.point, { layers: [PROBLEM_LAYER] }).length === 0) this.#popup?.remove();
+      const layers = [PROBLEM_LAYER, PROBLEM_OPEN_LAYER];
+      if (this.#map.queryRenderedFeatures(e.point, { layers }).length === 0) this.#popup?.remove();
     });
   }
 

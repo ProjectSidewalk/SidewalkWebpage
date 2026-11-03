@@ -457,6 +457,36 @@ describe('ReportPage', () => {
       expect(worstMap().refitProblem).toHaveBeenCalledTimes(2);
     });
 
+    test('a dot whose labels were all rejected says so, and fetches nothing', async () => {
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      worstMap().options.onProblemClick({ ...problems[0], labelId: null }, [-122.33, 47.6]);
+      await flush();
+      expect(worstMap().popupContent.textContent).toBe('report:worst.rejected');
+      expect(deps.fetchCards).not.toHaveBeenCalledWith([null]);
+    });
+
+    test('a card that fails to build says so rather than loading forever', async () => {
+      deps.buildCard.mockImplementationOnce(() => { throw new Error('bad entry'); });
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      worstMap().options.onProblemClick(problems[0], [-122.33, 47.6]);
+      await flush();
+      expect(worstMap().popupContent.textContent).toBe('report:worst.unavailable');
+    });
+
+    test('a focused row stays lit when the pointer leaves it', () => {
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      const [obstacle, ramp] = document.querySelectorAll('.report-worst__type');
+      obstacle.querySelector('a').focus();
+      ramp.dispatchEvent(new Event('mouseenter'));
+      ramp.dispatchEvent(new Event('mouseleave'));
+      expect(worstMap().lightType).toHaveBeenLastCalledWith('Obstacle');
+      expect(obstacle.classList.contains('is-highlighted')).toBe(true);
+    });
+
     test('closing a dot\'s card is logged', () => {
       new ReportPage(worstData(), deps).start();
       intersect(document.getElementById('report-worst-map'), true);

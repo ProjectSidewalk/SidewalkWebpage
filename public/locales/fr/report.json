@@ -22,6 +22,7 @@
   "worst": {
     "close": "Fermer",
     "unavailable": "Impossible de charger la carte de cette étiquette.",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "rejected": "Toutes les étiquettes de ce lieu ont été marquées incorrectes après le dernier calcul des scores de ce rapport : il n'y a donc pas de carte à afficher."
   }
 }

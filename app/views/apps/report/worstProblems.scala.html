@@ -16,6 +16,12 @@
  *@
 @(report: NeighborhoodReport)(using messages: Messages, assets: AssetsFinder)
 
+@* An empty list would open the Gallery unfiltered, so a type whose labels were all rejected links to its filter. *@
+@countLink(labelType: LabelType, ids: Seq[Int]) = @{
+  val filter = ReportLinks.galleryFilter(report.regionId, Some(labelType), ReportRules.worstRating(labelType.ratingScale).toSeq)
+  if (ids.isEmpty) filter else ReportLinks.count(ids, filter)
+}
+
 @defining(report.worstByType) { byType =>
 @defining(if (byType.isEmpty) 1 else byType.map(_._2.size).max) { most =>
 <section class="report-section report-worst" id="report-worst" aria-labelledby="report-worst-title">
@@ -45,7 +51,7 @@
                 }
               </span>
               <span class="report-worst__track" aria-hidden="true"><span class="report-worst__bar" data-label-type="@labelType.name" data-share="@(cards.size.toDouble / most)"></span></span>
-              <a class="report-worst__count" href="@ReportLinks.count(cards.flatMap(_.countedIds), ReportLinks.galleryFilter(report.regionId, Some(labelType), ReportRules.worstRating(labelType.ratingScale).toSeq))"
+              <a class="report-worst__count" href="@countLink(labelType, cards.flatMap(_.countedIds))"
                  data-report-event="Report_OpenGallery" aria-label="@Messages("report.worst.count.label", cards.size, Messages(labelType.nameKey))">@Messages("report.count", cards.size)</a>
             </li>
           }

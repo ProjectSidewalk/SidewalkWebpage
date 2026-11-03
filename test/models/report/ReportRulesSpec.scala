@@ -751,9 +751,10 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       label(50, CurbRamp),
       label(70, Occlusion, None)
     ).map(l => l.labelId -> l).toMap
-    val worst = ReportRules.worstProblems(locations, counted)
+    val worst = ReportRules.worstProblems(locations, counted, noCrop)
     worst.map(_.location.clusterId) shouldBe Seq(5, 1, 6, 4)
-    worst.map(_.labelId) shouldBe Seq(50, 10, 60, 40)
+    // Location 6 keeps its dot, as it stays in the score, but has no label left to picture.
+    worst.map(_.labelId) shouldBe Seq(Some(50), Some(10), None, Some(40))
     // A rejected label stays on the dot, as in the score, but out of what its count links to.
     worst.map(_.countedIds) shouldBe Seq(Seq(50), Seq(10), Nil, Seq(40))
     worst.map(_.location) shouldBe locations

@@ -293,9 +293,13 @@ export class ReportPage {
     // Logged once per type, so a sweep down the list isn't a flood.
     /** @type {Set<string>} */
     const hovered = new Set();
+    // A row with keyboard focus stays lit when the pointer moves off, as the region map keeps its selected street.
+    const focusedType = () => /** @type {?HTMLElement} */ (document.activeElement?.closest('.report-worst__type'))
+      ?.dataset.labelType ?? null;
     const light = (labelType) => {
-      for (const [type, row] of rows) row.classList.toggle('is-highlighted', type === labelType);
-      this.#worstMap?.lightType(labelType);
+      const lit = labelType ?? focusedType();
+      for (const [type, row] of rows) row.classList.toggle('is-highlighted', type === lit);
+      this.#worstMap?.lightType(lit);
     };
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting) || this.#worstMap) return;
@@ -322,13 +326,15 @@ export class ReportPage {
       row.addEventListener('mouseenter', on);
       row.addEventListener('mouseleave', () => light(null));
       row.addEventListener('focusin', on);
-      row.addEventListener('focusout', () => light(null));
+      row.addEventListener('focusout', (e) => {
+        if (!row.contains(/** @type {?Node} */ (e.relatedTarget))) light(null);
+      });
     }
   }
 
   /**
    * Opens a location's card over the worst map, built by the Gallery's own code so it reads and votes as it does there.
-   * @param {{labelId: number, labelType: string}} problem
+   * @param {{labelId: ?number, labelType: string}} problem
    * @returns {Promise<void>} Resolves once the card is drawn, or has failed to be.
    */
   async #openProblem(problem) {
@@ -336,24 +342,32 @@ export class ReportPage {
     content.className = 'report-problem';
     content.textContent = i18next.t('report:worst.loading');
     const popup = this.#worstMap.openProblem(problem, content);
-    let entry = null;
-    try {
-      entry = (await this.#deps.fetchCards([problem.labelId])).get(problem.labelId) ?? null;
-    } catch (err) {
-      console.error(err);
-    }
-    if (!popup.isOpen()) return;
-    if (!entry) {
-      content.textContent = i18next.t('report:worst.unavailable');
+    const say = (key) => {
+      content.textContent = i18next.t(key);
+      this.#worstMap.refitProblem();
+    };
+    if (problem.labelId === null) {
+      say('report:worst.rejected');
       return;
     }
-    content.replaceChildren();
-    const card = this.#deps.buildCard(entry, this.#log);
-    card.render(content);
-    card.refitTags?.();
-    this.#worstMap.refitProblem();
-    await card.loadImage?.();
-    if (popup.isOpen()) this.#worstMap.refitProblem();
+    try {
+      const entry = (await this.#deps.fetchCards([problem.labelId])).get(problem.labelId) ?? null;
+      if (!popup.isOpen()) return;
+      if (!entry) {
+        say('report:worst.unavailable');
+        return;
+      }
+      content.replaceChildren();
+      const card = this.#deps.buildCard(entry, this.#log);
+      card.render(content);
+      card.refitTags?.();
+      this.#worstMap.refitProblem();
+      await card.loadImage?.();
+      if (popup.isOpen()) this.#worstMap.refitProblem();
+    } catch (err) {
+      console.error(err);
+      if (popup.isOpen()) say('report:worst.unavailable');
+    }
   }
 
   /** Brings sections up as they near the viewport, and gives maps to whichever of those are closest to it. */

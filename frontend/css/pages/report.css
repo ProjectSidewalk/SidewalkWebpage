@@ -429,21 +429,6 @@
   color: var(--color-neutral-800);
 }
 
-.report-worst__track {
-  display: block;
-  height: 10px;
-  overflow: hidden;
-  background: var(--color-neutral-200);
-  border-radius: 4px;
-}
-
-.report-worst__bar {
-  display: block;
-  width: 0;
-  height: 100%;
-  border-radius: 4px;
-}
-
 .report-worst__count {
   font: var(--text-small-bold);
   font-variant-numeric: tabular-nums;
@@ -1268,7 +1253,9 @@ button.report-map-place:focus-visible {
   color: var(--color-neutral-800);
 }
 
-.report-hist__track {
+/* The worst-problems bars are drawn the same way, colored by type instead of rating. */
+.report-hist__track,
+.report-worst__track {
   display: block;
   height: 10px;
   overflow: hidden;
@@ -1276,7 +1263,8 @@ button.report-map-place:focus-visible {
   border-radius: 4px;
 }
 
-.report-hist__bar {
+.report-hist__bar,
+.report-worst__bar {
   display: block;
   width: 0;
   height: 100%;

@@ -419,7 +419,7 @@ class ReportServiceImpl @Inject() (
       weights,
       contributions(streets, intersections, regionId),
       ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet),
-      ReportRules.worstProblems(regionWide, counted)
+      ReportRules.worstProblems(regionWide, counted, l => cropChecked.getOrElse(l.labelId, false))
     )
   }
 }

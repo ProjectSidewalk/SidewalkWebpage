@@ -22,6 +22,7 @@
   "worst": {
     "close": "Cerrar",
     "unavailable": "No se pudo cargar la tarjeta de esta etiqueta.",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "rejected": "Todas las etiquetas de este lugar se marcaron como incorrectas después del último cálculo de las puntuaciones de este informe, así que no hay tarjeta que mostrar."
   }
 }

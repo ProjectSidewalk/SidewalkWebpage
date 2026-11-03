@@ -22,6 +22,7 @@
   "worst": {
     "close": "Schließen",
     "unavailable": "Die Karte dieses Labels konnte nicht geladen werden.",
-    "loading": "Wird geladen…"
+    "loading": "Wird geladen…",
+    "rejected": "Alle Labels hier wurden als falsch markiert, nachdem die Scores dieses Berichts zuletzt berechnet wurden, daher gibt es keine Karte."
   }
 }
