@@ -388,4 +388,101 @@ describe('ReportPage', () => {
     expect(document.querySelector('[data-fix-map] .report-map__sketch')).not.toBeNull();
     expect(document.querySelector('.report-fix__live')).toBeNull();
   });
+  describe('the worst-problems map', () => {
+    const problems = [
+      { clusterId: 1, labelId: 11, labelType: 'Obstacle', lat: 47.6, lng: -122.33 },
+      { clusterId: 2, labelId: 22, labelType: 'NoCurbRamp', lat: 47.6, lng: -122.32 },
+    ];
+    let popup;
+    const worstData = () => ({ ...data(), worst: problems });
+    const worstMap = () => maps.find((m) => m.options.problems);
+
+    beforeEach(() => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="report-worst-map"></div>
+        <ul>
+          <li class="report-worst__type" data-label-type="Obstacle"><a href="#">1</a></li>
+          <li class="report-worst__type" data-label-type="NoCurbRamp"><a href="#">1</a></li>
+        </ul>
+        <button id="report-worst-show-sidewalks" hidden></button>
+        <section id="report-overview"></section>`);
+      popup = { isOpen: vi.fn(() => true) };
+      const make = deps.createMap.getMockImplementation();
+      deps.createMap.mockImplementation((host, options) => {
+        const map = make(host, options);
+        Object.assign(map, { lightType: vi.fn(), openProblem: vi.fn((problem, content) => {
+          map.popupContent = content;
+          return popup;
+        }) });
+        return map;
+      });
+    });
+
+    test('is built only once it nears the viewport, with the problems and no street to focus', () => {
+      new ReportPage(worstData(), deps).start();
+      expect(worstMap()).toBeUndefined();
+      intersect(document.getElementById('report-worst-map'), true);
+      expect(worstMap().options.problems).toEqual(problems);
+      expect(worstMap().options.focusEdgeIds).toBeUndefined();
+    });
+
+    test('a type\'s row lights its dots and a dot lights its row; a sweep logs each type once', () => {
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      const [obstacle, ramp] = document.querySelectorAll('.report-worst__type');
+      obstacle.dispatchEvent(new Event('mouseenter'));
+      obstacle.dispatchEvent(new Event('mouseleave'));
+      obstacle.dispatchEvent(new Event('mouseenter'));
+      expect(worstMap().lightType).toHaveBeenLastCalledWith('Obstacle');
+      expect(obstacle.classList.contains('is-highlighted')).toBe(true);
+      expect(deps.log.mock.calls.filter(([e]) => e === 'Report_WorstTypeHover_LabelType=Obstacle')).toHaveLength(1);
+
+      worstMap().options.onProblemHover('NoCurbRamp');
+      expect(ramp.classList.contains('is-highlighted')).toBe(true);
+      expect(obstacle.classList.contains('is-highlighted')).toBe(false);
+      worstMap().options.onProblemHover(null);
+      expect(worstMap().lightType).toHaveBeenLastCalledWith(null);
+    });
+
+    test('a dot opens its label\'s Gallery card over the map, and logs its type', async () => {
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      worstMap().options.onProblemClick(problems[1], [-122.32, 47.6]);
+      expect(deps.log).toHaveBeenCalledWith('Report_WorstMapClick_LabelType=NoCurbRamp');
+      expect(worstMap().openProblem).toHaveBeenCalledWith(problems[1], expect.any(HTMLElement));
+      await flush();
+      expect(deps.fetchCards).toHaveBeenCalledWith([22]);
+      const card = deps.buildCard.mock.results.at(-1).value;
+      expect(card.render).toHaveBeenCalledWith(worstMap().popupContent);
+    });
+
+    test('a card the server can\'t serve says so, and one closed before it arrives is never drawn', async () => {
+      deps.fetchCards.mockResolvedValueOnce(new Map());
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      worstMap().options.onProblemClick(problems[0], [-122.33, 47.6]);
+      await flush();
+      expect(worstMap().popupContent.textContent).toBe('report:worst.unavailable');
+
+      popup.isOpen.mockReturnValue(false);
+      const built = deps.buildCard.mock.calls.length;
+      worstMap().options.onProblemClick(problems[0], [-122.33, 47.6]);
+      await flush();
+      expect(deps.buildCard.mock.calls.length).toBe(built);
+    });
+
+    test('the missing-sidewalks note turns the sidewalk switch on and goes to the overview', () => {
+      const overview = document.getElementById('report-overview');
+      overview.scrollIntoView = vi.fn();
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-region-map'), true);
+      const button = /** @type {HTMLButtonElement} */ (document.getElementById('report-worst-show-sidewalks'));
+      expect(button.hidden).toBe(false);
+      button.click();
+      expect(/** @type {HTMLInputElement} */ (document.getElementById('report-sidewalks-toggle')).checked).toBe(true);
+      expect(maps.find((m) => m.host.id === 'report-region-map').setSidewalksVisible).toHaveBeenLastCalledWith(true);
+      expect(overview.scrollIntoView).toHaveBeenCalled();
+      expect(deps.log).toHaveBeenCalledWith('Report_WorstShowSidewalks');
+    });
+  });
 });

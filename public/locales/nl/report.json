@@ -18,5 +18,10 @@
     "street": "{{street}} · {{distance}} verderop",
     "unscored": "De straat heeft nog geen score",
     "unnamed": "Naamloze straat"
+  },
+  "worst": {
+    "close": "Sluiten",
+    "unavailable": "De kaart van dit label kon niet worden geladen.",
+    "loading": "Laden…"
   }
 }

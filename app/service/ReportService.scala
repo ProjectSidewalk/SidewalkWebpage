@@ -210,6 +210,7 @@ object ReportService {
    * @param streetKeys        Which street each location's own street edge belongs to
    * @param selection         The result of [[select]]
    * @param clustersUpdatedAt When the clusters were last rebuilt
+   * @param worst             The result of [[ReportRules.worstProblems]]
    * @return The report.
    */
   def assemble(
@@ -224,7 +225,8 @@ object ReportService {
       now: OffsetDateTime,
       weights: AccessScoreWeights = AccessScoreWeights.Default,
       contributions: Map[String, Double] = Map.empty,
-      places: Seq[ReportPlace] = Nil
+      places: Seq[ReportPlace] = Nil,
+      worst: Seq[ReportCard] = Nil
   ): NeighborhoodReport = {
     val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
@@ -275,7 +277,8 @@ object ReportService {
       },
       weights = weights,
       contributions = contributions,
-      places = places
+      places = places,
+      worst = worst
     )
   }
 }
@@ -415,7 +418,8 @@ class ReportServiceImpl @Inject() (
       OffsetDateTime.now(ZoneOffset.UTC),
       weights,
       contributions(streets, intersections, regionId),
-      ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet)
+      ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet),
+      ReportRules.worstProblems(regionWide, counted, hasCrop)
     )
   }
 }

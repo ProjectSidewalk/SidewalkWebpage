@@ -18,5 +18,10 @@
     "street": "{{street}} · a {{distance}}",
     "unscored": "A rua ainda não tem pontuação",
     "unnamed": "Rua sem nome"
+  },
+  "worst": {
+    "close": "Fechar",
+    "unavailable": "Não foi possível carregar o cartão deste rótulo.",
+    "loading": "Carregando…"
   }
 }

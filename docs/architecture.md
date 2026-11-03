@@ -470,6 +470,12 @@ an icon and its card lights. Under the map sits `AccessScoreElevationProfile`, f
 stretch's per-edge `/v3/api/streetGrade` answers end to end. For print, a small SVG sketch stands in for each canvas.
 Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend says so.
 
+Below the segment list, a worst-problems map (#5889) puts a dot, in its type's label color, on every location whose
+rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
+Unrated types, missing sidewalks above all, have no worst end and stay off it; a note sends readers to the sidewalks
+layer instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
+and a dot opens its label's Gallery card in a popup. It prints as the counts alone.
+
 A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
 (`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads
 the report with the weights in the tool's own `w` and `gs` parameters, and the server scores the whole report under

@@ -18,5 +18,10 @@
     "street": "{{street}} · a {{distance}}",
     "unscored": "Su calle aún no tiene puntuación",
     "unnamed": "Calle sin nombre"
+  },
+  "worst": {
+    "close": "Cerrar",
+    "unavailable": "No se pudo cargar la tarjeta de esta etiqueta.",
+    "loading": "Cargando…"
   }
 }

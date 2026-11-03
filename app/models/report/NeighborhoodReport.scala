@@ -443,6 +443,26 @@ object ReportRules {
   }
 
   /**
+   * The region's worst problems, for its map: every location whose rating, the median the score uses, sits at the bad
+   * end of its type's scale. A type with no scale has no worst end, so missing sidewalks never appear here.
+   *
+   * @param locations The region's locations, each once
+   * @param labels    Counted labels by id; a location whose labels review has all marked incorrect drops out
+   * @return One card per location, in the canonical type order and then by cluster id, so a reload draws the same map.
+   */
+  def worstProblems(
+      locations: Seq[ReportLocation],
+      labels: Map[Int, ReportLabel],
+      hasCrop: ReportLabel => Boolean
+  ): Seq[ReportCard] = {
+    val typeOrder = LabelType.ordered.zipWithIndex.toMap
+    locations
+      .filter(_.isWorst)
+      .sortBy(l => (typeOrder.getOrElse(l.labelType, Int.MaxValue), l.clusterId))
+      .flatMap(l => representative(ReportItem(Seq(l), 0.0), labels, hasCrop).map(ReportCard(l, _, 0.0, 1)))
+  }
+
+  /**
    * The fixes list, at most one per road, so one long bad road can't fill it. An item qualifies when it costs its stretch at least [[FixMinPoints]], is
    * rated at or next to the worst of its type's scale, and has a label at that rating which a reviewer agreed with and
    * none disagreed with. A crossing can be the pick of two streets meeting there, and is listed for the first.
@@ -818,6 +838,7 @@ case class ReportMapEdge(
  * @param contributions     Each scored type's mean term per explored street here, under those weights, for the bars
  *                          beside the weight sliders
  * @param places            Important places near its segments
+ * @param worst             Every location rated at the worst end of its type's scale, for the worst-problems map
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -835,8 +856,15 @@ case class NeighborhoodReport(
     edges: Seq[ReportMapEdge],
     weights: AccessScoreWeights = AccessScoreWeights.Default,
     contributions: Map[String, Double] = Map.empty,
-    places: Seq[ReportPlace] = Nil
+    places: Seq[ReportPlace] = Nil,
+    worst: Seq[ReportCard] = Nil
 ) {
+
+  /** @return The worst problems by type, in the canonical type order, leaving out types that have none. */
+  def worstByType: Seq[(LabelType, Seq[ReportCard])] = {
+    val byType = worst.groupBy(_.location.labelType)
+    LabelType.ordered.flatMap(t => byType.get(t).map(t -> _))
+  }
 
   /** @return The important places near one segment. */
   def placesNear(streetEdgeId: Int): Seq[ReportPlace] = places.filter(_.streetEdgeId == streetEdgeId)
@@ -1122,6 +1150,16 @@ object ReportClientData {
         )
       },
       // A fix's still map is drawn in the browser, from its spot and its street.
+      // The worst-problems map's dots; a dot's card is fetched only when it's opened.
+      "worst" -> report.worst.map { card =>
+        Json.obj(
+          "clusterId" -> card.location.clusterId,
+          "labelId"   -> card.label.labelId,
+          "labelType" -> card.location.labelType.name,
+          "lat"       -> rounded(card.location.latitude),
+          "lng"       -> rounded(card.location.longitude)
+        )
+      },
       "fixes" -> report.fixes.map { fix =>
         Json.obj(
           "labelId"   -> fix.label.labelId,
