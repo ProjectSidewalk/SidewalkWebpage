@@ -1,12 +1,13 @@
 @import models.label.AccessImpact
-@import models.report.{InventoryRow, NeighborhoodReport, ReportLinks, ReportRules}
+@import models.report.{InventoryRow, NeighborhoodReport, RatingBucket, ReportLinks, ReportRules}
 
 @*
  * The per-type tables, split by what a type says about access (problems, then features, then any neutral types such
  * as Occlusion) so a reader never has to work out whether a big count is good or bad news. Each speaks both of the
  * page's units: labels, which is what people did, and locations, which is what a score counts. A count over the
  * Gallery's list cap links to its filtered view instead of an exact list; see
- * [[models.report.ReportLinks]].
+ * [[models.report.ReportLinks]]. Under the tables, a histogram per rated type shows how its labels were rated, since a
+ * worst-rating count alone hides whether the rest sit next to it or at the mild end.
  *
  * @param report The computed report.
  *@
@@ -17,12 +18,34 @@
   <td class="num"><a href="@ReportLinks.count(ids, fallback)" data-report-event="Report_OpenGallery">@Messages("report.count", ids.size)</a></td>
 }
 
+@* Bars are drawn by report.js from data-share, each a share of the type's own labels so a small type still reads. *@
+@ratingHistogram(row: InventoryRow, buckets: Seq[RatingBucket]) = {
+  @defining(s"report-hist-${row.labelType.name}") { headingId =>
+    <figure class="report-hist" aria-labelledby="@headingId">
+      <figcaption class="report-hist__title" id="@headingId">
+        <img src='@assets.path(row.labelType.smallIconSvgPath)' alt="" width="16" height="16">
+        @Messages(row.labelType.nameKey)
+        <span class="report-hist__scale">@Messages(s"report.scale.${row.labelType.ratingScale.name}")</span>
+      </figcaption>
+      <ul class="report-hist__bars">
+        @for(bucket <- buckets) {
+          <li class="report-hist__row">
+            <span class="report-hist__name">@bucket.rating.fold(Messages("report.inventory.unrated"))(r => Messages(s"report.scale.${row.labelType.ratingScale.name}.$r"))</span>
+            <span class="report-hist__track" aria-hidden="true"><span class="report-hist__bar report-hist__bar--@bucket.rating.getOrElse("none")" data-share="@(if (row.observedIds.isEmpty) 0.0 else bucket.ids.size.toDouble / row.observedIds.size)"></span></span>
+            <a class="report-hist__count" href="@ReportLinks.count(bucket.ids, bucket.rating.fold(typeFilter(row))(r => ReportLinks.galleryFilter(report.regionId, Some(row.labelType), Seq(r))))" data-report-event="Report_OpenGallery">@Messages("report.count", bucket.ids.size)</a>
+          </li>
+        }
+      </ul>
+    </figure>
+  }
+}
+
 @inventoryTable(rows: Seq[InventoryRow], key: String) = {
   <div class="ps-table-wrapper">
     <table class="ps-table report-inventory__table" aria-labelledby="report-inventory-@key">
       <colgroup>
         <col class="report-inventory__col--type">
-        <col class="report-inventory__col--count" span="5">
+        <col class="report-inventory__col--count" span="4">
         <col class="report-inventory__col--tags">
       </colgroup>
       <thead>
@@ -31,7 +54,6 @@
           <th scope="col" class="num">@Messages("report.inventory.locations")</th>
           <th scope="col" class="num">@Messages("report.inventory.observed")</th>
           <th scope="col" class="num">@Messages(s"report.inventory.worst.$key")</th>
-          <th scope="col" class="num">@Messages("report.inventory.reviewed")</th>
           <th scope="col" class="num">@Messages("report.inventory.confirmed")</th>
           <th scope="col">@Messages("report.inventory.tags")</th>
         </tr>
@@ -54,7 +76,6 @@
             }.getOrElse {
               <td class="num"><span aria-hidden="true">–</span><span class="sr-only">@Messages("report.inventory.unrated")</span></td>
             }
-            @countCell(row.reviewedIds, typeFilter(row))
             @countCell(row.confirmedIds, ReportLinks.galleryFilter(report.regionId, Some(row.labelType), validations = "correct"))
             <td>
               <ul class="report-tags">
@@ -76,7 +97,7 @@
     <p class="report-empty">@Messages("report.inventory.none")</p>
   } else {
     <dl class="report-inventory__legend">
-      @for(column <- Seq("locations", "observed", "worst", "reviewed", "confirmed")) {
+      @for(column <- Seq("locations", "observed", "worst", "confirmed")) {
         <div>
           <dt>@Messages(if (column == "worst") "report.inventory.worst.short" else s"report.inventory.$column")</dt>
           <dd>@Messages(s"report.inventory.define.$column")</dd>
@@ -89,6 +110,17 @@
           <h3 class="report-inventory__group" id="report-inventory-@key">@Messages(s"report.inventory.$key")</h3>
           @inventoryTable(rows, key)
         }
+      }
+    }
+    @defining(report.inventory.filter(_.ratings.nonEmpty)) { rated =>
+      @if(rated.nonEmpty) {
+        <h3 class="report-inventory__group" id="report-inventory-ratings">@Messages("report.inventory.ratings.title")</h3>
+        <p class="report-section__lede">@Messages("report.inventory.ratings.lede")</p>
+        <div class="report-hists">
+          @for(row <- rated; buckets <- row.ratings) {
+            @ratingHistogram(row, buckets)
+          }
+        </div>
       }
     }
   }

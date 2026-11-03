@@ -551,7 +551,11 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     obstacle.worstIds shouldBe Some(Seq(2))
     obstacle.confirmedIds shouldBe Seq(3)
     obstacle.topTags shouldBe Seq(("pole", 2), ("tree", 1))
+    obstacle.ratings shouldBe Some(
+      Seq(RatingBucket(Some(1), Seq(3)), RatingBucket(Some(2), Seq.empty), RatingBucket(Some(3), Seq(2)))
+    )
     rows(2).worstIds shouldBe None
+    rows(2).ratings shouldBe None
     rows(2).locations shouldBe Some((0, Seq.empty))
     rows(3).locations shouldBe None
   }
@@ -647,6 +651,18 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       ("report.fix.why.pooled", Seq(2))
     fix(Seq(loc(4, Obstacle, severity = Some(3)))).reason shouldBe ("report.fix.why.worst", Seq("A St"))
     fix(Seq(loc(5, Obstacle, severity = Some(2)))).reason shouldBe ("report.fix.why.costliest", Seq("A St"))
+  }
+
+  test("a fix's raised score is built from the figures its card prints, so they add up, and never passes 100") {
+    val (stretch, _)                        = street("A St", 1L, 1)
+    def raised(score: Double, cost: Double) =
+      ReportFix(
+        ReportStreet(stretch.copy(score = score), score, 100.0, 1),
+        ReportItem(Seq(loc(1)), cost),
+        label(1)
+      ).raisedScore
+    raised(0.4234, 8.74) shouldBe 51.0 +- 1e-9 // 42.3 + 8.7 as printed, not the unrounded 51.08
+    raised(0.97, 6.0) shouldBe 100.0
   }
 
   test("a neighborhood's address is its name, unique in the city, and never one an id could be mistaken for") {

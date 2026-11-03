@@ -1053,11 +1053,16 @@
 }
 
 .report-inventory__col--type {
-  width: 19%;
+  width: 22%;
 }
 
 .report-inventory__col--count {
-  width: 11%;
+  width: 13%;
+}
+
+/* The count headers are phrases ("Confirmed correct"), so they wrap rather than run into the next column. */
+.report-inventory__table thead th {
+  white-space: normal;
 }
 
 .report-inventory__col--tags {
@@ -1079,6 +1084,93 @@
 .report-inventory__legend dd {
   margin: 0;
   color: var(--color-neutral-800);
+}
+
+/* A rated type's histogram per card, as many to a row as fit. Bar colors are the rating faces' (#4724): both scales
+   run from their good end at 1 to their bad end at 3, so one ramp serves severity and quality alike. */
+.report-hists {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: var(--space-sm) 0 0;
+}
+
+.report-hist {
+  padding: var(--space-xs) var(--space-sm);
+  margin: 0;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  break-inside: avoid;
+}
+
+.report-hist__title {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin-bottom: var(--space-xxs);
+  font: var(--text-small-bold);
+}
+
+.report-hist__scale {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-hist__bars {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2px var(--space-xs);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Rows join the parent grid so names, bars and counts line up. */
+.report-hist__row {
+  display: contents;
+}
+
+.report-hist__name {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-hist__track {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  background: var(--color-neutral-200);
+  border-radius: 4px;
+}
+
+.report-hist__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.report-hist__bar--1 {
+  background: var(--color-jade-400);
+}
+
+.report-hist__bar--2 {
+  background: var(--color-banana-600);
+}
+
+.report-hist__bar--3 {
+  background: var(--color-orange-500);
+}
+
+.report-hist__bar--none {
+  background: var(--color-neutral-500);
+}
+
+.report-hist__count {
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* ---- Go deeper and provenance ------------------------------------------------------------------------------- */

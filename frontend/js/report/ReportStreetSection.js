@@ -196,6 +196,8 @@ export class ReportStreetSection {
     this.#profile = new AccessScoreElevationProfile(this.#profileSlot, profile, {
       breaks,
       steepest,
+      // The slot is hidden until drawn, so its parent's width stands in; otherwise the popup-sized text scales up.
+      width: this.#profileSlot.parentElement?.clientWidth ?? 0,
       label: i18next.t('accessscore:profile-label', {
         start: formatElevation(elevations[0], plain),
         end: formatElevation(elevations.at(-1), plain),

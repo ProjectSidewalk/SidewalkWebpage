@@ -55,7 +55,13 @@
               <p class="report-fix__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
             }
             @reportViews.places(report.placesNear(fix.street.worst.toolEdgeId))
-            @defining(fix.reason) { reason => <p class="report-fix__why">@Messages(reason._1, reason._2*)</p> }
+            @* The rise first, so the card's +N is stated in words, then why this one spot is worth that much. *@
+            @defining(fix.reason) { reason =>
+              <p class="report-fix__why">
+                @Messages("report.fix.raise", ReportFormat.score(fix.street.worst.score), ReportFormat.oneDecimal(fix.raisedScore), ReportFormat.oneDecimal(fix.item.costPoints))
+                @Messages(reason._1, reason._2*)
+              </p>
+            }
             @if(fix.label.tags.nonEmpty) {
               <ul class="report-tags">
                 @for(tag <- fix.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }

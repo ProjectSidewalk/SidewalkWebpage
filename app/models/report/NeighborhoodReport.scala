@@ -634,6 +634,7 @@ object Coverage {
  * @param locationIds The labels of the type's locations in the region, and how many locations that is; None for a type
  *                    AccessScore doesn't score
  * @param worstIds    None for a type with no rating, whose "worst" means nothing
+ * @param ratings     How the type's labels spread over its ratings, for its histogram; None for a type with no rating
  * @param topTags     The most-used tags, most used first, with their counts
  */
 case class InventoryRow(
@@ -641,10 +642,18 @@ case class InventoryRow(
     locations: Option[(Int, Seq[Int])],
     observedIds: Seq[Int],
     worstIds: Option[Seq[Int]],
-    reviewedIds: Seq[Int],
     confirmedIds: Seq[Int],
+    ratings: Option[Seq[RatingBucket]],
     topTags: Seq[(String, Int)]
 )
+
+/**
+ * One bar of a type's rating histogram.
+ *
+ * @param rating The rating, 1 to 3; None for the labels left unrated, which a labeler may skip
+ * @param ids    The labels at that rating
+ */
+case class RatingBucket(rating: Option[Int], ids: Seq[Int])
 
 object InventoryRow {
   val TopTags: Int = 3
@@ -666,12 +675,19 @@ object InventoryRow {
           worstIds = Option.when(labelType.ratingScale != RatingScale.Unrated)(
             labels.filter(ReportRules.isWorst).map(_.labelId)
           ),
-          reviewedIds = labels.filter(_.humanVotes > 0).map(_.labelId),
           confirmedIds = labels.filter(_.confirmed).map(_.labelId),
+          ratings = Option.when(labelType.ratingScale != RatingScale.Unrated)(ratingBuckets(labels)),
           topTags = tagCounts.sortBy { case (tag, count) => (-count, tag) }.take(TopTags)
         )
       }
     }
+  }
+
+  /** @return All three ratings, empty ones too so every histogram matches, then the unrated labels if any. */
+  private def ratingBuckets(labels: Seq[ReportLabel]): Seq[RatingBucket] = {
+    val rated = (1 to 3).map(r => RatingBucket(Some(r), labels.filter(_.severity.contains(r)).map(_.labelId)))
+    val none  = labels.filter(_.severity.isEmpty).map(_.labelId)
+    if (none.isEmpty) rated else rated :+ RatingBucket(None, none)
   }
 }
 
@@ -722,6 +738,17 @@ object RankedStreetRow {
  * @param label The label to picture it with
  */
 case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel) {
+
+  /**
+   * The segment's score once this is fixed, on the 0-100 scale, built from the figures the card prints (each to one
+   * decimal) so its "from", "to" and "+N" always add up on the page.
+   *
+   * @return The raised score, never over 100.
+   */
+  def raisedScore: Double = {
+    def tenth(value: Double) = math.round(value * 10) / 10.0
+    math.min(100.0, tenth(street.worst.score * 100) + tenth(item.costPoints))
+  }
 
   /**
    * Why this one is worth fixing: the strongest fact the data holds, in order. No way around first, since that is a
