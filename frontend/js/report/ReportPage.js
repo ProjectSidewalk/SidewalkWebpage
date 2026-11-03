@@ -391,7 +391,7 @@ export class ReportPage {
     const image = document.createElement('img');
     image.alt = '';
     image.src = url;
-    pane.replaceChildren(image);
+    pane.replaceChildren(image, ReportPage.#photoMarker(fix.locations[0].labelType, entry));
     await /** @type {Promise<void>} */ (new Promise((resolve) => {
       image.onload = () => resolve();
       image.onerror = () => {
@@ -399,6 +399,30 @@ export class ReportPage {
         resolve();
       };
     }));
+  }
+
+  /**
+   * The label's icon where it sits in the photo, as the Gallery's card places it: the crop's recorded position, or the
+   * label's own on the labeling canvas, re-expressed for the square pane the photo is cover-fitted into.
+   * @param {string} labelType
+   * @param {Record<string, any>} entry - The Gallery endpoint's answer for the fix's label.
+   * @returns {HTMLElement} The marker.
+   */
+  static #photoMarker(labelType, entry) {
+    const label = entry.label ?? {};
+    const { x, y } = util.misc.labelMarkerFraction('crop', entry.cropMarker ?? null,
+      label.original_canvas_x, label.original_canvas_y, {
+        canvasWidth: label.original_canvas_width, canvasHeight: label.original_canvas_height, boxAspect: 1,
+      });
+    const marker = document.createElement('span');
+    marker.className = 'report-fix__marker';
+    marker.style.setProperty('--report-marker-x', String(x));
+    marker.style.setProperty('--report-marker-y', String(y));
+    const icon = document.createElement('img');
+    icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    icon.alt = '';
+    marker.append(icon);
+    return marker;
   }
 
   /**

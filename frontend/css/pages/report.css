@@ -899,9 +899,29 @@
 }
 
 .report-fix__photo .gallery-image-placeholder,
-.report-fix__photo > :not(img) {
+.report-fix__photo > :not(img, .report-fix__marker) {
   position: absolute;
   inset: 0;
+}
+
+/* The label in its photo, placed and sized as on a Gallery card, so the photo says what the card is about. */
+.report-fix__marker {
+  --report-marker-x: 0.5;
+  --report-marker-y: 0.5;
+  --report-marker-size: 24px;
+
+  position: absolute;
+  top: calc(var(--report-marker-y) * 100% - var(--report-marker-size) / 2);
+  left: calc(var(--report-marker-x) * 100% - var(--report-marker-size) / 2);
+  width: var(--report-marker-size);
+  height: var(--report-marker-size);
+  pointer-events: none;
+}
+
+.report-fix__pane > .report-fix__marker img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 50%));
 }
 
 .report-fix__rank {

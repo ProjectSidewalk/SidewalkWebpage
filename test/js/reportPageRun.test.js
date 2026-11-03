@@ -336,7 +336,9 @@ describe('ReportPage', () => {
   test('printing fills the fixes\' panes, once, however many ask: photo, then the map as a still picture', async () => {
     const page = new ReportPage(data(), deps);
     page.start();
-    deps.fetchCards.mockResolvedValue(new Map([[55, { thumbnailUrl: '/thumb/55.jpg' }]]));
+    deps.fetchCards.mockResolvedValue(new Map([[55, {
+      thumbnailUrl: '/thumb/55.jpg', cropMarker: { x: 0.25, y: 0.6 }, label: {},
+    }]]));
     const done = Promise.all([page.prepareForPrint(), page.prepareForPrint()]);
     const photo = await vi.waitFor(() => {
       const img = document.querySelector('[data-fix-photo] img');
@@ -344,6 +346,10 @@ describe('ReportPage', () => {
       return img;
     });
     expect(photo.getAttribute('src')).toBe('/thumb/55.jpg');
+    const marker = /** @type {HTMLElement} */ (document.querySelector('[data-fix-photo] .report-fix__marker'));
+    // A 3:2 photo cover-fitted into the square pane loses its sides, so a quarter across the photo is an eighth here.
+    expect(marker.style.getPropertyValue('--report-marker-x')).toBe('0.125');
+    expect(marker.style.getPropertyValue('--report-marker-y')).toBe('0.6');
     photo.dispatchEvent(new Event('load'));
     await done;
     expect(deps.fetchCards.mock.calls.filter(([ids]) => ids.includes(55))).toHaveLength(1);
