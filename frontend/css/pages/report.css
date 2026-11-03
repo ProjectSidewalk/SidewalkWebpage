@@ -561,9 +561,23 @@
   font: var(--text-subtitle-bold);
 }
 
-/* One road can have several entries, so each says which block it is, small, under the name. */
+/* A segment entry is the street's name over which block it is: one road can have several entries. */
+.report-toc .toc-level-2 a {
+  align-items: flex-start;
+}
+
+.report-toc .toc-level-2 .report-toc__dot {
+  flex: none;
+  margin-top: 0.45em;
+}
+
+.report-toc__label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .report-toc__between {
-  display: block;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
 }
