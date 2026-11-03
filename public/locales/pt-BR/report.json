@@ -1,0 +1,22 @@
+{
+  "card": {
+    "cost": "Custa {{points}} pontos",
+    "cost-shared": "Custa {{points}} pontos, com mais {{others}}",
+    "labels_one": "{{count}} rótulo",
+    "labels_other": "{{count}} rótulos",
+    "more_one": "Mostrar mais {{count}}",
+    "more_other": "Mostrar mais {{count}}"
+  },
+  "map": {
+    "location": "{{type}}: mostrar a foto",
+    "gesture-windows": "Use Ctrl + rolagem para ampliar o mapa",
+    "gesture-mac": "Use ⌘ + rolagem para ampliar o mapa",
+    "gesture-touch": "Use dois dedos para mover o mapa"
+  },
+  "place": {
+    "score": "Pontuação {{score}}",
+    "street": "{{street}} · a {{distance}}",
+    "unscored": "A rua ainda não tem pontuação",
+    "unnamed": "Rua sem nome"
+  }
+}

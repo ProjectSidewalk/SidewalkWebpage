@@ -68,6 +68,16 @@ Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for
 a discrete action (e.g. `Click_module=SaveSettings` — which the `/welcome` privacy toggles also emit, see `Click_module=WelcomePrivacy_*` below —, `Click_module=CreateTeam`, `Click_module=LeaveTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
 Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
+A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_CustomWeights=<bool>` from the server, and its links and buttons add `Report_OpenLabel`, `Report_OpenGallery`, `Report_OpenLabelMap`,
+`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_Feedback` (the Beta note's email link), `Report_CopyLink`, `Report_Print` (any way of
+printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_SidebarToggle_Open=<bool>`,
+`Report_RegionMapClick`, `Report_MapLocationClick`, `Report_LinkedHover` (at most once per card or icon),
+`Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions),
+`Report_SidewalksToggle_Shown=<bool>`, `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
+`Report_ProfileClass_<index>_value=<bool>`, and, from the AccessScore tool's shared weights panel,
+`Report_Weight_<type>_value=<n>`, `Report_GradeWeight_value=<n>` (each when the slider is let go, not during the drag),
+`Report_Reset`, `Report_Section_weights_open=<bool>` and, from the header's stamp, `Report_WeightsReset`; each is
+suffixed `_Region=<id>`.
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can

@@ -480,7 +480,7 @@ object AccessScoreCalculator {
   }
 
   /** Whether a tag carried by `count` of `labelCount` labels clears [[tagActiveThreshold]] (never with zero labels). */
-  private def tagActive(count: Int, labelCount: Int): Boolean =
+  def tagActive(count: Int, labelCount: Int): Boolean =
     labelCount > 0 && count.toDouble / labelCount >= tagActiveThreshold
 
   /** The logistic squashing function mapping the unbounded weighted sum to (0, 1). */
@@ -703,6 +703,34 @@ object AccessScoreCalculator {
   def headlineScore(segmentScore: Option[Double], endScores: Seq[Double]): Option[Double] = {
     val components: Seq[Double] = segmentScore.toSeq ++ endScores
     if (components.isEmpty) None else Some(components.sum / components.size)
+  }
+
+  /**
+   * A street's headline score rebuilt from its clusters, so a caller can ask what it would be with some of them gone.
+   * With every cluster present this is the published `score`.
+   *
+   * @param slopeTerm       The segment's published slope term.
+   * @param segmentBarrier  Whether a slope barrier holds the segment at 0, which no cluster's removal could lift.
+   * @param endClusters     For each scored end intersection, the clusters pooled on it.
+   * @param weights         Signed base weight per type. Anything but the engine's own goes through
+   *                        [[subScoresFromCounts]], which equals [[scoreByType]] under the engine's weights.
+   * @return                The headline score in (0, 1).
+   */
+  def headlineFromClusters(
+      segmentClusters: Seq[ClusterScoreInput],
+      lengthMeters: Double,
+      slopeTerm: Double,
+      endClusters: Seq[Seq[ClusterScoreInput]],
+      weights: Map[String, Double] = baseWeights,
+      segmentBarrier: Boolean = false
+  ): Double = {
+    def terms(clusters: Seq[ClusterScoreInput], length: Option[Double]): Map[String, Double] =
+      if (weights == baseWeights) scoreByType(clusters, length)
+      else subScoresFromCounts(severityCountsByType(clusters), tagAdjustmentsByType(clusters), weights, length)
+    val segment: Double =
+      if (segmentBarrier) 0.0 else sigmoid(terms(segmentClusters, Some(lengthMeters)).valuesIterator.sum + slopeTerm)
+    val ends: Seq[Double] = endClusters.map(clusters => scoreFromSubScores(terms(clusters, None)))
+    (segment +: ends).sum / (1 + ends.size)
   }
 
   /**

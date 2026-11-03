@@ -1,0 +1,22 @@
+{
+  "card": {
+    "cost": "Kost {{points}} punten",
+    "cost-shared": "Kost {{points}} punten, met {{others}} andere",
+    "labels_one": "{{count}} label",
+    "labels_other": "{{count}} labels",
+    "more_one": "Nog {{count}} tonen",
+    "more_other": "Nog {{count}} tonen"
+  },
+  "map": {
+    "location": "{{type}}: foto tonen",
+    "gesture-windows": "Gebruik Ctrl + scrollen om op de kaart te zoomen",
+    "gesture-mac": "Gebruik ⌘ + scrollen om op de kaart te zoomen",
+    "gesture-touch": "Gebruik twee vingers om de kaart te verplaatsen"
+  },
+  "place": {
+    "score": "Score {{score}}",
+    "street": "{{street}} · {{distance}} verderop",
+    "unscored": "De straat heeft nog geen score",
+    "unnamed": "Naamloze straat"
+  }
+}

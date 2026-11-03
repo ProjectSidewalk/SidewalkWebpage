@@ -268,7 +268,7 @@ export class AccessScoreSlopePanel {
     this.#els.weightOutput.textContent = off
       ? i18next.t('accessscore:weight-off')
       : AccessScoreSlopePanel.#formatWeight(value);
-    this.#els.weightRow?.classList.toggle('acs-weight--off', off);
+    this.#els.weightRow?.classList.toggle('ps-weight--off', off);
   }
 
   /** A grade as the percentage an input holds, to one decimal ("8.3"). */

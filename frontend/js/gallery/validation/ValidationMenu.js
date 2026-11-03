@@ -258,7 +258,7 @@ export class ValidationMenu {
       canvas_y: Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2),
       start_timestamp: validationTimestamp,
       end_timestamp: validationTimestamp,
-      source: sourceStr,
+      source: refCard.getVoteSource() ?? sourceStr,
       undone,
       redone: !undone && refCard.getProperty('user_validation') !== null,
       viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi',

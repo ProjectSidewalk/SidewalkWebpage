@@ -1,0 +1,72 @@
+@import controllers.helper.ControllerUtils
+@import models.report.{Coverage, NeighborhoodReport, ReportLinks}
+@import models.utils.CommonUtils
+@import views.html.apps.report as reportViews
+
+@*
+ * What the report is based on, stated before anything it concludes: how much was looked at, by how many people, how
+ * much of it a second person checked, and how old the imagery is.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using request: RequestHeader, messages: Messages)
+
+@coverage = @{report.coverage}
+@distance(meters: Double) = @{
+  val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
+  BigDecimal(value).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
+}
+@monthLabel(date: java.time.LocalDate) = @{
+  date.format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", messages.lang.toLocale))
+}
+@countLink(ids: Seq[Int], fallback: String, label: String) = {
+  <a class="report-stat__value" href="@ReportLinks.count(ids, fallback)" data-report-event="Report_OpenGallery">@label</a>
+}
+
+<section class="report-section report-coverage" aria-label="@Messages("report.toc.summary")">
+  <dl class="report-stats">
+    <div class="report-stat">
+      <dt class="report-stat__label">@Messages("report.coverage.screened.label")</dt>
+      <dd class="report-stat__body">
+        <a class="report-stat__value" href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">
+          @Messages("report.coverage.screened.value", distance(coverage.auditedMeters), distance(coverage.totalMeters), ControllerUtils.distanceUnitWords.abbr)
+        </a>
+        <span class="report-stat__detail">@Messages("report.coverage.screened.detail", coverage.percentAudited)</span>
+      </dd>
+    </div>
+    <div class="report-stat">
+      <dt class="report-stat__label">@Messages("report.coverage.observations.label")</dt>
+      <dd class="report-stat__body">
+        @countLink(coverage.observationIds, ReportLinks.gallery(report.regionId), Messages("report.count", coverage.observationIds.size))
+        <span class="report-stat__detail">
+          @coverage.firstObservation.map { first =>
+            @Messages("report.coverage.observations.detail", coverage.labelers, monthLabel(first))
+          }.getOrElse { @Messages("report.coverage.observations.none") }
+        </span>
+      </dd>
+    </div>
+    <div class="report-stat">
+      <dt class="report-stat__label">@Messages("report.coverage.reviewed.label") @reportViews.info(Messages("report.coverage.reviewed.detail"))</dt>
+      <dd class="report-stat__body">
+        @countLink(coverage.reviewedIds, ReportLinks.gallery(report.regionId), Messages("report.count", coverage.reviewedIds.size))
+      </dd>
+    </div>
+    <div class="report-stat">
+      <dt class="report-stat__label">@Messages("report.coverage.confirmed.label") @reportViews.info(Messages("report.coverage.confirmed.detail"))</dt>
+      <dd class="report-stat__body">
+        @countLink(coverage.confirmedIds, ReportLinks.galleryFilter(report.regionId, validations = "correct"), Messages("report.count", coverage.confirmedIds.size))
+      </dd>
+    </div>
+    <div class="report-stat">
+      <dt class="report-stat__label">@Messages("report.coverage.imagery.label")</dt>
+      <dd class="report-stat__body">
+        @coverage.medianImageryYear.map { year =>
+          <span class="report-stat__value">@year</span>
+          <span class="report-stat__detail">@Messages("report.coverage.imagery.detail", coverage.oldImageryPercent.getOrElse(0), Coverage.OldImageryYears)</span>
+        }.getOrElse {
+          <span class="report-stat__detail">@Messages("report.coverage.imagery.none")</span>
+        }
+      </dd>
+    </div>
+  </dl>
+</section>

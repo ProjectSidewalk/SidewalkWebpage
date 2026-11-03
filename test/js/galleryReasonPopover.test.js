@@ -59,6 +59,7 @@ function makeMenu(props = {}) {
     setProperty: (key, value) => { state[key] = value; },
     getLabelType: () => state.label_type,
     getImageSource: () => 'crop',
+    getVoteSource: () => null,
     labelIcon: document.createElement('div'), // jsdom lays nothing out; the vote's canvas_x/y read as 0.
     validationInfoDisplay: thumbs,
     updateUserValidation(vote) {

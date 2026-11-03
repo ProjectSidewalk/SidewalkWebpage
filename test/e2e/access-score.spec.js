@@ -233,7 +233,7 @@ test.describe('/accessScore', () => {
 
     // The sidebar rendered one slider per scored type, in the engine's order, and the drawer is live.
     await expect(page.locator('#acs-weights input[type="range"]')).toHaveCount(7);
-    await expect(page.locator('#acs-weights .acs-weight').first()).toHaveAttribute('data-type', 'CurbRamp');
+    await expect(page.locator('#acs-weights .ps-weight').first()).toHaveAttribute('data-type', 'CurbRamp');
     await expect(page.locator('#filter-sidebar')).not.toHaveClass(/filter-sidebar--loading/);
   });
 
@@ -481,10 +481,10 @@ test.describe('/accessScore', () => {
       // The map's own legend sits beside the zoom buttons in every dock state, its caret at the selection's score
       // (the dock's entry point above bypasses the page's select(), so the map view is told directly).
       await page.evaluate(() => window.accessScore.mapView.setSelection({unit: 'streets', id: 1}));
-      const legend = page.locator('.acs-map-legend');
+      const legend = page.locator('.ps-map-legend');
       await expect(legend).toBeVisible();
-      await expect(legend.locator('.acs-map-legend__swatch--unaudited')).toBeVisible();
-      const legendCaret = legend.locator('.acs-map-legend__caret');
+      await expect(legend.locator('.ps-map-legend__swatch--unaudited')).toBeVisible();
+      const legendCaret = legend.locator('.ps-map-legend__caret');
       await expect(legendCaret).toBeVisible();
       expect(Number.parseFloat(await legendCaret.evaluate((el) => el.style.left))).toBeCloseTo(81.8, 0);
       const [legendBox, zoomBox] = await Promise.all([
@@ -493,7 +493,7 @@ test.describe('/accessScore', () => {
       expect(Math.abs(legendBox.y - zoomBox.y)).toBeLessThan(2);
       // In the regions unit the swatch is the hatch, since the no-score case there is the completion floor.
       await page.locator('input[name="acs-unit"][value="regions"]').check({force: true});
-      await expect(legend.locator('.acs-map-legend__swatch--hatch')).toBeVisible();
+      await expect(legend.locator('.ps-map-legend__swatch--hatch')).toBeVisible();
     });
 
   test('the street panel leads with the verdict, lists what drives the score, and pictures the clusters (#5748)',
@@ -708,13 +708,13 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
       const lineColor = () => page.evaluate(() => window.accessScore.map.getPaintProperty('acs-streets', 'line-color'));
       expect(JSON.stringify(await lineColor())).toContain('interpolate');
-      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+      await expect(page.locator('.ps-map-legend__grade')).toBeHidden();
 
       await page.locator('#acs-show-grade').check();
       expect(JSON.stringify(await lineColor())).toContain('step');
-      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
-      await expect(page.locator('.acs-map-legend__class')).toHaveCount(6);
-      await expect(page.locator('.acs-map-legend__score')).toBeHidden();
+      await expect(page.locator('.ps-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.ps-map-legend__class')).toHaveCount(6);
+      await expect(page.locator('.ps-map-legend__score')).toBeHidden();
       // The classes are a named list, not an image: a screen reader reaches each row's grades.
       const classes = page.getByRole('group', {name: 'Street grade'}).getByRole('listitem');
       await expect(classes).toHaveCount(6);
@@ -729,17 +729,17 @@ test.describe('/accessScore', () => {
 
       // Regions have no slope: the ramp comes back with the unit, and the toggle leaves with it.
       await page.locator('label[for="acs-unit-regions"]').click();
-      await expect(page.locator('.acs-map-legend__score')).toBeVisible();
+      await expect(page.locator('.ps-map-legend__score')).toBeVisible();
       await expect(page.locator('#acs-grade-option')).toBeHidden();
       await page.locator('label[for="acs-unit-streets"]').click();
-      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.ps-map-legend__grade')).toBeVisible();
 
       // A shared link opens on the slope coloring with the street's card up, profile and credit included.
       await page.goto('/accessScore?grade=1&sel=1');
       await waitForAppReady(page);
       await waitForTool(page);
       await expect(page.locator('#acs-show-grade')).toBeChecked();
-      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.ps-map-legend__grade')).toBeVisible();
       const panel = page.locator('#acs-panel');
       await expect(panel).toContainText('Steepest 8.1% · average 6.2%');
       // The profile takes the block's place between the crossings, the block's figures in a pill beneath it.
@@ -786,7 +786,7 @@ test.describe('/accessScore', () => {
       // A weight of 0 is how slope leaves the score, and the control says "Off" rather than "×0.00".
       await page.locator('#acs-slope-weight').fill('0');
       await expect(page.locator('#acs-slope-weight-value')).toHaveText('Off');
-      await expect(page.locator('#acs-slope-weight-row')).toHaveClass(/acs-weight--off/);
+      await expect(page.locator('#acs-slope-weight-row')).toHaveClass(/ps-weight--off/);
       const flat = await scoreOf(page, 1);
       expect(flat).toBeCloseTo(0.818, 2);
       expect(weighed).toBeCloseTo(1 / (1 + Math.exp(-(Math.log(flat / (1 - flat)) - 1))), 6);
@@ -846,23 +846,23 @@ test.describe('/accessScore', () => {
       await waitForTool(page);
 
       // The classes only stand in for the score ramp while the streets are colored by slope.
-      const classes = page.locator('.acs-map-legend__class');
-      await expect(page.locator('.acs-map-legend__grade')).toBeHidden();
+      const classes = page.locator('.ps-map-legend__class');
+      await expect(page.locator('.ps-map-legend__grade')).toBeHidden();
       await page.locator('#acs-show-grade').check();
-      await expect(page.locator('.acs-map-legend__grade')).toBeVisible();
+      await expect(page.locator('.ps-map-legend__grade')).toBeVisible();
       // Five classes from four breaks, steepest first, plus the row for a street with no slope at all.
       await expect(classes).toHaveCount(6);
       await expect(classes.first()).toContainText('Over 12.5%');
       // Rows are found by the class they stand for (gentlest = 0, as `gc` names them), not where they are listed.
-      const byClass = (k) => page.locator(`.acs-map-legend__class[data-class="${k}"]`);
+      const byClass = (k) => page.locator(`.ps-map-legend__class[data-class="${k}"]`);
       // The title names the statistic the score is on, so the colors cannot claim a grade the score is not using.
-      await expect(page.locator('.acs-map-legend__title')).toHaveText('Street grade · Steepest stretch');
+      await expect(page.locator('.ps-map-legend__title')).toHaveText('Street grade · Steepest stretch');
 
       // Street 1's steepest stretch is 12%, in the 8.3%–12.5% class; clicking it brushes the map on that class.
       const steep = byClass(3);
       await steep.click();
       await expect(steep).toHaveAttribute('aria-pressed', 'true');
-      await expect(byClass(0)).toHaveClass(/acs-map-legend__class--out/);
+      await expect(byClass(0)).toHaveClass(/ps-map-legend__class--out/);
       await expect(page.locator('#acs-dock-brush')).toBeVisible();
       await expect(page.locator('#acs-dock-brush-text')).toContainText('8.3% – 12.5%');
       await expect(page.locator('#acs-dock-brush-text')).toContainText('1 street');
