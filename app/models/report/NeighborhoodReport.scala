@@ -768,20 +768,24 @@ case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel)
 
   /**
    * Why this one is worth fixing: the strongest fact the data holds, in order. No way around first, since that is a
-   * barrier rather than a cost; then a corner, which counts against every street meeting there; then a pool.
+   * barrier rather than a cost; then a corner, which counts against every street meeting there. A type scored as the
+   * block's condition (a missing sidewalk) gets none: the card's rise already says what building it would do, and its
+   * labels carry no rating to speak of.
    *
-   * @return A message key and its arguments.
+   * @return A message key and its arguments, or None.
    */
-  def reason(using messages: Messages): (String, Seq[Any]) = {
+  def reason(using messages: Messages): Option[(String, Seq[Any])] = {
     val street = RankedStreetRow.displayName(this.street.worst)
     // The pictured label's own tag counts too: its chip is on the card, and the sentence must not contradict it.
     val noWayAround = item.labelType == LabelType.NoCurbRamp && label.tags.contains(ReportRules.NoAlternateRouteTag)
+    val pooled      =
+      AccessScoreCalculator.typeWeights.get(item.labelType.name).exists(_.scoring == Scoring.StreetCondition)
     item.locations match {
-      case ls if noWayAround || ls.exists(_.hasNoAlternateRoute) => ("report.fix.why.noalternate", Nil)
-      case ls if ls.exists(_.intersectionId.isDefined)           => ("report.fix.why.corner", Nil)
-      case ls if ls.size > 1                                     => ("report.fix.why.pooled", Seq(ls.size))
-      case ls if ls.head.isWorst                                 => ("report.fix.why.worst", Seq(street))
-      case _                                                     => ("report.fix.why.costliest", Seq(street))
+      case ls if noWayAround || ls.exists(_.hasNoAlternateRoute) => Some(("report.fix.why.noalternate", Nil))
+      case ls if ls.exists(_.intersectionId.isDefined)           => Some(("report.fix.why.corner", Nil))
+      case _ if pooled                                           => None
+      case ls if ls.head.isWorst                                 => Some(("report.fix.why.worst", Seq(street)))
+      case _                                                     => Some(("report.fix.why.costliest", Seq(street)))
     }
   }
 }

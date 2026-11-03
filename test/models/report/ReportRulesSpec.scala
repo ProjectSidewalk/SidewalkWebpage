@@ -651,7 +651,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       "/v3/api/labelClusters?bbox=2.0,1.0,4.0,3.0&filetype=csv"
   }
 
-  test("a fix's reason is the strongest fact it holds: no way around, then a corner, then a pool, then its rating") {
+  test("a fix's reason is its strongest fact: no way around, a corner, then its rating; a sidewalk needs none") {
     given play.api.i18n.Messages =
       play.api.i18n.MessagesImpl(play.api.i18n.Lang("en"), play.api.i18n.DefaultMessagesApi())
     val (stretch, _)                                                  = street("A St", 1L, 1)
@@ -662,12 +662,14 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
         label(locations.head.labelIds.head, locations.head.labelType, tags = tags)
       )
     val corner = loc(1, NoCurbRamp, crossing = Some(9))
-    fix(Seq(corner)).reason._1 shouldBe "report.fix.why.corner"
-    fix(Seq(corner), tags = List(ReportRules.NoAlternateRouteTag)).reason._1 shouldBe "report.fix.why.noalternate"
-    fix(Seq(loc(2, NoSidewalk, severity = None), loc(3, NoSidewalk, severity = None))).reason shouldBe
-      ("report.fix.why.pooled", Seq(2))
-    fix(Seq(loc(4, Obstacle, severity = Some(3)))).reason shouldBe ("report.fix.why.worst", Seq("A St"))
-    fix(Seq(loc(5, Obstacle, severity = Some(2)))).reason shouldBe ("report.fix.why.costliest", Seq("A St"))
+    fix(Seq(corner)).reason.map(_._1) shouldBe Some("report.fix.why.corner")
+    fix(Seq(corner), tags = List(ReportRules.NoAlternateRouteTag)).reason.map(_._1) shouldBe
+      Some("report.fix.why.noalternate")
+    // A missing sidewalk needs no reason beyond the rise, whether one pin or a block of them.
+    fix(Seq(loc(2, NoSidewalk, severity = None), loc(3, NoSidewalk, severity = None))).reason shouldBe None
+    fix(Seq(loc(2, NoSidewalk, severity = None))).reason shouldBe None
+    fix(Seq(loc(4, Obstacle, severity = Some(3)))).reason shouldBe Some(("report.fix.why.worst", Seq("A St")))
+    fix(Seq(loc(5, Obstacle, severity = Some(2)))).reason shouldBe Some(("report.fix.why.costliest", Seq("A St")))
   }
 
   test("a fix's raised score is built from the figures its card prints, so they add up, and never passes 100") {

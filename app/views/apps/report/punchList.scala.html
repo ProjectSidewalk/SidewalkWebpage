@@ -59,7 +59,7 @@
             @defining(fix.reason) { reason =>
               <p class="report-fix__why">
                 @Messages("report.fix.raise", ReportFormat.score(fix.street.worst.score), ReportFormat.oneDecimal(fix.raisedScore), ReportFormat.oneDecimal(fix.item.costPoints))
-                @Messages(reason._1, reason._2*)
+                @for((key, args) <- reason) {@Messages(key, args*)}
               </p>
             }
             @if(fix.label.tags.nonEmpty) {
