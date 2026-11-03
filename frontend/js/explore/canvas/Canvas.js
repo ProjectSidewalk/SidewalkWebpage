@@ -231,23 +231,15 @@ export class Canvas {
 
   /**
    * Sets the cursor over the street view image.
-   * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
+   * @param {'OpenHand'|'ClosedHand'|'Pointer'} type
    */
   #setViewControlLayerCursor(type) {
-    const layer = this.#streetviewUi.viewControlLayer;
-    switch (type) {
-      case 'OpenHand':
-        layer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
-        break;
-      case 'ClosedHand':
-        layer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
-        break;
-      case 'Pointer':
-        layer.style.cursor = 'pointer';
-        break;
-      default:
-        layer.style.cursor = 'default';
-    }
+    const cursors = {
+      OpenHand: `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`,
+      ClosedHand: `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`,
+      Pointer: 'pointer',
+    };
+    this.#streetviewUi.viewControlLayer.style.cursor = cursors[type];
   }
 
   /**

@@ -73,10 +73,8 @@ export class AlertController {
    * @param {string} type - Message type identifier.
    */
   #dontShow(type) {
-    if (type !== null && type !== undefined) {
-      this.#dontShowList.push(type);
-      this.#storage.set('alertDontShowList', this.#dontShowList);
-    }
+    this.#dontShowList.push(type);
+    this.#storage.set('alertDontShowList', this.#dontShowList);
     this.hideAlert();
   }
 }

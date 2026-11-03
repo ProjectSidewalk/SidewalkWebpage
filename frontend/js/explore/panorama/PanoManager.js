@@ -81,8 +81,6 @@ export class PanoManager {
 
   #panoLinksClickable = false;
   #linksListener = null;
-  #linksClearanceObserver = null;
-  #mapillaryAttributionArrivalObserver = null;
 
   /**
    * Starts loading the viewer at the seed (`ready` says when it is there) and has the tracker stamp each action with
@@ -443,16 +441,12 @@ export class PanoManager {
       return true;
     };
 
-    if (this.#mapillaryAttributionArrivalObserver) this.#mapillaryAttributionArrivalObserver.disconnect();
-    this.#mapillaryAttributionArrivalObserver = null;
     if (handOff()) return;
 
-    this.#mapillaryAttributionArrivalObserver = new MutationObserver(() => {
-      if (!handOff()) return;
-      this.#mapillaryAttributionArrivalObserver.disconnect();
-      this.#mapillaryAttributionArrivalObserver = null;
+    const arrival = new MutationObserver(() => {
+      if (handOff()) arrival.disconnect();
     });
-    this.#mapillaryAttributionArrivalObserver.observe(this.#panoCanvas, { childList: true, subtree: true });
+    arrival.observe(this.#panoCanvas, { childList: true, subtree: true });
   };
 
   /**
@@ -472,10 +466,7 @@ export class PanoManager {
       if (height > 0) root.style.setProperty('--bottom-left-links-clearance', `${height}px`);
     };
     publishClearance();
-
-    if (this.#linksClearanceObserver) this.#linksClearanceObserver.disconnect();
-    this.#linksClearanceObserver = new ResizeObserver(publishClearance);
-    this.#linksClearanceObserver.observe(linksBar);
+    new ResizeObserver(publishClearance).observe(linksBar);
   };
 
   /**

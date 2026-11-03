@@ -178,10 +178,8 @@ export class ObservedArea {
     this.#angle = null;
     this.#leftAngle = null;
     this.#rightAngle = null;
-    if (this.#currArea) {
-      this.#currArea.minAngle = null;
-      this.#currArea.maxAngle = null;
-    }
+    this.#currArea.minAngle = null;
+    this.#currArea.maxAngle = null;
     this.update();
   }
 
@@ -213,10 +211,11 @@ export class ObservedArea {
     this.#angle = heading;
     this.#leftAngle = this.#angle - fov / 2;
     this.#rightAngle = this.#angle + fov / 2;
-    if (!this.#currArea.minAngle || this.#leftAngle < this.#currArea.minAngle) {
+    // Compared against null, not falsiness: an edge that lands exactly on north is 0, and must still count as seen.
+    if (this.#currArea.minAngle === null || this.#leftAngle < this.#currArea.minAngle) {
       this.#currArea.minAngle = this.#leftAngle;
     }
-    if (!this.#currArea.maxAngle || this.#rightAngle > this.#currArea.maxAngle) {
+    if (this.#currArea.maxAngle === null || this.#rightAngle > this.#currArea.maxAngle) {
       this.#currArea.maxAngle = this.#rightAngle;
     }
     this.#fractionObserved = Math.min(this.#currArea.maxAngle - this.#currArea.minAngle, 360) / 360;

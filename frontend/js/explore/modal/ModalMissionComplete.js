@@ -256,10 +256,9 @@ export class ModalMissionComplete {
         if (task.isComplete()) {
           end = task.getEndCoordinate();
         } else {
-          // The furthest point is only recorded once the user advances along a street; without it (e.g. a
-          // street reached via a jump that the user never moved along) there's nothing to draw here. (#4204)
+          // A street reached via a jump the user never moved along has its furthest point at its start, so the
+          // slice is a zero-length line, or, should turf collapse it to a point, one #isDrawableLine drops. (#4204)
           const furthest = task.getFurthestPointReached();
-          if (!furthest) return null;
           end = { lat: furthest.geometry.coordinates[1], lng: furthest.geometry.coordinates[0] };
         }
         coordinates = task.getSubsetOfCoordinates(start, end);

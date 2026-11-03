@@ -101,8 +101,6 @@ export class Tracker {
   }
 
   #notesToString(param) {
-    if (!param) return '';
-
     let note = '';
     for (const key in param) {
       if (note.length > 0) {

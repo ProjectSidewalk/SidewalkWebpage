@@ -233,7 +233,6 @@ export class Task {
   }
 
   #hasAdvanced(currentLatLng) {
-    if (typeof this.#furthestPoint === 'undefined') return false;
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
     const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
     const distanceAtTheFurthestPoint = this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest });
@@ -264,15 +263,15 @@ export class Task {
 
   /**
    * Get the GeoJSON representation of the street.
-   * @returns {?GeoJSON.Feature<GeoJSON.LineString>}
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>}
    */
   getFeature() {
-    return this.#geojson ? this.#geojson : null;
+    return this.#geojson;
   }
 
   /**
    * Get the GeoJSON representation of the street.
-   * TODO why do we have both this and getFeature()? Can the geojson be null ever? During initialization maybe..?
+   * TODO why do we have both this and getFeature()?
    * @returns {GeoJSON.Feature<GeoJSON.LineString>}
    */
   getGeoJSON() {
@@ -311,7 +310,7 @@ export class Task {
    * @returns {{lat: number, lng: number}}
    */
   getEntryCoordinate() {
-    if (!this.isResumed() || !this.#furthestPoint) return this.getStartCoordinate();
+    if (!this.isResumed()) return this.getStartCoordinate();
     const [lng, lat] = this.#furthestPoint.geometry.coordinates;
     return { lat, lng };
   }
@@ -390,7 +389,6 @@ export class Task {
    * @returns {number}
    */
   getAuditedDistance(units = { units: 'kilometers' }) {
-    if (typeof this.#furthestPoint === 'undefined') return 0;
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
     const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
     return this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest }, units);
@@ -536,10 +534,9 @@ export class Task {
    *
    * @param {{lat: number, lng: number}} latLng - The user's current location
    * @param {number} [threshold=10] - Distance threshold in meters
-   * @returns {boolean} false if the task has no geometry yet.
+   * @returns {boolean}
    */
   isAtEnd(latLng, threshold = 10) {
-    if (!this.#geojson) return false;
     const coords = this.#geojson.geometry.coordinates;
     const streetLengthM = this.lineDistance({ units: 'meters' });
     const effectiveThreshold = streetLengthM > 0
