@@ -20,6 +20,7 @@ import { MinimapBasemapStyle } from '../explore/navigation/MinimapBasemapStyle.j
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { AccessScoreMapLegend } from '../access-score/AccessScoreMapLegend.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
+import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -52,6 +53,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
+ * @property {Array<{name: ?string, category: string, lat: number, lng: number}>} [places] - Important places to show.
  */
 
 const STREETS_SOURCE = 'report-streets';
@@ -68,6 +70,7 @@ const SIDEWALK_OFFSET_PX = 6;
 // A block or so around a fix: the street it is on and the corner it is near, at a size two panes can show.
 const STILL_ZOOM = 17.5;
 const STILL_ICON_PX = 24;
+const PLACE_DISC_PX = 22;
 // A tile that never answers must not hold a card's map forever; the sketch stays in its place.
 const STILL_TIMEOUT_MS = 10000;
 // A lit icon covers about 15px around its point, so this leaves the wedge plainly visible past it.
@@ -92,6 +95,14 @@ function addArchiveProtocol() {
  */
 function token(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/**
+ * @param {string} category - A place category id.
+ * @returns {string} Its glyph's served URL.
+ */
+function placeIconUrl(category) {
+  return util.assetPath(`images/icons/${PlaceCategoryIcons.file(category)}`);
 }
 
 /**
@@ -181,7 +192,10 @@ export class ReportMap {
       this.#pending = [];
     });
     // A still map's icons are painted into its picture instead, since a DOM marker isn't on the canvas.
-    if (!still) for (const location of locations) this.#addMarker(location);
+    if (!still) {
+      for (const place of options.places ?? []) this.#addPlace(place);
+      for (const location of locations) this.#addMarker(location);
+    }
   }
 
   /**
@@ -209,6 +223,19 @@ export class ReportMap {
     context.drawImage(source, 0, 0);
     const ratio = source.width / source.clientWidth;
     const size = STILL_ICON_PX * ratio;
+    const disc = PLACE_DISC_PX * ratio;
+    for (const { category, lng, lat } of this.#options.places ?? []) {
+      const glyph = await loadImage(placeIconUrl(category));
+      const { x, y } = this.#map.project([lng, lat]);
+      context.beginPath();
+      context.arc(x * ratio, y * ratio, disc / 2, 0, 2 * Math.PI);
+      context.fillStyle = token('--color-neutral-800');
+      context.fill();
+      context.lineWidth = 2 * ratio;
+      context.strokeStyle = token('--color-neutral-white');
+      context.stroke();
+      if (glyph) context.drawImage(glyph, x * ratio - disc * 0.3, y * ratio - disc * 0.3, disc * 0.6, disc * 0.6);
+    }
     for (const { labelType, lng, lat } of this.#options.locations ?? []) {
       const icon = await loadImage(util.misc.getIconImagePaths(labelType).iconImagePath);
       if (!icon) continue;
@@ -397,6 +424,24 @@ export class ReportMap {
    * same icon the photo wears, so the two read as one thing.
    * @param {ReportMapLocation} location
    */
+  /**
+   * A place near the streets: told apart from a label's icon by its disc, and only a landmark, so it takes no input.
+   * @param {{name: ?string, category: string, lat: number, lng: number}} place
+   */
+  #addPlace(place) {
+    const element = document.createElement('span');
+    element.className = 'report-map-place';
+    const label = place.name ?? i18next.t(`accessscore:place-${place.category}`, { defaultValue: place.category });
+    element.setAttribute('role', 'img');
+    element.setAttribute('aria-label', label);
+    element.title = label;
+    const glyph = document.createElement('img');
+    glyph.src = placeIconUrl(place.category);
+    glyph.alt = '';
+    element.append(glyph);
+    new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
+  }
+
   #addMarker(location) {
     const { clusterId, labelType, lng, lat } = location;
     const element = document.createElement('button');

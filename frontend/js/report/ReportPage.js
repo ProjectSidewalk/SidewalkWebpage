@@ -56,7 +56,9 @@ export class ReportPage {
     const sectionDeps = {
       edges,
       cityId,
-      createMap: (container, options) => this.#deps.createMap(container, { ...options, basemap: this.#data.basemap }),
+      createMap: (container, options) => this.#deps.createMap(container, {
+        ...options, basemap: this.#data.basemap, places: this.#data.places ?? [],
+      }),
       fetchCards: this.#deps.fetchCards,
       buildCard: (entry) => this.#deps.buildCard(entry, this.#log),
       sidewalks: () => this.#fetchSidewalks(),
@@ -217,18 +219,36 @@ export class ReportPage {
       litRow = streetId === null ? null : rows.get(streetId) ?? null;
       litRow?.classList.add('is-highlighted');
     };
+    /** @type {?number} */ let selected = null;
+    // The list is the map's other half: a click there shows the segment's row, opening the fold that may hold it,
+    // rather than leaving the overview. The row's own link is the way down to its section.
+    const selectRow = (row, streetId) => {
+      rows.get(selected)?.classList.remove('is-selected');
+      selected = streetId;
+      row.classList.add('is-selected');
+      const fold = row.closest('details');
+      if (fold) fold.open = true;
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      row.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+      row.querySelector('a')?.focus({ preventScroll: true });
+      this.#regionMap?.lightStreet(streetId);
+    };
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting) || this.#regionMap) return;
       observer.disconnect();
       this.#regionMap = this.#deps.createMap(host, {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
-        onStreetHover: lightRow,
+        places: this.#data.places ?? [],
+        onStreetHover: (streetId) => {
+          lightRow(streetId);
+          this.#regionMap?.lightStreet(streetId ?? selected);
+        },
         onStreetClick: (streetId) => {
-          // Only the lowest segments have a section; past them the list's row opens the tool, and so does nothing here.
-          if (!document.getElementById(`street-${streetId}`)) return;
+          const row = rows.get(streetId);
+          if (!row) return;
           this.#log('Report_RegionMapClick');
-          window.location.hash = `street-${streetId}`;
+          selectRow(row, streetId);
         },
       });
       this.#regionMap.colorBy(this.#colorBreaks);
@@ -240,7 +260,7 @@ export class ReportPage {
     observer.observe(host);
     for (const [streetId, row] of rows) {
       const on = () => this.#regionMap?.lightStreet(streetId);
-      const off = () => this.#regionMap?.lightStreet(null);
+      const off = () => this.#regionMap?.lightStreet(selected);
       row.addEventListener('mouseenter', on);
       row.addEventListener('mouseleave', off);
       row.addEventListener('focusin', on);
@@ -401,6 +421,7 @@ export class ReportPage {
         focusEdgeIds: fix.edgeIds,
         locations: fix.locations,
         center: [first.lng, first.lat],
+        places: this.#data.places ?? [],
         still: true,
       });
       map.colorBy(this.#colorBreaks);

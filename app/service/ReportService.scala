@@ -213,7 +213,8 @@ object ReportService {
       clustersUpdatedAt: Option[OffsetDateTime],
       now: OffsetDateTime,
       weights: AccessScoreWeights = AccessScoreWeights.Default,
-      contributions: Map[String, Double] = Map.empty
+      contributions: Map[String, Double] = Map.empty,
+      places: Seq[ReportPlace] = Nil
   ): NeighborhoodReport = {
     val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
@@ -262,7 +263,8 @@ object ReportService {
         )
       },
       weights = weights,
-      contributions = contributions
+      contributions = contributions,
+      places = places
     )
   }
 }
@@ -273,6 +275,7 @@ class ReportServiceImpl @Inject() (
     apiService: ApiService,
     regionService: RegionService,
     panoDataService: PanoDataService,
+    placesService: PlacesService,
     swrCache: SwrCache
 )(using ec: ExecutionContext, mat: Materializer)
     extends ReportService {
@@ -378,6 +381,8 @@ class ReportServiceImpl @Inject() (
         .map(s => s.streetEdgeId -> ReportStreet.streetKey(s.streetName, s.osmWayId))
         .toMap
       updatedAt <- accessScoreService.clustersUpdatedAt
+      // The city's places are cached on their own; a report still reads without them if they can't be had.
+      cityPlaces <- placesService.getFullCityPlaces(BatchSize).recover { case _ => Seq.empty }
     } yield assemble(
       regionId,
       regionName,
@@ -389,7 +394,8 @@ class ReportServiceImpl @Inject() (
       updatedAt,
       OffsetDateTime.now(ZoneOffset.UTC),
       weights,
-      contributions(streets, intersections, regionId)
+      contributions(streets, intersections, regionId),
+      ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet)
     )
   }
 }

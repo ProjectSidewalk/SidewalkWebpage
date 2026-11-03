@@ -438,7 +438,9 @@ CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-
 report and the Spotlight can't disagree about them. The page ranks explored street segments, roughly blocks: the unit
 AccessScore scores and the map colors, so a section never holds parts its number doesn't describe. Each is named by the
 streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
-on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road. A
+on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
+Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. A
 fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.

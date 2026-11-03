@@ -285,8 +285,14 @@
 
 .report-rank__row:hover,
 .report-rank__row:focus-within,
-.report-rank__row.is-highlighted {
+.report-rank__row.is-highlighted,
+.report-rank__row.is-selected {
   background: var(--color-neutral-100);
+}
+
+/* The row a map click chose stays marked after the pointer leaves, so the reader can find it again. */
+.report-rank__row.is-selected {
+  box-shadow: inset 3px 0 0 var(--color-neutral-900);
 }
 
 .report-rank__position {
@@ -429,6 +435,72 @@
   .report-map-marker img {
     transition: none;
   }
+}
+
+/* ---- Important places near a segment (#5311) ------------------------------------------------------------------ */
+
+/* Runs as a sentence ("Near the library, the town hall"), so a narrow card wraps it like text. */
+.report-places {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-medium);
+}
+
+.report-places .report-place {
+  margin-right: var(--space-sm);
+  vertical-align: middle;
+}
+
+
+.report-places--compact {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 0 0 var(--space-xxs);
+  vertical-align: middle;
+}
+
+.report-places__lead {
+  margin-right: var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-place {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+}
+
+.report-places--compact .report-place {
+  margin-right: 0;
+}
+
+/* The glyphs are white, drawn for a disc: dark here, so a place never reads as a score color or a label's icon. */
+.report-place__icon,
+.report-map-place {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-neutral-800);
+  border-radius: 50%;
+}
+
+.report-places--compact .report-place__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.report-place__icon img,
+.report-map-place img {
+  width: 60%;
+  height: 60%;
+}
+
+.report-map-place {
+  width: 22px;
+  height: 22px;
+  box-shadow: 0 0 0 2px var(--color-neutral-white);
 }
 
 /* ---- Sidebar controls ----------------------------------------------------------------------------------------- */

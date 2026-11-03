@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils
+@import views.html.apps.report as reportViews
 @import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks}
 @import models.utils.CommonUtils
 
@@ -43,6 +44,7 @@
           @if(row.street.stretchCount > 1) {
             <p class="report-street__context">@Messages("report.street.road", row.street.stretchCount, ReportFormat.score(row.street.wholeScore), distance(row.street.wholeExploredMeters), unit)</p>
           }
+          @reportViews.places(report.placesNear(row.street.worst.toolEdgeId))
           <ul class="report-counts">
             @for(evidence <- row.evidence) {
               <li>

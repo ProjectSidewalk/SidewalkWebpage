@@ -166,13 +166,21 @@ describe('ReportPage', () => {
     expect(row.classList.contains('is-highlighted')).toBe(false);
   });
 
-  test('clicking a street on the region map jumps to its section; an unranked street goes nowhere', () => {
+  test('clicking a segment on the region map shows its row, opening the fold it may be in; an unlisted one does nothing', () => {
+    document.getElementById('report-region-map').insertAdjacentHTML('beforebegin',
+      '<details><ol><li class="report-rank__row" data-street="300"><a href="/accessScore">Far</a></li></ol></details>');
     new ReportPage(data(), deps).start();
     intersect(document.getElementById('report-region-map'), true);
+    const row = document.querySelector('[data-street="300"].report-rank__row');
+    row.scrollIntoView = vi.fn();
     maps[0].options.onStreetClick(999);
-    expect(window.location.hash).not.toBe('#street-999');
-    maps[0].options.onStreetClick(100);
-    expect(window.location.hash).toBe('#street-100');
+    expect(deps.log).not.toHaveBeenCalledWith('Report_RegionMapClick');
+    maps[0].options.onStreetClick(300);
+    expect(row.closest('details').open).toBe(true);
+    expect(row.classList.contains('is-selected')).toBe(true);
+    expect(row.scrollIntoView).toHaveBeenCalled();
+    expect(maps[0].lightStreet).toHaveBeenLastCalledWith(300);
+    expect(window.location.hash).not.toBe('#street-300');
   });
 
   test('sidewalks start off; the switch reaches every map and shows its key', () => {

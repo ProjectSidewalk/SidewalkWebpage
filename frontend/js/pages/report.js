@@ -7,6 +7,8 @@
 import { copyToClipboard } from '../common/copyToClipboard.js';
 import { PageToc } from '../common/PageToc.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
+import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
+import { util } from '../common/utilities.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import { ReportPage } from '../report/ReportPage.js';
 import { ReportMap } from '../report/ReportMap.js';
@@ -34,12 +36,30 @@ function paintScores(root) {
   }
 }
 
+/**
+ * Gives each named place its category's glyph. The server names only the category, so the one map of category to icon
+ * stays in PlaceCategoryIcons.
+ * @param {ParentNode} root - Where to look.
+ */
+function drawPlaceIcons(root) {
+  for (const place of root.querySelectorAll('[data-place-category]')) {
+    const icon = place.querySelector('.report-place__icon');
+    if (!icon || icon.childElementCount) continue;
+    const image = document.createElement('img');
+    const { placeCategory } = /** @type {HTMLElement} */ (place).dataset;
+    image.src = util.assetPath(`images/icons/${PlaceCategoryIcons.file(placeCategory)}`);
+    image.alt = '';
+    icon.append(image);
+  }
+}
+
 window.appManager.ready(() => {
   const shell = document.getElementById('report-shell');
   const { regionId } = shell.dataset;
   const log = (event) => window.logWebpageActivity(`${event}_Region=${regionId}`);
 
   paintScores(shell);
+  drawPlaceIcons(shell);
 
   const navbarHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height'), 10);
   new PageToc(document.getElementById('report-toc'), { topOffsetPx: navbarHeight || 0 });

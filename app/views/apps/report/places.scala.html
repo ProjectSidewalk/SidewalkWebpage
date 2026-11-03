@@ -1,0 +1,23 @@
+@import models.report.ReportPlace
+
+@*
+ * The important places near a segment. report.js gives each its category's glyph from PlaceCategoryIcons, the one map
+ * of category to icon the site keeps, so the server names only the category.
+ *
+ * @param places  The places, nearest one segment.
+ * @param compact Icons alone, each named for a screen reader, for a list row with no room for the names.
+ *@
+@(places: Seq[ReportPlace], compact: Boolean = false)(using messages: Messages)
+
+@if(places.nonEmpty) {
+  @if(compact) {
+    <span class="report-places report-places--compact">
+      @for(place <- places) {<span class="report-place" data-place-category="@place.category" title="@place.label"><span class="report-place__icon" aria-hidden="true"></span><span class="sr-only">@place.label</span></span>}
+    </span>
+  } else {
+    <p class="report-places">
+      <span class="report-places__lead">@Messages("report.places.near")</span>
+      @for(place <- places) {<span class="report-place" data-place-category="@place.category"><span class="report-place__icon" aria-hidden="true"></span>@place.label</span>}
+    </p>
+  }
+}

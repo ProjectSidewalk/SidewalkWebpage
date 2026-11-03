@@ -658,6 +658,32 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       Map(1 -> "mann-1", 2 -> "mann-2", 3 -> "greenwood", 4 -> "42-4", 5 -> "region-5")
   }
 
+  test("a place is near a segment when that segment is its nearest street and it sits close enough to it") {
+    import models.api.PlaceForApi
+    def place(id: Int, edge: Option[Int], meters: Option[Double]) = PlaceForApi(
+      placeId = id,
+      category = "library",
+      name = Some(s"P$id"),
+      source = "osm",
+      osmType = None,
+      osmId = None,
+      regionId = Some(1),
+      regionName = None,
+      nearestStreetEdgeId = edge,
+      nearestStreetDistanceM = meters,
+      fetchedAt = created,
+      geometry = GeometryFactory().createPoint(Coordinate(-94.85, 42.84))
+    )
+    val places = Seq(
+      place(1, Some(7), Some(20.0)),
+      place(2, Some(7), Some(ReportPlace.NearMeters + 1)),
+      place(3, Some(8), Some(10.0)),
+      place(4, None, None)
+    )
+    ReportPlace.near(places, Set(7)).map(_.name) shouldBe Seq(Some("P1"))
+    ReportPlace.near(places, Set(7)).head.latitude shouldBe 42.84
+  }
+
   test("a report's links carry a reader's weights, and only those") {
     import service.AccessScoreWeights
     ReportLinks.report("a-st") shouldBe "/report/neighborhood/a-st"

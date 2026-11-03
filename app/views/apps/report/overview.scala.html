@@ -23,7 +23,11 @@
       } else {
         <a class="report-rank__name" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore">@RankedStreetRow.displayName(row.street.worst)</a>
       }
-      @for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-rank__between">@between</span>}
+      @defining(report.placesNear(row.street.worst.toolEdgeId)) { places =>
+        @defining(RankedStreetRow.between(row.street.worst)) { between =>
+          @if(between.nonEmpty || places.nonEmpty) {<span class="report-rank__between">@between.getOrElse("") @reportViews.places(places, compact = true)</span>}
+        }
+      }
     </span>
     <span class="report-rank__track" aria-hidden="true"><span class="report-rank__bar" data-score="@row.street.worst.score"></span></span>
     <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>

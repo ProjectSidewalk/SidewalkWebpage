@@ -1,6 +1,6 @@
 package models.report
 
-import models.api.{LabelClusterForApi, LabelDataForApi, StreetAccessScoreForApi}
+import models.api.{LabelClusterForApi, LabelDataForApi, PlaceForApi, StreetAccessScoreForApi}
 import models.label.{LabelType, RatingScale}
 import models.utils.LatLngBBox
 import play.api.i18n.Messages
@@ -769,6 +769,7 @@ case class ReportMapEdge(
  * @param weights           The weights its scores were computed under: the engine's unless a link asked otherwise
  * @param contributions     Each scored type's mean term per explored street here, under those weights, for the bars
  *                          beside the weight sliders
+ * @param places            Important places near its segments
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -785,8 +786,12 @@ case class NeighborhoodReport(
     evidenceBox: Option[LatLngBBox],
     edges: Seq[ReportMapEdge],
     weights: AccessScoreWeights = AccessScoreWeights.Default,
-    contributions: Map[String, Double] = Map.empty
+    contributions: Map[String, Double] = Map.empty,
+    places: Seq[ReportPlace] = Nil
 ) {
+
+  /** @return The important places near one segment. */
+  def placesNear(streetEdgeId: Int): Seq[ReportPlace] = places.filter(_.streetEdgeId == streetEdgeId)
 
   /** @return Whether the region is too little explored for its score to be stated, so anything listed is provisional. */
   def isProvisional: Boolean = score.score.isEmpty
@@ -836,6 +841,35 @@ object ReportSlug {
       id -> (if (slug.isEmpty) s"region-$id" else if (needsId) s"$slug-$id" else slug)
     }.toMap
   }
+}
+
+/**
+ * An important place (#5311) near a segment: who needs that block, which a score alone doesn't say. It changes no
+ * number; it is told beside the segment, on its map, and on a fix there.
+ *
+ * @param streetEdgeId The segment the place is nearest to
+ */
+case class ReportPlace(name: Option[String], category: String, streetEdgeId: Int, latitude: Double, longitude: Double) {
+
+  /** @return Its name, or what it is when OSM gives it none. */
+  def label(using messages: Messages): String = name.getOrElse(Messages(s"report.place.$category"))
+}
+
+object ReportPlace {
+
+  /**
+   * Past this, a place's nearest street is too far off to call the place near it. The places sit at their buildings'
+   * or grounds' centers, so a school campus is often 100 m from its street (Laurens Schools: 106 m).
+   */
+  val NearMeters: Double = 120.0
+
+  /** @return The places nearest one of these segments and close enough to it, in the catalog's order. */
+  def near(places: Seq[PlaceForApi], edgeIds: Set[Int]): Seq[ReportPlace] =
+    places.flatMap { p =>
+      p.nearestStreetEdgeId
+        .filter(id => edgeIds(id) && p.nearestStreetDistanceM.exists(_ <= NearMeters))
+        .map(id => ReportPlace(p.name, p.category, id, p.geometry.getY, p.geometry.getX))
+    }
 }
 
 /** The formats the page prints numbers in, one place so that its rows agree with each other. */
@@ -998,7 +1032,10 @@ object ReportClientData {
         "custom" -> !report.weights.isDefault
       ),
       "contributions" -> report.contributions,
-      "edges"         -> report.edges.map { e =>
+      "places"        -> report.places.map { p =>
+        Json.obj("name" -> p.name, "category" -> p.category, "lat" -> p.latitude, "lng" -> p.longitude)
+      },
+      "edges" -> report.edges.map { e =>
         Json.obj(
           "id"          -> e.streetEdgeId,
           "score"       -> e.score,

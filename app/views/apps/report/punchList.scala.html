@@ -54,6 +54,7 @@
             @for(rating <- fix.item.severity) {
               <p class="report-fix__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
             }
+            @reportViews.places(report.placesNear(fix.street.worst.toolEdgeId))
             @defining(fix.reason) { reason => <p class="report-fix__why">@Messages(reason._1, reason._2*)</p> }
             @if(fix.label.tags.nonEmpty) {
               <ul class="report-tags">
