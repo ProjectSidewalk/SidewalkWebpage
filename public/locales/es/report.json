@@ -12,5 +12,11 @@
     "gesture-windows": "Usa Ctrl + desplazamiento para acercar el mapa",
     "gesture-mac": "Usa ⌘ + desplazamiento para acercar el mapa",
     "gesture-touch": "Usa dos dedos para mover el mapa"
+  },
+  "place": {
+    "score": "Puntuación {{score}}",
+    "street": "{{street}} · a {{distance}}",
+    "unscored": "Su calle aún no tiene puntuación",
+    "unnamed": "Calle sin nombre"
   }
 }

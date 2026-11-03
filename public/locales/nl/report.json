@@ -12,5 +12,11 @@
     "gesture-windows": "Gebruik Ctrl + scrollen om op de kaart te zoomen",
     "gesture-mac": "Gebruik ⌘ + scrollen om op de kaart te zoomen",
     "gesture-touch": "Gebruik twee vingers om de kaart te verplaatsen"
+  },
+  "place": {
+    "score": "Score {{score}}",
+    "street": "{{street}} · {{distance}} verderop",
+    "unscored": "De straat heeft nog geen score",
+    "unnamed": "Naamloze straat"
   }
 }

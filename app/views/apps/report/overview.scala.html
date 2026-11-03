@@ -25,7 +25,7 @@
       }
       @defining(report.placesNear(row.street.worst.toolEdgeId)) { places =>
         @defining(RankedStreetRow.between(row.street.worst)) { between =>
-          @if(between.nonEmpty || places.nonEmpty) {<span class="report-rank__between">@between.getOrElse("") @reportViews.places(places, compact = true)</span>}
+          @if(between.nonEmpty || places.nonEmpty) {<span class="report-rank__between">@between.getOrElse("") @reportViews.places(places, row.street.worst.score, compact = true)</span>}
         }
       }
     </span>

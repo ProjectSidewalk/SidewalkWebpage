@@ -54,7 +54,7 @@
             @for(rating <- fix.item.severity) {
               <p class="report-fix__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
             }
-            @reportViews.places(report.placesNear(fix.street.worst.toolEdgeId))
+            @reportViews.places(report.placesNear(fix.street.worst.toolEdgeId), fix.street.worst.score)
             @* The rise first, so the card's +N is stated in words, then why this one spot is worth that much. *@
             @defining(fix.reason) { reason =>
               <p class="report-fix__why">

@@ -12,5 +12,11 @@
     "gesture-windows": "Use Ctrl + scroll to zoom the map",
     "gesture-mac": "Use ⌘ + scroll to zoom the map",
     "gesture-touch": "Use two fingers to move the map"
+  },
+  "place": {
+    "score": "Score {{score}}",
+    "street": "{{street}} · {{distance}} away",
+    "unscored": "Its street isn't scored yet",
+    "unnamed": "Unnamed street"
   }
 }

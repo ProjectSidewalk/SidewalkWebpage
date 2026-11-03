@@ -38,8 +38,8 @@
 
     <main class="page-content report-page" id="report-page">
       <header class="report-head" id="report-summary">
-        <p class="report-eyebrow">@Messages("report.eyebrow")</p>
-        <h1 class="report-title">@report.regionName <span class="report-badge">@Messages("report.beta.badge")</span></h1>
+        <p class="report-eyebrow">@Messages("report.eyebrow") <span class="report-badge">@Messages("report.beta.badge")</span></p>
+        <h1 class="report-title">@report.regionName</h1>
         <p class="report-generated">
           @for(city <- cityName) {@city ·}
           @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))

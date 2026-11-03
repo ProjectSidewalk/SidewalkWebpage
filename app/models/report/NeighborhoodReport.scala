@@ -796,6 +796,7 @@ case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel)
 case class ReportMapEdge(
     streetEdgeId: Int,
     osmWayId: Long,
+    name: Option[String],
     score: Option[Double],
     explored: Boolean,
     maxGrade: Option[Double],
@@ -898,9 +899,17 @@ object ReportSlug {
  * An important place (#5311) near a segment: who needs that block, which a score alone doesn't say. It changes no
  * number; it is told beside the segment, on its map, and on a fix there.
  *
- * @param streetEdgeId The segment the place is nearest to
+ * @param streetEdgeId   The segment the place is nearest to, whose score its map marker wears, as on AccessScore
+ * @param distanceMeters How far it is from that segment
  */
-case class ReportPlace(name: Option[String], category: String, streetEdgeId: Int, latitude: Double, longitude: Double) {
+case class ReportPlace(
+    name: Option[String],
+    category: String,
+    streetEdgeId: Int,
+    latitude: Double,
+    longitude: Double,
+    distanceMeters: Double = 0.0
+) {
 
   /** @return Its name, or what it is when OSM gives it none. */
   def label(using messages: Messages): String = name.getOrElse(Messages(s"report.place.$category"))
@@ -917,9 +926,10 @@ object ReportPlace {
   /** @return The places nearest one of these segments and close enough to it, in the catalog's order. */
   def near(places: Seq[PlaceForApi], edgeIds: Set[Int]): Seq[ReportPlace] =
     places.flatMap { p =>
-      p.nearestStreetEdgeId
-        .filter(id => edgeIds(id) && p.nearestStreetDistanceM.exists(_ <= NearMeters))
-        .map(id => ReportPlace(p.name, p.category, id, p.geometry.getY, p.geometry.getX))
+      for {
+        id       <- p.nearestStreetEdgeId if edgeIds(id)
+        distance <- p.nearestStreetDistanceM if distance <= NearMeters
+      } yield ReportPlace(p.name, p.category, id, p.geometry.getY, p.geometry.getX, distance)
     }
 }
 
@@ -1064,7 +1074,7 @@ object ReportClientData {
       "lat"        -> card.location.latitude,
       "lng"        -> card.location.longitude,
       "labelIds"   -> card.location.labelIds,
-      "labelsUrl"  -> ReportLinks.labelList(card.location.labelIds),
+      "listIds"    -> card.location.labelIds.take(ReportLinks.MaxListedIds),
       "atCrossing" -> card.location.intersectionId.isDefined,
       "costPoints" -> card.costPoints,
       "poolSize"   -> card.poolSize
@@ -1088,11 +1098,19 @@ object ReportClientData {
       ),
       "contributions" -> report.contributions,
       "places"        -> report.places.map { p =>
-        Json.obj("name" -> p.name, "category" -> p.category, "lat" -> p.latitude, "lng" -> p.longitude)
+        Json.obj(
+          "name"     -> p.name,
+          "category" -> p.category,
+          "lat"      -> p.latitude,
+          "lng"      -> p.longitude,
+          "edgeId"   -> p.streetEdgeId,
+          "distance" -> math.round(p.distanceMeters)
+        )
       },
       "edges" -> report.edges.map { e =>
         Json.obj(
           "id"          -> e.streetEdgeId,
+          "name"        -> e.name,
           "score"       -> e.score,
           "explored"    -> e.explored,
           "grade"       -> e.maxGrade,

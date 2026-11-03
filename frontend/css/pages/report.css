@@ -507,16 +507,45 @@
   height: 16px;
 }
 
-.report-place__icon img,
-.report-map-place img {
+/* On a map, a place is a button whose disc and glyph colors report.js sets from its nearest segment's score. */
+button.report-map-place {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+}
+
+button.report-map-place:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 3px;
+}
+
+.report-map-place__glyph {
   width: 60%;
   height: 60%;
 }
 
-.report-map-place {
-  width: 22px;
-  height: 22px;
-  box-shadow: 0 0 0 2px var(--color-neutral-white);
+.report-place-popup .maplibregl-popup-content {
+  padding: var(--space-xs) var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
+}
+
+.report-place-popup__title {
+  display: block;
+  font: var(--text-small-bold);
+}
+
+.report-place-popup__meta {
+  color: var(--color-neutral-800);
+}
+
+.report-place-popup__score {
+  font: var(--text-body-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Sidebar controls ----------------------------------------------------------------------------------------- */

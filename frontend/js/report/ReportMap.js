@@ -21,6 +21,9 @@ import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { AccessScoreMapLegend } from '../access-score/AccessScoreMapLegend.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
+import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
+import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
+import { formatScore } from '../access-score/AccessScoreText.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -30,6 +33,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 /**
  * @typedef {object} ReportMapEdge
  * @property {number} id
+ * @property {?string} name
  * @property {?number} score
  * @property {boolean} explored
  * @property {?number} grade - The steepest grade, as a fraction; null where it has not been sampled.
@@ -53,7 +57,15 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
- * @property {Array<{name: ?string, category: string, lat: number, lng: number}>} [places] - Important places to show.
+ * @property {ReportMapPlace[]} [places] - Important places to show.
+ *
+ * @typedef {object} ReportMapPlace
+ * @property {?string} name
+ * @property {string} category
+ * @property {number} lat
+ * @property {number} lng
+ * @property {number} edgeId - Its nearest street segment, whose score its disc wears.
+ * @property {number} distance - How far it is from that segment, in meters.
  */
 
 const STREETS_SOURCE = 'report-streets';
@@ -106,6 +118,25 @@ function placeIconUrl(category) {
 }
 
 /**
+ * A white glyph recolored, for a still map's picture, where CSS can't reach.
+ * @param {HTMLImageElement} glyph
+ * @param {string} color
+ * @param {number} size - The drawn size in canvas pixels.
+ * @returns {HTMLCanvasElement}
+ */
+function tinted(glyph, color, size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(size);
+  canvas.height = Math.ceil(size);
+  const context = canvas.getContext('2d');
+  context.drawImage(glyph, 0, 0, canvas.width, canvas.height);
+  context.globalCompositeOperation = 'source-in';
+  context.fillStyle = color;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+/**
  * @param {string} src
  * @returns {Promise<?HTMLImageElement>} The image once decoded, or null if it can't be.
  */
@@ -131,6 +162,7 @@ function boundsOf(points) {
 export class ReportMap {
   /** @type {maplibregl.Map} */ #map;
   /** @type {ReportMapOptions} */ #options;
+  /** @type {?Map<number, ReportMapEdge>} The edges by id, built on first need. */ #edges = null;
   /** @type {Map<number, {marker: maplibregl.Marker, element: HTMLElement, labelType: string}>} */ #markers = new Map();
   /** Work asked for before the style finished loading. */
   #pending = [];
@@ -224,17 +256,21 @@ export class ReportMap {
     const ratio = source.width / source.clientWidth;
     const size = STILL_ICON_PX * ratio;
     const disc = PLACE_DISC_PX * ratio;
-    for (const { category, lng, lat } of this.#options.places ?? []) {
-      const glyph = await loadImage(placeIconUrl(category));
-      const { x, y } = this.#map.project([lng, lat]);
+    for (const place of this.#options.places ?? []) {
+      const glyph = await loadImage(placeIconUrl(place.category));
+      const colors = this.#placeColors(place);
+      const { x, y } = this.#map.project([place.lng, place.lat]);
       context.beginPath();
       context.arc(x * ratio, y * ratio, disc / 2, 0, 2 * Math.PI);
-      context.fillStyle = token('--color-neutral-800');
+      context.fillStyle = colors.fill;
       context.fill();
       context.lineWidth = 2 * ratio;
-      context.strokeStyle = token('--color-neutral-white');
+      context.strokeStyle = colors.halo;
       context.stroke();
-      if (glyph) context.drawImage(glyph, x * ratio - disc * 0.3, y * ratio - disc * 0.3, disc * 0.6, disc * 0.6);
+      if (glyph) {
+        const g = disc * 0.6;
+        context.drawImage(tinted(glyph, colors.glyph, g), x * ratio - g / 2, y * ratio - g / 2, g, g);
+      }
     }
     for (const { labelType, lng, lat } of this.#options.locations ?? []) {
       const icon = await loadImage(util.misc.getIconImagePaths(labelType).iconImagePath);
@@ -425,21 +461,106 @@ export class ReportMap {
    * @param {ReportMapLocation} location
    */
   /**
-   * A place near the streets: told apart from a label's icon by its disc, and only a landmark, so it takes no input.
-   * @param {{name: ?string, category: string, lat: number, lng: number}} place
+   * A place's marker colors: its nearest segment's score, binned as AccessScore bins it, so the report's markers and
+   * the tool's agree.
+   * @param {ReportMapPlace} place
+   * @returns {{fill: string, glyph: string, halo: string}}
+   */
+  #placeColors(place) {
+    return PlaceMarkerColors.forScore(this.#edgeById(place.edgeId)?.score ?? null, AccessScoreModel.HISTOGRAM_BINS);
+  }
+
+  /**
+   * @param {number} id
+   * @returns {ReportMapEdge|undefined}
+   */
+  #edgeById(id) {
+    this.#edges ??= new Map(this.#options.edges.map((e) => [e.id, e]));
+    return this.#edges.get(id);
+  }
+
+  /**
+   * A place near the streets, as AccessScore draws it: a disc in its nearest segment's score color with its category's
+   * glyph. A button, so pointer, keyboard and screen reader all reach its tooltip, which hover and focus show and a
+   * click pins.
+   * @param {ReportMapPlace} place
    */
   #addPlace(place) {
-    const element = document.createElement('span');
+    const colors = this.#placeColors(place);
+    const element = document.createElement('button');
+    element.type = 'button';
     element.className = 'report-map-place';
-    const label = place.name ?? i18next.t(`accessscore:place-${place.category}`, { defaultValue: place.category });
-    element.setAttribute('role', 'img');
-    element.setAttribute('aria-label', label);
-    element.title = label;
-    const glyph = document.createElement('img');
-    glyph.src = placeIconUrl(place.category);
-    glyph.alt = '';
+    element.style.background = colors.fill;
+    element.style.boxShadow = `0 0 0 2px ${colors.halo}`;
+    const glyph = document.createElement('span');
+    glyph.className = 'ps-mask-icon report-map-place__glyph';
+    glyph.style.color = colors.glyph;
+    const icon = `url("${placeIconUrl(place.category)}")`;
+    glyph.style.maskImage = icon;
+    glyph.style.webkitMaskImage = icon;
     element.append(glyph);
+    const content = this.#placeTooltip(place);
+    element.setAttribute('aria-label', [...content.children].map((line) => line.textContent).join(', '));
+
+    const popup = new maplibregl.Popup({
+      closeButton: false, closeOnClick: false, offset: 14, className: 'report-place-popup', maxWidth: '260px',
+    }).setDOMContent(content);
+    let pinned = false;
+    const show = () => popup.setLngLat([place.lng, place.lat]).addTo(this.#map);
+    const hide = () => {
+      if (!pinned) popup.remove();
+    };
+    element.addEventListener('mouseenter', show);
+    element.addEventListener('focus', show);
+    element.addEventListener('mouseleave', hide);
+    element.addEventListener('blur', () => {
+      pinned = false;
+      popup.remove();
+    });
+    element.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pinned = !pinned;
+      if (pinned) show();
+      else popup.remove();
+    });
+    element.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        pinned = false;
+        popup.remove();
+      }
+    });
     new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
+  }
+
+  /**
+   * The place tooltip in AccessScore's shape: title, what it is, the nearest segment's score, and which segment and
+   * how far. Built from DOM nodes, since a place's name is OSM's.
+   * @param {ReportMapPlace} place
+   * @returns {HTMLElement}
+   */
+  #placeTooltip(place) {
+    const category = i18next.t(`accessscore:place-${place.category}`, { defaultValue: place.category });
+    const edge = this.#edgeById(place.edgeId);
+    const box = document.createElement('div');
+    const line = (className, text) => {
+      const element = document.createElement(className === 'title' ? 'strong' : 'div');
+      element.className = `report-place-popup__${className}`;
+      element.textContent = text;
+      box.append(element);
+    };
+    line('title', place.name ?? category);
+    if (place.name) line('meta', category);
+    if (edge?.score !== null && edge?.score !== undefined) {
+      line('score', i18next.t('report:place.score', { score: formatScore(edge.score) }));
+    } else {
+      line('meta', i18next.t('report:place.unscored'));
+    }
+    line('meta', i18next.t('report:place.street', {
+      street: edge?.name ?? i18next.t('report:place.unnamed'),
+      distance: i18next.t('accessscore:length', { meters: place.distance, interpolation: { escapeValue: false } }),
+      interpolation: { escapeValue: false },
+    }));
+    return box;
   }
 
   #addMarker(location) {

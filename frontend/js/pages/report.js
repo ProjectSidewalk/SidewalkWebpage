@@ -8,6 +8,8 @@ import { copyToClipboard } from '../common/copyToClipboard.js';
 import { PageToc } from '../common/PageToc.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
+import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
+import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
 import { util } from '../common/utilities.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import { ReportPage } from '../report/ReportPage.js';
@@ -42,19 +44,24 @@ function paintScores(root) {
 }
 
 /**
- * Gives each named place its category's glyph. The server names only the category, so the one map of category to icon
- * stays in PlaceCategoryIcons.
+ * Gives each named place its category's glyph on a disc in its segment's score color, as the maps draw it. The server
+ * names only the category, so the one map of category to icon stays in PlaceCategoryIcons.
  * @param {ParentNode} root - Where to look.
  */
 function drawPlaceIcons(root) {
   for (const place of root.querySelectorAll('[data-place-category]')) {
-    const icon = place.querySelector('.report-place__icon');
+    const icon = /** @type {?HTMLElement} */ (place.querySelector('.report-place__icon'));
     if (!icon || icon.childElementCount) continue;
-    const image = document.createElement('img');
-    const { placeCategory } = /** @type {HTMLElement} */ (place).dataset;
-    image.src = util.assetPath(`images/icons/${PlaceCategoryIcons.file(placeCategory)}`);
-    image.alt = '';
-    icon.append(image);
+    const { placeCategory, score } = /** @type {HTMLElement} */ (place).dataset;
+    const colors = PlaceMarkerColors.forScore(score ? Number(score) : null, AccessScoreModel.HISTOGRAM_BINS);
+    icon.style.background = colors.fill;
+    const glyph = document.createElement('span');
+    glyph.className = 'ps-mask-icon report-map-place__glyph';
+    glyph.style.color = colors.glyph;
+    const url = `url("${util.assetPath(`images/icons/${PlaceCategoryIcons.file(placeCategory)}`)}")`;
+    glyph.style.maskImage = url;
+    glyph.style.webkitMaskImage = url;
+    icon.append(glyph);
   }
 }
 

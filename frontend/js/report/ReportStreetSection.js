@@ -27,7 +27,7 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number} lat
  * @property {number} lng
  * @property {number[]} labelIds
- * @property {string} labelsUrl - The Gallery list of them, built on the server, which caps it to fit a URL.
+ * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first the Gallery's cap allows.
  * @property {boolean} atCrossing
  * @property {number} costPoints
  * @property {number} poolSize
@@ -293,13 +293,16 @@ export class ReportStreetSection {
     }
     if (data.labelIds.length > 1) {
       const all = document.createElement('a');
-      all.href = data.labelsUrl;
+      // Built from numbers only: the card data is read from the page, so a string from it never becomes a URL.
+      const params = new URLSearchParams({ labelIds: data.listIds.map(Number).join(',') });
+      if (data.listIds.length < data.labelIds.length) params.set('labelIdsTotal', String(data.labelIds.length));
+      all.href = `/gallery?${params.toString().replace(/%2C/gi, ',')}`;
       all.dataset.reportEvent = 'Report_OpenGallery';
       all.textContent = i18next.t('report:card.labels', { count: data.labelIds.length });
       strip.append(all);
     }
     const reference = document.createElement('a');
-    reference.href = `/label/${data.labelId}`;
+    reference.href = `/label/${Number(data.labelId)}`;
     // A label page is a side trip from the report, so it opens beside it rather than losing the reader's place.
     reference.target = '_blank';
     reference.rel = 'noopener';

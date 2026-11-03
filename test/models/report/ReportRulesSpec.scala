@@ -726,6 +726,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     )
     ReportPlace.near(places, Set(7)).map(_.name) shouldBe Seq(Some("P1"))
     ReportPlace.near(places, Set(7)).head.latitude shouldBe 42.84
+    ReportPlace.near(places, Set(7)).head.distanceMeters shouldBe 20.0
   }
 
   test("a report's links carry a reader's weights, and only those") {

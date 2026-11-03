@@ -12,5 +12,11 @@
     "gesture-windows": "Utilisez Ctrl + molette pour zoomer sur la carte",
     "gesture-mac": "Utilisez ⌘ + molette pour zoomer sur la carte",
     "gesture-touch": "Utilisez deux doigts pour déplacer la carte"
+  },
+  "place": {
+    "score": "Score {{score}}",
+    "street": "{{street}} · à {{distance}}",
+    "unscored": "Sa rue n'a pas encore de score",
+    "unnamed": "Rue sans nom"
   }
 }

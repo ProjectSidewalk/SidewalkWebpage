@@ -12,5 +12,11 @@
     "gesture-windows": "Use Ctrl + rolagem para ampliar o mapa",
     "gesture-mac": "Use ⌘ + rolagem para ampliar o mapa",
     "gesture-touch": "Use dois dedos para mover o mapa"
+  },
+  "place": {
+    "score": "Pontuação {{score}}",
+    "street": "{{street}} · a {{distance}}",
+    "unscored": "A rua ainda não tem pontuação",
+    "unnamed": "Rua sem nome"
   }
 }

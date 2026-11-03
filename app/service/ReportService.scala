@@ -266,6 +266,7 @@ object ReportService {
         ReportMapEdge(
           s.streetEdgeId,
           s.osmWayId,
+          s.streetName,
           s.score,
           s.auditCount > 0,
           s.gradient.flatMap(_.maxGrade),

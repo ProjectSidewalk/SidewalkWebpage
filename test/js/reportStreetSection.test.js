@@ -31,7 +31,7 @@ const EDGES = [
  */
 const cardData = (id, labelType = 'Obstacle', costPoints = 2) => ({
   clusterId: id, labelId: id + 100, labelType, severity: 3, lat: 47.6, lng: -122.325,
-  labelIds: [id + 100], labelsUrl: `/gallery?labelIds=${id + 100}`, atCrossing: false, costPoints, poolSize: 1,
+  labelIds: [id + 100], listIds: [id + 100], atCrossing: false, costPoints, poolSize: 1,
 });
 
 /** @returns {HTMLElement} A section as the template renders it. */
@@ -226,6 +226,15 @@ describe('ReportStreetSection', () => {
     expect(reference.target).toBe('_blank');
     expect(reference.rel).toBe('noopener');
     expect(reference.querySelector('.sr-only').textContent).toContain('opens-new-tab');
+  });
+
+  test('a location with several labels links to them in the Gallery, and past the cap says how many there were', async () => {
+    const pooled = { ...cardData(1), labelIds: [11, 12, 13], listIds: [11, 12] };
+    const section = build([pooled, { ...cardData(2), labelIds: [21, 22], listIds: [21, 22] }]);
+    await section.loadCards();
+    const link = (n) => itemOf(n).querySelector('a[data-report-event="Report_OpenGallery"]').getAttribute('href');
+    expect(link(1)).toBe('/gallery?labelIds=11,12&labelIdsTotal=3');
+    expect(link(2)).toBe('/gallery?labelIds=21,22');
   });
 
   test('logs the link being found once per section, not every wander of the pointer', async () => {

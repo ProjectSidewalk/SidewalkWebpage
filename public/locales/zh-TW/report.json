@@ -10,5 +10,11 @@
     "gesture-windows": "使用 Ctrl + 捲動來縮放地圖",
     "gesture-mac": "使用 ⌘ + 捲動來縮放地圖",
     "gesture-touch": "使用兩指移動地圖"
+  },
+  "place": {
+    "score": "分數 {{score}}",
+    "street": "{{street}} · 距離 {{distance}}",
+    "unscored": "這條街尚未評分",
+    "unnamed": "未命名街道"
   }
 }

@@ -12,5 +12,11 @@
     "gesture-windows": "Strg + Scrollen zum Zoomen der Karte",
     "gesture-mac": "⌘ + Scrollen zum Zoomen der Karte",
     "gesture-touch": "Karte mit zwei Fingern bewegen"
+  },
+  "place": {
+    "score": "Bewertung {{score}}",
+    "street": "{{street}} · {{distance}} entfernt",
+    "unscored": "Die Straße ist noch nicht bewertet",
+    "unnamed": "Unbenannte Straße"
   }
 }
