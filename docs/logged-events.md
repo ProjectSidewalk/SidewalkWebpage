@@ -69,7 +69,7 @@ pre-redesign pages, so per-page analytics stay continuous across the #4474 cutov
 a discrete action (e.g. `Click_module=SaveSettings` — which the `/welcome` privacy toggles also emit, see `Click_module=WelcomePrivacy_*` below —, `Click_module=CreateTeam`, `Click_module=LeaveTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
 Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
 A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_CustomWeights=<bool>` from the server, and its links and buttons add `Report_OpenLabel`, `Report_OpenGallery`, `Report_OpenLabelMap`,
-`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_CopyLink`, `Report_Print` (any way of
+`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_Feedback` (the Beta note's email link), `Report_CopyLink`, `Report_Print` (any way of
 printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_SidebarToggle_Open=<bool>`,
 `Report_RegionMapClick`, `Report_MapLocationClick`, `Report_LinkedHover` (at most once per card or icon),
 `Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions),

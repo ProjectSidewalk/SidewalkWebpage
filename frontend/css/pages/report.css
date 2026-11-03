@@ -102,6 +102,22 @@
   line-height: 38px;
 }
 
+.report-badge {
+  display: inline-block;
+  padding: 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  vertical-align: middle;
+  background: var(--color-banana-300);
+  border-radius: var(--border-radius-lg);
+}
+
+.report-beta {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
 .report-generated {
   margin: var(--space-xxs) 0 0;
   font: var(--text-body-regular);
