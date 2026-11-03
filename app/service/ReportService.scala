@@ -109,8 +109,8 @@ object ReportService {
   /**
    * What a report shows.
    *
-   * @param ranked The region's ranked streets, lowest first
-   * @param cards  Each of them with what its section shows
+   * @param ranked The region's ranked segments, lowest first
+   * @param cards  Each of them with what its section shows; empty past [[NeighborhoodReport.DetailSize]], which get none
    */
   case class ReportSelection(
       ranked: Seq[ReportStreet],
@@ -119,11 +119,12 @@ object ReportService {
   )
 
   /**
-   * Rolls the region's streets up, ranks them and decides what each one shows.
+   * Scores the region's segments, ranks them and decides what each one shows.
    *
-   * @param evidence Every location near the region
-   * @param labels   Counted labels by id, including those on a street outside the region
-   * @param weights  What the streets were scored under, which prices each item the same way
+   * @param evidence     Every location near the region
+   * @param labels       Counted labels by id, including those on a street outside the region
+   * @param weights      What the streets were scored under, which prices each item the same way
+   * @param crossStreets The other streets met at a segment's ends, by its edge id
    * @return The selection.
    */
   def select(
@@ -131,16 +132,47 @@ object ReportService {
       evidence: ReportEvidence,
       labels: Map[Int, ReportLabel],
       hasCrop: ReportLabel => Boolean,
-      weights: AccessScoreWeights = AccessScoreWeights.Default
+      weights: AccessScoreWeights = AccessScoreWeights.Default,
+      crossStreets: Int => Seq[String] = _ => Nil
   ): ReportSelection = {
-    val stretches =
-      streets.groupBy(_.osmWayId).values.toSeq.flatMap(ReportStretch.build(_, evidence, weights.signed))
-    val ranked = ReportStreet.rank(stretches)
+    val segments = streets.flatMap { edge =>
+      ReportStretch
+        .build(Seq(edge), evidence, weights.signed)
+        .map(_.copy(crossStreets = crossStreets(edge.streetEdgeId)))
+    }
+    val ranked = ReportStreet.rank(segments)
     ReportSelection(
       ranked = ranked,
-      cards = ranked.map(s => s -> ReportRules.cards(s.worst, labels, hasCrop)),
+      cards = ranked.zipWithIndex.map { case (s, i) =>
+        s -> (if (i < NeighborhoodReport.DetailSize) ReportRules.cards(s.worst, labels, hasCrop) else Nil)
+      },
       picks = ReportRules.fixes(ranked, labels, FixListSize, hasCrop)
     )
+  }
+
+  /**
+   * The streets met at each segment's ends, for telling one block of a road from the next. A name the segment itself
+   * carries is skipped, as is a repeat: a loop that meets one street at both ends says that street once.
+   *
+   * @param cityStreets   Every street in the city, for the names of those across a boundary
+   * @param intersections Every intersection in the city
+   * @return Up to two names by edge id, start end first, each end's alphabetically first if it meets several.
+   */
+  def crossStreets(
+      streets: Seq[StreetAccessScoreForApi],
+      cityStreets: Seq[StreetAccessScoreForApi],
+      intersections: Seq[IntersectionAccessScoreForApi]
+  ): Map[Int, Seq[String]] = {
+    val names: Map[Int, Option[String]] = cityStreets.map(s => s.streetEdgeId -> s.streetName).toMap
+    val meeting: Map[Int, Seq[Int]]     = intersections.map(i => i.intersectionId -> i.streetEdgeIds).toMap
+    streets.map { edge =>
+      val own                                  = edge.streetName.map(_.trim.toLowerCase)
+      def at(end: Option[Int]): Option[String] =
+        end.flatMap(meeting.get).flatMap { edges =>
+          edges.flatMap(names.get).flatten.filterNot(n => own.contains(n.trim.toLowerCase)).distinct.sorted.headOption
+        }
+      edge.streetEdgeId -> Seq(at(edge.startIntersectionId), at(edge.endIntersectionId)).flatten.distinct
+    }.toMap
   }
 
   /**
@@ -329,8 +361,16 @@ class ReportServiceImpl @Inject() (
     val hasCrop: ReportLabel => Boolean = l => panoDataService.cropExists(l.labelId, l.labelType)
     for {
       data <- reportData(regionId, streets)
-      counted     = (data.labels ++ data.foreignLabels).filter(ReportRules.isCounted).map(l => l.labelId -> l).toMap
-      selection   = select(streets, ReportEvidence(data.locations), counted, hasCrop, weights)
+      counted   = (data.labels ++ data.foreignLabels).filter(ReportRules.isCounted).map(l => l.labelId -> l).toMap
+      cross     = crossStreets(streets, cityStreets, intersections)
+      selection = select(
+        streets,
+        ReportEvidence(data.locations),
+        counted,
+        hasCrop,
+        weights,
+        id => cross.getOrElse(id, Nil)
+      )
       regionWide  = regionLocations(data.locations, streets, intersections, regionId)
       wantedEdges = regionWide.map(_.streetEdgeId).toSet
       streetKeys  = cityStreets.iterator

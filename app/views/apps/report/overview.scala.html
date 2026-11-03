@@ -3,15 +3,32 @@
 @import views.html.apps.report as reportViews
 
 @*
- * Overview first: every street AccessScore ranks here, in its order and with its numbers, each row jumping down to that
- * street's detail. The bars are painted by report.js from `data-score`, through the same ramp the landing page uses;
- * the number beside each is the fact and works without them.
+ * Overview first: every segment AccessScore ranks here, in its order and with its numbers. The lowest
+ * [[NeighborhoodReport.DetailSize]] jump down to their sections; the rest, folded away, open in the AccessScore tool.
+ * The bars are painted by report.js from `data-score`, through the same ramp the landing page uses; the number beside
+ * each is the fact and works without them.
  *
  * @param report The computed report.
  *@
 @(report: NeighborhoodReport)(using messages: Messages)
 
 @titleKey = @{if (report.isProvisional) s"report.streets.title.sofar" else s"report.streets.title"}
+
+@rankRow(row: RankedStreetRow, hasSection: Boolean) = {
+  <li class="report-rank__row" data-street="@row.street.worst.toolEdgeId">
+    <span class="report-rank__position" aria-hidden="true">@row.rank</span>
+    <span class="report-rank__label">
+      @if(hasSection) {
+        <a class="report-rank__name" href="#@row.anchor" data-report-event="Report_OpenStreet">@RankedStreetRow.displayName(row.street.worst)</a>
+      } else {
+        <a class="report-rank__name" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore">@RankedStreetRow.displayName(row.street.worst)</a>
+      }
+      @for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-rank__between">@between</span>}
+    </span>
+    <span class="report-rank__track" aria-hidden="true"><span class="report-rank__bar" data-score="@row.street.worst.score"></span></span>
+    <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>
+  </li>
+}
 
 <section class="report-section report-overview" id="report-overview" aria-labelledby="report-overview-title">
   <h2 class="report-section__title" id="report-overview-title">
@@ -27,16 +44,21 @@
     <p class="report-empty">@Messages("report.streets.none.unranked")</p>
   } else {
     <div class="report-overview__body">
-      <ol class="report-rank" id="report-rank">
-        @for(row <- report.streets) {
-          <li class="report-rank__row" data-street="@row.street.worst.osmWayId">
-            <span class="report-rank__position" aria-hidden="true">@row.rank</span>
-            <a class="report-rank__name" href="#@row.anchor" data-report-event="Report_OpenStreet">@RankedStreetRow.displayName(row.street.worst)</a>
-            <span class="report-rank__track" aria-hidden="true"><span class="report-rank__bar" data-score="@row.street.worst.score"></span></span>
-            <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>
-          </li>
+      <div class="report-overview__list">
+        <ol class="report-rank" id="report-rank">
+          @for(row <- report.detailed) {@rankRow(row, true)}
+        </ol>
+        @defining(report.streets.drop(NeighborhoodReport.DetailSize)) { rest =>
+          @if(rest.nonEmpty) {
+            <details class="report-rank__more">
+              <summary data-report-event="Report_ShowAllStreets">@Messages("report.streets.more", rest.size)</summary>
+              <ol class="report-rank" start="@(NeighborhoodReport.DetailSize + 1)">
+                @for(row <- rest) {@rankRow(row, false)}
+              </ol>
+            </details>
+          }
         }
-      </ol>
+      </div>
       <div class="report-overview__where">
         <div class="report-map report-map--region" id="report-region-map" role="group" aria-label="@Messages("report.map.region.label", report.regionName)"></div>
       </div>

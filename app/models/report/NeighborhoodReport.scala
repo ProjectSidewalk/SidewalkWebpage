@@ -150,9 +150,9 @@ case class ReportItem(locations: Seq[ReportLocation], costPoints: Double) {
 }
 
 /**
- * One OSM way's explored edges within the region, rolled up the way the AccessScore Spotlight rolls them: the name a
- * reader recognizes, one number per stretch. Only explored edges carry a score here. An unexplored edge's published
- * score comes from the crossings at its ends alone, which says nothing of the block.
+ * One explored street segment, roughly a block: the unit AccessScore scores and the map colors, so a section shows
+ * exactly what its number describes. Built through the same roll-up as a run of edges, so pricing is shared. An
+ * unexplored edge's published score comes from the crossings at its ends alone, which says nothing of the block.
  *
  * @param toolEdgeId         The longest explored edge, which the AccessScore tool opens on
  * @param edgeIds            The explored edges, which are what the map highlights and the score describes
@@ -164,6 +164,7 @@ case class ReportItem(locations: Seq[ReportLocation], costPoints: Double) {
  * @param blockLocationCount Locations along the blocks, excluding crossings: what Spotlight's evidence bar counts
  * @param locations          Every location behind the score, blocks and crossings, once each
  * @param items              What costs the stretch the most, costliest first; items that help the score aren't here
+ * @param crossStreets       The other streets met at its ends, up to two, which tell a reader which block it is
  */
 case class ReportStretch(
     osmWayId: Long,
@@ -179,7 +180,8 @@ case class ReportStretch(
     blockLocationCount: Int,
     auditCount: Int,
     locations: Seq[ReportLocation],
-    items: Seq[ReportItem]
+    items: Seq[ReportItem],
+    crossStreets: Seq[String] = Nil
 ) {
 
   def isRanked: Boolean =
@@ -294,47 +296,48 @@ object ReportStretch {
 }
 
 /**
- * A street as the page lists it: once per name, at its lowest ranked stretch. Averaging a whole name would bury a bad
- * stretch under a good one (NW 61st St in Seattle's Adams is 5.5 over 404 m, 86.1 over 856 m and 53.5 over 189 m, 59.4
- * as a whole), and would print a number that matches nothing a link to the AccessScore tool lands on.
+ * A ranked segment as the page lists it, with the road it belongs to: one road with three bad blocks is three rows,
+ * which is the truth about it, and the road's own figures say how the rest of it fares.
  *
- * @param worst               The stretch the row's number and evidence describe
- * @param wholeScore          Length-weighted across every explored stretch with this name in the region
+ * @param worst               The segment the row's number and evidence describe
+ * @param wholeScore          Length-weighted across every explored segment of the same road in the region
+ * @param stretchCount        How many explored segments the road has here
  */
-case class ReportStreet(worst: ReportStretch, wholeScore: Double, wholeExploredMeters: Double, stretchCount: Int)
+case class ReportStreet(worst: ReportStretch, wholeScore: Double, wholeExploredMeters: Double, stretchCount: Int) {
+
+  def roadKey: Either[String, Long] = ReportStreet.streetKey(worst.name, worst.osmWayId)
+}
 
 object ReportStreet {
 
   /**
-   * Which street an edge or stretch belongs to. Names that differ only in case are one street; an unnamed way has
-   * nothing saying it joins any other.
+   * Which road an edge or segment belongs to. Names that differ only in case are one road; an unnamed way has nothing
+   * saying it joins any other.
    *
-   * @return The key that identifies the street within a region.
+   * @return The key that identifies the road within a region.
    */
   def streetKey(name: Option[String], osmWayId: Long): Either[String, Long] =
     name.map(_.trim.toLowerCase).toLeft(osmWayId)
 
   /**
-   * @return The ranked streets, lowest score first. Ties go to the longer explored stretch, then to the name, then to
-   *         the way id, so two loads of the same data agree.
+   * @return The ranked segments, lowest score first, each beside its road's figures. Ties go to the longer segment,
+   *         then to the name, then to the edge id, so two loads of the same data agree.
    */
-  def rank(stretches: Seq[ReportStretch]): Seq[ReportStreet] =
-    stretches
-      .groupBy(s => streetKey(s.name, s.osmWayId))
-      .values
-      .flatMap { group =>
-        val ranked = group.filter(_.isRanked)
-        ranked.minByOption(s => (s.score, -s.exploredMeters, s.osmWayId)).map { worst =>
-          ReportStreet(
-            worst = worst,
-            wholeScore = AccessScoreSpotlight.stretchScore(group.map(s => s.score -> s.exploredMeters)).get,
-            wholeExploredMeters = group.map(_.exploredMeters).sum,
-            stretchCount = group.size
-          )
-        }
+  def rank(segments: Seq[ReportStretch]): Seq[ReportStreet] = {
+    val roads = segments.groupBy(s => streetKey(s.name, s.osmWayId))
+    segments
+      .filter(_.isRanked)
+      .map { segment =>
+        val road = roads(streetKey(segment.name, segment.osmWayId))
+        ReportStreet(
+          worst = segment,
+          wholeScore = AccessScoreSpotlight.stretchScore(road.map(s => s.score -> s.exploredMeters)).get,
+          wholeExploredMeters = road.map(_.exploredMeters).sum,
+          stretchCount = road.size
+        )
       }
-      .toSeq
-      .sortBy(s => (s.worst.score, -s.worst.exploredMeters, s.worst.name.getOrElse(""), s.worst.osmWayId))
+      .sortBy(s => (s.worst.score, -s.worst.exploredMeters, s.worst.name.getOrElse(""), s.worst.toolEdgeId))
+  }
 }
 
 /** The rules that decide what the page calls bad and what it puts in front of a reader as a thing to fix. */
@@ -423,7 +426,7 @@ object ReportRules {
   }
 
   /**
-   * The fixes list, at most one per street. An item qualifies when it costs its stretch at least [[FixMinPoints]], is
+   * The fixes list, at most one per road, so one long bad road can't fill it. An item qualifies when it costs its stretch at least [[FixMinPoints]], is
    * rated at or next to the worst of its type's scale, and has a label at that rating which a reviewer agreed with and
    * none disagreed with. A crossing can be the pick of two streets meeting there, and is listed for the first.
    *
@@ -437,8 +440,10 @@ object ReportRules {
       size: Int,
       hasCrop: ReportLabel => Boolean
   ): Seq[(ReportStreet, ReportItem, ReportLabel)] = {
-    val seen = scala.collection.mutable.Set.empty[Int]
+    val seen  = scala.collection.mutable.Set.empty[Int]
+    val roads = scala.collection.mutable.Set.empty[Either[String, Long]]
     ranked.iterator
+      .filterNot(street => roads(street.roadKey))
       .flatMap { street =>
         street.worst.items.iterator
           .filter(i => i.costPoints >= FixMinPoints && ratedAsFix(i) && !i.locations.exists(l => seen(l.clusterId)))
@@ -450,7 +455,10 @@ object ReportRules {
               .map(label => (street, item, label))
           }
           .take(1)
-          .tapEach { case (_, item, _) => seen ++= item.locations.map(_.clusterId) }
+          .tapEach { case (street, item, _) =>
+            seen ++= item.locations.map(_.clusterId)
+            roads += street.roadKey
+          }
       }
       .take(size)
       .toSeq
@@ -691,7 +699,7 @@ case class TypeEvidence(labelType: LabelType, locations: Int, labelIds: Seq[Int]
 case class RankedStreetRow(rank: Int, street: ReportStreet, evidence: Seq[TypeEvidence], cards: Seq[ReportCard]) {
 
   /** @return The id of this street's detail section, which stays the same from one day's report to the next. */
-  def anchor: String = s"street-${street.worst.osmWayId}"
+  def anchor: String = s"street-${street.worst.toolEdgeId}"
 }
 
 object RankedStreetRow {
@@ -699,6 +707,13 @@ object RankedStreetRow {
   /** @return The name a reader sees for a stretch; a way with no OSM name is told apart by the street the tool opens on. */
   def displayName(stretch: ReportStretch)(using messages: Messages): String =
     stretch.name.getOrElse(Messages("report.street.unnamed", stretch.toolEdgeId.toString))
+
+  /** @return Which block of its road a segment is, from the streets at its ends, when it meets any. */
+  def between(stretch: ReportStretch)(using messages: Messages): Option[String] = stretch.crossStreets match {
+    case Seq(a, b, _*) => Some(Messages("report.street.between", a, b))
+    case Seq(a)        => Some(Messages("report.street.near", a))
+    case _             => None
+  }
 }
 
 /**
@@ -775,6 +790,18 @@ case class NeighborhoodReport(
 
   /** @return Whether the region is too little explored for its score to be stated, so anything listed is provisional. */
   def isProvisional: Boolean = score.score.isEmpty
+
+  /** @return The segments that get a section of their own: the lowest, up to [[NeighborhoodReport.DetailSize]]. */
+  def detailed: Seq[RankedStreetRow] = streets.take(NeighborhoodReport.DetailSize)
+}
+
+object NeighborhoodReport {
+
+  /**
+   * How many of the lowest segments get a section, with a map and photos. Every ranked segment is still in the list and
+   * on the map; only the detail stops here, so a neighborhood of hundreds of blocks stays one readable page.
+   */
+  val DetailSize: Int = 20
 }
 
 /**
@@ -974,7 +1001,6 @@ object ReportClientData {
       "edges"         -> report.edges.map { e =>
         Json.obj(
           "id"          -> e.streetEdgeId,
-          "wayId"       -> e.osmWayId,
           "score"       -> e.score,
           "explored"    -> e.explored,
           "grade"       -> e.maxGrade,
@@ -985,7 +1011,7 @@ object ReportClientData {
       "fixes" -> report.fixes.map { fix =>
         Json.obj(
           "labelId"   -> fix.label.labelId,
-          "wayId"     -> fix.street.worst.osmWayId,
+          "streetId"  -> fix.street.worst.toolEdgeId,
           "edgeIds"   -> fix.street.worst.edgeIds,
           "locations" -> fix.item.locations.map { l =>
             Json.obj(
@@ -997,9 +1023,9 @@ object ReportClientData {
           }
         )
       },
-      "streets" -> report.streets.map { row =>
+      "streets" -> report.detailed.map { row =>
         Json.obj(
-          "wayId"   -> row.street.worst.osmWayId,
+          "id"      -> row.street.worst.toolEdgeId,
           "score"   -> row.street.worst.score,
           "edgeIds" -> row.street.worst.edgeIds,
           "cards"   -> row.cards.map(cardJson)

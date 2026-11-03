@@ -435,10 +435,11 @@ same place. `ReportService` reads the city's `getFullCityScores` cache rather th
 public data backs every figure: the street scores, the label clusters ("locations") and the raw labels, each linked as a
 CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-After` rather than an inferred number.
 `AccessScoreSpotlight` holds the bars for what gets ranked (`regionQualifies`, `stretchIsRanked`, `stretchScore`), so the
-report and the Spotlight can't disagree about them. Streets are ranked by stretch (one OSM way, audited edges only, length
-weighted), since a street is often fine along most of its length and bad along one part, and then collapsed by name so a
-reader sees each street once at its lowest stretch, with the whole-street score beside it. A fix's cost is how far the
-stretch's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+report and the Spotlight can't disagree about them. The page ranks explored street segments, roughly blocks: the unit
+AccessScore scores and the map colors, so a section never holds parts its number doesn't describe. Each is named by the
+streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
+on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road. A
+fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
 Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label

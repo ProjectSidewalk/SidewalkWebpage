@@ -235,34 +235,34 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
 
   // ---- Streets ---------------------------------------------------------------------------------------------------
 
-  test("a street is listed once, at its lowest ranked stretch, and the whole street's number sits beside it") {
+  test("every ranked segment is its own row, lowest first, each beside its whole road's number") {
     val (low, _)  = street("NW 61st St", 1, 1, severity = 3)
     val (high, _) = street("NW 61st St", 2, 10, severity = 1)
     val ranked    = ReportStreet.rank(Seq(high, low))
-    ranked.size shouldBe 1
-    ranked.head.worst shouldBe low
-    ranked.head.stretchCount shouldBe 2
-    ranked.head.wholeScore shouldBe ((low.score + high.score) / 2 +- 1e-12)
-    ranked.head.wholeExploredMeters shouldBe 400.0
+    ranked.map(_.worst) shouldBe Seq(low, high)
+    ranked.foreach { row =>
+      row.stretchCount shouldBe 2
+      row.wholeScore shouldBe ((low.score + high.score) / 2 +- 1e-12)
+      row.wholeExploredMeters shouldBe 400.0
+    }
   }
 
-  test("a whole-street average never hides a street whose lowest stretch ranks it") {
-    val (low, _)    = street("Mixed St", 1, 1)
-    val empty       = ReportEvidence(Seq.empty)
-    val longAndFine = stretch(Seq(edge(2, empty, way = 2, name = Some("Mixed St"), length = 5000)), empty)
-    val (middle, _) = street("Other St", 3, 10, severity = 2)
-    val ranked      = ReportStreet.rank(Seq(longAndFine, low, middle))
-    ranked.head.wholeScore should be > middle.score
-    ranked.map(_.worst.name.get) shouldBe Seq("Mixed St", "Other St")
-  }
-
-  test("names that differ only in case are one street, and unnamed ways stay apart") {
+  test("names that differ only in case are one road, and unnamed ways stay apart") {
     val (a, _) = street("Oak St", 1, 1)
     val (b, _) = street("OAK ST", 2, 10)
-    ReportStreet.rank(Seq(a, b)).size shouldBe 1
+    ReportStreet.rank(Seq(a, b)).map(_.stretchCount) shouldBe Seq(2, 2)
     val (c, _) = street("x", 3, 20)
     val (d, _) = street("x", 4, 30)
-    ReportStreet.rank(Seq(c.copy(name = None), d.copy(name = None))).size shouldBe 2
+    ReportStreet.rank(Seq(c.copy(name = None), d.copy(name = None))).map(_.stretchCount) shouldBe Seq(1, 1)
+  }
+
+  test("a segment is named by the streets at its ends, and one met at both ends is said once") {
+    given play.api.i18n.Messages =
+      play.api.i18n.MessagesImpl(play.api.i18n.Lang("en"), play.api.i18n.DefaultMessagesApi())
+    val (s, _) = street("Oak St", 1, 1)
+    RankedStreetRow.between(s.copy(crossStreets = Seq("1st Ave", "2nd Ave"))) shouldBe Some("report.street.between")
+    RankedStreetRow.between(s.copy(crossStreets = Seq("1st Ave"))) shouldBe Some("report.street.near")
+    RankedStreetRow.between(s) shouldBe None
   }
 
   test("Spotlight's bars decide what's ranked, and a stretch under them can't stand for its street") {
@@ -348,6 +348,38 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     picks.map(_._1) shouldBe Seq(a, b)
     picks.map(_._2).map(_.costPoints) shouldBe Seq(sa.items.head.costPoints, sb.items.head.costPoints)
     ReportRules.fixes(Seq(a, b), labels, 1, allCrops).size shouldBe 1
+  }
+
+  test("two bad blocks of one road give one fix, so a long bad road can't fill the list") {
+    val (a, sa) = rankedStreet("A St", 1, 1)
+    val (b, sb) = rankedStreet("A St", 2, 10)
+    val (c, sc) = rankedStreet("C St", 3, 20)
+    val labels  =
+      (sa.locations ++ sb.locations ++ sc.locations).flatMap(_.labelIds).map(id => id -> label(id, agree = 1)).toMap
+    ReportRules.fixes(Seq(a, b, c), labels, 5, allCrops).map(_._1) shouldBe Seq(a, c)
+  }
+
+  test("a segment's cross streets come from the intersections at its ends, its own road and repeats left out") {
+    import models.api.IntersectionAccessScoreForApi
+    val point                          = GeometryFactory().createPoint(Coordinate(-122.3, 47.6))
+    def crossing(id: Int, edges: Int*) = IntersectionAccessScoreForApi(
+      intersectionId = id, regionId = Some(1), degree = edges.size, gradeSeparated = false, streetEdgeIds = edges,
+      auditCount = 1, score = Some(0.5), labelCount = 0, clusterCounts = Map.empty, subScores = Map.empty,
+      severityCounts = Map.empty, tagAdjustments = Map.empty, geometry = point
+    )
+    val empty = ReportEvidence(Seq.empty)
+    val block = edge(1, empty, name = Some("Oak St"), start = Some(10), end = Some(11))
+    val city  = Seq(
+      block,
+      edge(2, empty, name = Some("Oak St")),
+      edge(3, empty, name = Some("1st Ave")),
+      edge(4, empty, name = Some("2nd Ave")),
+      edge(5, empty, name = Some("Alder Ln"))
+    )
+    val cross = service.ReportService.crossStreets(Seq(block), city, Seq(crossing(10, 1, 2, 3), crossing(11, 1, 4, 5)))
+    cross(1) shouldBe Seq("1st Ave", "2nd Ave")
+    val loop = service.ReportService.crossStreets(Seq(block), city, Seq(crossing(10, 1, 3), crossing(11, 1, 3)))
+    loop(1) shouldBe Seq("1st Ave")
   }
 
   test("a fix needs a human backing it: an unreviewed or contested label doesn't qualify") {

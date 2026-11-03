@@ -21,11 +21,11 @@
 <section class="report-section report-streets" aria-labelledby="report-streets-title">
   <h2 class="report-section__title" id="report-streets-title">@Messages("report.toc.details")</h2>
     <ol class="report-street-list">
-      @for(row <- report.streets) {
-        <li class="report-street" id="@row.anchor" data-street="@row.street.worst.osmWayId">
+      @for(row <- report.detailed) {
+        <li class="report-street" id="@row.anchor" data-street="@row.street.worst.toolEdgeId">
           <header class="report-street__head">
             <span class="report-street__rank" aria-hidden="true">@row.rank</span>
-            <h3 class="report-street__name">@RankedStreetRow.displayName(row.street.worst)</h3>
+            <h3 class="report-street__name">@RankedStreetRow.displayName(row.street.worst)@for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-street__between">@between</span>}</h3>
             <a class="report-street__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.street.score", ReportFormat.score(row.street.worst.score))</a>
           </header>
           <p class="report-street__meta">
@@ -41,7 +41,7 @@
             </span>
           </p>
           @if(row.street.stretchCount > 1) {
-            <p class="report-street__context">@Messages("report.street.whole", ReportFormat.score(row.street.wholeScore), distance(row.street.wholeExploredMeters), unit)</p>
+            <p class="report-street__context">@Messages("report.street.road", row.street.stretchCount, ReportFormat.score(row.street.wholeScore), distance(row.street.wholeExploredMeters), unit)</p>
           }
           <ul class="report-counts">
             @for(evidence <- row.evidence) {

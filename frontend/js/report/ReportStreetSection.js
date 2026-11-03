@@ -32,7 +32,7 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number} poolSize
  *
  * @typedef {object} ReportStreetData
- * @property {number} wayId
+ * @property {number} id - The segment's edge id.
  * @property {number} score
  * @property {number[]} edgeIds
  * @property {ReportCardData[]} cards

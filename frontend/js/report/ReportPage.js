@@ -65,7 +65,7 @@ export class ReportPage {
       log: this.#log,
     };
     for (const street of streets) {
-      const selector = `.report-street[data-street="${street.wayId}"]`;
+      const selector = `.report-street[data-street="${street.id}"]`;
       const element = /** @type {?HTMLElement} */ (document.querySelector(selector));
       if (element) this.#sections.push(new ReportStreetSection(element, street, sectionDeps));
     }
@@ -212,9 +212,9 @@ export class ReportPage {
     const rows = new Map([...document.querySelectorAll('.report-rank__row')]
       .map((row) => [Number(/** @type {HTMLElement} */ (row).dataset.street), row]));
     /** @type {?Element} */ let litRow = null;
-    const lightRow = (wayId) => {
+    const lightRow = (streetId) => {
       litRow?.classList.remove('is-highlighted');
-      litRow = wayId === null ? null : rows.get(wayId) ?? null;
+      litRow = streetId === null ? null : rows.get(streetId) ?? null;
       litRow?.classList.add('is-highlighted');
     };
     const observer = new IntersectionObserver((entries) => {
@@ -224,10 +224,11 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         onStreetHover: lightRow,
-        onStreetClick: (wayId) => {
-          if (!rows.has(wayId)) return;
+        onStreetClick: (streetId) => {
+          // Only the lowest segments have a section; past them the list's row opens the tool, and so does nothing here.
+          if (!document.getElementById(`street-${streetId}`)) return;
           this.#log('Report_RegionMapClick');
-          window.location.hash = `street-${wayId}`;
+          window.location.hash = `street-${streetId}`;
         },
       });
       this.#regionMap.colorBy(this.#colorBreaks);
@@ -237,8 +238,8 @@ export class ReportPage {
         .catch(() => { /* The overview still reads without its sidewalks. */ });
     }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
     observer.observe(host);
-    for (const [wayId, row] of rows) {
-      const on = () => this.#regionMap?.lightStreet(wayId);
+    for (const [streetId, row] of rows) {
+      const on = () => this.#regionMap?.lightStreet(streetId);
       const off = () => this.#regionMap?.lightStreet(null);
       row.addEventListener('mouseenter', on);
       row.addEventListener('mouseleave', off);

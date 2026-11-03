@@ -19,8 +19,8 @@ useUtil({
 });
 
 const EDGES = [
-  { id: 1, wayId: 7, score: 0.4, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]] },
-  { id: 2, wayId: 8, score: 0.9, explored: true, coordinates: [[-122.32, 47.6], [-122.31, 47.6]] },
+  { id: 1, score: 0.4, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]] },
+  { id: 2, score: 0.9, explored: true, coordinates: [[-122.32, 47.6], [-122.31, 47.6]] },
 ];
 
 /**
@@ -66,7 +66,7 @@ describe('ReportStreetSection', () => {
    * @returns {InstanceType<ReportStreetSection>} A section with its map up.
    */
   const build = (cards) => {
-    const section = new ReportStreetSection(sectionElement(), { wayId: 7, score: 0.4, edgeIds: [1], cards }, deps);
+    const section = new ReportStreetSection(sectionElement(), { id: 1, score: 0.4, edgeIds: [1], cards }, deps);
     section.mountMap();
     return section;
   };
@@ -101,7 +101,7 @@ describe('ReportStreetSection', () => {
   });
 
   test('draws the sketch from its own street only, before there is any map', () => {
-    new ReportStreetSection(sectionElement(), { wayId: 7, score: 0.4, edgeIds: [1], cards: [cardData(1)] }, deps);
+    new ReportStreetSection(sectionElement(), { id: 1, score: 0.4, edgeIds: [1], cards: [cardData(1)] }, deps);
     const sketch = document.querySelector('[data-street-map] svg');
     expect(sketch.querySelectorAll('path')).toHaveLength(1);
     expect(deps.createMap).not.toHaveBeenCalled();

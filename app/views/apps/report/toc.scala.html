@@ -19,9 +19,9 @@
     @item("report-inventory-title", Messages("report.inventory.title"))
     @if(report.streets.nonEmpty) {
       @item("report-streets-title", Messages("report.toc.details"))
-      @for(row <- report.streets) {
+      @for(row <- report.detailed) {
         <li class="toc-level-2">
-          <a href="#@row.anchor" data-report-event="Report_TocClick" data-street="@row.street.worst.osmWayId"><span class="report-toc__dot" data-score="@row.street.worst.score" aria-hidden="true"></span>@RankedStreetRow.displayName(row.street.worst)</a>
+          <a href="#@row.anchor" data-report-event="Report_TocClick" data-street="@row.street.worst.toolEdgeId"><span class="report-toc__dot" data-score="@row.street.worst.score" aria-hidden="true"></span>@RankedStreetRow.displayName(row.street.worst)@for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-toc__between">@between</span>}</a>
         </li>
       }
     }

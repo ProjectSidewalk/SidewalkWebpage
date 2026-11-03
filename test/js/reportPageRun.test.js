@@ -30,10 +30,10 @@ describe('ReportPage', () => {
     cityId: 'seattle',
     basemap: { tilesUrl: null, glyphsUrl: '' },
     edges: Array.from({ length: STREET_COUNT }, (_, i) => ({
-      id: i, wayId: 100 + i, score: 0.5, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]],
+      id: i, score: 0.5, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]],
     })),
-    streets: Array.from({ length: STREET_COUNT }, (_, i) => ({ wayId: 100 + i, score: 0.5, edgeIds: [i], cards: [] })),
-    fixes: [{ labelId: 55, wayId: 100, edgeIds: [0], locations: [{ clusterId: 9, labelType: 'Obstacle', lat: 47.6, lng: -122.33 }] }],
+    streets: Array.from({ length: STREET_COUNT }, (_, i) => ({ id: 100 + i, score: 0.5, edgeIds: [i], cards: [] })),
+    fixes: [{ labelId: 55, streetId: 100, edgeIds: [0], locations: [{ clusterId: 9, labelType: 'Obstacle', lat: 47.6, lng: -122.33 }] }],
   });
 
   /** @param {Element} target - Reports it as near the viewport or not to whichever observer watches it. */
@@ -57,7 +57,7 @@ describe('ReportPage', () => {
     document.body.innerHTML = `
       <ol><li class="report-rank__row" data-street="100"><a href="#street-100">A</a></li></ol>
       <div id="report-region-map"></div>
-      ${Array.from({ length: STREET_COUNT }, (_, i) => `<li class="report-street" data-street="${100 + i}">
+      ${Array.from({ length: STREET_COUNT }, (_, i) => `<li class="report-street" id="street-${100 + i}" data-street="${100 + i}">
         <div data-street-map></div><ul data-street-cards></ul><button data-street-more hidden></button></li>`).join('')}
       <li class="report-fix" data-label-id="55"><a data-fix-map></a><a data-fix-photo></a></li>
       <fieldset id="report-color-by" hidden>

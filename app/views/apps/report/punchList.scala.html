@@ -12,6 +12,12 @@
 @(report: NeighborhoodReport, cityId: String
 )(using messages: Messages, assets: AssetsFinder)
 
+@* A fix can come from a segment past the detailed ones, which has no section to jump to; the tool shows it instead. *@
+@streetLink(fix: ReportFix) = @{
+  if (report.detailed.exists(_.street.worst.toolEdgeId == fix.street.worst.toolEdgeId)) s"#street-${fix.street.worst.toolEdgeId}"
+  else ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId, report.weights)
+}
+
 @streetName(fix: ReportFix) = @{
   fix.street.worst.name.getOrElse(Messages("report.street.unnamed", fix.street.worst.toolEdgeId.toString))
 }
@@ -28,7 +34,7 @@
       @for((fix, index) <- report.fixes.zipWithIndex) {
         <li class="report-fix" data-label-id="@fix.label.labelId">
           <div class="report-fix__views">
-            <a class="report-fix__pane report-fix__map" href="#street-@fix.street.worst.osmWayId" data-fix-map data-report-event="Report_OpenStreet"
+            <a class="report-fix__pane report-fix__map" href="@streetLink(fix)" data-fix-map data-report-event="Report_OpenStreet"
                aria-label="@Messages("report.fix.map", streetName(fix))">
               <span class="report-fix__rank" aria-hidden="true">@(index + 1)</span>
             </a>
@@ -37,7 +43,7 @@
           </div>
           <div class="report-fix__body">
             <div class="report-fix__head">
-              <h3 class="report-fix__street"><a href="#street-@fix.street.worst.osmWayId" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
+              <h3 class="report-fix__street"><a href="@streetLink(fix)" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
               <a class="report-fix__cost" href="@ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore"
                  aria-label="@Messages("report.photo.cost", ReportFormat.oneDecimal(fix.item.costPoints))">+@ReportFormat.oneDecimal(fix.item.costPoints)</a>
             </div>

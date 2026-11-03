@@ -29,7 +29,6 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 /**
  * @typedef {object} ReportMapEdge
  * @property {number} id
- * @property {number} wayId
  * @property {?number} score
  * @property {boolean} explored
  * @property {?number} grade - The steepest grade, as a fraction; null where it has not been sampled.
@@ -48,8 +47,8 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {ReportMapLocation[]} [locations] - What to pin.
  * @property {(clusterId: ?number) => void} [onLocationHover]
  * @property {(clusterId: number) => void} [onLocationClick]
- * @property {(wayId: ?number) => void} [onStreetHover]
- * @property {(wayId: number) => void} [onStreetClick]
+ * @property {(streetId: ?number) => void} [onStreetHover] - With the segment's edge id.
+ * @property {(streetId: number) => void} [onStreetClick]
  * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
@@ -233,7 +232,7 @@ export class ReportMap {
       features: this.#options.edges.map((e) => ({
         type: 'Feature',
         properties: {
-          wayId: e.wayId,
+          streetId: e.id,
           score: e.score ?? -1,
           grade: e.grade ?? -1,
           explored: e.explored,
@@ -266,7 +265,7 @@ export class ReportMap {
     }
 
     // The lit street's casing goes under every street, so its own color stays what it's scored.
-    line(LIT_STREET_LAYER, ['==', ['get', 'wayId'], -1], {
+    line(LIT_STREET_LAYER, ['==', ['get', 'streetId'], -1], {
       'line-color': token('--color-neutral-900'), 'line-width': 9,
     });
     line(SCORED_LAYER, this.#scoredFilter(), { 'line-color': scoreColor, 'line-width': 4 });
@@ -281,15 +280,15 @@ export class ReportMap {
     for (const layer of [SCORED_LAYER, SIDEWALK_LAYER]) {
       this.#map.on('mousemove', layer, (e) => {
         this.#map.getCanvas().style.cursor = 'pointer';
-        onStreetHover?.(e.features?.[0]?.properties?.wayId ?? null);
+        onStreetHover?.(e.features?.[0]?.properties?.streetId ?? null);
       });
       this.#map.on('mouseleave', layer, () => {
         this.#map.getCanvas().style.cursor = '';
         onStreetHover?.(null);
       });
       this.#map.on('click', layer, (e) => {
-        const wayId = e.features?.[0]?.properties?.wayId;
-        if (wayId !== undefined) onStreetClick?.(wayId);
+        const streetId = e.features?.[0]?.properties?.streetId;
+        if (streetId !== undefined) onStreetClick?.(streetId);
       });
     }
   }
@@ -486,11 +485,11 @@ export class ReportMap {
     });
   }
 
-  /** @param {?number} wayId - The street to outline, or null for none. */
-  lightStreet(wayId) {
+  /** @param {?number} streetId - The segment to outline, or null for none. */
+  lightStreet(streetId) {
     this.#whenLoaded(() => {
       if (!this.#map.getLayer(LIT_STREET_LAYER)) return;
-      this.#map.setFilter(LIT_STREET_LAYER, ['==', ['get', 'wayId'], wayId ?? -1]);
+      this.#map.setFilter(LIT_STREET_LAYER, ['==', ['get', 'streetId'], streetId ?? -1]);
     });
   }
 
@@ -511,7 +510,7 @@ export class ReportMap {
           ...f,
           properties: {
             ...f.properties,
-            wayId: edge.wayId,
+            streetId: edge.id,
             score: edge.score ?? -1,
             grade: edge.grade ?? -1,
             explored: edge.explored,
