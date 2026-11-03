@@ -64,7 +64,7 @@ export class GoldExamplePin {
         body: JSON.stringify({ label_id: this.#labelId, reason }),
       });
       this.#reason = reason;
-      this.#status.textContent = 'Saved. New validators will see this label.';
+      this.#status.textContent = 'Saved. Validators will see this label.';
       this.#render();
     } catch (err) {
       this.#status.textContent = 'Could not save.';
