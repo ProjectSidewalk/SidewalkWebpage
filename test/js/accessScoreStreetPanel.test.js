@@ -60,6 +60,7 @@ describe('AccessScoreStreetPanel', () => {
   let AccessScoreModel;
   let AccessScoreClusterFeed;
   let AccessScoreStreetPanel;
+  let AccessScoreCrossingCard;
   let model;
   let map;
   let panel;
@@ -85,10 +86,10 @@ describe('AccessScoreStreetPanel', () => {
     stubI18next();
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     mockModule('frontend/js/common/mapboxgl.js', () => ({default: {Map: FakeInsetMap}}));
-    ({AccessScoreModel, AccessScoreClusterFeed, AccessScoreStreetPanel} = await loadModules(
+    ({AccessScoreModel, AccessScoreClusterFeed, AccessScoreStreetPanel, AccessScoreCrossingCard} = await loadModules(
       'frontend/js/common/scoreRamp.js', 'frontend/js/common/LabelMiniCard.js',
       'frontend/js/access-score/AccessScoreModel.js', 'frontend/js/access-score/AccessScoreClusterFeed.js',
-      'frontend/js/access-score/AccessScoreStreetPanel.js'));
+      'frontend/js/access-score/AccessScoreCrossingCard.js', 'frontend/js/access-score/AccessScoreStreetPanel.js'));
   });
 
   beforeEach(() => {
@@ -115,6 +116,7 @@ describe('AccessScoreStreetPanel', () => {
     callbacks = {
       streetCenter: vi.fn(() => ({lng: -74, lat: 40.8})), onClose: vi.fn(), onOpenLabel: vi.fn(),
       onOpenSheet: vi.fn(), onHoverCluster: vi.fn(), onHoverGroup: vi.fn(), onFlyTo: vi.fn(), log: vi.fn(),
+      continuation: vi.fn(() => null), onHoverStreet: vi.fn(), onSelectStreet: vi.fn(),
       cardStyleUrl: 'mapbox://styles/fixture/light',
     };
     const ramp = streetId('one good curb ramp');
@@ -168,10 +170,13 @@ describe('AccessScoreStreetPanel', () => {
     expect(root.querySelector('.acs-panel__block').textContent.replace(/\s+/g, ' ').trim())
       .toBe(`panel-block ${(street.segmentScore * 100).toFixed(1)} · length meters=100`);
     expect(root.querySelectorAll('.acs-panel__dot--none')).toHaveLength(2);
+    expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-dead-end');
     expect(root.querySelector('[data-acs-profile]').hidden).toBe(true);
     expect(root.querySelector('.acs-panel__components--profile')).toBeNull();
     // One row for the one type with a cluster, nothing for grade on a street with no slope.
     expect(rows().map((r) => r.dataset.type)).toEqual(['CurbRamp']);
+    expect(rows()[0].tagName).toBe('BUTTON');
+    expect(rows()[0].getAttribute('aria-pressed')).toBe('false');
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+0.75');
     expect(rows()[0].querySelector('.acs-row__effect').classList.contains('acs-row__effect--feature')).toBe(true);
     // No slope: no grade line under the components, and nothing to credit, so no footer either.
@@ -253,8 +258,7 @@ describe('AccessScoreStreetPanel', () => {
       expect(signal.querySelector('.lmc').dataset.labelId).toBe('302');
       expect(signal.querySelector('.acs-tile__size').textContent).toBe('cluster-size count=2');
       signal.querySelector('.acs-tile__size').click();
-      expect(callbacks.onOpenSheet).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}),
-        expect.stringContaining('cluster-effect'));
+      expect(callbacks.onOpenSheet).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
       expect(callbacks.log).toHaveBeenCalledWith('PanelSheet_labelClusterId', 300);
       // A picture opens the full card, paging over every tile on show.
       signal.querySelector('.lmc__open').click();
@@ -262,35 +266,168 @@ describe('AccessScoreStreetPanel', () => {
       expect(callbacks.log).toHaveBeenCalledWith('PanelOpenLabel_labelId', 302);
     });
 
-  test('rows and tiles light each other, and a tile\'s hover reaches the map', async () => {
-    panel.showStreet(streetId('mixed street'));
-    await settle();
-    // Every tile on show, the unrated Signal cluster included (it ranks last, past the cap).
-    root.querySelector('[data-acs-group="block"] .acs-group__more').click();
-    await settle();
-    const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
-    obstacleRow.dispatchEvent(new Event('mouseenter'));
-    expect(callbacks.log).toHaveBeenCalledWith('PanelRow', 'Obstacle');
-    expect(tiles('block').filter((t) => t.classList.contains('is-dim')).map((t) => t.dataset.clusterId))
-      .toEqual(['300']);
-    obstacleRow.dispatchEvent(new Event('mouseleave'));
-    expect(tiles('block').some((t) => t.classList.contains('is-dim'))).toBe(false);
-    const tile = root.querySelector('.acs-tile[data-cluster-id="300"]');
-    tile.dispatchEvent(new Event('mouseenter'));
-    expect(callbacks.onHoverCluster).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
-    expect(callbacks.log).toHaveBeenCalledWith('PanelHoverCluster_labelClusterId', 300);
-    expect(tile.classList.contains('is-on')).toBe(true);
-    expect(rows().find((r) => r.dataset.type === 'Signal').classList.contains('is-on')).toBe(true);
-    tile.dispatchEvent(new Event('mouseleave'));
-    expect(callbacks.onHoverCluster).toHaveBeenLastCalledWith(null);
-    expect(tile.classList.contains('is-on')).toBe(false);
-    // From the map: the dot under the pointer marks its tile and row.
-    panel.lightCluster(100);
-    expect(root.querySelector('.acs-tile[data-cluster-id="100"]').classList.contains('is-on')).toBe(true);
-    expect(rows().find((r) => r.dataset.type === 'Obstacle').classList.contains('is-on')).toBe(true);
-    panel.lightCluster(null);
-    expect(root.querySelector('.acs-tile.is-on')).toBeNull();
-  });
+  test('a row hovered keeps only its type\'s tiles, uncapped; pressed it pins that; a tile\'s hover reaches the map',
+    async () => {
+      panel.showStreet(streetId('mixed street'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      const fetches = () => fetchMock.mock.calls.length;
+      const holder = root.querySelector('[data-acs-groups]');
+      Object.defineProperty(holder, 'offsetHeight', {value: 900, configurable: true});
+      const beat = () => vi.advanceTimersByTime(AccessScoreStreetPanel.ROW_DELAY_MS + 1);
+      // Hovering Signal: nothing until the pointer has rested; then its one tile, past the cap a moment ago, is
+      // the only one on show, "Show all" is gone, and the evidence keeps its height so no scroll is clamped.
+      const signalRow = rows().find((r) => r.dataset.type === 'Signal');
+      signalRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      beat();
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelRow', 'Signal');
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(true);
+      expect(signalRow.classList.contains('is-on')).toBe(true);
+      expect(holder.style.minHeight).toBe('900px');
+      // On to Obstacle: the move is one change, not a lift and a filter, and shows all fourteen, not the capped
+      // twelve.
+      signalRow.dispatchEvent(new Event('mouseleave'));
+      const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      await settle();
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      expect(tiles('block').every((t) => t.querySelector('.lmc__type').textContent === 'obstacle')).toBe(true);
+      expect(holder.style.minHeight).toBe('900px');
+      // Leaving restores the capped dozen and the evidence's own height; the tiles were kept, so no picture was
+      // fetched twice.
+      const before = fetches();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      expect(root.querySelector('[data-acs-group="block"] .acs-group__more').hidden).toBe(false);
+      expect(holder.style.minHeight).toBe('');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      expect(fetches()).toBe(before);
+      // The keyboard acts at once.
+      obstacleRow.dispatchEvent(new Event('blur'));
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      obstacleRow.dispatchEvent(new Event('focus'));
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      // Pressing pins: the filter outlasts the pointer, the row reads pressed, and the chip names the way out.
+      obstacleRow.click();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelPinRow', 'Obstacle');
+      expect(obstacleRow.getAttribute('aria-pressed')).toBe('true');
+      expect(obstacleRow.classList.contains('is-pinned')).toBe(true);
+      expect(tiles('block')).toHaveLength(14);
+      const chip = root.querySelector('[data-acs-filter-clear]');
+      expect(chip.hidden).toBe(false);
+      expect(chip.textContent).toBe('panel-filter-clear type=obstacle');
+      // Hovering another row previews it over the pin; leaving goes back to the pin.
+      signalRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['300']);
+      signalRow.dispatchEvent(new Event('mouseleave'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      // The grade row has no tiles and filters nothing: the pin stays.
+      const gradeRow = rows().find((r) => r.dataset.type === 'grade');
+      if (gradeRow) {
+        gradeRow.dispatchEvent(new Event('mouseenter'));
+        beat();
+        await settle();
+        expect(tiles('block')).toHaveLength(14);
+        gradeRow.dispatchEvent(new Event('mouseleave'));
+        beat();
+      }
+      // A reweighting keeps the pin through the rows' re-render.
+      model.setState({weights: {...model.state.weights, Obstacle: 0.5}});
+      panel.refresh();
+      expect(rows().find((r) => r.dataset.type === 'Obstacle').getAttribute('aria-pressed')).toBe('true');
+      expect(chip.hidden).toBe(false);
+      // The chip lifts it, and focus, which the hidden chip could not keep, lands on the evidence heading.
+      chip.focus();
+      chip.click();
+      expect(document.activeElement).toBe(root.querySelector('#acs-panel-evidence-title'));
+      await settle();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelUnpinRow', 'Obstacle');
+      expect(chip.hidden).toBe(true);
+      expect(tiles('block')).toHaveLength(12);
+      expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
+      // Pressing the pinned row again lifts it too (the rows were rebuilt by the reweighting above).
+      const rebuiltRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      rebuiltRow.click();
+      expect(rebuiltRow.getAttribute('aria-pressed')).toBe('true');
+      rebuiltRow.click();
+      await settle();
+      expect(root.querySelector('.acs-row.is-pinned')).toBeNull();
+      // Every tile on show, the unrated Signal cluster included, for the hover checks below.
+      root.querySelector('[data-acs-group="block"] .acs-group__more').click();
+      await settle();
+      const tile = root.querySelector('.acs-tile[data-cluster-id="300"]');
+      tile.dispatchEvent(new Event('mouseenter'));
+      expect(callbacks.onHoverCluster).toHaveBeenCalledWith(expect.objectContaining({label_cluster_id: 300}));
+      expect(callbacks.log).toHaveBeenCalledWith('PanelHoverCluster_labelClusterId', 300);
+      expect(tile.classList.contains('is-on')).toBe(true);
+      expect(rows().find((r) => r.dataset.type === 'Signal').classList.contains('is-on')).toBe(true);
+      tile.dispatchEvent(new Event('mouseleave'));
+      expect(callbacks.onHoverCluster).toHaveBeenLastCalledWith(null);
+      expect(tile.classList.contains('is-on')).toBe(false);
+      // From the map: the dot under the pointer marks its tile and row.
+      panel.lightCluster(100);
+      expect(root.querySelector('.acs-tile[data-cluster-id="100"]').classList.contains('is-on')).toBe(true);
+      expect(rows().find((r) => r.dataset.type === 'Obstacle').classList.contains('is-on')).toBe(true);
+      panel.lightCluster(null);
+      expect(root.querySelector('.acs-tile.is-on')).toBeNull();
+    });
+
+  test('a street end with no crossing names the street the road continues as, a button that lights and selects it',
+    async () => {
+      const ramp = streetId('one good curb ramp');
+      const many = streetId('mixed street');
+      // The host says "mixed street" carries on from this street's end; its start is a dead end.
+      callbacks.continuation.mockImplementation((id, end) => (id === ramp && end === 'end'
+        ? {next: many, others: 1} : {next: null, others: 0}));
+      panel.showStreet(ramp);
+      const next = root.querySelector('button.acs-panel__end--end');
+      expect(next.dataset.acsContinue).toBe(String(many));
+      expect(next.classList.contains('acs-panel__end--continue')).toBe(true);
+      expect(next.querySelector('.acs-panel__end-name').textContent).toBe('panel-continues');
+      expect(next.querySelector('.acs-panel__end-note').textContent).toBe(`popup-street id=${many}`);
+      expect(next.getAttribute('data-ps-tooltip')).toBe('panel-continue-open');
+      expect(root.querySelector('.acs-panel__end--start .acs-panel__end-note').textContent).toBe('panel-dead-end');
+      // No card for a continuation: it is not a crossing.
+      next.dispatchEvent(new Event('mouseenter'));
+      vi.advanceTimersByTime(AccessScoreStreetPanel.CARD_DELAY_MS + 1);
+      expect(card().hidden).toBe(true);
+      expect(callbacks.onHoverStreet).toHaveBeenCalledWith(many);
+      next.dispatchEvent(new Event('mouseleave'));
+      expect(callbacks.onHoverStreet).toHaveBeenLastCalledWith(null);
+      next.click();
+      expect(callbacks.log).toHaveBeenCalledWith('PanelContinue_streetId', many);
+      expect(callbacks.onSelectStreet).toHaveBeenCalledWith(many);
+      // A street whose end the host knows nothing about is a dead end.
+      callbacks.continuation.mockReturnValue(null);
+      panel.showStreet(ramp);
+      expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
+      expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-dead-end');
+      // Where other streets meet with no crossing of the engine's, it is not a dead end: nothing is scored there.
+      callbacks.continuation.mockReturnValue({next: null, others: 2});
+      panel.showStreet(ramp);
+      expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
+      expect(root.querySelector('.acs-panel__end--end .acs-panel__end-note').textContent).toBe('panel-no-crossing');
+    });
 
   test('a reweighting re-reads every number and keeps the pictures; a vote elsewhere refreshes one card', async () => {
     panel.showStreet(streetId('one good curb ramp'));
@@ -299,12 +436,57 @@ describe('AccessScoreStreetPanel', () => {
     // A weight is the whole magnitude a Good ramp earns, not a multiplier on the engine's 0.75.
     model.setState({weights: {...model.state.weights, CurbRamp: 2}});
     panel.refresh();
+    await settle();
     expect(rows()[0].querySelector('.acs-row__effect').textContent).toBe('+2.00');
     expect(tiles('block')[0].querySelector('.acs-tile__effect').textContent).toBe('+2.00');
     expect(fetchMock.mock.calls.length).toBe(before);
     panel.refreshLabel({...label(11, 'CurbRamp', 1), num_agree: 7});
     expect(tiles('block')[0].querySelector('.lmc__vote--agree .lmc__vote-count').textContent).toBe('7');
   });
+
+  test('a reweighting repaints the tiles past the cap too, keeps the cap, and pages the full card in the order shown',
+    async () => {
+      panel.showStreet(streetId('mixed street'));
+      await settle();
+      const beat = () => vi.advanceTimersByTime(AccessScoreStreetPanel.ROW_DELAY_MS + 1);
+      // Pin Obstacle so every one of its fourteen tiles is built and cached, then unpin back to the capped dozen.
+      const obstacleRow = rows().find((r) => r.dataset.type === 'Obstacle');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      obstacleRow.click();
+      obstacleRow.dispatchEvent(new Event('mouseleave'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      obstacleRow.click();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      // Halve the weight: the dozen on show re-read, and so do the two the cap left out when they are asked for.
+      model.setState({weights: {...model.state.weights, Obstacle: 0.5}});
+      panel.refresh();
+      await settle();
+      expect(tiles('block')).toHaveLength(12);
+      expect(tiles('block')[0].querySelector('.acs-tile__effect').textContent).toBe('−0.50');
+      obstacleRow.dispatchEvent(new Event('mouseenter'));
+      beat();
+      await settle();
+      expect(tiles('block')).toHaveLength(14);
+      const street = model.explainStreet(streetId('mixed street'));
+      const expectedChip = (id) => {
+        const severity = ((id - 100) % 3) + 1;
+        const {term} = model.clusterTerm({label_type: 'Obstacle', median_severity: severity, cluster_size: 1,
+          intersection_id: null, tag_counts: {}}, street);
+        return (term >= 0 ? '+' : '−') + Math.abs(term).toFixed(2);
+      };
+      for (const t of tiles('block')) {
+        expect(t.querySelector('.acs-tile__effect').textContent).toBe(expectedChip(Number(t.dataset.clusterId)));
+      }
+      // The full card pages in the order the tiles are seen.
+      const shownIds = tiles('block').map((t) => Number(t.querySelector('.lmc').dataset.labelId));
+      tiles('block')[3].querySelector('.lmc__open').click();
+      expect(callbacks.onOpenLabel).toHaveBeenCalledWith(shownIds[3], shownIds);
+    });
 
   test('Escape and the close button ask the host to deselect; close() clears and returns focus to the map', () => {
     panel.showStreet(streetId('one good curb ramp'));
@@ -482,16 +664,19 @@ describe('AccessScoreStreetPanel', () => {
         i + 1 === ramp ? {start_intersection_id: 7} : {}))};
       const joined = new AccessScoreModel(FIXTURE.config, streets, intersections, [REGION]);
       const line = [[-74, 40.8], [-74, 40.8009]];
-      // The feed: the block's one ramp, and five corner ramps at crossing 7, so the card has a fifth to count.
+      // The feed: the block's one ramp, five corner ramps at crossing 7, so the card has a fifth to count, and one
+      // ramp attributed to crossing 99, which is not this street's end: it scores that crossing, not this street,
+      // so it is nobody's evidence here.
       const inner = fetchMock;
       const corners = Array.from({length: 5}, (_, k) => cluster(500 + k, 'CurbRamp', ramp, 1, [600 + k],
         {intersection_id: 7, coordinates: [-74.0001 + k * 0.00005, 40.8]}));
-      const labels = Object.fromEntries(corners.map((p) => [p.label_ids[0], label(p.label_ids[0], 'CurbRamp', 1)]));
+      const elsewhere = cluster(900, 'CurbRamp', ramp, 1, [901], {intersection_id: 99, coordinates: [-74, 40.8004]});
+      const labels = Object.fromEntries([...corners, elsewhere].map((p) => [p.label_ids[0], label(p.label_ids[0], 'CurbRamp', 1)]));
       inner.mockImplementation((input) => {
         const url = new URL(String(input), 'http://localhost');
         if (url.pathname === '/v3/api/labelClusters') {
           return Promise.resolve({ok: true, status: 200, json: () => Promise.resolve({type: 'FeatureCollection',
-            features: [cluster(1, 'CurbRamp', ramp, 1, [11]), ...corners].map(({coordinates, ...properties}) => ({
+            features: [cluster(1, 'CurbRamp', ramp, 1, [11]), ...corners, elsewhere].map(({coordinates, ...properties}) => ({
               type: 'Feature', geometry: {type: 'Point', coordinates}, properties}))})});
         }
         const m = /^\/label\/id\/(\d+)$/.exec(url.pathname);
@@ -515,6 +700,7 @@ describe('AccessScoreStreetPanel', () => {
       expect(root.querySelector('button.acs-panel__end--end')).toBeNull();
       expect(root.querySelector('button.acs-panel__block')).not.toBeNull();
       expect(tiles('start')).toHaveLength(5);
+      expect(tiles('block').map((t) => t.dataset.clusterId)).toEqual(['1']);
 
       // A pass of the pointer opens nothing until it rests.
       start.dispatchEvent(new Event('mouseenter'));
@@ -532,7 +718,10 @@ describe('AccessScoreStreetPanel', () => {
       expect(root.querySelector('[data-acs-group="start"]').classList.contains('is-on')).toBe(true);
       expect(tiles('block')[0].classList.contains('is-dim')).toBe(true);
       expect(tiles('start').some((t) => t.classList.contains('is-dim'))).toBe(false);
-      // The card: one inset map centered on the line's first vertex, not interactive, on the light style.
+      // The card: one inset map centered on the line's first vertex, not interactive, on the light style, built
+      // once the card has stayed open a beat (a load is what Mapbox bills).
+      expect(insetMaps).toHaveLength(0);
+      vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
       expect(insetMaps).toHaveLength(1);
       expect(insetMaps[0].options).toMatchObject({
         center: [-74, 40.8], zoom: 18, interactive: false, attributionControl: false,
@@ -554,7 +743,7 @@ describe('AccessScoreStreetPanel', () => {
       const crops = [...card().querySelectorAll('.acs-crossing-card__crop')];
       expect(crops).toHaveLength(4);
       expect(crops[0].querySelector('img.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/600.jpg');
-      expect(crops[0].title).toContain('cluster-effect');
+      expect(crops[0].title).toContain('crossing-effect');
       expect(card().querySelectorAll('button, a')).toHaveLength(0);
       expect(card().querySelector('.acs-crossing-card__more').textContent).toBe('panel-crossing-more count=1');
 
@@ -576,6 +765,7 @@ describe('AccessScoreStreetPanel', () => {
       start.focus();
       start.dispatchEvent(new Event('focus'));
       expect(card().hidden).toBe(false);
+      vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
       expect(insetMaps).toHaveLength(1);
       expect(insetMaps[0].jumpTo).toHaveBeenCalledWith({center: [-74, 40.8], zoom: 18});
       expect(insetMaps[0].resize).toHaveBeenCalled();

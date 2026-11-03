@@ -65,6 +65,7 @@ describe('AccessScoreCrossingCard', () => {
   });
 
   beforeEach(() => {
+    vi.useFakeTimers();
     maps.length = 0;
     document.body.innerHTML = '<div id="card" role="tooltip" hidden></div>';
     el = document.getElementById('card');
@@ -78,9 +79,14 @@ describe('AccessScoreCrossingCard', () => {
     feed = {label: vi.fn((id) => (labels[id] ? Promise.resolve(labels[id]) : Promise.reject(new Error('nope'))))};
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const makeCard = () => new AccessScoreCrossingCard(el, {
     feed, types: ['CurbRamp', 'NoCurbRamp', 'Obstacle'], styleUrl: 'mapbox://styles/fixture/light',
   });
+  const beat = () => vi.advanceTimersByTime(AccessScoreCrossingCard.MAP_DELAY_MS + 1);
 
   test('builds one inset on the first open, recenters it on the next, and draws the street and the clusters once loaded',
     () => {
@@ -90,6 +96,13 @@ describe('AccessScoreCrossingCard', () => {
       expect(card.open).toBe(true);
       expect(el.dataset.acsCardTail).toBe('start');
       expect(el.getAttribute('aria-label')).toBe('panel-crossing-card name=Start crossing');
+      // A card open for a moment only, as a focus passing through leaves it, builds no map: a load is billed.
+      expect(maps).toHaveLength(0);
+      card.close();
+      beat();
+      expect(maps).toHaveLength(0);
+      card.show(crossing([cluster(1, 'NoCurbRamp', 3, 10)]));
+      beat();
       expect(maps).toHaveLength(1);
       expect(maps[0].options).toMatchObject({
         center: [-74, 40.8], zoom: AccessScoreCrossingCard.ZOOM, interactive: false, attributionControl: false,
@@ -111,7 +124,8 @@ describe('AccessScoreCrossingCard', () => {
         {type: 'Feature', geometry: {type: 'Point', coordinates: [-74, 40.8]},
           properties: {label_type: 'NoCurbRamp', label_cluster_id: 1}},
       ]);
-      // The next crossing reuses the map: a resize for the container that was hidden, a jump, fresh data.
+      // The next crossing reuses the map, and at once: only the first build waits. A resize for the container
+      // that was hidden, a jump, fresh data.
       card.close();
       expect(card.open).toBe(false);
       card.show({...crossing([cluster(2, 'CurbRamp', 1, 11, -73.9)]), key: 'end', lngLat: {lng: -73.9, lat: 40.8}});
@@ -156,7 +170,8 @@ describe('AccessScoreCrossingCard', () => {
       // A crop, the backup image where there is no crop, and the shared placeholder where there is neither.
       expect(crops[0].querySelector('.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/10.jpg');
       expect(crops[0].querySelector('.acs-crossing-card__icon').getAttribute('src')).toContain('NoCurbRamp_small.svg');
-      expect(crops[0].title).toBe('cluster-effect type=no-curb-ramp value=−1.00');
+      // A corner cluster's number is its crossing's, and the title says so.
+      expect(crops[0].title).toBe('crossing-effect type=no-curb-ramp value=−1.00');
       expect(crops[1].querySelector('.acs-crossing-card__image').getAttribute('src')).toBe('https://example.test/pano11.jpg');
       expect(crops[2].querySelector('.acs-crossing-card__image')).toBeNull();
       expect(crops[2].querySelector('.lmc__placeholder img').getAttribute('src')).toContain('CurbRamp_small.svg');

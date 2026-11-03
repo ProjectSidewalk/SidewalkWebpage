@@ -146,6 +146,7 @@ seo.title.welcome = Welkom — Project Sidewalk
 seo.title.forgot.password = Wachtwoord herstellen — Project Sidewalk
 seo.title.reset.password = Wachtwoord opnieuw instellen — Project Sidewalk
 seo.title.service.hours = Vrijwilligersinformatie — Project Sidewalk
+seo.title.unsubscribe = Afmelden — Project Sidewalk
 seo.title.time.check = Tijdcontrole — Project Sidewalk
 seo.title.about = Over ons — Project Sidewalk
 seo.description.default = Help de trottoirs van {0} in kaart te brengen en te beoordelen via virtuele verkenning. Open data over opritten, obstakels en oppervlakteproblemen voor een toegankelijkere wereld.
@@ -382,6 +383,7 @@ authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw accoun
 authenticate.confirm.password = Bevestig wachtwoord
 authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
+authenticate.news.email = Stuur mij af en toe nieuws over Project Sidewalk
 authenticate.signup = Een account maken
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
@@ -497,6 +499,13 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
 reset.pw.email.send.link = E-mail verzenden
 reset.pw.email.reset.pw.sent = Er is een e-mail verzonden om je wachtwoord opnieuw in te stellen.
+unsubscribe.confirm.title = Afmelden voor nieuws van Project Sidewalk?
+unsubscribe.confirm.intro = Je ontvangt dan geen nieuws en updates over het project meer op het e-mailadres van je account. E-mails over je account, zoals het opnieuw instellen van je wachtwoord, komen nog steeds aan.
+unsubscribe.confirm.submit = Afmelden
+unsubscribe.done.title = Je bent afgemeld
+unsubscribe.done.intro = We sturen je geen projectnieuws meer. Van gedachten veranderd? Zet het weer aan bij <a href="{0}">Instellingen</a>.
+unsubscribe.invalid.title = Deze link is niet geldig
+unsubscribe.invalid.intro = De afmeldlink is misschien afgebroken bij het kopiëren. Je kunt e-mail ook beheren bij <a href="{0}">Instellingen</a>, of schrijven naar <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
 reset.pw.email.send.failed = We konden de e-mail nu niet verzenden. Probeer het later opnieuw.
 reset.pw.email.reset.request.message = Je hebt onlangs gevraagd om je wachtwoord voor je Project Sidewalk-account opnieuw in te stellen. Klik op de onderstaande link om je wachtwoord opnieuw in te stellen:
 reset.pw.email.reset.not.requested = Als je geen wachtwoordreset hebt aangevraagd, negeer dan dit bericht of stuur ons een e-mail om het ons te laten weten.
@@ -812,6 +821,9 @@ dashboard.settings.service.hours = Vrijwilligersuren
 dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
 dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.
 dashboard.settings.service.hours.link = Hoe serviceuren werken
+dashboard.settings.news.email = E-mailupdates
+dashboard.settings.news.email.toggle = Stuur mij nieuws over Project Sidewalk
+dashboard.settings.news.email.help = Af en toe nieuws over het project, elk met een afmeldlink. E-mails over je account, zoals het opnieuw instellen van je wachtwoord, komen altijd aan.
 dashboard.settings.team = Team
 dashboard.settings.team.label = Je team
 dashboard.settings.team.help = Sluit je aan bij een team of klas om samen in kaart te brengen en op het teamscoreboard te verschijnen.

@@ -108,7 +108,10 @@ export class AccessScoreClusterFeed {
       const at = p.intersection_id ?? null;
       if (at !== null && at === startId) groups.start.push(p);
       else if (at !== null && at === endId) groups.end.push(p);
-      else if (p.street_edge_id === street.streetId) groups.block.push(p);
+      // A corner cluster scores its intersection and nothing else: one attributed to a crossing that is not this
+      // street's end (its street ends at a way split beside it) moves this street's score by nothing, so it is
+      // not evidence here, whatever its street_edge_id says.
+      else if (at === null && p.street_edge_id === street.streetId) groups.block.push(p);
     }
     return groups;
   }

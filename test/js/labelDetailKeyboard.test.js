@@ -1,8 +1,9 @@
 /**
  * Tests for the label card's keyboard shortcuts (frontend/js/common/label-detail/LabelDetail.js, #5194).
  *
- * Left/right page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on every host the
- * shared card has, which is why the shortcuts live in the controller rather than in one host's key manager.
+ * Left/right (and S, #5883) page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on
+ * every host the shared card has, which is why the shortcuts live in the controller rather than in one host's key
+ * manager.
  *
  * The listener is window-wide (the card is often the frontmost thing on the page with nothing inside it holding
  * focus, and the pano viewers stop arrow keys from propagating past `window` anyway), so the whole of the scope is
@@ -381,36 +382,51 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
   });
 
-  describe('the arrow keys', () => {
-    test('left and right press the card\'s prev/next arrows', async () => {
+  describe('the paging keys', () => {
+    test.each([
+      ['ArrowLeft', 'prev'],
+      ['ArrowRight', 'next'],
+      ['KeyS', 'next'],
+    ])('%s presses the card\'s %s arrow', async (code, which) => {
+      // S sits between A and D, so a run of labels needs only the left hand, as on Validate (#5883).
       await showLabel();
-      const prev = vi.fn();
-      const next = vi.fn();
-      prevArrow().addEventListener('click', prev);
-      nextArrow().addEventListener('click', next);
+      const clicked = vi.fn();
+      (which === 'prev' ? prevArrow() : nextArrow()).addEventListener('click', clicked);
 
-      press('ArrowLeft');
-      press('ArrowRight');
+      press(code);
 
-      expect(prev).toHaveBeenCalledTimes(1);
-      expect(next).toHaveBeenCalledTimes(1);
-      expect(prev.mock.calls[0][0].detail).toBe(0);
+      expect(clicked).toHaveBeenCalledTimes(1);
+      expect(clicked.mock.calls[0][0].detail).toBe(0);
     });
 
-    test('a disabled arrow is left alone, and the key stays the page\'s to use', async () => {
+    test('letters go by what is printed on the key, as on Validate (#5618)', async () => {
+      // On Colemak the printed S sits where QWERTY has D, and the printed R where QWERTY has S.
+      await showLabel();
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+
+      press('KeyD', { key: 's' });
+      press('KeyS', { key: 'r' });
+      await flush();
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(validations()).toEqual([]);
+    });
+
+    test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
       // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
       await showLabel();
       nextArrow().disabled = true;
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('an arrow still hidden waiting for its navigator is left alone too', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s leaves an arrow hidden until its navigator arrives', async (code) => {
       // LabelPopup hides both arrows until the host hands it a navigator, which on LabelMap arrives only
       // once the viewport's labels have loaded (#5068).
       await showLabel();
@@ -418,20 +434,42 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('a host with no arrows at all ignores them', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s does nothing on a host with no arrows at all', async (code) => {
       // The dashboard's popup and the share page render the card without paging.
       await mount({ paging: false });
       await showLabel();
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(event.defaultPrevented).toBe(false);
+    });
+
+    test('S waits while "Other…" holds words not yet saved, which paging would throw out', async () => {
+      await showLabel();
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+      press('KeyD');
+      await flush();
+      const other = document.querySelector('.reason-popover .reason-chips__chip--other');
+      other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+      const field = document.querySelector('.reason-popover .reason-chips__other-input');
+      field.value = 'blocked by a bin';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.reason-popover .reason-chips__other-save').focus();
+
+      press('KeyS');
+      expect(next).not.toHaveBeenCalled();
+
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      press('KeyS');
+      expect(next).toHaveBeenCalledTimes(1);
     });
   });
 

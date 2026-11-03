@@ -1,6 +1,36 @@
 # --- !Ups
--- A neighborhood report's Gallery cards (#5876) cast votes under their own source, so analyses can tell them apart.
-ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'Report';
+-- When and why the user stopped getting project news by email (#5864). Both NULL, or no row, means they still get it.
+-- news_email_consented_at is when they last ticked the box themselves, the proof of consent EU-style rules ask for,
+-- which the never-consented backfill leaves alone. The table is shared by every city, and an ALTER locks it even when
+-- the column already exists, so each city's run checks first. CREATE TYPE has no IF NOT EXISTS, hence the pg_type
+-- check, and the type needs the shared owner or no other city could alter it. Semicolons inside the block are doubled
+-- to survive Play's statement splitter (see docs/evolutions.md).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type
+                 WHERE typname = 'news_email_opt_out_source' AND typnamespace = 'sidewalk_login'::regnamespace) THEN
+    CREATE TYPE sidewalk_login.news_email_opt_out_source AS ENUM (
+      'settings', 'sign_up_opted_out', 'sign_up_not_opted_in', 'unsubscribe_link', 'never_consented',
+      'mailing_service', 'bounce', 'complaint'
+    );;
+    ALTER TYPE sidewalk_login.news_email_opt_out_source OWNER TO sidewalk;;
+  END IF;;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'sidewalk_login' AND table_name = 'user_settings'
+                   AND column_name = 'news_email_opt_out_source') THEN
+    ALTER TABLE sidewalk_login.user_settings
+      ADD COLUMN IF NOT EXISTS news_email_opt_out_at TIMESTAMPTZ,
+      ADD COLUMN news_email_opt_out_source sidewalk_login.news_email_opt_out_source,
+      ADD CONSTRAINT user_settings_news_email_opt_out_source_matches_at_check
+        CHECK ((news_email_opt_out_at IS NULL) = (news_email_opt_out_source IS NULL));;
+  END IF;;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'sidewalk_login' AND table_name = 'user_settings'
+                   AND column_name = 'news_email_consented_at') THEN
+    ALTER TABLE sidewalk_login.user_settings ADD COLUMN news_email_consented_at TIMESTAMPTZ;;
+  END IF;;
+END $$;
 
 # --- !Downs
--- Postgres can't drop an enum value without rewriting every column of the type, and a stray value is harmless.
+-- partial-downs: the column is shared by every city, so the first city to roll back would drop it from under the
+-- cities still on this release, and the previous release never reads it. Keeping it also keeps the opt-outs.

@@ -17,9 +17,7 @@ import { AccessScoreModel } from './AccessScoreModel.js';
 import { AccessScorePlacesLayer } from './AccessScorePlacesLayer.js';
 import { AccessScoreSidebar } from './AccessScoreSidebar.js';
 import { AccessScoreStreetPanel } from './AccessScoreStreetPanel.js';
-import {
-  componentsHtml, formatScore, hopLinksHtml, signed, streetTitle,
-} from './AccessScoreText.js';
+import { componentsHtml, effectText, formatScore, hopLinksHtml, signed, streetTitle } from './AccessScoreText.js';
 import { AccessScoreUrlSync } from './AccessScoreUrlSync.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { featureCollectionBounds } from '../common/geoBounds.js';
@@ -29,6 +27,8 @@ import { initLabelMapLocationSearch } from '../labelMapLocationSearch.js';
 import { MapLoadingOverlay } from '../ps-map/MapLoadingOverlay.js';
 import { MapSidebarUrlSync } from '../ps-map/MapSidebarUrlSync.js';
 import { MapStatusPill } from '../ps-map/MapStatusPill.js';
+import { createLabelSpotlight } from '../ps-map/labelSpotlight.js';
+import { createNearbyLabelNavigator } from '../ps-map/nearbyLabelNavigator.js';
 import { paddingTarget } from '../ps-map/mapPadding.js';
 import { ViewportLabelLoader } from '../ps-map/ViewportLabelLoader.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
@@ -294,7 +294,7 @@ export const AccessScoreApp = (function () {
         else select(null);
       },
       onOpenLabel: (labelId, ids) => evidence.openLabel(labelId, ids),
-      onOpenSheet: (props, effect) => evidence.openSheet(props, effect),
+      onOpenSheet: (props) => evidence.openSheet(props),
       onHoverCluster: (props) => evidence.layer.setHovered(props),
       onHoverGroup: (list) => evidence.layer.setHighlighted(list),
       // The block flies as a rank row does; a crossing closer, to its corners.
@@ -303,6 +303,15 @@ export const AccessScoreApp = (function () {
         else map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), CROSSING_ZOOM), padding: paddingTarget(map) });
       },
       cardStyleUrl: MAP_STYLES.light,
+      continuation: streetContinuation,
+      onHoverStreet: (id) => mapView.hoverStreet(id),
+      // The next segment is selected as a click on it would be, and flown to as a rank row is.
+      onSelectStreet: (id) => {
+        const lngLat = streetCenter(id);
+        if (!lngLat) return;
+        select({ unit: 'streets', id, lngLat });
+        flyToStreet(lngLat);
+      },
       log,
     });
     evidence.onHover((props) => panel.lightCluster(props?.label_cluster_id ?? null));
@@ -447,6 +456,8 @@ export const AccessScoreApp = (function () {
       clusterLayer: evidence.layer, placeSearch, placesLayer: places.layer,
       /** Opens a place's card by id, as a marker click does; the browser tests' way in. */
       selectPlace: (placeId) => places.select(places.layer.place(placeId)),
+      /** Opens a cluster's sheet from its properties, as a dot click does; the browser tests' way in. */
+      selectCluster: evidence.selectCluster,
     };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));
@@ -482,24 +493,64 @@ export const AccessScoreApp = (function () {
         popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
         popupLabelViewer.showLabel(labelId, 'AccessScore');
       };
-      sheet = new AccessScoreClusterSheet({ log, onOpenLabel: openLabel });
+      // The sheet is tied to its dot as LabelMap's card is to its label: a beacon on the dot, the camera placing
+      // it in the free gutter beside the sheet, and a tail from the sheet to it (#5748). The dot's position and
+      // type come with the click.
+      /** @type {Map<number, {coordinates: number[], type: string, props: object}>} */
+      const clusterDots = new Map();
+      sheet = new AccessScoreClusterSheet({
+        log,
+        onOpenLabel: openLabel,
+        onClose: (clusterId) => {
+          if (clusterId !== null) spotlight.pulse(clusterId);
+        },
+        // The sheet opens at its loading size and grows as its cards come: the dot is parked beside the grown sheet.
+        onLoaded: (clusterId) => {
+          if (clusterId !== null && clusterDots.has(clusterId) && sheet.dialog.open) spotlight.spotlight(clusterId);
+        },
+        // An arrow lands on a cluster: opened as its dot's click would be, beacon and tail included. The trail
+        // can lead back to a cluster a refetch has since dropped from the layer; the click that opened it is kept.
+        onNavigate: (clusterId) => {
+          const props = layer.cluster(clusterId) ?? clusterDots.get(clusterId)?.props ?? null;
+          if (props) selectCluster(props, { log: false });
+        },
+      });
+      const spotlight = createLabelSpotlight({
+        dialog: sheet.dialog,
+        getMap: () => map,
+        getMapData: () => null,
+        getCoords: (id) => clusterDots.get(id)?.coordinates ?? null,
+        getLabelType: (id) => clusterDots.get(id)?.type ?? null,
+        // The part of the map the drawer and the street panel leave uncovered, which they publish as insets.
+        getFreeBox: () => {
+          const r = map.getContainer().getBoundingClientRect();
+          const style = getComputedStyle(map.getContainer().parentElement ?? map.getContainer());
+          const left = Number.parseFloat(style.getPropertyValue('--map-inset-left')) || 0;
+          const right = Number.parseFloat(style.getPropertyValue('--map-inset-right')) || 0;
+          return { left: r.left + left, top: r.top, right: r.right - right, bottom: r.bottom };
+        },
+      });
+      map.on('move', spotlight.updateTail);
+      /**
+       * Opens a cluster's sheet, beacon and tail included. `log` is for a click on the dot; an arrow press and a
+       * panel tile are logged by their own events.
+       */
+      const selectCluster = (props, { log: logClick = true } = {}) => {
+        if (!props.label_ids?.length) return;
+        if (logClick) log('SelectCluster_labelType', props.label_type);
+        const effect = clusterEffect(props);
+        if (Array.isArray(props.coordinates)) {
+          clusterDots.set(props.label_cluster_id, { coordinates: props.coordinates, type: props.label_type, props });
+        }
+        sheet.open(props, effect);
+        if (clusterDots.has(props.label_cluster_id)) spotlight.spotlight(props.label_cluster_id);
+      };
       /** @type {Array<(props: ?import('./AccessScoreClusterLayer.js').AccessScoreClusterProps) => void>} */
       const hoverListeners = [];
       const layer = new AccessScoreClusterLayer(map, {
         types: config.scored_types,
         tooltipHtml: clusterTooltipHtml,
-        onSelect: (props) => {
-          if (!props.label_ids?.length) return;
-          log('SelectCluster_labelType', props.label_type);
-          const street = model.explainStreet(props.street_edge_id);
-          const term = street?.audited ? street.terms[props.label_type] : null;
-          const effect = term
-            ? i18next.t('accessscore:cluster-effect', {
-                type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
-              })
-            : '';
-          sheet.open(props, effect);
-        },
+        onSelect: selectCluster,
         onHover: (props) => hoverListeners.forEach((listener) => listener(props)),
       });
       const feedUrl = new URL('/v3/api/labelClusters', window.location.origin);
@@ -514,7 +565,18 @@ export const AccessScoreApp = (function () {
         keys: { belowFloor: 'accessscore:zoom-in-for-clusters', loading: 'accessscore:loading-clusters' },
       });
       let visible = model.state.showClusters;
-      loader.onData((featureCollection) => layer.setData(featureCollection));
+      // The sheet's arrows tour the clusters on the map as LabelMap's tour its labels: nearest unvisited next,
+      // the trail back. The navigator reads the layer's live collection, re-read on every refetch.
+      const clusterNav = createNearbyLabelNavigator({
+        get sortedLabels() {
+          return layer.sortedClusters;
+        },
+      }, { idKey: 'label_cluster_id' });
+      sheet.setNavigator(clusterNav);
+      loader.onData((featureCollection) => {
+        layer.setData(featureCollection);
+        clusterNav.refresh();
+      });
       loader.onError((e) => console.error('AccessScore cluster feed failed', e));
       loader.onStateChange((state) => pill.setState(visible ? state : 'idle'));
       loader.start();
@@ -522,10 +584,15 @@ export const AccessScoreApp = (function () {
       return {
         loader,
         layer,
+        /** Opens a cluster's sheet as a click on its dot does, with its position for the beacon and tail. */
+        selectCluster,
         /** The label card, paging over a list — the cluster sheet's, the photo strip's and the panel's shared exit. */
         openLabel,
-        /** The cluster sheet, for a panel tile whose cluster holds more than one label (#5748). */
-        openSheet: (props, effect) => sheet.open(props, effect),
+        /**
+         * The cluster sheet for a panel tile whose cluster holds more than one label (#5748), opened as its dot's
+         * click would be, so the arrows can find their way back to it and it is beaconed like any other.
+         */
+        openSheet: (props) => selectCluster(props, { log: false }),
         /** Subscribes to the pointer landing on, and leaving, a cluster dot. */
         onHover: (listener) => hoverListeners.push(listener),
         setVisible(show) {
@@ -674,13 +741,29 @@ export const AccessScoreApp = (function () {
     }
 
     /**
+     * The cluster's own share of its street's score, the figure its tile in the panel wears, so the dot's tooltip,
+     * its sheet and the panel say the same number: a corner cluster's crossing term (whichever street asks), a
+     * block cluster's share of its audited street's term, a pooled type's "part of".
+     * @param {import('./AccessScoreClusterLayer.js').AccessScoreClusterProps} props - The cluster.
+     * @returns {string} The sentence, or '' where the engine has no number for it.
+     */
+    function clusterEffect(props) {
+      const street = model.explainStreet(props.street_edge_id);
+      const term = model.clusterTerm(props, street?.audited ? street : null);
+      return term ? effectText(props, term) : '';
+    }
+
+    /**
      * A cluster's hover card: what it is, how many labels agree on it, and — the point of drawing clusters at all —
-     * what its type is doing to the score of the street it sits on.
+     * what it is doing to the score.
+     * @param {import('./AccessScoreClusterLayer.js').AccessScoreClusterProps} props - The cluster.
+     * @returns {string} The tooltip's HTML.
      */
     function clusterTooltipHtml(props) {
       // A rating's words differ by type — a curb ramp is good/okay/bad, an obstacle low/medium/high — so the
       // wording comes from util.misc rather than a mapping written here.
       const type = props.label_type;
+      const typeName = util.misc.labelTypeName(type);
       const rating = util.misc.labelTypeHasSeverity(type) && props.median_severity
         ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
         : null;
@@ -690,15 +773,9 @@ export const AccessScoreApp = (function () {
         }),
         rating,
       ].filter(Boolean).join(' · ');
-      const street = model.explainStreet(props.street_edge_id);
-      const term = street?.audited ? street.terms[type] : null;
-      // The term is this type's whole contribution to the street, not this one cluster's, so the wording says
-      // "on this street" rather than pinning the number to the dot under the pointer.
-      const typeName = util.misc.labelTypeName(type);
-      const effect = term
-        ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: typeName, value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
-        : '';
+      // The same figure the click's sheet and the panel's tile carry for this cluster.
+      const effectLine = clusterEffect(props);
+      const effect = effectLine ? `<div class="acs-tooltip__meta">${util.escapeHTML(effectLine)}</div>` : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
         util.misc.getLabelColors(type)};"></span>${typeName}</strong>
         <div class="acs-tooltip__meta">${meta}</div>
@@ -892,6 +969,29 @@ export const AccessScoreApp = (function () {
     function streetLine(id) {
       const f = streets.features.find((feature) => feature.properties.street_edge_id === id);
       return f ? f.geometry.coordinates : null;
+    }
+
+    /**
+     * The street that carries on from one end of another, where the engine has no crossing: the one other street
+     * with a vertex at that end. The street build splits a road into segments that share their end coordinates
+     * exactly, so the match is on the coordinates themselves, with a hair of tolerance for a re-serialized float.
+     * @param {number} id - The street.
+     * @param {'start'|'end'} end - Which end of it.
+     * @returns {?{next: ?number, others: number}} The continuing street's id when exactly one other street meets
+     *   this end, else null, and how many other streets meet there (none for a dead end; two or more where
+     *   streets meet without an intersection of the engine's, which never asks for a true crossing).
+     */
+    function streetContinuation(id, end) {
+      const line = streetLine(id);
+      if (!line || line.length < 2) return null;
+      const [lng, lat] = end === 'start' ? line[0] : line[line.length - 1];
+      const near = (v) => Math.abs(v[0] - lng) < 1e-7 && Math.abs(v[1] - lat) < 1e-7;
+      const others = streets.features.filter((f) => {
+        if (f.properties.street_edge_id === id) return false;
+        const c = f.geometry.coordinates;
+        return c.length >= 2 && (near(c[0]) || near(c[c.length - 1]));
+      });
+      return { next: others.length === 1 ? others[0].properties.street_edge_id : null, others: others.length };
     }
 
     /** A region's bounding-box center, from its polygon. */

@@ -7,6 +7,7 @@
 import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
+import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreStreetExplanation} AccessScoreStreetExplanation */
 
 /**
@@ -46,6 +47,24 @@ export function formatElevation(meters, { escape = true } = {}) {
  */
 export function signed(value) {
   return (value >= 0 ? '+' : '−') + Math.abs(value).toFixed(2);
+}
+
+/**
+ * What a cluster does to the score, in words: "Curb Ramp on this street: +0.75"; for a corner cluster, whose
+ * number is its crossing's, "Curb Ramp at this crossing: +0.75"; for a pooled type, whose clusters share one
+ * number, "No Sidewalk on this street: part of −3.00". Plain text; the sink escapes it.
+ * @param {{label_type: string, intersection_id?: ?number}} cluster - The cluster.
+ * @param {{term: number, pooled: boolean}} term - Its term, from `AccessScoreModel#clusterTerm`.
+ * @returns {string} The sentence.
+ */
+export function effectText(cluster, term) {
+  const value = term.pooled
+    ? i18next.t('accessscore:panel-effect-pooled', { value: signed(term.term), interpolation: { escapeValue: false } })
+    : signed(term.term);
+  const corner = cluster.intersection_id !== null && cluster.intersection_id !== undefined;
+  return i18next.t(corner ? 'accessscore:crossing-effect' : 'accessscore:cluster-effect', {
+    type: util.misc.labelTypeName(cluster.label_type), value, interpolation: { escapeValue: false },
+  });
 }
 
 /**

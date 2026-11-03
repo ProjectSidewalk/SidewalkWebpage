@@ -17,7 +17,7 @@ import mapboxgl from '../common/mapboxgl.js';
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { util } from '../common/utilities.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
-import { signed } from './AccessScoreText.js';
+import { effectText, signed } from './AccessScoreText.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreIntersectionExplanation} AccessScoreIntersectionExplanation */
 /** @typedef {import('./AccessScoreClusterFeed.js').AccessScoreFeedCluster} AccessScoreFeedCluster */
@@ -28,6 +28,12 @@ export class AccessScoreCrossingCard {
 
   /** Close enough to tell the corners of one intersection apart. */
   static ZOOM = 18;
+
+  /**
+   * How long the card is open before its inset is first built: a map load is what Mapbox bills, and a focus that
+   * is only passing through on its way down the panel should not pay for one. A built inset moves at once.
+   */
+  static MAP_DELAY_MS = 250;
 
   #el;
   #styleUrl;
@@ -40,6 +46,8 @@ export class AccessScoreCrossingCard {
   #pending = null;
   /** Bumped on every open and close, so a crop that arrives for an earlier crossing is dropped. */
   #token = 0;
+  /** The inset's pending build or move, until the card has been open long enough to deserve one. */
+  #mapTimer = null;
 
   /**
    * @param {HTMLElement} el - The card's own element, `hidden` until a crossing opens it.
@@ -83,13 +91,27 @@ export class AccessScoreCrossingCard {
     this.#el.setAttribute('aria-label', i18next.t('accessscore:panel-crossing-card', { name }));
     this.#renderRows(explanation);
     this.#renderCrops(clusters, termOf, token);
-    this.#showMap(lngLat, line, clusters ?? []);
+    this.#cancelMapTimer();
+    if (this.#map) {
+      this.#showMap(lngLat, line, clusters ?? []);
+      return;
+    }
+    this.#mapTimer = setTimeout(() => {
+      this.#mapTimer = null;
+      this.#showMap(lngLat, line, clusters ?? []);
+    }, AccessScoreCrossingCard.MAP_DELAY_MS);
   }
 
-  /** Hides the card. The inset stays built for the next open. */
+  /** Hides the card. The inset stays built for the next open; one not yet built is not built. */
   close() {
     this.#token += 1;
+    this.#cancelMapTimer();
     this.#el.hidden = true;
+  }
+
+  #cancelMapTimer() {
+    if (this.#mapTimer !== null) clearTimeout(this.#mapTimer);
+    this.#mapTimer = null;
   }
 
   /** Drops the inset, for a panel that is going away for good. */
@@ -145,11 +167,7 @@ export class AccessScoreCrossingCard {
       figure.className = 'acs-crossing-card__crop';
       figure.dataset.clusterId = String(props.label_cluster_id);
       const term = termOf(props);
-      if (term) {
-        figure.title = i18next.t('accessscore:cluster-effect', {
-          type: util.misc.labelTypeName(type), value: signed(term.term),
-        });
-      }
+      if (term) figure.title = effectText(props, term);
       const src = label?.crop_url || label?.backup_image_url;
       if (src) {
         figure.innerHTML = `<img class="acs-crossing-card__image" src="${esc(src)}" alt="" loading="lazy">

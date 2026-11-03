@@ -6,6 +6,7 @@
  * @property {string} label_type
  * @property {number} street_edge_id - The street the cluster sits on.
  * @property {?number} intersection_id - The crossing a corner-type cluster scores toward; null for a segment's.
+ * @property {number[]} [coordinates] - The dot's `[lng, lat]`, from the feature's geometry, when the layer read it.
  * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
  * @property {number} agree_count
  * @property {number} disagree_count
@@ -91,6 +92,30 @@ export class AccessScoreClusterLayer {
       this.#map.getSource(AccessScoreClusterLayer.#layerId(type))
         .setData({ type: 'FeatureCollection', features: byType[type] });
     }
+  }
+
+  /**
+   * The clusters drawn, per type, in the shape `createNearbyLabelNavigator` tours (#5748): a nearby-cluster
+   * navigator reads this on every step, so it is the live collection, not a copy.
+   * @returns {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} Features by label type.
+   */
+  get sortedClusters() {
+    /** @type {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} */
+    const byType = Object.fromEntries(this.#types.map((type) => [type, []]));
+    for (const feature of this.#data.features || []) {
+      byType[feature.properties.label_type]?.push(/** @type {GeoJSON.Feature<GeoJSON.Point>} */ (feature));
+    }
+    return byType;
+  }
+
+  /**
+   * One drawn cluster's properties, as a click would hand them over, coordinates included.
+   * @param {number} clusterId - A `label_cluster_id`.
+   * @returns {?AccessScoreClusterProps} Null when the cluster is not among those drawn.
+   */
+  cluster(clusterId) {
+    const feature = (this.#data.features || []).find((f) => f.properties.label_cluster_id === clusterId);
+    return feature ? AccessScoreClusterLayer.#props(feature) : null;
   }
 
   /**
@@ -250,6 +275,8 @@ export class AccessScoreClusterLayer {
    */
   static #props(feature) {
     const props = { ...feature.properties };
+    // The dot's own position, for a host that ties a card to it (the cluster sheet's beacon and tail, #5748).
+    if (feature.geometry?.type === 'Point') props.coordinates = feature.geometry.coordinates;
     for (const key of ['label_ids', 'users', 'tag_counts']) {
       if (typeof props[key] === 'string') {
         try {

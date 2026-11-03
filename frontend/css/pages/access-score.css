@@ -1192,8 +1192,20 @@
 
 /* ---- The cluster sheet: every label in a cluster at once ---- */
 
+/* Sized to its cards (the sheet's script sets --acs-sheet-cards): a cluster of one is a title wide, a cluster of
+   seven five cards wide and two deep, a cluster of twenty as wide as the window allows. Wide before tall, which
+   fit-content would not give: with an indefinite width the grid's own contribution is one column. */
 .acs-sheet {
-  width: min(960px, calc(100vw - 2 * var(--space-lg)));
+  --acs-sheet-card: calc(170px * var(--ui-scale, 1));
+
+  width: min(
+    calc(var(--acs-sheet-cards, 1) * (var(--acs-sheet-card) + var(--space-sm)) - var(--space-sm) + 2 * var(--space-lg)),
+    960px,
+    calc(100vw - 2 * var(--space-lg))
+  );
+
+  /* Room for the title, the arrows and the close in one row even at one card. */
+  min-width: min(calc(440px * var(--ui-scale, 1)), calc(100vw - 2 * var(--space-lg)));
   max-height: calc(100vh - 2 * var(--space-lg));
   padding: var(--space-md) var(--space-lg) var(--space-lg);
   border: 0;
@@ -1236,6 +1248,52 @@
   color: var(--color-neutral-700);
 }
 
+/* Prev and next, the label card's chips brought into the head beside the close: always visible here, since the
+   sheet has no picture to keep clean. */
+.acs-sheet__paging {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.acs-sheet__paging[hidden] {
+  display: none;
+}
+
+.acs-sheet__paging:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-black);
+}
+
+.acs-sheet__paging:disabled {
+  color: var(--color-neutral-400);
+  cursor: default;
+}
+
+.acs-sheet__paging:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-sheet__paging img {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.acs-sheet__paging:disabled img {
+  opacity: 0.4;
+}
+
 .acs-sheet__close {
   flex: none;
   width: 32px;
@@ -1272,11 +1330,10 @@
   display: none;
 }
 
-/* Cards shrink to fit: as many across as the width allows, a small cluster spreading out and a large one packing
-   in, every card the same 3:2 picture over a short caption. */
+/* Fixed-width cards, as many across as the sheet's width allows. */
 .acs-sheet__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, var(--acs-sheet-card));
   gap: var(--space-sm);
   margin: 0;
   padding: 0;
@@ -1473,6 +1530,7 @@
    the block's elevation profile, the chart takes the bar's place between the dots (its figure and the slot around it
    are flattened into the grid, so the legend can span the full width under the chart) and the bar becomes a pill. */
 .acs-panel__components {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -1556,6 +1614,21 @@ button.acs-panel__end:focus-visible {
   background: var(--color-neutral-200);
 }
 
+/* Where the road carries on as another street: an arrow in place of a score, pointing the way. */
+.acs-panel__dot--continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-neutral-100);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-700);
+}
+
+.acs-panel__end--continue .acs-panel__end-note {
+  max-width: calc(96px * var(--ui-scale, 1));
+  color: var(--color-neutral-black);
+}
+
 .acs-panel__end-score {
   font: var(--text-body-bold);
   color: var(--color-neutral-black);
@@ -1595,14 +1668,16 @@ button.acs-panel__end:focus-visible {
 
 /* ---- The crossing card (#5748): a top-down view of the crossing and the crops of what is there ---- */
 
-/* A full-width row of the components grid right under the dots, with a tail up to the dot that opened it (the
-   panel sets --acs-card-tail-left from where the dot is). A tooltip: it is pictures and figures only, and it closes
-   as the pointer or focus leaves the dot. */
+/* Floats over whatever follows the dots, full width, with a tail up to the dot that opened it (the panel sets
+   --acs-card-top and --acs-card-tail-left from where the dot is). Out of the flow on purpose: a card in the flow
+   pushed the rows down while the pointer was on its way to them. A tooltip: it is pictures and figures only, and it
+   closes as the pointer or focus leaves the dot. */
 .acs-crossing-card {
-  position: relative;
-  grid-column: 1 / -1;
-  grid-row: 3;
-  margin-top: var(--space-sm);
+  position: absolute;
+  top: var(--acs-card-top, 100%);
+  right: 0;
+  left: 0;
+  z-index: 2;
   padding: var(--space-xs);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius-lg);
@@ -1758,22 +1833,47 @@ button.acs-panel__end:focus-visible {
   list-style: none;
 }
 
+/* A type's row is a button: hovered it keeps only that type's tiles, pressed it pins that. The grade row, which has
+   no tiles to keep, is a plain row. */
 .acs-row {
   display: grid;
   grid-template-columns: 12px 1fr auto auto;
   align-items: center;
   gap: var(--space-xxs) var(--space-xs);
+  width: 100%;
+  margin: 0;
   padding: var(--space-xxs) var(--space-xs);
   border: 1px solid transparent;
   border-radius: var(--border-radius);
+  background: none;
   font: var(--text-caption-regular);
+  color: inherit;
+  text-align: left;
   cursor: default;
+}
+
+button.acs-row {
+  cursor: pointer;
 }
 
 .acs-row:hover,
 .acs-row.is-on {
   background: var(--color-neutral-100);
   border-color: var(--color-neutral-200);
+}
+
+.acs-row.is-pinned {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-900);
+}
+
+/* The way out of a pinned filter, beside the evidence heading. */
+.acs-panel__filter {
+  margin-left: auto;
+}
+
+.acs-panel__filter[hidden] {
+  display: none;
 }
 
 .acs-row:focus-visible {

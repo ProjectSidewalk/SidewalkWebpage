@@ -16,7 +16,7 @@ mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
   LabelDetail: {
     create: async (_root, opts) => {
       cardOpts = opts;
-      return { panoManager: {}, showLabel: vi.fn() };
+      return { panoManager: {}, showLabel: vi.fn(), saveOpenEdits: vi.fn() };
     },
     urlLabelId: () => null,
     syncUrlLabelId: vi.fn(),
