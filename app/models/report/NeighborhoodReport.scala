@@ -444,22 +444,26 @@ object ReportRules {
 
   /**
    * The region's worst problems, for its map: every location whose rating, the median the score uses, sits at the bad
-   * end of its type's scale. A type with no scale has no worst end, so missing sidewalks never appear here.
+   * end of its type's scale. The same set the headline counts, so the two never state different numbers. A type with no
+   * scale has no worst end, so missing sidewalks never appear here.
+   *
+   * The pictured label is picked without a crop check: its card is fetched only when a reader opens it, and each check
+   * is a file stat on prod's spinning disks, for every worst location on every load.
    *
    * @param locations The region's locations, each once
-   * @param labels    Counted labels by id; a location whose labels review has all marked incorrect drops out
-   * @return One card per location, in the canonical type order and then by cluster id, so a reload draws the same map.
+   * @param labels    Counted labels by id
+   * @return One per location, in the canonical type order and then by cluster id, so a reload draws the same map.
    */
-  def worstProblems(
-      locations: Seq[ReportLocation],
-      labels: Map[Int, ReportLabel],
-      hasCrop: ReportLabel => Boolean
-  ): Seq[ReportCard] = {
+  def worstProblems(locations: Seq[ReportLocation], labels: Map[Int, ReportLabel]): Seq[WorstProblem] = {
     val typeOrder = LabelType.ordered.zipWithIndex.toMap
     locations
       .filter(_.isWorst)
       .sortBy(l => (typeOrder.getOrElse(l.labelType, Int.MaxValue), l.clusterId))
-      .flatMap(l => representative(ReportItem(Seq(l), 0.0), labels, hasCrop).map(ReportCard(l, _, 0.0, 1)))
+      .flatMap { l =>
+        // A location whose labels were all rejected since clustering still counts in the score, so it keeps its dot.
+        val pictured = representative(ReportItem(Seq(l), 0.0), labels, _ => false).map(_.labelId)
+        pictured.orElse(l.labelIds.headOption).map(WorstProblem(l, _, l.labelIds.filter(labels.contains)))
+      }
   }
 
   /**
@@ -737,6 +741,14 @@ object InventoryRow {
 case class ReportCard(location: ReportLocation, label: ReportLabel, costPoints: Double, poolSize: Int)
 
 /**
+ * A dot on the worst-problems map.
+ *
+ * @param labelId    The label its card shows
+ * @param countedIds Its labels less any review rejected, which are what its count links to
+ */
+case class WorstProblem(location: ReportLocation, labelId: Int, countedIds: Seq[Int])
+
+/**
  * One label type's evidence on a street row.
  *
  * @param locations How many locations of this type are behind the row's score
@@ -857,11 +869,11 @@ case class NeighborhoodReport(
     weights: AccessScoreWeights = AccessScoreWeights.Default,
     contributions: Map[String, Double] = Map.empty,
     places: Seq[ReportPlace] = Nil,
-    worst: Seq[ReportCard] = Nil
+    worst: Seq[WorstProblem] = Nil
 ) {
 
   /** @return The worst problems by type, in the canonical type order, leaving out types that have none. */
-  def worstByType: Seq[(LabelType, Seq[ReportCard])] = {
+  def worstByType: Seq[(LabelType, Seq[WorstProblem])] = {
     val byType = worst.groupBy(_.location.labelType)
     LabelType.ordered.flatMap(t => byType.get(t).map(t -> _))
   }
@@ -1149,17 +1161,17 @@ object ReportClientData {
           "coordinates" -> e.coordinates.map { case (lng, lat) => Json.arr(rounded(lng), rounded(lat)) }
         )
       },
-      // A fix's still map is drawn in the browser, from its spot and its street.
       // The worst-problems map's dots; a dot's card is fetched only when it's opened.
-      "worst" -> report.worst.map { card =>
+      "worst" -> report.worst.map { dot =>
         Json.obj(
-          "clusterId" -> card.location.clusterId,
-          "labelId"   -> card.label.labelId,
-          "labelType" -> card.location.labelType.name,
-          "lat"       -> rounded(card.location.latitude),
-          "lng"       -> rounded(card.location.longitude)
+          "clusterId" -> dot.location.clusterId,
+          "labelId"   -> dot.labelId,
+          "labelType" -> dot.location.labelType.name,
+          "lat"       -> rounded(dot.location.latitude),
+          "lng"       -> rounded(dot.location.longitude)
         )
       },
+      // A fix's still map is drawn in the browser, from its spot and its street.
       "fixes" -> report.fixes.map { fix =>
         Json.obj(
           "labelId"   -> fix.label.labelId,

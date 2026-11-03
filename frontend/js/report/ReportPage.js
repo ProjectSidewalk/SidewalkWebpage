@@ -309,6 +309,7 @@ export class ReportPage {
           this.#log(`Report_WorstMapClick_LabelType=${problem.labelType}`);
           this.#openProblem(problem);
         },
+        onProblemClose: () => this.#log('Report_WorstCardClose'),
       });
     }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
     observer.observe(host);
@@ -350,7 +351,9 @@ export class ReportPage {
     const card = this.#deps.buildCard(entry, this.#log);
     card.render(content);
     card.refitTags?.();
-    card.loadImage?.();
+    this.#worstMap.refitProblem();
+    await card.loadImage?.();
+    if (popup.isOpen()) this.#worstMap.refitProblem();
   }
 
   /** Brings sections up as they near the viewport, and gives maps to whichever of those are closest to it. */

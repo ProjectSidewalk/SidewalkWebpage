@@ -33,14 +33,10 @@ function paintScores(root) {
     /** @type {HTMLElement} */ (bar).style.width = `${Math.max(0, Math.min(1, score)) * 100}%`;
     /** @type {HTMLElement} */ (bar).style.background = ScoreRamp.at(score);
   }
-  for (const element of root.querySelectorAll('.report-hist__bar')) {
+  for (const element of root.querySelectorAll('.report-hist__bar, .report-worst__bar')) {
     const bar = /** @type {HTMLElement} */ (element);
     bar.style.width = `${Math.max(0, Math.min(1, Number(bar.dataset.share))) * 100}%`;
-  }
-  for (const element of root.querySelectorAll('.report-worst__bar')) {
-    const bar = /** @type {HTMLElement} */ (element);
-    bar.style.width = `${Math.max(0, Math.min(1, Number(bar.dataset.share))) * 100}%`;
-    bar.style.background = util.misc.getLabelColors(bar.dataset.labelType);
+    if (bar.dataset.labelType) bar.style.background = util.misc.getLabelColors(bar.dataset.labelType);
   }
   for (const element of root.querySelectorAll('.report-toc__dot')) {
     const dot = /** @type {HTMLElement} */ (element);

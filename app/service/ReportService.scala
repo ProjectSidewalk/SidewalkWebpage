@@ -226,7 +226,7 @@ object ReportService {
       weights: AccessScoreWeights = AccessScoreWeights.Default,
       contributions: Map[String, Double] = Map.empty,
       places: Seq[ReportPlace] = Nil,
-      worst: Seq[ReportCard] = Nil
+      worst: Seq[WorstProblem] = Nil
   ): NeighborhoodReport = {
     val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
@@ -419,7 +419,7 @@ class ReportServiceImpl @Inject() (
       weights,
       contributions(streets, intersections, regionId),
       ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet),
-      ReportRules.worstProblems(regionWide, counted, hasCrop)
+      ReportRules.worstProblems(regionWide, counted)
     )
   }
 }

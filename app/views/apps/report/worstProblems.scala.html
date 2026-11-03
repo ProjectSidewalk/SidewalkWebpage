@@ -9,6 +9,8 @@
  *
  * A location is the unit the score counts, so its rating is the cluster's median and the counts can sit below the
  * inventory's, which counts labels. Unrated types, missing sidewalks above all, have no worst end and aren't here.
+ * Past the Gallery's list cap, a count links to the type's labels rated worst instead: Gallery can't filter by a
+ * location's median, so that view is close to the count but not the same set.
  *
  * @param report The computed report.
  *@
@@ -43,7 +45,7 @@
                 }
               </span>
               <span class="report-worst__track" aria-hidden="true"><span class="report-worst__bar" data-label-type="@labelType.name" data-share="@(cards.size.toDouble / most)"></span></span>
-              <a class="report-worst__count" href="@ReportLinks.count(cards.flatMap(_.location.labelIds), ReportLinks.galleryFilter(report.regionId, Some(labelType), ReportRules.worstRating(labelType.ratingScale).toSeq))"
+              <a class="report-worst__count" href="@ReportLinks.count(cards.flatMap(_.countedIds), ReportLinks.galleryFilter(report.regionId, Some(labelType), ReportRules.worstRating(labelType.ratingScale).toSeq))"
                  data-report-event="Report_OpenGallery" aria-label="@Messages("report.worst.count.label", cards.size, Messages(labelType.nameKey))">@Messages("report.count", cards.size)</a>
             </li>
           }

@@ -409,7 +409,7 @@ describe('ReportPage', () => {
       const make = deps.createMap.getMockImplementation();
       deps.createMap.mockImplementation((host, options) => {
         const map = make(host, options);
-        Object.assign(map, { lightType: vi.fn(), openProblem: vi.fn((problem, content) => {
+        Object.assign(map, { lightType: vi.fn(), refitProblem: vi.fn(), openProblem: vi.fn((problem, content) => {
           map.popupContent = content;
           return popup;
         }) });
@@ -453,6 +453,15 @@ describe('ReportPage', () => {
       expect(deps.fetchCards).toHaveBeenCalledWith([22]);
       const card = deps.buildCard.mock.results.at(-1).value;
       expect(card.render).toHaveBeenCalledWith(worstMap().popupContent);
+      // Once for the card replacing its loading line, once more for its photo: each can push it past the map's edge.
+      expect(worstMap().refitProblem).toHaveBeenCalledTimes(2);
+    });
+
+    test('closing a dot\'s card is logged', () => {
+      new ReportPage(worstData(), deps).start();
+      intersect(document.getElementById('report-worst-map'), true);
+      worstMap().options.onProblemClose();
+      expect(deps.log).toHaveBeenCalledWith('Report_WorstCardClose');
     });
 
     test('a card the server can\'t serve says so, and one closed before it arrives is never drawn', async () => {

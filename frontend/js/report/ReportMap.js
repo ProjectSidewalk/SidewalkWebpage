@@ -64,6 +64,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {ReportMapProblem[]} [problems] - Draws the worst-problems map: these as dots, the streets unscored.
  * @property {(labelType: ?string) => void} [onProblemHover] - With the type of the dot under the pointer.
  * @property {(problem: ReportMapProblem, lngLat: [number, number]) => void} [onProblemClick]
+ * @property {() => void} [onProblemClose] - When a card opened by `openProblem` closes, however it was closed.
  *
  * @typedef {object} ReportMapProblem
  * @property {number} clusterId
@@ -237,11 +238,14 @@ export class ReportMap {
 
     this.#map.once('load', () => {
       this.#addStreets(focusEdgeIds);
-      this.#addSidewalks();
-      this.#bindStreetPointer();
-      if (options.problems) this.#addProblems(options.problems);
-      this.#addViewpoint();
-      this.#addCursor();
+      if (options.problems) {
+        this.#addProblems(options.problems);
+      } else {
+        this.#addSidewalks();
+        this.#bindStreetPointer();
+        this.#addViewpoint();
+        this.#addCursor();
+      }
       this.#loaded = true;
       for (const work of this.#pending) work();
       this.#pending = [];
@@ -371,7 +375,7 @@ export class ReportMap {
   /** A street's line, or in sidewalk mode its present sides, leads to its section. */
   #bindStreetPointer() {
     const { onStreetHover, onStreetClick } = this.#options;
-    if (this.#options.focusEdgeIds || this.#options.problems) return;
+    if (this.#options.focusEdgeIds) return;
     for (const layer of [SCORED_LAYER, SIDEWALK_LAYER]) {
       this.#map.on('mousemove', layer, (e) => {
         this.#map.getCanvas().style.cursor = 'pointer';
@@ -516,13 +520,20 @@ export class ReportMap {
     });
 
     const { onProblemHover, onProblemClick } = this.#options;
+    // mousemove fires dozens of times over one dot, and each call restyles the layer, so only a change is passed on.
+    /** @type {?string} */ let hovered = null;
+    const hover = (labelType) => {
+      if (labelType === hovered) return;
+      hovered = labelType;
+      onProblemHover?.(labelType);
+    };
     this.#map.on('mousemove', PROBLEM_LAYER, (e) => {
       this.#map.getCanvas().style.cursor = 'pointer';
-      onProblemHover?.(e.features?.[0]?.properties?.labelType ?? null);
+      hover(e.features?.[0]?.properties?.labelType ?? null);
     });
     this.#map.on('mouseleave', PROBLEM_LAYER, () => {
       this.#map.getCanvas().style.cursor = '';
-      onProblemHover?.(null);
+      hover(null);
     });
     this.#map.on('click', PROBLEM_LAYER, (e) => {
       const props = e.features?.[0]?.properties;
@@ -552,7 +563,8 @@ export class ReportMap {
 
   /**
    * Opens a card over the map at a problem, closing any other. Escape closes it too, since MapLibre's popup only
-   * closes from its button or a click elsewhere.
+   * closes from its button or a click elsewhere. Closing returns focus to the map if it was inside the card, since the
+   * popup takes focus on opening and its removal would otherwise drop it to the page.
    * @param {ReportMapProblem} problem
    * @param {HTMLElement} content - What to show; the host fills it in as the card arrives.
    * @returns {maplibregl.Popup}
@@ -577,12 +589,24 @@ export class ReportMap {
     };
     popup.getElement().addEventListener('keydown', onKey);
     popup.on('close', () => {
-      if (this.#popup === popup) {
-        this.#popup = null;
-        ring(-1);
+      if (this.#popup !== popup) return;
+      this.#popup = null;
+      ring(-1);
+      const focus = document.activeElement;
+      if (!focus || focus === document.body || popup.getElement().contains(focus)) {
+        this.#map.getCanvas().focus({ preventScroll: true });
       }
+      this.#options.onProblemClose?.();
     });
     return popup;
+  }
+
+  /**
+   * Re-places the open card. MapLibre picks which side of the dot a popup sits on when it's placed, so a card that
+   * grows after that (its loading line replaced, then its photo) can run past the map's clipped edge until this runs.
+   */
+  refitProblem() {
+    this.#popup?.setLngLat(this.#popup.getLngLat());
   }
 
   /** The dot that follows the pointer along the street's elevation profile. */
@@ -796,6 +820,7 @@ export class ReportMap {
    * @param {?number[]} gradeBreaks - The classes' breaks, or null for score.
    */
   colorBy(gradeBreaks) {
+    if (this.#options.problems) return;
     this.#gradeBreaks = gradeBreaks;
     this.#whenLoaded(() => {
       const color = /** @type {any} */ (this.#colorExpression());
@@ -818,6 +843,7 @@ export class ReportMap {
    * @param {GeoJSON.FeatureCollection} faces - `/v3/api/sidewalkPresence`'s answer.
    */
   setSidewalks(faces) {
+    if (this.#options.problems) return;
     const edges = new Map(this.#options.edges.map((e) => [e.id, e]));
     const focused = new Set(this.#options.focusEdgeIds ?? []);
     const known = faces.features
@@ -848,6 +874,7 @@ export class ReportMap {
 
   /** @param {boolean} visible - Whether streets with known sides are drawn as their sides. */
   setSidewalksVisible(visible) {
+    if (this.#options.problems) return;
     this.#sidewalkMode = visible;
     this.#whenLoaded(() => {
       for (const layer of [SIDEWALK_LAYER, NO_SIDEWALK_LAYER]) {

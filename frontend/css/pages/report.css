@@ -393,23 +393,27 @@
 .report-worst__types {
   display: grid;
   grid-template-columns: auto minmax(60px, 1fr) auto;
-  gap: 2px var(--space-xs);
+  gap: 0 var(--space-xs);
   align-items: center;
   padding: 0;
   margin: var(--space-xs) 0 0;
   list-style: none;
 }
 
-/* Rows join the parent grid so names, bars and counts line up; the row's own box is only for its highlight. */
+/*
+ * Rows are subgrids, so names, bars and counts line up across rows while each row stays one box: the pointer never
+ * leaves a row crossing its column gaps (which `display: contents` would make flicker), and it stays a list item.
+ */
 .report-worst__type {
-  display: contents;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: var(--space-xxs) var(--space-xxs);
+  border-radius: var(--border-radius-sm);
 }
 
-.report-worst__type > * {
-  padding: var(--space-xxs) 0;
-}
-
-.report-worst__type.is-highlighted > * {
+.report-worst__type.is-highlighted {
   background: var(--color-neutral-100);
 }
 

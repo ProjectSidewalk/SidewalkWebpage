@@ -731,7 +731,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportPlace.near(places, Set(7)).head.distanceMeters shouldBe 20.0
   }
 
-  test("the worst-problems map holds rated locations at their worst median, and nothing review rejected") {
+  test("the worst-problems map holds rated locations at their worst median, as the headline counts them") {
     val locations = Seq(
       loc(1, Obstacle, Some(3)),
       loc(2, Obstacle, Some(2), labelIds = Some(Seq(20, 21))),
@@ -751,9 +751,14 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       label(50, CurbRamp),
       label(70, Occlusion, None)
     ).map(l => l.labelId -> l).toMap
-    val worst = ReportRules.worstProblems(locations, counted, noCrop)
-    worst.map(_.location.clusterId) shouldBe Seq(5, 1, 4)
-    worst.map(_.label.labelId) shouldBe Seq(50, 10, 40)
+    val worst = ReportRules.worstProblems(locations, counted)
+    worst.map(_.location.clusterId) shouldBe Seq(5, 1, 6, 4)
+    worst.map(_.labelId) shouldBe Seq(50, 10, 60, 40)
+    // A rejected label stays on the dot, as in the score, but out of what its count links to.
+    worst.map(_.countedIds) shouldBe Seq(Seq(50), Seq(10), Nil, Seq(40))
+    worst.map(_.location) shouldBe locations
+      .filter(_.isWorst)
+      .sortBy(l => (LabelType.ordered.indexOf(l.labelType), l.clusterId))
 
     val report = service.ReportService.assemble(
       1,
@@ -768,7 +773,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       worst = worst
     )
     val sizes = report.worstByType.map((t, cards) => t -> cards.size)
-    sizes shouldBe Seq(CurbRamp -> 1, Obstacle -> 1, Other -> 1)
+    sizes shouldBe Seq(CurbRamp -> 1, Obstacle -> 2, Other -> 1)
   }
 
   test("a report's links carry a reader's weights, and only those") {
