@@ -21,6 +21,7 @@
 @if(report.streets.nonEmpty) {
 <section class="report-section report-streets" aria-labelledby="report-streets-title">
   <h2 class="report-section__title" id="report-streets-title">@Messages("report.toc.details")</h2>
+  <p class="report-section__lede">@Messages("report.details.order", report.detailed.size)</p>
     <ol class="report-street-list">
       @for(row <- report.detailed) {
         <li class="report-street" id="@row.anchor" data-street="@row.street.worst.toolEdgeId">
@@ -51,7 +52,7 @@
                 <a class="report-count" href="@ReportLinks.labelList(evidence.labelIds)" data-report-event="Report_OpenGallery">
                   <img src='@assets.path(evidence.labelType.smallIconSvgPath)' alt="" width="16" height="16">
                   @Messages(evidence.labelType.nameKey):
-                  <span class="report-count__number">@Messages("report.count.locations", evidence.locations, evidence.labelIds.size)</span>
+                  <span class="report-count__number">@Messages("report.count.locations", evidence.locations)</span>
                 </a>
               </li>
             }
