@@ -731,6 +731,52 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportPlace.near(places, Set(7)).head.distanceMeters shouldBe 20.0
   }
 
+  test("the worst-problems map holds rated locations at their worst median, as the headline counts them") {
+    val locations = Seq(
+      loc(1, Obstacle, Some(3)),
+      loc(2, Obstacle, Some(2), labelIds = Some(Seq(20, 21))),
+      loc(3, NoSidewalk, None),
+      loc(4, Other, Some(3)),
+      loc(5, CurbRamp, Some(3)),
+      loc(6, Obstacle, Some(3)),
+      loc(7, Occlusion, None)
+    )
+    // Location 2 holds a label rated 3, but its median is 2; location 6's only label was marked incorrect.
+    val counted = Seq(
+      label(10),
+      label(20, severity = Some(2)),
+      label(21),
+      label(30, NoSidewalk, None),
+      label(40, Other),
+      label(50, CurbRamp),
+      label(70, Occlusion, None)
+    ).map(l => l.labelId -> l).toMap
+    val worst = ReportRules.worstProblems(locations, counted, noCrop)
+    worst.map(_.location.clusterId) shouldBe Seq(5, 1, 6, 4)
+    // Location 6 keeps its dot, as it stays in the score, but has no label left to picture.
+    worst.map(_.labelId) shouldBe Seq(Some(50), Some(10), None, Some(40))
+    // A rejected label stays on the dot, as in the score, but out of what its count links to.
+    worst.map(_.countedIds) shouldBe Seq(Seq(50), Seq(10), Nil, Seq(40))
+    worst.map(_.location) shouldBe locations
+      .filter(_.isWorst)
+      .sortBy(l => (LabelType.ordered.indexOf(l.labelType), l.clusterId))
+
+    val report = service.ReportService.assemble(
+      1,
+      "R",
+      Nil,
+      Nil,
+      Map.empty,
+      service.ReportData(None, Nil, Nil, Nil),
+      service.ReportService.ReportSelection(Nil, Nil, Nil),
+      None,
+      created,
+      worst = worst
+    )
+    val sizes = report.worstByType.map((t, cards) => t -> cards.size)
+    sizes shouldBe Seq(CurbRamp -> 1, Obstacle -> 2, Other -> 1)
+  }
+
   test("a report's links carry a reader's weights, and only those") {
     import service.AccessScoreWeights
     ReportLinks.report("a-st") shouldBe "/report/neighborhood/a-st"

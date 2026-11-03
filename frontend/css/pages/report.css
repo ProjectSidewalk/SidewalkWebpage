@@ -381,6 +381,78 @@
   top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--space-sm));
 }
 
+/* ---- Worst problems ---------------------------------------------------------------------------------------- */
+
+.report-worst__body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.report-worst__types {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  gap: 0 var(--space-xs);
+  align-items: center;
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  list-style: none;
+}
+
+/*
+ * Rows are subgrids, so names, bars and counts line up across rows while each row stays one box: the pointer never
+ * leaves a row crossing its column gaps (which `display: contents` would make flicker), and it stays a list item.
+ */
+.report-worst__type {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: var(--space-xxs) var(--space-xxs);
+  border-radius: var(--border-radius-sm);
+}
+
+.report-worst__type.is-highlighted {
+  background: var(--color-neutral-100);
+}
+
+.report-worst__name {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-small-bold);
+}
+
+.report-worst__rating {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-worst__count {
+  font: var(--text-small-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.report-worst__note {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* A dot's Gallery card, over the map: one card's width, as in a street's section. */
+.report-problem-popup .maplibregl-popup-content {
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.report-problem {
+  width: 220px;
+  font: var(--text-small-regular);
+}
+
 /* ---- Maps ----------------------------------------------------------------------------------------------------- */
 
 .report-map {
@@ -1181,7 +1253,9 @@ button.report-map-place:focus-visible {
   color: var(--color-neutral-800);
 }
 
-.report-hist__track {
+/* The worst-problems bars are drawn the same way, colored by type instead of rating. */
+.report-hist__track,
+.report-worst__track {
   display: block;
   height: 10px;
   overflow: hidden;
@@ -1189,7 +1263,8 @@ button.report-map-place:focus-visible {
   border-radius: 4px;
 }
 
-.report-hist__bar {
+.report-hist__bar,
+.report-worst__bar {
   display: block;
   width: 0;
   height: 100%;
@@ -1266,7 +1341,8 @@ button.report-map-place:focus-visible {
 /* ---- Small screens: var(--breakpoint-sm) ---------------------------------------------------------------------- */
 
 @media (width <= 768px) {
-  .report-overview__body {
+  .report-overview__body,
+  .report-worst__body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1295,6 +1371,15 @@ button.report-map-place:focus-visible {
   .report-overview__where,
   .report-street__where {
     position: static;
+  }
+
+  /* A canvas prints blank and hundreds of dots don't sketch legibly, so paper gets the counts alone. */
+  .report-worst__where {
+    display: none;
+  }
+
+  .report-worst__body {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Paper has no hover, so a street's map can be small and its cards the point. */

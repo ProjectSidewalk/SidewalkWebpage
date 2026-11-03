@@ -18,5 +18,11 @@
     "street": "{{street}} · à {{distance}}",
     "unscored": "Sa rue n'a pas encore de score",
     "unnamed": "Rue sans nom"
+  },
+  "worst": {
+    "close": "Fermer",
+    "unavailable": "Impossible de charger la carte de cette étiquette.",
+    "loading": "Chargement…",
+    "rejected": "Toutes les étiquettes de ce lieu ont été marquées incorrectes après le dernier calcul des scores de ce rapport : il n'y a donc pas de carte à afficher."
   }
 }

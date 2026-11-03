@@ -1,5 +1,6 @@
 /**
- * Runs what a report draws in the browser: the region map beside the street list, one section per street, the fixes'
+ * Runs what a report draws in the browser: the region map beside the street list, the worst-problems map, one section
+ * per street, the fixes'
  * cards, and the sidebar's controls. It decides when each piece exists, since the page may have fifty streets and a
  * browser has room for only a few live maps.
  */
@@ -10,6 +11,7 @@ import { AccessScoreWeightsPanel } from '../access-score/AccessScoreWeightsPanel
 import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { ReportStreetSection } from './ReportStreetSection.js';
 import { reportSketch } from './reportSketch.js';
+import i18next from 'i18next';
 
 export class ReportPage {
   /** Well under the browser's limit of about 16, and more than fit on a screen. */
@@ -27,6 +29,7 @@ export class ReportPage {
   /** @type {?Promise<Record<string, any>>} */ #config = null;
   /** @type {?IntersectionObserver} */ #observer = null;
   /** @type {any} */ #regionMap = null;
+  /** @type {any} */ #worstMap = null;
   /** @type {?IntersectionObserver} */ #slotObserver = null;
   /** @type {(event: string) => void} */ #log;
   /** @type {HTMLElement[]} */ #fixSlots = [];
@@ -72,6 +75,7 @@ export class ReportPage {
       if (element) this.#sections.push(new ReportStreetSection(element, street, sectionDeps));
     }
     this.#startRegionMap();
+    this.#startWorstMap();
     this.#watchSections();
     this.#watchFixes();
     this.#wireSidewalkToggle();
@@ -273,6 +277,96 @@ export class ReportPage {
       row.addEventListener('mouseleave', off);
       row.addEventListener('focusin', on);
       row.addEventListener('focusout', off);
+    }
+  }
+
+  /**
+   * The worst-problems map, linked with the type list beside it: a type's row lights its dots, a dot lights its row,
+   * and a dot opens its location's Gallery card over the map.
+   */
+  #startWorstMap() {
+    const host = document.getElementById('report-worst-map');
+    if (!host) return;
+    const rows = new Map([...document.querySelectorAll('.report-worst__type')].map((row) => [
+      /** @type {HTMLElement} */ (row).dataset.labelType, row,
+    ]));
+    // Logged once per type, so a sweep down the list isn't a flood.
+    /** @type {Set<string>} */
+    const hovered = new Set();
+    // A row with keyboard focus stays lit when the pointer moves off, as the region map keeps its selected street.
+    const focusedType = () => /** @type {?HTMLElement} */ (document.activeElement?.closest('.report-worst__type'))
+      ?.dataset.labelType ?? null;
+    const light = (labelType) => {
+      const lit = labelType ?? focusedType();
+      for (const [type, row] of rows) row.classList.toggle('is-highlighted', type === lit);
+      this.#worstMap?.lightType(lit);
+    };
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting) || this.#worstMap) return;
+      observer.disconnect();
+      this.#worstMap = this.#deps.createMap(host, {
+        basemap: this.#data.basemap,
+        edges: this.#data.edges,
+        problems: this.#data.worst ?? [],
+        onProblemHover: light,
+        onProblemClick: (problem) => {
+          this.#log(`Report_WorstMapClick_LabelType=${problem.labelType}`);
+          this.#openProblem(problem);
+        },
+        onProblemClose: () => this.#log('Report_WorstCardClose'),
+      });
+    }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
+    observer.observe(host);
+    for (const [type, row] of rows) {
+      const on = () => {
+        if (!hovered.has(type)) this.#log(`Report_WorstTypeHover_LabelType=${type}`);
+        hovered.add(type);
+        light(type);
+      };
+      row.addEventListener('mouseenter', on);
+      row.addEventListener('mouseleave', () => light(null));
+      row.addEventListener('focusin', on);
+      row.addEventListener('focusout', (e) => {
+        if (!row.contains(/** @type {?Node} */ (e.relatedTarget))) light(null);
+      });
+    }
+  }
+
+  /**
+   * Opens a location's card over the worst map, built by the Gallery's own code so it reads and votes as it does there.
+   * @param {{labelId: ?number, labelType: string}} problem
+   * @returns {Promise<void>} Resolves once the card is drawn, or has failed to be.
+   */
+  async #openProblem(problem) {
+    const content = document.createElement('div');
+    content.className = 'report-problem';
+    content.textContent = i18next.t('report:worst.loading');
+    const popup = this.#worstMap.openProblem(problem, content);
+    const say = (key) => {
+      content.textContent = i18next.t(key);
+      this.#worstMap.refitProblem();
+    };
+    if (problem.labelId === null) {
+      say('report:worst.rejected');
+      return;
+    }
+    try {
+      const entry = (await this.#deps.fetchCards([problem.labelId])).get(problem.labelId) ?? null;
+      if (!popup.isOpen()) return;
+      if (!entry) {
+        say('report:worst.unavailable');
+        return;
+      }
+      content.replaceChildren();
+      const card = this.#deps.buildCard(entry, this.#log);
+      card.render(content);
+      card.refitTags?.();
+      this.#worstMap.refitProblem();
+      await card.loadImage?.();
+      if (popup.isOpen()) this.#worstMap.refitProblem();
+    } catch (err) {
+      console.error(err);
+      if (popup.isOpen()) say('report:worst.unavailable');
     }
   }
 

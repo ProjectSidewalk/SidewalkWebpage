@@ -7,6 +7,9 @@
  * the street's own color, and a side without one dashed. The color is still the street's (no score is per side), so
  * the two never compete for the one meaning a line's color has.
  *
+ * Given problems instead of locations, it is the worst-problems map: every street in a quiet grey under one dot per
+ * location, colored by type, so the dots are the only color on it.
+ *
  * It knows nothing of cards. A host hears which location or street the pointer is on and tells it what to light, so
  * the same map serves the overview and a street's section.
  */
@@ -58,6 +61,17 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
  * @property {ReportMapPlace[]} [places] - Important places to show.
+ * @property {ReportMapProblem[]} [problems] - Draws the worst-problems map: these as dots, the streets unscored.
+ * @property {(labelType: ?string) => void} [onProblemHover] - With the type of the dot under the pointer.
+ * @property {(problem: ReportMapProblem, lngLat: [number, number]) => void} [onProblemClick]
+ * @property {() => void} [onProblemClose] - When a card opened by `openProblem` closes, however it was closed.
+ *
+ * @typedef {object} ReportMapProblem
+ * @property {number} clusterId
+ * @property {?number} labelId - The label that pictures it; null when review has rejected them all.
+ * @property {string} labelType
+ * @property {number} lat
+ * @property {number} lng
  *
  * @typedef {object} ReportMapPlace
  * @property {?string} name
@@ -72,6 +86,11 @@ const STREETS_SOURCE = 'report-streets';
 const SIDEWALKS_SOURCE = 'report-sidewalks';
 const VIEWPOINT_SOURCE = 'report-viewpoint';
 const CURSOR_SOURCE = 'report-cursor';
+const PROBLEMS_SOURCE = 'report-problems';
+const PROBLEM_LAYER = 'report-problems';
+const PROBLEM_OPEN_LAYER = 'report-problem-open';
+// A dot fades to this when another type is lit: still there, so the reader keeps their bearings.
+const UNLIT_OPACITY = 0.15;
 const CONTEXT_LAYER = 'report-streets-context';
 const LIT_STREET_LAYER = 'report-street-lit';
 const SCORED_LAYER = 'report-streets-scored';
@@ -173,6 +192,7 @@ export class ReportMap {
   /** @type {Set<number>} Edges with at least one side known, which sidewalk mode draws as sides. */
   #sided = new Set();
   /** @type {AccessScoreMapLegend} */ #legend;
+  /** @type {?maplibregl.Popup} */ #popup = null;
   #prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
   /**
@@ -206,20 +226,26 @@ export class ReportMap {
         'CooperativeGesturesHandler.WindowsHelpText': i18next.t('report:map.gesture-windows'),
         'CooperativeGesturesHandler.MacHelpText': i18next.t('report:map.gesture-mac'),
         'CooperativeGesturesHandler.MobileHelpText': i18next.t('report:map.gesture-touch'),
+        'Popup.Close': i18next.t('report:worst.close'),
       },
     });
     if (!still) {
       this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
       this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-      this.#addLegend();
+      // The worst map's only color is its dots', whose key is the type list beside it.
+      if (!options.problems) this.#addLegend();
     }
 
     this.#map.once('load', () => {
       this.#addStreets(focusEdgeIds);
-      this.#addSidewalks();
-      this.#bindStreetPointer();
-      this.#addViewpoint();
-      this.#addCursor();
+      if (options.problems) {
+        this.#addProblems(options.problems);
+      } else {
+        this.#addSidewalks();
+        this.#bindStreetPointer();
+        this.#addViewpoint();
+        this.#addCursor();
+      }
       this.#loaded = true;
       for (const work of this.#pending) work();
       this.#pending = [];
@@ -319,6 +345,13 @@ export class ReportMap {
     const line = (id, filter, paint) => this.#map.addLayer({
       id, type: 'line', source: STREETS_SOURCE, filter, layout: { 'line-cap': 'round', 'line-join': 'round' }, paint,
     });
+
+    // Explored streets a shade darker than the rest, so a reader sees where nobody has looked, and so found nothing.
+    if (this.#options.problems) {
+      line(CONTEXT_LAYER, ['!', ['get', 'explored']], { 'line-color': token('--color-neutral-300'), 'line-width': 2 });
+      line(SCORED_LAYER, ['get', 'explored'], { 'line-color': token('--color-neutral-500'), 'line-width': 3 });
+      return;
+    }
 
     if (focusEdgeIds) {
       line(CONTEXT_LAYER, ['!', ['get', 'focused']], { 'line-color': token('--color-neutral-400'), 'line-width': 2 });
@@ -440,6 +473,142 @@ export class ReportMap {
       filter: ['==', ['geometry-type'], 'Point'],
       paint: { 'circle-color': color, 'circle-radius': 5, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
     });
+  }
+
+  /**
+   * A dot per problem, and a ring for the one whose card is open.
+   * @param {ReportMapProblem[]} problems
+   */
+  #addProblems(problems) {
+    this.#map.addSource(PROBLEMS_SOURCE, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: problems.map((p) => ({
+          type: 'Feature',
+          properties: {
+            clusterId: p.clusterId, labelId: p.labelId, labelType: p.labelType,
+            color: util.misc.getLabelColors(p.labelType),
+          },
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        })),
+      },
+    });
+    const radius = /** @type {any} */ (['interpolate', ['linear'], ['zoom'], 12, 3, 15, 5, 18, 8]);
+    this.#map.addLayer({
+      id: PROBLEM_LAYER,
+      type: 'circle',
+      source: PROBLEMS_SOURCE,
+      paint: {
+        'circle-color': ['get', 'color'],
+        'circle-radius': radius,
+        // Dark, not white: the palest type color (Other's grey) needs it to stand off the grey streets (WCAG 1.4.11).
+        'circle-stroke-color': token('--color-neutral-900'),
+        'circle-stroke-width': 1,
+      },
+    });
+    this.#map.addLayer({
+      id: PROBLEM_OPEN_LAYER,
+      type: 'circle',
+      source: PROBLEMS_SOURCE,
+      filter: ['==', ['get', 'clusterId'], -1],
+      paint: {
+        'circle-color': ['get', 'color'],
+        'circle-radius': /** @type {any} */ (['interpolate', ['linear'], ['zoom'], 12, 6, 15, 8, 18, 11]),
+        'circle-stroke-color': token('--color-neutral-900'),
+        'circle-stroke-width': 2.5,
+      },
+    });
+
+    const { onProblemHover, onProblemClick } = this.#options;
+    // mousemove fires dozens of times over one dot, and each call restyles the layer, so only a change is passed on.
+    /** @type {?string} */ let hovered = null;
+    const hover = (labelType) => {
+      if (labelType === hovered) return;
+      hovered = labelType;
+      onProblemHover?.(labelType);
+    };
+    this.#map.on('mousemove', PROBLEM_LAYER, (e) => {
+      this.#map.getCanvas().style.cursor = 'pointer';
+      hover(e.features?.[0]?.properties?.labelType ?? null);
+    });
+    this.#map.on('mouseleave', PROBLEM_LAYER, () => {
+      this.#map.getCanvas().style.cursor = '';
+      hover(null);
+    });
+    this.#map.on('click', PROBLEM_LAYER, (e) => {
+      const props = e.features?.[0]?.properties;
+      const problem = props && problems.find((p) => p.clusterId === props.clusterId);
+      if (problem) onProblemClick?.(problem, [problem.lng, problem.lat]);
+    });
+    // The popup's own close-on-click would also hear the click that opens it, so a click off every dot closes it here.
+    this.#map.on('click', (e) => {
+      const layers = [PROBLEM_LAYER, PROBLEM_OPEN_LAYER];
+      if (this.#map.queryRenderedFeatures(e.point, { layers }).length === 0) this.#popup?.remove();
+    });
+  }
+
+  /**
+   * Lights one type's dots by fading the rest.
+   * @param {?string} labelType - The type, or null to show every dot alike.
+   */
+  lightType(labelType) {
+    this.#whenLoaded(() => {
+      if (!this.#map.getLayer(PROBLEM_LAYER)) return;
+      const opacity = labelType === null
+        ? 1
+        : ['case', ['==', ['get', 'labelType'], labelType], 1, UNLIT_OPACITY];
+      this.#map.setPaintProperty(PROBLEM_LAYER, 'circle-opacity', /** @type {any} */ (opacity));
+      this.#map.setPaintProperty(PROBLEM_LAYER, 'circle-stroke-opacity', /** @type {any} */ (opacity));
+    });
+  }
+
+  /**
+   * Opens a card over the map at a problem, closing any other. Escape closes it too, since MapLibre's popup only
+   * closes from its button or a click elsewhere. Closing returns focus to the map if it was inside the card, since the
+   * popup takes focus on opening and its removal would otherwise drop it to the page.
+   * @param {ReportMapProblem} problem
+   * @param {HTMLElement} content - What to show; the host fills it in as the card arrives.
+   * @returns {maplibregl.Popup}
+   */
+  openProblem(problem, content) {
+    this.#popup?.remove();
+    const popup = new maplibregl.Popup({
+      maxWidth: 'none', className: 'report-problem-popup', focusAfterOpen: true, closeOnClick: false,
+    })
+      .setLngLat([problem.lng, problem.lat])
+      .setDOMContent(content)
+      .addTo(this.#map);
+    this.#popup = popup;
+    const ring = (id) => this.#whenLoaded(() => {
+      if (this.#map.getLayer(PROBLEM_OPEN_LAYER)) {
+        this.#map.setFilter(PROBLEM_OPEN_LAYER, ['==', ['get', 'clusterId'], id]);
+      }
+    });
+    ring(problem.clusterId);
+    const onKey = (e) => {
+      if (e.key === 'Escape') popup.remove();
+    };
+    popup.getElement().addEventListener('keydown', onKey);
+    popup.on('close', () => {
+      if (this.#popup !== popup) return;
+      this.#popup = null;
+      ring(-1);
+      const focus = document.activeElement;
+      if (!focus || focus === document.body || popup.getElement().contains(focus)) {
+        this.#map.getCanvas().focus({ preventScroll: true });
+      }
+      this.#options.onProblemClose?.();
+    });
+    return popup;
+  }
+
+  /**
+   * Re-places the open card. MapLibre picks which side of the dot a popup sits on when it's placed, so a card that
+   * grows after that (its loading line replaced, then its photo) can run past the map's clipped edge until this runs.
+   */
+  refitProblem() {
+    this.#popup?.setLngLat(this.#popup.getLngLat());
   }
 
   /** The dot that follows the pointer along the street's elevation profile. */
@@ -653,6 +822,7 @@ export class ReportMap {
    * @param {?number[]} gradeBreaks - The classes' breaks, or null for score.
    */
   colorBy(gradeBreaks) {
+    if (this.#options.problems) return;
     this.#gradeBreaks = gradeBreaks;
     this.#whenLoaded(() => {
       const color = /** @type {any} */ (this.#colorExpression());
@@ -675,6 +845,7 @@ export class ReportMap {
    * @param {GeoJSON.FeatureCollection} faces - `/v3/api/sidewalkPresence`'s answer.
    */
   setSidewalks(faces) {
+    if (this.#options.problems) return;
     const edges = new Map(this.#options.edges.map((e) => [e.id, e]));
     const focused = new Set(this.#options.focusEdgeIds ?? []);
     const known = faces.features
@@ -705,6 +876,7 @@ export class ReportMap {
 
   /** @param {boolean} visible - Whether streets with known sides are drawn as their sides. */
   setSidewalksVisible(visible) {
+    if (this.#options.problems) return;
     this.#sidewalkMode = visible;
     this.#whenLoaded(() => {
       for (const layer of [SIDEWALK_LAYER, NO_SIDEWALK_LAYER]) {

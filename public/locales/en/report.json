@@ -18,5 +18,11 @@
     "street": "{{street}} · {{distance}} away",
     "unscored": "Its street isn't scored yet",
     "unnamed": "Unnamed street"
+  },
+  "worst": {
+    "close": "Close",
+    "unavailable": "Couldn't load this label's card.",
+    "loading": "Loading…",
+    "rejected": "Every label here was marked incorrect after this report's scores were last computed, so there's no card to show."
   }
 }

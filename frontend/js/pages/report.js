@@ -24,7 +24,7 @@ import '../../css/pages/report.css';
 
 /**
  * Paints each overview bar and contents dot from the score the server states, so they use the ramp's own colors, and
- * sizes each rating histogram's bars.
+ * sizes each rating histogram's and worst-problems bar (the latter in its type's label color, as its dots are).
  * @param {ParentNode} root - Where to look.
  */
 function paintScores(root) {
@@ -33,9 +33,10 @@ function paintScores(root) {
     /** @type {HTMLElement} */ (bar).style.width = `${Math.max(0, Math.min(1, score)) * 100}%`;
     /** @type {HTMLElement} */ (bar).style.background = ScoreRamp.at(score);
   }
-  for (const element of root.querySelectorAll('.report-hist__bar')) {
+  for (const element of root.querySelectorAll('.report-hist__bar, .report-worst__bar')) {
     const bar = /** @type {HTMLElement} */ (element);
     bar.style.width = `${Math.max(0, Math.min(1, Number(bar.dataset.share))) * 100}%`;
+    if (bar.dataset.labelType) bar.style.background = util.misc.getLabelColors(bar.dataset.labelType);
   }
   for (const element of root.querySelectorAll('.report-toc__dot')) {
     const dot = /** @type {HTMLElement} */ (element);

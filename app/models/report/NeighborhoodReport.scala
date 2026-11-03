@@ -443,6 +443,33 @@ object ReportRules {
   }
 
   /**
+   * The region's worst problems, for its map: every location whose rating, the median the score uses, sits at the bad
+   * end of its type's scale. The same set the headline counts, so the two never state different numbers. A type with no
+   * scale has no worst end, so missing sidewalks never appear here.
+   *
+   * @param locations The region's locations, each once
+   * @param labels    Counted labels by id
+   * @param knownCrop Whether a label is known to have a crop, without looking: every worst location on every load
+   *                  would be a file stat on prod's spinning disks, for a card fetched only on click. Answering from the
+   *                  street sections' checks still pictures a location the same way its street's card does.
+   * @return One per location, in the canonical type order and then by cluster id, so a reload draws the same map.
+   */
+  def worstProblems(
+      locations: Seq[ReportLocation],
+      labels: Map[Int, ReportLabel],
+      knownCrop: ReportLabel => Boolean
+  ): Seq[WorstProblem] = {
+    val typeOrder = LabelType.ordered.zipWithIndex.toMap
+    locations
+      .filter(_.isWorst)
+      .sortBy(l => (typeOrder.getOrElse(l.labelType, Int.MaxValue), l.clusterId))
+      .map { l =>
+        val pictured = representative(ReportItem(Seq(l), 0.0), labels, knownCrop).map(_.labelId)
+        WorstProblem(l, pictured, l.labelIds.filter(labels.contains))
+      }
+  }
+
+  /**
    * The fixes list, at most one per road, so one long bad road can't fill it. An item qualifies when it costs its stretch at least [[FixMinPoints]], is
    * rated at or next to the worst of its type's scale, and has a label at that rating which a reviewer agreed with and
    * none disagreed with. A crossing can be the pick of two streets meeting there, and is listed for the first.
@@ -717,6 +744,15 @@ object InventoryRow {
 case class ReportCard(location: ReportLocation, label: ReportLabel, costPoints: Double, poolSize: Int)
 
 /**
+ * A dot on the worst-problems map.
+ *
+ * @param labelId    The label its card shows; None when review has rejected all of them since clustering, which still
+ *                   leaves it in the score, and so on the map
+ * @param countedIds Its labels less any review rejected, which are what its count links to
+ */
+case class WorstProblem(location: ReportLocation, labelId: Option[Int], countedIds: Seq[Int])
+
+/**
  * One label type's evidence on a street row.
  *
  * @param locations How many locations of this type are behind the row's score
@@ -818,6 +854,7 @@ case class ReportMapEdge(
  * @param contributions     Each scored type's mean term per explored street here, under those weights, for the bars
  *                          beside the weight sliders
  * @param places            Important places near its segments
+ * @param worst             Every location rated at the worst end of its type's scale, for the worst-problems map
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -835,8 +872,15 @@ case class NeighborhoodReport(
     edges: Seq[ReportMapEdge],
     weights: AccessScoreWeights = AccessScoreWeights.Default,
     contributions: Map[String, Double] = Map.empty,
-    places: Seq[ReportPlace] = Nil
+    places: Seq[ReportPlace] = Nil,
+    worst: Seq[WorstProblem] = Nil
 ) {
+
+  /** @return The worst problems by type, in the canonical type order, leaving out types that have none. */
+  def worstByType: Seq[(LabelType, Seq[WorstProblem])] = {
+    val byType = worst.groupBy(_.location.labelType)
+    LabelType.ordered.flatMap(t => byType.get(t).map(t -> _))
+  }
 
   /** @return The important places near one segment. */
   def placesNear(streetEdgeId: Int): Seq[ReportPlace] = places.filter(_.streetEdgeId == streetEdgeId)
@@ -1119,6 +1163,16 @@ object ReportClientData {
           "explored"    -> e.explored,
           "grade"       -> e.maxGrade,
           "coordinates" -> e.coordinates.map { case (lng, lat) => Json.arr(rounded(lng), rounded(lat)) }
+        )
+      },
+      // The worst-problems map's dots; a dot's card is fetched only when it's opened.
+      "worst" -> report.worst.map { dot =>
+        Json.obj(
+          "clusterId" -> dot.location.clusterId,
+          "labelId"   -> dot.labelId,
+          "labelType" -> dot.location.labelType.name,
+          "lat"       -> rounded(dot.location.latitude),
+          "lng"       -> rounded(dot.location.longitude)
         )
       },
       // A fix's still map is drawn in the browser, from its spot and its street.

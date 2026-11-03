@@ -89,6 +89,9 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val body = contentAsString(report())
       body must include("""id="report-data"""")
       body must include("""id="report-region-map"""")
+      // The worst-problems section is always there, as a map with its dots or as its empty state.
+      body must include("""id="report-worst-title"""")
+      body must include("\"worst\":[")
     }
 
     "leave the data that reproduces it one click away" in {

@@ -18,5 +18,11 @@
     "street": "{{street}} · {{distance}} entfernt",
     "unscored": "Die Straße ist noch nicht bewertet",
     "unnamed": "Unbenannte Straße"
+  },
+  "worst": {
+    "close": "Schließen",
+    "unavailable": "Die Karte dieses Labels konnte nicht geladen werden.",
+    "loading": "Wird geladen…",
+    "rejected": "Alle Labels hier wurden als falsch markiert, nachdem die Scores dieses Berichts zuletzt berechnet wurden, daher gibt es keine Karte."
   }
 }
