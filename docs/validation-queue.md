@@ -311,12 +311,11 @@ the queue has been live for a while and tune them against the settled-face rate.
 
 ## Training examples
 
-A new validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
-example" in the code): a label an
-admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree reason that explains it. The label is a
-real one the crowd has already voted wrong; the pin only says it teaches. `GoldExampleTable.ExamplesPerValidator`
-(3) is how many a validator is shown in a city before they get none, counted as answered examples; a seasoned
-validator gets them too, since a high count says nothing about how well they vote. A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the
+A validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
+example" in the code): a label an admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree
+reason that explains it. The label is a real one the crowd has already voted wrong; the pin only says it teaches.
+`GoldExampleTable.ExamplesPerValidator` (3) is how many a validator is shown in a city before they get none, counted
+as answered examples. A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the
 label query and the per-type counts): it is a known-wrong label, so an ordinary vote on it is noise and a beginner's
 Agree would count toward voting it back to correct.
 
