@@ -75,7 +75,7 @@ printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_
 `Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions),
 `Report_SidewalksToggle_Shown=<bool>`, `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
 `Report_WorstMapClick_LabelType=<type>` (a dot on the worst-problems map, #5889), `Report_WorstTypeHover_LabelType=<type>`
-(that map's type list, at most once per type per page load), `Report_WorstShowSidewalks` (its missing-sidewalks note's button),
+(that map's type list, at most once per type per page load),
 `Report_ProfileClass_<index>_value=<bool>`, and, from the AccessScore tool's shared weights panel,
 `Report_Weight_<type>_value=<n>`, `Report_GradeWeight_value=<n>` (each when the slider is let go, not during the drag),
 `Report_Reset`, `Report_Section_weights_open=<bool>` and, from the header's stamp, `Report_WeightsReset`; each is

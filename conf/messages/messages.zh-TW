@@ -1172,6 +1172,5 @@ report.worst.none.sofar = 這裡目前還沒有任何地點被評為其量表的
 report.worst.map.label = {0} 最嚴重問題的地圖
 report.worst.lede = {0} 個被評為最差的地點，依類型：
 report.worst.count.label = {0} 個地點：{1}。查看標籤
-report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。
-report.worst.nosidewalk.show = 在街道地圖上顯示
+report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。在側邊欄開啟「{0}」，即可在其他地圖上以虛線查看。
 report.toc.worst = 最嚴重的問題

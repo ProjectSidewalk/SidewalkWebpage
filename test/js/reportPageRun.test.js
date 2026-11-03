@@ -404,8 +404,7 @@ describe('ReportPage', () => {
           <li class="report-worst__type" data-label-type="Obstacle"><a href="#">1</a></li>
           <li class="report-worst__type" data-label-type="NoCurbRamp"><a href="#">1</a></li>
         </ul>
-        <button id="report-worst-show-sidewalks" hidden></button>
-        <section id="report-overview"></section>`);
+`);
       popup = { isOpen: vi.fn(() => true) };
       const make = deps.createMap.getMockImplementation();
       deps.createMap.mockImplementation((host, options) => {
@@ -471,18 +470,5 @@ describe('ReportPage', () => {
       expect(deps.buildCard.mock.calls.length).toBe(built);
     });
 
-    test('the missing-sidewalks note turns the sidewalk switch on and goes to the overview', () => {
-      const overview = document.getElementById('report-overview');
-      overview.scrollIntoView = vi.fn();
-      new ReportPage(worstData(), deps).start();
-      intersect(document.getElementById('report-region-map'), true);
-      const button = /** @type {HTMLButtonElement} */ (document.getElementById('report-worst-show-sidewalks'));
-      expect(button.hidden).toBe(false);
-      button.click();
-      expect(/** @type {HTMLInputElement} */ (document.getElementById('report-sidewalks-toggle')).checked).toBe(true);
-      expect(maps.find((m) => m.host.id === 'report-region-map').setSidewalksVisible).toHaveBeenLastCalledWith(true);
-      expect(overview.scrollIntoView).toHaveBeenCalled();
-      expect(deps.log).toHaveBeenCalledWith('Report_WorstShowSidewalks');
-    });
   });
 });

@@ -1104,6 +1104,5 @@ report.worst.none.sofar = No location here is rated at the worst end of its scal
 report.worst.map.label = Map of the worst problems in {0}
 report.worst.lede = {0,choice,1#1 location|1<{0} locations} rated worst, by type:
 report.worst.count.label = {0,choice,1#1 location|1<{0} locations}: {1}. See the labels
-report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map.
-report.worst.nosidewalk.show = Show them on the street maps
+report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map. Turn on "{0}" in the sidebar to see them as dashed lines on the other maps.
 report.toc.worst = Worst problems

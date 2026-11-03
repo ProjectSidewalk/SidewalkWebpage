@@ -452,10 +452,6 @@
   color: var(--color-neutral-800);
 }
 
-.report-worst__show-sidewalks {
-  margin-top: var(--space-xxs);
-}
-
 /* A dot's Gallery card, over the map: one card's width, as in a street's section. */
 .report-problem-popup .maplibregl-popup-content {
   padding: var(--space-xs);

@@ -1094,6 +1094,5 @@ report.worst.none.sofar = Nog geen enkele locatie hier heeft de slechtste beoord
 report.worst.map.label = Kaart van de ergste problemen in {0}
 report.worst.lede = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoordeling, per type:
 report.worst.count.label = {0,choice,1#1 locatie|1<{0} locaties}: {1}. Bekijk de labels
-report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart.
-report.worst.nosidewalk.show = Toon ze op de straatkaarten
+report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart. Zet "{0}" aan in de zijbalk om ze als stippellijnen op de andere kaarten te zien.
 report.toc.worst = Ergste problemen

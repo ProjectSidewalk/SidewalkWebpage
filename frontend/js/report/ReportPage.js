@@ -323,7 +323,6 @@ export class ReportPage {
       row.addEventListener('focusin', on);
       row.addEventListener('focusout', () => light(null));
     }
-    this.#wireShowSidewalks();
   }
 
   /**
@@ -352,23 +351,6 @@ export class ReportPage {
     card.render(content);
     card.refitTags?.();
     card.loadImage?.();
-  }
-
-  /** The missing-sidewalks note's button, which turns the sidebar's sidewalk switch on and goes to the overview map. */
-  #wireShowSidewalks() {
-    const button = document.getElementById('report-worst-show-sidewalks');
-    const toggle = /** @type {?HTMLInputElement} */ (document.getElementById('report-sidewalks-toggle'));
-    if (!button || !toggle) return;
-    button.hidden = false;
-    button.addEventListener('click', () => {
-      this.#log('Report_WorstShowSidewalks');
-      if (!toggle.checked) {
-        toggle.checked = true;
-        toggle.dispatchEvent(new Event('change'));
-      }
-      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      document.getElementById('report-overview')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
-    });
   }
 
   /** Brings sections up as they near the viewport, and gives maps to whichever of those are closest to it. */

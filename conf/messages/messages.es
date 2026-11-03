@@ -1108,6 +1108,5 @@ report.worst.none.sofar = Ningún lugar aquí tiene todavía la peor calificaci�
 report.worst.map.label = Mapa de los peores problemas en {0}
 report.worst.lede = {0,choice,1#1 lugar|1<{0} lugares} con la peor calificación, por tipo:
 report.worst.count.label = {0,choice,1#1 lugar|1<{0} lugares}: {1}. Ver las etiquetas
-report.worst.nosidewalk = Las aceras faltantes no tienen calificación, así que no están en este mapa.
-report.worst.nosidewalk.show = Mostrarlas en los mapas de calles
+report.worst.nosidewalk = Las aceras faltantes no tienen calificación, así que no están en este mapa. Active "{0}" en la barra lateral para verlas como líneas discontinuas en los otros mapas.
 report.toc.worst = Peores problemas

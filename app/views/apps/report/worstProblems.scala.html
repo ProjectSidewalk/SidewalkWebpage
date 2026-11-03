@@ -49,10 +49,7 @@
           }
         </ul>
         @if(report.inventory.exists(r => r.labelType == LabelType.NoSidewalk && r.observedIds.nonEmpty)) {
-          <p class="report-worst__note">
-            @Messages("report.worst.nosidewalk")
-            <button type="button" class="button button--secondary button--small report-worst__show-sidewalks" id="report-worst-show-sidewalks" hidden>@Messages("report.worst.nosidewalk.show")</button>
-          </p>
+          <p class="report-worst__note">@Messages("report.worst.nosidewalk", Messages("report.map.sidewalks"))</p>
         }
       </div>
     </div>

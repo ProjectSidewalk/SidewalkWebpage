@@ -1098,6 +1098,5 @@ report.worst.none.sofar = Noch ist kein Ort hier am schlechtesten Ende seiner Sk
 report.worst.map.label = Karte der schlimmsten Probleme in {0}
 report.worst.lede = {0,choice,1#1 Ort|1<{0} Orte} mit der schlechtesten Bewertung, nach Typ:
 report.worst.count.label = {0,choice,1#1 Ort|1<{0} Orte}: {1}. Labels ansehen
-report.worst.nosidewalk = Fehlende Gehwege haben keine Bewertung und sind daher nicht auf dieser Karte.
-report.worst.nosidewalk.show = Auf den Straßenkarten zeigen
+report.worst.nosidewalk = Fehlende Gehwege haben keine Bewertung und sind daher nicht auf dieser Karte. Schalten Sie „{0}“ in der Seitenleiste ein, um sie auf den anderen Karten als gestrichelte Linien zu sehen.
 report.toc.worst = Schlimmste Probleme

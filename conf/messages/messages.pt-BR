@@ -1103,6 +1103,5 @@ report.worst.none.sofar = Nenhum local aqui tem ainda a pior avaliação da sua 
 report.worst.map.label = Mapa dos piores problemas em {0}
 report.worst.lede = {0,choice,1#1 local|1<{0} locais} com a pior avaliação, por tipo:
 report.worst.count.label = {0,choice,1#1 local|1<{0} locais}: {1}. Ver os rótulos
-report.worst.nosidewalk = Calçadas ausentes não têm avaliação, então não estão neste mapa.
-report.worst.nosidewalk.show = Mostrá-las nos mapas das ruas
+report.worst.nosidewalk = Calçadas ausentes não têm avaliação, então não estão neste mapa. Ative "{0}" na barra lateral para vê-las como linhas tracejadas nos outros mapas.
 report.toc.worst = Piores problemas
