@@ -300,8 +300,15 @@ export class ReportStreetSection {
     }
     const reference = document.createElement('a');
     reference.href = `/label/${data.labelId}`;
+    // A label page is a side trip from the report, so it opens beside it rather than losing the reader's place.
+    reference.target = '_blank';
+    reference.rel = 'noopener';
     reference.dataset.reportEvent = 'Report_OpenLabel';
     reference.textContent = `${this.#deps.cityId}:${data.labelId}`;
+    const newTab = document.createElement('span');
+    newTab.className = 'sr-only';
+    newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
+    reference.append(newTab);
     strip.append(reference);
     return strip;
   }

@@ -71,7 +71,7 @@
               @if(fix.item.locations.size > 1) {
                 <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size, fix.item.labelIds.size)</a>
               }
-              <a href="@ReportLinks.label(fix.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId</a>
+              <a href="@ReportLinks.label(fix.label.labelId)" target="_blank" rel="noopener" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId<span class="sr-only" data-i18n="common:pano-attribution.opens-new-tab">(opens in a new tab)</span></a>
             </p>
           </div>
         </li>

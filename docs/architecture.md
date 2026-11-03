@@ -592,7 +592,8 @@ loaded by the corresponding Twirl view:
   query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
   is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
   hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
-  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  worse than a refused one. A linking page whose list is far over the cap (the Neighborhood Report's pooled items)
+  sends only the first 500 ids plus `labelIdsTotal=<n>`, which the notice counts instead, so the URL stays short. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.

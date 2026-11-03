@@ -220,8 +220,12 @@ describe('ReportStreetSection', () => {
     expect(itemOf(1).querySelector('.report-card__cost').textContent).toContain('report:card.cost');
     expect(itemOf(2).querySelector('.report-card__cost')).toBeNull();
     const reference = itemOf(1).querySelector('a[data-report-event="Report_OpenLabel"]');
-    expect(reference.textContent).toBe('seattle:101');
+    expect(reference.firstChild.textContent).toBe('seattle:101');
     expect(reference.getAttribute('href')).toBe('/label/101');
+    // Opens beside the report, and says so to a screen reader.
+    expect(reference.target).toBe('_blank');
+    expect(reference.rel).toBe('noopener');
+    expect(reference.querySelector('.sr-only').textContent).toContain('opens-new-tab');
   });
 
   test('logs the link being found once per section, not every wander of the pointer', async () => {
