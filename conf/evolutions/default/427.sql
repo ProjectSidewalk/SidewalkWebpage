@@ -3,4 +3,5 @@
 ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'Report';
 
 # --- !Downs
--- Postgres can't drop an enum value without rewriting every column of the type, and a stray value is harmless.
+-- partial-downs: Postgres can't drop an enum value without rewriting every column of the type, and a stray value is
+-- harmless to the previous release, which never writes it.

@@ -25,8 +25,9 @@ const PAGES = [
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
-  // Region 18 is the one region in CI's seed (fixtures/ci-seed.sql).
-  {path: '/report/neighborhood/18'},
+  // Region 18 (Tyron Park) is the one region in CI's seed (fixtures/ci-seed.sql). By its slug, since the id URL
+  // redirects there and the gate checks the page landed where it asked.
+  {path: '/report/neighborhood/tyron-park'},
   {path: '/labelingGuide'},
   {path: '/labelingGuide/curbRamps'},
   {path: '/labelingGuide/surfaceProblems'},
