@@ -3,7 +3,7 @@
    tokens already carry. */
 
 .report-shell {
-  --sidebar-width: 240px;
+  --sidebar-width: 310px;
   --toc-width: 220px;
 }
 
@@ -22,12 +22,6 @@
   flex-direction: column;
   gap: var(--space-lg);
   padding: var(--space-lg) var(--space-md);
-}
-
-.report-control__title {
-  margin: 0 0 var(--space-xs);
-  font: var(--text-small-bold);
-  color: var(--color-neutral-900);
 }
 
 /* A long contents list scrolls in its own column, so an anchor needs clearing from the navbar only on the page side. */
@@ -114,33 +108,43 @@
   color: var(--color-neutral-800);
 }
 
-.report-presets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  align-items: flex-start;
+/* The sidebar's sections divide as the AccessScore tool's do, so the two sidebars read alike. */
+.report-control {
+  margin-bottom: 0;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
-.report-sidebar .report-presets__option {
-  padding: var(--space-xxs) var(--space-sm);
-  font: var(--text-small-medium);
-  color: var(--color-neutral-900);
-  text-decoration: none;
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 999px;
-}
-
-.report-sidebar .report-presets__option[aria-current="page"] {
-  color: var(--color-neutral-white);
-  background: var(--color-neutral-900);
-  border-color: var(--color-neutral-900);
-}
-
+/* Side by side where the two labels fit; a language with longer ones puts Copy link on its own line. */
 .report-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-xs);
+}
+
+.report-action {
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: var(--space-xxs);
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--space-xs);
+  white-space: nowrap;
+}
+
+.report-action__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.report-action__icon--print {
+  -webkit-mask-image: url("/images/icons/printer-feather.svg");
+  mask-image: url("/images/icons/printer-feather.svg");
+}
+
+.report-action__icon--link {
+  -webkit-mask-image: url("/images/icons/link-feather.svg");
+  mask-image: url("/images/icons/link-feather.svg");
 }
 
 /* The display: flex above beats the UA stylesheet's [hidden] rule. */
@@ -410,43 +414,6 @@
   display: none;
 }
 
-.report-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xxs);
-}
-
-.report-chip {
-  display: inline-flex;
-  gap: var(--space-xxs);
-  align-items: center;
-  min-height: 28px;
-  padding: var(--space-xxs) var(--space-xs);
-  font: var(--text-caption-medium);
-  color: var(--color-neutral-900);
-  cursor: pointer;
-  background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 999px;
-}
-
-/* A switched-off type reads as switched off without color alone: struck through and faded. */
-.report-chip[aria-pressed="false"] {
-  color: var(--color-neutral-700);
-  text-decoration: line-through;
-  background: transparent;
-  border-color: var(--color-neutral-300);
-}
-
-.report-chip[aria-pressed="false"] img {
-  opacity: 0.4;
-}
-
-.report-chip:focus-visible {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: 1px;
-}
-
 .report-toggle {
   display: flex;
   gap: var(--space-xxs);
@@ -489,12 +456,17 @@
   height: 3px;
 }
 
+/* A side takes its street's color, so the key shows the whole ramp rather than one color. */
 .report-legend__line--present {
-  background: var(--color-success-200);
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(to right, var(--color-score-ramp-1), var(--color-score-ramp-3), var(--color-score-ramp-5));
 }
 
 .report-legend__line--absent {
-  background: var(--color-label-no-sidewalk);
+  height: 0;
+  border-top: 2px dashed var(--color-neutral-600);
 }
 
 .report-color-by {
@@ -513,37 +485,7 @@
   border: 0;
 }
 
-.report-weights {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
-}
-
-.report-weight {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-xxs);
-  align-items: baseline;
-  font: var(--text-caption-regular);
-}
-
-.report-weight label {
-  margin: 0;
-  font: inherit;
-}
-
-.report-weight output {
-  font: var(--text-caption-medium);
-}
-
-.report-weight input {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-
-/* A reader's weights are a what-if: the stamp says so, and what only the server can compute gives way rather than
-   stand beside numbers it no longer matches. */
+/* A reader's weights are a what-if, and the stamp says so, on paper too. */
 .report-custom-stamp {
   display: flex;
   flex-wrap: wrap;
@@ -558,22 +500,10 @@
   border-radius: var(--border-radius);
 }
 
-.report-custom-stamp[hidden] {
-  display: none;
-}
-
-.is-custom-weights .report-street__meta,
-.is-custom-weights .report-street__context,
-.is-custom-weights .report-card__cost,
-.is-custom-weights .report-punch,
-.is-custom-weights .report-toc a[href="#report-punch-title"] {
-  display: none;
-}
-
 /* ---- Ranked streets ------------------------------------------------------------------------------------------- */
 
 .report-street-list,
-.report-punch-list {
+.report-fixes {
   padding: 0;
   margin: 0;
   list-style: none;
@@ -584,11 +514,18 @@
   border-top: 1px solid var(--color-neutral-300);
 }
 
+/* The name rides down with the sticky map, so a map scrolled far into a street's cards still says which street. It
+   stops at the section's end, where the next street's takes over. */
 .report-street__head {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xxs) var(--space-sm);
   align-items: baseline;
+  padding-block: var(--space-xs);
+  background: var(--color-neutral-white);
 }
 
 .report-street__rank {
@@ -660,9 +597,12 @@
   margin-top: var(--space-sm);
 }
 
+/* Below the stuck name; ReportStreetSection measures it, since a long name wraps. */
 .report-street__where {
   position: sticky;
-  top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--space-sm));
+  --report-street-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+
+  top: calc(var(--report-street-top) + var(--report-street-head-height, 48px) + var(--space-sm));
 }
 
 @container (width <= 720px) {
@@ -696,6 +636,37 @@
   min-width: 0;
   border-radius: var(--border-radius);
   transition: box-shadow var(--transition-fast);
+}
+
+/*
+ * The Gallery's one-line severity, votes and tags row needs about 230px, so in these smaller cards tags wrap to their
+ * own line. The children keep the Gallery's height, which holds the vote icons at the 24px target size.
+ */
+.report-cards .card-data {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  height: auto;
+  row-gap: var(--space-xxs);
+}
+
+.report-cards .card-severity,
+.report-cards .card-validation-info {
+  height: max(24px, 5.6cqw);
+}
+
+.report-cards .card-validation-info {
+  flex: 0 0 auto;
+  padding-right: 7px;
+}
+
+.report-cards .card-tags {
+  flex: 1 1 100%;
+  height: auto;
+}
+
+.report-cards .label-tags-header,
+.report-cards .card-tags:not(:has(.gallery-tag)) {
+  display: none;
 }
 
 .report-card[hidden] {
@@ -739,33 +710,163 @@
   display: none;
 }
 
-/* Holds its place in the fixes until report.js draws the card in it. */
-.report-card-slot {
-  min-height: 160px;
+/* ---- Fixes ---------------------------------------------------------------------------------------------------- */
+
+.report-section__lede {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
 }
 
-/* ---- Punch list ----------------------------------------------------------------------------------------------- */
+/* Three to a row at most, however wide the column: a pane any wider just shows more of the block, not more of the
+   spot. Fewer once a card would drop under 260px. */
+.report-fixes {
+  --report-fix-gap: var(--space-md);
 
-.report-punch-item {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--space-md);
-  padding: var(--space-md) 0;
-  border-top: 1px solid var(--color-neutral-300);
+  grid-template-columns: repeat(auto-fill, minmax(max(260px, calc((100% - 2 * var(--report-fix-gap)) / 3)), 1fr));
+  gap: var(--report-fix-gap);
 }
 
-.report-punch-item__street {
+.report-fix {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* Two squares sharing one frame, split by a hairline, so they read as two views of one place. */
+.report-fix__views {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--color-neutral-300);
+}
+
+.report-fix__pane {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.report-fix__pane:focus-visible {
+  outline: 3px solid var(--color-link-200);
+  outline-offset: -3px;
+}
+
+.report-fix__pane > img,
+.report-fix__live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-fix__pane > img {
+  object-fit: cover;
+}
+
+/* The live map only exists to be pictured; the sketch stays in view until the picture replaces both. */
+.report-fix__live {
+  visibility: hidden;
+}
+
+.report-fix__photo .gallery-image-placeholder,
+.report-fix__photo > :not(img) {
+  position: absolute;
+  inset: 0;
+}
+
+.report-fix__rank {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-white);
+  background: var(--color-neutral-900);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-neutral-white);
+}
+
+.report-fix__credit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0 var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-800);
+  background: rgb(255 255 255 / 80%);
+}
+
+.report-fix__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding: var(--space-sm);
+}
+
+.report-fix__head {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.report-fix__street {
+  min-width: 0;
   margin: 0;
-  font: var(--text-subtitle-bold);
+  font: var(--text-body-bold);
 }
 
-.report-punch-item__type,
-.report-punch-item__rating,
-.report-punch-item__cost,
-.report-punch-item__pool,
-.report-punch-item__id {
+/* The one number the list is ordered by, so it is the one that stands out. */
+.report-fix__cost {
+  flex: none;
+  font: var(--text-subtitle-bold);
+  white-space: nowrap;
+}
+
+.report-fix__type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-small-medium);
+}
+
+.report-fix__rating {
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The card's reason in a sentence, set apart from the facts above it as the one line written to persuade. */
+.report-fix__why {
   margin: var(--space-xxs) 0 0;
-  font: var(--text-body-regular);
+  padding-left: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-left: 3px solid var(--color-neutral-300);
+}
+
+.report-fix__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-sm);
+  margin: auto 0 0;
+  padding-top: var(--space-xxs);
+  font: var(--text-caption-regular);
 }
 
 .report-tags {
@@ -786,6 +887,11 @@
 
 /* ---- Inventory ------------------------------------------------------------------------------------------------ */
 
+.report-inventory__group {
+  margin: var(--space-md) 0 var(--space-xs);
+  font: var(--text-h3-medium);
+}
+
 .report-inventory__type {
   white-space: nowrap;
 }
@@ -794,9 +900,43 @@
   vertical-align: text-bottom;
 }
 
-/* Without a floor the tags column collapses to one word a line on a phone, which makes every row several lines tall. */
-.report-inventory__table .report-tags {
-  min-width: 260px;
+/*
+ * Fixed layout with shared column widths, so the problem, feature and neutral tables line up column for column. The
+ * floor keeps the tags column from collapsing to a word a line on a phone; the wrapper scrolls instead.
+ */
+.report-inventory__table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.report-inventory__col--type {
+  width: 19%;
+}
+
+.report-inventory__col--count {
+  width: 11%;
+}
+
+.report-inventory__col--tags {
+  width: 26%;
+}
+
+.report-inventory__legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-xs) var(--space-lg);
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+}
+
+.report-inventory__legend dt {
+  font-weight: 700;
+}
+
+.report-inventory__legend dd {
+  margin: 0;
+  color: var(--color-neutral-800);
 }
 
 /* ---- Go deeper and provenance ------------------------------------------------------------------------------- */
@@ -847,8 +987,7 @@
 /* ---- Small screens: var(--breakpoint-sm) ---------------------------------------------------------------------- */
 
 @media (width <= 768px) {
-  .report-overview__body,
-  .report-punch-item {
+  .report-overview__body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -899,15 +1038,15 @@
     display: none !important;
   }
 
-  .report-punch-item,
+  .report-fix,
   .report-card,
   .report-stat,
   .report-inventory__table tr {
     break-inside: avoid;
   }
 
-  .report-punch-item {
-    grid-template-columns: 200px minmax(0, 1fr);
+  .report-fixes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   /* A printed link can't be followed, so a reader of the paper copy gets the numbers and the provenance's URL. */

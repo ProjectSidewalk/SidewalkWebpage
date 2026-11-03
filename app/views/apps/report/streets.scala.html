@@ -1,5 +1,5 @@
 @import controllers.helper.ControllerUtils
-@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks}
 @import models.utils.CommonUtils
 
 @*
@@ -8,9 +8,8 @@
  * their parts can be seen, and counts link to their labels.
  *
  * @param report The computed report.
- * @param preset The audience, for the section's vocabulary.
  *@
-@(report: NeighborhoodReport, preset: ReportPreset)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
+@(report: NeighborhoodReport)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @distance(meters: Double) = @{
   val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
@@ -27,7 +26,7 @@
           <header class="report-street__head">
             <span class="report-street__rank" aria-hidden="true">@row.rank</span>
             <h3 class="report-street__name">@RankedStreetRow.displayName(row.street.worst)</h3>
-            <a class="report-street__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore">@Messages("report.street.score", ReportFormat.score(row.street.worst.score))</a>
+            <a class="report-street__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.street.score", ReportFormat.score(row.street.worst.score))</a>
           </header>
           <p class="report-street__meta">
             @for(block <- row.street.worst.blockScore) {<span>@Messages("report.street.block", ReportFormat.score(block))</span>}

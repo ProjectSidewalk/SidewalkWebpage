@@ -598,10 +598,36 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       "/v3/api/labelClusters?bbox=2.0,1.0,4.0,3.0&filetype=csv"
   }
 
-  test("a preset falls back to the default for a missing or unknown value") {
-    ReportPreset.fromParam(Some("coordinator")) shouldBe ReportPreset.Coordinator
-    ReportPreset.fromParam(Some("advocate")) shouldBe ReportPreset.Advocate
-    ReportPreset.fromParam(Some("<script>")) shouldBe ReportPreset.Advocate
-    ReportPreset.fromParam(None) shouldBe ReportPreset.Advocate
+  test("a fix's reason is the strongest fact it holds: no way around, then a corner, then a pool, then its rating") {
+    given play.api.i18n.Messages =
+      play.api.i18n.MessagesImpl(play.api.i18n.Lang("en"), play.api.i18n.DefaultMessagesApi())
+    val (stretch, _)                                                  = street("A St", 1L, 1)
+    def fix(locations: Seq[ReportLocation], tags: List[String] = Nil) =
+      ReportFix(
+        ReportStreet(stretch, stretch.score, 100.0, 1),
+        ReportItem(locations, 5.0),
+        label(locations.head.labelIds.head, locations.head.labelType, tags = tags)
+      )
+    val corner = loc(1, NoCurbRamp, crossing = Some(9))
+    fix(Seq(corner)).reason._1 shouldBe "report.fix.why.corner"
+    fix(Seq(corner), tags = List(ReportRules.NoAlternateRouteTag)).reason._1 shouldBe "report.fix.why.noalternate"
+    fix(Seq(loc(2, NoSidewalk, severity = None), loc(3, NoSidewalk, severity = None))).reason shouldBe
+      ("report.fix.why.pooled", Seq(2))
+    fix(Seq(loc(4, Obstacle, severity = Some(3)))).reason shouldBe ("report.fix.why.worst", Seq("A St"))
+    fix(Seq(loc(5, Obstacle, severity = Some(2)))).reason shouldBe ("report.fix.why.costliest", Seq("A St"))
+  }
+
+  test("a report's links carry a reader's weights, and only those") {
+    import service.AccessScoreWeights
+    ReportLinks.report(7) shouldBe "/report/neighborhood/7"
+    val custom = AccessScoreWeights.fromParams(Some("NoCurbRamp:2.5"), Some("w:0"))
+    ReportLinks.report(7, custom) should startWith("/report/neighborhood/7?w=")
+    ReportLinks.accessScoreStreet(12, custom) should include("NoCurbRamp:2.5")
+    ReportLinks.accessScoreStreet(12, custom) should endWith("&gs=w:0")
+    AccessScoreWeights.fromParams(
+      Some(ReportLinks.weightParams(custom).split("&w=")(1).split("&")(0)),
+      Some("w:0")
+    ) shouldBe
+      custom
   }
 }

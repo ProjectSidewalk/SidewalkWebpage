@@ -1,4 +1,4 @@
-@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks}
 @import service.AccessScoreSpotlight
 @import views.html.apps.report as reportViews
 
@@ -8,11 +8,10 @@
  * the number beside each is the fact and works without them.
  *
  * @param report The computed report.
- * @param preset The audience, for the section's vocabulary.
  *@
-@(report: NeighborhoodReport, preset: ReportPreset)(using messages: Messages)
+@(report: NeighborhoodReport)(using messages: Messages)
 
-@titleKey = @{if (report.isProvisional) s"report.streets.title.sofar.${preset.name}" else s"report.streets.title.${preset.name}"}
+@titleKey = @{if (report.isProvisional) s"report.streets.title.sofar" else s"report.streets.title"}
 
 <section class="report-section report-overview" id="report-overview" aria-labelledby="report-overview-title">
   <h2 class="report-section__title" id="report-overview-title">
@@ -34,7 +33,7 @@
             <span class="report-rank__position" aria-hidden="true">@row.rank</span>
             <a class="report-rank__name" href="#@row.anchor" data-report-event="Report_OpenStreet">@RankedStreetRow.displayName(row.street.worst)</a>
             <span class="report-rank__track" aria-hidden="true"><span class="report-rank__bar" data-score="@row.street.worst.score"></span></span>
-            <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>
+            <a class="report-rank__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore" aria-label="@Messages("report.streets.score.label", ReportFormat.score(row.street.worst.score))">@ReportFormat.score(row.street.worst.score)</a>
           </li>
         }
       </ol>

@@ -712,16 +712,22 @@ object AccessScoreCalculator {
    *
    * @param slopeTerm       The segment's published slope term.
    * @param endClusters     For each scored end intersection, the clusters pooled on it.
+   * @param weights         Signed base weight per type. Anything but the engine's own goes through
+   *                        [[subScoresFromCounts]], which equals [[scoreByType]] under the engine's weights.
    * @return                The headline score in (0, 1).
    */
   def headlineFromClusters(
       segmentClusters: Seq[ClusterScoreInput],
       lengthMeters: Double,
       slopeTerm: Double,
-      endClusters: Seq[Seq[ClusterScoreInput]]
+      endClusters: Seq[Seq[ClusterScoreInput]],
+      weights: Map[String, Double] = baseWeights
   ): Double = {
-    val segment: Double   = sigmoid(scoreByType(segmentClusters, Some(lengthMeters)).valuesIterator.sum + slopeTerm)
-    val ends: Seq[Double] = endClusters.map(clusters => scoreStreet(clusters))
+    def terms(clusters: Seq[ClusterScoreInput], length: Option[Double]): Map[String, Double] =
+      if (weights == baseWeights) scoreByType(clusters, length)
+      else subScoresFromCounts(severityCountsByType(clusters), tagAdjustmentsByType(clusters), weights, length)
+    val segment: Double   = sigmoid(terms(segmentClusters, Some(lengthMeters)).valuesIterator.sum + slopeTerm)
+    val ends: Seq[Double] = endClusters.map(clusters => scoreFromSubScores(terms(clusters, None)))
     (segment +: ends).sum / (1 + ends.size)
   }
 

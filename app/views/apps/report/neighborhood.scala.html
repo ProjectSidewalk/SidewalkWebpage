@@ -1,4 +1,4 @@
-@import models.report.{NeighborhoodReport, ReportFormat, ReportLinks, ReportPreset}
+@import models.report.{NeighborhoodReport, ReportFormat, ReportLinks}
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
@@ -17,11 +17,10 @@
  * @param commonData Per-page config.
  * @param user       The signed-in user, if any (navbar only).
  * @param report     The computed report.
- * @param preset     Which audience to write for. Changes vocabulary and section order, never a number.
  * @param cityName   The deployment's formatted name, when known.
  * @param clientData What the maps and cards are drawn from; see [[models.report.ReportClientData]].
  *@
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport, preset: ReportPreset,
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport,
     cityName: Option[String], clientData: JsValue
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -33,8 +32,8 @@
 @common.main(commonData, Messages("report.seo.title", report.regionName), i18Namespaces = Seq("common", "gallery", "labelmap", "accessscore", "report"), url = "/report") {
   @common.navbar(commonData, user)
 
-  <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId" data-preset="@preset.name">
-    @reportViews.sidebar(report, preset)
+  <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId">
+    @reportViews.sidebar(report)
 
     <main class="page-content report-page" id="report-page">
       <header class="report-head" id="report-summary">
@@ -45,11 +44,13 @@
           @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))
           @for(last <- report.coverage.lastObservation) {@Messages("report.latest.observation", dateLabel(last))}
         </p>
-        @* Shown while a reader's weights are in force, on paper too: a forwarded report must not pass them off. *@
-        <p class="report-custom-stamp" id="report-custom-stamp" role="status" hidden>
-          @Messages("report.weights.custom")
-          <button type="button" class="button button--secondary button--small" id="report-custom-reset">@Messages("report.weights.reset")</button>
-        </p>
+        @* Printed whenever a reader's weights are in force, on paper too: a forwarded report must not pass them off. *@
+        @if(!report.weights.isDefault) {
+          <p class="report-custom-stamp" id="report-custom-stamp">
+            @Messages("report.weights.custom")
+            <a class="button button--secondary button--small" id="report-custom-reset" href="@ReportLinks.report(report.regionId)" data-report-event="Report_WeightsReset">@Messages("report.weights.reset")</a>
+          </p>
+        }
       </header>
 
       <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
@@ -59,13 +60,13 @@
             @reportViews.info(if(report.score.score.isDefined) Messages("report.score.detail") else Messages("report.score.none.detail", report.score.percentRequired, report.score.percentExplored))
           </p>
           @report.score.score.map { score =>
-            <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
+            <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
           }.getOrElse {
             <p class="report-score__value">@Messages("report.score.none")</p>
           }
         </div>
         <div class="report-headline-body">
-          <p class="report-headline">@Messages(s"${report.headline.key}.${preset.name}", report.headline.args*)</p>
+          <p class="report-headline">@Messages(s"${report.headline.key}", report.headline.args*)</p>
           @if(report.headline.labelIds.nonEmpty) {
             <p class="report-headline__evidence">
               <a href="@ReportLinks.count(report.headline.labelIds, ReportLinks.worstFilter(report.regionId))"
@@ -76,32 +77,27 @@
       </section>
 
       @reportViews.coverage(report)
-      @reportViews.overview(report, preset)
+      @reportViews.overview(report)
 
-      @if(preset == ReportPreset.Coordinator) {
-        @reportViews.inventory(report, preset)
-        @reportViews.punchList(report, preset, commonData.cityId)
-      } else {
-        @reportViews.punchList(report, preset, commonData.cityId)
-        @reportViews.inventory(report, preset)
-      }
+      @reportViews.punchList(report, commonData.cityId)
+      @reportViews.inventory(report)
 
-      @reportViews.streets(report, preset)
+      @reportViews.streets(report)
 
       <section class="report-section report-deeper" aria-labelledby="report-deeper-title">
         <h2 class="report-section__title" id="report-deeper-title">@Messages("report.deeper.title")</h2>
         <ul class="report-deeper__list">
           <li><a href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
           <li><a href="@ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
-          <li><a href="@ReportLinks.accessScore(report.regionId)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
+          <li><a href="@ReportLinks.accessScore(report.regionId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
           <li><a href="@ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
         </ul>
       </section>
 
-      @reportViews.provenance(report, preset, commonData)
+      @reportViews.provenance(report, commonData)
     </main>
 
-    @reportViews.toc(report, preset)
+    @reportViews.toc(report)
   </div>
 
   <script type="application/json" id="report-data">@jsonForScript(clientData)</script>

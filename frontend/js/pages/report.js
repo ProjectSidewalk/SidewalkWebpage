@@ -8,13 +8,11 @@ import { copyToClipboard } from '../common/copyToClipboard.js';
 import { PageToc } from '../common/PageToc.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
-import { AccessScoreClusterFeed } from '../access-score/AccessScoreClusterFeed.js';
-import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
-import { AccessScoreUrlSync } from '../access-score/AccessScoreUrlSync.js';
 import { ReportPage } from '../report/ReportPage.js';
 import { ReportMap } from '../report/ReportMap.js';
 import { buildCard, fetchCardData } from '../report/reportCards.js';
 import '../../css/components/page-shell.css';
+import '../../css/components/filter-sidebar.css';
 import '../../css/components/info-button.css';
 import '../../css/components/gallery-card.css';
 import '../../css/components/gallery-tags.css';
@@ -38,8 +36,8 @@ function paintScores(root) {
 
 window.appManager.ready(() => {
   const shell = document.getElementById('report-shell');
-  const { regionId, preset } = shell.dataset;
-  const log = (event) => window.logWebpageActivity(`${event}_Region=${regionId}_Preset=${preset}`);
+  const { regionId } = shell.dataset;
+  const log = (event) => window.logWebpageActivity(`${event}_Region=${regionId}`);
 
   paintScores(shell);
 
@@ -65,16 +63,6 @@ window.appManager.ready(() => {
     fetchCards: fetchCardData,
     buildCard,
     log,
-    createModel: (config, streets, intersections, regions) => new AccessScoreModel(
-      config, streets, intersections, regions,
-    ),
-    loadClusters: (config, region) => new AccessScoreClusterFeed({ types: config.scored_types })
-      .regionClusters(region),
-    linkedWeights: (config) => {
-      const { state } = AccessScoreUrlSync.read(config);
-      if (!state.weights && state.slope?.weight === undefined) return null;
-      return { weights: state.weights, slopeWeight: state.slope?.weight };
-    },
   });
   page.start();
 

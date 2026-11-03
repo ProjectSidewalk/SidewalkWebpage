@@ -1,9 +1,9 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import models.report.{ReportClientData, ReportPreset}
+import models.report.ReportClientData
 import play.api.Configuration
-import service.{BasemapService, ConfigService, ReportOutcome, ReportService}
+import service.{AccessScoreWeights, BasemapService, ConfigService, ReportOutcome, ReportService}
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,14 +33,16 @@ class ReportController @Inject() (
    * One neighborhood's report (#5876). Served as-is on mobile rather than redirected, since the page is responsive and
    * builds no pano; its maps run on the city's own tile archive, so a view costs no billable Google or Mapbox call.
    *
+   * A link's `w` and `gs` (the AccessScore tool's weights) score the whole report. Read from the query string, not the
+   * route, so a malformed one opens the engine's report rather than a 400.
+   *
    * @param regionId The region to report on.
-   * @param preset   A [[ReportPreset]] name; a missing or unknown one gets the default rather than an error.
    * @return `Ok` with the page, `NotFound` if no such region exists, or `ServiceUnavailable` with a `Retry-After` and a
    *         page saying so while the city's AccessScores are being computed for the first time since a deploy.
    */
-  def neighborhood(regionId: Int, preset: Option[String]) = cc.securityService.UserAwareAction { implicit request =>
-    val reportPreset: ReportPreset = ReportPreset.fromParam(preset)
-    reportService.neighborhoodReport(regionId).flatMap {
+  def neighborhood(regionId: Int) = cc.securityService.UserAwareAction { implicit request =>
+    val weights = AccessScoreWeights.fromParams(request.getQueryString("w"), request.getQueryString("gs"))
+    reportService.neighborhoodReport(regionId, weights).flatMap {
       case ReportOutcome.RegionNotFound => Future.successful(NotFound(s"No region found with ID: $regionId"))
       case ReportOutcome.StillComputing =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -52,7 +54,7 @@ class ReportController @Inject() (
           cc.loggingService.insert(
             request.identity.map(_.userId),
             request.ipAddress,
-            s"Visit_Report_Neighborhood_Region=${regionId}_Preset=${reportPreset.name}"
+            s"Visit_Report_Neighborhood_Region=${regionId}_CustomWeights=${!weights.isDefault}"
           )
           val cityName   = commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted)
           val clientData =
@@ -62,8 +64,7 @@ class ReportController @Inject() (
               commonData.cityId
             )
           Ok(
-            views.html.apps.report.neighborhood(commonData, request.identity, report, reportPreset, cityName,
-              clientData)
+            views.html.apps.report.neighborhood(commonData, request.identity, report, cityName, clientData)
           )
         }
     }

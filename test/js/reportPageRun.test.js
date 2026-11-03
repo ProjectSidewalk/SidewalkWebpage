@@ -8,6 +8,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { loadModules, mockModule, useUtil } from './loader.js';
 
 mockModule('i18next', () => ({ default: { language: 'en', t: (key) => key } }));
+mockModule('frontend/js/common/LabelMiniCard.js', () => ({ LabelMiniCard: { placeholder: () => {
+  const el = document.createElement('div');
+  el.className = 'test-placeholder';
+  return el;
+} } }));
 useUtil({ misc: { getIconImagePaths: () => ({ iconImagePath: '/icon.svg' }), labelTypeName: (type) => type } });
 
 const STREET_COUNT = 8;
@@ -28,6 +33,7 @@ describe('ReportPage', () => {
       id: i, wayId: 100 + i, score: 0.5, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]],
     })),
     streets: Array.from({ length: STREET_COUNT }, (_, i) => ({ wayId: 100 + i, score: 0.5, edgeIds: [i], cards: [] })),
+    fixes: [{ labelId: 55, wayId: 100, edgeIds: [0], locations: [{ clusterId: 9, labelType: 'Obstacle', lat: 47.6, lng: -122.33 }] }],
   });
 
   /** @param {Element} target - Reports it as near the viewport or not to whichever observer watches it. */
@@ -53,18 +59,14 @@ describe('ReportPage', () => {
       <div id="report-region-map"></div>
       ${Array.from({ length: STREET_COUNT }, (_, i) => `<li class="report-street" data-street="${100 + i}">
         <div data-street-map></div><ul data-street-cards></ul><button data-street-more hidden></button></li>`).join('')}
-      <div class="report-card-slot" data-label-id="55"></div>
-      <div id="report-type-filter" hidden>
-        <button class="report-chip" aria-pressed="true" data-label-type="Obstacle"></button>
-        <button class="report-chip" aria-pressed="true" data-label-type="CurbRamp"></button>
-      </div>
+      <li class="report-fix" data-label-id="55"><a data-fix-map></a><a data-fix-photo></a></li>
       <fieldset id="report-color-by" hidden>
         <input type="radio" name="c" id="report-color-score" value="score" checked>
         <input type="radio" name="c" id="report-color-slope" value="slope">
         <ul id="report-slope-legend" hidden></ul>
       </fieldset>
       <div id="report-map-controls" hidden>
-        <input type="checkbox" id="report-sidewalks-toggle" checked><ul id="report-sidewalk-legend"></ul>
+        <input type="checkbox" id="report-sidewalks-toggle"><ul id="report-sidewalk-legend" hidden></ul>
       </div>`;
     ({ ReportPage } = await loadModules('frontend/js/report/ReportPage.js'));
     deps = {
@@ -74,10 +76,10 @@ describe('ReportPage', () => {
           options,
           destroy: vi.fn(),
           lightStreet: vi.fn(),
-          setVisibleTypes: vi.fn(),
           setSidewalks: vi.fn(),
           setSidewalksVisible: vi.fn(),
           colorBy: vi.fn(),
+          snapshot: vi.fn(async () => 'data:image/png;base64,AAAA'),
         };
         maps.push(map);
         return map;
@@ -173,25 +175,28 @@ describe('ReportPage', () => {
     expect(window.location.hash).toBe('#street-100');
   });
 
-  test('reveals the sidebar controls, whose chips filter every live map', () => {
+  test('sidewalks start off; the switch reaches every map and shows its key', () => {
     new ReportPage(data(), deps).start();
-    expect(document.getElementById('report-type-filter').hidden).toBe(false);
     intersect(document.querySelector('.report-street'), true);
-
-    document.querySelector('[data-label-type="Obstacle"]').click();
-    expect(maps[0].setVisibleTypes).toHaveBeenLastCalledWith(new Set(['CurbRamp']));
-    expect(deps.log).toHaveBeenCalledWith('Report_FilterType_Type=Obstacle_Shown=false');
+    expect(maps[0].setSidewalksVisible).toHaveBeenLastCalledWith(false);
+    const toggle = document.getElementById('report-sidewalks-toggle');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    expect(maps[0].setSidewalksVisible).toHaveBeenLastCalledWith(true);
+    expect(document.getElementById('report-sidewalk-legend').hidden).toBe(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_SidewalksToggle_Shown=true');
   });
 
-  test('the sidewalk switch reaches every map and folds the legend away', () => {
+  test('each side reaches the maps with its street, which is how it takes the street\'s color', async () => {
+    useUtil({ fetchJson: vi.fn(async () => ({ features: [{
+      geometry: { type: 'LineString', coordinates: [] },
+      properties: { presence: 'present', street_side: 'left', street_edge_id: 3, label_count: 4 },
+    }] })) });
     new ReportPage(data(), deps).start();
-    intersect(document.querySelector('.report-street'), true);
-    const toggle = document.getElementById('report-sidewalks-toggle');
-    toggle.checked = false;
-    toggle.dispatchEvent(new Event('change'));
-    expect(maps[0].setSidewalksVisible).toHaveBeenLastCalledWith(false);
-    expect(document.getElementById('report-sidewalk-legend').hidden).toBe(true);
-    expect(deps.log).toHaveBeenCalledWith('Report_SidewalksToggle_Shown=false');
+    intersect(document.getElementById('report-region-map'), true);
+    await vi.waitFor(() => expect(maps[0].setSidewalks).toHaveBeenCalled());
+    expect(maps[0].setSidewalks.mock.lastCall[0].features[0].properties)
+      .toEqual({ presence: 'present', street_side: 'left', street_edge_id: 3 });
   });
 
   describe('coloring by slope', () => {
@@ -237,93 +242,123 @@ describe('ReportPage', () => {
   describe('weights', () => {
     const CONFIG = {
       scored_types: ['Obstacle'], presets: { default: { Obstacle: 1 } }, grade: { sources: [] },
+      type_weights: { Obstacle: { base_weight: -1 } },
     };
-    const STREETS = { features: [{ geometry: { coordinates: [[-122.33, 47.6], [-122.32, 47.61]] } }] };
     let fetchJson;
-    const asked = (path) => fetchJson.mock.calls.map(([url]) => url).filter((url) => url.startsWith(path));
+    const weighted = (types, custom = false) => ({
+      ...data(), weights: { types, grade: 1, custom }, contributions: { Obstacle: -0.4 },
+    });
 
     beforeEach(() => {
       document.body.insertAdjacentHTML('beforeend', `
-        <div id="report-weights-control" hidden><div id="report-weights"></div>
-          <button id="report-weights-reset" hidden></button></div>
-        <button id="report-custom-reset"></button><p id="report-custom-stamp" hidden></p>`);
-      fetchJson = vi.fn(async (url) => {
-        if (url.startsWith('/v3/api/accessScoreConfig')) return CONFIG;
-        if (url.startsWith('/v3/api/accessScoreStreets')) return STREETS;
-        return { features: [] };
-      });
+        <div id="report-weights-control" hidden>
+          <button id="acs-weights-toggle" aria-expanded="false"><img alt="" data-down-src="d" data-up-src="u"></button>
+          <span id="acs-weights-summary"></span><button id="acs-reset" hidden></button>
+          <div id="acs-weights" hidden></div><p id="acs-weights-flash"></p>
+        </div>`);
+      fetchJson = vi.fn(async (url) => (url.startsWith('/v3/api/accessScoreConfig') ? CONFIG : { features: [] }));
       useUtil({ fetchJson });
-      deps.createModel = vi.fn(() => ({
-        setState: vi.fn(), explainStreet: () => ({ score: 0.7, lengthM: 10, audited: true }),
-      }));
-      deps.loadClusters = vi.fn(async () => []);
-      deps.linkedWeights = vi.fn(() => null);
+      deps.navigate = vi.fn();
+      sessionStorage.clear();
     });
 
-    test('appear with the config, and fetch nothing else until a slider moves', async () => {
-      new ReportPage(data(), deps).start();
+    test('appear with the config, folded, on the weights the server scored under', async () => {
+      new ReportPage(weighted({ Obstacle: 1 }), deps).start();
       await flush();
       expect(document.getElementById('report-weights-control').hidden).toBe(false);
-      expect(asked('/v3/api/accessScoreStreets')).toHaveLength(0);
-      expect(deps.createModel).not.toHaveBeenCalled();
+      expect(document.getElementById('acs-weights').hidden).toBe(true);
+      expect(document.getElementById('acs-weight-Obstacle').value).toBe('1');
+      expect(document.querySelector('.ps-weight__bar').classList.contains('ps-weight__bar--problem')).toBe(true);
+    });
+
+    test('a link\'s custom weights open the panel on them', async () => {
+      new ReportPage(weighted({ Obstacle: 2 }, true), deps).start();
+      await flush();
+      expect(document.getElementById('acs-weights').hidden).toBe(false);
+      expect(document.getElementById('acs-weight-Obstacle').value).toBe('2');
+      expect(document.getElementById('acs-reset').hidden).toBe(false);
     });
 
     test('stay away if the config fails, leaving the report as it is', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       fetchJson.mockRejectedValue(new Error('offline'));
-      new ReportPage(data(), deps).start();
+      new ReportPage(weighted({ Obstacle: 1 }), deps).start();
       await flush();
       expect(document.getElementById('report-weights-control').hidden).toBe(true);
       warn.mockRestore();
     });
 
-    test('a moved slider logs on release, and asks for crossings by bbox, not by region', async () => {
-      new ReportPage(data(), deps).start();
+    test('a drag only moves the slider; letting go reopens the report under the new weights, and logs', async () => {
+      window.history.replaceState(null, '', '/report/neighborhood/10#report-streets-title');
+      new ReportPage(weighted({ Obstacle: 1 }), deps).start();
       await flush();
-      const slider = document.getElementById('report-weight-Obstacle');
+      const slider = document.getElementById('acs-weight-Obstacle');
       slider.value = '2';
       slider.dispatchEvent(new Event('input'));
-      expect(deps.log).not.toHaveBeenCalledWith(expect.stringContaining('Report_Weight'));
+      expect(deps.navigate).not.toHaveBeenCalled();
       slider.dispatchEvent(new Event('change'));
-      expect(deps.log).toHaveBeenCalledWith('Report_Weight_Type=Obstacle_Value=2');
-      await flush();
-      await flush();
-      expect(deps.createModel).toHaveBeenCalledTimes(1);
-      expect(asked('/v3/api/accessScoreStreets')).toEqual(['/v3/api/accessScoreStreets?regionId=10']);
-      expect(asked('/v3/api/accessScoreIntersections')[0]).toBe(
-        '/v3/api/accessScoreIntersections?bbox=-122.33050,47.59950,-122.31950,47.61050',
-      );
-      expect(document.getElementById('report-custom-stamp').hidden).toBe(false);
+      expect(deps.log).toHaveBeenCalledWith('Report_Weight_Obstacle_value=2');
+      const url = new URL(deps.navigate.mock.calls[0][0]);
+      expect(url.pathname).toBe('/report/neighborhood/10');
+      expect(url.searchParams.get('w')).toBe('Obstacle:2');
+      expect(url.hash).toBe('#report-streets-title');
     });
 
-    test('a link\'s weights apply on arrival, with the sliders showing them', async () => {
-      deps.linkedWeights.mockReturnValue({ weights: { Obstacle: 2 } });
-      new ReportPage(data(), deps).start();
+    test('Reset reopens the report on the engine\'s own weights, with no weights in the link', async () => {
+      window.history.replaceState(null, '', '/report/neighborhood/10?w=Obstacle:2');
+      new ReportPage(weighted({ Obstacle: 2 }, true), deps).start();
       await flush();
-      await flush();
-      await flush();
-      expect(document.getElementById('report-weight-Obstacle').value).toBe('2');
-      expect(document.getElementById('report-custom-stamp').hidden).toBe(false);
+      document.getElementById('acs-reset').click();
+      expect(deps.log).toHaveBeenCalledWith('Report_Reset');
+      const url = new URL(deps.navigate.mock.calls[0][0]);
+      expect(url.searchParams.has('w')).toBe(false);
+      expect(document.getElementById('acs-weight-Obstacle').value).toBe('1');
     });
 
-    test('the stamp\'s Reset is the sidebar\'s Reset', async () => {
-      deps.linkedWeights.mockReturnValue({ weights: { Obstacle: 2 } });
-      new ReportPage(data(), deps).start();
-      await flush();
-      await flush();
-      await flush();
-      document.getElementById('report-custom-reset').click();
-      expect(document.getElementById('report-weight-Obstacle').value).toBe('1');
-      expect(document.getElementById('report-custom-stamp').hidden).toBe(true);
-      expect(deps.log).toHaveBeenCalledWith('Report_WeightsReset');
+    test('the reopened report scrolls back to where the reader was', () => {
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+      sessionStorage.setItem('report:scrollY', '640');
+      new ReportPage(weighted({ Obstacle: 1 }), deps).start();
+      expect(scrollTo).toHaveBeenCalledWith(0, 640);
+      expect(sessionStorage.getItem('report:scrollY')).toBeNull();
+      scrollTo.mockRestore();
     });
   });
 
-  test('printing draws the fixes\' cards, once, however many ask', async () => {
+  test('printing fills the fixes\' panes, once, however many ask: photo, then the map as a still picture', async () => {
     const page = new ReportPage(data(), deps);
     page.start();
-    await Promise.all([page.prepareForPrint(), page.prepareForPrint()]);
+    deps.fetchCards.mockResolvedValue(new Map([[55, { thumbnailUrl: '/thumb/55.jpg' }]]));
+    const done = Promise.all([page.prepareForPrint(), page.prepareForPrint()]);
+    const photo = await vi.waitFor(() => {
+      const img = document.querySelector('[data-fix-photo] img');
+      if (!img) throw new Error('no photo yet');
+      return img;
+    });
+    expect(photo.getAttribute('src')).toBe('/thumb/55.jpg');
+    photo.dispatchEvent(new Event('load'));
+    await done;
     expect(deps.fetchCards.mock.calls.filter(([ids]) => ids.includes(55))).toHaveLength(1);
-    expect(deps.buildCard).toHaveBeenCalledTimes(1);
+    const still = maps.find((m) => m.options.still);
+    expect(still.options.center).toEqual([-122.33, 47.6]);
+    expect(still.options.focusEdgeIds).toEqual([0]);
+    expect(still.destroy).toHaveBeenCalled();
+    expect(document.querySelector('.report-fix__still').getAttribute('src')).toBe('data:image/png;base64,AAAA');
+  });
+
+  test('a fix with no photo gets the Gallery\'s placeholder, and one whose map never settles keeps its sketch', async () => {
+    deps.createMap.mockImplementation((host, options) => {
+      const map = { host, options, destroy: vi.fn(), colorBy: vi.fn(), snapshot: vi.fn(async () => null) };
+      maps.push(map);
+      return map;
+    });
+    deps.fetchCards.mockResolvedValue(new Map());
+    const page = new ReportPage(data(), deps);
+    page.start();
+    await page.loadFixes();
+    expect(document.querySelector('[data-fix-photo] .test-placeholder')).not.toBeNull();
+    expect(document.querySelector('.report-fix__still')).toBeNull();
+    expect(document.querySelector('[data-fix-map] .report-map__sketch')).not.toBeNull();
+    expect(document.querySelector('.report-fix__live')).toBeNull();
   });
 });

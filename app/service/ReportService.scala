@@ -35,9 +35,10 @@ trait ReportService {
    * Builds a neighborhood report (#5876): AccessScore's own published numbers, with the labels behind them.
    *
    * @param regionId The region to report on
+   * @param weights  The weights to score it under; anything but the engine's re-scores the city's published numbers
    * @return The report, or why there isn't one.
    */
-  def neighborhoodReport(regionId: Int): Future[ReportOutcome]
+  def neighborhoodReport(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): Future[ReportOutcome]
 }
 
 /**
@@ -119,21 +120,43 @@ object ReportService {
    *
    * @param evidence Every location near the region
    * @param labels   Counted labels by id, including those on a street outside the region
+   * @param weights  What the streets were scored under, which prices each item the same way
    * @return The selection.
    */
   def select(
       streets: Seq[StreetAccessScoreForApi],
       evidence: ReportEvidence,
       labels: Map[Int, ReportLabel],
-      hasCrop: ReportLabel => Boolean
+      hasCrop: ReportLabel => Boolean,
+      weights: AccessScoreWeights = AccessScoreWeights.Default
   ): ReportSelection = {
-    val stretches = streets.groupBy(_.osmWayId).values.toSeq.flatMap(ReportStretch.build(_, evidence))
-    val ranked    = ReportStreet.rank(stretches)
+    val stretches =
+      streets.groupBy(_.osmWayId).values.toSeq.flatMap(ReportStretch.build(_, evidence, weights.signed))
+    val ranked = ReportStreet.rank(stretches)
     ReportSelection(
       ranked = ranked,
       cards = ranked.map(s => s -> ReportRules.cards(s.worst, labels, hasCrop)),
       picks = ReportRules.fixes(ranked, labels, FixListSize, hasCrop)
     )
+  }
+
+  /**
+   * Each scored type's mean term per explored street, the street and crossing terms both, as the AccessScore tool's
+   * bars beside its sliders compute them for a neighborhood.
+   *
+   * @return The mean by type, 0 for a type with no term here.
+   */
+  def contributions(
+      streets: Seq[StreetAccessScoreForApi],
+      intersections: Seq[IntersectionAccessScoreForApi],
+      regionId: Int
+  ): Map[String, Double] = {
+    val explored = streets.filter(_.auditCount > 0)
+    val crossing = intersections.filter(i => i.regionId.contains(regionId) && i.score.isDefined)
+    val terms    = explored.map(_.subScores) ++ crossing.map(_.subScores)
+    AccessScoreCalculator.orderedScoredTypes.map { t =>
+      t -> (if (explored.isEmpty) 0.0 else terms.map(_.getOrElse(t, 0.0)).sum / explored.size)
+    }.toMap
   }
 
   /**
@@ -153,7 +176,9 @@ object ReportService {
       data: ReportData,
       selection: ReportSelection,
       clustersUpdatedAt: Option[OffsetDateTime],
-      now: OffsetDateTime
+      now: OffsetDateTime,
+      weights: AccessScoreWeights = AccessScoreWeights.Default,
+      contributions: Map[String, Double] = Map.empty
   ): NeighborhoodReport = {
     val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
@@ -200,7 +225,9 @@ object ReportService {
           s.gradient.flatMap(_.maxGrade),
           s.geometry.getCoordinates.toSeq.map(c => (c.x, c.y))
         )
-      }
+      },
+      weights = weights,
+      contributions = contributions
     )
   }
 }
@@ -218,16 +245,17 @@ class ReportServiceImpl @Inject() (
 
   private val BatchSize = 5000
 
-  def neighborhoodReport(regionId: Int): Future[ReportOutcome] =
+  def neighborhoodReport(regionId: Int, weights: AccessScoreWeights): Future[ReportOutcome] =
     regionService.getRegion(regionId).flatMap {
       case None         => Future.successful(ReportOutcome.RegionNotFound)
       case Some(region) =>
         // The tool's own cached numbers, filtered to the region: reading them any other way could disagree with it.
         accessScoreService.getFullCityScores(BatchSize).flatMap {
-          case None         => Future.successful(ReportOutcome.StillComputing)
-          case Some(scores) =>
+          case None            => Future.successful(ReportOutcome.StillComputing)
+          case Some(published) =>
+            val scores  = AccessScoreWeights.reweight(published, weights)
             val streets = scores.streets.filter(_.regionId == regionId)
-            buildReport(regionId, region.name, streets, scores.intersections, scores.streets).map(
+            buildReport(regionId, region.name, streets, scores.intersections, scores.streets, weights).map(
               ReportOutcome.Ready(_)
             )
         }
@@ -286,13 +314,14 @@ class ReportServiceImpl @Inject() (
       regionName: String,
       streets: Seq[StreetAccessScoreForApi],
       intersections: Seq[IntersectionAccessScoreForApi],
-      cityStreets: Seq[StreetAccessScoreForApi]
+      cityStreets: Seq[StreetAccessScoreForApi],
+      weights: AccessScoreWeights
   ): Future[NeighborhoodReport] = {
     val hasCrop: ReportLabel => Boolean = l => panoDataService.cropExists(l.labelId, l.labelType)
     for {
       data <- reportData(regionId, streets)
       counted     = (data.labels ++ data.foreignLabels).filter(ReportRules.isCounted).map(l => l.labelId -> l).toMap
-      selection   = select(streets, ReportEvidence(data.locations), counted, hasCrop)
+      selection   = select(streets, ReportEvidence(data.locations), counted, hasCrop, weights)
       regionWide  = regionLocations(data.locations, streets, intersections, regionId)
       wantedEdges = regionWide.map(_.streetEdgeId).toSet
       streetKeys  = cityStreets.iterator
@@ -301,8 +330,17 @@ class ReportServiceImpl @Inject() (
         .toMap
       updatedAt <- accessScoreService.clustersUpdatedAt
     } yield assemble(
-      regionId, regionName, streets, regionWide, streetKeys, data, selection, updatedAt,
-      OffsetDateTime.now(ZoneOffset.UTC)
+      regionId,
+      regionName,
+      streets,
+      regionWide,
+      streetKeys,
+      data,
+      selection,
+      updatedAt,
+      OffsetDateTime.now(ZoneOffset.UTC),
+      weights,
+      contributions(streets, intersections, regionId)
     )
   }
 }

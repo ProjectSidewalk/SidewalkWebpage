@@ -6,15 +6,17 @@
 
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';
-import { crossingsBbox, ReportRescorer } from './ReportRescorer.js';
+import { AccessScoreWeightsPanel } from '../access-score/AccessScoreWeightsPanel.js';
+import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { ReportStreetSection } from './ReportStreetSection.js';
-import { ReportWeights } from './ReportWeights.js';
+import { reportSketch } from './reportSketch.js';
 
 export class ReportPage {
   /** Well under the browser's limit of about 16, and more than fit on a screen. */
   static MAX_LIVE_MAPS = 4;
   // Starts a map and its cards a screen ahead, so that a reader scrolling at a normal pace doesn't see them arrive.
   static #NEAR_VIEWPORT = '100% 0px';
+  static #SCROLL_KEY = 'report:scrollY';
 
   /** @type {Record<string, any>} */ #data;
   /** @type {any} */ #deps;
@@ -30,6 +32,8 @@ export class ReportPage {
   /** @type {HTMLElement[]} */ #fixSlots = [];
   #fixesLoaded = false;
   /** @type {?number[]} */ #colorBreaks = null;
+  // Off at first: the streets then read as AccessScore draws them, one line each.
+  #sidewalksVisible = false;
 
   /**
    * @param {Record<string, any>} data - The page's `report-data` JSON.
@@ -38,10 +42,7 @@ export class ReportPage {
    * @param {(labelIds: number[]) => Promise<Map<number, Record<string, any>>>} deps.fetchCards
    * @param {(entry: Record<string, any>, log: (event: string) => void) => any} deps.buildCard
    * @param {(event: string) => void} deps.log
-   * @param {(config: any, streets: any, intersections: any, regions: any) => any} deps.createModel
-   * @param {(config: any, regionId: number) => Promise<any[]>} deps.loadClusters
-   * @param {(config: any) => ?Partial<import('./ReportWeights.js').ReportWeightValues>} deps.linkedWeights - What a
-   *   link's address asks for, or null.
+   * @param {(url: string) => void} [deps.navigate] - Opens the report under new weights; a test stands in for it.
    */
   constructor(data, deps) {
     this.#data = data;
@@ -71,10 +72,10 @@ export class ReportPage {
     this.#startRegionMap();
     this.#watchSections();
     this.#watchFixes();
-    this.#wireFilter();
     this.#wireSidewalkToggle();
     this.#wireColorBy();
     this.#wireWeights();
+    this.#restoreScroll();
   }
 
   /** @returns {Promise<Record<string, any>>} `/v3/api/accessScoreConfig`'s answer, fetched once. */
@@ -89,7 +90,10 @@ export class ReportPage {
     return grade?.sources?.length > 0 && grade.map_class_breaks?.length > 0 ? grade.map_class_breaks : null;
   }
 
-  /** The sidebar's weights, which appear once the config says what there is to weigh. */
+  /**
+   * The server scores the whole report, so letting go of a slider reopens it under the new weights (the tool's `w`
+   * and `gs` parameters); a drag only moves the slider.
+   */
   async #wireWeights() {
     const control = document.getElementById('report-weights-control');
     if (!control) return;
@@ -100,34 +104,52 @@ export class ReportPage {
       console.warn('Report weights could not load', err);
       return;
     }
-    const { regionId } = this.#data;
-    const rescorer = new ReportRescorer(this.#data, {
-      loadModel: async () => {
-        const streets = await util.fetchJson(`/v3/api/accessScoreStreets?regionId=${regionId}`);
-        const [intersections, completion] = await Promise.all([
-          util.fetchJson(`/v3/api/accessScoreIntersections?bbox=${crossingsBbox(streets)}`),
-          util.fetchJson('/regions/completionRates'),
-        ]);
-        return this.#deps.createModel(config, streets, intersections, completion);
-      },
-      loadClusters: () => this.#deps.loadClusters(config, regionId),
-      sections: () => this.#sections,
-      regionMap: () => this.#regionMap,
-    });
-    const weights = new ReportWeights(control, config, (values, { kind, value, final }) => {
-      if (final) this.#log(`Report_${kind}${value ? `_${value}` : ''}`);
-      rescorer.apply(values, { isDefault: weights.isDefault, final });
-    });
-    document.getElementById('report-custom-reset')?.addEventListener('click', () => {
-      document.getElementById('report-weights-reset').click();
+    const panel = new AccessScoreWeightsPanel(control, config, { gradeRow: true });
+    const { weights } = this.#data;
+    panel.setWeights(weights.types, weights.grade);
+    panel.setContributions(this.#data.contributions);
+    if (weights.custom) panel.setOpen(true);
+    panel.onChange((partial, { kind, value, final }) => {
+      if (!final) return;
+      this.#log(`Report_${kind}${value ? `_${value}` : ''}`);
+      if (kind === 'Section') return;
+      if (kind === 'Reset') panel.setWeights(config.presets.default, config.grade_scoring?.defaults.weight);
+      this.#reopen(panel.isDefault ? null : panel.values);
     });
     control.hidden = false;
+  }
 
-    const linked = this.#deps.linkedWeights(config);
-    if (linked) {
-      weights.show(linked);
-      rescorer.apply(weights.values, { isDefault: weights.isDefault, final: true });
+  /**
+   * Reopens the report under other weights, where the reader was on the page.
+   * @param {?{weights: Record<string, number>, gradeWeight: ?number}} values - Null for the engine's own.
+   */
+  #reopen(values) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('w');
+    url.searchParams.delete('gs');
+    if (values) {
+      url.searchParams.set('w', Object.entries(values.weights).map(([type, w]) => `${type}:${w}`).join(','));
+      if (values.gradeWeight !== null) url.searchParams.set('gs', `w:${values.gradeWeight}`);
     }
+    try {
+      sessionStorage.setItem(ReportPage.#SCROLL_KEY, String(window.scrollY));
+    } catch {
+      // Without storage the report reopens at its top, which still reads correctly.
+    }
+    // Written as the tool writes them, so a copied link reads `w=NoCurbRamp:2` rather than `w=NoCurbRamp%3A2`.
+    const href = url.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+    (this.#deps.navigate ?? ((target) => window.location.assign(target)))(href);
+  }
+
+  #restoreScroll() {
+    let y;
+    try {
+      y = sessionStorage.getItem(ReportPage.#SCROLL_KEY);
+      sessionStorage.removeItem(ReportPage.#SCROLL_KEY);
+    } catch {
+      return;
+    }
+    if (y !== null) window.scrollTo(0, Number(y));
   }
 
   /** The score-or-slope switch, which only appears where a street in the region has a grade to color by. */
@@ -173,7 +195,11 @@ export class ReportPage {
       features: faces.features.map((f) => ({
         type: 'Feature',
         geometry: f.geometry,
-        properties: { presence: f.properties.presence, street_side: f.properties.street_side },
+        properties: {
+          presence: f.properties.presence,
+          street_side: f.properties.street_side,
+          street_edge_id: f.properties.street_edge_id,
+        },
       })),
     }));
     return this.#sidewalks;
@@ -205,6 +231,10 @@ export class ReportPage {
         },
       });
       this.#regionMap.colorBy(this.#colorBreaks);
+      this.#regionMap.setSidewalksVisible(this.#sidewalksVisible);
+      const map = this.#regionMap;
+      this.#fetchSidewalks().then((faces) => map.setSidewalks(faces))
+        .catch(() => { /* The overview still reads without its sidewalks. */ });
     }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
     observer.observe(host);
     for (const [wayId, row] of rows) {
@@ -269,59 +299,128 @@ export class ReportPage {
 
   /** The fixes' cards, drawn once they near the viewport. */
   #watchFixes() {
-    const slots = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.report-card-slot')]);
-    if (slots.length === 0) return;
+    const items = /** @type {HTMLElement[]} */ ([...document.querySelectorAll('.report-fix')]);
+    if (items.length === 0) return;
     this.#slotObserver = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
       this.#slotObserver.disconnect();
-      this.loadFixes(slots);
+      this.loadFixes(items);
     }, { rootMargin: ReportPage.#NEAR_VIEWPORT });
-    for (const slot of slots) this.#slotObserver.observe(slot);
-    this.#fixSlots = slots;
+    for (const item of items) this.#slotObserver.observe(item);
+    this.#fixSlots = items;
   }
 
   /**
-   * @param {HTMLElement[]} [slots]
-   * @returns {Promise<void>} Resolves once the cards are drawn and their images have settled.
+   * Fills each fix's two panes: a sketch of the spot at once, then its photo, then its map as a still picture.
+   * @param {HTMLElement[]} [items] - The `.report-fix` cards.
+   * @returns {Promise<void>} Resolves once every pane is as finished as it will get.
    */
-  async loadFixes(slots = this.#fixSlots) {
+  async loadFixes(items = this.#fixSlots) {
     if (this.#fixesLoaded) return;
     this.#fixesLoaded = true;
-    let answers;
+    const fixes = new Map((this.#data.fixes ?? []).map((f) => [f.labelId, f]));
+    const pairs = items.map((item) => [item, fixes.get(Number(item.dataset.labelId))]).filter(([, fix]) => fix);
+    for (const [item, fix] of pairs) this.#sketchFix(item, fix);
+
+    let answers = new Map();
     try {
-      answers = await this.#deps.fetchCards(slots.map((s) => Number(s.dataset.labelId)));
+      answers = await this.#deps.fetchCards(pairs.map(([, fix]) => fix.labelId));
     } catch (err) {
       console.error(err);
-      return;
     }
-    const cards = [];
-    for (const slot of slots) {
-      const answer = answers.get(Number(slot.dataset.labelId));
-      if (!answer) continue;
-      const card = this.#deps.buildCard(answer, this.#log);
-      card.render(slot);
-      card.refitTags();
-      cards.push(card);
-    }
-    await Promise.allSettled(cards.map((c) => c.loadImage()));
+    await Promise.allSettled(pairs.map(([item, fix]) => this.#showFixPhoto(item, fix, answers.get(fix.labelId))));
+    // One at a time, so these never add more than one WebGL context to the street maps' budget.
+    for (const [item, fix] of pairs) await this.#stillFixMap(item, fix);
   }
 
-  /** The sidebar's type chips: one filter over every map and every card at once. */
-  #wireFilter() {
-    const group = document.getElementById('report-type-filter');
-    if (!group) return;
-    const chips = /** @type {HTMLButtonElement[]} */ ([...group.querySelectorAll('.report-chip')]);
-    group.hidden = false;
-    group.addEventListener('click', (e) => {
-      const chip = /** @type {Element} */ (e.target).closest('.report-chip');
-      if (!chip) return;
-      const pressed = chip.getAttribute('aria-pressed') !== 'true';
-      chip.setAttribute('aria-pressed', String(pressed));
-      this.#log(`Report_FilterType_Type=${/** @type {HTMLElement} */ (chip).dataset.labelType}_Shown=${pressed}`);
-      const types = new Set(chips.filter((c) => c.getAttribute('aria-pressed') === 'true')
-        .map((c) => c.dataset.labelType));
-      for (const section of this.#sections) section.setVisibleTypes(types);
-    });
+  /**
+   * Draws the street and the spot with no basemap: what shows until the map is ready, and if it never is.
+   * @param {HTMLElement} item
+   * @param {Record<string, any>} fix
+   */
+  #sketchFix(item, fix) {
+    const focus = new Set(fix.edgeIds);
+    const pane = item.querySelector('[data-fix-map]');
+    pane.insertAdjacentHTML('afterbegin', reportSketch(
+      this.#data.edges.filter((e) => focus.has(e.id)).map((e) => e.coordinates),
+      fix.locations.map((l) => ({
+        lng: l.lng, lat: l.lat, iconUrl: util.misc.getIconImagePaths(l.labelType).iconImagePath,
+      })),
+    ));
+  }
+
+  /**
+   * Uses the small thumbnail, never the billable Street View still a Gallery card falls back to; with no crop the pane
+   * gets the Gallery's own placeholder.
+   * @param {HTMLElement} item
+   * @param {Record<string, any>} fix
+   * @param {?Record<string, any>} entry - The Gallery endpoint's answer for the fix's label, if it had one.
+   * @returns {Promise<void>} Resolves once the photo has loaded or given up.
+   */
+  async #showFixPhoto(item, fix, entry) {
+    const pane = item.querySelector('[data-fix-photo]');
+    const url = entry?.thumbnailUrl ?? entry?.cropUrl;
+    const placeholder = () => {
+      pane.replaceChildren(LabelMiniCard.placeholder(fix.locations[0].labelType, 'unavailable'));
+    };
+    if (!url) {
+      placeholder();
+      return;
+    }
+    const image = document.createElement('img');
+    image.alt = '';
+    image.src = url;
+    pane.replaceChildren(image);
+    await /** @type {Promise<void>} */ (new Promise((resolve) => {
+      image.onload = () => resolve();
+      image.onerror = () => {
+        placeholder();
+        resolve();
+      };
+    }));
+  }
+
+  /**
+   * Draws the fix's map once, keeps the picture, and frees the map.
+   * @param {HTMLElement} item
+   * @param {Record<string, any>} fix
+   * @returns {Promise<void>}
+   */
+  async #stillFixMap(item, fix) {
+    const pane = item.querySelector('[data-fix-map]');
+    const host = document.createElement('div');
+    host.className = 'report-fix__live';
+    pane.append(host);
+    let map = null;
+    try {
+      const [first] = fix.locations;
+      map = this.#deps.createMap(host, {
+        basemap: this.#data.basemap,
+        edges: this.#data.edges,
+        focusEdgeIds: fix.edgeIds,
+        locations: fix.locations,
+        center: [first.lng, first.lat],
+        still: true,
+      });
+      map.colorBy(this.#colorBreaks);
+      const picture = await map.snapshot();
+      if (!picture) return;
+      const image = document.createElement('img');
+      image.className = 'report-fix__still';
+      image.alt = '';
+      image.src = picture;
+      pane.querySelector('.report-map__sketch')?.remove();
+      pane.prepend(image);
+      if (this.#data.basemap.tilesUrl) {
+        pane.insertAdjacentHTML('beforeend', '<span class="report-fix__credit">© OpenStreetMap</span>');
+      }
+    } catch (err) {
+      // The sketch stays; a card without its map still reads.
+      console.warn('Fix map could not be drawn', err);
+    } finally {
+      map?.destroy();
+      host.remove();
+    }
   }
 
   /** The sidebar's sidewalk switch, which also carries the legend. */
@@ -334,6 +433,8 @@ export class ReportPage {
     toggle.addEventListener('change', () => {
       legend.hidden = !toggle.checked;
       this.#log(`Report_SidewalksToggle_Shown=${toggle.checked}`);
+      this.#sidewalksVisible = toggle.checked;
+      this.#regionMap?.setSidewalksVisible(toggle.checked);
       for (const section of this.#sections) section.setSidewalksVisible(toggle.checked);
     });
   }

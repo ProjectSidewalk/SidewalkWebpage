@@ -3,6 +3,10 @@
  * no per-load charge however many streets a report has. It draws one street among its neighbors with an icon per
  * location, or with no street in focus, every street in the region in its score color.
  *
+ * With sidewalks on, a street whose sides are known is drawn as its sides instead: each side with a likely sidewalk in
+ * the street's own color, and a side without one dashed. The color is still the street's (no score is per side), so
+ * the two never compete for the one meaning a line's color has.
+ *
  * It knows nothing of cards. A host hears which location or street the pointer is on and tells it what to light, so
  * the same map serves the overview and a street's section.
  */
@@ -14,6 +18,7 @@ import { Protocol } from 'pmtiles';
 import i18next from 'i18next';
 import { MinimapBasemapStyle } from '../explore/navigation/MinimapBasemapStyle.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
+import { AccessScoreMapLegend } from '../access-score/AccessScoreMapLegend.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
@@ -45,6 +50,9 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {(clusterId: number) => void} [onLocationClick]
  * @property {(wayId: ?number) => void} [onStreetHover]
  * @property {(wayId: number) => void} [onStreetClick]
+ * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
+ * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
+ * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
  */
 
 const STREETS_SOURCE = 'report-streets';
@@ -55,7 +63,14 @@ const CONTEXT_LAYER = 'report-streets-context';
 const LIT_STREET_LAYER = 'report-street-lit';
 const SCORED_LAYER = 'report-streets-scored';
 const SIDEWALK_LAYER = 'report-sidewalks';
+const NO_SIDEWALK_LAYER = 'report-sidewalks-absent';
+const SPINE_LAYER = 'report-streets-spine';
 const SIDEWALK_OFFSET_PX = 6;
+// A block or so around a fix: the street it is on and the corner it is near, at a size two panes can show.
+const STILL_ZOOM = 17.5;
+const STILL_ICON_PX = 24;
+// A tile that never answers must not hold a card's map forever; the sketch stays in its place.
+const STILL_TIMEOUT_MS = 10000;
 // A lit icon covers about 15px around its point, so this leaves the wedge plainly visible past it.
 const VIEWPOINT_MIN_RADIUS_PX = 56;
 const EARTH_CIRCUMFERENCE_METERS = 40075016.686;
@@ -81,6 +96,19 @@ function token(name) {
 }
 
 /**
+ * @param {string} src
+ * @returns {Promise<?HTMLImageElement>} The image once decoded, or null if it can't be.
+ */
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+/**
  * @param {number[][]} points - `[lng, lat]`s.
  * @returns {[[number, number], [number, number]]} The box around them.
  */
@@ -97,6 +125,11 @@ export class ReportMap {
   /** Work asked for before the style finished loading. */
   #pending = [];
   #loaded = false;
+  #sidewalkMode = false;
+  /** @type {?number[]} */ #gradeBreaks = null;
+  /** @type {Set<number>} Edges with at least one side known, which sidewalk mode draws as sides. */
+  #sided = new Set();
+  /** @type {AccessScoreMapLegend} */ #legend;
   #prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
   /**
@@ -105,7 +138,7 @@ export class ReportMap {
    */
   constructor(container, options) {
     this.#options = options;
-    const { basemap, edges, focusEdgeIds = null, locations = [] } = options;
+    const { basemap, edges, focusEdgeIds = null, locations = [], still = false, center = null } = options;
     if (basemap.tilesUrl) addArchiveProtocol();
     // pmtiles' protocol handler wants an absolute URL after its prefix.
     const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
@@ -118,8 +151,8 @@ export class ReportMap {
       container,
       style: /** @type {import('maplibre-gl').StyleSpecification} */ (
         MinimapBasemapStyle.build(bounds[0][1], i18next.language, tilesUrl, basemap.glyphsUrl)),
-      bounds,
-      fitBoundsOptions: { padding: 32, maxZoom: 18 },
+      ...(center ? { center, zoom: STILL_ZOOM } : { bounds, fitBoundsOptions: { padding: 32, maxZoom: 18 } }),
+      ...(still ? { interactive: false, canvasContextAttributes: { preserveDrawingBuffer: true } } : {}),
       maxZoom: 19,
       // A map mid-page must not take the page's scroll: wheel zooming needs a modifier and touch panning two fingers.
       cooperativeGestures: true,
@@ -132,19 +165,58 @@ export class ReportMap {
         'CooperativeGesturesHandler.MobileHelpText': i18next.t('report:map.gesture-touch'),
       },
     });
-    this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    if (!still) {
+      this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+      this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+      this.#addLegend();
+    }
 
     this.#map.once('load', () => {
       this.#addStreets(focusEdgeIds);
       this.#addSidewalks();
+      this.#bindStreetPointer();
       this.#addViewpoint();
       this.#addCursor();
       this.#loaded = true;
       for (const work of this.#pending) work();
       this.#pending = [];
     });
-    for (const location of locations) this.#addMarker(location);
+    // A still map's icons are painted into its picture instead, since a DOM marker isn't on the canvas.
+    if (!still) for (const location of locations) this.#addMarker(location);
+  }
+
+  /**
+   * Waits for the map to finish drawing and returns it as a picture with its locations' icons painted in.
+   * @returns {Promise<?string>} A PNG data URL, or null if the map never finished.
+   */
+  async snapshot() {
+    await /** @type {Promise<void>} */ (new Promise((resolve) => {
+      this.#whenLoaded(() => resolve());
+    }));
+    const settled = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), STILL_TIMEOUT_MS);
+      this.#map.once('idle', () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+      this.#map.triggerRepaint();
+    });
+    if (!settled) return null;
+    const source = this.#map.getCanvas();
+    const picture = document.createElement('canvas');
+    picture.width = source.width;
+    picture.height = source.height;
+    const context = picture.getContext('2d');
+    context.drawImage(source, 0, 0);
+    const ratio = source.width / source.clientWidth;
+    const size = STILL_ICON_PX * ratio;
+    for (const { labelType, lng, lat } of this.#options.locations ?? []) {
+      const icon = await loadImage(util.misc.getIconImagePaths(labelType).iconImagePath);
+      if (!icon) continue;
+      const { x, y } = this.#map.project([lng, lat]);
+      context.drawImage(icon, x * ratio - size / 2, y * ratio - size / 2, size, size);
+    }
+    return picture.toDataURL('image/png');
   }
 
   /** @param {() => void} work - Runs now, or once the style has loaded. */
@@ -166,6 +238,7 @@ export class ReportMap {
           grade: e.grade ?? -1,
           explored: e.explored,
           focused: focused.has(e.id),
+          sided: this.#sided.has(e.id),
         },
         geometry: { type: 'LineString', coordinates: e.coordinates },
       })),
@@ -187,7 +260,8 @@ export class ReportMap {
       line('report-street-casing', ['get', 'focused'], {
         'line-color': token('--color-neutral-white'), 'line-width': 9,
       });
-      line(SCORED_LAYER, ['get', 'focused'], { 'line-color': scoreColor, 'line-width': 5 });
+      line(SCORED_LAYER, this.#scoredFilter(), { 'line-color': scoreColor, 'line-width': 5 });
+      line(SPINE_LAYER, this.#spineFilter(), { 'line-color': token('--color-neutral-500'), 'line-width': 1.5 });
       return;
     }
 
@@ -195,41 +269,90 @@ export class ReportMap {
     line(LIT_STREET_LAYER, ['==', ['get', 'wayId'], -1], {
       'line-color': token('--color-neutral-900'), 'line-width': 9,
     });
-    line(SCORED_LAYER, ['get', 'explored'], { 'line-color': scoreColor, 'line-width': 4 });
+    line(SCORED_LAYER, this.#scoredFilter(), { 'line-color': scoreColor, 'line-width': 4 });
+    line(SPINE_LAYER, this.#spineFilter(), { 'line-color': token('--color-neutral-500'), 'line-width': 1.5 });
     line(CONTEXT_LAYER, ['!', ['get', 'explored']], { 'line-color': token('--color-neutral-400'), 'line-width': 2 });
+  }
 
+  /** A street's line, or in sidewalk mode its present sides, leads to its section. */
+  #bindStreetPointer() {
     const { onStreetHover, onStreetClick } = this.#options;
-    this.#map.on('mousemove', SCORED_LAYER, (e) => {
-      this.#map.getCanvas().style.cursor = 'pointer';
-      onStreetHover?.(e.features?.[0]?.properties?.wayId ?? null);
-    });
-    this.#map.on('mouseleave', SCORED_LAYER, () => {
-      this.#map.getCanvas().style.cursor = '';
-      onStreetHover?.(null);
-    });
-    this.#map.on('click', SCORED_LAYER, (e) => {
-      const wayId = e.features?.[0]?.properties?.wayId;
-      if (wayId !== undefined) onStreetClick?.(wayId);
-    });
+    if (this.#options.focusEdgeIds) return;
+    for (const layer of [SCORED_LAYER, SIDEWALK_LAYER]) {
+      this.#map.on('mousemove', layer, (e) => {
+        this.#map.getCanvas().style.cursor = 'pointer';
+        onStreetHover?.(e.features?.[0]?.properties?.wayId ?? null);
+      });
+      this.#map.on('mouseleave', layer, () => {
+        this.#map.getCanvas().style.cursor = '';
+        onStreetHover?.(null);
+      });
+      this.#map.on('click', layer, (e) => {
+        const wayId = e.features?.[0]?.properties?.wayId;
+        if (wayId !== undefined) onStreetClick?.(wayId);
+      });
+    }
+  }
+
+  /** @returns {any} The streets this map draws in color: the focused one, or every explored one. */
+  #drawn() {
+    return this.#options.focusEdgeIds ? ['get', 'focused'] : ['get', 'explored'];
+  }
+
+  /** @returns {any} Streets drawn by their centerline: all drawn ones, less those sidewalk mode draws as sides. */
+  #scoredFilter() {
+    return this.#sidewalkMode ? ['all', this.#drawn(), ['!', ['get', 'sided']]] : this.#drawn();
+  }
+
+  /** @returns {any} The thin line that keeps a street drawn as its sides reading as one street. */
+  #spineFilter() {
+    return ['all', this.#drawn(), ['get', 'sided'], ['literal', this.#sidewalkMode]];
+  }
+
+  #colorExpression() {
+    const noneColor = token('--color-neutral-400');
+    return this.#gradeBreaks
+      ? AccessScoreGradeRamp.expression(['get', 'grade'], this.#gradeBreaks, { noneColor })
+      : ScoreRamp.expression(['get', 'score'], { noneColor });
+  }
+
+  /** The key to the line colors, on every report map, so a printed or scrolled-to map still says what it shows. */
+  #addLegend() {
+    if (this.#legend) this.#map.removeControl(this.#legend);
+    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, brushable: false });
+    this.#map.addControl(this.#legend, 'bottom-left');
+    this.#legend.setUnit('streets');
+    this.#legend.setGrade(this.#gradeBreaks !== null);
+    const { mark } = this.#options;
+    if (mark) {
+      this.#legend.mark(mark.score);
+      this.#legend.markGrade(mark.grade);
+    }
   }
 
   /** Two lines per street, one on each side, from one centerline. */
   #addSidewalks() {
-    const color = /** @type {import('maplibre-gl').ExpressionSpecification} */ (['match', ['get', 'presence'],
-      'absent', token('--color-label-no-sidewalk'),
-      'present', token('--color-success-200'),
-      token('--color-neutral-400')]);
     this.#map.addSource(SIDEWALKS_SOURCE, { type: 'geojson', data: EMPTY });
+    const offset = /** @type {any} */ (
+      ['match', ['get', 'street_side'], 'left', -SIDEWALK_OFFSET_PX, SIDEWALK_OFFSET_PX]);
+    const layout = /** @type {any} */ ({ 'line-join': 'round', 'line-cap': 'round', 'visibility': 'none' });
     this.#map.addLayer({
       id: SIDEWALK_LAYER,
       type: 'line',
       source: SIDEWALKS_SOURCE,
-      filter: ['!=', ['get', 'presence'], 'unknown'],
-      layout: { 'line-join': 'round', 'visibility': 'visible' },
+      filter: ['all', ['==', ['get', 'presence'], 'present'], this.#drawn()],
+      layout,
+      paint: { 'line-color': /** @type {any} */ (this.#colorExpression()), 'line-width': 3.5, 'line-offset': offset },
+    });
+    // Dashed and grey rather than in a color, since no color on these maps means "missing".
+    this.#map.addLayer({
+      id: NO_SIDEWALK_LAYER,
+      type: 'line',
+      source: SIDEWALKS_SOURCE,
+      filter: ['all', ['==', ['get', 'presence'], 'absent'], this.#drawn()],
+      layout: { ...layout, 'line-cap': 'butt' },
       paint: {
-        'line-color': color,
-        'line-width': 2.5,
-        'line-offset': ['match', ['get', 'street_side'], 'left', -SIDEWALK_OFFSET_PX, SIDEWALK_OFFSET_PX],
+        'line-color': token('--color-neutral-600'), 'line-width': 1.5, 'line-dasharray': [2, 2], 'line-offset': offset,
       },
     });
   }
@@ -354,19 +477,12 @@ export class ReportMap {
    * @param {?number[]} gradeBreaks - The classes' breaks, or null for score.
    */
   colorBy(gradeBreaks) {
+    this.#gradeBreaks = gradeBreaks;
     this.#whenLoaded(() => {
-      const noneColor = token('--color-neutral-400');
-      const color = gradeBreaks
-        ? AccessScoreGradeRamp.expression(['get', 'grade'], gradeBreaks, { noneColor })
-        : ScoreRamp.expression(['get', 'score'], { noneColor });
-      this.#map.setPaintProperty(SCORED_LAYER, 'line-color', /** @type {any} */ (color));
-    });
-  }
-
-  /** Redraws the streets from their edges' current scores. */
-  refreshStreets() {
-    this.#whenLoaded(() => {
-      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(STREETS_SOURCE))?.setData(this.#streetFeatures());
+      const color = /** @type {any} */ (this.#colorExpression());
+      this.#map.setPaintProperty(SCORED_LAYER, 'line-color', color);
+      this.#map.setPaintProperty(SIDEWALK_LAYER, 'line-color', color);
+      this.#addLegend();
     });
   }
 
@@ -378,23 +494,49 @@ export class ReportMap {
     });
   }
 
-  /** @param {GeoJSON.FeatureCollection} faces - `/v3/api/sidewalkPresence`'s answer. */
+  /**
+   * Takes the sides, each given its street's score, grade and way so a side can stand in for its street.
+   * @param {GeoJSON.FeatureCollection} faces - `/v3/api/sidewalkPresence`'s answer.
+   */
   setSidewalks(faces) {
+    const edges = new Map(this.#options.edges.map((e) => [e.id, e]));
+    const focused = new Set(this.#options.focusEdgeIds ?? []);
+    const known = faces.features
+      .filter((f) => f.properties.presence !== 'unknown' && edges.has(f.properties.street_edge_id));
+    const enriched = /** @type {GeoJSON.FeatureCollection} */ ({
+      type: 'FeatureCollection',
+      features: known.map((f) => {
+        const edge = edges.get(f.properties.street_edge_id);
+        return {
+          ...f,
+          properties: {
+            ...f.properties,
+            wayId: edge.wayId,
+            score: edge.score ?? -1,
+            grade: edge.grade ?? -1,
+            explored: edge.explored,
+            focused: focused.has(edge.id),
+          },
+        };
+      }),
+    });
+    this.#sided = new Set(known.map((f) => f.properties.street_edge_id));
     this.#whenLoaded(() => {
-      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(SIDEWALKS_SOURCE))?.setData(faces);
+      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(SIDEWALKS_SOURCE))?.setData(enriched);
+      /** @type {maplibregl.GeoJSONSource} */ (this.#map.getSource(STREETS_SOURCE))?.setData(this.#streetFeatures());
     });
   }
 
-  /** @param {boolean} visible */
+  /** @param {boolean} visible - Whether streets with known sides are drawn as their sides. */
   setSidewalksVisible(visible) {
+    this.#sidewalkMode = visible;
     this.#whenLoaded(() => {
-      this.#map.setLayoutProperty(SIDEWALK_LAYER, 'visibility', visible ? 'visible' : 'none');
+      for (const layer of [SIDEWALK_LAYER, NO_SIDEWALK_LAYER]) {
+        this.#map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none');
+      }
+      this.#map.setFilter(SCORED_LAYER, this.#scoredFilter());
+      this.#map.setFilter(SPINE_LAYER, this.#spineFilter());
     });
-  }
-
-  /** @param {Set<string>} types - The label types to show. */
-  setVisibleTypes(types) {
-    for (const { element, labelType } of this.#markers.values()) element.hidden = !types.has(labelType);
   }
 
   /** Frees the map's WebGL context; a page gets only about 16 of them. */

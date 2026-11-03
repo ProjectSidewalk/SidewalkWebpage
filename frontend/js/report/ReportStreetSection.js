@@ -66,8 +66,7 @@ export class ReportStreetSection {
   /** @type {Map<number, {data: ReportCardData, item: ?HTMLElement, label: ?Record<string, any>, card: any}>} */
   #entries = new Map();
   #limit = ReportStreetSection.PAGE_SIZE;
-  /** @type {Set<string>} */ #visibleTypes;
-  #sidewalksVisible = true;
+  #sidewalksVisible = false;
   /** @type {?number} */ #lit = null;
   #hoverLogged = false;
   /** @type {?ResizeObserver} */ #resize = null;
@@ -76,7 +75,6 @@ export class ReportStreetSection {
   /** @type {?import('./stitchProfile.js').ReportStitchedProfile} */ #stitched = null;
   #profileRequested = false;
   /** @type {?number[]} */ #colorBreaks = null;
-  /** @type {?((card: ReportCardData) => number)} */ #weigher = null;
 
   /**
    * @param {HTMLElement} element - The section: `[data-street-map]`, `[data-street-cards]`, `[data-street-more]`.
@@ -91,7 +89,6 @@ export class ReportStreetSection {
     this.#list = element.querySelector('[data-street-cards]');
     this.#more = element.querySelector('[data-street-more]');
     this.#profileSlot = element.querySelector('[data-street-profile]');
-    this.#visibleTypes = new Set(street.cards.map((c) => c.labelType));
     for (const data of street.cards) {
       this.#entries.set(data.clusterId, { data, item: null, label: null, card: null });
     }
@@ -115,7 +112,20 @@ export class ReportStreetSection {
         for (const { card } of this.#entries.values()) card?.refitTags();
       });
       this.#resize.observe(this.#list);
+      const head = /** @type {?HTMLElement} */ (element.querySelector('.report-street__head'));
+      if (head) {
+        new ResizeObserver(() => {
+          element.style.setProperty('--report-street-head-height', `${head.offsetHeight}px`);
+        }).observe(head);
+      }
     }
+  }
+
+  /** @returns {?number} The steepest grade along the street, which is what the map colors it by under slope. */
+  #steepestGrade() {
+    const focus = new Set(this.#street.edgeIds);
+    const grades = this.#deps.edges.filter((e) => focus.has(e.id) && Number.isFinite(e.grade)).map((e) => e.grade);
+    return grades.length ? Math.max(...grades) : null;
   }
 
   /** @returns {HTMLElement} The section. */
@@ -130,10 +140,10 @@ export class ReportStreetSection {
       edges: this.#deps.edges,
       focusEdgeIds: this.#street.edgeIds,
       locations: this.#street.cards,
+      mark: { score: this.#street.score, grade: this.#steepestGrade() },
       onLocationHover: (id) => this.#light(id),
       onLocationClick: (id) => this.#reveal(id),
     });
-    this.#map.setVisibleTypes(this.#visibleTypes);
     this.#map.setSidewalksVisible(this.#sidewalksVisible);
     this.#map.colorBy(this.#colorBreaks);
     const map = this.#map;
@@ -203,7 +213,7 @@ export class ReportStreetSection {
 
   /** @returns {import('../common/AccessScoreElevationProfile.js').AccessScoreProfileMarker[]} The pins on the hill. */
   #profileMarkers() {
-    return this.#visible().map((c) => ({
+    return this.#street.cards.map((c) => ({
       id: c.clusterId,
       meters: this.#stitched.metersAt([c.lng, c.lat]),
       color: util.misc.getLabelColors(c.labelType),
@@ -211,27 +221,12 @@ export class ReportStreetSection {
     }));
   }
 
-  /** @returns {ReportCardData[]} Every location, in the order to show them. */
-  #ordered() {
-    if (!this.#weigher) return this.#street.cards;
-    const weigher = this.#weigher;
-    return this.#street.cards
-      .map((card, index) => ({ card, index, weight: weigher(card) }))
-      .sort((a, b) => b.weight - a.weight || a.index - b.index)
-      .map(({ card }) => card);
-  }
-
-  /** @returns {ReportCardData[]} The locations the filter allows, in the order they're shown. */
-  #visible() {
-    return this.#ordered().filter((c) => this.#visibleTypes.has(c.labelType));
-  }
-
   /**
    * Fetches and draws the cards within the current limit that aren't yet.
    * @returns {Promise<void>} Resolves once they're drawn and their images have settled.
    */
   async loadCards() {
-    const shown = this.#visible().slice(0, this.#limit);
+    const shown = this.#street.cards.slice(0, this.#limit);
     const missing = shown.filter((c) => !this.#entries.get(c.clusterId).item);
     let answers = new Map();
     if (missing.length) {
@@ -308,11 +303,11 @@ export class ReportStreetSection {
     return strip;
   }
 
-  /** Puts the built cards in order, hides what the filter or the limit leaves out, and words the "more" button. */
+  /** Puts the built cards in order, hides what the limit leaves out, and words the "more" button. */
   #arrange() {
-    const visible = this.#visible();
+    const visible = this.#street.cards;
     const shown = new Set(visible.slice(0, this.#limit).map((c) => c.clusterId));
-    for (const data of this.#ordered()) {
+    for (const data of visible) {
       const { item } = this.#entries.get(data.clusterId);
       if (!item) continue;
       item.hidden = !shown.has(data.clusterId);
@@ -355,7 +350,7 @@ export class ReportStreetSection {
    */
   async #reveal(clusterId) {
     this.#deps.log('Report_MapLocationClick');
-    const index = this.#visible().findIndex((c) => c.clusterId === clusterId);
+    const index = this.#street.cards.findIndex((c) => c.clusterId === clusterId);
     if (index < 0) return;
     if (index >= this.#limit) this.#limit = index + 1;
     await this.loadCards();
@@ -380,28 +375,6 @@ export class ReportStreetSection {
     const url = `/label/${labelId}`;
     if (e.ctrlKey || e.metaKey) window.open(url, '_blank', 'noopener');
     else window.location.assign(url);
-  }
-
-  /** @param {Set<string>} types - The label types the sidebar allows. */
-  setVisibleTypes(types) {
-    this.#visibleTypes = types;
-    this.#map?.setVisibleTypes(types);
-    this.#profile?.setMarkers(this.#profileMarkers());
-    if (this.#list.childElementCount > 0) this.loadCards();
-  }
-
-  /**
-   * Re-orders the cards by what the reader's weights make them matter, or back to the server's order.
-   * @param {?((card: ReportCardData) => number)} weigher - How much a card matters; null for the server's order.
-   */
-  setCardWeigher(weigher) {
-    this.#weigher = weigher;
-    if (this.#list.childElementCount > 0) this.loadCards();
-  }
-
-  /** Redraws the street's map from its edges' current scores. */
-  refreshStreets() {
-    this.#map?.refreshStreets();
   }
 
   /** @param {?number[]} breaks - The slope classes to color streets by, or null for score. */

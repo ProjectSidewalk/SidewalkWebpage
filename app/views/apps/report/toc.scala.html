@@ -1,13 +1,12 @@
-@import models.report.{NeighborhoodReport, RankedStreetRow, ReportPreset}
+@import models.report.{NeighborhoodReport, RankedStreetRow}
 
 @*
  * Where you are in the report. Server-rendered so the links work before, and without, report.js; PageToc only marks the
  * current one. Every street gets an entry, so the list is also a way to jump straight to one.
  *
  * @param report The computed report.
- * @param preset The audience, which decides the order of the sections.
  *@
-@(report: NeighborhoodReport, preset: ReportPreset)(using messages: Messages)
+@(report: NeighborhoodReport)(using messages: Messages)
 
 @item(id: String, label: String) = {<li class="toc-level-1"><a href="#@id" data-report-event="Report_TocClick">@label</a></li>}
 
@@ -16,13 +15,8 @@
   <ul>
     @item("report-summary", Messages("report.toc.summary"))
     @item("report-overview", Messages("report.toc.streets"))
-    @if(preset == ReportPreset.Coordinator) {
-      @item("report-inventory-title", Messages(s"report.inventory.title.${preset.name}"))
-      @item("report-punch-title", Messages(s"report.punch.title.${preset.name}"))
-    } else {
-      @item("report-punch-title", Messages(s"report.punch.title.${preset.name}"))
-      @item("report-inventory-title", Messages(s"report.inventory.title.${preset.name}"))
-    }
+    @item("report-punch-title", Messages("report.punch.title"))
+    @item("report-inventory-title", Messages("report.inventory.title"))
     @if(report.streets.nonEmpty) {
       @item("report-streets-title", Messages("report.toc.details"))
       @for(row <- report.streets) {

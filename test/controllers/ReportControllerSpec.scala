@@ -6,7 +6,7 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.{ApiService, ReportOutcome, ReportService}
+import service.{AccessScoreWeights, ApiService, ReportOutcome, ReportService}
 import util.{SidewalkSpec, UserAgents}
 
 import scala.concurrent.{Await, Future}
@@ -48,18 +48,17 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       status(report(headers = UserAgents.mobile)) mustBe OK
     }
 
-    "render each preset, marking which is current, and treat an unknown one as the default" in {
-      val coordinator = contentAsString(report("?preset=coordinator"))
-      coordinator must include("""data-preset="coordinator"""")
-      val unknown = report("?preset=nonsense")
-      status(unknown) mustBe OK
-      contentAsString(unknown) must include("""data-preset="advocate"""")
+    "score the whole report under a link's weights, and say so" in {
+      contentAsString(report()) must not include "report-custom-stamp"
+      val custom = contentAsString(report("?w=NoCurbRamp:3,CurbRamp:0&gs=w:0"))
+      custom must include("report-custom-stamp")
+      custom must include("&amp;w=CurbRamp:0,NoCurbRamp:3")
     }
 
-    "put the inventory ahead of the fixes for a coordinator and behind them for an advocate" in {
-      def order(body: String): Boolean = body.indexOf("report-inventory-title") < body.indexOf("report-punch-title")
-      order(contentAsString(report("?preset=coordinator"))) mustBe true
-      order(contentAsString(report("?preset=advocate"))) mustBe false
+    "read a malformed weights link as the engine's own rather than failing" in {
+      val resp = report("?w=NoCurbRamp:lots,Nonsense:2,&gs=w:")
+      status(resp) mustBe OK
+      contentAsString(resp) must not include "report-custom-stamp"
     }
 
     "never build a pano or a Mapbox map, so that viewing it costs no per-load charge" in {
@@ -88,7 +87,8 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
  * print, so its URL says so and says when to come back (#5418).
  */
 class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPerSuite {
-  private val computing: ReportService = (_: Int) => Future.successful(ReportOutcome.StillComputing)
+  private val computing: ReportService = (_: Int, _: AccessScoreWeights) =>
+    Future.successful(ReportOutcome.StillComputing)
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder().disable[modules.ActorModule].overrides(bind[ReportService].toInstance(computing)).build()

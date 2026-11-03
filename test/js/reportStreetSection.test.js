@@ -47,7 +47,6 @@ function fakeMap() {
     lightLocation: vi.fn(),
     showViewpoint: vi.fn(),
     viewpointMinRadiusMeters: () => 10,
-    setVisibleTypes: vi.fn(),
     setSidewalks: vi.fn(),
     setSidewalksVisible: vi.fn(),
     colorBy: vi.fn(),
@@ -192,18 +191,8 @@ describe('ReportStreetSection', () => {
     consoleError.mockRestore();
   });
 
-  test('the type filter reaches both the map and the cards', async () => {
-    const section = build([cardData(1, 'Obstacle'), cardData(2, 'CurbRamp', 0)]);
-    await section.loadCards();
-    section.setVisibleTypes(new Set(['CurbRamp']));
-    expect(map.setVisibleTypes).toHaveBeenLastCalledWith(new Set(['CurbRamp']));
-    await vi.waitFor(() => expect(itemOf(1).hidden).toBe(true));
-    expect(itemOf(2).hidden).toBe(false);
-  });
-
-  test('a rebuilt map gets the filter and the sidewalk switch as they now stand', () => {
+  test('a rebuilt map gets the sidewalk switch as it now stands', () => {
     const section = build([cardData(1, 'Obstacle')]);
-    section.setVisibleTypes(new Set());
     section.setSidewalksVisible(false);
     section.unmountMap();
     expect(map.destroy).toHaveBeenCalled();
@@ -212,7 +201,6 @@ describe('ReportStreetSection', () => {
     const second = fakeMap();
     deps.createMap.mockReturnValue(second);
     section.mountMap();
-    expect(second.setVisibleTypes).toHaveBeenCalledWith(new Set());
     expect(second.setSidewalksVisible).toHaveBeenCalledWith(false);
   });
 
@@ -292,14 +280,6 @@ describe('ReportStreetSection', () => {
       expect(lngLat[0]).toBeLessThanOrEqual(-122.32);
       chart.dispatchEvent(new FocusEvent('blur'));
       expect(map.showCursor).toHaveBeenLastCalledWith(null);
-    });
-
-    test('the type filter takes pins off the hill too', async () => {
-      gradedDeps();
-      const section = build([cardData(1, 'Obstacle')]);
-      await section.loadProfile();
-      section.setVisibleTypes(new Set(['CurbRamp']));
-      expect(document.querySelector('.elevation-profile__marker')).toBeNull();
     });
 
     test('a failed fetch leaves no box and no error for the reader', async () => {

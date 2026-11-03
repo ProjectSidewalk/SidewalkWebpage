@@ -1,4 +1,4 @@
-@import models.report.{NeighborhoodReport, ReportFix, ReportFormat, ReportLinks, ReportPreset, ReportRules}
+@import models.report.{NeighborhoodReport, ReportFix, ReportFormat, ReportLinks, ReportRules}
 @import views.html.apps.report as reportViews
 
 @*
@@ -7,10 +7,9 @@
  * across cities.
  *
  * @param report The computed report.
- * @param preset The audience, for the section's vocabulary.
  * @param cityId The deployment's id, which qualifies each label id.
  *@
-@(report: NeighborhoodReport, preset: ReportPreset, cityId: String
+@(report: NeighborhoodReport, cityId: String
 )(using messages: Messages, assets: AssetsFinder)
 
 @streetName(fix: ReportFix) = @{
@@ -18,34 +17,49 @@
 }
 
 <section class="report-section report-punch" aria-labelledby="report-punch-title">
-  <h2 class="report-section__title" id="report-punch-title">@Messages(s"report.punch.title.${preset.name}") @reportViews.info(Messages("report.punch.rule.short"))</h2>
+  <h2 class="report-section__title" id="report-punch-title">@Messages("report.punch.title") @reportViews.info(Messages("report.punch.rule.short"))</h2>
+  @if(report.fixes.nonEmpty) {<p class="report-section__lede">@Messages("report.fix.lede")</p>}
   @if(report.fixes.isEmpty) {
     <p class="report-empty">@Messages("report.punch.none")</p>
   } else {
-    <ol class="report-punch-list">
-      @for(fix <- report.fixes) {
-        <li class="report-punch-item">
-          <div class="report-card-slot" data-label-id="@fix.label.labelId"></div>
-          <div class="report-punch-item__body">
-            <h3 class="report-punch-item__street"><a href="#street-@fix.street.worst.osmWayId" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
-            <p class="report-punch-item__type">@Messages(fix.item.labelType.nameKey)</p>
-            @for(rating <- fix.item.severity) {
-              <p class="report-punch-item__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
-            }
-            <p class="report-punch-item__cost">
-              <a href="@ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId)" data-report-event="Report_OpenAccessScore">@Messages("report.photo.cost", ReportFormat.oneDecimal(fix.item.costPoints))</a>
+    @* One card per fix, the spot from above beside the photo of it. report.js draws both panes: the map as a still
+       picture, since a page can't hold a live map per card, and the photo from the Gallery's own endpoint. *@
+    <ol class="report-fixes">
+      @for((fix, index) <- report.fixes.zipWithIndex) {
+        <li class="report-fix" data-label-id="@fix.label.labelId">
+          <div class="report-fix__views">
+            <a class="report-fix__pane report-fix__map" href="#street-@fix.street.worst.osmWayId" data-fix-map data-report-event="Report_OpenStreet"
+               aria-label="@Messages("report.fix.map", streetName(fix))">
+              <span class="report-fix__rank" aria-hidden="true">@(index + 1)</span>
+            </a>
+            <a class="report-fix__pane report-fix__photo" href="@ReportLinks.label(fix.label.labelId)" data-fix-photo data-report-event="Report_OpenLabel"
+               aria-label="@Messages("report.fix.photo", Messages(fix.item.labelType.nameKey))"></a>
+          </div>
+          <div class="report-fix__body">
+            <div class="report-fix__head">
+              <h3 class="report-fix__street"><a href="#street-@fix.street.worst.osmWayId" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
+              <a class="report-fix__cost" href="@ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore"
+                 aria-label="@Messages("report.photo.cost", ReportFormat.oneDecimal(fix.item.costPoints))">+@ReportFormat.oneDecimal(fix.item.costPoints)</a>
+            </div>
+            <p class="report-fix__type">
+              <img src='@assets.path(fix.item.labelType.smallIconSvgPath)' alt="" width="18" height="18">
+              @Messages(fix.item.labelType.nameKey)
             </p>
-            @if(fix.item.locations.size > 1) {
-              <p class="report-punch-item__pool">
-                <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size, fix.item.labelIds.size)</a>
-              </p>
+            @for(rating <- fix.item.severity) {
+              <p class="report-fix__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
             }
+            @defining(fix.reason) { reason => <p class="report-fix__why">@Messages(reason._1, reason._2*)</p> }
             @if(fix.label.tags.nonEmpty) {
               <ul class="report-tags">
                 @for(tag <- fix.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
               </ul>
             }
-            <p class="report-punch-item__id"><a href="@ReportLinks.label(fix.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId</a></p>
+            <p class="report-fix__foot">
+              @if(fix.item.locations.size > 1) {
+                <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size, fix.item.labelIds.size)</a>
+              }
+              <a href="@ReportLinks.label(fix.label.labelId)" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId</a>
+            </p>
           </div>
         </li>
       }

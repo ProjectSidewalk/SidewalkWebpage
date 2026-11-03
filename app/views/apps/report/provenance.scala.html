@@ -1,4 +1,4 @@
-@import models.report.{NeighborhoodReport, ReportLinks, ReportPreset, ReportRules}
+@import models.report.{NeighborhoodReport, ReportLinks, ReportRules}
 @import service.{AccessScoreSpotlight, CommonPageData}
 
 @*
@@ -6,10 +6,9 @@
  * public API reads its numbers come from, and the full rules that the rest of the page only points to.
  *
  * @param report     The computed report.
- * @param preset     The audience it was written for.
  * @param commonData Per-page config, for the app version.
  *@
-@(report: NeighborhoodReport, preset: ReportPreset, commonData: CommonPageData)(using messages: Messages)
+@(report: NeighborhoodReport, commonData: CommonPageData)(using messages: Messages)
 
 <footer class="report-section report-provenance" aria-labelledby="report-provenance-title">
   <h2 class="report-section__title" id="report-provenance-title">@Messages("report.provenance.title")</h2>
@@ -19,7 +18,6 @@
     @for(updated <- report.clustersUpdatedAt) {
       <div><dt>@Messages("report.provenance.scored")</dt><dd>@updated.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
     }
-    <div><dt>@Messages("report.provenance.preset")</dt><dd>@Messages(s"report.preset.${preset.name}")</dd></div>
     <div>
       <dt>@Messages("report.provenance.data")</dt>
       <dd>

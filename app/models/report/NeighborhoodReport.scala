@@ -2,33 +2,13 @@ package models.report
 
 import models.api.{LabelClusterForApi, LabelDataForApi, StreetAccessScoreForApi}
 import models.label.{LabelType, RatingScale}
-import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
+import models.utils.LatLngBBox
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, JsValue, Json}
 import service.AccessScoreCalculator.{ClusterScoreInput, Scoring}
-import service.{AccessScoreCalculator, AccessScoreSpotlight}
+import service.{AccessScoreCalculator, AccessScoreSpotlight, AccessScoreWeights}
 
 import java.time.{LocalDate, OffsetDateTime}
-
-/**
- * Who a neighborhood report is written for (#5876). A preset changes vocabulary, the headline's sentence, and section
- * order; it never changes a number, so two readers holding different presets can compare them.
- *
- * @param name The `?preset=` value, and the suffix of the preset-specific message keys.
- */
-enum ReportPreset(val name: String) extends NamedEnum {
-  case Advocate    extends ReportPreset("advocate")
-  case Coordinator extends ReportPreset("coordinator")
-}
-
-object ReportPreset extends NamedEnumCompanion[ReportPreset] {
-
-  /**
-   * @param param The raw `?preset=` value.
-   * @return The preset it names, or Advocate: a mistyped link should still show the report rather than an error.
-   */
-  def fromParam(param: Option[String]): ReportPreset = param.flatMap(withNameOption).getOrElse(Advocate)
-}
 
 /**
  * One label as the report reads it: the Raw Labels API's row, narrowed to the fields the report uses, with its votes
@@ -219,10 +199,15 @@ object ReportStretch {
     ).flatten
 
   /**
-   * @param wayEdges Every edge of one way in one region
+   * @param wayEdges Every edge of one way in one region, scored under `weights`
+   * @param weights  Signed base weight per type, which prices each item as the scores were made
    * @return The rolled-up stretch, or None when none of the edges has been explored.
    */
-  def build(wayEdges: Seq[StreetAccessScoreForApi], evidence: ReportEvidence): Option[ReportStretch] = {
+  def build(
+      wayEdges: Seq[StreetAccessScoreForApi],
+      evidence: ReportEvidence,
+      weights: Map[String, Double] = AccessScoreCalculator.baseWeights
+  ): Option[ReportStretch] = {
     val edges = wayEdges.filter(e => e.auditCount > 0 && e.score.isDefined)
     AccessScoreSpotlight.stretchScore(edges.flatMap(e => e.score.map(_ -> e.lengthMeters))).map { score =>
       val locations = edges
@@ -247,7 +232,7 @@ object ReportStretch {
         blockLocationCount = edges.map(_.clusterCounts.values.sum).sum,
         auditCount = edges.map(_.auditCount).sum,
         locations = locations,
-        items = costlyItems(edges, locations, evidence)
+        items = costlyItems(edges, locations, evidence, weights)
       )
     }
   }
@@ -275,7 +260,8 @@ object ReportStretch {
   private def costlyItems(
       edges: Seq[StreetAccessScoreForApi],
       locations: Seq[ReportLocation],
-      evidence: ReportEvidence
+      evidence: ReportEvidence,
+      weights: Map[String, Double]
   ): Seq[ReportItem] = {
     def scoreWithout(removed: Set[Int]): Double = {
       def inputs(ls: Seq[ReportLocation]) = ls.filterNot(l => removed(l.clusterId)).map(_.scoreInput)
@@ -284,7 +270,8 @@ object ReportStretch {
           inputs(evidence.block(e.streetEdgeId)),
           e.lengthMeters,
           e.slopeTerm,
-          scoredEnds(e).map { case (id, _) => inputs(evidence.crossing(id)) }
+          scoredEnds(e).map { case (id, _) => inputs(evidence.crossing(id)) },
+          weights
         ) -> e.lengthMeters
       }
       AccessScoreSpotlight.stretchScore(rebuilt).getOrElse(0.0)
@@ -471,7 +458,7 @@ object ReportRules {
 }
 
 /**
- * The generated headline: a message key, without its preset suffix, its arguments, and the locations the sentence is
+ * The generated headline: a message key, its arguments, and the locations the sentence is
  * about so the page can link to their labels.
  */
 case class ReportHeadline(key: String, args: Seq[Int], locationCount: Int, labelIds: Seq[Int])
@@ -719,7 +706,27 @@ object RankedStreetRow {
  *
  * @param label The label to picture it with
  */
-case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel)
+case class ReportFix(street: ReportStreet, item: ReportItem, label: ReportLabel) {
+
+  /**
+   * Why this one is worth fixing: the strongest fact the data holds, in order. No way around first, since that is a
+   * barrier rather than a cost; then a corner, which counts against every street meeting there; then a pool.
+   *
+   * @return A message key and its arguments.
+   */
+  def reason(using messages: Messages): (String, Seq[Any]) = {
+    val street = RankedStreetRow.displayName(this.street.worst)
+    // The pictured label's own tag counts too: its chip is on the card, and the sentence must not contradict it.
+    val noWayAround = item.labelType == LabelType.NoCurbRamp && label.tags.contains(ReportRules.NoAlternateRouteTag)
+    item.locations match {
+      case ls if noWayAround || ls.exists(_.hasNoAlternateRoute) => ("report.fix.why.noalternate", Nil)
+      case ls if ls.exists(_.intersectionId.isDefined)           => ("report.fix.why.corner", Nil)
+      case ls if ls.size > 1                                     => ("report.fix.why.pooled", Seq(ls.size))
+      case ls if ls.head.isWorst                                 => ("report.fix.why.worst", Seq(street))
+      case _                                                     => ("report.fix.why.costliest", Seq(street))
+    }
+  }
+}
 
 /**
  * One street edge in the region, as the page's maps draw it.
@@ -744,6 +751,9 @@ case class ReportMapEdge(
  * @param streetsRanked     How many streets AccessScore's bars rank here, whatever their score
  * @param evidenceBox       The area its locations were read from, for the data link that reproduces them
  * @param edges             Every street edge in the region, for its maps
+ * @param weights           The weights its scores were computed under: the engine's unless a link asked otherwise
+ * @param contributions     Each scored type's mean term per explored street here, under those weights, for the bars
+ *                          beside the weight sliders
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -758,7 +768,9 @@ case class NeighborhoodReport(
     fixes: Seq[ReportFix],
     inventory: Seq[InventoryRow],
     evidenceBox: Option[LatLngBBox],
-    edges: Seq[ReportMapEdge]
+    edges: Seq[ReportMapEdge],
+    weights: AccessScoreWeights = AccessScoreWeights.Default,
+    contributions: Map[String, Double] = Map.empty
 ) {
 
   /** @return Whether the region is too little explored for its score to be stated, so anything listed is provisional. */
@@ -842,10 +854,30 @@ object ReportLinks {
   /** @return The Gallery showing what this report counts in this region. */
   def gallery(regionId: Int): String = galleryFilter(regionId)
 
-  /** @return AccessScore focused on this region. */
-  def accessScore(regionId: Int): String = s"/accessScore?focus=$regionId"
+  /**
+   * The link parameters for a reader's weights, in the AccessScore tool's format, so a score followed to the tool lands
+   * on the number the report printed.
+   *
+   * @return `&w=…&gs=…`, or nothing for the engine's own weights.
+   */
+  def weightParams(weights: AccessScoreWeights): String =
+    if (weights.isDefault) ""
+    else {
+      def number(v: Double) =
+        BigDecimal(v).setScale(2, BigDecimal.RoundingMode.HALF_UP).bigDecimal.stripTrailingZeros.toPlainString
+      val types =
+        AccessScoreCalculator.orderedScoredTypes.map(t => s"$t:${number(weights.magnitudes(t))}").mkString(",")
+      s"&w=$types&gs=w:${number(weights.slopeWeight)}"
+    }
 
-  def accessScoreStreet(streetEdgeId: Int): String = s"/accessScore?unit=streets&sel=$streetEdgeId"
+  def report(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
+    s"/report/neighborhood/$regionId" + weightParams(weights).replaceFirst("&", "?")
+
+  def accessScore(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
+    s"/accessScore?focus=$regionId${weightParams(weights)}"
+
+  def accessScoreStreet(streetEdgeId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
+    s"/accessScore?unit=streets&sel=$streetEdgeId${weightParams(weights)}"
 
   val scoreDocs: String = "/v3/api-docs/accessScoreStreets"
 
@@ -899,7 +931,13 @@ object ReportClientData {
       "regionId" -> report.regionId,
       "cityId"   -> cityId,
       "basemap"  -> basemap,
-      "edges"    -> report.edges.map { e =>
+      "weights"  -> Json.obj(
+        "types"  -> report.weights.magnitudes,
+        "grade"  -> report.weights.slopeWeight,
+        "custom" -> !report.weights.isDefault
+      ),
+      "contributions" -> report.contributions,
+      "edges"         -> report.edges.map { e =>
         Json.obj(
           "id"          -> e.streetEdgeId,
           "wayId"       -> e.osmWayId,
@@ -907,6 +945,22 @@ object ReportClientData {
           "explored"    -> e.explored,
           "grade"       -> e.maxGrade,
           "coordinates" -> e.coordinates.map { case (lng, lat) => Json.arr(rounded(lng), rounded(lat)) }
+        )
+      },
+      // A fix's still map is drawn in the browser, from its spot and its street.
+      "fixes" -> report.fixes.map { fix =>
+        Json.obj(
+          "labelId"   -> fix.label.labelId,
+          "wayId"     -> fix.street.worst.osmWayId,
+          "edgeIds"   -> fix.street.worst.edgeIds,
+          "locations" -> fix.item.locations.map { l =>
+            Json.obj(
+              "clusterId" -> l.clusterId,
+              "labelType" -> l.labelType.name,
+              "lat"       -> l.latitude,
+              "lng"       -> l.longitude
+            )
+          }
         )
       },
       "streets" -> report.streets.map { row =>
