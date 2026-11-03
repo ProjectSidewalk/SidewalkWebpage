@@ -38,9 +38,11 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   "GET /report/neighborhood/:key" must {
     "send an id, or a slug in other letter case, to the one slug address, weights and all" in {
       val byId = route(app, FakeRequest(GET, s"/report/neighborhood/$regionId?w=NoCurbRamp:3")).get
-      status(byId) mustBe MOVED_PERMANENTLY
+      // Temporary, since a rename moves the slug and a browser would keep a permanent one.
+      status(byId) mustBe FOUND
       redirectLocation(byId) mustBe Some(s"/report/neighborhood/$slug?w=NoCurbRamp:3")
       val upper = route(app, FakeRequest(GET, s"/report/neighborhood/${slug.toUpperCase}")).get
+      status(upper) mustBe MOVED_PERMANENTLY
       redirectLocation(upper) mustBe Some(s"/report/neighborhood/$slug")
     }
 

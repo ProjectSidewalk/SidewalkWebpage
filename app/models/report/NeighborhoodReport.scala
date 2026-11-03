@@ -164,6 +164,8 @@ case class ReportItem(locations: Seq[ReportLocation], costPoints: Double) {
  * @param blockLocationCount Locations along the blocks, excluding crossings: what Spotlight's evidence bar counts
  * @param locations          Every location behind the score, blocks and crossings, once each
  * @param items              What costs the stretch the most, costliest first; items that help the score aren't here
+ * @param rebuiltScore       `score` rebuilt from the report's own evidence, which every item's cost is measured from.
+ *                           It equals `score` unless the evidence is missing a cluster the engine scored
  * @param crossStreets       The other streets met at its ends, up to two, which tell a reader which block it is
  */
 case class ReportStretch(
@@ -181,8 +183,12 @@ case class ReportStretch(
     auditCount: Int,
     locations: Seq[ReportLocation],
     items: Seq[ReportItem],
+    rebuiltScore: Double,
     crossStreets: Seq[String] = Nil
 ) {
+
+  /** @return Whether the rebuilt score has drifted from the published one by more than float noise. */
+  def evidenceDrifts: Boolean = math.abs(rebuiltScore - score) > 1e-9
 
   def isRanked: Boolean =
     AccessScoreSpotlight.stretchIsRanked(totalMeters, auditCount, blockLocationCount, Some(score))
@@ -215,6 +221,7 @@ object ReportStretch {
       val locations = edges
         .flatMap(e => evidence.block(e.streetEdgeId) ++ scoredEnds(e).flatMap { case (id, _) => evidence.crossing(id) })
         .distinctBy(_.clusterId)
+      val (baseline, items) = costlyItems(edges, locations, evidence, weights)
       ReportStretch(
         osmWayId = edges.head.osmWayId,
         name = wayEdges.flatMap(_.streetName).headOption,
@@ -234,7 +241,8 @@ object ReportStretch {
         blockLocationCount = edges.map(_.clusterCounts.values.sum).sum,
         auditCount = edges.map(_.auditCount).sum,
         locations = locations,
-        items = costlyItems(edges, locations, evidence, weights)
+        items = items,
+        rebuiltScore = baseline
       )
     }
   }
@@ -257,14 +265,14 @@ object ReportStretch {
    * Prices every item by rebuilding the stretch's score without it. A crossing's location is priced across every edge
    * meeting there, which is why the rebuild is of the stretch and not of the one edge the location sits on.
    *
-   * @return The items that cost the stretch something, costliest first.
+   * @return The score rebuilt with every item present, and the items that cost the stretch something, costliest first.
    */
   private def costlyItems(
       edges: Seq[StreetAccessScoreForApi],
       locations: Seq[ReportLocation],
       evidence: ReportEvidence,
       weights: Map[String, Double]
-  ): Seq[ReportItem] = {
+  ): (Double, Seq[ReportItem]) = {
     def scoreWithout(removed: Set[Int]): Double = {
       def inputs(ls: Seq[ReportLocation]) = ls.filterNot(l => removed(l.clusterId)).map(_.scoreInput)
       val rebuilt                         = edges.map { e =>
@@ -273,14 +281,16 @@ object ReportStretch {
           e.lengthMeters,
           e.slopeTerm,
           scoredEnds(e).map { case (id, _) => inputs(evidence.crossing(id)) },
-          weights
+          weights,
+          // Only a barrier sets a segment to exactly 0; a sigmoid never reaches it.
+          segmentBarrier = e.segmentScore.contains(0.0)
         ) -> e.lengthMeters
       }
       AccessScoreSpotlight.stretchScore(rebuilt).getOrElse(0.0)
     }
 
     val baseline = scoreWithout(Set.empty)
-    groupIntoItems(locations)
+    baseline -> groupIntoItems(locations)
       .map(ls => ReportItem(ls, (scoreWithout(ls.map(_.clusterId).toSet) - baseline) * 100))
       .filter(_.costPoints > 0)
       .sortBy(i => (-i.costPoints, i.locations.head.clusterId))
@@ -395,9 +405,16 @@ object ReportRules {
       labels: Map[Int, ReportLabel],
       hasCrop: ReportLabel => Boolean
   ): Option[ReportLabel] =
-    membersAtRating(item, labels)
-      .sortBy(l => (!hasCrop(l), reviewRank(l), -l.humanAgree, l.labelId))
-      .headOption
+    withCropFirst(membersAtRating(item, labels).sortBy(l => (reviewRank(l), -l.humanAgree, l.labelId)), hasCrop)
+
+  /**
+   * The first label with a crop, else the first: a sort keyed on `hasCrop` would stat files on every comparison, and
+   * prod's crops are on spinning disks.
+   *
+   * @param ordered Labels in preference order, crop aside
+   */
+  private def withCropFirst(ordered: Seq[ReportLabel], hasCrop: ReportLabel => Boolean): Option[ReportLabel] =
+    ordered.find(hasCrop).orElse(ordered.headOption)
 
   /**
    * Everything a street's section shows: each location with the label that pictures it, costliest first, then those
@@ -448,11 +465,10 @@ object ReportRules {
         street.worst.items.iterator
           .filter(i => i.costPoints >= FixMinPoints && ratedAsFix(i) && !i.locations.exists(l => seen(l.clusterId)))
           .flatMap { item =>
-            membersAtRating(item, labels)
-              .filter(_.uncontested)
-              .sortBy(l => (!hasCrop(l), -l.humanAgree, l.labelId))
-              .headOption
-              .map(label => (street, item, label))
+            withCropFirst(
+              membersAtRating(item, labels).filter(_.uncontested).sortBy(l => (-l.humanAgree, l.labelId)),
+              hasCrop
+            ).map(label => (street, item, label))
           }
           .take(1)
           .tapEach { case (street, item, _) =>
@@ -855,18 +871,26 @@ object ReportSlug {
 
   /**
    * One address per region. Regions sharing a name all take their id as a suffix, so which came first never decides
-   * who gets the bare name. A slug of digits alone would read as an id, so it is suffixed too, as is an empty one.
+   * who gets the bare name. A slug of digits alone would read as an id, so it is suffixed too, as is an empty one. A
+   * suffixed slug can still match another region's bare name ("Foo" #9 and "Foo 9"), so bare names are placed first
+   * and a suffixed one takes its id again until it is free.
    *
    * @param regions Each live region's id and name
    * @return The slug by region id, unique within the city.
    */
   def assign(regions: Seq[(Int, String)]): Map[Int, String] = {
-    val base   = regions.map { case (id, name) => id -> of(name) }
-    val shared = base.groupBy(_._2).collect { case (slug, ids) if ids.size > 1 => slug }.toSet
-    base.map { case (id, slug) =>
-      val needsId = shared(slug) || slug.isEmpty || slug.forall(_.isDigit)
-      id -> (if (slug.isEmpty) s"region-$id" else if (needsId) s"$slug-$id" else slug)
-    }.toMap
+    val base               = regions.map { case (id, name) => id -> of(name) }
+    val shared             = base.groupBy(_._2).collect { case (slug, ids) if ids.size > 1 => slug }.toSet
+    def needsId(s: String) = shared(s) || s.isEmpty || s.forall(_.isDigit)
+    val (suffixed, bare)   = base.partition { case (_, slug) => needsId(slug) }
+    val taken              = scala.collection.mutable.Set.from(bare.map(_._2))
+    val placed             = suffixed.sortBy(_._1).map { case (id, slug) =>
+      val start = if (slug.isEmpty) s"region-$id" else s"$slug-$id"
+      val free  = Iterator.iterate(start)(c => s"$c-$id").find(c => !taken(c)).get
+      taken += free
+      id -> free
+    }
+    (bare ++ placed).toMap
   }
 }
 
@@ -935,7 +959,10 @@ object ReportLinks {
   private val CountedValidationOptions = "correct,unsure,unvalidated"
 
   /** @return The Gallery's review list for exactly these labels; truncated by it, with a notice, over [[MaxListedIds]]. */
-  def labelList(ids: Seq[Int]): String = s"/gallery?labelIds=${ids.mkString(",")}"
+  def labelList(ids: Seq[Int]): String =
+    // Past the cap only its first ids are sent, with the total, so a pooled item of thousands still fits in a URL.
+    if (ids.size <= MaxListedIds) s"/gallery?labelIds=${ids.mkString(",")}"
+    else s"/gallery?labelIds=${ids.take(MaxListedIds).mkString(",")}&labelIdsTotal=${ids.size}"
 
   /**
    * @param regionId    The region
@@ -989,7 +1016,7 @@ object ReportLinks {
         BigDecimal(v).setScale(2, BigDecimal.RoundingMode.HALF_UP).bigDecimal.stripTrailingZeros.toPlainString
       val types =
         AccessScoreCalculator.orderedScoredTypes.map(t => s"$t:${number(weights.magnitudes(t))}").mkString(",")
-      s"&w=$types&gs=w:${number(weights.slopeWeight)}"
+      s"&w=$types" + Option(weights.slopeParam).filter(_.nonEmpty).fold("")(gs => s"&gs=$gs")
     }
 
   def report(slug: String, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
@@ -1037,6 +1064,7 @@ object ReportClientData {
       "lat"        -> card.location.latitude,
       "lng"        -> card.location.longitude,
       "labelIds"   -> card.location.labelIds,
+      "labelsUrl"  -> ReportLinks.labelList(card.location.labelIds),
       "atCrossing" -> card.location.intersectionId.isDefined,
       "costPoints" -> card.costPoints,
       "poolSize"   -> card.poolSize

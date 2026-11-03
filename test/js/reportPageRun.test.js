@@ -312,14 +312,27 @@ describe('ReportPage', () => {
       expect(url.hash).toBe('#report-streets-title');
     });
 
+    test('letting go keeps the slope settings in a link that the panel does not set', async () => {
+      window.history.replaceState(null, '', '/report/neighborhood/10?gs=w:0.5,s:mean_grade,b:0.125');
+      new ReportPage(weighted({ Obstacle: 1 }), deps).start();
+      await flush();
+      const slider = document.getElementById('acs-weight-Obstacle');
+      slider.value = '2';
+      slider.dispatchEvent(new Event('change'));
+      const gs = new URL(deps.navigate.mock.calls[0][0]).searchParams.get('gs').split(',');
+      expect(gs).toEqual(expect.arrayContaining(['s:mean_grade', 'b:0.125']));
+      expect(gs).toContain('w:0.5'); // This city has no slope, so the panel sets no grade weight.
+    });
+
     test('Reset reopens the report on the engine\'s own weights, with no weights in the link', async () => {
-      window.history.replaceState(null, '', '/report/neighborhood/10?w=Obstacle:2');
+      window.history.replaceState(null, '', '/report/neighborhood/10?w=Obstacle:2&gs=b:0.125');
       new ReportPage(weighted({ Obstacle: 2 }, true), deps).start();
       await flush();
       document.getElementById('acs-reset').click();
       expect(deps.log).toHaveBeenCalledWith('Report_Reset');
       const url = new URL(deps.navigate.mock.calls[0][0]);
       expect(url.searchParams.has('w')).toBe(false);
+      expect(url.searchParams.has('gs')).toBe(false);
       expect(document.getElementById('acs-weight-Obstacle').value).toBe('1');
     });
 

@@ -141,6 +141,23 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     s.locations shouldBe empty
   }
 
+  test("a stretch rebuilds its published score from its evidence, and says so when the evidence is missing a cluster") {
+    val full    = ReportEvidence((1 to 3).map(i => loc(i, edge = 1)))
+    val partial = ReportEvidence((1 to 2).map(i => loc(i, edge = 1)))
+    val e       = edge(1, full)
+    stretch(Seq(e), full).evidenceDrifts shouldBe false
+    stretch(Seq(e), partial).evidenceDrifts shouldBe true
+  }
+
+  test("a barrier segment stays at 0 whatever is fixed on it, so its block prices nothing") {
+    val evidence = ReportEvidence((1 to 3).map(i => loc(i, edge = 1)))
+    val e        = edge(1, evidence)
+    val barrier  = e.copy(segmentScore = Some(0.0), score = Some(0.0))
+    val s        = stretch(Seq(barrier), evidence)
+    s.evidenceDrifts shouldBe false
+    s.items shouldBe empty
+  }
+
   test("a way nobody has explored has no stretch") {
     val evidence = ReportEvidence(Seq.empty)
     ReportStretch.build(Seq(edge(1, evidence, audits = 0)), evidence) shouldBe None
@@ -665,6 +682,14 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     raised(0.97, 6.0) shouldBe 100.0
   }
 
+  test("a label list over the Gallery's cap sends only what it can show, with the total for its notice") {
+    ReportLinks.labelList(Seq(1, 2)) shouldBe "/gallery?labelIds=1,2"
+    val many = 1 to (ReportLinks.MaxListedIds + 700)
+    val url  = ReportLinks.labelList(many)
+    url should endWith(s"&labelIdsTotal=${many.size}")
+    url.split("labelIds=")(1).split("&")(0).split(",").length shouldBe ReportLinks.MaxListedIds
+  }
+
   test("a neighborhood's address is its name, unique in the city, and never one an id could be mistaken for") {
     ReportSlug.of("Al 'Ummah Community Center") shouldBe "al-ummah-community-center"
     ReportSlug.of("Milton A. Votee Park") shouldBe "milton-a-votee-park"
@@ -672,6 +697,9 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportSlug.of("Plaza México") shouldBe "plaza-mexico"
     ReportSlug.assign(Seq(1 -> "Mann", 2 -> "Mann", 3 -> "Greenwood", 4 -> "42", 5 -> "!!!")) shouldBe
       Map(1 -> "mann-1", 2 -> "mann-2", 3 -> "greenwood", 4 -> "42-4", 5 -> "region-5")
+    // A suffixed slug never takes another region's bare name, whichever way round they collide.
+    ReportSlug.assign(Seq(9 -> "Foo", 10 -> "Foo", 11 -> "Foo 9", 14 -> "", 15 -> "Region 14")) shouldBe
+      Map(9 -> "foo-9-9", 10 -> "foo-10", 11 -> "foo-9", 14 -> "region-14-14", 15 -> "region-14")
   }
 
   test("a place is near a segment when that segment is its nearest street and it sits close enough to it") {
@@ -707,6 +735,9 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportLinks.report("a-st", custom) should startWith("/report/neighborhood/a-st?w=")
     ReportLinks.accessScoreStreet(12, custom) should include("NoCurbRamp:2.5")
     ReportLinks.accessScoreStreet(12, custom) should endWith("&gs=w:0")
+    ReportLinks.accessScoreStreet(12, AccessScoreWeights.fromParams(None, Some("b:0.125"))) should endWith(
+      "&gs=b:0.125"
+    )
     AccessScoreWeights.fromParams(
       Some(ReportLinks.weightParams(custom).split("&w=")(1).split("&")(0)),
       Some("w:0")

@@ -41,7 +41,7 @@ class ReportController @Inject() (
    *
    * @param key The region's slug ([[models.report.ReportSlug]]), or its id, which redirects to the slug so a link made
    *            either way ends at one address.
-   * @return `Ok` with the page, `MovedPermanently` for an id, `NotFound` if no such region exists, or
+   * @return `Ok` with the page, `Found` for an id, `MovedPermanently` for a slug in other case, `NotFound` if no such region exists, or
    *         `ServiceUnavailable` with a `Retry-After` and a page saying so while the city's AccessScores are being
    *         computed for the first time since a deploy.
    */
@@ -49,8 +49,11 @@ class ReportController @Inject() (
     reportService.regionSlugs.flatMap { slugs =>
       val query                       = if (request.rawQueryString.isEmpty) "" else s"?${request.rawQueryString}"
       def moved(slug: String): Result = MovedPermanently(ReportLinks.report(slug) + query)
+      // An id's slug changes if the region is renamed, and browsers keep a 301 indefinitely, so the id redirect is a
+      // 302; a case-folded slug always lands on the same address, so that one can be permanent.
+      def found(slug: String): Result = Found(ReportLinks.report(slug) + query)
       key.toIntOption match {
-        case Some(id) => Future.successful(slugs.get(id).fold(NotFound(s"No region found with ID: $id"))(moved))
+        case Some(id) => Future.successful(slugs.get(id).fold(NotFound(s"No region found with ID: $id"))(found))
         case None     =>
           slugs.collectFirst { case (id, slug) if slug == key.toLowerCase(java.util.Locale.ROOT) => id -> slug } match {
             case Some((_, slug)) if slug != key => Future.successful(moved(slug))

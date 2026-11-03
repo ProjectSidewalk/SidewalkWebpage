@@ -98,6 +98,25 @@ class AccessScoreWeightsSpec extends AnyFunSuite with Matchers {
     w.signed("NoCurbRamp") shouldBe -2.5
   }
 
+  test("a link's slope settings are read as the tool writes them, and written back the same way") {
+    val w = AccessScoreWeights.fromParams(None, Some("w:0.5,s:mean_grade,lo:0.04,hi:0.1,b:0.125,ap:1"))
+    w.slope shouldBe AccessScoreCalculator.SlopeSettings(
+      weight = 0.5, statistic = AccessScoreCalculator.SlopeStatistic.MeanGrade, lowThreshold = 0.04,
+      highThreshold = 0.1, barrierEnabled = true, barrierThreshold = 0.125, includeApproximate = true
+    )
+    w.isDefault shouldBe false
+    AccessScoreWeights.fromParams(None, Some(w.slopeParam)) shouldBe w
+  }
+
+  test("a barrier alone makes a link custom, and bad or crossing slope tokens fall back to the engine's") {
+    AccessScoreWeights.fromParams(None, Some("b:0.125")).isDefault shouldBe false
+    val d = AccessScoreCalculator.defaultSlopeSettings
+    AccessScoreWeights.fromParams(None, Some("s:steepness,lo:9,b:x,ap:2")).slope shouldBe d
+    val crossed = AccessScoreWeights.fromParams(None, Some("lo:0.2,hi:0.1")).slope
+    (crossed.lowThreshold, crossed.highThreshold) shouldBe (d.lowThreshold, d.highThreshold)
+    AccessScoreWeights.Default.slopeParam shouldBe ""
+  }
+
   test("the engine's own weights leave the published scores untouched") {
     val scores = AccessScores(Seq(street(AccessScoreCalculator.presets("default"))), Seq(crossing))
     AccessScoreWeights.reweight(scores, AccessScoreWeights.Default) shouldBe scores
@@ -106,8 +125,11 @@ class AccessScoreWeightsSpec extends AnyFunSuite with Matchers {
   test("re-scoring from the counts reproduces the engine's own numbers") {
     val published = AccessScores(Seq(street(AccessScoreCalculator.presets("default"))), Seq(crossing))
     // A hair off the defaults, so the counts path runs where the clusters path made the published numbers.
-    val nudged = AccessScoreWeights(AccessScoreWeights.Default.magnitudes.map { case (t, v) => t -> (v + 1e-7) }, 1.0)
-    val got    = AccessScoreWeights.reweight(published, nudged)
+    val nudged = AccessScoreWeights(
+      AccessScoreWeights.Default.magnitudes.map { case (t, v) => t -> (v + 1e-7) },
+      AccessScoreWeights.Default.slope
+    )
+    val got = AccessScoreWeights.reweight(published, nudged)
     got.streets.head.score.get shouldBe published.streets.head.score.get +- 1e-5
     got.intersections.head.score.get shouldBe crossing.score.get +- 1e-5
   }
@@ -115,7 +137,7 @@ class AccessScoreWeightsSpec extends AnyFunSuite with Matchers {
   test("re-scoring under other weights lands where the engine would, crossings included") {
     val published = AccessScores(Seq(street(AccessScoreCalculator.presets("default"))), Seq(crossing))
     val asked     = AccessScoreCalculator.presets("default") ++ Map("NoCurbRamp" -> 3.0, "Obstacle" -> 0.0)
-    val weights   = AccessScoreWeights(asked, 1.0)
+    val weights   = AccessScoreWeights(asked, AccessScoreWeights.Default.slope)
     val rescored  = AccessScoreWeights.reweight(published, weights)
     val expected  = street(asked)
     val got       = rescored.streets.head

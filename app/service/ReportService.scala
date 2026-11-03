@@ -61,6 +61,8 @@ case class ReportData(
 )
 
 object ReportService {
+  private val logger: play.api.Logger = play.api.Logger(this.getClass)
+
   val FixListSize: Int = 6
 
   // Well past the 25 m a corner-type cluster can be attributed to an intersection from, so that every location the
@@ -140,6 +142,14 @@ object ReportService {
         .build(Seq(edge), evidence, weights.signed)
         .map(_.copy(crossStreets = crossStreets(edge.streetEdgeId)))
     }
+    // A drift means the clusters API dropped something the engine scored, so the page's fix costs would be measured
+    // from a different score than the one it prints. Logged rather than hidden, to be traced to its cause.
+    val drifting = segments.filter(_.evidenceDrifts)
+    if (drifting.nonEmpty)
+      ReportService.logger.warn(
+        s"Report evidence rebuilds a different score than published on ${drifting.size} segment(s), e.g. edges " +
+          drifting.take(5).map(d => f"${d.toolEdgeId} (${d.score}%.4f vs ${d.rebuiltScore}%.4f)").mkString(", ")
+      )
     val ranked = ReportStreet.rank(segments)
     ReportSelection(
       ranked = ranked,
@@ -297,9 +307,15 @@ class ReportServiceImpl @Inject() (
         accessScoreService.getFullCityScores(BatchSize).flatMap {
           case None            => Future.successful(ReportOutcome.StillComputing)
           case Some(published) =>
-            val scores  = AccessScoreWeights.reweight(published, weights)
-            val streets = scores.streets.filter(_.regionId == regionId)
-            buildReport(regionId, region.name, streets, scores.intersections, scores.streets, weights).map(
+            // Only the region's streets and the crossings they or the region use are rescored, not the whole city:
+            // a street's score reads just its own end crossings, and the rest of the city is kept for names alone.
+            val regionStreets = published.streets.filter(_.regionId == regionId)
+            val endIds        = regionStreets.flatMap(s => s.startIntersectionId ++ s.endIntersectionId).toSet
+            val used = published.intersections.filter(i => i.regionId.contains(regionId) || endIds(i.intersectionId))
+            val rescored      = AccessScoreWeights.reweight(AccessScores(regionStreets, used), weights)
+            val byId          = rescored.intersections.map(i => i.intersectionId -> i).toMap
+            val intersections = published.intersections.map(i => byId.getOrElse(i.intersectionId, i))
+            buildReport(regionId, region.name, rescored.streets, intersections, published.streets, weights).map(
               ReportOutcome.Ready(_)
             )
         }
@@ -361,7 +377,10 @@ class ReportServiceImpl @Inject() (
       cityStreets: Seq[StreetAccessScoreForApi],
       weights: AccessScoreWeights
   ): Future[NeighborhoodReport] = {
-    val hasCrop: ReportLabel => Boolean = l => panoDataService.cropExists(l.labelId, l.labelType)
+    // One stat per label per request: a label can be a card on two segments sharing a crossing and a fix candidate.
+    val cropChecked                     = scala.collection.concurrent.TrieMap.empty[Int, Boolean]
+    val hasCrop: ReportLabel => Boolean =
+      l => cropChecked.getOrElseUpdate(l.labelId, panoDataService.cropExists(l.labelId, l.labelType))
     for {
       data <- reportData(regionId, streets)
       counted   = (data.labels ++ data.foreignLabels).filter(ReportRules.isCounted).map(l => l.labelId -> l).toMap

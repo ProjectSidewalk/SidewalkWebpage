@@ -31,7 +31,7 @@ const EDGES = [
  */
 const cardData = (id, labelType = 'Obstacle', costPoints = 2) => ({
   clusterId: id, labelId: id + 100, labelType, severity: 3, lat: 47.6, lng: -122.325,
-  labelIds: [id + 100], atCrossing: false, costPoints, poolSize: 1,
+  labelIds: [id + 100], labelsUrl: `/gallery?labelIds=${id + 100}`, atCrossing: false, costPoints, poolSize: 1,
 });
 
 /** @returns {HTMLElement} A section as the template renders it. */

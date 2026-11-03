@@ -27,6 +27,7 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number} lat
  * @property {number} lng
  * @property {number[]} labelIds
+ * @property {string} labelsUrl - The Gallery list of them, built on the server, which caps it to fit a URL.
  * @property {boolean} atCrossing
  * @property {number} costPoints
  * @property {number} poolSize
@@ -292,7 +293,7 @@ export class ReportStreetSection {
     }
     if (data.labelIds.length > 1) {
       const all = document.createElement('a');
-      all.href = `/gallery?labelIds=${data.labelIds.join(',')}`;
+      all.href = data.labelsUrl;
       all.dataset.reportEvent = 'Report_OpenGallery';
       all.textContent = i18next.t('report:card.labels', { count: data.labelIds.length });
       strip.append(all);

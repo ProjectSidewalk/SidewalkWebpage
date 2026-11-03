@@ -127,12 +127,20 @@ export class ReportPage {
    */
   #reopen(values) {
     const url = new URL(window.location.href);
+    // The panel sets only the grade weight, so a link's other slope settings (statistic, thresholds, barrier) stay,
+    // until Reset (null values) returns everything to the engine's own.
+    const replacesGrade = values !== null && values.gradeWeight !== null;
+    const otherSlope = values
+      ? (url.searchParams.get('gs') ?? '').split(',').filter((t) => t && !(replacesGrade && t.startsWith('w:')))
+      : [];
     url.searchParams.delete('w');
     url.searchParams.delete('gs');
     if (values) {
       url.searchParams.set('w', Object.entries(values.weights).map(([type, w]) => `${type}:${w}`).join(','));
-      if (values.gradeWeight !== null) url.searchParams.set('gs', `w:${values.gradeWeight}`);
     }
+    const grade = replacesGrade ? [`w:${values.gradeWeight}`] : [];
+    const slope = [...grade, ...otherSlope];
+    if (slope.length) url.searchParams.set('gs', slope.join(','));
     try {
       sessionStorage.setItem(ReportPage.#SCROLL_KEY, String(window.scrollY));
     } catch {
