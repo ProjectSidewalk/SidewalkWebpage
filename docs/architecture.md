@@ -419,10 +419,11 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
 `/clusteringResults`, `/ai/submitLabelsOnPano`.
 
-### Neighborhood reports (`/report/neighborhood/:regionId`)
+### Neighborhood reports (`/report/neighborhood/:slug`)
 
 A report ties a map, which says where something is, to photos, which show what it is (#3889, #5876): one public,
-responsive page per region. The title, numbers and full street list are server-rendered, so they survive a failed
+responsive page per region. Its address is the region's name (`ReportSlug`: lowercased, accents dropped, the id appended
+only where two regions share a name), computed from current names rather than stored; an id URL redirects to it. The title, numbers and full street list are server-rendered, so they survive a failed
 script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
 the labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its
 filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so

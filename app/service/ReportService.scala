@@ -39,6 +39,9 @@ trait ReportService {
    * @return The report, or why there isn't one.
    */
   def neighborhoodReport(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): Future[ReportOutcome]
+
+  /** @return Each live region's report address, by region id; see [[ReportSlug]]. */
+  def regionSlugs: Future[Map[Int, String]]
 }
 
 /**
@@ -58,7 +61,7 @@ case class ReportData(
 )
 
 object ReportService {
-  val FixListSize: Int = 5
+  val FixListSize: Int = 6
 
   // Well past the 25 m a corner-type cluster can be attributed to an intersection from, so that every location the
   // engine pooled on a street's far end is inside the box, including on a street that bends away at a high latitude.
@@ -244,6 +247,12 @@ class ReportServiceImpl @Inject() (
   import ReportService.*
 
   private val BatchSize = 5000
+
+  // Names change rarely and a lookup is every request's first step, so a few minutes' staleness is the right trade.
+  def regionSlugs: Future[Map[Int, String]] =
+    swrCache.staleWhileRevalidate[Map[Int, String]]("report:region-slugs:v1", DataFreshFor, DataMaxAge) {
+      regionService.getAllRegions.map(rs => ReportSlug.assign(rs.filterNot(_.deleted).map(r => r.regionId -> r.name)))
+    }
 
   def neighborhoodReport(regionId: Int, weights: AccessScoreWeights): Future[ReportOutcome] =
     regionService.getRegion(regionId).flatMap {

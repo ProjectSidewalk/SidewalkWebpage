@@ -262,7 +262,7 @@ GET     /backupImage/:panoId/metadata                   controllers.ImageControl
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
 
 # Neighborhood reports (#3889). Public, like the API they are built from.
-GET     /report/neighborhood/:regionId                  controllers.ReportController.neighborhood(regionId: Int)
+GET     /report/neighborhood/:key                       controllers.ReportController.neighborhood(key: String)
 
 # Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
 # The per-label read lives under /label/:labelId (two segments, so it can't shadow the /label/:labelId wildcard).

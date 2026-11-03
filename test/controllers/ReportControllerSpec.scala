@@ -29,10 +29,25 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .map(_.regionId)
       .getOrElse(cancel("The connected database has no labeled region."))
 
-  private def report(query: String = "", headers: (String, String)*) =
-    route(app, FakeRequest(GET, s"/report/neighborhood/$regionId$query").withHeaders(headers*)).get
+  private lazy val slug: String =
+    Await.result(app.injector.instanceOf[ReportService].regionSlugs, 60.seconds)(regionId)
 
-  "GET /report/neighborhood/:regionId" must {
+  private def report(query: String = "", headers: (String, String)*) =
+    route(app, FakeRequest(GET, s"/report/neighborhood/$slug$query").withHeaders(headers*)).get
+
+  "GET /report/neighborhood/:key" must {
+    "send an id, or a slug in other letter case, to the one slug address, weights and all" in {
+      val byId = route(app, FakeRequest(GET, s"/report/neighborhood/$regionId?w=NoCurbRamp:3")).get
+      status(byId) mustBe MOVED_PERMANENTLY
+      redirectLocation(byId) mustBe Some(s"/report/neighborhood/$slug?w=NoCurbRamp:3")
+      val upper = route(app, FakeRequest(GET, s"/report/neighborhood/${slug.toUpperCase}")).get
+      redirectLocation(upper) mustBe Some(s"/report/neighborhood/$slug")
+    }
+
+    "be a 404 for a name no region has" in {
+      status(route(app, FakeRequest(GET, "/report/neighborhood/no-such-neighborhood")).get) mustBe NOT_FOUND
+    }
+
     "serve the page with no session at all" in {
       val resp = report()
       status(resp) mustBe OK
@@ -87,15 +102,17 @@ class ReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
  * print, so its URL says so and says when to come back (#5418).
  */
 class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPerSuite {
-  private val computing: ReportService = (_: Int, _: AccessScoreWeights) =>
-    Future.successful(ReportOutcome.StillComputing)
+  private val computing: ReportService = new ReportService {
+    def neighborhoodReport(regionId: Int, weights: AccessScoreWeights) = Future.successful(ReportOutcome.StillComputing)
+    def regionSlugs                                                    = Future.successful(Map(1 -> "a-neighborhood"))
+  }
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder().disable[modules.ActorModule].overrides(bind[ReportService].toInstance(computing)).build()
 
-  "GET /report/neighborhood/:regionId" must {
+  "GET /report/neighborhood/:key" must {
     "answer 503 with a page and a Retry-After, rather than a report with holes in it" in {
-      val resp = route(app, FakeRequest(GET, "/report/neighborhood/1")).get
+      val resp = route(app, FakeRequest(GET, "/report/neighborhood/a-neighborhood")).get
       status(resp) mustBe SERVICE_UNAVAILABLE
       header(RETRY_AFTER, resp) mustBe Some(ReportController.StillComputingRetryAfterSeconds.toString)
       contentType(resp) mustBe Some("text/html")

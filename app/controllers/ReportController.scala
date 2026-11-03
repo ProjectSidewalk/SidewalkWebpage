@@ -1,8 +1,11 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import models.report.ReportClientData
+import models.auth.DefaultEnv
+import models.report.{ReportClientData, ReportLinks}
 import play.api.Configuration
+import play.api.mvc.{AnyContent, Result}
+import play.silhouette.api.actions.UserAwareRequest
 import service.{AccessScoreWeights, BasemapService, ConfigService, ReportOutcome, ReportService}
 
 import javax.inject.*
@@ -36,11 +39,32 @@ class ReportController @Inject() (
    * A link's `w` and `gs` (the AccessScore tool's weights) score the whole report. Read from the query string, not the
    * route, so a malformed one opens the engine's report rather than a 400.
    *
-   * @param regionId The region to report on.
-   * @return `Ok` with the page, `NotFound` if no such region exists, or `ServiceUnavailable` with a `Retry-After` and a
-   *         page saying so while the city's AccessScores are being computed for the first time since a deploy.
+   * @param key The region's slug ([[models.report.ReportSlug]]), or its id, which redirects to the slug so a link made
+   *            either way ends at one address.
+   * @return `Ok` with the page, `MovedPermanently` for an id, `NotFound` if no such region exists, or
+   *         `ServiceUnavailable` with a `Retry-After` and a page saying so while the city's AccessScores are being
+   *         computed for the first time since a deploy.
    */
-  def neighborhood(regionId: Int) = cc.securityService.UserAwareAction { implicit request =>
+  def neighborhood(key: String) = cc.securityService.UserAwareAction { implicit request =>
+    reportService.regionSlugs.flatMap { slugs =>
+      val query                       = if (request.rawQueryString.isEmpty) "" else s"?${request.rawQueryString}"
+      def moved(slug: String): Result = MovedPermanently(ReportLinks.report(slug) + query)
+      key.toIntOption match {
+        case Some(id) => Future.successful(slugs.get(id).fold(NotFound(s"No region found with ID: $id"))(moved))
+        case None     =>
+          slugs.collectFirst { case (id, slug) if slug == key.toLowerCase(java.util.Locale.ROOT) => id -> slug } match {
+            case Some((_, slug)) if slug != key => Future.successful(moved(slug))
+            case Some((regionId, slug))         => renderNeighborhood(regionId, slug)
+            case None                           => Future.successful(NotFound(s"No neighborhood found named: $key"))
+          }
+      }
+    }
+  }
+
+  /** The report itself, once the address has named a region. */
+  private def renderNeighborhood(regionId: Int, slug: String)(using
+      request: UserAwareRequest[DefaultEnv, AnyContent]
+  ): Future[Result] = {
     val weights = AccessScoreWeights.fromParams(request.getQueryString("w"), request.getQueryString("gs"))
     reportService.neighborhoodReport(regionId, weights).flatMap {
       case ReportOutcome.RegionNotFound => Future.successful(NotFound(s"No region found with ID: $regionId"))
@@ -64,7 +88,7 @@ class ReportController @Inject() (
               commonData.cityId
             )
           Ok(
-            views.html.apps.report.neighborhood(commonData, request.identity, report, cityName, clientData)
+            views.html.apps.report.neighborhood(commonData, request.identity, report, slug, cityName, clientData)
           )
         }
     }

@@ -17,10 +17,11 @@
  * @param commonData Per-page config.
  * @param user       The signed-in user, if any (navbar only).
  * @param report     The computed report.
+ * @param slug       The region's address, for the links back to this report.
  * @param cityName   The deployment's formatted name, when known.
  * @param clientData What the maps and cards are drawn from; see [[models.report.ReportClientData]].
  *@
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport,
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport, slug: String,
     cityName: Option[String], clientData: JsValue
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -48,7 +49,7 @@
         @if(!report.weights.isDefault) {
           <p class="report-custom-stamp" id="report-custom-stamp">
             @Messages("report.weights.custom")
-            <a class="button button--secondary button--small" id="report-custom-reset" href="@ReportLinks.report(report.regionId)" data-report-event="Report_WeightsReset">@Messages("report.weights.reset")</a>
+            <a class="button button--secondary button--small" id="report-custom-reset" href="@ReportLinks.report(slug)" data-report-event="Report_WeightsReset">@Messages("report.weights.reset")</a>
           </p>
         }
       </header>

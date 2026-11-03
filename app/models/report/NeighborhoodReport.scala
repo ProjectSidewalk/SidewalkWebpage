@@ -777,6 +777,40 @@ case class NeighborhoodReport(
   def isProvisional: Boolean = score.score.isEmpty
 }
 
+/**
+ * A neighborhood's name in its report's address: `/report/neighborhood/benjamin-franklin-middle-school` rather than
+ * `/report/neighborhood/14`, so a link says where it goes. Computed from the current names on every lookup, so nothing
+ * is stored; a renamed region's old address stops resolving, and its id URL still redirects to the new one.
+ */
+object ReportSlug {
+
+  /** @return The name lowercased, accents dropped and every run of anything but letters and digits made one hyphen. */
+  def of(name: String): String =
+    java.text.Normalizer
+      .normalize(name, java.text.Normalizer.Form.NFD)
+      .replaceAll("\\p{M}", "")
+      .toLowerCase(java.util.Locale.ROOT)
+      .replaceAll("[^\\p{L}\\p{N}]+", "-")
+      .stripPrefix("-")
+      .stripSuffix("-")
+
+  /**
+   * One address per region. Regions sharing a name all take their id as a suffix, so which came first never decides
+   * who gets the bare name. A slug of digits alone would read as an id, so it is suffixed too, as is an empty one.
+   *
+   * @param regions Each live region's id and name
+   * @return The slug by region id, unique within the city.
+   */
+  def assign(regions: Seq[(Int, String)]): Map[Int, String] = {
+    val base   = regions.map { case (id, name) => id -> of(name) }
+    val shared = base.groupBy(_._2).collect { case (slug, ids) if ids.size > 1 => slug }.toSet
+    base.map { case (id, slug) =>
+      val needsId = shared(slug) || slug.isEmpty || slug.forall(_.isDigit)
+      id -> (if (slug.isEmpty) s"region-$id" else if (needsId) s"$slug-$id" else slug)
+    }.toMap
+  }
+}
+
 /** The formats the page prints numbers in, one place so that its rows agree with each other. */
 object ReportFormat {
 
@@ -870,8 +904,8 @@ object ReportLinks {
       s"&w=$types&gs=w:${number(weights.slopeWeight)}"
     }
 
-  def report(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
-    s"/report/neighborhood/$regionId" + weightParams(weights).replaceFirst("&", "?")
+  def report(slug: String, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
+    s"/report/neighborhood/${java.net.URLEncoder.encode(slug, "UTF-8")}" + weightParams(weights).replaceFirst("&", "?")
 
   def accessScore(regionId: Int, weights: AccessScoreWeights = AccessScoreWeights.Default): String =
     s"/accessScore?focus=$regionId${weightParams(weights)}"

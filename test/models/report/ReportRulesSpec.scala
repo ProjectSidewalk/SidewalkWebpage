@@ -617,11 +617,20 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     fix(Seq(loc(5, Obstacle, severity = Some(2)))).reason shouldBe ("report.fix.why.costliest", Seq("A St"))
   }
 
+  test("a neighborhood's address is its name, unique in the city, and never one an id could be mistaken for") {
+    ReportSlug.of("Al 'Ummah Community Center") shouldBe "al-ummah-community-center"
+    ReportSlug.of("Milton A. Votee Park") shouldBe "milton-a-votee-park"
+    ReportSlug.of("  Bijlmer-Centrum (Oost) ") shouldBe "bijlmer-centrum-oost"
+    ReportSlug.of("Plaza México") shouldBe "plaza-mexico"
+    ReportSlug.assign(Seq(1 -> "Mann", 2 -> "Mann", 3 -> "Greenwood", 4 -> "42", 5 -> "!!!")) shouldBe
+      Map(1 -> "mann-1", 2 -> "mann-2", 3 -> "greenwood", 4 -> "42-4", 5 -> "region-5")
+  }
+
   test("a report's links carry a reader's weights, and only those") {
     import service.AccessScoreWeights
-    ReportLinks.report(7) shouldBe "/report/neighborhood/7"
+    ReportLinks.report("a-st") shouldBe "/report/neighborhood/a-st"
     val custom = AccessScoreWeights.fromParams(Some("NoCurbRamp:2.5"), Some("w:0"))
-    ReportLinks.report(7, custom) should startWith("/report/neighborhood/7?w=")
+    ReportLinks.report("a-st", custom) should startWith("/report/neighborhood/a-st?w=")
     ReportLinks.accessScoreStreet(12, custom) should include("NoCurbRamp:2.5")
     ReportLinks.accessScoreStreet(12, custom) should endWith("&gs=w:0")
     AccessScoreWeights.fromParams(
