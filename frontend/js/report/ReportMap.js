@@ -163,6 +163,7 @@ export class ReportMap {
   /** @type {maplibregl.Map} */ #map;
   /** @type {ReportMapOptions} */ #options;
   /** @type {?Map<number, ReportMapEdge>} The edges by id, built on first need. */ #edges = null;
+  /** @type {?(() => void)} Closes the place tooltip that is open, if any. */ #openPlace = null;
   /** @type {Map<number, {marker: maplibregl.Marker, element: HTMLElement, labelType: string}>} */ #markers = new Map();
   /** Work asked for before the style finished loading. */
   #pending = [];
@@ -226,6 +227,8 @@ export class ReportMap {
     // A still map's icons are painted into its picture instead, since a DOM marker isn't on the canvas.
     if (!still) {
       for (const place of options.places ?? []) this.#addPlace(place);
+      // A pinned place tooltip closes on a click anywhere else on the map; a place's own click doesn't reach here.
+      this.#map.on('click', () => this.#openPlace?.());
       for (const location of locations) this.#addMarker(location);
     }
   }
@@ -506,28 +509,36 @@ export class ReportMap {
       closeButton: false, closeOnClick: false, offset: 14, className: 'report-place-popup', maxWidth: '260px',
     }).setDOMContent(content);
     let pinned = false;
-    const show = () => popup.setLngLat([place.lng, place.lat]).addTo(this.#map);
+    const close = () => {
+      pinned = false;
+      popup.remove();
+      if (this.#openPlace === close) this.#openPlace = null;
+    };
+    // One place tooltip per map, as AccessScore keeps one card: showing a place closes whichever other one is open,
+    // pinned or not, since a click doesn't move focus in every browser and so can't be relied on to blur it.
+    const show = () => {
+      if (this.#openPlace && this.#openPlace !== close) this.#openPlace();
+      this.#openPlace = close;
+      popup.setLngLat([place.lng, place.lat]).addTo(this.#map);
+    };
     const hide = () => {
-      if (!pinned) popup.remove();
+      if (!pinned) close();
     };
     element.addEventListener('mouseenter', show);
     element.addEventListener('focus', show);
     element.addEventListener('mouseleave', hide);
-    element.addEventListener('blur', () => {
-      pinned = false;
-      popup.remove();
-    });
+    element.addEventListener('blur', close);
     element.addEventListener('click', (e) => {
       e.stopPropagation();
-      pinned = !pinned;
-      if (pinned) show();
-      else popup.remove();
+      if (pinned) {
+        close();
+      } else {
+        show();
+        pinned = true;
+      }
     });
     element.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        pinned = false;
-        popup.remove();
-      }
+      if (e.key === 'Escape') close();
     });
     new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
   }
