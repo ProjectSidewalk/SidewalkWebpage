@@ -678,12 +678,12 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     calls = _fake_run(monkeypatch, {'COPY (SELECT': (0, 'street_edge_id,region_id\n1,1\n2,1\n')})
     city_dir = tmp_path / 'db' / 'onboarding' / 'x'
     city_dir.mkdir(parents=True)
-    (city_dir / 'streets_with_no_imagery.csv').write_text('street_edge_id\n2\n')
+    (city_dir / 'street_imagery_summary.csv').write_text('street_edge_id,region_id,has_imagery\n1,1,True\n2,1,False\n')
     snc.run_imagery_scan('sidewalk_x', 'x', 'panoramax')
     joined = _joined(calls)
     assert (city_dir / 'street_edge_endpoints.csv').read_text().startswith('street_edge_id,region_id')
     assert any('check_streets_for_imagery.py --city-id x --panoramax' in cmd for cmd in joined)
-    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/streets_with_no_imagery.csv' in cmd
+    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
     assert any('import-street-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
