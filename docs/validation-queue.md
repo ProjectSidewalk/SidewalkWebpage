@@ -552,14 +552,14 @@ scp <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-po
 Then the same three lines with `validations.sql` / `validation-queue-validations`, and the analysis for one city:
 
 ```bash
-python3.13 tools/validation_queue/analyze_validation_queue.py \
+python3 tools/validation_queue/analyze_validation_queue.py \
     --pool tmp/validation-queue/validation-queue-pool.csv \
     --validations tmp/validation-queue/validation-queue-validations.csv \
     --city seattle --out tmp/validation-queue/validation-queue-seattle.md
 ```
 
 The CSVs are a snapshot of a database and stay in `tmp/` (ignored); only the report is meant to leave the machine.
-The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
+The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3` does).
 
 For one city on the dev DB, run an export the way the runner does (`readonly_user` needs `USAGE` on the schema):
 
