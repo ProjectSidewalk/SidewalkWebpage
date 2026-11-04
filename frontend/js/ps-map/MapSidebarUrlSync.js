@@ -119,17 +119,12 @@ export class MapSidebarUrlSync {
 
   /** Debounces URL writes so a burst of filter clicks or a continuous pan produces one replaceState. */
   #scheduleWrite() {
-    if (this.#writeTimer) clearTimeout(this.#writeTimer);
+    clearTimeout(this.#writeTimer);
     this.#writeTimer = setTimeout(() => this.#writeUrl(), 300);
   }
 
   /** Rewrites the URL from the current filter state and viewport, omitting params that match the defaults. */
   #writeUrl() {
-    if (this.#writeTimer) {
-      clearTimeout(this.#writeTimer);
-      this.#writeTimer = null;
-    }
-
     const url = new URL(window.location.href);
     const state = this.#filter.getState();
 

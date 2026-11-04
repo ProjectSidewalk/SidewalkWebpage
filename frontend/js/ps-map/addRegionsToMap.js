@@ -43,12 +43,9 @@ export function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
     }
 
     // Compute fill color/opacity for each region.
-    let regionStyle;
-    if (params.regionFillMode === 'singleColor') {
-      regionStyle = { fillColor: params.regionFillColor, fillOpacity: params.regionFillOpacity };
-    } else if (params.regionFillMode === 'completionRate') {
-      regionStyle = getRegionStyleFromCompletionRate(region.properties);
-    }
+    const regionStyle = params.regionFillMode === 'singleColor'
+      ? { fillColor: params.regionFillColor, fillOpacity: params.regionFillOpacity }
+      : getRegionStyleFromCompletionRate(region.properties);
     region.properties.fillColor = regionStyle.fillColor;
     region.properties.fillOpacity = regionStyle.fillOpacity;
   }
