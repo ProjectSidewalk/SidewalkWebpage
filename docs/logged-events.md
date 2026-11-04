@@ -68,6 +68,19 @@ Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for
 a discrete action (e.g. `Click_module=SaveSettings` — which the `/welcome` privacy toggles also emit, see `Click_module=WelcomePrivacy_*` below —, `Click_module=CreateTeam`, `Click_module=LeaveTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
 Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
+A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_CustomWeights=<bool>` from the server, and its links and buttons add `Report_OpenLabel`, `Report_OpenGallery`, `Report_OpenLabelMap`,
+`Report_OpenAccessScore`, `Report_OpenExplore`, `Report_DownloadCsv`, `Report_Feedback` (the Beta note's email link), `Report_CopyLink`, `Report_Print` (any way of
+printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_SidebarToggle_Open=<bool>`,
+`Report_RegionMapClick`, `Report_MapLocationClick`, `Report_LinkedHover` (at most once per card or icon),
+`Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions),
+`Report_SidewalksToggle_Shown=<bool>`, `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
+`Report_WorstMapClick_LabelType=<type>` (a dot on the worst-problems map, #5889), `Report_WorstTypeHover_LabelType=<type>`
+(that map's type list, at most once per type per page load), `Report_WorstCardClose` (a dot's card closed, by its button,
+Escape, a click off the dots, or opening another),
+`Report_ProfileClass_<index>_value=<bool>`, and, from the AccessScore tool's shared weights panel,
+`Report_Weight_<type>_value=<n>`, `Report_GradeWeight_value=<n>` (each when the slider is let go, not during the drag),
+`Report_Reset`, `Report_Section_weights_open=<bool>` and, from the header's stamp, `Report_WeightsReset`; each is
+suffixed `_Region=<id>`.
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
@@ -136,10 +149,10 @@ The AccessScore tool (`/accessScore`, `frontend/js/access-score/`, #5217) logs i
 the Street grade section's `AccessScore_GradeWeight_value=<magnitude>`, `AccessScore_GradeStat_value=<statistic id>`,
 `AccessScore_GradeThreshold_value=<low|high|barrier>_value=<percent>`, `AccessScore_GradeBarrier_value=<bool>`,
 `AccessScore_GradeApproximate_value=<bool>` and `AccessScore_GradeReset` (#5223; its fold logs
-`AccessScore_Section_value=grade_open=<bool>` like the other two), the street popup's elevation profile's
+`AccessScore_Section_value=grade_open=<bool>` like the other two), the street panel's elevation profile's
 `AccessScore_ProfileClass_value=<class index>_value=<bool>` (a legend row pinned or unpinned; the index counts from
 the gentlest grade class, as the map legend's do) and `AccessScore_ProfileScrub` (the chart pointed along or stepped
-through with the arrow keys, once per popup, since a sweep is one interaction; a Tab passing through is not one),
+through with the arrow keys, once per panel, since a sweep is one interaction; a Tab passing through is not one),
 `AccessScore_DarkMap_value=<bool>` (the dark basemap toggled), `AccessScore_Section_value=weights_open=<bool>` /
 `AccessScore_Section_value=places_open=<bool>` (a fold toggled; every fold starts closed, so an open says the section
 was reached for), `AccessScore_Reset` (the weights),
@@ -147,15 +160,30 @@ was reached for), `AccessScore_Reset` (the weights),
 (weights, slope settings, view options, selection, brush, band, basemap and camera back to the page as first opened),
 `AccessScore_Select_streetId_value=<id>` / `AccessScore_Select_regionId_value=<id>` (a click on a street or neighborhood;
 every AccessScore event that carries an id spells it `_<idName>_value=<id>`, the page's one `log(kind, value)` helper),
+the street panel's (#5748) `AccessScore_Panel_value=open` (the panel opened by a click on a street or a place; a
+selection a link carried in is not logged, nor is a street swapped for another while it is open),
+`AccessScore_PanelClose_value=<button|escape>` (closed by the reader; a deselect by a click on bare map is not logged),
+`AccessScore_PanelRow_value=<labelType|grade>` (a row in "What drives this score" hovered or focused, which keeps only
+that type's tiles, once per type per open), `AccessScore_PanelPinRow_value=<labelType>` /
+`AccessScore_PanelUnpinRow_value=<labelType>` (a row pressed, pinning that filter past the pointer, and the pin lifted by
+the row or the chip under the evidence heading), `AccessScore_PanelContinue_streetId_value=<id>` (the "continues as"
+button at a street end with no crossing, which selects the next segment), `AccessScore_PanelHoverCluster_labelClusterId_value=<id>` (an evidence tile, or its pin on the elevation
+profile, hovered or focused, once per cluster per open), `AccessScore_PanelOpenLabel_labelId_value=<id>` (a tile opening the full label card),
+`AccessScore_PanelSheet_labelClusterId_value=<id>` (a tile's "N labels" opening the cluster sheet) and
+`AccessScore_PanelExpandGroup_value=<block|start|end>` / `AccessScore_PanelCollapseGroup_value=<…>` ("Show all" and
+"Show fewer" on a group of tiles), `AccessScore_PanelCrossing_value=<start|end>` (a crossing's dot hovered or focused,
+which opens the crossing card, once per crossing per open) and `AccessScore_PanelFlyTo_value=<start|end|block>` (a
+crossing's dot or the block pressed, which flies the map there),
 `AccessScore_SelectCluster_labelType_value=<type>` (a click on a cluster dot, which opens the cluster sheet) and
-`AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet or the photo strip — casting one lands in `label_validation` with `source = 'AccessScoreSheet'` or `'AccessScoreStrip'` and is not logged here, the label card's rule),
-and the popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
+`AccessScore_SheetPage_value=<prev|next>` (the sheet's arrows or arrow keys stepping to the nearest cluster not yet
+visited, or back along the trail), `AccessScore_SheetOpenLabel_labelId_value=<id>` (a card in that sheet opening the full label card), `AccessScore_ClearVote_result=<Agree|Disagree|Unsure>_labelId=<id>` (a vote cleared from a mini-card's chips in the sheet, the photo strip or the panel — casting one lands in `label_validation` with `source = 'AccessScoreSheet'`, `'AccessScoreStrip'` or `'AccessScorePanel'` and is not logged here, the label card's rule),
+and the panel's and popup's hop `AccessScore_ExploreHere`. The places layer (#5311) adds
 `AccessScore_PlaceCategory_value=<category>_value=<bool>` (one category's row),
 `AccessScore_PlaceCategoryOnly_value=<category>` (a row's hover-revealed "Only") and
 `AccessScore_PlaceCategorySelectAll` / `AccessScore_PlaceCategoryDeselectAll` (the heading's section action, the
 shared filter sidebar's),
-`AccessScore_SelectPlace_placeId_value=<id>` (a click on a place marker, which opens the place card; a card restored from a
-link's `place` param is not logged); the card's one hop is the shared `ExploreHere`. A click on a
+`AccessScore_SelectPlace_placeId_value=<id>` (a click on a place marker, which opens the street panel headed by the
+place; one restored from a link's `place` param is not logged); the card's one hop is the shared `ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
 dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
@@ -302,7 +330,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `ServiceHours_Set=<bool>` | Server-logged in `UserController.setServiceHours` when a user opts in to (`true`) or out of (`false`) official community-service-hour recognition from the `/welcome` callout or the `/serviceHoursInstructions` toggle (#4375). |
 | `Share_Click` / `Share_Native` / `Share_CopyLink` / `Share_Platform=<Twitter\|Bluesky\|Facebook\|LinkedIn\|Email>` | Emitted by the frontend share widget: opening the share UI, invoking the native OS share sheet (touch-primary devices only), copying the permalink, and sharing to a named platform (the `Share_Platform` suffix is the target). |
 | `Click_module=SharedLabel_target=<FullMap\|Explore\|Validate\|NearbyLabel>` | Outbound/interactive clicks on the public spotlight page (`SharedLabel.js`): `FullMap` = the "explore the full map" caption link into the LabelMap, `Explore`/`Validate` = the call-to-action buttons into those tools, `NearbyLabel_labelId=<id>` = clicking a nearby-labels map marker (the suffix is that neighbor's label id). |
-| `Click_module=LabelDetail_action=<PanoInfoButton\|PanoInfoCopyToClipboard\|PanoInfoViewInPano\|ViewOnLabelMap\|ExploreHere\|HideLabel\|ShowLabel>_labelId=<id>` / `Click_module=LabelPopup_action=<NextLabel\|PrevLabel>_labelId=<id>` | The shared Label Detail Card (#4572) on its `webpage_activity`-logged hosts (LabelMap, Gallery, dashboards, admin, share page): opening the Details popover, its copy-to-clipboard and view-in-provider actions, the "View on Label Map" hop, the "Explore the sidewalks here" hop into a free-exploration Explore session seeded at the label's pano + POV (#4637), the Hide/Show-label toggle over the imagery (#2477 — only the click is logged; the state it sets then carries to later labels silently), and the popup's prev/next nearby-label arrows (`labelId` is the shown label; the arrows log the label paged *from*). On Explore/Validate the same popover logs through those tools' trackers as `PanoInfo*_Click` instead. The two paging actions also have a `KeyboardShortcut_module=LabelPopup_action=<NextLabel\|PrevLabel>_labelId=<id>` form, which is what the card's left/right arrow shortcuts and Enter/Space on a focused arrow log as (#5194); the Gallery's expanded view pages through its own tracker instead (`NextLabelClick` / `NextLabelKeyboardShortcut`). |
+| `Click_module=LabelDetail_action=<PanoInfoButton\|PanoInfoCopyToClipboard\|PanoInfoViewInPano\|ViewOnLabelMap\|ExploreHere\|HideLabel\|ShowLabel>_labelId=<id>` / `Click_module=LabelPopup_action=<NextLabel\|PrevLabel>_labelId=<id>` | The shared Label Detail Card (#4572) on its `webpage_activity`-logged hosts (LabelMap, Gallery, dashboards, admin, share page): opening the Details popover, its copy-to-clipboard and view-in-provider actions, the "View on Label Map" hop, the "Explore the sidewalks here" hop into a free-exploration Explore session seeded at the label's pano + POV (#4637), the Hide/Show-label toggle over the imagery (#2477 — only the click is logged; the state it sets then carries to later labels silently), and the popup's prev/next nearby-label arrows (`labelId` is the shown label; the arrows log the label paged *from*). On Explore/Validate the same popover logs through those tools' trackers as `PanoInfo*_Click` instead. The two paging actions also have a `KeyboardShortcut_module=LabelPopup_action=<NextLabel\|PrevLabel>_labelId=<id>` form, which is what the card's left/right arrow shortcuts (and S for next, #5883) and Enter/Space on a focused arrow log as (#5194); the Gallery's expanded view pages through its own tracker instead (`NextLabelClick` / `NextLabelKeyboardShortcut`). |
 | `LabelDetail_Show_labelId=<id>_source=<source>` | The label detail card was shown a label (#5139): one event per open, whatever opened it — a map click, a `?labelId=` deep link, a list or story row, or a paging arrow (so paging and a close-then-reopen of the same label each count again). `source` is the host's validation source: `LabelMap`, `UserMap`, `AdminLabelMap`, `UserDashboard`, `AdminUserDashboard`, `GalleryExpanded`, `DashboardStories`, `StoryListPage`, `AdminStories`, `AdminActivity`, `AccessScore`, `SharedLabel` or `LabelSearchPage`. Logged before the label's metadata is fetched, so an open counts even if the label then fails to load. The card's redraw after a vote or comment the server refused with a 409 (the label's type changed under it) is not an open and is not logged. Explore and Validate don't host this card. Open rate per source: `SELECT substring(activity FROM '_source=(.*)$') AS source, COUNT(*) FROM webpage_activity WHERE activity LIKE 'LabelDetail\_Show\_%' GROUP BY 1;` |
 | `Click_module=LabelDetail_action=ClearVote_result=<Agree\|Disagree\|Unsure>_labelId=<id>` / `KeyboardShortcut_module=LabelDetail_action=ClearVote_result=<…>_labelId=<id>` | The user cleared their validation of a label by choosing again the vote they'd already cast on the label detail card (#4653); `result` is the vote that was cleared, and the `KeyboardShortcut_` form is the A/Y, D/N and U shortcuts plus Enter/Space on a focused vote button (#5194). **Casting** a vote isn't logged here — it lands in `label_validation` with a `source` naming the surface — but clearing one *deletes* that row, so this event is the only record it happened. The Gallery's small cards vote through their own tracker instead, where the same action reads `Validate_MenuClickClear<Result>` / `Validate_ThumbsMenuClickClear<Result>` (or `…KeyboardShortcutClear<Result>`). |
 | `Click_module=LabelDetail_action=EditSeverity_old=<n\|null>_new=<n>_labelId=<id>` / `Click_module=LabelDetail_action=EditTags_old=<tag\|tag…>_new=<tag\|tag…>_labelId=<id>` / `Click_module=LabelDetail_action=EditTagsOpen_labelId=<id>` | Editing a label's severity or tags from the label detail card (#2575; the labeler and admins). `EditSeverity`/`EditTags` log on a successful save (tags `\|`-joined); the edit itself is the `label_edit` row, where a user's consecutive changes fold into one row even though each save logs here. `EditTagsOpen` is the "Edit" toggle beside the Tags heading, logged whether or not anything is then changed. |

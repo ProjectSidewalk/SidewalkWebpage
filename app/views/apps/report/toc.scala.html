@@ -1,0 +1,31 @@
+@import models.report.{NeighborhoodReport, RankedStreetRow}
+
+@*
+ * Where you are in the report. Server-rendered so the links work before, and without, report.js; PageToc only marks the
+ * current one. Every street gets an entry, so the list is also a way to jump straight to one.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using messages: Messages)
+
+@item(id: String, label: String) = {<li class="toc-level-1"><a href="#@id" data-report-event="Report_TocClick">@label</a></li>}
+
+<nav class="page-toc report-toc" id="report-toc" aria-labelledby="report-toc-title">
+  <h2 class="page-toc-header" id="report-toc-title">@Messages("report.toc.title")</h2>
+  <ul>
+    @item("report-summary", Messages("report.toc.summary"))
+    @item("report-overview", Messages("report.toc.streets"))
+    @item("report-worst", Messages("report.toc.worst"))
+    @item("report-punch-title", Messages("report.punch.title"))
+    @item("report-inventory-title", Messages("report.inventory.title"))
+    @if(report.streets.nonEmpty) {
+      @item("report-streets-title", Messages("report.toc.details"))
+      @for(row <- report.detailed) {
+        <li class="toc-level-2">
+          <a href="#@row.anchor" data-report-event="Report_TocClick" data-street="@row.street.worst.toolEdgeId"><span class="report-toc__dot" data-score="@row.street.worst.score" aria-hidden="true"></span><span class="report-toc__label">@RankedStreetRow.displayName(row.street.worst)@for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-toc__between">@between</span>}</span></a>
+        </li>
+      }
+    }
+    @item("report-provenance-title", Messages("report.provenance.title"))
+  </ul>
+</nav>

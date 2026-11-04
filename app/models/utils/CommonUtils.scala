@@ -36,6 +36,7 @@ object CommonUtils {
     case StoryListPage                   extends UiSource("StoryListPage")
     case UserDashboard                   extends UiSource("UserDashboard")
     case AccessScore                     extends UiSource("AccessScore")
+    case Report                          extends UiSource("Report")
     case OldDataUnknownSource            extends UiSource("Old data, unknown source")
   }
 

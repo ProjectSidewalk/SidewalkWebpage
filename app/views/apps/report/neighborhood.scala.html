@@ -1,0 +1,110 @@
+@import models.report.{NeighborhoodReport, ReportFormat, ReportLinks}
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.JsValue
+@import views.ViewHelpers.jsonForScript
+@import service.CommonPageData
+@import views.html.apps.report as reportViews
+
+@*
+ * One neighborhood's report (#5876), laid out as the site's other tools are: settings on the left, the report in the
+ * middle, and where you are in it on the right. Overview first, then detail: the full street list comes before any
+ * single street.
+ *
+ * Its scores are AccessScore's own, read from the tool's cache, so the two can't disagree. The page's rule is that no
+ * number appears without a way to see what's behind it: a count links to its labels, a score to the AccessScore tool.
+ *
+ * @param commonData Per-page config.
+ * @param user       The signed-in user, if any (navbar only).
+ * @param report     The computed report.
+ * @param slug       The region's address, for the links back to this report.
+ * @param cityName   The deployment's formatted name, when known.
+ * @param clientData What the maps and cards are drawn from; see [[models.report.ReportClientData]].
+ *@
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: NeighborhoodReport, slug: String,
+    cityName: Option[String], clientData: JsValue
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@dateLabel(date: java.time.LocalDate) = @{
+  date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG)
+    .withLocale(messages.lang.toLocale))
+}
+
+@common.main(commonData, Messages("report.seo.title", report.regionName), i18Namespaces = Seq("common", "gallery", "labelmap", "accessscore", "report"), url = "/report") {
+  @common.navbar(commonData, user)
+
+  <div class="page-container report-shell" id="report-shell" data-region-id="@report.regionId">
+    @reportViews.sidebar(report)
+
+    <main class="page-content report-page" id="report-page">
+      <header class="report-head" id="report-summary">
+        <p class="report-eyebrow">@Messages("report.eyebrow") <span class="report-badge">@Messages("report.beta.badge")</span></p>
+        <h1 class="report-title">@report.regionName</h1>
+        <p class="report-generated">
+          @for(city <- cityName) {@city ·}
+          @Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))
+          @for(last <- report.coverage.lastObservation) {@Messages("report.latest.observation", dateLabel(last))}
+        </p>
+        @* Soft-launched by shared link only, so the page says it's new and where to send what readers find. *@
+        <p class="report-beta">@Messages("report.beta.note") <a href="mailto:sidewalk@@cs.uw.edu" data-report-event="Report_Feedback">sidewalk@@cs.uw.edu</a></p>
+        @* Printed whenever a reader's weights are in force, on paper too: a forwarded report must not pass them off. *@
+        @if(!report.weights.isDefault) {
+          <p class="report-custom-stamp" id="report-custom-stamp">
+            @Messages("report.weights.custom")
+            <a class="button button--secondary button--small" id="report-custom-reset" href="@ReportLinks.report(slug)" data-report-event="Report_WeightsReset">@Messages("report.weights.reset")</a>
+          </p>
+        }
+      </header>
+
+      <section class="report-section report-headline-section" aria-label="@Messages("report.headline.label")">
+        <div class="report-score">
+          <p class="report-score__label">
+            @Messages("report.score.label")
+            @reportViews.info(if(report.score.score.isDefined) Messages("report.score.detail") else Messages("report.score.none.detail", report.score.percentRequired, report.score.percentExplored))
+          </p>
+          @report.score.score.map { score =>
+            <a class="report-score__value" href="@ReportLinks.accessScore(report.regionId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.score.value", ReportFormat.score(score))</a>
+          }.getOrElse {
+            <p class="report-score__value">@Messages("report.score.none")</p>
+          }
+        </div>
+        <div class="report-headline-body">
+          <p class="report-headline">@Messages(s"${report.headline.key}", report.headline.args*)</p>
+          @if(report.headline.labelIds.nonEmpty) {
+            <p class="report-headline__evidence">
+              <a href="@ReportLinks.count(report.headline.labelIds, ReportLinks.worstFilter(report.regionId))"
+                 data-report-event="Report_OpenGallery">@Messages("report.headline.evidence", report.headline.locationCount)</a>
+            </p>
+          }
+        </div>
+      </section>
+
+      @reportViews.coverage(report)
+      @reportViews.overview(report)
+      @reportViews.worstProblems(report)
+
+      @reportViews.punchList(report, commonData.cityId)
+      @reportViews.inventory(report)
+
+      @reportViews.streets(report)
+
+      <section class="report-section report-deeper" aria-labelledby="report-deeper-title">
+        <h2 class="report-section__title" id="report-deeper-title">@Messages("report.deeper.title")</h2>
+        <ul class="report-deeper__list">
+          <li><a href="@ReportLinks.labelMap(report.regionId)" data-report-event="Report_OpenLabelMap">@Messages("report.deeper.labelmap")</a></li>
+          <li><a href="@ReportLinks.gallery(report.regionId)" data-report-event="Report_OpenGallery">@Messages("report.deeper.gallery")</a></li>
+          <li><a href="@ReportLinks.accessScore(report.regionId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.deeper.accessscore")</a></li>
+          <li><a href="@ReportLinks.explore(report.regionId)" data-report-event="Report_OpenExplore">@Messages("report.deeper.explore")</a></li>
+        </ul>
+      </section>
+
+      @reportViews.provenance(report, commonData)
+    </main>
+
+    @reportViews.toc(report)
+  </div>
+
+  <script type="application/json" id="report-data">@jsonForScript(clientData)</script>
+  @ViteAssets.stylesheets("report")
+  <script type="module" src='@assets.path("build/js/report.js")'></script>
+}

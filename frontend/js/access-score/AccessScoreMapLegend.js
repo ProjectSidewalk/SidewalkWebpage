@@ -24,6 +24,7 @@ import i18next from 'i18next';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/ps-map-legend.css';
 
 export class AccessScoreMapLegend {
   #container = null;
@@ -40,6 +41,10 @@ export class AccessScoreMapLegend {
   #swatchLabel = null;
   #mode = 'light';
   #onGradeClasses;
+  #brushable;
+  // A page may hold several of these (the report's maps), and the grade block is labelled by its title's id.
+  static #count = 0;
+  #titleId = `ps-map-legend-grade-title-${++AccessScoreMapLegend.#count}`;
   /** @type {number[]} The class indices currently brushed, gentlest first; empty for none. */
   #selection = [];
   /** Which class row holds the tab stop, as the histogram's bins do. */
@@ -52,11 +57,13 @@ export class AccessScoreMapLegend {
    * @param {boolean} [options.gradeCoarse=false] - True where the city's grades come from a coarse elevation model
    *                                                (`AccessScoreModel.gradesApproximate`), so the classes say so.
    * @param {Function} [options.onGradeClasses] - Called with the selected class indices (empty to clear).
+   * @param {boolean} [options.brushable=true] - False for a map with no brush, whose class rows are then a plain key.
    */
-  constructor({ gradeBreaks = null, gradeCoarse = false, onGradeClasses = () => {} } = {}) {
+  constructor({ gradeBreaks = null, gradeCoarse = false, onGradeClasses = () => {}, brushable = true } = {}) {
     this.#gradeBreaks = gradeBreaks;
     this.#gradeCoarse = gradeCoarse;
     this.#onGradeClasses = onGradeClasses;
+    this.#brushable = brushable;
   }
 
   /**
@@ -65,30 +72,31 @@ export class AccessScoreMapLegend {
    */
   onAdd() {
     const root = document.createElement('div');
-    root.className = 'mapboxgl-ctrl acs-map-legend';
+    // Both libraries' control class, so it sits in either one's corner the same way.
+    root.className = 'mapboxgl-ctrl maplibregl-ctrl ps-map-legend';
     root.innerHTML = `
-      <div class="acs-map-legend__score" role="img" aria-label="${i18next.t('accessscore:legend')}">
-        <div class="acs-map-legend__row">
-          <span class="acs-map-legend__end">0</span>
-          <span class="acs-map-legend__bar"><span class="acs-map-legend__caret" hidden></span></span>
-          <span class="acs-map-legend__end">100</span>
+      <div class="ps-map-legend__score" role="img" aria-label="${i18next.t('accessscore:legend')}">
+        <div class="ps-map-legend__row">
+          <span class="ps-map-legend__end">0</span>
+          <span class="ps-map-legend__bar"><span class="ps-map-legend__caret" hidden></span></span>
+          <span class="ps-map-legend__end">100</span>
         </div>
-        <div class="acs-map-legend__poles">
+        <div class="ps-map-legend__poles">
           <span>${i18next.t('accessscore:legend-low')}</span>
           <span>${i18next.t('accessscore:legend-high')}</span>
         </div>
-        <div class="acs-map-legend__none">
-          <span class="acs-map-legend__swatch"></span><span class="acs-map-legend__none-label"></span>
+        <div class="ps-map-legend__none">
+          <span class="ps-map-legend__swatch"></span><span class="ps-map-legend__none-label"></span>
         </div>
       </div>
-      <div class="acs-map-legend__grade" role="group" aria-labelledby="acs-map-legend-grade-title" hidden></div>`;
+      <div class="ps-map-legend__grade" role="group" aria-labelledby="${this.#titleId}" hidden></div>`;
     this.#container = root;
-    this.#scoreBlock = root.querySelector('.acs-map-legend__score');
-    this.#gradeBlock = root.querySelector('.acs-map-legend__grade');
-    this.#bar = root.querySelector('.acs-map-legend__bar');
-    this.#caret = root.querySelector('.acs-map-legend__caret');
-    this.#swatch = root.querySelector('.acs-map-legend__swatch');
-    this.#swatchLabel = root.querySelector('.acs-map-legend__none-label');
+    this.#scoreBlock = root.querySelector('.ps-map-legend__score');
+    this.#gradeBlock = root.querySelector('.ps-map-legend__grade');
+    this.#bar = root.querySelector('.ps-map-legend__bar');
+    this.#caret = root.querySelector('.ps-map-legend__caret');
+    this.#swatch = root.querySelector('.ps-map-legend__swatch');
+    this.#swatchLabel = root.querySelector('.ps-map-legend__none-label');
     // The ramp is data, not styling: read from the tokens at build time, like every other ramp consumer.
     this.#bar.style.background = ScoreRamp.cssGradient({ mode: this.#mode });
     this.#renderGrade();
@@ -157,14 +165,19 @@ export class AccessScoreMapLegend {
       return i18next.t('accessscore:grade-class-between', { from: percent(from), to: percent(to), ...options });
     };
     const classes = AccessScoreGradeRamp.classes(this.#gradeBreaks, this.#mode);
-    const row = (index, swatchClass, label) => `
+    const row = (index, swatchClass, label) => (this.#brushable
+      ? `
       <li>
-        <button type="button" class="acs-map-legend__class" data-class="${util.escapeHTML(index)}" aria-pressed="false"
+        <button type="button" class="ps-map-legend__class" data-class="${util.escapeHTML(index)}" aria-pressed="false"
                 tabindex="-1">
           <span class="${swatchClass}" aria-hidden="true"></span><span>${label}</span>
         </button>
-      </li>`;
-    const rows = classes.map((c, i) => row(i, 'acs-map-legend__class-swatch', range(c))).reverse().join('');
+      </li>`
+      : `
+      <li class="ps-map-legend__class ps-map-legend__class--static" data-class="${util.escapeHTML(index)}">
+        <span class="${swatchClass}" aria-hidden="true"></span><span>${label}</span>
+      </li>`);
+    const rows = classes.map((c, i) => row(i, 'ps-map-legend__class-swatch', range(c))).reverse().join('');
     const statisticKey = `accessscore:slope-statistic-${this.#gradeStatistic.replaceAll('_', '-')}`;
     const title = i18next.exists(statisticKey)
       ? i18next.t('accessscore:grade-legend-title-by',
@@ -172,21 +185,22 @@ export class AccessScoreMapLegend {
       : i18next.t('accessscore:grade-legend-title');
     // `role="list"`: the rows are styled without markers, and Safari drops list semantics from such a list.
     this.#gradeBlock.innerHTML = `
-      <div class="acs-map-legend__title" id="acs-map-legend-grade-title">${title}</div>
-      <ul class="acs-map-legend__classes" role="list">
+      <div class="ps-map-legend__title" id="${this.#titleId}">${title}</div>
+      <ul class="ps-map-legend__classes" role="list">
         ${rows}
-        ${row(AccessScoreGradeRamp.NO_GRADE, 'acs-map-legend__swatch acs-map-legend__swatch--no-grade',
+        ${row(AccessScoreGradeRamp.NO_GRADE, 'ps-map-legend__swatch ps-map-legend__swatch--no-grade',
           i18next.t('accessscore:grade-legend-none'))}
       </ul>
-      ${this.#gradeCoarse ? `<p class="acs-map-legend__hint">${i18next.t('accessscore:grade-legend-coarse')}</p>` : ''}
-      <p class="acs-map-legend__hint">${i18next.t('accessscore:grade-legend-hint')}</p>`;
+      ${this.#gradeCoarse ? `<p class="ps-map-legend__hint">${i18next.t('accessscore:grade-legend-coarse')}</p>` : ''}
+      ${this.#brushable ? `<p class="ps-map-legend__hint">${i18next.t('accessscore:grade-legend-hint')}</p>` : ''}`;
     // The dark basemap's steepest classes are near-white, which the legend's white card would swallow.
-    this.#gradeBlock.classList.toggle('acs-map-legend__grade--dark', this.#mode === 'dark');
+    this.#gradeBlock.classList.toggle('ps-map-legend__grade--dark', this.#mode === 'dark');
     // The colors are data read from the tokens, set as properties like the score bar's gradient above.
-    this.#gradeBlock.querySelectorAll('.acs-map-legend__class-swatch').forEach((swatch) => {
+    this.#gradeBlock.querySelectorAll('.ps-map-legend__class-swatch').forEach((swatch) => {
       const index = Number(/** @type {HTMLElement} */ (swatch.closest('[data-class]')).dataset.class);
       /** @type {HTMLElement} */ (swatch).style.background = classes[index].color;
     });
+    if (!this.#brushable) return;
     this.#bindGrade();
     this.#reflectSelection();
   }
@@ -219,7 +233,7 @@ export class AccessScoreMapLegend {
 
   /** @returns {HTMLButtonElement[]} The class rows in display order (steepest first), the no-grade row last. */
   #classButtons() {
-    return /** @type {HTMLButtonElement[]} */ ([...this.#gradeBlock.querySelectorAll('.acs-map-legend__class')]);
+    return /** @type {HTMLButtonElement[]} */ ([...this.#gradeBlock.querySelectorAll('.ps-map-legend__class')]);
   }
 
   /** Moves the roving tab stop and the focus together. */
@@ -274,7 +288,7 @@ export class AccessScoreMapLegend {
     for (const [i, button] of buttons.entries()) {
       const on = this.#selection.includes(Number(button.dataset.class));
       button.setAttribute('aria-pressed', String(on));
-      button.classList.toggle('acs-map-legend__class--out', any && !on);
+      button.classList.toggle('ps-map-legend__class--out', any && !on);
       button.tabIndex = i === Math.min(this.#focused, buttons.length - 1) ? 0 : -1;
     }
   }
@@ -289,10 +303,23 @@ export class AccessScoreMapLegend {
     if (!this.#container) return;
     this.#showActiveBlock();
     const regions = unit === 'regions';
-    this.#swatch.classList.toggle('acs-map-legend__swatch--hatch', regions);
-    this.#swatch.classList.toggle('acs-map-legend__swatch--unaudited', !regions);
+    this.#swatch.classList.toggle('ps-map-legend__swatch--hatch', regions);
+    this.#swatch.classList.toggle('ps-map-legend__swatch--unaudited', !regions);
     const key = regions ? 'accessscore:legend-insufficient' : 'accessscore:legend-unaudited';
     this.#swatchLabel.textContent = i18next.t(key);
+  }
+
+  /**
+   * Marks the class a grade falls in, on a plain key: a map of one street says where that street sits on the scale.
+   * @param {?number} grade - The street's grade as a fraction, or null for "no grade data".
+   */
+  markGrade(grade) {
+    if (!this.#gradeBlock || this.#gradeBreaks === null) return;
+    const index = AccessScoreGradeRamp.classIndexOf(grade, this.#gradeBreaks);
+    for (const row of this.#gradeBlock.querySelectorAll('.ps-map-legend__class')) {
+      const here = Number(/** @type {HTMLElement} */ (row).dataset.class) === index;
+      row.classList.toggle('ps-map-legend__class--here', here);
+    }
   }
 
   /**

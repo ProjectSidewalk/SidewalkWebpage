@@ -203,7 +203,7 @@ export class StreetProgress {
       } else {
         if (!connected) this.#taskContainer.setNextTaskAfterJump(nextTask);
         this.#panoManager.panoViewer.clearPrefetchCache();
-        this.#streetSweep.prefetchAlongStreet(nextTask.getFeature());
+        this.#streetSweep.prefetchAlongStreet(nextTask.getGeoJSON());
       }
 
       this.#tracker.push('LabelBeforeJump_ShowMsg');

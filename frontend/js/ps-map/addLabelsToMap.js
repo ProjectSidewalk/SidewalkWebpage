@@ -28,7 +28,7 @@ export function addLabelsToMap(map, labelData, params) {
 
   // Apply the initial set of filters (incorrect is unchecked by default). Use highQualityFilter param if provided,
   // defaulting to false so labels aren't hidden before MapSidebarFilter takes over with the correct setting.
-  filterLabelLayers('incorrect', map, mapData, params.highQualityFilter || false);
+  filterLabelLayers(map, mapData, params.highQualityFilter || false);
 
   // Set up label hover and popup functionality.
   if (params.popupLabelViewer) {
@@ -111,6 +111,18 @@ export function addLabelsToMap(map, labelData, params) {
 }
 
 /**
+ * Hands one label type's layer its features again: Mapbox keeps its own copy of what setData got, so a change to
+ * the type's array in mapData.sortedLabels shows on the map only after this.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {string} labelType - The label type whose layer to redraw.
+ */
+function redrawType(map, mapData, labelType) {
+  const features = mapData.sortedLabels[labelType];
+  map.getSource(mapData.layerNames[labelType]).setData({ type: 'FeatureCollection', features });
+}
+
+/**
  * Moves a label to its new type's layer after an edit from the card (#3671), so the dot recolors and follows that
  * type's filter at once. A label the map hasn't loaded is left to the next fetch.
  * @param {mapboxgl.Map} map - The Mapbox map object.
@@ -126,13 +138,9 @@ function updateLabelType(map, mapData, labelId, labelType) {
     if (!mapData.sortedLabels[labelType]) return; // A map built for a subset of types has nowhere to put it.
     const [feature] = features.splice(i, 1);
     feature.properties.label_type = labelType;
-    mapData.sortedLabels[labelType]?.push(feature);
-    for (const type of [oldType, labelType]) {
-      const layerName = mapData.layerNames[type];
-      if (layerName) {
-        map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
-      }
-    }
+    mapData.sortedLabels[labelType].push(feature);
+    redrawType(map, mapData, oldType);
+    redrawType(map, mapData, labelType);
     return;
   }
 }
@@ -147,30 +155,25 @@ function updateLabelType(map, mapData, labelId, labelType) {
  */
 function setLabelDeleted(map, mapData, labelId, deleted) {
   mapData.deletedFeatures ??= new Map();
-  const redraw = (type) => {
-    const layerName = mapData.layerNames[type];
-    if (layerName) {
-      map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
-    }
-  };
   if (deleted) {
     for (const [type, features] of Object.entries(mapData.sortedLabels)) {
       const i = features.findIndex((f) => f.properties.label_id === labelId);
       if (i === -1) continue;
       const [feature] = features.splice(i, 1);
       mapData.deletedFeatures.set(labelId, feature);
-      redraw(type);
+      redrawType(map, mapData, type);
       return;
     }
     return;
   }
   const feature = mapData.deletedFeatures.get(labelId);
+  if (!feature) return;
   mapData.deletedFeatures.delete(labelId);
-  const type = feature?.properties.label_type;
-  const features = type && mapData.sortedLabels[type];
-  if (!features || features.some((f) => f.properties.label_id === labelId)) return;
+  const type = feature.properties.label_type;
+  const features = mapData.sortedLabels[type];
+  if (features.some((f) => f.properties.label_id === labelId)) return;
   features.push(feature);
-  redraw(type);
+  redrawType(map, mapData, type);
 }
 
 /**
@@ -190,7 +193,5 @@ export function setLabelData(map, mapData, labelData) {
   for (const feature of labelData.features) {
     mapData.sortedLabels[feature.properties.label_type]?.push(feature);
   }
-  for (const [labelType, layerName] of Object.entries(mapData.layerNames)) {
-    map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[labelType] });
-  }
+  for (const labelType of Object.keys(mapData.layerNames)) redrawType(map, mapData, labelType);
 }

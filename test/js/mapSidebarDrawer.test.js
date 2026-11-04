@@ -55,16 +55,19 @@ function fakeMap() {
  * @param {object} [options]
  * @param {boolean} [options.narrow=false] Start below the drawer's breakpoint.
  * @param {boolean} [options.startCollapsed=false] Pass the same-named drawer option.
- * @returns {object} The drawer, its elements, the map stub, and the viewport control.
+ * @param {boolean} [options.chrome=true] Render the reopen button and resize handle; a page may leave both out.
+ * @returns {object} The drawer, its elements, the map stub, the viewport control, and the padding helper's setter.
  */
-async function build({narrow = false, startCollapsed = false} = {}) {
+async function build({narrow = false, startCollapsed = false, chrome = true} = {}) {
   document.body.innerHTML = `
+    <div id="map-wrapper">
       <div id="filter-sidebar" class="filter-sidebar ps-invisible" role="complementary">
         <button type="button" id="filter-sidebar-close"></button>
         <section class="filter-sidebar__section"><button type="button">Deselect all</button></section>
       </div>
-      <div id="filter-sidebar-resize-handle"></div>
-      <button type="button" id="filter-sidebar-open" aria-expanded="false"></button>`;
+      ${chrome ? `<div id="filter-sidebar-resize-handle"></div>
+      <button type="button" id="filter-sidebar-open" aria-expanded="false"></button>` : ''}
+    </div>`;
 
   const sidebar = document.getElementById('filter-sidebar');
   // jsdom lays nothing out, so the drawer's padding arithmetic needs a width to read.
@@ -74,12 +77,13 @@ async function build({narrow = false, startCollapsed = false} = {}) {
   viewport.setNarrow(narrow);
   window.logWebpageActivity = vi.fn();
 
-  const { MapSidebarDrawer } = await loadModules('frontend/js/ps-map/MapSidebarDrawer.js');
+  const { MapSidebarDrawer, setPaddingEdges } = await loadModules(
+    'frontend/js/ps-map/mapPadding.js', 'frontend/js/ps-map/MapSidebarDrawer.js');
   const map = fakeMap();
   const drawer = new MapSidebarDrawer(map, sidebar, {startCollapsed});
 
   return {
-    drawer, map, viewport, sidebar,
+    drawer, map, viewport, sidebar, setPaddingEdges,
     openBtn: document.getElementById('filter-sidebar-open'),
     closeBtn: document.getElementById('filter-sidebar-close'),
     handle: document.getElementById('filter-sidebar-resize-handle'),
@@ -260,6 +264,107 @@ describe('MapSidebarDrawer', () => {
 
       expect(window.logWebpageActivity).not.toHaveBeenCalled();
       expect(document.activeElement).toBe(document.body);
+    });
+  });
+
+  describe('a page without the reopen button or resize handle', () => {
+    it('still opens, closes, and crosses the breakpoint', async () => {
+      const {drawer, sidebar, viewport} = await build({chrome: false});
+
+      drawer.close();
+      expect(isCollapsed(sidebar)).toBe(true);
+      drawer.open();
+      viewport.setNarrow(true);
+      viewport.setNarrow(false);
+      expect(drawer.isOpen).toBe(false);
+    });
+  });
+
+  it('keeps a closed drawer closed and the camera unpadded when the viewport narrows', async () => {
+    const {drawer, map, viewport} = await build({startCollapsed: true});
+
+    viewport.setNarrow(true);
+
+    expect(drawer.isOpen).toBe(false);
+    expect(map.lastPadding()).toEqual({left: 0, top: 0, right: 0, bottom: 0});
+  });
+
+  it('tells overlays beside the drawer how wide it is and how much of the map it covers', async () => {
+    const {closeBtn, sidebar} = await build();
+    const style = sidebar.parentElement.style;
+
+    expect(style.getPropertyValue('--filter-sidebar-width')).toBe(`${SIDEBAR_WIDTH}px`);
+    expect(style.getPropertyValue('--map-inset-left')).toBe(`${SIDEBAR_WIDTH}px`);
+    closeBtn.click();
+    expect(style.getPropertyValue('--map-inset-left')).toBe('0px');
+  });
+
+  describe('dragging the resize handle', () => {
+    /**
+     * Fires a pointer event on the handle at a horizontal position (jsdom puts the sidebar's left edge at 0).
+     * @param {HTMLElement} handle The resize handle.
+     * @param {string} type The pointer event type.
+     * @param {number} [clientX] Where the pointer is.
+     */
+    const pointer = (handle, type, clientX = 0) =>
+      handle.dispatchEvent(Object.assign(new MouseEvent(type, {clientX, cancelable: true}), {pointerId: 1}));
+
+    /**
+     * Builds a wide drawer whose handle accepts pointer capture, which jsdom doesn't implement.
+     * @returns {Promise<object>} What build returns.
+     */
+    async function buildDraggable() {
+      const built = await build();
+      built.handle.setPointerCapture = vi.fn();
+      built.handle.releasePointerCapture = vi.fn();
+      return built;
+    }
+
+    it('resizes the panel, moves the handle, and keeps the map centred beside it', async () => {
+      const {handle, map, sidebar} = await buildDraggable();
+
+      pointer(handle, 'pointerdown');
+      expect(document.body.classList.contains('filter-sidebar-resizing')).toBe(true);
+      pointer(handle, 'pointermove', 450);
+
+      expect(sidebar.style.width).toBe('450px');
+      expect(handle.style.left).toBe('450px');
+      expect(map.lastPadding()).toEqual({left: 450, top: 0, right: 0, bottom: 0});
+      expect(sidebar.parentElement.style.getPropertyValue('--map-inset-left')).toBe('450px');
+    });
+
+    it('keeps a dragged width when another overlay later sets its own edge', async () => {
+      const {handle, map, setPaddingEdges} = await buildDraggable();
+      pointer(handle, 'pointerdown');
+      pointer(handle, 'pointermove', 450);
+
+      // As AccessScore's dock does when it folds.
+      setPaddingEdges(map, {bottom: 120}, {animate: false});
+
+      expect(map.lastPadding()).toEqual({left: 450, top: 0, right: 0, bottom: 120});
+    });
+
+    it('keeps the panel between its narrowest and widest sizes', async () => {
+      const {handle, sidebar} = await buildDraggable();
+
+      pointer(handle, 'pointerdown');
+      pointer(handle, 'pointermove', 100);
+      expect(sidebar.style.width).toBe('280px');
+      pointer(handle, 'pointermove', 2000);
+      expect(sidebar.style.width).toBe('600px');
+    });
+
+    it('stops following the pointer once it is released', async () => {
+      const {handle, sidebar} = await buildDraggable();
+
+      pointer(handle, 'pointerdown');
+      pointer(handle, 'pointermove', 400);
+      pointer(handle, 'pointerup');
+      pointer(handle, 'pointermove', 500);
+
+      expect(sidebar.style.width).toBe('400px');
+      expect(handle.releasePointerCapture).toHaveBeenCalledWith(1);
+      expect(document.body.classList.contains('filter-sidebar-resizing')).toBe(false);
     });
   });
 });

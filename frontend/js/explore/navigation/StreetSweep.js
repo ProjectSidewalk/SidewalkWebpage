@@ -162,7 +162,7 @@ export class StreetSweep {
     }
 
     // The full street, not the remainder, so the points match every time and repeats cost nothing.
-    this.prefetchAlongStreet(task.getFeature());
+    this.prefetchAlongStreet(task.getGeoJSON());
 
     let { currLoc, remainder } = this.#computeMoveTarget(task);
 

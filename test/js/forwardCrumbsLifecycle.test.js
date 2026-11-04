@@ -51,7 +51,7 @@ function makeTask(streetEdgeId, { lengthM = 500, lat = LAT, furthestM = 0 } = {}
     getWalkOrder: () => null,
     getProperty: () => false,
     isComplete: () => false,
-    getFeature: () => feature,
+    getGeoJSON: () => feature,
     getFurthestPointReached: () => turf.point([START_LNG + furthestM / M_PER_DEG_LNG, lat]),
   };
 }

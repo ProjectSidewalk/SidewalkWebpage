@@ -542,4 +542,21 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     val names = AccessScoreCalculator.slopeStatistics.map(AccessScoreCalculator.slopeStatisticName)
     names shouldBe Seq("mean_grade", "max_grade", "meters_over_limit")
   }
+
+  test("headlineFromClusters rebuilds a street's headline from its clusters, slope and scored ends") {
+    val block   = Seq(cluster("Obstacle", Some(3)), noSidewalk())
+    val start   = Seq(cluster("NoCurbRamp", Some(3)))
+    val end     = Seq(cluster("CurbRamp", Some(1)))
+    val segment = AccessScoreCalculator.segmentScoreWithSlope(
+      AccessScoreCalculator.scoreByType(block, Some(150.0)),
+      Some(AccessScoreCalculator.SlopeInput(Some(0.1), Some(0.1), None, None, None, approximate = false)),
+      150.0
+    )
+    val expected = AccessScoreCalculator.headlineScore(
+      Some(segment),
+      Seq(AccessScoreCalculator.scoreStreet(start), AccessScoreCalculator.scoreStreet(end))
+    )
+    AccessScoreCalculator.headlineFromClusters(block, 150.0, -1.0, Seq(start, end)) shouldBe (expected.get +- eps)
+    AccessScoreCalculator.headlineFromClusters(Seq.empty, 150.0, 0.0, Seq.empty) shouldBe 0.5
+  }
 }

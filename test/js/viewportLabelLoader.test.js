@@ -373,6 +373,27 @@ describe('ViewportLabelLoader', () => {
     expect(fetches).toHaveLength(0);
   });
 
+  test('a subscriber that joins mid-fetch hears the current state at once', async () => {
+    const map = stubMap();
+    const { loader } = build(map);
+    const states = [];
+    loader.onStateChange((state) => states.push(state));
+    expect(states).toEqual(['loading']);
+  });
+
+  test('destroy() mid-fetch drops the response and runs no queued follow-up', async () => {
+    const map = stubMap();
+    const { loader, seen } = build(map);
+    map.view = bounds(5, 5, 5.1, 5.1);
+    await settleMove(map); // Queued behind the in-flight request.
+
+    loader.destroy();
+    await flush();
+    expect(fetches).toHaveLength(1);
+    expect(seen.data).toHaveLength(0);
+    expect(seen.errors).toHaveLength(0);
+  });
+
   test('destroy() unbinds from the map', async () => {
     const map = stubMap();
     const { loader } = build(map);

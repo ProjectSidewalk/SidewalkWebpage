@@ -520,7 +520,7 @@ export class ForwardCrumbs {
    * @returns {Promise<{ahead: MeasuredCrumb[], walkNextPanoId: ?string}>} Stops nearest first, and the walk's stop.
    */
   async #routeStopsAhead(task) {
-    const street = task.getFeature();
+    const street = task.getGeoJSON();
     const key = ForwardCrumbs.memoKeyFor(task);
     if (key !== this.#memoKey) {
       this.#memoKey = key;

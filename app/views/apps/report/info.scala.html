@@ -1,0 +1,9 @@
+@*
+ * The "i" that stands in for a sentence of explanation, so the page's main flow stays figures and headlines. The text
+ * is the button's accessible name too, which reaches touch and screen-reader users that a hover wouldn't.
+ *
+ * @param text The explanation, already translated.
+ *@
+@(text: String)
+
+<button type="button" class="info-button" data-ps-tooltip="@text" aria-label="@text"><span aria-hidden="true">i</span></button>

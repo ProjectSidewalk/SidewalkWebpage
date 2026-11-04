@@ -56,6 +56,8 @@ class GalleryController @Inject() (
    * @param neighborhoods Old name for `regions`, still read so existing links keep working.
    * @param labelIds      A comma-separated review list (#5444). When it names at least one label, the page shows
    *                      exactly those labels in that order and every other filter above is ignored.
+   * @param labelIdsTotal How long the list was before a linking page cut it to fit a URL, so the over-the-cap notice
+   *                      counts what the reader asked for rather than what the URL could hold; 0 when not cut.
    * @param sort          A [[GallerySort]] name (#2705). Only an admin gets the control, so for anyone else, and for
    *                      a name the enum doesn't have, the page is in its random order.
    */
@@ -68,6 +70,7 @@ class GalleryController @Inject() (
       aiValidationOptions: String,
       neighborhoods: String,
       labelIds: String,
+      labelIdsTotal: Int,
       sort: String
   ): Action[AnyContent] =
     cc.securityService.UserAwareAction { implicit request =>
@@ -127,7 +130,7 @@ class GalleryController @Inject() (
         val labelIdList: Seq[Int]  = requestedIds.take(GalleryController.MaxLabelIds)
         // The cap has to be visible on the page: a review list is a completeness promise, and silently serving the
         // first 500 of 600 tells the reviewer they have seen everything when they have not.
-        val idsOverCap: Int = requestedIds.size - labelIdList.size
+        val idsOverCap: Int = math.max(requestedIds.size, labelIdsTotal) - labelIdList.size
 
         // Log visit to Gallery async. A review list logs its length, not its ids: it can be 500 of them, and the
         // question the log answers is how often list mode is used, not on what.
@@ -194,9 +197,10 @@ class GalleryController @Inject() (
                     panoDataService.backupImageUrl(l.panoId),
                     currUsername = request.identity.map(_.username)
                   ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
-                  "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                  "cropMarker"  -> markers.get(l.labelId),
-                  "gsvImageUrl" ->
+                  "cropUrl"      -> panoDataService.cropUrl(l.labelId, l.labelType),
+                  "thumbnailUrl" -> panoDataService.cropThumbnailUrl(l.labelId, l.labelType),
+                  "cropMarker"   -> markers.get(l.labelId),
+                  "gsvImageUrl"  ->
                     panoDataService.getBrowserImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
                       l.canvasWidth, l.canvasHeight)
                 )

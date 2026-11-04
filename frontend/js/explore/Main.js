@@ -724,7 +724,7 @@ export class Main {
     m.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
-    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
+    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getGeoJSON());
   }
 
   // This is a callback function that is executed after every loading process is done.

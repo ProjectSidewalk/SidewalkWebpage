@@ -256,15 +256,14 @@ export class ModalMissionComplete {
         if (task.isComplete()) {
           end = task.getEndCoordinate();
         } else {
-          // The furthest point is only recorded once the user advances along a street; without it (e.g. a
-          // street reached via a jump that the user never moved along) there's nothing to draw here. (#4204)
+          // A street reached via a jump the user never moved along has its furthest point at its start, so the
+          // slice is a zero-length line, or, should turf collapse it to a point, one #isDrawableLine drops. (#4204)
           const furthest = task.getFurthestPointReached();
-          if (!furthest) return null;
           end = { lat: furthest.geometry.coordinates[1], lng: furthest.geometry.coordinates[0] };
         }
         coordinates = task.getSubsetOfCoordinates(start, end);
       } else {
-        coordinates = task.getFeature().geometry.coordinates;
+        coordinates = task.getGeoJSON().geometry.coordinates;
       }
       return /** @type {GeoJSON.Feature<GeoJSON.LineString>} */ ({
         type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates },
@@ -282,7 +281,7 @@ export class ModalMissionComplete {
     for (const task of userCompletedTasks) {
       const missionIndex = missionStreetIds.indexOf(task.getStreetEdgeId());
       if (missionIndex === -1) {
-        previousFeatures.push(task.getFeature());
+        previousFeatures.push(task.getGeoJSON());
         continue;
       }
       const missionStreet = missionTasks[missionIndex];
@@ -311,7 +310,7 @@ export class ModalMissionComplete {
       previous: { type: 'FeatureCollection', features: previousFeatures.filter(this.#isDrawableLine) },
       community: {
         type: 'FeatureCollection',
-        features: communityTasks.map((task) => task.getFeature()).filter(this.#isDrawableLine),
+        features: communityTasks.map((task) => task.getGeoJSON()).filter(this.#isDrawableLine),
       },
     };
   }

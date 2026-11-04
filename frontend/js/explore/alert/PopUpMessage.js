@@ -244,7 +244,7 @@ export class PopUpMessage {
    * @param {string} id - HTML id for the button.
    * @param {string} classNames - Space-separated CSS classes for the button.
    * @param {string} label - HTML content of the button.
-   * @param {Function} [callback] - Called on click, before the pop-up is hidden.
+   * @param {Function} callback - Called on click, before the pop-up is hidden.
    * @returns {HTMLButtonElement} The appended button.
    */
   #appendButton(id, classNames, label, callback) {
@@ -255,7 +255,7 @@ export class PopUpMessage {
     this.#ui.buttonHolder.append(button);
 
     button.addEventListener('click', (e) => {
-      if (callback) callback(e);
+      callback(e);
       this.#hide();
     }, { once: true });
     this.#buttons.push(button);

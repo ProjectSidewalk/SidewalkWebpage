@@ -664,6 +664,11 @@ trait PanoDataService {
   def cropFile(labelId: Int, labelType: String): File
   def cropExists(labelId: Int, labelType: LabelType): Boolean
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
+  def cropThumbnailUrl(labelId: Int, labelType: LabelType): Option[String]
+
+  /** The attribution owed for each pano's imagery, keyed by pano id; a pano with nothing to attribute is absent. */
+  def getAttributions(panoIds: Seq[String]): Future[Map[String, ImageryAttribution.Line]]
+
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
 
@@ -1167,6 +1172,15 @@ class PanoDataServiceImpl @Inject() (
   def cropUrl(labelId: Int, labelType: LabelType): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
+
+  /** Returns a signed URL for a crop's thumbnail if a crop file exists for the given label, or None otherwise. */
+  def cropThumbnailUrl(labelId: Int, labelType: LabelType): Option[String] =
+    if (cropExists(labelId, labelType))
+      Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId/thumbnail"))
+    else None
+
+  def getAttributions(panoIds: Seq[String]): Future[Map[String, ImageryAttribution.Line]] =
+    db.run(panoDataTable.getAttributions(panoIds))
 
   /**
    * Moves a label's crop to the directory of its new type (#3671), since crops are filed by type. A missing source is

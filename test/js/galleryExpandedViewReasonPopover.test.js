@@ -13,7 +13,7 @@ mockModule('frontend/js/common/label-detail/PopupPanoManager.js', () => ({
 }));
 mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
   LabelDetail: {
-    create: async () => ({ panoManager: {}, showLabel: vi.fn() }),
+    create: async () => ({ panoManager: {}, showLabel: vi.fn(), saveOpenEdits: vi.fn() }),
     urlLabelId: () => null,
     syncUrlLabelId: vi.fn(),
   },

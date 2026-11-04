@@ -46,7 +46,7 @@ describe('LabelPopup paging state', () => {
     window.HTMLDialogElement.prototype.close = vi.fn();
     window.requestAnimationFrame = (cb) => cb();
     window.logWebpageActivity = vi.fn();
-    labelDetail.create = async () => ({ showLabel: async () => ({}) });
+    labelDetail.create = async () => ({ showLabel: async () => ({}), saveOpenEdits: vi.fn() });
 
     const { createNearbyLabelNavigator, LabelPopup } = await loadModules(
       'frontend/js/ps-map/nearbyLabelNavigator.js', 'frontend/js/common/label-detail/LabelPopup.js');
@@ -132,7 +132,7 @@ describe('LabelPopup paging state', () => {
     expect(nextBtn.disabled).toBe(false);
 
     // Rebuild the popup over a label fetch that never settles, so the pre-await state is observable.
-    labelDetail.create = async () => ({ showLabel: () => new Promise(() => {}) });
+    labelDetail.create = async () => ({ showLabel: () => new Promise(() => {}), saveOpenEdits: vi.fn() });
     const pending = await buildPopup(false, null, null, null, {});
     pending.setNearbyNavigator(nav);
     hiddenByFilters.add(1); // From label 2, the only other label (1) is filtered out: nowhere to go.
