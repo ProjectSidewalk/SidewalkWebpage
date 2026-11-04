@@ -290,11 +290,11 @@ export class ViewportLabelLoader {
   }
 
   /**
-   * Emits a state change, deduplicated so subscribers only hear transitions.
+   * Emits a state change. Every caller is already a transition: a fetch starts only once the last has settled, and
+   * the floor is entered only from above it.
    * @param {string} state - One of 'idle' | 'loading' | 'belowFloor' | 'error'.
    */
   #setState(state) {
-    if (state === this.#state) return;
     this.#state = state;
     for (const callback of this.#listeners.state) callback(state);
   }

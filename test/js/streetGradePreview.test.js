@@ -280,6 +280,27 @@ describe("a pinned street's popup", () => {
     expect(textOf(first.element.querySelector('.map-popup__profile'))).toBe('accessscore:profile-loading');
   });
 
+  it('leaves a replaced popup alone when its profile fails late', async () => {
+    const { map } = await renderPreview();
+    const routed = window.fetch;
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    window.fetch = vi.fn(async (url) => {
+      if (url.includes('streetEdgeId=1')) {
+        await gate;
+        return { ok: false, status: 500, json: async () => ({}) };
+      }
+      return routed(url);
+    });
+    map.fireOn('street-grade-lines', 'click', [{ id: 1, properties: streets().features[0].properties }]);
+    const first = world.popups.at(-1);
+    await clickStreet(map, 2);
+    release();
+    await flush();
+    expect(console.warn).toHaveBeenCalledWith('Street grade preview: profile failed to load', expect.anything());
+    expect(textOf(first.element.querySelector('.map-popup__profile'))).toBe('accessscore:profile-loading');
+  });
+
   it('pans a pinned popup into the frame by however far it overhangs', async () => {
     const { map } = await renderPreview();
     map.container.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 300 });

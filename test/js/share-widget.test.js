@@ -155,6 +155,20 @@ describe('ShareWidget', () => {
       expect(document.activeElement).not.toBe(trigger);
     });
 
+    test('a popover closed straight after opening leaves no page-wide Escape handler behind', async () => {
+      buildWidget();
+      trigger.click();
+      trigger.click();
+      await flushPromises();
+
+      // A stray handler would stop Escape on its way down, so the page's own Escape handling would never hear it.
+      const heard = vi.fn();
+      document.body.addEventListener('keydown', heard);
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      document.body.removeEventListener('keydown', heard);
+      expect(heard).toHaveBeenCalledTimes(1);
+    });
+
     test('setTarget closes an open popover so items cannot point at a stale target', () => {
       const widget = buildWidget();
       trigger.click();

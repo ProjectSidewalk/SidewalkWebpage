@@ -260,6 +260,11 @@ describe('the usage trend', () => {
     expect(text('api-trend')).toMatch(/^No API calls over all time\./);
   });
 
+  test('shows a last-call date it cannot read as sent, with no days-ago count', async () => {
+    await load(payload({ total_calls: 0, last_api_call: 'not-a-date', daily: [] }));
+    expect(text('api-trend')).toBe('No API calls in the past 30 days. The last was on not-a-date. Try a longer range.');
+  });
+
   test('says no calls have ever been made when there is no last call', async () => {
     await load(payload({ total_calls: 0, last_api_call: null, daily: [] }));
     expect(text('api-trend')).toBe('No v3 API calls have been recorded yet.');
