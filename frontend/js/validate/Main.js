@@ -24,6 +24,7 @@ import { UndoValidation } from './menu/UndoValidation.js';
 import { MissionContainer } from './mission/MissionContainer.js';
 import { ModalMission } from './modal/ModalMission.js';
 import { ModalGoldFeedback } from './modal/ModalGoldFeedback.js';
+/** @typedef {import('./modal/ModalGoldFeedback.js').GoldFeedbackUi} GoldFeedbackUi */
 import { ModalMissionComplete } from './modal/ModalMissionComplete.js';
 import { ModalNoNewMission } from './modal/ModalNoNewMission.js';
 import { PanoControlMenu } from './panorama/PanoControlMenu.js';
@@ -117,6 +118,7 @@ import './util/throttle.js';
  * @property {ValidationMenuUi} validationMenu
  * @property {{undoButton: HTMLButtonElement}} undoValidation
  * @property {ModalMissionUi} modalMission
+ * @property {GoldFeedbackUi} goldFeedback
  * @property {Record<string, HTMLElement>} modalMissionComplete
  * @property {{upperMenuTitle: HTMLElement, upperMenuIcon: ?HTMLImageElement, zoomInButton: HTMLElement,
  *     zoomOutButton: HTMLElement, admin: AdminInfoUi}} status
@@ -300,6 +302,14 @@ export class Main {
         instruction: byId('modal-mission-instruction'),
         closeButton: /** @type {HTMLButtonElement} */ (byId('modal-mission-close-button')),
       },
+      goldFeedback: {
+        panel: /** @type {HTMLDialogElement} */ (byId('svv-gold-feedback')),
+        image: /** @type {HTMLImageElement} */ (byId('gold-feedback-image')),
+        heading: byId('gold-feedback-heading'),
+        text: byId('gold-feedback-text'),
+        advice: byId('gold-feedback-advice'),
+        okButton: /** @type {HTMLButtonElement} */ (byId('gold-feedback-ok')),
+      },
       modalMissionComplete: {
         agreeCount: byId('modal-mission-complete-agree-count'),
         background: byId('modal-mission-complete-background'),
@@ -415,7 +425,7 @@ export class Main {
     );
 
     const reasonButtonInfo = buildReasonButtonInfo();
-    const modalGoldFeedback = new ModalGoldFeedback(ui.modalMission, reasonButtonInfo, keyboardLock, tracker);
+    const modalGoldFeedback = new ModalGoldFeedback(ui.goldFeedback, keyboardLock, tracker);
 
     // Nothing renders yet: what describes a label subscribes to the container first, then the first label is drawn.
     const labelContainer = new LabelContainer(labels, labelType, ui, config, panoManager, panoLoadingStatus,

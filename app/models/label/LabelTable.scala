@@ -39,6 +39,7 @@ import models.utils.{
 }
 import models.validation.{
   GoldExampleResponseTableDef,
+  GoldExampleTable,
   GoldExampleTableDef,
   LabelValidation,
   LabelValidationTableDef,
@@ -360,8 +361,10 @@ case class LabelValidationMetadata(
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false,
     panoMetadata: Option[PanoViewerMetadata] = None,
-    // Set when the label is in the mission as a training example (#1445): the reason the tool explains on a miss.
-    goldReason: Option[ValidationReason] = None
+    // Set when the label is in the mission as a training example (#1445): the reason explained on a miss, over the
+    // label's crop when one is on disk.
+    goldReason: Option[ValidationReason] = None,
+    goldCropUrl: Option[String] = None
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -1488,20 +1491,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .as[LabelMetadata]
   }
 
-  /**
-   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
-   *
-   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
-   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
-   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
-   * `PanoDataTable.hasBackupViewerFields`; see the note there before changing it.
-   *
-   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
-   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
-   */
-  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
-    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && PanoDataTable.hasBackupViewerFields(pd))
-  }
+  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = PanoDataTable.imageryViewable(pd)
 
   /**
    * Labels this user could be served: not their own, not already validated by them, with imagery their viewer can
@@ -1570,6 +1560,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     goldExampleResponses
       .filter(r => r.userId === userId && r.labelId === l.labelId && r.validationResult.isDefined)
       .exists
+
+  /** Done with this reason (#1445): one right answer, or [[GoldExampleTable.AnswersPerReason]] answers either way. */
+  private def goldReasonSettled(userId: String, reason: Rep[ValidationReason]): Rep[Boolean] = {
+    val answers =
+      goldExampleResponses.filter(r => r.userId === userId && r.reason === reason && r.validationResult.isDefined)
+    answers.filter(_.validationResult === ValidationOption.Disagree).exists ||
+    answers.length >= GoldExampleTable.AnswersPerReason
+  }
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1811,8 +1809,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * The pinned examples of this type the user could be shown (#1445), in random order, under every rule the mission's
-   * own labels pass. The reason is a second column because the metadata projection is the ordinary queue's.
+   * The pinned examples of this type the user could be shown (#1445), in random order: under every rule the mission's
+   * own labels pass, and of a reason they aren't done with. The reason is a second column because the metadata
+   * projection is the ordinary queue's.
    */
   def goldExampleForValidationQuery(
       userId: String,
@@ -1824,6 +1823,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       Set.empty, asGoldExample = true)
       .join(goldExamples)
       .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
+      .filter { case (_, g) => !goldReasonSettled(userId, g.reason) }
       .sortBy(_ => random)
       .map { case (row, g) => (asValidationMetadata(row, includeAiTags), g.reason) }
   }

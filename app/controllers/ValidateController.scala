@@ -416,10 +416,10 @@ class ValidateController @Inject() (
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
-      // A vote on a training example is filed beside its serve, never on the label (#1445); the serve's mission
-      // tells it from a real vote on the same label elsewhere. An undo is dropped: the first answer counts.
-      goldServed <- goldExampleService.servedIn(user.userId, data.validations.map(v => (v.labelId, v.missionId)))
-      (goldAnswers, realValidations) = data.validations.partition(v => goldServed.contains((v.labelId, v.missionId)))
+      // A vote on a training example is filed beside its serve, never on the label (#1445). Pinned labels are out of
+      // every queue this endpoint serves, so any vote here on one is the answer. An undo is dropped: the first counts.
+      goldServed <- goldExampleService.servedTo(user.userId, data.validations.map(_.labelId).toSet)
+      (goldAnswers, realValidations) = data.validations.partition(v => goldServed.contains(v.labelId))
       _ <- goldExampleService.recordAnswers(
         user.userId,
         goldAnswers
@@ -427,7 +427,6 @@ class ValidateController @Inject() (
           .map(v =>
             GoldExampleAnswer(
               v.labelId,
-              v.missionId,
               v.validationResult,
               v.comment.flatMap(_.reason).flatMap(reasonFor(v, _))
             )

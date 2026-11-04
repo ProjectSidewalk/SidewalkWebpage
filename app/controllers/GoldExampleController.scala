@@ -61,7 +61,7 @@ class GoldExampleController @Inject() (
     "reason"     -> s.example.reason.name,
     "pinned_by"  -> s.pinnedByUsername,
     "pinned_at"  -> s.example.pinnedAt,
-    "expired"    -> s.expired,
+    "unservable" -> s.unservable,
     "answered"   -> s.answered,
     "missed"     -> s.missed,
     "crop_url"   -> panoDataService.cropUrl(s.example.labelId, s.labelType)

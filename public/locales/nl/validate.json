@@ -34,8 +34,13 @@
     "retry": "Opnieuw proberen"
   },
   "gold-feedback": {
-    "title": "Eentje om op te letten",
-    "body": "Dit label is er een dat ervaren validators als een fout hebben gemarkeerd:",
+    "eyebrow": "Oefenvoorbeeld",
+    "advice": "Stem in het vervolg {{- no}} op zulke gevallen.",
+    "explanation": {
+      "driveway": "Opritten zijn <b>geen</b> stoephellingen. Ze zijn ontworpen voor voertuigen en niet voor voetgangers.",
+      "no-sidewalk-here": "Voor hoeken <b>zonder trottoir</b> moet het label Geen stoep worden gebruikt.",
+      "not-pedestrian-path": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, is een label met 'Obstakel' niet nodig."
+    },
     "ok": "Begrepen"
   },
   "pano-loading": {

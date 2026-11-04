@@ -46,13 +46,13 @@ export class GoldExamplesPage {
       const crop = ex.crop_url
         ? `<img src="${util.escapeHTML(ex.crop_url)}" class="gold-examples-thumb" alt="">`
         : '<span class="gold-examples-thumb gold-examples-thumb--none">no crop</span>';
-      const expired = ex.expired ? '<span class="ac-badge ac-badge--warn">imagery expired</span>' : '';
+      const gone = ex.unservable ? '<span class="ac-badge ac-badge--warn">imagery gone</span>' : '';
       return `
         <tr>
           <td>${crop}</td>
           <td class="gold-examples-label">
             <a href="/admin/label/${id}">Label ${id}</a>
-            <span class="gold-examples-type">${type}</span> ${expired}
+            <span class="gold-examples-type">${type}</span> ${gone}
           </td>
           <td>${reason}</td>
           <td>${util.escapeHTML(ex.pinned_by)} · ${util.escapeHTML(AdminShell.relativeTime(ex.pinned_at))}</td>

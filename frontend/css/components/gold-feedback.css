@@ -1,0 +1,104 @@
+/* The training example's explanation (ModalGoldFeedback.js, #1445): a modal over the whole page, like the site's
+   ConfirmDialog, in red because it only ever appears after a wrong answer and must not read as a routine notice. Sized
+   for the label's crop beside the text; the base widths scale with the tool. */
+.gold-feedback {
+  box-sizing: border-box;
+  width: calc(820px * var(--ui-scale, 1));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border: none;
+  border-top: calc(5px * var(--ui-scale, 1)) solid var(--color-error-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  text-align: left;
+  box-shadow: var(--box-shadow-lg);
+  cursor: auto;
+}
+
+/* Only while open: a display on the bare class would override the UA's display:none for a closed dialog. */
+.gold-feedback[open] {
+  display: grid;
+  grid-template-columns: calc(400px * var(--ui-scale, 1)) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.gold-feedback::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+/* 3:2 is what the crop job cuts; anything else trims the picture they are meant to study. */
+.gold-feedback__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+/* No crop on disk: the text takes the whole dialog rather than leaving an empty column. */
+.gold-feedback__image[hidden] {
+  display: none;
+}
+
+.gold-feedback[open]:has(.gold-feedback__image[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Stretched to the crop's height so the button can sit at the foot of the text column, level with the crop. */
+.gold-feedback__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: var(--space-xs);
+}
+
+.gold-feedback__eyebrow {
+  font: var(--text-caption-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-error-300);
+  background: color-mix(in srgb, var(--color-error-100) 20%, var(--color-neutral-white));
+  border-radius: 200px;
+  padding: calc(2px * var(--ui-scale, 1)) var(--space-xs);
+}
+
+.gold-feedback__heading {
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.gold-feedback__text,
+.gold-feedback__advice {
+  margin: 0;
+  font: var(--text-body-regular);
+}
+
+.gold-feedback__vote {
+  color: var(--color-error-300);
+}
+
+.gold-feedback__ok {
+  margin-top: auto;
+  align-self: flex-end;
+}
+
+.gold-feedback--mobile {
+  width: calc(100vw - 2 * var(--space-md));
+  padding: var(--space-md);
+}
+
+.gold-feedback--mobile[open] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.gold-feedback--mobile .gold-feedback__ok {
+  margin-top: var(--space-sm);
+  align-self: stretch;
+  justify-content: center;
+}

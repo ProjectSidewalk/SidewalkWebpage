@@ -571,8 +571,10 @@ export class LabelContainer {
         );
         // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
         // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
-        // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
-        this.#tracker.flushSoon();
+        // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST. A training
+        // example's answer goes at once: an undo inside the wait would drop it unsent, and the first answer counts.
+        if (label.getAuditProperty('goldReason')) this.#tracker.flushSoon(0);
+        else this.#tracker.flushSoon();
         this.#missionContainer.updateAMission();
       }
 
@@ -587,6 +589,8 @@ export class LabelContainer {
     // The vote is recorded even if the explanation can't be shown: the tool must not stay busy over a missing picture.
     if (label.getAuditProperty('goldReason') && action !== 'Disagree') {
       this.#setUiBusy(true);
+      // Not the busy wait cursor: the tool is refusing, not working.
+      this.#ui.holder.style.cursor = 'not-allowed';
       Promise.resolve()
         .then(() => this.#modalGoldFeedback.show(label, action))
         .catch((err) => console.error('Could not explain the training example.', err))

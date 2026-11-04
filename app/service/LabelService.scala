@@ -16,6 +16,7 @@ import models.validation.{
   GoldExampleTable,
   LabelValidationTable,
   ValidationLabelFilter,
+  ValidationOption,
   ValidationReason,
   ValidationResultCounts
 }
@@ -271,12 +272,12 @@ class LabelServiceImpl @Inject() (
       !Role.ADMIN_ROLES.contains(user.role)
 
   /**
-   * Owed a training example (#1445): short of their share, and the city has a pin. Two cheap lookups before the
-   * label query.
+   * Cheap checks before the label query (#1445): no example in this mission yet (a reload mid-mission builds it again)
+   * and the city has a pin at all.
    */
-  private def owedGoldExample(userId: String): DBIO[Boolean] =
-    goldExampleTable.answeredCount(userId).flatMap { answered =>
-      if (answered >= GoldExampleTable.ExamplesPerValidator) DBIO.successful(false) else goldExampleTable.anyPinned
+  private def owedGoldExample(missionId: Int): DBIO[Boolean] =
+    goldExampleTable.servedInMission(missionId).flatMap { served =>
+      if (served) DBIO.successful(false) else goldExampleTable.anyPinned
     }
 
   /**
@@ -284,7 +285,8 @@ class LabelServiceImpl @Inject() (
    * of the `n` slots, never the first so they have settled in, and its serve is recorded so the vote on it can be
    * told from a real validation (`ValidateController`). A mission of only the example is no mission.
    *
-   * @param fetch The ordinary labels, given how many; pinned labels are never among them (`LabelTable.isGoldExample`).
+   * @param fetch The ordinary labels: how many, and the example's id. Pinned labels are already out of the queue; the
+   *              id is passed so the example's block face counts as taken (#5285).
    */
   private def withGoldExample(
       user: SidewalkUserWithRole,
@@ -293,7 +295,7 @@ class LabelServiceImpl @Inject() (
       n: Int,
       viewer: PanoSource,
       validateParams: ValidateParams
-  )(fetch: Int => Future[Seq[LabelValidationMetadata]]): Future[Seq[LabelValidationMetadata]] = {
+  )(fetch: (Int, Set[Int]) => Future[Seq[LabelValidationMetadata]]): Future[Seq[LabelValidationMetadata]] = {
     def pickExample: Future[Option[(LabelValidationMetadata, ValidationReason)]] = db
       .run(
         labelTable
@@ -302,25 +304,30 @@ class LabelServiceImpl @Inject() (
           .result
       )
       .flatMap { candidates =>
-        checkImageryBatch(candidates.map(_._1), useCrops = false).map { viewable =>
-          candidates.find { case (meta, _) => viewable.exists(_.labelId == meta.labelId) }
+        // A label whose type changed since it was pinned carries a reason the new type has no words for.
+        val teachable = candidates.filter { case (_, reason) =>
+          ValidationReason.offered(labelType, ValidationOption.Disagree).contains(reason)
+        }
+        checkImageryBatch(teachable.map(_._1), useCrops = false).map { viewable =>
+          teachable.find { case (meta, _) => viewable.exists(_.labelId == meta.labelId) }
         }
       }
 
-    if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n)
+    if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n, Set.empty)
     else
-      db.run(owedGoldExample(user.userId)).flatMap { owed =>
-        if (!owed) fetch(n)
+      db.run(owedGoldExample(missionId)).flatMap { owed =>
+        if (!owed) fetch(n, Set.empty)
         else
           pickExample.flatMap {
-            case None                 => fetch(n)
+            case None                 => fetch(n, Set.empty)
             case Some((meta, reason)) =>
-              fetch(n - 1).flatMap { labels =>
+              fetch(n - 1, Set(meta.labelId)).flatMap { labels =>
                 if (labels.isEmpty) Future.successful(labels)
                 else
                   db.run(goldExampleTable.recordServe(meta.labelId, user.userId, missionId, reason)).map { _ =>
                     val at: Int = 1 + Random.nextInt(labels.size)
-                    labels.patch(at, Seq(meta.copy(goldReason = Some(reason))), 0)
+                    val crop    = panoDataService.cropUrl(meta.labelId, meta.labelType)
+                    labels.patch(at, Seq(meta.copy(goldReason = Some(reason), goldCropUrl = crop)), 0)
                   }
               }
           }
@@ -909,9 +916,9 @@ class LabelServiceImpl @Inject() (
             labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
             labelsToRetrieve: Int = labelsToValidate - labelsProgress
             labelMetadata <- withGoldExample(user, mission.missionId, labelType, labelsToRetrieve, viewerType,
-              validateParams) { n =>
+              validateParams) { (n, excluded) =>
               retrieveLabelListForValidation(user.userId, n, viewerType, labelType, validateParams.queueCascade,
-                validateParams.labelFilter, validateParams.unvalidatedOnly)
+                validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
             }
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
@@ -990,14 +997,14 @@ class LabelServiceImpl @Inject() (
               Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- {
-              val fetch = (n: Int) =>
+              val fetch = (n: Int, excluded: Set[Int]) =>
                 retrieveLabelListForValidation(user.userId, n, viewerType, nextMissionLabelType,
-                  validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly)
+                  validateParams.queueCascade, validateParams.labelFilter, validateParams.unvalidatedOnly, excluded)
               newMission match {
                 case Some(m) =>
                   withGoldExample(user, m.missionId, nextMissionLabelType, labelsToRetrieve, viewerType,
                     validateParams)(fetch)
-                case None => fetch(labelsToRetrieve)
+                case None => fetch(labelsToRetrieve, Set.empty)
               }
             }
             adminData <- {

@@ -144,36 +144,3 @@
 #modal-mission-complete-close-button-secondary {
   flex: 2 1 auto;
 }
-
-/* The training example's explanation (ModalGoldFeedback, #1445), painted into the mission modal's box. */
-.modal-gold-feedback__intro,
-.modal-gold-feedback__explanation {
-  text-align: center;
-  margin: 0 0 calc(10px * var(--ui-scale, 1));
-}
-
-.modal-gold-feedback__reason {
-  font: var(--text-subtitle-bold);
-  text-align: center;
-  margin: 0 0 calc(10px * var(--ui-scale, 1));
-}
-
-/* The box is the pano's height and clips, and the briefing's deep top padding leaves no room for text, picture and
-   button, so the explanation sits higher and caps the picture; scrolling is only the fallback for a long locale. */
-#modal-mission-foreground.modal-foreground--gold-feedback {
-  padding-top: calc(24px * var(--ui-scale, 1));
-  overflow-y: auto;
-}
-
-.modal-foreground--gold-feedback #modal-mission-close-button {
-  margin-top: calc(16px * var(--ui-scale, 1));
-}
-
-.modal-gold-feedback__image {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  max-height: calc(170px * var(--ui-scale, 1));
-  margin: 0 auto;
-  border-radius: calc(5px * var(--ui-scale, 1));
-}

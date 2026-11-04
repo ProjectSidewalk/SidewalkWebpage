@@ -1,21 +1,30 @@
 /**
- * Explains a training example the validator just got wrong (#1445), in the mission modal's elements (as
- * ModalNoNewMission does), with the reason menu's own text and example image. A right answer gets nothing: the
- * examples are there to correct, not to quiz.
+ * Explains a training example the validator just got wrong (#1445), in a modal with the label's own crop and the
+ * reason's text. A right answer gets nothing: the examples are there to correct, not to quiz.
  */
 
 import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 import { validationReasons } from '../../common/validationReasons.js';
+import '../../../css/components/gold-feedback.css';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../../common/Gate.js').Gate} Gate */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
-/** @typedef {import('../util/ConstantsValidate.js').ReasonButton} ReasonButton */
+
+/**
+ * The dialog's elements, as Main collects them.
+ * @typedef {object} GoldFeedbackUi
+ * @property {HTMLDialogElement} panel
+ * @property {HTMLImageElement} image
+ * @property {HTMLElement} heading
+ * @property {HTMLElement} text
+ * @property {HTMLElement} advice
+ * @property {HTMLButtonElement} okButton
+ */
 
 export class ModalGoldFeedback {
-  #uiModalMission;
-  /** @type {Record<string, Record<string, ReasonButton>>} */
-  #reasonButtonInfo;
+  /** @type {GoldFeedbackUi} */
+  #ui;
   /** @type {Gate} */
   #keyboardLock;
   /** @type {Tracker} */
@@ -24,28 +33,25 @@ export class ModalGoldFeedback {
   #dismiss = null;
 
   /**
-   * @param {object} uiModalMission - Mission modal UI elements, shared with ModalMission and ModalNoNewMission.
-   * @param {Record<string, Record<string, ReasonButton>>} reasonButtonInfo - The reasons' texts and example images,
-   *     by kebab-case label type and menu position (buildReasonButtonInfo).
+   * @param {GoldFeedbackUi} ui
    * @param {Gate} keyboardLock - Held while the explanation is up, so a shortcut can't vote on the next label.
    * @param {Tracker} tracker - Logs the explanation and its dismissal.
    */
-  constructor(uiModalMission, reasonButtonInfo, keyboardLock, tracker) {
-    this.#uiModalMission = uiModalMission;
-    this.#reasonButtonInfo = reasonButtonInfo;
+  constructor(ui, keyboardLock, tracker) {
+    this.#ui = ui;
     this.#keyboardLock = keyboardLock;
     this.#tracker = tracker;
   }
 
   /**
-   * The reason menu's entry, which carries the example image; looked up by id, since the menu keys buttons by position.
-   * @param {string} labelType - The label's type, e.g. 'CurbRamp'.
-   * @param {string} reasonId - The pinned reason.
-   * @returns {?ReasonButton}
+   * The menu's tooltip is written for someone choosing the reason; a few read better to someone who missed it.
+   * @param {string} reasonId
+   * @param {string} labelType
+   * @returns {string}
    */
-  #reasonButton(labelType, reasonId) {
-    const buttons = this.#reasonButtonInfo[util.camelToKebab(labelType)] ?? {};
-    return Object.values(buttons).find((b) => b.reasonId === reasonId) ?? null;
+  static explanation(reasonId, labelType) {
+    const own = `validate:gold-feedback.explanation.${reasonId}`;
+    return i18next.exists(own) ? i18next.t(own) : (validationReasons.tooltip(reasonId, labelType) ?? '');
   }
 
   /**
@@ -57,57 +63,40 @@ export class ModalGoldFeedback {
   show(label, vote) {
     const labelType = label.getAuditProperty('labelType');
     const reasonId = label.getAuditProperty('goldReason');
-    const reasonText = validationReasons.text(reasonId) ?? reasonId;
-    const explanation = validationReasons.tooltip(reasonId, labelType);
-    const image = this.#reasonButton(labelType, reasonId)?.tooltipImage;
+    const crop = label.getAuditProperty('goldCropUrl');
     this.#tracker.push('ModalGoldFeedback_Shown', { labelId: label.getAuditProperty('labelId'), reasonId, vote });
 
-    const ui = this.#uiModalMission;
-    ui.missionTitle.innerHTML = i18next.t('gold-feedback.title');
-    /* eslint-disable ps/escape-in-markup -- the reason's text and tooltip are our locale strings, written as HTML */
-    ui.instruction.innerHTML = `
-      <p class="modal-gold-feedback__intro">${i18next.t('gold-feedback.body')}</p>
-      <p class="modal-gold-feedback__reason">${reasonText}</p>
-      ${explanation ? `<p class="modal-gold-feedback__explanation">${explanation}</p>` : ''}
-      ${image ? `<img src="${util.escapeHTML(image)}" class="modal-gold-feedback__image" alt="">` : ''}`;
-    /* eslint-enable ps/escape-in-markup */
-    ui.eyebrow?.replaceChildren();
-    ui.missionTitle.style.whiteSpace = '';
-    ui.missionTitle.style.fontSize = '';
-    ui.closeButton.innerHTML = i18next.t('gold-feedback.ok');
-    if (!util.isMobile()) ui.closeButton.style.width = 'fit-content';
-    ui.foreground.classList.add('modal-foreground--gold-feedback');
-    ui.background.style.visibility = 'visible';
-    ui.holder.style.visibility = 'visible';
-    ui.foreground.style.visibility = 'visible';
-    ui.foreground.scrollTop = 0;
-    // Desktop keeps this holder display:none; put back on close, or every later briefing shows this explanation.
-    const wasHidden = ui.holder.classList.contains('ps-hidden');
-    ui.holder.classList.remove('ps-hidden');
+    const ui = this.#ui;
+    ui.heading.innerHTML = validationReasons.text(reasonId) ?? reasonId;
+    ui.text.innerHTML = ModalGoldFeedback.explanation(reasonId, labelType);
+    const no = `<strong class="gold-feedback__vote">${util.escapeHTML(i18next.t('common:no'))}</strong>`;
+    ui.advice.innerHTML = i18next.t('validate:gold-feedback.advice', { no, interpolation: { escapeValue: true } });
+    if (crop) ui.image.src = crop;
+    else ui.image.removeAttribute('src');
+    ui.image.hidden = !crop;
+    ui.panel.showModal();
     this.#keyboardLock.hold('gold-feedback');
 
     return new Promise((resolve) => {
       this.#dismiss = () => {
         this.#dismiss = null;
         this.#tracker.push('ModalGoldFeedback_ClickOK');
-        ui.background.style.visibility = 'hidden';
-        ui.holder.style.visibility = 'hidden';
-        ui.foreground.style.visibility = 'hidden';
-        ui.foreground.classList.remove('modal-foreground--gold-feedback');
-        ui.closeButton.style.width = '';
-        ui.closeButton.onkeydown = null;
-        if (wasHidden) ui.holder.classList.add('ps-hidden');
+        ui.panel.close();
+        ui.okButton.onkeydown = null;
         this.#keyboardLock.release('gold-feedback');
         resolve();
       };
-      // Assigned, not added: ModalMission and ModalNoNewMission use this same button, and each show must replace
-      // the other's handler.
-      ui.closeButton.onclick = this.#dismiss;
+      ui.okButton.onclick = this.#dismiss;
+      // Esc goes through the same path, so the mission moves on rather than the dialog just vanishing.
+      ui.panel.oncancel = (e) => {
+        e.preventDefault();
+        this.#dismiss?.();
+      };
       // Enter is the vote shortcut and may still be held: its repeats would press this button before anything was read.
-      ui.closeButton.onkeydown = (e) => {
+      ui.okButton.onkeydown = (e) => {
         if (e.repeat) e.preventDefault();
       };
-      ui.closeButton.focus();
+      ui.okButton.focus();
     });
   }
 }

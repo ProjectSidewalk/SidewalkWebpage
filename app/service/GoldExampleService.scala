@@ -9,6 +9,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
+/** Why a pin was refused: no such label, one Validate can't show (deleted, tutorial), or a reason its type lacks. */
 enum GoldExampleRejection {
   case NoSuchLabel, LabelUnusable, ReasonNotOffered
 }
@@ -16,7 +17,6 @@ enum GoldExampleRejection {
 /** A validator's vote on an example, as the Validate POST carries it. */
 case class GoldExampleAnswer(
     labelId: Int,
-    missionId: Int,
     result: ValidationOption,
     answerReason: Option[ValidationReason]
 )
@@ -27,7 +27,7 @@ trait GoldExampleService {
   def pin(labelId: Int, reason: ValidationReason, userId: String): Future[Either[GoldExampleRejection, GoldExample]]
   def unpin(labelId: Int): Future[Boolean]
   def listSummaries: Future[Seq[GoldExampleSummary]]
-  def servedIn(userId: String, labelMissions: Seq[(Int, Int)]): Future[Set[(Int, Int)]]
+  def servedTo(userId: String, labelIds: Set[Int]): Future[Set[Int]]
   def recordAnswers(userId: String, answers: Seq[GoldExampleAnswer]): Future[Unit]
 }
 
@@ -68,15 +68,15 @@ class GoldExampleServiceImpl @Inject() (
 
   def listSummaries: Future[Seq[GoldExampleSummary]] = db.run(goldExampleTable.listSummaries)
 
-  def servedIn(userId: String, labelMissions: Seq[(Int, Int)]): Future[Set[(Int, Int)]] =
-    db.run(goldExampleTable.servedIn(userId, labelMissions))
+  def servedTo(userId: String, labelIds: Set[Int]): Future[Set[Int]] =
+    db.run(goldExampleTable.servedTo(userId, labelIds))
 
   /** An example the user already answered is left as it was. */
   def recordAnswers(userId: String, answers: Seq[GoldExampleAnswer]): Future[Unit] =
     db.run(
       slick.dbio.DBIO
         .sequence(
-          answers.map(a => goldExampleTable.recordAnswer(a.labelId, userId, a.missionId, a.result, a.answerReason))
+          answers.map(a => goldExampleTable.recordAnswer(a.labelId, userId, a.result, a.answerReason))
         )
         .map(_ => ())
     )

@@ -5,7 +5,8 @@ import models.label.LabelType
 import models.pano.PanoSource
 import models.user.Role
 import models.utils.MyPostgresProfile.api.*
-import models.validation.{GoldExampleTable, ValidationReason}
+import models.label.LabelTable
+import models.validation.{GoldExampleTable, ValidationOption, ValidationReason}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -46,6 +47,7 @@ class GoldExampleSpec
       .build()
 
   private val goldExampleTable   = app.injector.instanceOf[GoldExampleTable]
+  private val labelTable         = app.injector.instanceOf[LabelTable]
   private val viewer: PanoSource = app.injector.instanceOf[ConfigService].getPanoSource
 
   /** Deleted in `afterAll`, with everything written under them. */
@@ -54,9 +56,12 @@ class GoldExampleSpec
   /** By type; unpinned in `afterAll`. */
   private var pinned: Map[LabelType, Int] = Map.empty
 
+  /** Pins a test adds beyond the one per type; unpinned in `afterAll`. */
+  private var extraPins: Set[Int] = Set.empty
+
   /** The first Disagree reason each type offers, which is what the pin teaches. */
   private def reasonFor(labelType: LabelType): ValidationReason =
-    ValidationReason.offered(labelType, models.validation.ValidationOption.Disagree).head
+    ValidationReason.offered(labelType, ValidationOption.Disagree).head
 
   /**
    * A label of the type that plain Validate could serve: not deleted or tutorial, its labeler not excluded, on a
@@ -104,7 +109,7 @@ class GoldExampleSpec
           )
         )
       }
-      pinned.values.foreach(id => run(goldExampleTable.unpin(id)))
+      (pinned.values ++ extraPins).foreach(id => run(goldExampleTable.unpin(id)))
     } finally super.afterAll()
   }
 
@@ -241,7 +246,49 @@ class GoldExampleSpec
       status(postVote(session, b, validationJson(examples.head, b.missionId, "Disagree", redone = true), 1)) mustBe OK
       answer(goldId, b.userId) mustBe Some((Some("Agree"), b.missionId))
       voteRows(goldId, b.userId) mustBe 0
-      run(goldExampleTable.answeredCount(b.userId)) mustBe 1
+    }
+
+    "stop offering a reason once it is answered right, or three times either way" in {
+      val session = freshAnonSession()
+      val b       = bootstrap(session)
+      val lt      = LabelType.withName((b.mission \ "label_type").as[String])
+      val example = b.labels.find(l => goldReason(l).isDefined).getOrElse(cancel(s"no servable $lt label to pin"))
+      val missed  = ValidationReason.withName(goldReason(example).get)
+      val other   = ValidationReason
+        .offered(lt, ValidationOption.Disagree)
+        .find(_ != missed)
+        .getOrElse(cancel(s"$lt offers a single Disagree reason"))
+      def pinNext(reason: ValidationReason): Int = {
+        val id = servableLabel(lt).getOrElse(cancel(s"too few servable $lt labels to pin"))
+        run(goldExampleTable.pin(id, reason, adminUserId))
+        extraPins += id
+        id
+      }
+      val missedPin         = pinNext(missed)
+      val otherPin          = pinNext(other)
+      def offered: Seq[Int] =
+        run(labelTable.goldExampleForValidationQuery(b.userId, viewer, lt, includeAiTags = false).result)
+          .map(_._1.labelId)
+
+      // A wrong answer leaves the reason open: another pin of it is still offered, the answered one is not.
+      status(postVote(session, b, validationJson(example, b.missionId, "Agree"), 1)) mustBe OK
+      offered must contain allOf (missedPin, otherPin)
+      offered must not contain (example \ "label_id").as[Int]
+
+      // Answers are counted per reason, whatever label they were on: two more wrong ones make three, and close it.
+      val ordinary = b.labels.filter(l => goldReason(l).isEmpty).map(l => (l \ "label_id").as[Int])
+      def answer(labelId: Int, reason: ValidationReason, vote: ValidationOption): Unit = {
+        run(goldExampleTable.recordServe(labelId, b.userId, b.missionId, reason))
+        val _ = run(goldExampleTable.recordAnswer(labelId, b.userId, vote, None))
+      }
+      answer(ordinary(0), missed, ValidationOption.Agree)
+      answer(ordinary(1), missed, ValidationOption.Unsure)
+      offered must contain(otherPin)
+      offered must not contain missedPin
+
+      // One right answer closes a reason at once.
+      answer(ordinary(2), other, ValidationOption.Disagree)
+      offered mustBe empty
     }
 
     "not quiz an admin, who pins the examples" in {
@@ -268,7 +315,7 @@ class GoldExampleSpec
 
     "refuse a reason the label's type doesn't offer for a Disagree" in {
       val (lt, id)     = pinned.headOption.getOrElse(cancel("nothing pinned"))
-      val unsureReason = ValidationReason.offered(lt, models.validation.ValidationOption.Unsure).head
+      val unsureReason = ValidationReason.offered(lt, ValidationOption.Unsure).head
       val resp         = route(
         app,
         FakeRequest(POST, "/adminapi/goldExamples")

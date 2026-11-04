@@ -1,6 +1,6 @@
 /**
- * The training example's explanation in Validate (#1445): ModalGoldFeedback paints the mission modal with the
- * pinned reason, holds the keyboard until it is dismissed and leaves the modal as it found it, and LabelContainer
+ * The training example's explanation in Validate (#1445): ModalGoldFeedback fills the dialog with the label's crop
+ * and the pinned reason and holds the keyboard until it is dismissed, and LabelContainer
  * shows it before a wrong vote on an example moves the mission on, while a right vote, or a vote on an ordinary
  * label, moves on at once.
  */
@@ -8,19 +8,28 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeGate, fakeTracker } from './fakes.js';
 
-mockModule('i18next', () => ({ default: { t: (key) => key, exists: () => true, language: 'en' } }));
-useUtil({ assetPath: (p) => `/assets/${p}`, isMobile: () => false });
+// Only the driveway reason has explanation text of its own; the rest fall back to the reason menu's tooltip.
+mockModule('i18next', () => ({
+  default: {
+    t: (key) => key,
+    exists: (key) => !key.startsWith('validate:gold-feedback.explanation.') || key.endsWith('.driveway'),
+    language: 'en',
+  },
+}));
+useUtil({ assetPath: (p) => `/assets/${p}`, isMobile: () => false, escapeHTML: (s) => s });
 
-/** The mission modal's elements, as Main collects them. */
-function modalMissionUi() {
-  // Desktop keeps the holder display:none (class ps-hidden): its mission briefing is the phone's.
+/** The dialog's elements, as Main collects them; jsdom has no showModal, so the open flag stands in for the top layer. */
+function panelUi() {
   document.body.innerHTML = `
-    <div id="holder" class="ps-hidden"><div id="bg"></div><div id="fg"><h1 id="title"></h1><div id="instruction"></div>
-    <button type="button" id="close"></button></div></div>`;
+    <dialog id="panel"><img id="image" alt=""><h2 id="heading"></h2><p id="text"></p><p id="advice"></p>
+    <button type="button" id="ok"></button></dialog>`;
   const byId = (id) => document.getElementById(id);
+  const panel = /** @type {HTMLDialogElement} */ (byId('panel'));
+  panel.showModal = () => { panel.open = true; };
+  panel.close = () => { panel.open = false; };
   return {
-    holder: byId('holder'), background: byId('bg'), foreground: byId('fg'), eyebrow: null,
-    missionTitle: byId('title'), instruction: byId('instruction'), closeButton: byId('close'),
+    panel, image: byId('image'), heading: byId('heading'), text: byId('text'), advice: byId('advice'),
+    okButton: byId('ok'),
   };
 }
 
@@ -28,10 +37,11 @@ function modalMissionUi() {
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** A label as the mission payload carries one; `gold_reason` makes it an example. */
-function labelParams(goldReason = null) {
+function labelParams(goldReason = null, goldCropUrl = null) {
   return {
     label_id: 42, label_type: 'CurbRamp', pano_id: 'pano', heading: 10, pitch: 0, zoom: 1, canvas_x: 100,
     canvas_y: 100, canvas_width: 720, canvas_height: 480, tags: [], severity: null, gold_reason: goldReason,
+    gold_crop_url: goldCropUrl,
   };
 }
 
@@ -49,61 +59,66 @@ describe('ModalGoldFeedback', () => {
     document.body.innerHTML = '';
   });
 
-  test('explains the pinned reason with the menu\'s example image, and holds the keyboard until dismissed', async () => {
-    const ui = modalMissionUi();
+  test('explains the pinned reason over the label\'s crop, and holds the keyboard until dismissed', async () => {
+    const ui = panelUi();
     const gate = fakeGate();
     const tracker = fakeTracker();
-    const reasons = { 'curb-ramp': { 'no-button-2': { reasonId: 'driveway', tooltipImage: '/assets/driveway.png' } } };
-    const modal = new ModalGoldFeedback(ui, reasons, gate, tracker);
-    const label = new Label(labelParams('driveway'), {});
+    const modal = new ModalGoldFeedback(ui, gate, tracker);
+    const label = new Label(labelParams('driveway', '/cropImage/CurbRamp/42?sig=x'), {});
 
     let resolved = false;
     const shown = modal.show(label, 'Agree').then(() => { resolved = true; });
     await Promise.resolve();
 
-    expect(ui.holder.classList.contains('ps-hidden')).toBe(false);
-    expect(ui.holder.style.visibility).toBe('visible');
-    expect(ui.foreground.classList.contains('modal-foreground--gold-feedback')).toBe(true);
+    expect(ui.panel.open).toBe(true);
     expect(gate.hold).toHaveBeenCalledWith('gold-feedback');
-    expect(ui.missionTitle.textContent).toBe('gold-feedback.title');
-    expect(ui.instruction.innerHTML).toContain('common:validation-reason.driveway.text');
-    expect(ui.instruction.innerHTML).toContain('common:validation-reason.driveway.tooltip-curb-ramp');
-    expect(ui.instruction.querySelector('img').getAttribute('src')).toBe('/assets/driveway.png');
-    expect(ui.closeButton.textContent).toBe('gold-feedback.ok');
+    expect(ui.heading.innerHTML).toBe('common:validation-reason.driveway.text');
+    expect(ui.text.innerHTML).toBe('validate:gold-feedback.explanation.driveway');
+    expect(ui.advice.innerHTML).toBe('validate:gold-feedback.advice');
+    expect(ui.image.getAttribute('src')).toBe('/cropImage/CurbRamp/42?sig=x');
+    expect(ui.image.hidden).toBe(false);
+    expect(document.activeElement).toBe(ui.okButton);
     expect(tracker.push).toHaveBeenCalledWith('ModalGoldFeedback_Shown', { labelId: 42, reasonId: 'driveway', vote: 'Agree' });
     expect(resolved).toBe(false);
 
-    ui.closeButton.click();
+    ui.okButton.click();
     await shown;
 
     expect(resolved).toBe(true);
     expect(gate.release).toHaveBeenCalledWith('gold-feedback');
-    expect(ui.holder.style.visibility).toBe('hidden');
+    expect(ui.panel.open).toBe(false);
     expect(tracker.push).toHaveBeenCalledWith('ModalGoldFeedback_ClickOK');
-    // Left as found, so desktop's next mission briefing stays display:none and the box is a plain box again.
-    expect(ui.holder.classList.contains('ps-hidden')).toBe(true);
-    expect(ui.foreground.classList.contains('modal-foreground--gold-feedback')).toBe(false);
-    expect(ui.closeButton.style.width).toBe('');
+  });
+
+  test('a label with no crop on disk gets the text alone, with the reason menu\'s tooltip', () => {
+    const ui = panelUi();
+    const modal = new ModalGoldFeedback(ui, fakeGate(), fakeTracker());
+
+    modal.show(new Label(labelParams('wrong-type'), {}), 'Agree');
+
+    expect(ui.text.innerHTML).toBe('common:validation-reason.wrong-type.tooltip-curb-ramp');
+    expect(ui.image.hidden).toBe(true);
+    expect(ui.image.hasAttribute('src')).toBe(false);
   });
 
   test('a held Enter, the vote\'s own key still down, does not press the button; a fresh press does', async () => {
-    const ui = modalMissionUi();
-    const modal = new ModalGoldFeedback(ui, {}, fakeGate(), fakeTracker());
+    const ui = panelUi();
+    const modal = new ModalGoldFeedback(ui, fakeGate(), fakeTracker());
     let resolved = false;
     const shown = modal.show(new Label(labelParams('driveway'), {}), 'Unsure').then(() => { resolved = true; });
 
     const held = new KeyboardEvent('keydown', { key: 'Enter', repeat: true, cancelable: true, bubbles: true });
-    ui.closeButton.dispatchEvent(held);
+    ui.okButton.dispatchEvent(held);
     expect(held.defaultPrevented).toBe(true);
     const fresh = new KeyboardEvent('keydown', { key: 'Enter', repeat: false, cancelable: true, bubbles: true });
-    ui.closeButton.dispatchEvent(fresh);
+    ui.okButton.dispatchEvent(fresh);
     expect(fresh.defaultPrevented).toBe(false);
 
     // jsdom doesn't turn Enter into a click, so the press is the click the browser would send.
-    ui.closeButton.click();
+    ui.okButton.click();
     await shown;
     expect(resolved).toBe(true);
-    expect(ui.closeButton.onkeydown).toBeNull();
+    expect(ui.okButton.onkeydown).toBeNull();
   });
 });
 
@@ -113,6 +128,7 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
   let resolveFeedback;
   let mission;
   let missionContainer;
+  let tracker;
 
   /** A container holding one label, with the collaborators a vote touches and nothing more. */
   function containerWith(params) {
@@ -124,7 +140,7 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
     };
     const modal = { isShowing: () => false };
     const container = new LabelContainer([params], 'CurbRamp', ui, config, panoManager, {}, modal, modal,
-      missionContainer, fakeTracker(), feedback);
+      missionContainer, tracker, feedback);
     vi.spyOn(container, 'moveToNextLabel').mockResolvedValue(undefined);
     return container;
   }
@@ -132,6 +148,7 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
   beforeEach(async () => {
     ({ LabelContainer } = await loadModules('frontend/js/validate/label/LabelContainer.js'));
     feedback = { show: vi.fn(() => new Promise((resolve) => { resolveFeedback = resolve; })) };
+    tracker = fakeTracker();
     mission = { updateValidationResult: vi.fn(), getProperty: () => 7, isComplete: () => false };
     missionContainer = { getCurrentMission: () => mission, updateAMission: vi.fn() };
   });
@@ -153,6 +170,8 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
     await settle();
 
     expect(container.getLabelsToSubmit()).toHaveLength(1);
+    // Sent at once, so an undo can't drop the answer before the server has it.
+    expect(tracker.flushSoon).toHaveBeenCalledWith(0);
     expect(mission.updateValidationResult).toHaveBeenCalledWith('Agree', false);
     expect(container.moveToNextLabel).toHaveBeenCalledTimes(1);
     expect(container.dropInputWhileLoading('test')).toBe(false);

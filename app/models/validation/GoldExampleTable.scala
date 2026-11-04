@@ -3,6 +3,7 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.label.{LabelTableDef, LabelType}
 import models.mission.MissionTableDef
+import models.pano.PanoDataTable
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, *}
@@ -41,12 +42,13 @@ case class GoldExampleResponse(
 case class GoldExampleSummary(
     example: GoldExample,
     labelType: LabelType,
-    expired: Boolean,
+    unservable: Boolean,
     pinnedByUsername: String,
     answered: Int,
     missed: Int
 )
 
+/** The pins; one row per label, replaced on re-pin. */
 class GoldExampleTableDef(tag: Tag) extends Table[GoldExample](tag, "gold_example") {
   def labelId: Rep[Int]             = column[Int]("label_id", O.PrimaryKey)
   def reason: Rep[ValidationReason] = column[ValidationReason]("reason")
@@ -58,6 +60,7 @@ class GoldExampleTableDef(tag: Tag) extends Table[GoldExample](tag, "gold_exampl
   def user  = foreignKey("gold_example_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
+/** One serve per validator and example, answered in place; a deleted mission takes it along. */
 class GoldExampleResponseTableDef(tag: Tag) extends Table[GoldExampleResponse](tag, "gold_example_response") {
   def goldExampleResponseId: Rep[Int]                 = column[Int]("gold_example_response_id", O.PrimaryKey, O.AutoInc)
   def labelId: Rep[Int]                               = column[Int]("label_id")
@@ -82,15 +85,16 @@ class GoldExampleResponseTableDef(tag: Tag) extends Table[GoldExampleResponse](t
 object GoldExampleTable {
 
   /**
-   * Examples a validator is shown in a city, one per mission. Three catches a habit without taxing a regular validator:
-   * an example's vote counts for nothing, so each is a validation's worth of time spent on teaching.
+   * Answers on one reason, right or wrong, after which a validator gets no more of it: one right answer ends it
+   * sooner, and this keeps someone who keeps missing from being quizzed forever.
    */
-  val ExamplesPerValidator: Int = 3
+  val AnswersPerReason: Int = 3
 }
 
 @ImplementedBy(classOf[GoldExampleTable])
 trait GoldExampleTableRepository {}
 
+/** The pins and the serve records (#1445). */
 @Singleton
 class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
@@ -117,7 +121,7 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
       l <- labels if l.labelId === g.labelId
       p <- panoData if p.panoId === l.panoId
       u <- users if u.userId === g.userId
-    } yield (g, l.labelType, p.expired, u.username)
+    } yield (g, l.labelType, !PanoDataTable.imageryViewable(p), u.username)
     val answers = goldExampleResponses
       .filter(_.validationResult.isDefined)
       .groupBy(_.labelId)
@@ -129,21 +133,17 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
       .on { case ((g, _, _, _), (labelId, _, _)) => g.labelId === labelId }
       .sortBy { case ((g, _, _, _), _) => g.pinnedAt.desc }
       .result
-      .map(_.map { case ((g, labelType, expired, username), counts) =>
+      .map(_.map { case ((g, labelType, unservable, username), counts) =>
         GoldExampleSummary(
           g,
           labelType,
-          expired,
+          unservable,
           username,
           counts.map(_._2).getOrElse(0),
           counts.flatMap(_._3).getOrElse(0)
         )
       })
   }
-
-  /** What gates whether the user is shown another example. */
-  def answeredCount(userId: String): DBIO[Int] =
-    goldExampleResponses.filter(r => r.userId === userId && r.validationResult.isDefined).length.result
 
   /** Whether this city has anything pinned at all; a cheap check before the label query, which most cities fail. */
   def anyPinned: DBIO[Boolean] = goldExamples.exists.result
@@ -164,36 +164,40 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
         )
       }
 
-  /** A serve never answered (they left mid-mission) is re-pointed at the new mission, so a reload can serve it again. */
+  /**
+   * A serve never answered (they left mid-mission) is re-pointed at the new mission, so a reload can serve it again,
+   * and takes the pin's current reason, which an admin may have changed since.
+   */
   def recordServe(labelId: Int, userId: String, missionId: Int, reason: ValidationReason): DBIO[Int] =
     sqlu"""INSERT INTO gold_example_response (label_id, user_id, mission_id, reason)
            VALUES ($labelId, $userId, $missionId, $reason)
            ON CONFLICT (label_id, user_id) DO UPDATE
-             SET mission_id = EXCLUDED.mission_id, served_at = now()
+             SET mission_id = EXCLUDED.mission_id, reason = EXCLUDED.reason, served_at = now()
              WHERE gold_example_response.validation_result IS NULL"""
 
-  /** Which pairs are examples served to the user in that mission; the same label can be a real vote in another. */
-  def servedIn(userId: String, labelMissions: Seq[(Int, Int)]): DBIO[Set[(Int, Int)]] = {
-    if (labelMissions.isEmpty) DBIO.successful(Set.empty)
+  def servedTo(userId: String, labelIds: Set[Int]): DBIO[Set[Int]] = {
+    if (labelIds.isEmpty) DBIO.successful(Set.empty)
     else
       goldExampleResponses
-        .filter(r => r.userId === userId && (r.labelId inSetBind labelMissions.map(_._1).toSet))
-        .map(r => (r.labelId, r.missionId))
+        .filter(r => r.userId === userId && (r.labelId inSetBind labelIds))
+        .map(_.labelId)
         .result
-        .map(_.toSet.intersect(labelMissions.toSet))
+        .map(_.toSet)
   }
+
+  /** Whether the mission already carries an example, so a reload mid-mission doesn't add a second. */
+  def servedInMission(missionId: Int): DBIO[Boolean] =
+    goldExampleResponses.filter(_.missionId === missionId).exists.result
 
   /** Files the user's first answer; a later vote, an undo included, leaves it alone. */
   def recordAnswer(
       labelId: Int,
       userId: String,
-      missionId: Int,
       result: ValidationOption,
       answerReason: Option[ValidationReason]
   ): DBIO[Int] =
     goldExampleResponses
-      .filter(r => r.labelId === labelId && r.userId === userId && r.missionId === missionId)
-      .filter(_.validationResult.isEmpty)
+      .filter(r => r.labelId === labelId && r.userId === userId && r.validationResult.isEmpty)
       .map(r => (r.validationResult, r.answerReason, r.answeredAt))
       .update((Some(result), answerReason, Some(OffsetDateTime.now)))
 }

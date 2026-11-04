@@ -34,8 +34,13 @@
     "retry": "Intentar de nuevo"
   },
   "gold-feedback": {
-    "title": "Una a tener en cuenta",
-    "body": "Esta etiqueta es una que validadores con experiencia han marcado como un error:",
+    "eyebrow": "Ejemplo de práctica",
+    "advice": "En el futuro, deberías votar {{- no}} en estos casos.",
+    "explanation": {
+      "driveway": "Las entradas de vehículos <b>no</b> son rampas para peatones. Están diseñadas para vehículos y no para peatones.",
+      "no-sidewalk-here": "Para las esquinas sin <b>banquetas</b>, debe usarse la etiqueta No hay banqueta.",
+      "not-pedestrian-path": "Si no hay banqueta o el objeto no está en la parte de la banqueta destinada a los peatones, no se necesita una etiqueta de Obstáculo."
+    },
     "ok": "Entendido"
   },
   "pano-loading": {

@@ -34,8 +34,13 @@
     "retry": "Try Again"
   },
   "gold-feedback": {
-    "title": "One to watch out for",
-    "body": "This label is one that experienced validators have marked as a mistake:",
+    "eyebrow": "Training example",
+    "advice": "You should vote {{- no}} on these in the future.",
+    "explanation": {
+      "driveway": "Driveways are <b>not</b> curb ramps. They are designed for vehicles and not pedestrians.",
+      "no-sidewalk-here": "For corners with <b>no sidewalks</b>, the No Sidewalk label should be used instead.",
+      "not-pedestrian-path": "If there is no sidewalk or the object is not on the part of the sidewalk meant for pedestrians, an Obstacle label is not needed."
+    },
     "ok": "Got it"
   },
   "pano-loading": {
