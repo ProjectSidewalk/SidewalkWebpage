@@ -372,6 +372,13 @@ describe('the Sidewalks page', () => {
     expect(JSON.stringify(map.filters.at(-1))).toContain('["get","no_sidewalk_user_count"],2');
   });
 
+  test('pressing Enter in a filter does not submit the filter form and reload the page', async () => {
+    await renderPage();
+    const submit = new Event('submit', { cancelable: true });
+    document.getElementById('sidewalks-filters').dispatchEvent(submit);
+    expect(submit.defaultPrevented).toBe(true);
+  });
+
   test('the confirmed-only box hides unconfirmed no-sidewalk sides on the map and in the count alike', async () => {
     const map = await renderPage();
     const box = document.getElementById('sidewalks-confirmed-only');

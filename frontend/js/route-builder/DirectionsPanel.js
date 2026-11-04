@@ -219,7 +219,7 @@ export class DirectionsPanel {
     const typedAt = this.#userLabelCoord[which];
     if (typedAt && turf.distance(typedAt, coord, { units: 'meters' }) < DirectionsPanel.KEEP_USER_LABEL_M) return;
     const slot = document.getElementById(`directions-${which}-slot`);
-    if (slot?.contains(document.activeElement)) return; // Don't clobber what the user is typing.
+    if (slot.contains(document.activeElement)) return; // Don't clobber what the user is typing.
     this.#lastGeocoded[which] = coord;
     // Responses can arrive out of order (the guard above is dispatch-time, so it never blocks a newer request).
     // Only the newest lookup per field may write, or a slow earlier one overwrites the current endpoint's name —
@@ -258,7 +258,7 @@ export class DirectionsPanel {
    */
   #setFieldText(which, text) {
     const slot = document.getElementById(`directions-${which}-slot`);
-    const input = slot?.querySelector('input');
+    const input = slot.querySelector('input');
     if (input) input.value = text;
   }
 }

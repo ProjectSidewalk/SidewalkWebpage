@@ -49,7 +49,6 @@ export class LandingValidationGrid {
   #loadedLabelIds = new Set();
   #pool = [];
   #fetching = false;
-  #firstLoadLogged = false;
 
   /**
    * @param {HTMLElement} sectionEl - The #landing-validation-container section (rendered with `hidden`).
@@ -83,10 +82,7 @@ export class LandingValidationGrid {
 
     const count = this.#grid.querySelectorAll('.lvg-card').length;
     if (count === 0) this.#section.hidden = true;
-    if (!this.#firstLoadLogged) {
-      this.#firstLoadLogged = true;
-      window.logWebpageActivity(`View_module=LandingValidationGrid_labelCount=${count}`);
-    }
+    window.logWebpageActivity(`View_module=LandingValidationGrid_labelCount=${count}`);
   }
 
   /**

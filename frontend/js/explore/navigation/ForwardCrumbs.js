@@ -257,8 +257,7 @@ export class ForwardCrumbs {
   /** Clears any outline set by {@link highlight}. */
   clearHighlight() {
     if (this.#highlightedPanoId === null) return;
-    const entry = this.#markers.get(this.#highlightedPanoId);
-    if (entry) entry.marker.content.classList.remove('minimap-crumb-highlight');
+    this.#markers.get(this.#highlightedPanoId).marker.content.classList.remove('minimap-crumb-highlight');
     this.#highlightedPanoId = null;
   }
 
@@ -606,7 +605,7 @@ export class ForwardCrumbs {
    */
   #enqueue(key, lookup) {
     return new Promise((resolve) => {
-      this.#queue.push({ key, run: () => lookup().then(resolve, () => resolve(null)), skip: () => resolve(null) });
+      this.#queue.push({ key, run: () => lookup().then(resolve), skip: () => resolve(null) });
       this.#drain();
     });
   }

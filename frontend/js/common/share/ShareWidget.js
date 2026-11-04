@@ -257,7 +257,10 @@ export class ShareWidget {
     if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
+    // A popover closed before this runs has already removed its listeners, and adding them now would leave them
+    // behind for good.
     setTimeout(() => {
+      if (!this.#open) return;
       document.addEventListener('click', this.#boundOutsideClick, true);
       document.addEventListener('keydown', this.#boundKeydown, true);
     }, 0);

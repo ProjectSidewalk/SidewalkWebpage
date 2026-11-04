@@ -190,8 +190,8 @@ export class ContributorsPage {
     const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
     for (const u of rated) {
       const acc = (u.own_validated_agreed_pct || 0) * factor;
-      const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max);
-      counts[idx >= 0 ? idx : counts.length - 1]++;
+      // An agreement rate is at most 100%, which the top bucket's ceiling sits just above, so one always matches.
+      counts[ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max)]++;
     }
     const max = Math.max(1, ...counts);
     const el = document.getElementById('contrib-accuracy');
@@ -268,10 +268,10 @@ export class ContributorsPage {
       </table>`;
   }
 
-  /** Canonical label-type color via util.misc, with a grey fallback for unknown/odd types. */
+  /** Canonical label-type color via util.misc, with a grey fallback for a type the page was not told about. */
   static #typeColor(labelType) {
     try {
-      return util.misc.getLabelColors(labelType) || '#999999';
+      return util.misc.getLabelColors(labelType);
     } catch {
       return '#999999';
     }

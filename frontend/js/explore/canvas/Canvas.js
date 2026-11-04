@@ -484,7 +484,7 @@ export class Canvas {
         await this.#form.ensureLabelSaved(label);
         // The label now has an id it didn't have a moment ago, so re-point past the no-op guard.
         this.#shareUrl = null;
-        if (label) this.#pointShareAtLabel(label);
+        this.#pointShareAtLabel(label);
       },
     });
   }

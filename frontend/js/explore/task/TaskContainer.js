@@ -478,12 +478,8 @@ export class TaskContainer {
   getCurrentTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
 
-    if (this.#currentTask) {
-      const currentLatLng = this.#panoManager.getPosition();
-      this.#currentTask.updateTheFurthestPointReached(currentLatLng);
-      return this.#currentTask.getAuditedDistance(unit);
-    }
-    return 0;
+    this.#currentTask.updateTheFurthestPointReached(this.#panoManager.getPosition());
+    return this.#currentTask.getAuditedDistance(unit);
   }
 
   /**
@@ -767,7 +763,7 @@ export class TaskContainer {
   recordExploreMove(latLng) {
     const current = this.#currentTask;
     const nearest = this.tasksLoaded() ? this.#nearestTask(latLng) : null;
-    if (nearest && current && nearest !== current) {
+    if (nearest && nearest !== current) {
       this.#tracker.push('ExploreAddress_StreetSwitch', {
         from: current.getStreetEdgeId(),
         to: nearest.getStreetEdgeId(),
@@ -779,10 +775,8 @@ export class TaskContainer {
       if (nearest.getCoveredRanges().length === 0) nearest.setProperty('taskStart', new Date());
       this.setCurrentTask(nearest);
     }
-    if (this.#currentTask) {
-      this.#currentTask.recordVisit(latLng);
-      this.renderTask(this.#currentTask);
-    }
+    this.#currentTask.recordVisit(latLng);
+    this.renderTask(this.#currentTask);
   }
 
   /**
@@ -796,8 +790,7 @@ export class TaskContainer {
     const point = turf.point([latLng.lng, latLng.lat]);
     let nearest = null;
     let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
-    const candidates = this.#currentTask ? [this.#currentTask, ...this._tasks] : this._tasks;
-    for (const task of candidates) {
+    for (const task of [this.#currentTask, ...this._tasks]) {
       const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
       if (distM < nearestM) {
         nearest = task;
@@ -811,7 +804,7 @@ export class TaskContainer {
    * Get the street id of the current task.
    */
   getCurrentTaskStreetEdgeId() {
-    return this.#currentTask ? this.#currentTask.getStreetEdgeId() : null;
+    return this.#currentTask.getStreetEdgeId();
   }
 
   /**
