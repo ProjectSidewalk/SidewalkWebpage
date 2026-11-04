@@ -1,4 +1,5 @@
 import i18next from 'i18next';
+import { copyToClipboard } from '../copyToClipboard.js';
 import '../../../css/components/share-widget.css';
 
 /**
@@ -22,14 +23,10 @@ export class ShareWidget {
   #trigger;
   /** @type {HTMLElement|null} The popover element, lazily built on first non-native open. */
   #popover = null;
-  /** @type {HTMLButtonElement|null} The Copy Link button, cached so its transient "Copied!" state can be reset. */
-  #copyButton = null;
   /** @type {boolean} Whether the popover is currently open. */
   #open = false;
   /** @type {{url: string, title: string, text: string}} The current share target. */
   #target = { url: '', title: '', text: '' };
-  /** @type {number|undefined} Timeout id for the transient "Copied!" state. */
-  #copyResetTimer;
   /** @type {?(() => Promise<void>)} Optional async step run before each activation; see the constructor. */
   #beforeOpen = null;
   /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
@@ -254,7 +251,6 @@ export class ShareWidget {
    */
   #openPopover() {
     if (!this.#popover) this.#buildPopover();
-    this.#resetCopyState();
     this.#popover.hidden = false;
     this.#open = true;
     this.#trigger.setAttribute('aria-expanded', 'true');
@@ -307,9 +303,8 @@ export class ShareWidget {
     heading.textContent = t('share.heading');
     popover.appendChild(heading);
 
-    // Copy Link — mirrors the routeBuilder clipboard pattern with a transient "Copied!" confirmation.
-    this.#copyButton = this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'), () => this.#copyLink());
-    popover.appendChild(this.#copyButton);
+    popover.appendChild(this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'),
+      (e) => this.#copyLink(/** @type {HTMLButtonElement} */ (e.currentTarget))));
 
     // Bluesky's compose intent has no separate url param, so the permalink rides in the text. Posts cap at 300
     // graphemes and the composer opens in an over-limit state past that, so keep `share.text` short in every locale —
@@ -346,7 +341,7 @@ export class ShareWidget {
    * Builds a single popover action button.
    * @param {string} iconSvg - Inline SVG markup for the leading icon (static, trusted).
    * @param {string} label - Visible button label.
-   * @param {() => void} onClick - Click handler.
+   * @param {(e: MouseEvent) => void} onClick - Click handler.
    * @param {string} [platform] - Share platform the item opens, so #setPlatformHidden can find it.
    * @returns {HTMLButtonElement}
    */
@@ -372,26 +367,14 @@ export class ShareWidget {
   }
 
   /**
-   * Copies the current URL to the clipboard and flips the Copy Link button into a transient "Copied!" state.
+   * Copies the current URL to the clipboard, confirming on the Copy Link button itself.
+   * @param {HTMLButtonElement} button - The Copy Link button.
    */
-  #copyLink() {
-    navigator.clipboard.writeText(this.#target.url).then(() => {
-      this.#log('Share_CopyLink');
-      const labelEl = this.#copyButton.querySelector('.label-detail__share-item-label');
-      if (labelEl) labelEl.textContent = i18next.t('common:share.copied');
-      this.#copyButton.classList.add('is-copied');
-      clearTimeout(this.#copyResetTimer);
-      this.#copyResetTimer = setTimeout(() => this.#resetCopyState(), 1500);
-    }).catch((err) => console.error('Share: clipboard write failed', err));
-  }
-
-  /** Resets the Copy Link button back to its default label. */
-  #resetCopyState() {
-    clearTimeout(this.#copyResetTimer);
-    if (!this.#copyButton) return;
-    const labelEl = this.#copyButton.querySelector('.label-detail__share-item-label');
-    if (labelEl) labelEl.textContent = i18next.t('common:share.copy-link');
-    this.#copyButton.classList.remove('is-copied');
+  #copyLink(button) {
+    const labelEl = button.querySelector('.label-detail__share-item-label');
+    copyToClipboard(button, this.#target.url, { labelEl }).then((ok) => {
+      if (ok) this.#log('Share_CopyLink');
+    });
   }
 
   /**

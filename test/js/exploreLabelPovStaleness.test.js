@@ -110,6 +110,8 @@ function taskStub() {
     isComplete: () => false,
     getMissionStart: () => null,
     getAuditedDistance: () => 0,
+    getCoveredDistanceM: () => 0,
+    getCoveredRanges: () => [],
     lineDistance: () => 1,
     setProperty: vi.fn(),
   };

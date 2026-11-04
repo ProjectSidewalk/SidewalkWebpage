@@ -58,12 +58,10 @@ import '../../css/components/choropleth.css';
  */
 export function createPSMap(params) {
   // Set default parameters.
-  params.logClicks = params.logClicks === undefined ? true : params.logClicks;
-  params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
-  params.regionTooltip = params.regionTooltip === undefined ? 'none' : params.regionTooltip;
-  params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined
-    ? false
-    : params.differentiateUnauditedStreets;
+  params.logClicks ??= true;
+  params.scrollWheelZoom ??= true;
+  params.regionTooltip ??= 'none';
+  params.differentiateUnauditedStreets ??= false;
 
   // Create the map.
   let map;
@@ -196,7 +194,7 @@ export function createPSMap(params) {
    * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
    */
   function createMap(mapParamData) {
-    params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
+    params.zoomCorrection ||= 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
     // Mobile opens zoomed in on the city center rather than fitted to the whole city: with viewport label

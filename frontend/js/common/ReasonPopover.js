@@ -153,6 +153,11 @@ export class ReasonPopover {
     return this.#request?.anchor ?? null;
   }
 
+  /** @returns {boolean} Whether "Other…" holds typed words not yet saved, which paging away would lose. */
+  get hasUnsavedWords() {
+    return this.isOpen() && this.#chips.hasOtherDraft;
+  }
+
   /** @returns {boolean} Whether focus is inside the pop-up, for a host deciding whether a key is its own. */
   containsFocus() {
     return this.#el.contains(document.activeElement);

@@ -1,0 +1,53 @@
+@import models.report.{NeighborhoodReport, ReportLinks, ReportRules}
+@import service.{AccessScoreSpotlight, CommonPageData}
+
+@*
+ * Everything needed to reproduce or question this report: when it was computed, how old its scores are, the three
+ * public API reads its numbers come from, and the full rules that the rest of the page only points to.
+ *
+ * @param report     The computed report.
+ * @param commonData Per-page config, for the app version.
+ *@
+@(report: NeighborhoodReport, commonData: CommonPageData)(using messages: Messages)
+
+<footer class="report-section report-provenance" aria-labelledby="report-provenance-title">
+  <h2 class="report-section__title" id="report-provenance-title">@Messages("report.provenance.title")</h2>
+  <dl class="report-provenance__list">
+    <div><dt>@Messages("report.provenance.generated")</dt><dd>@report.generatedAt.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
+    <div><dt>@Messages("report.provenance.version")</dt><dd>@commonData.versionId</dd></div>
+    @for(updated <- report.clustersUpdatedAt) {
+      <div><dt>@Messages("report.provenance.scored")</dt><dd>@updated.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString</dd></div>
+    }
+    <div>
+      <dt>@Messages("report.provenance.data")</dt>
+      <dd>
+        <ul class="report-provenance__data">
+          <li><a href="@ReportLinks.streetsCsv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv.streets")</a></li>
+          @for(box <- report.evidenceBox) {
+            <li><a href="@ReportLinks.clustersCsv(box)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv.locations")</a></li>
+          }
+          <li><a href="@ReportLinks.csv(report.regionId)" data-report-event="Report_DownloadCsv">@Messages("report.provenance.csv")</a></li>
+        </ul>
+      </dd>
+    </div>
+  </dl>
+  @if(report.coverage.excludedIds.nonEmpty) {
+    <p class="report-note">
+      <a href="@ReportLinks.count(report.coverage.excludedIds, ReportLinks.galleryFilter(report.regionId, validations = "incorrect"))"
+         data-report-event="Report_OpenGallery">@Messages("report.coverage.excluded", report.coverage.excludedIds.size)</a>
+    </p>
+  }
+  @if(report.coverage.unclusteredIds.nonEmpty) {
+    <p class="report-note">
+      <a href="@ReportLinks.count(report.coverage.unclusteredIds, ReportLinks.gallery(report.regionId))"
+         data-report-event="Report_OpenGallery">@Messages("report.coverage.unclustered", report.coverage.unclusteredIds.size)</a>
+    </p>
+  }
+  <details class="report-rules">
+    <summary>@Messages("report.provenance.rules")</summary>
+    <p class="report-note">@Messages("report.rule.text", AccessScoreSpotlight.MinStreetLengthMeters.toInt, AccessScoreSpotlight.MinStreetClusters) <a href="@ReportLinks.scoreDocs" data-report-event="Report_OpenAccessScore">@Messages("report.rule.docs")</a></p>
+    <p class="report-note">@Messages("report.punch.rule", ReportRules.FixMinPoints.toInt)</p>
+    <p class="report-note">@Messages("report.inventory.note")</p>
+    <p class="report-note">@Messages("report.provenance.reviewers")</p>
+  </details>
+</footer>

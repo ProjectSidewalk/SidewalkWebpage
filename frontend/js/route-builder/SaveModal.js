@@ -80,6 +80,11 @@ export class SaveModal {
     }
   }
 
+  /** @returns {boolean} Whether the dialog is showing. */
+  isOpen() {
+    return this.#backdrop.style.visibility === 'visible';
+  }
+
   /**
    * Opens the save modal with a name suggestion the user can overwrite.
    *

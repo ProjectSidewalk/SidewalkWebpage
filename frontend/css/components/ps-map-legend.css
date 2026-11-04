@@ -1,0 +1,160 @@
+/*
+ * The AccessScore map legend (AccessScoreMapLegend.js): the score ramp, or the slope classes while streets are colored
+ * by grade. Shared by the AccessScore tool and the neighborhood report's maps, so the two keys read the same.
+ */
+
+.ps-map-legend {
+  width: calc(180px * var(--ui-scale, 1));
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-800);
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-map-legend__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.ps-map-legend__bar {
+  position: relative;
+  display: block;
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.ps-map-legend__caret {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-900);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
+  transform: translateX(-50%);
+  transition: left var(--transition-fast);
+}
+
+.ps-map-legend__poles {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-top: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.ps-map-legend__none {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.ps-map-legend__swatch {
+  width: 18px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+/* A street with no grade is drawn as an unaudited one is under the score: thin and grey. */
+.ps-map-legend__swatch--unaudited,
+.ps-map-legend__swatch--no-grade {
+  height: 3px;
+  background: var(--color-neutral-400);
+}
+
+.ps-map-legend__swatch--hatch {
+  background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
+}
+
+/* The slope classes that stand in for the ramp while the streets are colored by slope (#5223): one row per class,
+   since a classed scale is read swatch by swatch, not along a bar. */
+.ps-map-legend__title {
+  margin-bottom: 2px;
+  font: var(--text-tiny-medium);
+}
+
+.ps-map-legend__classes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each class brushes the map on itself, so the whole row is the target. */
+.ps-map-legend__class {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  width: 100%;
+  padding: 1px 3px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-tiny-regular);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* A key with no brush behind it: the row reads, and nothing about it says "press". */
+.ps-map-legend__class--static {
+  cursor: default;
+}
+
+.ps-map-legend__class:not(.ps-map-legend__class--static):hover {
+  background: var(--color-neutral-200);
+}
+
+.ps-map-legend__class:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.ps-map-legend__class[aria-pressed="true"] {
+  background: var(--color-neutral-300);
+  font: var(--text-tiny-semibold);
+}
+
+/* Muted, not hidden: a reader has to be able to read the color they just turned off in order to turn it back on. */
+.ps-map-legend__class--out {
+  opacity: 0.45;
+}
+
+.ps-map-legend__hint {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.ps-map-legend__class-swatch {
+  flex: none;
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* On the dark basemap steeper means lighter, up to white, so each swatch sits on a chip of the basemap's own dark:
+   the color is then seen against what it is painted on, and the white class is visible at all. */
+.ps-map-legend__grade--dark .ps-map-legend__class-swatch {
+  margin: 3px;
+  width: 12px;
+  box-shadow: 0 0 0 3px var(--color-neutral-900);
+}
+
+.ps-map-legend__classes li {
+  margin: 0;
+}
+
+/* The one street a map shows, on a plain key: its row stands out the way the caret marks a score. */
+.ps-map-legend__class--here {
+  font: var(--text-tiny-semibold);
+  background: var(--color-neutral-200);
+}

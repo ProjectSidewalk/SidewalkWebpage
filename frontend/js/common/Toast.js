@@ -29,10 +29,6 @@ export class Toast {
   static #live = new Map();
   static #waiting = new Map();
 
-  // Duration for a toast that just confirms an action the user took ("Link copied"). It tells them nothing they
-  // don't already know, so it needs only long enough to register before it gets out of the way.
-  static CONFIRMATION_MS = 1000;
-
   #el;
   #reference;
   #top;
@@ -51,10 +47,13 @@ export class Toast {
    * @param {object} opts
    * @param {string} [opts.title] - Bold heading line.
    * @param {string} [opts.message] - Secondary message line.
+   * @param {string} [opts.messageHtml] - The message as markup, for a translation that carries its own (a `<kbd>` key
+   *     name), instead of `message`. Sanitized; escape any outside values interpolated into it.
    * @param {string} [opts.icon] - Image URL shown to the left of the text.
    * @param {string} [opts.iconAlt] - Alt text for the icon image (defaults to '').
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} [opts.button] - An
-   *     optional action button: a link with `href`, or a callback with `onClick`.
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   *     [opts.button] - An optional action button: a link with `href`, or a callback with `onClick`. `secondary` for
+   *     one that lets the reader opt out ("Don't show again") rather than act on the message.
    * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
    * @param {number} [opts.top] - Distance in px from the top of the reference to the toast's top edge. Without
    *      it the toast sits 10% of the way down, which suits a passing note over a pano; a standing instruction over
@@ -72,9 +71,9 @@ export class Toast {
     this.#top = opts.top ?? null;
     this.#duration = opts.duration ?? 5000;
     this.#onClose = opts.onClose || null;
-    // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
-    // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
-    // toast with an action button to reach for earns the pause.
+    // A toast anchored to a small control (a failed dashboard rename) opens under the cursor that just clicked it,
+    // so pausing on hover would strand it on screen until the user happened to move the mouse. Only a toast with an
+    // action button to reach for earns the pause.
     this.#pauseOnHover = Boolean(opts.button);
     this.#el = this.#build(opts);
   }
@@ -117,10 +116,11 @@ export class Toast {
       title.textContent = opts.title;
       text.appendChild(title);
     }
-    if (opts.message) {
+    if (opts.message || opts.messageHtml) {
       const message = document.createElement('div');
       message.className = 'ps-toast__message';
-      message.textContent = opts.message;
+      if (opts.messageHtml) message.replaceChildren(util.sanitizeHtml(opts.messageHtml));
+      else message.textContent = opts.message;
       text.appendChild(message);
     }
     el.appendChild(text);
@@ -168,8 +168,8 @@ export class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} button - A
-   *     link-style action with `href`, or a callback with `onClick`.
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   *     button - A link-style action with `href`, or a callback with `onClick`.
    * @returns {HTMLElement}
    */
   #buildButton(button) {
@@ -186,7 +186,8 @@ export class Toast {
       el.type = 'button';
       if (button.onClick) el.addEventListener('click', button.onClick);
     }
-    el.className = 'ps-toast__button button button--primary button--small';
+    const variant = button.secondary ? 'button--secondary' : 'button--primary';
+    el.className = `ps-toast__button button ${variant} button--small`;
     el.textContent = button.label;
     return el;
   }

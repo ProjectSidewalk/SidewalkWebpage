@@ -90,8 +90,8 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
-  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
-  // or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
+  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
+  // or Enter or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
@@ -144,6 +144,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
   dialog.addEventListener('close', () => {
+    labelDetail.saveOpenEdits();
     if (panoEl) {
       // Clear setPano()'s inline visibility and flag the close, so a load still in flight can't reveal itself.
       panoEl.style.visibility = '';

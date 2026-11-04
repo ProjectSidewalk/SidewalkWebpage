@@ -240,6 +240,7 @@ describe('the Gallery in review-list mode', () => {
         labelDetail.create.lastDetail = {
           panoManager: { warmUp: vi.fn() },
           showLabel: vi.fn(() => Promise.resolve()),
+          saveOpenEdits: vi.fn(),
         };
         return labelDetail.create.lastDetail;
       };

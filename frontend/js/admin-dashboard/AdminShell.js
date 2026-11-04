@@ -70,10 +70,10 @@ export class AdminShell {
 
     const toc = document.querySelector('.page-toc');
     if (this.#headings.length === 0) {
-      if (toc) toc.style.display = 'none';
+      toc.style.display = 'none';
       return;
     }
-    if (toc) toc.style.removeProperty('display');
+    toc.style.removeProperty('display');
 
     const frag = document.createDocumentFragment();
     for (const heading of this.#headings) {
@@ -242,6 +242,17 @@ export class AdminShell {
    */
   static num(n) {
     return Number(n).toLocaleString('en-US');
+  }
+
+  /**
+   * Admin is English-only, so this stands in for i18next's plurals there.
+   * @param {number} n - A whole-number count.
+   * @param {string} singular - The unit for exactly one, e.g. "user".
+   * @param {string} [plural] - The unit otherwise; defaults to `singular` plus "s".
+   * @returns {string} The count and its unit, e.g. "1 user" or "1,234 users".
+   */
+  static count(n, singular, plural = `${singular}s`) {
+    return `${AdminShell.num(n)} ${n === 1 ? singular : plural}`;
   }
 
   /**

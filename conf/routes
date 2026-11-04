@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "", sort: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "", labelIdsTotal: Int ?= 0, sort: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -45,6 +45,13 @@ POST    /authenticate/credentials                       controllers.UserControll
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
 POST    /serviceHours/set                               controllers.UserController.setServiceHours(enabled: Boolean, next: Option[String] ?= None)
+
+# Newsletter unsubscribe (#5864), from a link in the email with no sign-in. The GET only shows a confirm button, since
+# mail scanners follow links. The POST is also what mail clients send for one-click unsubscribe (RFC 8058), with no
+# session or CSRF token, so the signed token is its whole authentication.
+GET     /unsubscribe                                    controllers.NewsEmailController.unsubscribePage(token: Option[String] ?= None)
++ nocsrf
+POST    /unsubscribe                                    controllers.NewsEmailController.unsubscribe(token: Option[String] ?= None)
 
 # Security policy endpoints.
 + nocsrf
@@ -88,6 +95,7 @@ GET     /adminapi/sidewalkPresence                      controllers.AdminDashboa
 GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
 GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
+GET     /adminapi/newsEmailRecipients.csv               controllers.NewsEmailController.newsEmailRecipientsCsv
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                           controllers.AdminController.getTagSeverityCounts
@@ -256,9 +264,13 @@ GET     /r/:slug                                        controllers.RouteBuilder
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
 GET     /cropImage/:labelType/:labelId/metadata         controllers.ImageController.getCropImageMetadata(labelType: String, labelId: Int)
+GET     /cropImage/:labelType/:labelId/thumbnail        controllers.ImageController.serveCropThumbnail(labelType: String, labelId: Int)
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
+
+# Neighborhood reports (#3889). Public, like the API they are built from.
+GET     /report/neighborhood/:key                       controllers.ReportController.neighborhood(key: String)
 
 # Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
 # The per-label read lives under /label/:labelId (two segments, so it can't shadow the /label/:labelId wildcard).

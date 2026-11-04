@@ -8,7 +8,8 @@
  * trigger, for items stacked in a column where a card above or below would sit on the neighbor. A tail points back
  * at the trigger; this file places it, and main.css draws it. Escape dismisses it (WCAG 1.4.13). Set the attribute
  * directly, or via i18nDom's `data-i18n-tooltip="ns:key"` so the text stays translated. `data-ps-tooltip-theme="light"`
- * gives a white card, for content styled for a light ground (Gallery's overflow tag pills).
+ * gives a white card, for content styled for a light ground (Gallery's overflow tag pills). Dispatch a bubbling
+ * `ps-tooltip:show` event on a trigger to open its card at once, skipping the hover delay (copyToClipboard does).
  *
  * **The attribute value is plain text**, so outside text goes in as-is. A card needing markup (an image, links) uses
  * `data-ps-tooltip-html`, which wins and goes through `util.sanitizeHtml`: escape outside values into that markup, and
@@ -417,6 +418,12 @@ import { util } from './utilities.js';
     if (r.bottom < 0 || r.top > window.innerHeight) hide();
     else place(tooltip, activeTrigger);
   }, true);
+  document.addEventListener('ps-tooltip:show', (event) => {
+    if (!pinned && event.target instanceof Element && hasTip(event.target)) {
+      hide();
+      show(event.target);
+    }
+  });
   document.addEventListener('pointerdown', (event) => {
     if (pinned && !withinPinned(event.target)) hide();
   });

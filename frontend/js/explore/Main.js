@@ -51,6 +51,7 @@ import { ForwardCrumbs } from './navigation/ForwardCrumbs.js';
 import { Minimap } from './navigation/Minimap.js';
 import { MinimapLegend } from './navigation/MinimapLegend.js';
 import { MinimapMissionProgress } from './navigation/MinimapMissionProgress.js';
+import { WalkPlanLayer } from './navigation/WalkPlanLayer.js';
 import { NavigationService } from './navigation/NavigationService.js';
 import { StreetSweep } from './navigation/StreetSweep.js';
 import { ObservedArea } from './navigation/ObservedArea.js';
@@ -93,8 +94,10 @@ import '../common/utilitiesSidewalk.js';
  * @property {boolean} makeCrops - Whether a placed label's imagery is cropped and uploaded.
  * @property {import('./label/Label.js').LatLngEstimation} latLngEstimation - The label lat/lng estimator's
  *   constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
- * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
+ * @property {import('./task/Task.js').StreetCoverage} streetCoverage - The street-credit rule (StreetCoverage.asJson)
  *   (#5733), owned by the backend (StreetCoverage).
+ * @property {{priorityTolerance: number, tinyStreetM: number}} walkPlanner - The walk planner's thresholds (#5526),
+ *   owned by the backend (walk-planner.* in application.conf) and read by TaskContainer.planWalk.
  * @property {string} mapboxApiKey
  * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - The minimap's tile and glyph URLs.
  * @property {string} countryId - The city's country, for the speed limit sign.
@@ -270,6 +273,7 @@ export class Main {
       makeCrops: params.makeCrops,
       latLngEstimation: params.latLngEstimation,
       streetCoverage: params.streetCoverage,
+      walkPlanner: params.walkPlanner,
       mapboxApiKey: params.mapboxApiKey,
       basemap: params.basemap,
       countryId: params.countryId,
@@ -355,8 +359,7 @@ export class Main {
     }
     const currLatLng = panoManager.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
-    // The drop-in pano is the first one seen of its street (#5733).
-    if (config.isExploreAddressMode) newTask.recordVisit(currLatLng);
+    newTask.recordVisit(currLatLng);
     minimap.setMinimapLocation(currLatLng);
     const peg = new Peg(minimap, panoManager);
 
@@ -424,12 +427,17 @@ export class Main {
       navigationService, navArrows, tracker);
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
-    // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked.
+    const walkPlanLayer = new WalkPlanLayer(ui.minimap, taskContainer, missionContainer, minimap);
+    // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked and
+    // the planned streets previewed ahead (#5526), since at street zoom the preview is mostly off screen.
     minimap.setOverviewStreets(() => {
       if (regionModel.isRoute) return taskContainer.getTasks();
       const tasks = (missionContainer.getCurrentMission()?.getRoute() ?? []).slice();
       const current = taskContainer.getCurrentTask();
       if (current && !tasks.includes(current)) tasks.push(current);
+      for (const task of walkPlanLayer.getPreviewedTasks()) {
+        if (!tasks.includes(task)) tasks.push(task);
+      }
       return tasks;
     });
 
@@ -657,7 +665,7 @@ export class Main {
 
   /**
    * Skip the onboarding tutorial from the intro: mark the onboarding mission skipped/complete, submit, and reload into
-   * a real Explore mission. Mirrors how the onboarding itself ends on skip.
+   * a real Explore mission, the same way the finished onboarding ends.
    */
   #skipTutorial() {
     const { tracker, missionContainer, form } = this.#modules;
@@ -716,7 +724,7 @@ export class Main {
     m.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
-    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
+    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getGeoJSON());
   }
 
   // This is a callback function that is executed after every loading process is done.

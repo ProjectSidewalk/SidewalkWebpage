@@ -31,7 +31,7 @@ It chains every remaining setup step, pausing only where a human is required:
   6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch, or
      pass --tutorial-region and --regions).
   7. Runs the tools/city/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
-     holds the API keys and the python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery
+     holds the API keys and the geo libraries) against a freshly exported endpoints CSV, hides the no-imagery
      streets, and imports the imagery-age summary into street_imagery.
   8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
      bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
@@ -57,6 +57,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 """
 
 import argparse
+import csv
 import hashlib
 import re
 import sqlite3
@@ -873,8 +874,6 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
     log_hint = f'docker exec {WEB_CONTAINER} tail -50 {BOOT_LOG}'
     try:
         deadline = time.monotonic() + 30 * 60
-        # No `continue` in this loop: Python 3.8's compiler folds the jump into the preceding block's, so the
-        # tracer never reports the line and the 100% coverage gate fails on the 3.8 half of the suite.
         while time.monotonic() < deadline:
             if boot_answered():
                 applied, problem = evolution_state(schema)
@@ -929,14 +928,18 @@ def run_imagery_scan(schema, city_id, pano_type):
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
     tty = ['-t'] if sys.stdin.isatty() else []
-    subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/check_streets_for_imagery.py',
+    subprocess.run(docker_argv(WEB_CONTAINER, 'python3', 'tools/city/check_streets_for_imagery.py',
                                '--city-id', city_id, flag, flags=('-i', *tty)), check=True)
 
-    no_imagery = city_dir / 'streets_with_no_imagery.csv'
-    n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
-    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
+    summary = city_dir / 'street_imagery_summary.csv'
+    n_hidden = 0
+    if summary.exists():
+        with summary.open() as handle:
+            n_hidden = sum(1 for row in csv.DictReader(handle) if row['has_imagery'] == 'False')
+    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery (and reopening any the scan found imagery '
+          'on)...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
-              f'onboarding/{city_id}/streets_with_no_imagery.csv', check=True)
+              f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
     # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
     # summary is the only source of imagery-age data (#4348).
@@ -956,7 +959,7 @@ DEM_FLAGS_EXAMPLE = '--dem-dir db/onboarding/{city_id}/dem --dem-name <product> 
 def run_street_gradient(schema, city_id, sampler_args=()):
     """
     Fills street_gradient (#5223): exports the streets with the build's structure flags, samples the elevation model
-    in the web container (which holds the python3.13 deps), and imports the result.
+    in the web container (which holds the raster libraries), and imports the result.
 
     The build's street_structures.csv stands in for the osm_way cache, which is empty until the city's first nightly
     refresh; without it every bridge would be sampled as the ravine beneath it, so the step is skipped rather than
@@ -987,7 +990,7 @@ def run_street_gradient(schema, city_id, sampler_args=()):
                 'Fix the cause and rerun; the rerun comes straight back to this step.')
     print('  Sampling the elevation model along every street (seconds for most cities, a minute or two for a '
           'large one)...')
-    sampler = subprocess.Popen(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/street_gradient.py',
+    sampler = subprocess.Popen(docker_argv(WEB_CONTAINER, 'python3', 'tools/city/street_gradient.py',
                                            '--city-id', city_id, *sampler_args, flags=('-i',)),
                                stderr=subprocess.PIPE, text=True)
     log = []

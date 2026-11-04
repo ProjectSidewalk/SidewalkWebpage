@@ -14,6 +14,7 @@
 import i18next from 'i18next';
 import { BadgeAchievements } from '../BadgeAchievements.js';
 import { ConfirmDialog } from '../ConfirmDialog.js';
+import { KeyboardShortcuts } from '../KeyboardShortcuts.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';
 import { LabelVisibilityToggle } from '../LabelVisibilityToggle.js';
 import { Toast } from '../Toast.js';
@@ -139,6 +140,8 @@ export class LabelDetail {
    */
   static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+  /** How long a vote refresh may take; edits queued behind it wait this long at most. */
+  static #REFRESH_TIMEOUT_MS = 10000;
   // A type change's status carries the Undo, which needs time to be read and hit.
   static #EDIT_STATUS_HOLD_UNDO_MS = 8000;
 
@@ -449,7 +452,6 @@ export class LabelDetail {
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
-    els.panHint = this.#q('.label-detail__pan-hint');
     els.hideLabelButton = this.#q('.label-detail__hide-label');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.exploreHereLink = this.#q('.label-detail__explore-link');
@@ -637,17 +639,23 @@ export class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * The vote each shortcut casts, keyed by `KeyboardEvent.code` so a shortcut stays on the same physical key
-   * whatever the layout — the convention Validate's KeyboardManager already follows. A/Y for agree and D/N for
-   * disagree are the pairs Validate and the Gallery have long offered, kept so the muscle memory carries over.
+   * The vote each shortcut casts, keyed the way KeyboardShortcuts.keyOf names a key: by the letter printed on it, so
+   * the card reads the same keys as Validate on any layout (#5618). A/Y for agree and D/N for disagree are the pairs
+   * Validate and the Gallery have long offered, kept so the muscle memory carries over.
    */
   static #VOTE_KEYS = {
     KeyA: 'Agree', KeyY: 'Agree', KeyD: 'Disagree', KeyN: 'Disagree', KeyU: 'Unsure',
   };
 
   /**
-   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, and A/Y, D/N and U cast
-   * agree, disagree and unsure (#5194).
+   * Which way each paging shortcut moves. S sits between A and D, so the left hand can vote and move on without
+   * reaching for the arrows, the way S submits and moves on in Validate (#5883).
+   */
+  static #PAGING_KEYS = { ArrowLeft: 'prev', ArrowRight: 'next', KeyS: 'next' };
+
+  /**
+   * Listens for the card's shortcuts: left/right arrows (and S) page to the previous/next label, and A/Y, D/N and U
+   * cast agree, disagree and unsure (#5194).
    *
    * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
    * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
@@ -677,15 +685,18 @@ export class LabelDetail {
     }
     if (!this.#ownsKeyboard(e)) return;
 
+    const key = KeyboardShortcuts.keyOf(e);
     // Focus on a reason chip (#5475): the arrows move along the chips (ReasonChips' own handler), not through the
     // labels; every other key is still the card's, so A/D/U vote from a chip as from anywhere else.
-    if (e.code.startsWith('Arrow') && reasonPopover().containsFocus()) return;
+    if (key.startsWith('Arrow') && reasonPopover().containsFocus()) return;
 
-    const vote = LabelDetail.#VOTE_KEYS[e.code];
+    const vote = LabelDetail.#VOTE_KEYS[key];
+    const paging = LabelDetail.#PAGING_KEYS[key];
+    // Paging away throws out words typed into "Other…" but not yet saved, so a paging key waits until they are.
+    if (paging && reasonPopover().isOpenFor(this.#root) && reasonPopover().hasUnsavedWords) return;
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
-    else if (e.code === 'ArrowLeft') button = this.#els.pagingPrev;
-    else if (e.code === 'ArrowRight') button = this.#els.pagingNext;
+    else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
     if (!button || button.hidden || button.disabled) return;
 
     e.preventDefault();
@@ -715,7 +726,7 @@ export class LabelDetail {
 
   /** @returns {boolean} Ctrl+Z or Cmd+Z, the undo chord on every platform. */
   static #isUndoChord(e) {
-    return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyZ';
+    return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && KeyboardShortcuts.keyOf(e) === 'KeyZ';
   }
 
   /**
@@ -791,6 +802,11 @@ export class LabelDetail {
     if (!this.#root.isConnected) return false;
     if (this.#isOpenHook) return !!this.#isOpenHook();
     return this.#root.tagName === 'DIALOG' ? this.#root.open : true;
+  }
+
+  /** Saves a tag pick still open, as Done would; for a host closing the card, which is a way out like paging. */
+  saveOpenEdits() {
+    if (this.#tagEditor.isOpen) this.#finishTagEditing();
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -880,6 +896,10 @@ export class LabelDetail {
    */
   #handleData(meta) {
     const els = this.#els;
+    // Paging on with a tag pick open saves it, as Done would; it was made on the label being left, so it is saved
+    // before that label stops being the current one. A redraw of the same label drops the pick instead, since the
+    // redraw is there because the label changed under it.
+    if (this.#tagEditor.isOpen && this.#currentLabelMeta?.label_id !== meta.label_id) this.#finishTagEditing();
     this.#currentLabelMeta = meta;
 
     // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
@@ -894,7 +914,7 @@ export class LabelDetail {
     this.#deleted = !!meta.deleted;
     this.#canRestore = !!meta.can_restore;
     this.#deletedHere = false;
-    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
+    if (this.#tagEditor.isOpen) this.#tagEditor.close();
     this.#applyInteractionLock();
 
     this.#showEditStatus('');
@@ -1277,8 +1297,7 @@ export class LabelDetail {
 
     // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
     // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
-    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
-    // still landed server-side; reopening this label shows it.
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses.
     const votedLabelMeta = this.#currentLabelMeta;
 
     this.#postJson('/labelmap/validate', data).then(async (res) => {
@@ -1291,11 +1310,17 @@ export class LabelDetail {
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (this.#currentLabelMeta !== votedLabelMeta) return;
       const newAction = undone ? null : action;
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
-      if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
+      if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard, votedLabelMeta.label_id);
+      if (this.#currentLabelMeta !== votedLabelMeta) {
+        // The card has moved on (a quick A then S), so only the vote's record-keeping is left: the badge count, and
+        // the host, or paging back shows no vote.
+        if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
+        if (typeof this.#onVote === 'function') this.#onVote(newAction, votedLabelMeta);
+        return;
+      }
       const previousAction = this.#prevAction;
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
@@ -2115,22 +2140,20 @@ export class LabelDetail {
    * that the pano is pannable until the cursor is already over it.
    */
   #showPanHintOnce() {
-    const hint = this.#els.panHint;
-    if (!hint) return;
+    if (this.#deleted) return; // The deleted notice sits over the imagery instead, and the pano can't be judged.
     try {
       if (sessionStorage.getItem('psLabelDetailPanHintShown')) return;
       sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
     } catch {
       return; // Storage access throws under "block all site data" settings; skip the hint rather than reject.
     }
-    hint.hidden = false;
-    requestAnimationFrame(() => hint.classList.add('is-visible'));
-    setTimeout(() => {
-      hint.classList.remove('is-visible');
-      setTimeout(() => {
-        hint.hidden = true;
-      }, 400); // Matches the CSS opacity transition.
-    }, 5500);
+    Toast.show({
+      message: i18next.t('common:drag-to-look-around'),
+      reference: this.#els.panoWrap,
+      top: 14,       // Clear of the validation buttons along the bottom of the imagery.
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
+    });
   }
 
   /**
@@ -2520,8 +2543,9 @@ export class LabelDetail {
     if (!sameTags) columns.push('tags');
 
     if (typeChange) {
-      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one.
-      if (this.#tagEditor.isOpen) this.#tagEditor.close();
+      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one. A pick
+      // open on a label paged to since is left alone.
+      if (this.#currentLabelMeta === meta && this.#tagEditor.isOpen) this.#tagEditor.close();
     } else {
       meta.severity = severity;
       meta.tags = tags;
@@ -2540,17 +2564,23 @@ export class LabelDetail {
       const conflict = res.status === 409;
       if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
-      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
-      if (this.#currentLabelMeta !== meta) return;
+      // Kept even after paging on, since saves queued behind this one for the same label start from these values.
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
+      if (!conflict) this.#logEdit(meta, prev, change, sameTags);
+      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
+      // The host still hears of a plain save, which is how a tag pick saved by paging on reaches the Gallery's grid.
+      if (this.#currentLabelMeta !== meta) {
+        if (!conflict && !typeChange && typeof this.#onEdit === 'function') this.#onEdit(meta);
+        return;
+      }
       render();
       if (conflict) {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
+          await this.#refreshVotes(meta);
           if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-          this.#refreshVotes(meta);
         }
         return;
       }
@@ -2567,25 +2597,43 @@ export class LabelDetail {
       } else {
         this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       }
-      if (meta.label_type !== prev.labelType) {
-        const undoNote = change.undo ? '_undo=true' : '';
-        this.#logAction(`EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`, !!change.viaKeyboard);
-      }
-      if (meta.severity !== prev.severity) {
-        this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
-      }
-      if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
+      if (typeChange) await this.#refreshVotes(meta);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-      if (typeChange) this.#refreshVotes(meta);
     } catch (err) {
       console.error(err);
-      if (this.#currentLabelMeta !== meta) return;
+      // Rolled back even after paging on, or saves queued behind this one would resend the values the server refused.
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
+      if (this.#currentLabelMeta !== meta) {
+        // The card shows another label now, so the failure can't be shown beside the control; a toast says it.
+        Toast.show({ message: i18next.t('labelmap:edit-failed-previous'), reference: this.#root, dark: true });
+        return;
+      }
       render();
       this.#showEditFailure(columns);
     }
+  }
+
+  /**
+   * Logs each field a saved edit changed, under the label it was made on even if the reader has paged on.
+   * @param {Record<string, any>} meta - The label's metadata, holding the saved values.
+   * @param {{labelType: string, severity: ?number, tags: string[]}} prev - The values before the edit.
+   * @param {{undo?: boolean, viaKeyboard?: boolean}} change - The change as submitted.
+   * @param {boolean} sameTags - The edit left the tags as they were.
+   */
+  #logEdit(meta, prev, change, sameTags) {
+    const id = meta.label_id;
+    if (meta.label_type !== prev.labelType) {
+      const undoNote = change.undo ? '_undo=true' : '';
+      const action = `EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`;
+      this.#logAction(action, !!change.viaKeyboard, id);
+    }
+    if (meta.severity !== prev.severity) {
+      this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`, false, id);
+    }
+    if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`, false, id);
   }
 
   /**
@@ -2596,8 +2644,14 @@ export class LabelDetail {
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
+    // A vote cast now would be overwritten by the older counts on their way back.
+    this.#setVoteButtonsDisabled(true);
     try {
-      const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(LabelDetail.#REFRESH_TIMEOUT_MS),
+      });
       if (!response.ok) return;
       const fresh = await response.json();
       if (this.#currentLabelMeta !== meta) return;
@@ -2610,7 +2664,8 @@ export class LabelDetail {
       this.#prevAction = meta.user_validation;
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
-      this.#renderVoteIcons();
+      // The border and pressed button show the user's own vote, which may be gone under the new type.
+      this.#highlightVote(this.#readonly ? null : meta.user_validation);
       if (this.#commentWrites === commentWrites) {
         this.#loadComments(fresh.comments);
         this.#commentsChanged(meta);
@@ -2618,6 +2673,8 @@ export class LabelDetail {
       this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
+    } finally {
+      if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(false);
     }
   }
 

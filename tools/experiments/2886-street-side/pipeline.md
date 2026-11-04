@@ -11,14 +11,14 @@ city role creates, and the city schema is only read. Drop the scratch schema to 
 
 ```bash
 # 1. SDOT layers -> GeoJSON (network; ~200 MB into tools/experiments/2886-street-side/data/, gitignored)
-python3.13 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data
-# 2..4 inside the web container (python3.13 holds pandas; psycopg2/matplotlib/tabulate are pip-installed there)
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py load
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py compute   # ~4 min
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py export
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/analyze_street_side.py
+python3 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data
+# 2..4 inside the web container (python3 holds pandas; psycopg2/matplotlib/tabulate are pip-installed there)
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py load
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py compute   # ~4 min
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py export
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/analyze_street_side.py
 python3 tools/experiments/2886-street-side/fetch_share_images.py   # host side (network): picks the worked examples, fetches their share images
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/case_maps.py   # one map + image figure per example
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/case_maps.py   # one map + image figure per example
 ```
 
 `--city` / `--exp` pick the city schema and the scratch schema; `PGUSER` / `PGPASSWORD` are the city role.

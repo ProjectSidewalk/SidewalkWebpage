@@ -58,7 +58,6 @@ function buildCard({ paging = true, asDialog = false } = {}) {
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false">Disagree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false">Unsure</button>
           </div>
-          <span class="label-detail__pan-hint" hidden></span>
         </div>
 
         <div class="label-detail__meta-row">

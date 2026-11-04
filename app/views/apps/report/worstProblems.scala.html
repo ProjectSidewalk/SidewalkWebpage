@@ -1,0 +1,67 @@
+@import models.label.LabelType
+@import models.report.{NeighborhoodReport, ReportLinks, ReportRules}
+@import views.html.apps.report as reportViews
+
+@*
+ * Where the neighborhood's worst problems are (#5889): one dot per location rated at the bad end of its type's scale,
+ * colored by type, beside a count per type. The counts are the map's key as well as its text equivalent, since a dot
+ * on the canvas can't take focus: each links to its labels, and hovering or focusing one lights its type's dots.
+ *
+ * A location is the unit the score counts, so its rating is the cluster's median and the counts can sit below the
+ * inventory's, which counts labels. Unrated types, missing sidewalks above all, have no worst end and aren't here.
+ * Past the Gallery's list cap, a count links to the type's labels rated worst instead: Gallery can't filter by a
+ * location's median, so that view is close to the count but not the same set.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using messages: Messages, assets: AssetsFinder)
+
+@* An empty list would open the Gallery unfiltered, so a type whose labels were all rejected links to its filter. *@
+@countLink(labelType: LabelType, ids: Seq[Int]) = @{
+  val filter = ReportLinks.galleryFilter(report.regionId, Some(labelType), ReportRules.worstRating(labelType.ratingScale).toSeq)
+  if (ids.isEmpty) filter else ReportLinks.count(ids, filter)
+}
+
+@defining(report.worstByType) { byType =>
+@defining(if (byType.isEmpty) 1 else byType.map(_._2.size).max) { most =>
+<section class="report-section report-worst" id="report-worst" aria-labelledby="report-worst-title">
+  <h2 class="report-section__title" id="report-worst-title">
+    @Messages("report.worst.title")
+    @reportViews.info(Messages("report.worst.rule"))
+  </h2>
+  @if(byType.isEmpty) {
+    <p class="report-empty">@Messages(if (report.isProvisional) "report.worst.none.sofar" else "report.worst.none")</p>
+  } else {
+    <div class="report-worst__body">
+      <div class="report-worst__where">
+        <div class="report-map report-map--worst" id="report-worst-map" role="group"
+             aria-label="@Messages("report.worst.map.label", report.regionName)" aria-describedby="report-worst-key-title"></div>
+      </div>
+      <div class="report-worst__key">
+        <p class="report-section__lede" id="report-worst-key-title">@Messages("report.worst.lede", report.worst.size)</p>
+        @* Bars are sized and colored by report.js from data-share and the type's label color. *@
+        <ul class="report-worst__types">
+          @for((labelType, cards) <- byType) {
+            <li class="report-worst__type" data-label-type="@labelType.name">
+              <span class="report-worst__name">
+                <img src='@assets.path(labelType.smallIconSvgPath)' alt="" width="16" height="16">
+                @Messages(labelType.nameKey)
+                @for(worst <- ReportRules.worstRating(labelType.ratingScale)) {
+                  <span class="report-worst__rating">@Messages(s"report.scale.${labelType.ratingScale.name}.$worst")</span>
+                }
+              </span>
+              <span class="report-worst__track" aria-hidden="true"><span class="report-worst__bar" data-label-type="@labelType.name" data-share="@(cards.size.toDouble / most)"></span></span>
+              <a class="report-worst__count" href="@countLink(labelType, cards.flatMap(_.countedIds))"
+                 data-report-event="Report_OpenGallery" aria-label="@Messages("report.worst.count.label", cards.size, Messages(labelType.nameKey))">@Messages("report.count", cards.size)</a>
+            </li>
+          }
+        </ul>
+        @if(report.inventory.exists(r => r.labelType == LabelType.NoSidewalk && r.observedIds.nonEmpty)) {
+          <p class="report-worst__note">@Messages("report.worst.nosidewalk", Messages("report.map.sidewalks"))</p>
+        }
+      </div>
+    </div>
+  }
+</section>
+}
+}

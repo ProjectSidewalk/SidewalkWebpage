@@ -2,12 +2,12 @@
 """Street-side assignment experiment for issue #2886: which side of its street each label sits on, by two methods,
 scored against SDOT's sidewalk and curb-ramp inventories. See README.md for the design and the report it feeds.
 
-Subcommands (run inside the web container with python3.13, which holds psycopg2/pandas/matplotlib):
+Subcommands (run inside the web container with python3, which holds psycopg2/pandas/matplotlib):
 
-    python3.13 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data   # SDOT layers -> GeoJSON (network)
-    python3.13 tools/experiments/2886-street-side/street_side.py load      # GeoJSON -> <exp>.sdot_sidewalk / sdot_curb_ramp
-    python3.13 tools/experiments/2886-street-side/street_side.py compute   # runs street_side.sql (all derived tables)
-    python3.13 tools/experiments/2886-street-side/street_side.py export    # derived tables -> out/*.csv for analyze_street_side.py
+    python3 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data   # SDOT layers -> GeoJSON (network)
+    python3 tools/experiments/2886-street-side/street_side.py load      # GeoJSON -> <exp>.sdot_sidewalk / sdot_curb_ramp
+    python3 tools/experiments/2886-street-side/street_side.py compute   # runs street_side.sql (all derived tables)
+    python3 tools/experiments/2886-street-side/street_side.py export    # derived tables -> out/*.csv for analyze_street_side.py
 
 Connection: PGHOST (default db), PGDATABASE (sidewalk), PGUSER / PGPASSWORD (the city role; the scratch schema is
 created by that role, so nothing runs as a superuser). --city names the city schema, --exp the scratch schema.

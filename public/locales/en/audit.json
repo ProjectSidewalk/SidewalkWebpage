@@ -192,6 +192,7 @@
       "mission-progress": "Mission progress",
       "legend-explored": "Explored",
       "legend-ahead": "Route ahead",
+      "legend-jump": "Jump to next street",
       "legend-you": "You + view direction",
       "legend-crumbs": "Circles: places you can click to go",
       "legend-unseen": "Not yet viewed",

@@ -5,7 +5,7 @@
 
    Mounted by PanoAttribution.js (the pano-viewer and pano-credit bundles) inside a positioned pano container. This
    file is the look; each host positions the pill where its own overlays leave room (label-detail.css,
-   validate/svv-panorama.css, gallery/cards.css, landing-validation-grid.css). */
+   validate/svv-panorama.css, gallery-card.css, landing-validation-grid.css). */
 .pano-attribution {
   position: absolute;
   max-width: calc(100% - 20px);

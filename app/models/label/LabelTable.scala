@@ -6,6 +6,7 @@ import models.api.{
   DailyLabelStat,
   LabelAccuracy,
   LabelCVMetadata,
+  LabelCommentForApi,
   LabelDataForApi,
   LabelSevStats,
   LabelValidationSummaryForApi,
@@ -775,8 +776,8 @@ object LabelTable {
   }
 
   /**
-   * Parses the JSON built by the comment aggregations (the label_comments_agg view and the matching inline SQL in
-   * getRecentLabelsMetadata) into LabelComment objects — the single Scala-side reader of that wire shape.
+   * Parses the label_comments_agg view's JSON into LabelComment objects — the single Scala-side reader of that wire
+   * shape, used by both the Gallery and getRecentLabelsMetadata.
    */
   private[label] def parseCommentsJson(json: String): Seq[LabelComment] = {
     play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
@@ -786,6 +787,26 @@ object LabelTable {
         (obj \ "time_created").asOpt[OffsetDateTime],
         (obj \ "validation").asOpt[String],
         (obj \ "reason").asOpt[String]
+      )
+    }
+  }
+
+  /**
+   * Parses one label's comment aggregate from getLabelDataWithFilters. Keyed by `user_id` rather than the `username`
+   * the label card shows, so it is its own reader and user_ids never reach the card's payload. Postgres renders a
+   * timestamptz in the session's time zone, so the time is moved to UTC to match the label's own `time_created`.
+   *
+   * @param json One label's `comments` aggregate.
+   * @return The label's comments, oldest first.
+   */
+  private[label] def parseCommentsForApiJson(json: String): Seq[LabelCommentForApi] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelCommentForApi(
+        (obj \ "user_id").as[String],
+        (obj \ "comment").as[String],
+        (obj \ "reason").asOpt[String],
+        (obj \ "validation").asOpt[String],
+        (obj \ "time_created").as[OffsetDateTime].withOffsetSameInstant(ZoneOffset.UTC)
       )
     }
   }
@@ -835,6 +856,7 @@ object LabelTable {
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
       validations = r.nextStringOption().map(parseValidationsJson).getOrElse(Seq.empty),
+      comments = r.nextStringOption().map(parseCommentsForApiJson).getOrElse(Seq.empty),
       auditTaskId = r.nextIntOption(),
       missionId = r.nextIntOption(),
       imageCaptureDate = r.nextStringOption(),
@@ -871,7 +893,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Slick mapping for the label_comments_agg VIEW, which pre-aggregates validation comments per label via json_agg.
-   * Each row contains a label_id and a JSON array string of {username, comment} objects.
+   * Each row contains a label_id and a JSON array string of comment objects, as parseCommentsJson reads them.
    */
   private class LabelCommentsAggTableDef(tag: Tag) extends Table[(Int, Option[String])](tag, "label_comments_agg") {
     def labelId: Rep[Int]             = column[Int]("label_id")
@@ -2721,6 +2743,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.disagree_count,
              label.unsure_count,
              vals.validations,
+             comms.comments,
              label.audit_task_id,
              label.mission_id,
              pano_data.capture_date,
@@ -2764,6 +2787,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM #${FilteredTables.verdictVotes()}
           GROUP BY label_validation.label_id
       ) AS "vals" ON label.label_id = vals.label_id
+      LEFT JOIN (
+          -- Only commenters whose votes count, like vals above, so every user_id here could appear there (#5849).
+          -- The label card's label_comments_agg view shows everyone, so this is its own aggregate. Comments are
+          -- unique per (label, user, label_type), so the current-type join below is what makes it one per user.
+          SELECT validation_task_comment.label_id,
+                 json_agg(json_build_object(
+                   'user_id', validation_task_comment.user_id,
+                   'comment', validation_task_comment.comment,
+                   'reason', validation_task_comment.reason,
+                   'validation', label_validation.validation_result,
+                   'time_created', validation_task_comment.timestamp
+                 ) ORDER BY validation_task_comment.timestamp)::text AS comments
+          FROM validation_task_comment
+          INNER JOIN label ON validation_task_comment.label_id = label.label_id
+              AND validation_task_comment.label_type = label.label_type
+          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+              AND validation_task_comment.user_id = label_validation.user_id
+              AND validation_task_comment.label_type = label_validation.label_type
+          WHERE validation_task_comment.user_id <> label.user_id
+            AND #${FilteredTables.userCounts(None, "validation_task_comment.user_id", Contributors.NotExcluded)}
+          GROUP BY validation_task_comment.label_id
+      ) AS "comms" ON label.label_id = comms.label_id
       WHERE """
       .concat(SqlFragments.allOf(whereConditions))
       .concat(sql"""

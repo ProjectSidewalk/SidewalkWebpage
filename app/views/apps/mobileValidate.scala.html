@@ -201,7 +201,7 @@
 
   @* For anonymous users, the mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js);
      for signed-in users neither the dialog nor any opener renders. *@
-  @common.authDialog(Some(user))
+  @common.authDialog(Some(user), commonData.newsEmailPreChecked)
 
   @* What the Validate entry (frontend/js/validate/start.js) needs from the server, as JSON. Session scalars only: the
      mission is fetched from /validationTask/mission, so a cached copy of this page can never carry stale labels

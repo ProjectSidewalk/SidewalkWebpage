@@ -127,3 +127,25 @@
   height: calc(14px * var(--ui-scale, 1));
 }
 
+
+/* The default X is nearly as tall as a one-line toast. The ::after keeps the clickable area at 24px for touch. */
+.ps-toast--compact .ps-toast__close {
+  top: calc(-6px * var(--ui-scale, 1));
+  right: calc(-6px * var(--ui-scale, 1));
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+
+  /* Even all round: on a circle this small, a shadow only below makes the X inside look like it sits high. */
+  box-shadow: 0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 30%);
+}
+
+.ps-toast--compact .ps-toast__close::after {
+  content: "";
+  position: absolute;
+  inset: calc(-3px * var(--ui-scale, 1));
+}
+
+.ps-toast--compact .ps-toast__close-icon {
+  width: calc(10px * var(--ui-scale, 1));
+  height: calc(10px * var(--ui-scale, 1));
+}

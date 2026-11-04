@@ -125,7 +125,8 @@ export class AcrossCitiesPage {
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
-  #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
+  #funnelWindow = '30d'; // '30d' | '90d' | 'all': the window last asked for.
+  #shownFunnelWindow = '30d'; // The window whose numbers are on screen.
   #funnelDim = 'all';    // 'all' | 'role' | 'device'.
 
   /**
@@ -242,9 +243,9 @@ export class AcrossCitiesPage {
    */
   #joinActivityWindows() {
     for (const c of this.#cities) {
-      const w = this.#windowByCity[c.city_id] || null;
+      const w = this.#windowByCity[c.city_id] || {};
       c.activity_window = w;
-      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+      c.activity_7d = (w.labels_7d || 0) + (w.validations_7d || 0);
     }
   }
 
@@ -465,7 +466,7 @@ export class AcrossCitiesPage {
    * @returns {string} The cell's markup.
    */
   #weekCell(city, metric, showDelta = true) {
-    const { current, prior, ai } = this.#metricCounts(city.activity_window || {}, metric);
+    const { current, prior, ai } = this.#metricCounts(city.activity_window, metric);
     // A city with no activity in either window gets the bare count, since "→ 0%" is noise.
     const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
     const delta = d
@@ -534,14 +535,22 @@ export class AcrossCitiesPage {
     }
 
     mapboxgl.accessToken = this.#mapboxToken;
-    this.#map = new mapboxgl.Map({
-      container: 'ac-cities-map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-30, 28],
-      zoom: 1.2,
-      minZoom: 1,
-      projection: 'mercator',
-    });
+    try {
+      this.#map = new mapboxgl.Map({
+        container: 'ac-cities-map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-30, 28],
+        zoom: 1.2,
+        minZoom: 1,
+        projection: 'mercator',
+      });
+    } catch (err) {
+      // Mapbox throws when the browser has no WebGL; left to init's catch, that would blank every section after this.
+      console.warn('Across Cities map failed to start:', err);
+      this.#setText('ac-map-status', 'Map unavailable.');
+      host.style.display = 'none';
+      return;
+    }
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
 
@@ -645,16 +654,16 @@ export class AcrossCitiesPage {
     }
     el.innerHTML = items.map((it) => {
       const name = util.escapeHTML(it.city.city_name || it.city.city_id);
-      const rawHref = it.href || it.city.url;
-      const href = rawHref ? util.escapeHTML(rawHref) : '#';
+      const href = it.href || it.city.url;
+      // Without a URL there is nowhere to go, so the item is plain text rather than a link to the top of this page.
+      const tag = href ? 'a' : 'div';
       return [
-        `<a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
-        ` href="${href}"`,
-        rawHref ? ' target="_blank" rel="noopener">' : '>',
+        `<${tag} class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
+        href ? ` href="${util.escapeHTML(href)}" target="_blank" rel="noopener">` : '>',
         '<span class="ov-attention-dot" aria-hidden="true"></span>',
         `<span class="ov-attention-text"><strong>${name}</strong> — ${util.escapeHTML(it.reason)}</span>`,
         `<span class="ov-attention-go">${util.escapeHTML(it.label)} →</span>`,
-        '</a>',
+        `</${tag}>`,
       ].join('');
     }).join('');
   }
@@ -756,7 +765,7 @@ export class AcrossCitiesPage {
 
   /** Draws the three over-time line charts for the currently selected range. */
   #drawTrends() {
-    const series = this.#trendSeries[this.#trendRange] || [];
+    const series = this.#trendSeries[this.#trendRange];
     // Multi-year x-axes carry the year; within 12 weeks "Jun 9" is unambiguous.
     const fmt = this.#trendRange === 'all' ? AcrossCitiesPage.#shortDateYear : AcrossCitiesPage.#shortDate;
     const cats = series.map((w) => fmt(w.week_start));
@@ -876,7 +885,6 @@ export class AcrossCitiesPage {
    */
   #wireSorting(tableId, render) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort');
@@ -957,13 +965,15 @@ export class AcrossCitiesPage {
       if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
       if (key.includes('.')) {
         const [outer, inner] = key.split('.');
-        return (c[outer] && c[outer][inner]) ?? 0;
+        return c[outer][inner] ?? 0;
       }
       return c[key] ?? 0;
     };
     return (list || this.#cities).slice().sort((a, b) => {
       const va = val(a);
       const vb = val(b);
+      // Code-point order would put "Évora" after "zurich".
+      if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * dir;
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;
@@ -978,7 +988,6 @@ export class AcrossCitiesPage {
    */
   #markSortedHeader(tableId) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       const key = th.getAttribute('data-sort');
       th.classList.toggle('ac-sorted', key === state.key);
@@ -1405,7 +1414,7 @@ export class AcrossCitiesPage {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#funnelWindow === btn.dataset.window) return;
         this.#funnelWindow = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+        this.#markFunnelWindow(this.#funnelWindow);
         this.#loadFunnels();
       }));
     }
@@ -1420,15 +1429,30 @@ export class AcrossCitiesPage {
     }
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
+  /** @param {string} timeWindow - The `data-window` of the button to mark active. */
+  #markFunnelWindow(timeWindow) {
+    document.querySelectorAll('#ac-funnel-window .ac-toggle-btn')
+      .forEach((b) => b.classList.toggle('is-active', b.dataset.window === timeWindow));
+  }
+
+  /**
+   * Fetches and renders the funnels for the current window. A stale response is dropped and a failure puts the
+   * highlight back on the shown window, so a button never labels another window's numbers.
+   */
   async #loadFunnels() {
+    const timeWindow = this.#funnelWindow;
     this.#setText('ac-funnel-status', 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+      if (timeWindow !== this.#funnelWindow) return;
       this.#funnels = (data && data.funnels) || {};
+      this.#shownFunnelWindow = timeWindow;
       this.#renderFunnels();
     } catch (err) {
+      if (timeWindow !== this.#funnelWindow) return;
       console.error('Funnel load failed:', err);
+      this.#funnelWindow = this.#shownFunnelWindow;
+      this.#markFunnelWindow(this.#shownFunnelWindow);
       this.#setText('ac-funnel-status', 'Could not load funnel data.');
     }
   }
@@ -1437,7 +1461,7 @@ export class AcrossCitiesPage {
   #renderFunnels() {
     const host = document.getElementById('ac-funnels');
     if (!host) return;
-    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim] || AcrossCitiesPage.#FUNNEL_DIMS.all;
+    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim];
     const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
     const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
@@ -1454,7 +1478,7 @@ export class AcrossCitiesPage {
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
-    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType];
     const steps = funnel.steps || [];
     const cities = funnel.cities || [];
     return `
@@ -1539,7 +1563,7 @@ export class AcrossCitiesPage {
     const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item">`
-      + `<span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>`
+      + `<span class="ac-funnel-swatch" style="background:${palette[i]}"></span>`
       + `${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
     const stepRows = steps.map((k, i) => {
@@ -1556,7 +1580,7 @@ export class AcrossCitiesPage {
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `<div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
-          + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
+          + `style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
       }).join('');
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
@@ -1719,7 +1743,7 @@ export class AcrossCitiesPage {
    * costs one card, and the three can't drift apart in content.
    *
    * @param {Record<string, any>} d - A `over_time_daily` entry.
-   * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
+   * @param {string} emphasisKey - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
    *   'contributors'), whose line the card leans on.
    * @returns {string} The card's markup.
    */
@@ -1729,7 +1753,7 @@ export class AcrossCitiesPage {
       card = this.#buildDayTip(d);
       this.#dayTipCards.set(d.day, card);
     }
-    return emphasisKey ? card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`) : card;
+    return card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`);
   }
 
   /**
@@ -1794,7 +1818,7 @@ export class AcrossCitiesPage {
    */
   #cityTipHtml(city, metric) {
     this.#tipLinkCount = 0; // Counted per card, so the pin hint only goes on a card that has links to pin for.
-    const w = city.activity_window || {};
+    const w = city.activity_window;
     const { current, prior, ai } = this.#metricCounts(w, metric);
     const heading = { labels: 'labels', validations: 'validations', contributors: 'contributors' }[metric]
       ?? 'labels + validations';
@@ -1891,7 +1915,8 @@ export class AcrossCitiesPage {
   /** Compact number ("1.2M", "317k", "842"). */
   #compact(n) {
     const v = n ?? 0;
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    // From 999,500 up, the "k" form would round to "1000k".
+    if (v >= 999_500) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
     if (v >= 1e4) return `${Math.round(v / 1e3)}k`;
     return v.toLocaleString();
   }
@@ -1913,8 +1938,9 @@ export class AcrossCitiesPage {
   /** Human duration from seconds ("8s", "2.4 min", "1.3 h"). */
   #duration(seconds) {
     const s = seconds || 0;
-    if (s < 60) return `${Math.round(s)}s`;
-    if (s < 3600) return `${(s / 60).toFixed(1)} min`;
+    // Each cutoff sits where the smaller unit would round up to the next one ("60s", "60.0 min").
+    if (s < 59.5) return `${Math.round(s)}s`;
+    if (s < 3597) return `${(s / 60).toFixed(1)} min`;
     return `${(s / 3600).toFixed(1)} h`;
   }
 

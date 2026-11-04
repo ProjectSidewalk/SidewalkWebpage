@@ -29,8 +29,7 @@ export const ApiDocsMap = (function () {
    * @param {string} options.mapboxApiKey - Mapbox access token.
    * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
    * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
-   * @param {number} [options.fitPadding] - Pixels of padding left around `bounds`. Defaults to a share of the map's
-   *                                        width, capped at 75.
+   * @param {number} [options.fitPadding] - Padding around `bounds`, in px. Defaults to 12% of the map's width, max 75.
    * @param {mapboxgl.LngLatLike} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
    * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
    * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
@@ -111,9 +110,8 @@ export const ApiDocsMap = (function () {
    * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {mapboxgl.LngLatLike} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
-   * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, e.g.
-   *   `closeButton: false` for a hover preview; `modifier` is a class added beside `map-popup`, for a popup styled
-   *   apart from the rest.
+   * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, plus
+   *   `modifier`, a class added beside `map-popup` for a popup styled differently.
    * @returns {mapboxgl.Popup} The opened popup.
    */
   function popup(map, lngLat, html, { modifier, ...options } = {}) {
@@ -321,22 +319,24 @@ export const ApiDocsMap = (function () {
    * @param {Array<string>} typeNames - Label type names present in the data.
    * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
    *     to its info, from /v3/api/labelTypes.
-   * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
    */
-  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
+  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo) {
+    // The map draws a type the API doesn't list in gray, so the legend lists it too.
+    const fallback = { color: ApiDocsTheme.color('--color-neutral-500'), display: '' };
     const rows = typeNames
-      .filter((name) => labelTypeInfo[name])
-      .map((name) => `
-        <div class="map-legend-item">
-          <span class="map-legend-swatch"
-                style="background-color: ${util.escapeHTML(labelTypeInfo[name].color)};"></span>
-          ${util.escapeHTML(labelTypeInfo[name].display || name)}
-        </div>
-      `)
+      .map((name) => {
+        const info = labelTypeInfo[name] ?? fallback;
+        return `
+          <div class="map-legend-item">
+            <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(info.color)};"></span>
+            ${util.escapeHTML(info.display || name)}
+          </div>
+        `;
+      })
       .join('');
     element.innerHTML = `
       <h4>${util.escapeHTML(heading)}</h4>
-      ${rows || `<div>${util.escapeHTML(emptyMessage)}</div>`}
+      ${rows}
     `;
   }
 

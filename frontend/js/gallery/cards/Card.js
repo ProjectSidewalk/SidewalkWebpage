@@ -37,6 +37,7 @@ export class Card {
   #gsvImageUrl;
   #tracker;
   #cardFilter;
+  /** @type {?string} */ #voteSource;
   #regionNames;
 
   #markerWrapper;
@@ -100,8 +101,12 @@ export class Card {
    * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
+   * @param {object} [options]
+   * @param {?string} [options.voteSource] - The source its votes are recorded under on a page other than the Gallery,
+   *     since analyses key on it; the Gallery's own two sources otherwise.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, options = {}) {
+    this.#voteSource = options.voteSource ?? null;
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -256,6 +261,11 @@ export class Card {
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
+  }
+
+  /** @returns {?string} The source to record this card's votes under, when its page has its own. */
+  getVoteSource() {
+    return this.#voteSource;
   }
 
   /**
@@ -542,6 +552,21 @@ export class Card {
     // TagDisplay leaves an empty list untouched; clear the old tags here.
     this.#card.querySelector('.card-tags').innerHTML = `<div class="label-tags-header"></div>`;
     this.#renderTags();
+  }
+
+  /**
+   * Replaces the votes outright, since a type change counts only the new type's (#5853).
+   * @param {{num_agree: number, num_disagree: number, num_unsure: number, user_validation: ?string,
+   *     ai_validation: ?string}} votes - The label's votes as `/label/id/:id` serves them.
+   */
+  setVotes(votes) {
+    const properties = this.#properties;
+    properties.val_counts = { Agree: votes.num_agree, Disagree: votes.num_disagree, Unsure: votes.num_unsure };
+    properties.user_validation = votes.user_validation ?? null;
+    properties.ai_validation = votes.ai_validation ?? null;
+    this.validationInfoDisplay.setAiValidation(properties.ai_validation);
+    this.validationInfoDisplay.updateValCounts(votes.num_agree, votes.num_disagree, properties.user_validation);
+    this.validationMenu.showValidationOnCard(properties.user_validation);
   }
 
   /**

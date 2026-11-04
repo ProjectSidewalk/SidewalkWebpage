@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.9 +
-Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
+Play 3.0 (Java 21) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
 per page (no framework, no transpile), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
@@ -80,6 +80,8 @@ file, and this table says which doc to read first:
 
 - **ES2022.** As you touch code, modernize it: constructor functions → `class` with `#private` fields (defer a
   refactor that would ripple through many callers). Build HTML with template literals, never `+` concatenation.
+- **Don't engineer for the deploy's edge** (a tab on the old client, a row from before a new column). Note it in
+  the PR and move on; fix it only if it leaves a wrong durable record or breaks the page for everyone.
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".

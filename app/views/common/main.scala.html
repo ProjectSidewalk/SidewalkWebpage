@@ -168,10 +168,10 @@
           </div>
           <div class="footer-link">
             <span class="footer-header">@Messages("footer.connect")</span><br>
-            <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
-            <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
-            <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link">@common.socialIcon("bluesky")&nbsp;Bluesky</a><br>
-            <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link">@common.socialIcon("email")&nbsp;@Messages("footer.email")</a><br>
+            <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link" target="_blank" rel="noopener">@common.socialIcon("github")&nbsp;Github</a> <br>
+            <a href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link" target="_blank" rel="noopener">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
+            <a href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link" target="_blank" rel="noopener">@common.socialIcon("bluesky")&nbsp;Bluesky</a><br>
+            <a href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link">@common.socialIcon("email")&nbsp;@Messages("footer.email")</a><br>
           </div>
         </div>
       </div>
@@ -179,19 +179,20 @@
         <p><span id="funding-title">@Messages("footer.funding")</span></p>
         <div class="footer-logos-row">
           <div class="footer-logo-nsf">
-            <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
+            <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link" target="_blank"
+               rel="noopener">
               <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
             </a>
             <div id="award-num">@Html(Messages("footer.award"))</div>
           </div>
-          <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
-          <a href="https://sloan.org/fellowships/" id="sloan-link">
+          <a href="http://www.google.com/" id="google-link" target="_blank" rel="noopener"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
+          <a href="https://sloan.org/fellowships/" id="sloan-link" target="_blank" rel="noopener">
             <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
           </a>
-          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link" target="_blank" rel="noopener">
             <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
           </a>
-          <a href="https://create.uw.edu/" id="create-link">
+          <a href="https://create.uw.edu/" id="create-link" target="_blank" rel="noopener">
             <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
           </a>
         </div>

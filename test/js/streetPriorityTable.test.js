@@ -321,3 +321,35 @@ describe('StreetPriorityTable highlighting', () => {
     expect(() => table.clearHighlight()).not.toThrow();
   });
 });
+
+describe('StreetPriorityTable edge cases (#5840)', () => {
+  test('with no sort key given, sorts by the first column', () => {
+    build({ sortKey: undefined, sortDir: 1 });
+    expect(renderedNames()).toEqual(['Ballard', 'Capitol Hill', 'Downtown']);
+  });
+
+  test('a page without the table element renders nothing rather than throwing', () => {
+    document.body.innerHTML = '';
+    expect(() => new StreetPriorityTable('work', { rowKey: 'region_id', columns: COLUMNS }).render(REGIONS))
+      .not.toThrow();
+  });
+
+  test('search skips a row whose searched field is missing instead of matching "undefined"', () => {
+    build({ rows: [...REGIONS, { region_id: 4, reaudit: 0, mean_priority: 0 }] });
+    const search = document.getElementById('work-search');
+    search.value = 'undefined';
+    search.dispatchEvent(new Event('input'));
+    expect(document.querySelectorAll('#work tbody tr[data-row-id]')).toHaveLength(0);
+  });
+
+  test('runs without any callbacks', () => {
+    build();
+    const row = document.querySelector('#work tbody tr');
+    const tbody = document.querySelector('#work tbody');
+    tbody.dispatchEvent(new Event('pointerleave'));
+    row.cells[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
+    tbody.dispatchEvent(new Event('pointerleave'));
+    row.click();
+    expect(renderedNames()).toHaveLength(3);
+  });
+});

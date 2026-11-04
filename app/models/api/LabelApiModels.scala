@@ -171,6 +171,33 @@ case class LabelValidationSummaryForApi(userId: String, validationType: String, 
 }
 
 /**
+ * One comment in a Raw Labels entry's `comments` array. A separate list from `validations` because a validator can
+ * comment without voting; each validator has at most one comment per label (a re-comment replaces it).
+ *
+ * @param userId The anonymized identifier of the user who left the comment
+ * @param comment The comment text
+ * @param reason The canned reason's id (`ValidationReason`) when the comment is one, `None` for free text
+ * @param validation The commenter's current vote on the label ("Agree", "Disagree", or "Unsure"), `None` without one
+ * @param timeCreated When the comment was left, in UTC
+ */
+case class LabelCommentForApi(
+    userId: String,
+    comment: String,
+    reason: Option[String],
+    validation: Option[String],
+    timeCreated: OffsetDateTime
+) {
+
+  def toJson: JsObject = Json.obj(
+    "user_id"      -> userId,
+    "comment"      -> comment,
+    "reason"       -> reason,
+    "validation"   -> validation,
+    "time_created" -> timeCreated
+  )
+}
+
+/**
  * Primary data structure representing a sidewalk accessibility label.
  * Implements StreamingApiType to support streaming output formats like GeoJSON and CSV.
  * Contains all relevant metadata about the label, its location, and validation status.
@@ -203,6 +230,7 @@ case class LabelValidationSummaryForApi(userId: String, validationType: String, 
  * @param disagreeCount Number of users who disagreed with this label
  * @param unsureCount Number of users who were unsure about this label
  * @param validations List of individual validations for this label
+ * @param comments Validator comments on this label, oldest first
  * @param auditTaskId Optional audit task identifier
  * @param missionId Optional mission identifier
  * @param imageCaptureDate Optional date when the image was captured
@@ -245,6 +273,7 @@ case class LabelDataForApi(
     disagreeCount: Int,
     unsureCount: Int,
     validations: Seq[LabelValidationSummaryForApi],
+    comments: Seq[LabelCommentForApi],
     auditTaskId: Option[Int],
     missionId: Option[Int],
     imageCaptureDate: Option[String],
@@ -318,6 +347,8 @@ case class LabelDataForApi(
 
   // Used by every output format, so they all print the same array.
   def validationsJson: JsArray = JsArray(validations.map(_.toJson))
+
+  def commentsJson: JsArray = JsArray(comments.map(_.toJson))
 }
 
 object LabelDataForApi extends ApiFields[LabelDataForApi] {
@@ -345,6 +376,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("disagree_count")(_.disagreeCount),
     field("unsure_count")(_.unsureCount),
     field("validations")(_.validationsJson),
+    field("comments")(_.commentsJson),
     field("audit_task_id")(_.auditTaskId),
     field("mission_id")(_.missionId),
     field("image_capture_date")(_.imageCaptureDate),

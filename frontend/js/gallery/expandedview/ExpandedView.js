@@ -94,8 +94,8 @@ export class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
-    // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
+    // or Enter or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
     if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
     if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
 
@@ -187,24 +187,27 @@ export class ExpandedView {
   }
 
   /**
-   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card. Looked up
+   * by id, like #handleDelete, since a quick A then S pages on before the vote lands (#5883).
+   * @param {?('Agree'|'Disagree'|'Unsure')} action - The vote now on record, or null when it was cleared.
+   * @param {{label_id: number}} meta - The metadata of the label voted on.
    */
-  #handleVote = (action) => {
-    if (this.refCard) {
-      this.refCard.updateUserValidation(action);
-    }
+  #handleVote = (action, meta) => {
+    this.#cardContainer.findCardByLabelId(meta.label_id)?.updateUserValidation(action);
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card.
-   * @param {{label_type: string, severity: ?number, tags: string[]}} meta - The label's metadata as it now stands.
+   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card, including the votes, which a
+   * type change swaps for the new type's (#5853). Looked up by id, like #handleDelete.
+   * @param {Record<string, any>} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
-    if (this.refCard) {
-      this.refCard.updateLabelType(meta.label_type);
-      this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
-    }
+    const card = this.#cardContainer.findCardByLabelId(meta.label_id);
+    if (!card) return;
+    const typeChanged = card.getLabelType() !== meta.label_type;
+    card.updateLabelType(meta.label_type);
+    card.updateSeverityAndTags(meta.severity, meta.tags);
+    if (typeChanged) card.setVotes(meta);
   };
 
   /**
@@ -254,6 +257,7 @@ export class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
+    this.labelDetail?.saveOpenEdits();
     // Hiding by visibility leaves the pop-up's host connected, so it wouldn't notice; one holding an "Other…" draft
     // even outlasts the click on ✕.
     closeReasonPopover();

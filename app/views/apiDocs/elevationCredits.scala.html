@@ -15,7 +15,9 @@
       @for(source <- DemSource.registered) {
         <tr>
           <td><code>@source.name</code></td>
-          <td>@source.url.map { url => <a href="@url">@source.title</a> }.getOrElse { @source.title }</td>
+          <td>@source.url.map { url =>
+            <a href="@url" target="_blank" rel="noopener">@source.title</a>
+          }.getOrElse { @source.title }</td>
           <td>@source.credit</td>
           <td>@source.licence</td>
           <td>@source.citation.getOrElse("—")</td>

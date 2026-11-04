@@ -1,0 +1,39 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], token: String, state: String
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* The page behind the newsletter's unsubscribe link (#5864). Works signed out: the token identifies the account.
+*
+* @param state "confirm" (the button), "done", or "invalid" (a token that didn't check out).
+*@
+
+@settingsUrl = @{routes.UserDashboardController.settings.url + "#email"}
+
+@common.main(commonData, Messages("seo.title.unsubscribe")) {
+  @common.navbar(commonData, user)
+  <div class="au-page">
+    <div class="au-card">
+      <div class="au-body">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title">@Messages(s"unsubscribe.$state.title")</h1>
+          </div>
+        </div>
+        <p class="au-copy">@Html(Messages(s"unsubscribe.$state.intro", settingsUrl))</p>
+        @if(state == "confirm") {
+          @* No CSRF field: the route is nocsrf so mail clients can POST to it, and the signed token is the guard. *@
+          <form class="au-form" method="post" action="@routes.NewsEmailController.unsubscribe(Some(token))">
+            <button type="submit" class="button button--primary button--large au-submit">
+              @Messages("unsubscribe.confirm.submit")
+            </button>
+          </form>
+        }
+      </div>
+    </div>
+  </div>
+}

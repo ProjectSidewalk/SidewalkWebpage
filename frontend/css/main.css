@@ -1242,22 +1242,6 @@ textarea.ps-input {
   height: calc(16px * var(--ui-scale, 1));
 }
 
-/* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
-.pano-info-popover__copied:not([hidden]) {
-  display: block;
-  position: absolute;
-  top: calc(44px * var(--ui-scale, 1));   /* below the header (12px padding-top + ~30px header + 2px gap) */
-  right: calc(8px * var(--ui-scale, 1));
-  background: rgb(40 40 40 / 85%);
-  color: var(--color-neutral-white);
-  font-size: calc(11px * var(--ui-scale, 1));
-  padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
-  border-radius: calc(4px * var(--ui-scale, 1));
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 1;
-}
-
 /* Spec-sheet body: muted labels left, semibold values right. */
 .pano-info-popover__body {
   display: flex;

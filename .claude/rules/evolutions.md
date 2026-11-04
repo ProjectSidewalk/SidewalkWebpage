@@ -24,4 +24,7 @@ Read `docs/evolutions.md` before writing or editing one. The rules that have cau
   hundreds of millions of rows; the evolution adds the nullable column, the every-city runner fills it after deploy.
 - Cached distance columns must match their runtime recompute; changing a distance query recomputes its caches in the
   same evolution.
+- **Downs must work, and CI runs them** (`EvolutionsRoundTripSpec`): Downs then Ups and Ups then Downs leave schema
+  and data unchanged, in two cities. A deliberately partial Down says `-- partial-downs: <why>`. **Never edit a
+  released evolution**, even a comment: every city would re-run it and everything after it.
 - `make lint-evolutions` before pushing. No `;` inside a `--` comment. 2-space indent, no table aliases.

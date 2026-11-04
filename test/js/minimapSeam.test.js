@@ -46,6 +46,7 @@ class FakeMap {
   constructor(options) {
     this.options = options;
     this.layers = [];
+    this.images = [];
     this.calls = [];
     this.zoom = options.zoom;
     this.source = { setData: vi.fn() };
@@ -84,12 +85,18 @@ class FakeMap {
     [...(this.handlers[name] ?? []), ...once].forEach((handler) => handler(event));
   }
 
-  addImage() {}
+  addImage(...args) {
+    this.images.push(args);
+  }
 
   addSource() {}
 
   getSource() {
     return this.source;
+  }
+
+  getBounds() {
+    return { getNorth: () => 47.61, getSouth: () => 47.59, getEast: () => -122.32, getWest: () => -122.34 };
   }
 
   addLayer(layer, beforeId) {
@@ -157,8 +164,11 @@ class FakeMap {
 
 /** Stands in for maplibregl.Marker. */
 class FakeMarker {
+  static instances = [];
+
   constructor(options) {
     this.options = options;
+    FakeMarker.instances.push(this);
   }
 
   setLngLat(lngLat) {
@@ -236,6 +246,9 @@ function buildDom() {
 
 /** The tracker every Minimap built by createMinimap logs through. */
 let tracker;
+/** The pano manager the last Minimap built by createMinimap follows, and the elements it was given. */
+let panoManager;
+let ui;
 let Minimap;
 let MinimapBasemapStyle;
 
@@ -243,10 +256,11 @@ const ARCHIVE_URL = '/basemap/basemap-20261015-1760572800.pmtiles';
 const GLYPHS_URL = '/basemap/glyphs/{fontstack}/{range}.pbf';
 
 /** Builds a Minimap over the page's holder, centered on the pano, reading the given archive. */
-const createMinimap = (tilesUrl = ARCHIVE_URL) => Minimap.create(
-  { holder: document.getElementById('minimap-holder') }, PANO, fakePanoManager({ getPosition: () => PANO }), tracker,
-  { tilesUrl, glyphsUrl: GLYPHS_URL },
-);
+const createMinimap = (tilesUrl = ARCHIVE_URL, viewer = { getPosition: () => PANO }) => {
+  panoManager = fakePanoManager(viewer);
+  ui = { holder: document.getElementById('minimap-holder'), overlay: document.createElement('div') };
+  return Minimap.create(ui, PANO, panoManager, tracker, { tilesUrl, glyphsUrl: GLYPHS_URL });
+};
 
 /** The stand-ins for MapLibre and pmtiles, as the sources import them; refilled by setUpGlobals. */
 let maplibregl;
@@ -256,6 +270,7 @@ let pmtiles;
 async function setUpGlobals(frames) {
   FakeMap.instances = [];
   FakeMap.holdStyle = false;
+  FakeMarker.instances = [];
   buildDom();
   window.requestAnimationFrame = (callback) => frames.push(callback);
   maplibregl = {
@@ -301,6 +316,44 @@ describe('Minimap seam', () => {
     // Reaching this line is the assertion: FakeMap never fires 'load' or 'idle'.
     expect(map.options.center).toEqual([PANO.lng, PANO.lat]);
     expect(minimap.isAvailable()).toBe(true);
+  });
+
+  test('a new pano recenters the map on it', () => {
+    const next = { lat: 47.61, lng: -122.34 };
+    panoManager.getPosition = () => next;
+    panoManager.onPanoChanged.mock.calls[0][0]();
+    expect(map.callsTo('jumpTo').at(-1)[1]).toEqual({ center: [next.lng, next.lat], zoom: 17 });
+  });
+
+  test('the overlays hear every map move, and read the map\'s zoom and extent through the seam', () => {
+    const moved = vi.fn();
+    minimap.onMove(moved);
+    map.fire('move');
+    map.fire('move');
+    expect(moved).toHaveBeenCalledTimes(2);
+    expect(minimap.getZoom()).toBe(17);
+    expect(minimap.getBounds()).toEqual({ north: 47.61, south: 47.59, east: -122.32, west: -122.34 });
+  });
+
+  test('without a device pixel ratio the chevron is drawn at 1x', async () => {
+    vi.stubGlobal('devicePixelRatio', 0);
+    await createMinimap();
+    expect(FakeMap.instances.at(-1).images[0][2]).toEqual({ pixelRatio: 1 });
+  });
+
+  test('the tutorial\'s blink flashes the minimap every half second until stopped', () => {
+    vi.useFakeTimers();
+    const overlay = () => ui.overlay;
+    minimap.blinkMinimap();
+    vi.advanceTimersByTime(500);
+    expect(overlay().classList.contains('highlight-50')).toBe(true);
+    vi.advanceTimersByTime(500);
+    expect(overlay().classList.contains('highlight-50')).toBe(false);
+    vi.advanceTimersByTime(500);
+    minimap.stopBlinkingMinimap();
+    expect(overlay().classList.contains('highlight-50')).toBe(false);
+    vi.advanceTimersByTime(1000);
+    expect(overlay().classList.contains('highlight-50')).toBe(false);
   });
 
   describe('map errors', () => {
@@ -376,6 +429,28 @@ describe('Minimap seam', () => {
       expect(recenter().hidden).toBe(true);
     });
 
+    test('focus on the recenter button moves to zoom in as the button goes, rather than dropping to the page', () => {
+      map.panoPoint = { x: 150, y: 60 };
+      map.fire('move');
+      recenter().focus();
+      expect(document.activeElement).toBe(recenter());
+
+      map.panoPoint = { x: 100, y: 100 };
+      map.fire('move');
+      expect(recenter().hidden).toBe(true);
+      expect(document.activeElement).toBe(document.getElementById('minimap-zoom-in'));
+    });
+
+    test('a move before the viewer exists, or on a page without the button, leaves the button alone', async () => {
+      await createMinimap(ARCHIVE_URL, null);
+      map.panoPoint = { x: 150, y: 60 };
+      expect(() => FakeMap.instances.at(-1).fire('move')).not.toThrow();
+      expect(recenter().hidden).toBe(true);
+
+      recenter().remove();
+      expect(() => map.fire('move')).not.toThrow();
+    });
+
     test('the recenter button stays hidden in the overview, whose own button leads back', () => {
       minimap.setOverviewStreets(
         () => [{ getGeoJSON: () => ({ geometry: { coordinates: [[-122.3, 47.6], [-122.31, 47.61]] } }) }],
@@ -447,9 +522,9 @@ describe('Minimap seam', () => {
   test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {
     expect(map.layers.length).toBeGreaterThan(0);
     map.layers.forEach((layer) => expect(layer.beforeId).toBeUndefined());
-    // Bottom to top: context streets, then the route's casing, its lines, and the chevrons over everything.
+    // Bottom to top: context streets, a planned jump's connector, the route's casing and lines, then the chevrons.
     expect(map.layers.map((layer) => layer.id)).toEqual([
-      'street-other', 'street-completed', 'street-casing', 'street-audited', 'street-remaining',
+      'street-other', 'street-completed', 'street-jump', 'street-casing', 'street-audited', 'street-remaining',
       'street-remaining-chevrons',
     ]);
   });
@@ -471,6 +546,18 @@ describe('Minimap seam', () => {
 
       for (let i = 0; i < 5; i++) click('minimap-zoom-out');
       expect(easedZooms()).toEqual([18, 19, 18, 17, 16, 15]);
+    });
+
+    test('a wheel notch over the minimap zooms a level, and never scrolls the page', () => {
+      const holder = document.getElementById('minimap-holder');
+      const notch = (deltaY) => {
+        const event = new WheelEvent('wheel', { deltaY, cancelable: true });
+        holder.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+      expect(notch(-100)).toBe(true);
+      expect(notch(100)).toBe(true);
+      expect(easedZooms()).toEqual([18, 17]);
     });
 
     test('a step taken mid-animation counts from the level being animated to, not the fraction on screen', () => {
@@ -580,6 +667,35 @@ describe('Minimap seam', () => {
       expect(map.calls).toEqual([]);
       expect(document.getElementById('minimap-holder').classList.contains('minimap-overview')).toBe(false);
     });
+
+    test('before the overview\'s streets are named there is nothing to fit either', async () => {
+      const fresh = await createMinimap();
+      fresh.enterOverview();
+      expect(FakeMap.instances.at(-1).calls).toEqual([]);
+    });
+
+    test('a route the map cannot frame still counts as the overview, without a jump to nowhere', () => {
+      map.cameraForBounds = () => null;
+      click('minimap-zoom-fit');
+      expect(map.callsTo('jumpTo')).toEqual([]);
+      expect(tracked('Click_MinimapFitRoute')).toEqual([
+        ['Click_MinimapFitRoute', { mode: 'overview', trigger: 'fit-button' }],
+      ]);
+    });
+
+    test('leaving an overview that was never entered does nothing', () => {
+      minimap.exitOverview('zoom');
+      expect(map.calls).toEqual([]);
+      expect(tracked('MinimapOverview_End')).toEqual([]);
+    });
+
+    test('a page without the fit button still enters and leaves the overview', () => {
+      document.getElementById('minimap-zoom-fit').remove();
+      minimap.enterOverview();
+      expect(document.getElementById('minimap-holder').classList.contains('minimap-overview')).toBe(true);
+      minimap.exitOverview('zoom');
+      expect(document.getElementById('minimap-holder').classList.contains('minimap-overview')).toBe(false);
+    });
   });
 
   describe('credits', () => {
@@ -597,6 +713,45 @@ describe('Minimap seam', () => {
     test('are mounted beside the map in their compact form', () => {
       expect(document.getElementById('minimap-attribution').parentElement.id).toBe('minimap-holder');
       expect(credits()).not.toBeNull();
+    });
+
+    test('a control without the expected parts is mounted as is, with nothing wired to it', async () => {
+      maplibregl.AttributionControl = class {
+        onAdd() {
+          return document.createElement('div');
+        }
+      };
+      buildDom();
+      const bare = await createMinimap();
+      expect(bare.isAvailable()).toBe(true);
+      expect(document.getElementById('minimap-attribution').children).toHaveLength(1);
+      expect(credits()).toBeNull();
+    });
+
+    test('becoming compact is not an open: the credits are closed only once they show', async () => {
+      credits().classList.add('maplibregl-compact');
+      await observed();
+      expect(credits().classList.contains('maplibregl-compact')).toBe(true);
+
+      autoOpen();
+      await observed();
+      expect(isShown()).toBe(false);
+    });
+
+    test('Esc with focus inside the credits puts it back on their button; other keys do nothing', async () => {
+      autoOpen();
+      await observed();
+      creditsButton().click();
+      await observed();
+      // jsdom can't focus a <summary>; a browser can.
+      creditsButton().setAttribute('tabindex', '0');
+      creditsButton().focus();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+      expect(isShown()).toBe(true);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(isShown()).toBe(false);
+      expect(document.activeElement).toBe(creditsButton());
     });
 
     test('MapLibre\'s first automatic open is undone, in both the class and the announced state', async () => {
@@ -733,12 +888,50 @@ describe('Minimap seam', () => {
       expect(marker.content).toBe(content);
     });
 
-    test('setVisible hides a marker without removing it', () => {
+    test('setVisible hides a marker without removing it; remove takes it off the map for good', () => {
       const marker = minimap.addMarker(PANO, document.createElement('div'));
       marker.setVisible(false);
       expect(marker.element.hidden).toBe(true);
       marker.setVisible(true);
       expect(marker.element.hidden).toBe(false);
+      marker.remove();
+      expect(FakeMarker.instances.at(-1).removed).toBe(true);
+    });
+
+    test('a button with no title has an empty name rather than none', () => {
+      const { element } = minimap.addMarker(PANO, document.createElement('div'), { onClick: vi.fn() });
+      expect(element.getAttribute('aria-label')).toBe('');
+      expect(element.hasAttribute('data-ps-tooltip')).toBe(false);
+    });
+
+    test('renaming a marker renames its tooltip and accessible name', () => {
+      const marker = minimap.addMarker(PANO, document.createElement('img'), { title: 'Route start' });
+      marker.setTitle('Mission start');
+      expect(marker.element.getAttribute('aria-label')).toBe('Mission start');
+      expect(marker.element.getAttribute('data-ps-tooltip')).toBe('Mission start');
+      marker.setTitle(null);
+      expect(marker.element.getAttribute('role')).toBe('presentation');
+    });
+
+    test('a button demoted to an image stops answering clicks and Enter, and can be a button again', () => {
+      const onClick = vi.fn();
+      const marker = minimap.addMarker(PANO, document.createElement('div'), { onClick, title: 'Go' });
+      marker.setClickable(false);
+      expect(marker.element.getAttribute('role')).toBe('img');
+      marker.element.click();
+      marker.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+      expect(onClick).not.toHaveBeenCalled();
+
+      marker.setClickable(true);
+      expect(marker.element.getAttribute('role')).toBe('button');
+      marker.element.click();
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    test('a marker made without a handler has nothing to call, so it never becomes a button', () => {
+      const marker = minimap.addMarker(PANO, document.createElement('img'), { title: 'Route start' });
+      marker.setClickable(true);
+      expect(marker.element.getAttribute('role')).toBe('img');
     });
   });
 
@@ -829,6 +1022,7 @@ describe('Minimap without a map', () => {
         throw new Error('Failed to initialize WebGL');
       }
     };
+    message().remove(); // A page with no note to show still gets its minimap.
     const minimap = await createMinimap();
 
     const onClick = vi.fn();
@@ -862,6 +1056,24 @@ describe('Minimap without a map', () => {
     expect(map.callsTo('remove')).toHaveLength(1);
     expect(document.getElementById('minimap-attribution')).toBeNull();
     expect(unavailableEvents()).toEqual([['Minimap_Unavailable', { error: 'WebGL context lost' }]]);
+  });
+
+  test('a map that fails to come down as well is still let go of', async () => {
+    maplibregl.Map = class extends FakeMap {
+      addImage() {
+        throw new Error('WebGL context lost');
+      }
+
+      remove() {
+        throw new Error('already gone');
+      }
+    };
+
+    const minimap = await createMinimap();
+
+    expect(minimap.isAvailable()).toBe(false);
+    expect(console.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'already gone' }));
+    expect(unavailableEvents()).toHaveLength(1);
   });
 
   test('an error before the style is ready ends the wait and says the map can\'t draw', async () => {

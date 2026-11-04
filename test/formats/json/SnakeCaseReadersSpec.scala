@@ -111,7 +111,7 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       s"""{"street_edge_id":1,"task_start":$ts,"audit_task_id":2,"completed":true,"current_lat":1.5,
          |"current_lng":2.5,"start_point_reversed":false,"current_mission_start":{"lat":3.5,"lng":4.5},
-         |"last_priority_update_time":$ts,"request_updated_street_priority":true,"audited_distance_m":5.5,
+         |"last_priority_update_time":$ts,"request_updated_street_priority":true,
          |"route_street_id":3,"covered_ranges":[[0,12.5],[20,30]]}""".stripMargin,
       TaskSubmission(
         1,
@@ -124,7 +124,6 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         Some(GeometryFactory().createPoint(Coordinate(3.5, 4.5))),
         t,
         true,
-        Some(5.5),
         Some(3),
         Some(Seq(CoveredRange(0d, 12.5d), CoveredRange(20d, 30d)))
       )
@@ -206,12 +205,12 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     import UserFormats.{*, given}
     check(
       """{"username":" n ","on_leaderboard":true,"public_profile":false,"team_id":3,"community_service":true,
-        |"measurement_system":"metric"}""".stripMargin,
-      SettingsSubmission(Some("n"), true, false, Some(3), Some(true), Some("metric"))
+        |"measurement_system":"metric","news_email":false}""".stripMargin,
+      SettingsSubmission(Some("n"), true, false, Some(3), Some(true), Some("metric"), Some(false))
     )
     check(
       """{"on_leaderboard":false,"public_profile":true}""",
-      SettingsSubmission(None, false, true, None, None, None)
+      SettingsSubmission(None, false, true, None, None, None, None)
     )
   }
 

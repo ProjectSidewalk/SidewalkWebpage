@@ -9,9 +9,9 @@ import { loadModules, mockModule } from './loader.js';
 const i18next = { t: (key) => key };
 mockModule('i18next', () => ({ default: i18next }));
 
-// RouteListPage confirms a copy with a toast; the suite only checks that it asked for one.
-const toast = { show: vi.fn(), CONFIRMATION_MS: 0 };
-mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
+// RouteListPage hands its copy to the shared helper; the suite only checks what it asked to copy, and where.
+const copyToClipboard = vi.fn();
+mockModule('frontend/js/common/copyToClipboard.js', () => ({ copyToClipboard }));
 
 let CommunityListPage;
 let StoryListPage;
@@ -465,11 +465,7 @@ describe('StoryListPage', () => {
 
 describe('RouteListPage', () => {
   beforeEach(() => {
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText: vi.fn() },
-    });
-    toast.show = vi.fn();
+    copyToClipboard.mockClear();
     Object.assign(i18next, { t: (key) => key });
   });
 
@@ -485,13 +481,12 @@ describe('RouteListPage', () => {
             </li>`;
   }
 
-  test('copy prefers the /r/<slug> short link and confirms with a toast', () => {
+  test('copy prefers the /r/<slug> short link and confirms on the button', () => {
     setupDom(routeCardWithActions({ id: '5', slug: 'abc123' }));
     new RouteListPage().init();
     const btn = document.querySelector('.route-card__copy');
     btn.click();
-    expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/r/abc123');
-    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({ reference: btn }));
+    expect(copyToClipboard).toHaveBeenCalledWith(btn, 'http://localhost/r/abc123');
     expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=RouteListPage_Copy_RouteId=5');
   });
 
@@ -499,7 +494,7 @@ describe('RouteListPage', () => {
     setupDom(routeCardWithActions({ id: '6' }));
     new RouteListPage().init();
     document.querySelector('.route-card__copy').click();
-    expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/explore?routeId=6');
+    expect(copyToClipboard).toHaveBeenCalledWith(expect.anything(), 'http://localhost/explore?routeId=6');
   });
 
   test('explore and label-map clicks are logged with their route id', () => {

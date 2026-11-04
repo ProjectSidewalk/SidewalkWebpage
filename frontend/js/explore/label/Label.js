@@ -290,8 +290,6 @@ export class Label {
         this.setHoverInfoVisibility(value);
       } else if (key === 'deleted' && typeof value === 'boolean') {
         this.#status[key] = value;
-      } else if (key === 'severity') {
-        this.#status[key] = value;
       }
     }
   }

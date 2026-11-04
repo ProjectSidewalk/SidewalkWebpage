@@ -126,6 +126,8 @@ import './util/throttle.js';
  * The console and e2e handle start.js puts on `window.svv`: the few live objects a test or a developer inspects.
  * @typedef {object} ValidateHandle
  * @property {Record<string, any>} validateParams
+ * @property {ModalNoNewMission} modalNoNewMission - Its isShowing() says whether Validate hit a dead end, which the
+ *     mission modal's CSS can't: on the phone the same modal also briefs each mission.
  * @property {LabelContainer} [labelContainer]
  * @property {PanoManager} [panoManager]
  * @property {PanoImageAdjustmentsPopover} [imageAdjustmentsPopover] - Desktop only.
@@ -228,11 +230,12 @@ export class Main {
     const tracker = new Tracker();
     // The dead end still logs its visit, and the exit flush is the Form's; there is no mission for it to compile.
     new Form(this.#param.dataStoreUrl, this.#config, tracker);
-    new ModalNoNewMission(this.#ui.modalMission, new Gate(), tracker).show();
+    const modalNoNewMission = new ModalNoNewMission(this.#ui.modalMission, new Gate(), tracker);
+    modalNoNewMission.show();
     // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
     // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
     this.#revealTool();
-    return Promise.resolve({ validateParams: this.#config.validateParams });
+    return Promise.resolve({ validateParams: this.#config.validateParams, modalNoNewMission });
   }
 
   /** Takes down the loading overlay and shows the tool under it. */
@@ -595,6 +598,7 @@ export class Main {
 
     return {
       validateParams: config.validateParams,
+      modalNoNewMission,
       labelContainer,
       panoManager,
       ...(imageAdjustmentsPopover ? { imageAdjustmentsPopover } : {}),
