@@ -70,11 +70,42 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // The query that produces this census is itself a client backend, so the total is never zero.
       run(healthTable.getConnectionCounts).map(_.count).sum must be > 0
     }
+    "read the cluster's slot ceiling and count this probe among the client backends" in {
+      val settings = run(healthTable.getConnectionSlotSettings)
+      settings.maxConnections must be > 0
+      settings.superuserReservedConnections must be >= 0
+      settings.reservedConnections must be >= 0
+      // Cluster-wide, so it can never be below the per-database census, and the probe itself is one of them.
+      settings.clientBackends must be > 0
+      settings.clientBackends must be >= run(healthTable.getConnectionCounts).map(_.count).sum
+    }
     "read every schema's play_evolutions in one union query" in {
       val schemas = run(healthTable.getEvolutionSchemas).filter(_.matches("^[A-Za-z0-9_]+$"))
       assume(schemas.nonEmpty, "connected DB has no play_evolutions schemas to test against")
       // The single UNION-ALL query must execute across all discovered schemas at once (the fan-out safety property).
       run(healthTable.getStuckEvolutionsForSchemas(schemas)).size must be >= 0
+    }
+  }
+
+  "HealthService.connectionSlots" should {
+    "take reserved slots out of the ceiling the apps compete for" in {
+      // Prod's settings (#5238): 200 max with 3 for superusers leaves 197, and refusals start there, not at 200.
+      val slots = HealthService.connectionSlots(ConnSlotSettings(200, 3, 0, 152))
+      slots.reservedConnections mustBe 3
+      slots.usableConnections mustBe 197
+      slots.inUse mustBe 152
+      slots.usedRatio mustBe (152.0 / 197 +- 1e-9)
+    }
+    "count PG 16's reserved_connections as unusable too" in {
+      HealthService.connectionSlots(ConnSlotSettings(200, 3, 5, 0)).usableConnections mustBe 192
+    }
+    "report over 100% when superusers sit in their reserved slots on a full server" in {
+      HealthService.connectionSlots(ConnSlotSettings(200, 3, 0, 200)).usedRatio must be > 1.0
+    }
+    "read a server with no usable slots as full rather than empty" in {
+      val slots = HealthService.connectionSlots(ConnSlotSettings(3, 3, 0, 0))
+      slots.usableConnections mustBe 0
+      slots.usedRatio mustBe 1.0
     }
   }
 
@@ -90,6 +121,11 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       t.idleTxnBadSeconds must be >= t.idleTxnWarnSeconds
       t.lockWaitBadSeconds must be >= t.lockWaitWarnSeconds
       t.bloatBadRatio must be >= t.bloatWarnRatio
+      t.connSlotsBadRatio must be >= t.connSlotsWarnRatio
+
+      val slots = data.connectionSlots.getOrElse(fail("connection slots were not read"))
+      slots.usableConnections must be > 0
+      slots.inUse must be > 0
     }
 
     "survive a burst of concurrent polls without exhausting the connection pool" in {

@@ -74,6 +74,41 @@ case class TableBloat(
 /** Client-backend connection count for one (role, state) pair. */
 case class ConnCount(usename: Option[String], state: Option[String], count: Int)
 
+/**
+ * The cluster's connection-slot settings and current use, as read from Postgres (#5238). Turned into the dashboard's
+ * headroom figures by [[HealthService.connectionSlots]].
+ *
+ * @param maxConnections               `max_connections`.
+ * @param superuserReservedConnections `superuser_reserved_connections`: slots only a superuser can take.
+ * @param reservedConnections          `reserved_connections` (PG 16+): slots only `pg_use_reserved_connections` can take.
+ * @param clientBackends               Client backends connected to any database on the cluster.
+ */
+case class ConnSlotSettings(
+    maxConnections: Int,
+    superuserReservedConnections: Int,
+    reservedConnections: Int,
+    clientBackends: Int
+)
+
+/**
+ * Connection-slot headroom across the whole Postgres cluster, which every city's pool shares (#5238).
+ *
+ * @param maxConnections      `max_connections`.
+ * @param reservedConnections Slots an app role can never take (superuser-reserved plus PG 16's reserved slots).
+ * @param usableConnections   Slots the city apps compete for; once these are gone, new app connections are refused.
+ * @param inUse               Client backends holding a slot now. Can exceed `usableConnections` when superusers
+ *                            occupy their reserved slots.
+ * @param usedRatio           `inUse / usableConnections`; 1.0 when nothing is usable, so a misconfigured server reads as
+ *                            full rather than as healthy.
+ */
+case class ConnectionSlots(
+    maxConnections: Int,
+    reservedConnections: Int,
+    usableConnections: Int,
+    inUse: Int,
+    usedRatio: Double
+)
+
 /** Backup-coverage counts for the current city's labeled panos. */
 case class PanoBackupStats(
     labeledPanos: Long,
@@ -104,6 +139,8 @@ case class HealthThresholds(
     connPoolMax: Int,
     connWarnActive: Int,
     connBadActive: Int,
+    connSlotsWarnRatio: Double,
+    connSlotsBadRatio: Double,
     jobOverdueHours: Long,
     jobWindowDays: Int
 )
@@ -157,6 +194,7 @@ case class DbHealthData(
     stuckEvolutions: Seq[StuckEvolution],
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
+    connectionSlots: Option[ConnectionSlots],
     panoBackups: Option[PanoBackupStats],
     nightlyJobs: Seq[NightlyJobStatus],
     thresholds: HealthThresholds
@@ -223,6 +261,10 @@ class HealthServiceImpl @Inject() (
     connPoolMax = poolMax,
     connWarnActive = math.max(1, (poolMax * 0.7).toInt),
     connBadActive = math.max(1, (poolMax * 0.9).toInt),
+    // Shares of the cluster's usable slots. On prod a single city expanding its pool moves use by up to a pool's worth
+    // (~13% of 197 at the default 25), so the warning has to leave room for two or three bursts before refusals start.
+    connSlotsWarnRatio = 0.7,
+    connSlotsBadRatio = 0.9,
     jobOverdueHours = ScheduledJobs.OverdueAfterHours,
     jobWindowDays = HealthService.JobWindowDays
   )
@@ -251,6 +293,13 @@ class HealthServiceImpl @Inject() (
     val connF = cacheApi
       .getOrElseUpdate[Seq[ConnCount]]("health.conn", liveTtl)(db.run(healthTable.getConnectionCounts))
       .recover(logAndEmpty("connection counts"))
+    val slotsF = cacheApi
+      .getOrElseUpdate[Option[ConnectionSlots]]("health.slots", liveTtl)(
+        db.run(healthTable.getConnectionSlotSettings).map(settings => Some(HealthService.connectionSlots(settings)))
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read connection slots: ${e.getMessage}"); None
+      }
     val panoF = cacheApi
       .getOrElseUpdate[Option[PanoBackupStats]]("health.pano", panoTtl)(
         db.run(healthTable.getPanoBackupStats).map(Option(_))
@@ -269,6 +318,7 @@ class HealthServiceImpl @Inject() (
       evo      <- evoF
       bloat    <- bloatF
       conn     <- connF
+      slots    <- slotsF
       pano     <- panoF
       jobs     <- jobsF
     } yield DbHealthData(
@@ -282,6 +332,7 @@ class HealthServiceImpl @Inject() (
       stuckEvolutions = evo,
       tableBloat = bloat,
       connections = conn,
+      connectionSlots = slots,
       panoBackups = pano,
       nightlyJobs = jobs,
       thresholds = thresholds
@@ -425,6 +476,26 @@ object HealthService {
    */
   val JobAbandonedAfterHours: Long = 12
 
+  /**
+   * Turns the raw slot settings into the headroom the dashboard colors. Superuser-reserved and PG 16 reserved slots are
+   * subtracted because no city role can take them: prod's `max_connections = 200` with 3 superuser slots leaves 197,
+   * and that, not 200, is where the apps start being refused.
+   *
+   * @param settings The cluster's slot settings and current client-backend count.
+   * @return         The usable ceiling and the share of it in use.
+   */
+  def connectionSlots(settings: ConnSlotSettings): ConnectionSlots = {
+    val reserved = settings.superuserReservedConnections + settings.reservedConnections
+    val usable   = math.max(0, settings.maxConnections - reserved)
+    ConnectionSlots(
+      maxConnections = settings.maxConnections,
+      reservedConnections = reserved,
+      usableConnections = usable,
+      inUse = settings.clientBackends,
+      usedRatio = if (usable > 0) settings.clientBackends.toDouble / usable else 1.0
+    )
+  }
+
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   given blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
@@ -433,6 +504,7 @@ object HealthService {
   given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
   given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
   given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given connectionSlotsWrites: Writes[ConnectionSlots]   = Json.writes[ConnectionSlots]
   given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
   given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
   given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]

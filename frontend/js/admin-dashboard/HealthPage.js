@@ -64,7 +64,7 @@ export class HealthPage {
       this.#renderIdle(data.idle_in_transaction || []);
       this.#renderEvolutions(data.stuck_evolutions || []);
       this.#renderBloat(data.table_bloat || []);
-      this.#renderConnections(data.connections || []);
+      this.#renderConnections(data.connections || [], data.connection_slots || null);
       this.#renderPanos(data.pano_backups || null);
       this.#renderNightlyJobs(data.nightly_jobs || []);
     } catch (e) {
@@ -108,6 +108,12 @@ export class HealthPage {
       tone = tone === 'bad' ? 'bad' : 'warn';
       problems.push(`${bloated} bloated table${bloated === 1 ? '' : 's'}`);
     }
+    const slots = data.connection_slots;
+    const slotTone = this.#slotTone(slots);
+    if (slotTone === 'warn' || slotTone === 'bad') {
+      tone = slotTone === 'bad' || tone === 'bad' ? 'bad' : 'warn';
+      problems.push(`${HealthPage.#pct(slots.used_ratio)} of database connection slots in use`);
+    }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
       ? ` — ${problems.map((p) => util.escapeHTML(p)).join(', ')}`
@@ -122,7 +128,7 @@ export class HealthPage {
     const active = data.active_queries || [];
     const idle = data.idle_in_transaction || [];
     const evolutions = data.stuck_evolutions || [];
-    const conns = (data.connections || []).reduce((sum, c) => sum + (c.count || 0), 0);
+    const slots = data.connection_slots;
     const atRisk = data.pano_backups?.at_risk;
     const bloated = (data.table_bloat || []).filter((b) => this.#bloatTone(b) !== 'good').length;
     const longIdle = idle.filter((s) => (s.idle_seconds || 0) >= t.idle_txn_warn_seconds).length;
@@ -132,7 +138,9 @@ export class HealthPage {
     this.#setKpi('kpi-idle', idle.length, longIdle > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-evolutions', evolutions.length, evolutions.length > 0 ? 'bad' : 'good');
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
-    this.#setKpi('kpi-connections', conns, 'ok');
+    // Cluster-wide, since every city's pool draws on the same server slots; "—" (unknown) when the read failed.
+    const slotsUsed = slots ? `${AdminShell.num(slots.in_use)}/${AdminShell.num(slots.usable_connections)}` : '—';
+    this.#setKpi('kpi-connections', slotsUsed, this.#slotTone(slots));
     // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
     const panoTone = AdminShell.nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
     this.#setKpi('kpi-panos', AdminShell.nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
@@ -270,7 +278,14 @@ export class HealthPage {
 
   // ---- Panel: connections ----------------------------------------------------------------------------------------
 
-  #renderConnections(rows) {
+  /**
+   * Cluster-wide slot headroom, then this database's connections by role (#4559, #5238).
+   *
+   * @param {Array<Record<string, any>>} rows - `connections`: (role, state) counts for this database.
+   * @param {Record<string, any>|null} slots - `connection_slots`, or null when the server's limits couldn't be read.
+   */
+  #renderConnections(rows, slots) {
+    this.#renderSlotSummary(slots);
     if (!rows.length) return this.#renderEmpty('health-connections', 'No client connections.');
     const t = this.#thresholds;
     // Group the (role, state) counts into one row per role.
@@ -297,9 +312,45 @@ export class HealthPage {
         </tr>`;
       }).join('');
     // Each city's app instance connects as its own per-city role, so a role's active count is one instance's pool
-    // draw — labeled with that instance's pool ceiling so it reads as "17 of 25 in use".
+    // draw. The ceiling is this instance's own; a city with DB_POOL_SIZE set (#4563) has a different one.
     this.#table('health-connections',
-      ['Role', [`Active (pool ${t.conn_pool_max})`, true], ['Idle', true], ['Total', true]], body);
+      ['Role', [`Active (this app's pool: ${t.conn_pool_max})`, true], ['Idle', true], ['Total', true]], body);
+  }
+
+  /**
+   * One line on how close the server is to refusing connections. Spelled out in words as well as the toned badge, so
+   * the severity doesn't rest on color alone.
+   *
+   * @param {Record<string, any>|null} slots - `connection_slots`, or null when unreadable.
+   */
+  #renderSlotSummary(slots) {
+    if (!slots) {
+      return this.#renderProblem('health-connections-summary',
+        'Could not read the server\'s connection limit, so slot headroom is unknown.');
+    }
+    const tone = this.#slotTone(slots);
+    const verdicts = { bad: ' Close to refusing new connections.', warn: ' Headroom is getting low.' };
+    const verdict = verdicts[tone] || '';
+    AdminShell.setHtml('health-connections-summary', `<p class="coverage-status">
+      <span class="ac-badge ac-badge--${tone}">${HealthPage.#pct(slots.used_ratio)}</span>
+      ${AdminShell.num(slots.in_use)} of ${AdminShell.num(slots.usable_connections)} usable slots in use across the
+      cluster (${AdminShell.num(slots.max_connections)} max, ${AdminShell.num(slots.reserved_connections)} reserved for
+      administrators).${verdict}
+    </p>`);
+  }
+
+  /**
+   * Severity of the cluster's slot use against the server's thresholds.
+   *
+   * @param {Record<string, any>|null|undefined} slots - `connection_slots`.
+   * @returns {'good'|'warn'|'bad'|'ok'} The tone; 'ok' (neutral) when unknown, which is not the same as healthy.
+   */
+  #slotTone(slots) {
+    if (!slots || AdminShell.nil(slots.used_ratio)) return 'ok';
+    const t = this.#thresholds;
+    if (slots.used_ratio >= t.conn_slots_bad_ratio) return 'bad';
+    if (slots.used_ratio >= t.conn_slots_warn_ratio) return 'warn';
+    return 'good';
   }
 
   // ---- Panel: pano downloads -------------------------------------------------------------------------------------
@@ -435,6 +486,16 @@ export class HealthPage {
     el.textContent = typeof value === 'number' ? AdminShell.num(value) : value;
     el.classList.remove('health-kpi--good', 'health-kpi--warn', 'health-kpi--bad', 'health-kpi--ok');
     el.classList.add(`health-kpi--${tone}`);
+  }
+
+  /**
+   * A ratio as a whole percentage ("77%").
+   *
+   * @param {number} ratio - A share, 0.77 for 77%.
+   * @returns {string} The percentage text.
+   */
+  static #pct(ratio) {
+    return `${Math.round(ratio * 100)}%`;
   }
 
   /** Compact number ("1.2M", "317k"). */
