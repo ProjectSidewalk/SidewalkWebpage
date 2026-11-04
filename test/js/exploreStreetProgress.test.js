@@ -32,7 +32,7 @@ function makeTask(id, { atEnd = false, coveredEnough = true, givenUp = false, co
     wasGivenUpOnImagery: () => givenUp,
     isConnectedTo: () => connected,
     recordVisit: vi.fn(),
-    getFeature: () => ({ id }),
+    getGeoJSON: () => ({ id }),
     getEndCoordinate: () => at(endM),
     getEntryCoordinate: () => at(startM),
     lineDistance: () => endM - startM,
@@ -127,7 +127,7 @@ describe('StreetProgress', () => {
       expect(taskContainer.endTask).not.toHaveBeenCalled();
       // The street is prefetched now, so the jump lands without waiting on the network.
       expect(viewer.clearPrefetchCache).toHaveBeenCalled();
-      expect(sweep.prefetchAlongStreet).toHaveBeenCalledWith(next.getFeature());
+      expect(sweep.prefetchAlongStreet).toHaveBeenCalledWith(next.getGeoJSON());
       // With the prompt up, the next move is the jump, so that is what gets preloaded.
       expect(sweep.preloadAhead).toHaveBeenLastCalledWith(next);
     });
@@ -182,7 +182,7 @@ describe('StreetProgress', () => {
 
       expect(progress.isLabelBeforeJumpArmed()).toBe(true);
       expect(taskContainer.setNextTaskAfterJump).not.toHaveBeenCalled();
-      expect(sweep.prefetchAlongStreet).toHaveBeenCalledWith(next.getFeature());
+      expect(sweep.prefetchAlongStreet).toHaveBeenCalledWith(next.getGeoJSON());
     });
 
     it('switches straight onto a connected street, crediting the junction pano to it', () => {

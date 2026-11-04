@@ -371,7 +371,7 @@ describe('Explore Main starts the mission', () => {
     expect(canvas.setOnlyLabelsOnPanoAsVisible).toHaveBeenCalledWith('pano1');
     await Promise.resolve();
     expect(canvas.render).toHaveBeenCalledTimes(1);
-    expect(streetSweep.prefetchAlongStreet).toHaveBeenCalledWith(makeTask().getFeature());
+    expect(streetSweep.prefetchAlongStreet).toHaveBeenCalledWith(makeTask().getGeoJSON());
   });
 });
 

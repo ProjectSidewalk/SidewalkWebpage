@@ -46,13 +46,20 @@ class FakeMap {
 
   addControl(control, position) { this.controls.push({ control, position }); }
 
-  addSource(id, spec) { this.sources.set(id, { ...spec, setData: vi.fn() }); }
+  // Mapbox throws on a second source, layer or image under one id, so a redraw that forgets to clear up fails here too.
+  addSource(id, spec) {
+    if (this.sources.has(id)) throw new Error(`source ${id} already exists`);
+    this.sources.set(id, { ...spec, setData: vi.fn() });
+  }
 
   getSource(id) { return this.sources.get(id); }
 
   removeSource(id) { this.sources.delete(id); }
 
-  addLayer(spec) { this.layers.push(spec); }
+  addLayer(spec) {
+    if (this.getLayer(spec.id)) throw new Error(`layer ${spec.id} already exists`);
+    this.layers.push(spec);
+  }
 
   getLayer(id) { return this.layers.find((layer) => layer.id === id); }
 
@@ -60,7 +67,10 @@ class FakeMap {
 
   hasImage(id) { return this.images.has(id); }
 
-  addImage(id) { this.images.add(id); }
+  addImage(id) {
+    if (this.images.has(id)) throw new Error(`image ${id} already exists`);
+    this.images.add(id);
+  }
 }
 
 class FakeMarker {
@@ -285,6 +295,20 @@ describe('ModalMissionCompleteMap', () => {
       const imagesAdded = ctx.getImageData.mock.calls.length;
       await component.update(EMPTY_TIERS, fc());
       expect(ctx.getImageData.mock.calls.length).toBe(imagesAdded);
+      expect(map.getLayer('mc-route-arrows')).toBeDefined();
+    });
+
+    it('tries the icons again on the next draw when their first load fails', async () => {
+      HTMLImageElement.prototype.decode = vi.fn()
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValue(undefined);
+      const { component, map } = await build();
+
+      await expect(component.update(EMPTY_TIERS, fc())).rejects.toThrow('offline');
+      expect(map.images.size).toBe(0);
+
+      await component.update(EMPTY_TIERS, fc());
+      expect(map.images).toEqual(new Set(['mc-route-explorer-icon', 'mc-route-arrow']));
       expect(map.getLayer('mc-route-arrows')).toBeDefined();
     });
 

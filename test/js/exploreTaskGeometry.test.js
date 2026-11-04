@@ -159,7 +159,7 @@ describe('Task geometry', () => {
     expect(task.lineDistance()).toBeCloseTo(0.2, 3);
     expect(task.getDistanceFromStart(standingAt(street, 150))).toBeCloseTo(0.15, 3);
     expect(task.isConnectedTo(next, 0.025)).toBe(true);
-    expect(task.getFeature()).toBe(task.getGeoJSON());
+    expect(task.getGeoJSON()).toBe(task.getGeoJSON());
     expect(task.getProperty('noSuchProperty')).toBeNull();
   });
 

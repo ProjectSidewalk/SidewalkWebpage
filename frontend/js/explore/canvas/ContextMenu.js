@@ -528,13 +528,13 @@ export class ContextMenu {
             // If first letter is used for shortcut, the string will start with "<tag-underline".
             if (tagText[0] === '<') {
               keyChar = tagText[underlineClassOffset];
-              tooltipHeader = tagText.substring(0, underlineClassOffset)
-                + tagText[underlineClassOffset].toUpperCase()
-                + tagText.substring(underlineClassOffset + 1);
+              const first = tagText[underlineClassOffset].toUpperCase();
+              // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
+              tooltipHeader = `${tagText.substring(0, underlineClassOffset)}${first}${tagText.substring(16)}`;
             } else {
               const underlineIndex = tagText.indexOf('<');
               keyChar = tagText[underlineIndex + underlineClassOffset];
-              tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
+              tooltipHeader = `${tagText[0].toUpperCase()}${tagText.substring(1)}`;
             }
             // The tooltip renders as HTML, so its shortcut letter is escaped on the way in.
             const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
@@ -543,10 +543,9 @@ export class ContextMenu {
             const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
 
             button.setAttribute(
-              // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
               'data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
             );
-          });
+          }).catch(() => {}); // A tag with no example picture simply gets no tooltip.
         }
       });
     }

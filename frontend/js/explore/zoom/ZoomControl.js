@@ -20,10 +20,8 @@ export class ZoomControl {
   #zoomShortcutAlert;
   #tracker;
   #uiZoomControl;
-  #properties = {
-    maxZoomLevel: 3,
-    minZoomLevel: 1,
-  };
+  static #MAX_ZOOM = 3;
+  static #MIN_ZOOM = 1;
 
   /** @type {Gate} Whether zooming in is allowed; zoomIn() does nothing while it is held. */
   zoomInGate = new Gate();
@@ -117,8 +115,8 @@ export class ZoomControl {
    */
   syncButtonsToZoom(zoomLevel) {
     const atLimit = (gate, held) => (held ? gate.hold('limit') : gate.release('limit'));
-    atLimit(this.zoomInGate, zoomLevel >= this.#properties.maxZoomLevel);
-    atLimit(this.zoomOutGate, zoomLevel <= this.#properties.minZoomLevel);
+    atLimit(this.zoomInGate, zoomLevel >= ZoomControl.#MAX_ZOOM);
+    atLimit(this.zoomOutGate, zoomLevel <= ZoomControl.#MIN_ZOOM);
   }
 
   /**
@@ -130,7 +128,7 @@ export class ZoomControl {
 
     const pov = this.#panoManager.getPov();
 
-    if (pov.zoom < this.#properties.maxZoomLevel && this.#zoomBlink.isBlinking === false) {
+    if (pov.zoom < ZoomControl.#MAX_ZOOM && this.#zoomBlink.isBlinking === false) {
       this.#zoomShortcutAlert.zoomClicked();
     }
 
@@ -146,7 +144,7 @@ export class ZoomControl {
     this.#tracker.push('Click_ZoomOut');
 
     const pov = this.#panoManager.getPov();
-    if (pov.zoom > this.#properties.minZoomLevel && this.#zoomBlink.isBlinking === false) {
+    if (pov.zoom > ZoomControl.#MIN_ZOOM && this.#zoomBlink.isBlinking === false) {
       this.#zoomShortcutAlert.zoomClicked();
     }
 
@@ -213,7 +211,7 @@ export class ZoomControl {
    * @param {number} zoomLevelIn
    */
   #setZoom(zoomLevelIn) {
-    const zoomLevel = Math.min(Math.max(zoomLevelIn, this.#properties.minZoomLevel), this.#properties.maxZoomLevel);
+    const zoomLevel = Math.min(Math.max(zoomLevelIn, ZoomControl.#MIN_ZOOM), ZoomControl.#MAX_ZOOM);
     // The hover card is anchored to a label about to move; the view change itself redraws the canvas and the buttons.
     this.#canvas.showLabelHoverInfo(undefined);
     this.#panoManager.setZoom(zoomLevel);

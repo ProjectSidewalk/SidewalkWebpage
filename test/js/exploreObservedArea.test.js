@@ -230,6 +230,14 @@ describe('ObservedArea', () => {
       expect(peg.setHeading).toHaveBeenLastCalledWith(-10);
     });
 
+    test('turning on from a heading of exactly north keeps unwrapping the short way', () => {
+      const area = build();
+      standAt(area, 'pano-a', { lat: 100, lng: 100 }, 0);
+      lookAt(area, 350);
+      // 10° further left of a 90° view first centred on north: 100° seen, not a full circle.
+      expect(area.getFractionObserved()).toBe(100 / 360);
+    });
+
     test('an edge of the view that lands exactly on north still counts as seen', () => {
       const area = build();
       // Facing 45° with a 90° view: the left edge is at 0 exactly.
@@ -268,8 +276,8 @@ describe('ObservedArea', () => {
     test('forgetting the current pano restarts the fog and ring from the current view', () => {
       const area = build();
       standAt(area, 'pano-a', { lat: 100, lng: 100 }, 0);
-      lookAt(area, 200);
-      expect(percent()).toBe('80%');
+      lookAt(area, 99);
+      expect(percent()).toBe('52%');
 
       area.resetCurrentPano();
 

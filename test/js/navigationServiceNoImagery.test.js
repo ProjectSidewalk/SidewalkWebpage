@@ -129,7 +129,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, seenEnough = at
     wasGivenUpOnImagery() {
       return this.givenUp;
     },
-    getFeature: () => lineFeature([start, end]),
+    getGeoJSON: () => lineFeature([start, end]),
     getEndCoordinate: () => ({ lat: end[1], lng: end[0] }),
     getFurthestPointReached: () => pointFeature(start),
     unwalkedRemainder() {

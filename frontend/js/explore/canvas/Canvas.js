@@ -51,6 +51,14 @@ export class Canvas {
 
   #ctx;
   #hoverCardHideTimer = null;
+
+  /** The cursor over the pano by what the pointer is doing there. */
+  #cursors = {
+    OpenHand: `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`,
+    ClosedHand: `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`,
+    Pointer: 'pointer',
+  };
+
   #shareWidget = null;
   #shareUrl = null;
   // The pano the labels were last filtered for, so a re-render only re-filters once the pano changes.
@@ -234,12 +242,7 @@ export class Canvas {
    * @param {'OpenHand'|'ClosedHand'|'Pointer'} type
    */
   #setViewControlLayerCursor(type) {
-    const cursors = {
-      OpenHand: `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`,
-      ClosedHand: `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`,
-      Pointer: 'pointer',
-    };
-    this.#streetviewUi.viewControlLayer.style.cursor = cursors[type];
+    this.#streetviewUi.viewControlLayer.style.cursor = this.#cursors[type];
   }
 
   /**

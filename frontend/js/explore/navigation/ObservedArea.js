@@ -200,7 +200,8 @@ export class ObservedArea {
     let heading = pov.heading;
     // What the viewer actually rendered across the frame (#5083); the curve alone under-counts a wide window at zoom 3.
     const fov = this.#frame.renderedHFov(pov.zoom);
-    if (this.#angle) {
+    // Compared against null, not falsiness, here and below: a heading or edge of exactly 0 (north) is still a reading.
+    if (this.#angle !== null) {
       if (heading - this.#angle > 180) {
         heading -= 360;
       }
@@ -211,7 +212,6 @@ export class ObservedArea {
     this.#angle = heading;
     this.#leftAngle = this.#angle - fov / 2;
     this.#rightAngle = this.#angle + fov / 2;
-    // Compared against null, not falsiness: an edge that lands exactly on north is 0, and must still count as seen.
     if (this.#currArea.minAngle === null || this.#leftAngle < this.#currArea.minAngle) {
       this.#currArea.minAngle = this.#leftAngle;
     }

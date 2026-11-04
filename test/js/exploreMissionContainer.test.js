@@ -22,7 +22,7 @@ function fakeTask({ tutorial = false, resumed = false, savedKm = 0 } = {}) {
   return {
     getProperty: (key) => props[key] ?? null,
     setProperty: (key, value) => { props[key] = value; },
-    getFeature: () => STREET,
+    getGeoJSON: () => STREET,
     setMissionStart: vi.fn(),
     isResumed: () => resumed,
     claimSavedProgress: () => savedKm,

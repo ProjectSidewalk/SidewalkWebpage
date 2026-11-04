@@ -206,7 +206,8 @@ export class ModalMissionCompleteMap {
   /**
    * Registers the map images the route-direction layers need — the explorer icon (rasterized from its PNG) and a
    * white-on-dark direction chevron drawn on a canvas — once per map. Mapbox refuses a second image under the same
-   * name, so a redraw that starts while the first registration is still rasterizing waits on it instead.
+   * name, so a redraw that starts while the first registration is still rasterizing waits on it instead. A failed
+   * load is forgotten, so the next draw tries again rather than going without arrows for the rest of the visit.
    * @param {mapboxgl.Map} map - The modal's Mapbox map.
    * @returns {Promise<void>} Resolves once both images are on the map.
    */
@@ -216,6 +217,9 @@ export class ModalMissionCompleteMap {
     ).then((explorer) => {
       map.addImage('mc-route-explorer-icon', explorer.data, { pixelRatio: explorer.pixelRatio });
       map.addImage('mc-route-arrow', ModalMissionCompleteMap.#buildArrowImage(), { pixelRatio: 2 });
+    }, (error) => {
+      this.#routeIcons = null;
+      throw error;
     });
     return this.#routeIcons;
   }

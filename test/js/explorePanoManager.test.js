@@ -104,7 +104,7 @@ describe('Explore PanoManager', () => {
     panoStore = { addPanoMetadata: vi.fn() };
     alertController = { showAlert: vi.fn() };
     task = {
-      getFeature: () => STREET,
+      getGeoJSON: () => STREET,
       getEndCoordinate: () => END,
       reverseStreetDirection: vi.fn(),
       getStreetEdgeId: () => 101,

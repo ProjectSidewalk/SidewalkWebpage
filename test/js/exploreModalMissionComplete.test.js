@@ -316,7 +316,7 @@ describe('ModalMissionComplete', () => {
       modal.update(mission, region);
 
       const { tiers } = mapUpdate();
-      expect(tiers.previous.features).toEqual([other.getFeature()]);
+      expect(tiers.previous.features).toEqual([other.getGeoJSON()]);
     });
 
     it('shows everyone\'s finished streets as the community tier, or the route\'s remaining ones on a route', () => {
@@ -324,19 +324,19 @@ describe('ModalMissionComplete', () => {
       unwalked = [street(6, { start: [-122.2, 47.7] })];
 
       modal.update(mission, region);
-      expect(mapUpdate().tiers.community.features).toEqual([community[0].getFeature()]);
+      expect(mapUpdate().tiers.community.features).toEqual([community[0].getGeoJSON()]);
 
       regionModel.isRoute = true;
       modal.update(mission, region);
-      expect(mapUpdate().tiers.community.features).toEqual([unwalked[0].getFeature()]);
+      expect(mapUpdate().tiers.community.features).toEqual([unwalked[0].getGeoJSON()]);
     });
 
     it('keeps a street with a bad or lone coordinate off the map, where it would crash the tiler (#4204)', () => {
       const broken = street(5);
-      broken.getFeature().geometry.coordinates[1] = [NaN, 47.6];
+      broken.getGeoJSON().geometry.coordinates[1] = [NaN, 47.6];
       const lone = street(6);
-      lone.getFeature().geometry.coordinates.pop();
-      community = [broken, lone, { getFeature: () => null }];
+      lone.getGeoJSON().geometry.coordinates.pop();
+      community = [broken, lone, { getGeoJSON: () => null }];
 
       modal.update(mission, region);
 

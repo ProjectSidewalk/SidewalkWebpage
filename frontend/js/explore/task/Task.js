@@ -232,6 +232,10 @@ export class Task {
     return this.#coordinatesToSegments(coordinates);
   }
 
+  /**
+   * @param {{lat: number, lng: number}} currentLatLng - Where the labeler stands.
+   * @returns {boolean} Whether that is further along the street than the furthest point so far.
+   */
   #hasAdvanced(currentLatLng) {
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
     const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
@@ -263,15 +267,6 @@ export class Task {
 
   /**
    * Get the GeoJSON representation of the street.
-   * @returns {GeoJSON.Feature<GeoJSON.LineString>}
-   */
-  getFeature() {
-    return this.#geojson;
-  }
-
-  /**
-   * Get the GeoJSON representation of the street.
-   * TODO why do we have both this and getFeature()?
    * @returns {GeoJSON.Feature<GeoJSON.LineString>}
    */
   getGeoJSON() {

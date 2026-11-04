@@ -100,6 +100,10 @@ export class Tracker {
     return this.#actions;
   }
 
+  /**
+   * @param {Record<string, any>} param - Note fields to flatten.
+   * @returns {string} The fields as `key:value` pairs joined by commas, the way the server's note column stores them.
+   */
   #notesToString(param) {
     let note = '';
     for (const key in param) {

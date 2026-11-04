@@ -285,7 +285,7 @@ export class PanoManager {
       panoOptions.startLatLng = { lat: seed.startLat, lng: seed.startLng };
       const { task } = errorParams;
       panoOptions.backupLatLngs = PanoManager.backupPointsAlongStreet(
-        task.getFeature(), task.getEndCoordinate(), panoOptions.startLatLng,
+        task.getGeoJSON(), task.getEndCoordinate(), panoOptions.startLatLng,
       );
     }
 

@@ -140,7 +140,7 @@ export const makeTask = (props = {}) => ({
   setProperty: vi.fn(),
   updateTheFurthestPointReached: vi.fn(),
   recordVisit: vi.fn(),
-  getFeature: () => ({ geometry: { coordinates: [] } }),
+  getGeoJSON: () => ({ geometry: { coordinates: [] } }),
 });
 
 /**
