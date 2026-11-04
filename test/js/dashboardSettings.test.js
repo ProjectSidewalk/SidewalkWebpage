@@ -177,17 +177,3 @@ describe('the unsaved-edits guard', () => {
     expect(() => guard.onChoice('stay')).not.toThrow();
   });
 });
-
-test('a field missing from the page is sent as its default, and the email choice is left out entirely', async () => {
-  document.body.innerHTML = `
-    <button type="button" id="set-save-btn">Save changes</button>
-    <span id="set-save-status" role="status"></span>`;
-  new Settings({ saveUrl: SAVE_URL, currentUnits: 'auto' });
-  const fetch = routeFetch({ [`POST ${SAVE_URL}`]: { success: true } });
-  await clickSave();
-  // No news_email: the server reads its absence as "leave it alone", where a guess could re-subscribe someone.
-  expect(sentRequests(fetch)[0].body).toEqual({
-    username: '', on_leaderboard: true, public_profile: true, community_service: false, measurement_system: 'auto',
-    team_id: null,
-  });
-});

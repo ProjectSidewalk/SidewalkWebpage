@@ -263,7 +263,7 @@ describe('a Gallery card after it is drawn', () => {
       expect(card.getProperty('ai_validation')).toBeNull();
     });
 
-    it('records its votes under its page\'s own source on a report, and the Gallery\'s own otherwise', () => {
+    it('records its votes under its page\'s own source on a report, and Gallery\'s own otherwise', () => {
       const onReport = new Card(
         { label: label(), cropUrl: null, gsvImageUrl: null }, {}, fakeTracker(), cardFilter, { voteSource: 'Report' },
       );

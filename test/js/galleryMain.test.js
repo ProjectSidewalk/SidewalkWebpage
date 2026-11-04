@@ -1,9 +1,9 @@
 /**
- * Tests for the Gallery's wiring (frontend/js/gallery/Main.js, #5840).
+ * Tests for Gallery's wiring (frontend/js/gallery/Main.js, #5840).
  *
- * Main is the one place the Gallery's modules are built, so what is worth pinning is that each gets the page's own
+ * Main is the one place Gallery's modules are built, so what is worth pinning is that each gets the page's own
  * elements and the shared tracker, and that the narrow-layout filter toggle is wired only when the page renders it:
- * review-list mode (#5444) renders no sidebar at all, and the Gallery must still start there.
+ * review-list mode (#5444) renders no sidebar at all, and Gallery must still start there.
  */
 
 import { loadModules, mockModule } from './loader.js';
@@ -76,7 +76,7 @@ const pageParams = (overrides = {}) => ({
   ...overrides,
 });
 
-describe('starting the Gallery', () => {
+describe('starting Gallery', () => {
   let startGallery;
 
   beforeEach(async () => {

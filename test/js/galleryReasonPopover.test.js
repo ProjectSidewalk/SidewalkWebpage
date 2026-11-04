@@ -266,7 +266,7 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     await flush();
     post.mockImplementationOnce(() => new Promise(() => {}));
     click(chips()[0]);
-    const res = await menu.validateOnClickOrKeyPress('validate-agree', false)();
+    const res = await menu.validateOnClick('validate-agree', false)();
     expect(res).toBeNull();
     expect(posted('/labelmap/validate')).toHaveLength(1);
   });
@@ -274,7 +274,7 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
   test('a vote cast with no event behind it hangs its reasons off the strip\'s button for that vote', async () => {
     const { card, menu } = makeMenu();
 
-    await menu.validateOnClickOrKeyPress('validate-unsure', false)();
+    await menu.validateOnClick('validate-unsure', false)();
 
     expect(popoverShown()).toBe(true);
     expect(reasonPopover().anchor).toBe(button(card, 'unsure'));
@@ -327,7 +327,6 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     expect(consoleError).toHaveBeenCalledWith(error);
     expect(markFailed).not.toHaveBeenCalled();
     expect(button(card, 'agree').disabled).toBe(false);
-    consoleError.mockRestore();
   });
 
   test('a pick or typed reason that reaches the card while the last is still being written is dropped', async () => {

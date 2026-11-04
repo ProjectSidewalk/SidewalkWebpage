@@ -133,6 +133,7 @@ export class TeamActions {
   static settingsTeamSaved(teamId) {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
     const option = [...select.options].find((o) => o.value === String(teamId));
+    TeamActions.#dropLeftTeam(select);
     select.dataset.currentTeam = option.value;
     // Only the team a user is already on can be closed; every other option came from the open teams.
     TeamActions.#setLeaveButton({ name: option.textContent, open: true });
@@ -150,25 +151,34 @@ export class TeamActions {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
     if (!select) return false;
 
-    // The team being left is the one data-current-team names, not whatever is selected — those differ whenever the
-    // dropdown holds an unsaved pick.
-    const previous = [...select.options].find((o) => o.value === select.dataset.currentTeam);
-    // A team they could switch back to stays in the list; a closed one would be a dead choice. With no team there's
-    // no Leave button, so the placeholder goes too.
-    const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
-    if (!wasOpen) previous.remove();
+    TeamActions.#dropLeftTeam(select);
 
     const option = document.createElement('option');
     option.value = team ? String(team.id) : '';
     option.textContent = team ? team.name : select.dataset.placeholder;
     select.prepend(option);
-    // Picked once it's in the list: the spec breaks a tie between two pre-selected options by keeping the later one.
+    // Picked once it's in the list, not before: an option inserted already picked can lose to the one picked now.
     option.selected = true;
     // The save compares against this to skip re-writing a team the user is already on.
     select.dataset.currentTeam = option.value;
 
     TeamActions.#setLeaveButton(team);
     return true;
+  }
+
+  /**
+   * Takes the team the user is moving off out of the Settings dropdown, unless it's an open one they could pick again.
+   *
+   * A closed team would be a dead choice, and with no team the placeholder goes, since leaving
+   * the next team brings a fresh one. Called before data-current-team moves, while it still names that option.
+   *
+   * @param {HTMLSelectElement} select - The Settings team dropdown.
+   */
+  static #dropLeftTeam(select) {
+    // The team being left is the one data-current-team names, not whatever is selected — those differ whenever the
+    // dropdown holds an unsaved pick.
+    const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
+    if (!wasOpen) [...select.options].find((o) => o.value === select.dataset.currentTeam).remove();
   }
 
   /**

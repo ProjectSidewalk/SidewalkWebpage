@@ -252,7 +252,7 @@ describe('casting a vote', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { menu, card } = makeMenu();
 
-    const res = await menu.validateOnClickOrKeyPress('validate-agree', false)();
+    const res = await menu.validateOnClick('validate-agree', false)();
 
     expect(res).toBeNull();
     expect(consoleError).toHaveBeenCalledWith(error);

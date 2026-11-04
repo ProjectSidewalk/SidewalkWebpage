@@ -10,6 +10,7 @@
 
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker, fakePanoOverlays } from './fakes.js';
+import { flush } from './support/routeFetch.js';
 
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
@@ -77,16 +78,13 @@ describe('the filtered Gallery grid', () => {
   /** @type {?Function} What the container asked the ResizeObserver to call. */
   let onResize;
 
-  /** Lets the container's promise chains (fetch, image loads, render) run to the end. */
-  const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
-
   /**
    * Answers the oldest request in flight.
    * @param {object[]} labels - The entries to answer with.
    */
   async function answer(labels) {
     pending.shift()({ ok: true, json: async () => ({ labelsOfType: labels }) });
-    await settle();
+    await flush();
   }
 
   /** @returns {number[]} The label ids of the cards in the grid, in order. */
@@ -230,12 +228,11 @@ describe('the filtered Gallery grid', () => {
       }, cardFilter, tracker);
       await created;
       pending.shift()({ ok: false, status: 503 });
-      await settle();
+      await flush();
 
       expect(error).toHaveBeenCalledWith(new Error('/label/labels responded 503'));
       expect(ui.labelsNotFound.style.display).toBe('block');
       expect(ui.pageLoading.style.display).toBe('none');
-      error.mockRestore();
     });
   });
 
@@ -244,7 +241,7 @@ describe('the filtered Gallery grid', () => {
       const container = await open(entries(1, 30));
 
       ui.nextPage.click();
-      await settle();
+      await flush();
 
       expect(requests).toHaveLength(1);
       expect(shownIds()).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18]);
@@ -277,11 +274,11 @@ describe('the filtered Gallery grid', () => {
     it('pages back, and goes no further back than the first page', async () => {
       const container = await open(entries(1, 30));
       ui.nextPage.click();
-      await settle();
+      await flush();
       tracker.push.mockClear();
 
       ui.prevPage.click();
-      await settle();
+      await flush();
       expect(container.getCurrentPage()).toBe(1);
       expect(shownIds()[0]).toBe(1);
       expect(ui.prevPage.disabled).toBe(true);
@@ -393,7 +390,7 @@ describe('the filtered Gallery grid', () => {
     it('starts again from page 1, closing the expanded view, when the type changes', async () => {
       const container = await open(entries(1, 30));
       ui.nextPage.click();
-      await settle();
+      await flush();
       view.closeExpandedView.mockClear();
 
       filterState.types = ['Obstacle'];
@@ -421,7 +418,7 @@ describe('the filtered Gallery grid', () => {
 
       filterState.valOptions = ['unvalidated'];
       cardFilter.update();
-      await settle();
+      await flush();
 
       expect(requests).toHaveLength(1);
       expect(shownIds()).toHaveLength(9);
@@ -444,7 +441,7 @@ describe('the filtered Gallery grid', () => {
       filterState.types = ['CurbRamp', 'Obstacle'];
       const container = await open(entries(1, 30));
       ui.nextPage.click();
-      await settle();
+      await flush();
 
       filterState.sort = 'newest';
       cardFilter.sortChange();

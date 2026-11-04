@@ -27,7 +27,7 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number} lat
  * @property {number} lng
  * @property {number[]} labelIds
- * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first Gallery's cap allows.
+ * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first few up to Gallery's cap.
  * @property {boolean} atCrossing
  * @property {number} costPoints
  * @property {number} poolSize

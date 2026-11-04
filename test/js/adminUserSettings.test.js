@@ -3,6 +3,7 @@
 import { loadModules, mockModule } from './loader.js';
 import { navigationAttempts } from './fakes.js';
 import { flush, routeFetch } from './support/routeFetch.js';
+import { drawManageUserPage } from './support/manageUserPage.js';
 
 mockModule('i18next', () => ({ default: { language: 'en' } }));
 const ConfirmDialog = { confirm: vi.fn() };
@@ -16,53 +17,14 @@ const URLS = { saveUrl: '/adminapi/saveUserSettings', flagsUrl: '/adminapi/setTa
 const HOURS = { total_hours: 2, cities: [], show_breakdown: false, unreachable_cities: 0 };
 
 /**
- * The account form, stats strip, flag blocks and comment table of manageUser.scala.html.
- * @param {object} [opts]
- * @param {string} [opts.quality] - The quality dropdown's starting value.
- * @param {boolean} [opts.excluded] - Whether the user starts excluded.
- * @param {string} [opts.infra3d] - 'on', 'off' (shown but the admin can't grant it), or 'none' (not this deployment).
- */
-function buildDom({ quality = 'auto', excluded = false, infra3d = 'none' } = {}) {
-  const infra = infra3d === 'none' ? ''
-    : `<input type="checkbox" id="au-infra3d-access" checked ${infra3d === 'off' ? 'disabled' : ''}>`;
-  document.body.innerHTML = `
-    <input id="au-username" type="text" value="  mapper  ">
-    <select id="au-role"><option value="Registered" selected>Registered</option><option value="Turker">Turker</option>
-    </select>
-    <select id="au-team"><option value="">No team</option><option value="12">Ms. Frizzle's class</option></select>
-    <select id="au-quality" ${excluded ? 'disabled' : ''}>
-      <option value="auto">Automatic</option><option value="true">High quality</option>
-      <option value="false">Low quality</option>
-    </select>
-    <input type="checkbox" id="au-excluded" ${excluded ? 'checked' : ''}>
-    <input type="checkbox" id="au-community-service">
-    <input type="checkbox" id="au-on-leaderboard" checked>
-    <input type="checkbox" id="au-public-profile">
-    ${infra}
-    <button type="button" id="au-save-btn">Save</button>
-    <span class="ud-save-status" id="au-save-status"></span>
-    <span class="ps-kpi-value" id="au-high-quality">${excluded ? 'Excluded' : 'Low'}</span>
-    ${['low_quality', 'incomplete'].map((flag) => `
-      <div class="ud-form ud-admin-flag" data-flag="${flag}">
-        <input class="ud-admin-flag-date" id="au-date-${flag}" type="date">
-        <button type="button" class="ud-admin-flag-set">Set flags</button>
-        <button type="button" class="ud-admin-flag-remove">Remove flags</button>
-        <span class="ud-save-status ud-admin-flag-status"></span>
-      </div>`).join('')}
-    <time class="ud-admin-ts" id="ts-good" datetime="2026-08-20T03:00:00Z">2026-08-20 03:00</time>
-    <time class="ud-admin-ts" id="ts-bad" datetime="">unknown</time>`;
-  document.getElementById('au-quality').value = quality;
-}
-
-/**
  * Builds the page and its controller against stubbed endpoints.
  * @param {object} [answers] - What the save and flag endpoints answer; each may be a body, `{ status, body }`, an
  *   Error, or a function of the URL.
- * @param {object} [dom] - Options for `buildDom`.
+ * @param {object} [dom] - Options for `drawManageUserPage`.
  * @returns {import('vitest').Mock} The fetch stub.
  */
 function load(answers = {}, dom = {}) {
-  buildDom(dom);
+  drawManageUserPage(dom);
   const stub = routeFetch({
     [URLS.saveUrl]: answers.save ?? { success: true, high_quality: true, excluded: false, username: 'mapper' },
     [URLS.flagsUrl]: answers.flags ?? { tasks_updated: 3 },
@@ -120,7 +82,7 @@ describe('saving the account settings', () => {
   });
 
   test('disables Save and says it is saving while the request is out', async () => {
-    buildDom();
+    drawManageUserPage();
     let finish;
     vi.stubGlobal('fetch', vi.fn((url) => (url === URLS.saveUrl
       ? new Promise((resolve) => { finish = resolve; })
@@ -302,42 +264,3 @@ describe('comment timestamps', () => {
   });
 });
 
-describe('a page missing its optional pieces', () => {
-  /**
-   * Builds the page, drops some of its elements, then starts the controller on what is left.
-   * @param {Array<string>} ids - Ids of the elements to remove before the controller starts.
-   * @param {string} [extra] - Markup appended to the page first, e.g. the hours KPI.
-   * @param {object} [hours] - What the hours endpoint answers.
-   * @returns {import('vitest').Mock} The fetch stub.
-   */
-  function loadWithout(ids, extra = '', hours = HOURS) {
-    buildDom();
-    document.body.insertAdjacentHTML('beforeend', extra);
-    ids.forEach((id) => document.getElementById(id).remove());
-    const stub = routeFetch({ [URLS.saveUrl]: { success: true }, [URLS.hoursUrl]: hours });
-    new AdminUser({ userId: 'u1', username: 'mapper', ...URLS, pageUrlFor: (u) => u });
-    return stub;
-  }
-
-  test('saves without a status line to report on', async () => {
-    const stub = loadWithout(['au-save-status']);
-    await save();
-    expect(sent(stub, URLS.saveUrl)).toHaveLength(1);
-    expect(document.getElementById('au-save-btn').disabled).toBe(false);
-  });
-
-  test('the Excluded box still toggles when there is no quality dropdown to lock', () => {
-    loadWithout(['au-quality']);
-    const box = document.getElementById('au-excluded');
-    box.checked = true;
-    expect(() => box.dispatchEvent(new Event('change'))).not.toThrow();
-  });
-
-  test('fills the hours KPI without a screen-reader line or a note to write into', async () => {
-    loadWithout([], `
-      <div id="au-hours-kpi" aria-busy="true"><span id="au-hours-value">…</span></div>`,
-    { ...HOURS, unreachable_cities: 2 });
-    await flush();
-    expect(document.getElementById('au-hours-value').textContent).toBe('2.0 h');
-  });
-});

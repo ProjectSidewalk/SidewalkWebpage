@@ -267,10 +267,6 @@ describe('Gallery in review-list mode', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
     /** @returns {string} The rendered "k of N" text, or '' while the indicator is hidden. */
     const positionText = () => {
       const positionEl = document.querySelector('.label-detail__position');
@@ -314,7 +310,6 @@ describe('Gallery in review-list mode', () => {
       const container = await listContainer(LIST_IDS);
 
       container.updateCardsNewPage();
-      container.updateCardsByFilter();
 
       expect(requests).toHaveLength(1);
       expect(container.getCurrentCards().getCards().map((card) => card.getLabelId())).toEqual(LIST_IDS);
@@ -354,23 +349,6 @@ describe('Gallery in review-list mode', () => {
       await listContainer(LIST_IDS, []);
 
       expect(document.getElementById('gallery-list-count').textContent).toBe('gallery:list-count:{"count":3}');
-    });
-
-    it('still shows the list, or releases the page on a failure, when the strip is missing', async () => {
-      // The strip's lines are looked up by id rather than assumed, so a page without them must not take the list down.
-      for (const id of ['gallery-list-count', 'gallery-list-truncated', 'gallery-list-error',
-        'gallery-list-unavailable']) document.getElementById(id).remove();
-
-      const container = await listContainer(LIST_IDS, [7]);
-      expect(container.getListSize()).toBe(LIST_IDS.length);
-
-      freshControls();
-      cardFilter.enable.mockClear();
-      const failed = CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
-      failRequest();
-      await failed;
-      expect(cardFilter.enable).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalled();
     });
 
     it('leaves the unavailable list hidden when every id came back', async () => {

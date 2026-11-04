@@ -500,10 +500,6 @@ export class CardContainer {
    * When a filter is updated; update which Cards are shown.
    */
   updateCardsByFilter() {
-    // List mode renders no filter controls, so nothing should reach this; guard anyway, since applying the sidebar's
-    // empty state would silently throw the list away.
-    if (this.#listMode) return;
-
     const newLabelTypes = this.#cardFilter.getStatus().currentLabelTypes;
     // Only need to refresh UI if the label types changed, since the tags are swapped out.
     if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
@@ -707,7 +703,6 @@ export class CardContainer {
    */
   static #renderListCount(shown) {
     const countEl = document.getElementById('gallery-list-count');
-    if (!countEl) return;
     const requested = Number(countEl.dataset.requested);
     countEl.textContent = shown < requested
       ? i18next.t('gallery:list-count-partial', { shown, count: requested })
@@ -726,13 +721,12 @@ export class CardContainer {
     if (!truncatedEl) return;
     const dropped = Number(truncatedEl.dataset.dropped);
     const max = Number(truncatedEl.dataset.max);
-    if (dropped > 0) truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
+    truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
   }
 
   /** Tells the reviewer the list could not be loaded, rather than letting a failed request read as an empty queue. */
   static #showListError() {
-    const errorEl = document.getElementById('gallery-list-error');
-    if (errorEl) errorEl.hidden = false;
+    document.getElementById('gallery-list-error').hidden = false;
   }
 
   /**
@@ -745,10 +739,9 @@ export class CardContainer {
    */
   static #renderUnavailableIds(labelIds) {
     const disclosure = document.getElementById('gallery-list-unavailable');
-    if (!disclosure) return;
     const list = disclosure.querySelector('.gallery-list-bar__ids');
     const summary = disclosure.querySelector('summary');
-    if (!list || !summary || !labelIds || labelIds.length === 0) {
+    if (!labelIds || labelIds.length === 0) {
       disclosure.hidden = true;
       return;
     }

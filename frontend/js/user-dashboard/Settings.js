@@ -40,22 +40,20 @@ export class Settings {
 
   /**
    * @returns {{username: string, on_leaderboard: boolean, public_profile: boolean, community_service: boolean,
-   *     measurement_system: string, news_email?: boolean, team_id: ?number}} The payload the save endpoint takes.
+   *     measurement_system: string, news_email: boolean, team_id: ?number}} The payload the save endpoint takes.
    */
   #payload() {
-    const input = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
-    const teamEl = /** @type {?HTMLSelectElement} */ (document.getElementById('set-team'));
-    const teamVal = teamEl?.value ?? '';
+    const input = (id) => /** @type {HTMLInputElement} */ (document.getElementById(id));
+    const teamEl = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
+    const teamVal = teamEl.value;
     return {
-      username: (input('set-username')?.value || '').trim(),
-      on_leaderboard: input('set-on-leaderboard')?.checked ?? true,
-      public_profile: input('set-public-profile')?.checked ?? true,
-      community_service: input('set-community-service')?.checked ?? false,
+      username: input('set-username').value.trim(),
+      on_leaderboard: input('set-on-leaderboard').checked,
+      public_profile: input('set-public-profile').checked,
+      community_service: input('set-community-service').checked,
       // 'auto' = follow the site language, which the server saves as no choice.
-      measurement_system: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
-      // Left out when the box isn't on the page, which the server reads as "leave it alone"; a guessed value could
-      // re-subscribe someone who opted out.
-      ...(input('set-news-email') ? { news_email: input('set-news-email').checked } : {}),
+      measurement_system: input('set-units').value,
+      news_email: input('set-news-email').checked,
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
       team_id: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),

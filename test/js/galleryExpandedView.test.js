@@ -1,10 +1,10 @@
 /**
- * Tests the Gallery's expanded view (frontend/js/gallery/expandedview/ExpandedView.js, #5840): opening it on a grid
+ * Tests Gallery's expanded view (frontend/js/gallery/expandedview/ExpandedView.js, #5840): opening it on a grid
  * card, paging through the cards (across a page boundary too), the "k of N" position in a review list, closing it
  * back onto the grid, and reopening a shared `?labelId=` link.
  *
  * LabelDetail is faked, so no imagery viewer (and no billable Google pano) is ever built: the view's job is what it
- * hands the card and what it does to the grid around it. The markup is the inline label detail the Gallery renders
+ * hands the card and what it does to the grid around it. The markup is the inline label detail Gallery renders
  * (gallery.scala.html with `common.labelDetail(withPaging = true)`), cut to the parts this class reads.
  */
 import { loadModules, mockModule } from './loader.js';
@@ -138,7 +138,6 @@ let tracker;
 
 beforeEach(() => {
   urlLabelId = null;
-  syncUrlLabelId.mockClear();
   tracker = fakeTracker();
   labelDetail = {
     panoManager: { warmUp: vi.fn(async () => {}) },
@@ -149,10 +148,8 @@ beforeEach(() => {
   window.scrollTo = vi.fn();
 });
 
-afterEach(() => vi.unstubAllGlobals());
-
 describe('the Gallery expanded view', () => {
-  test('builds the label card for the Gallery, telling it whether the view is on screen', async () => {
+  test('builds the label card for Gallery, telling it whether the view is on screen', async () => {
     const view = await build(stubContainer());
 
     expect(cardOpts).toMatchObject({

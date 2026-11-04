@@ -1,5 +1,5 @@
 /**
- * Tests the Gallery's severity/quality row (gallery/displays/SeverityDisplay.js), the three circles on every card and
+ * Tests Gallery's severity/quality row (gallery/displays/SeverityDisplay.js), the three circles on every card and
  * the expanded view (#5840). It reads the label type's rating scale from the stamped label-type table, so it pins that
  * a positive type reads as "quality" with good/okay/bad words, a negative one as "severity" with low/medium/high, and
  * that an unrated label grays the row out and says so to both sighted and screen-reader users.

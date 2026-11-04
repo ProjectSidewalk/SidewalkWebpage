@@ -92,7 +92,7 @@ export class ValidationMenu {
     } else {
       // Add onClick functions for the validation buttons.
       for (const [valKey, button] of Object.entries(this.#validationButtons)) {
-        button.addEventListener('click', this.validateOnClickOrKeyPress(valKey, false));
+        button.addEventListener('click', this.validateOnClick(valKey, false));
         // Tells the open reason pop-up that a press here is a re-vote for it to follow, not a click outside (#5475).
         button.dataset.reasonAnchor = '';
       }
@@ -107,8 +107,8 @@ export class ValidationMenu {
    * @param {ValidationInfoDisplay} valInfoDisplay
    */
   #addValidationInfoOnClicks(valInfoDisplay) {
-    valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true);
-    valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true);
+    valInfoDisplay.agreeContainer.onclick = this.validateOnClick('validate-agree', true);
+    valInfoDisplay.disagreeContainer.onclick = this.validateOnClick('validate-disagree', true);
     valInfoDisplay.agreeContainer.dataset.reasonAnchor = '';
     valInfoDisplay.disagreeContainer.dataset.reasonAnchor = '';
     // Focusable from script only, so the pop-up can hand focus back to the thumb it hangs off after a pick.
@@ -139,7 +139,7 @@ export class ValidationMenu {
    *     has been submitted, with the server's response, or null if the request never completed or was refused
    *     because a reason pick is still being written (#5475).
    */
-  validateOnClickOrKeyPress(newValKey, thumbsClick) {
+  validateOnClick(newValKey, thumbsClick) {
     return async (e) => {
       if (this.#voteLocked) return null;
       const undone = this.#currSelected === newValKey;
@@ -214,10 +214,10 @@ export class ValidationMenu {
    * Consolidate data on the validation and submit as a POST request.
    * @param {string} action - Validation result — the vote being cast, or the one being cleared when `undone`.
    * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
-   * @param {boolean} [undone=false] - Clear the user's existing `action` vote rather than cast one (#4653).
+   * @param {boolean} undone - Clear the user's existing `action` vote rather than cast one (#4653).
    * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
    */
-  #validateLabel(action, thumbsClick, undone = false) {
+  #validateLabel(action, thumbsClick, undone) {
     const refCard = this.#refCard;
     let actionStr;
     let sourceStr;

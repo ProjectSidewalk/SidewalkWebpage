@@ -382,11 +382,33 @@ describe('leaving a team', () => {
   });
 });
 
-test('a Settings save onto another team moves Leave and the "already on" mark there', () => {
-  settings(CLOSED);
-  $('#set-team').value = '7';
-  TeamActions.settingsTeamSaved(7);
-  expect($('#set-team').dataset.currentTeam).toBe('7');
-  // Only a team they're already on can be closed, so the one they just picked from the list must be open.
-  expect(leaveButton()).toEqual({ name: 'Walkers', open: 'true' });
+describe('a Settings save onto another team', () => {
+  test('moves Leave and the "already on" mark there', () => {
+    settings(ROVERS);
+    $('#set-team').value = '7';
+    TeamActions.settingsTeamSaved(7);
+    expect($('#set-team').dataset.currentTeam).toBe('7');
+    // Only a team they're already on can be closed, so the one they just picked from the list must be open.
+    expect(leaveButton()).toEqual({ name: 'Walkers', open: 'true' });
+    // An open team they moved off stays in the list to switch back to.
+    expect(settingsOptions()).toEqual(['3:Rovers', '7:Walkers*', '8:Rollers']);
+  });
+
+  test('takes a closed team they moved off out of the list, since it can\'t be picked again', () => {
+    settings(CLOSED);
+    $('#set-team').value = '7';
+    TeamActions.settingsTeamSaved(7);
+    expect(settingsOptions()).toEqual(['7:Walkers*', '8:Rollers']);
+  });
+
+  test('from no team, drops the placeholder, so a later leave leaves just one', async () => {
+    settings(null);
+    $('#set-team').value = '7';
+    TeamActions.settingsTeamSaved(7);
+    expect(settingsOptions()).toEqual(['7:Walkers*', '8:Rollers']);
+
+    routeFetch({ 'PUT /userapi/leaveTeam': {} });
+    await leave();
+    expect(settingsOptions()).toEqual([':Choose a team…*', '7:Walkers', '8:Rollers']);
+  });
 });

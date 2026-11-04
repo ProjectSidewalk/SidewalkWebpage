@@ -8,6 +8,7 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { flush } from './support/routeFetch.js';
 
 mockModule('i18next', () => ({ default: { language: 'en' } }));
 
@@ -37,13 +38,6 @@ describe('the Gallery interaction log', () => {
     // A successful send says so on the console; silenced here and asserted where it matters.
     vi.spyOn(console, 'log').mockImplementation(() => {});
   });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  /** Lets a send's response handling run, since flush() doesn't hand back the request's promise. */
-  const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
   /** @returns {string[]} The action names in one sent batch. */
   const actionsIn = (batch) => batch.body.flatMap((entry) => entry.interactions.map((i) => i.action));
@@ -99,7 +93,7 @@ describe('the Gallery interaction log', () => {
 
   it('says on the console that a batch reached the server', async () => {
     tracker.flush();
-    await settle();
+    await flush();
 
     expect(console.log).toHaveBeenCalledWith('Data logged successfully');
   });
