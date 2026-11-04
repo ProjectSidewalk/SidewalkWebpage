@@ -32,6 +32,11 @@ concurrency:
 permissions:
   contents: read
 
+# sbt's launcher defaults to a 1 GB heap, which the coverage-instrumented compile outgrew on Java 21 (#5895). The
+# runner has 16 GB, and the test JVM sbt forks sets its own heap in build.sbt.
+env:
+  SBT_OPTS: -Xmx3g
+
 jobs:
   backend:
     name: Backend (compile + scalafmt)
