@@ -677,7 +677,7 @@ export class PopupPanoManager {
   }
 
   /**
-   * Steps the imagery one zoom level in, for the Gallery's Z shortcut (#5142).
+   * Steps the imagery one zoom level in, for Gallery's Z shortcut (#5142).
    * @returns {boolean} Whether the view changed: false at the top step, or when no pano is on screen.
    */
   zoomIn() {
@@ -685,7 +685,7 @@ export class PopupPanoManager {
   }
 
   /**
-   * Steps the imagery one zoom level out, for the Gallery's Shift+Z shortcut (#5142).
+   * Steps the imagery one zoom level out, for Gallery's Shift+Z shortcut (#5142).
    * @returns {boolean} Whether the view changed: false at the bottom step, or when no pano is on screen.
    */
   zoomOut() {

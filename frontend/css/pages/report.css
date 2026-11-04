@@ -878,8 +878,8 @@ button.report-map-place:focus-visible {
 }
 
 /*
- * The Gallery's one-line severity, votes and tags row needs about 230px, so in these smaller cards tags wrap to their
- * own line. The children keep the Gallery's height, which holds the vote icons at the 24px target size.
+ * Gallery's one-line severity, votes and tags row needs about 230px, so in these smaller cards tags wrap to their
+ * own line. The children keep Gallery's height, which holds the vote icons at the 24px target size.
  */
 .report-cards .card-data {
   flex-wrap: wrap;

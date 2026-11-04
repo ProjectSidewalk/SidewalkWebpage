@@ -371,7 +371,7 @@ export class LandingValidationGrid {
     });
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
-    // Mirror the Gallery's static-image validation payload: canvas_* describe where the label sits within the
+    // Mirror Gallery's static-image validation payload: canvas_* describe where the label sits within the
     // rendered image. Off the same fraction the marker is drawn from, so the two can't disagree (#2660).
     const img = card.querySelector('.lvg-card-photo');
     const { x: fracX, y: fracY } = LandingValidationGrid.#markerFraction(entry, card.dataset.imageSource);

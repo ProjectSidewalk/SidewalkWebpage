@@ -45,7 +45,7 @@ mockLabelDetailCollaborators(() => panoManager);
  * @param {boolean} [opts.paging=true] - Render the prev/next arrows, which the template emits only for a host that
  *     asked for them (`withPaging`).
  * @param {boolean} [opts.asDialog=false] - Mount the card in a <dialog>, the way LabelPopup's hosts do, rather
- *     than in the <div> the Gallery and the share page use.
+ *     than in the <div> Gallery and the share page use.
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
@@ -540,7 +540,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
 
     test('a key pressed while the host has hidden the card', async () => {
-      // The Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
+      // Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
       // for itself through opts.isOpen — otherwise a stray "a" would vote on the last label it showed.
       await mount({ hosted: true });
       await showLabel();

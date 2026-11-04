@@ -709,7 +709,7 @@
 
 .ud-card-img {
   position: relative;
-  aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
+  aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like Gallery. */
   overflow: hidden;
   background: linear-gradient(135deg, var(--color-neutral-200), var(--color-neutral-400));
 }
@@ -723,7 +723,7 @@
 }
 
 /* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
-   which feature was labeled. Small, like the Gallery's marker. */
+   which feature was labeled. Small, like Gallery's marker. */
 .ud-card-label-marker {
   position: absolute;
   width: clamp(20px, 7%, 30px);

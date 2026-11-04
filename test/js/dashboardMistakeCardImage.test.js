@@ -45,7 +45,7 @@ describe('the dashboard mistake card\'s image', () => {
      */
   async function renderGallery(opts = {}) {
     document.body.innerHTML = '<div id="ud-mistakes"></div>';
-    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
+    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', limit: 6, ...opts });
     await gallery.render();
   }
 

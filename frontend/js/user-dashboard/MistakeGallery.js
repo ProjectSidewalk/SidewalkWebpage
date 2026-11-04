@@ -22,7 +22,7 @@ export class MistakeGallery {
    * @param {HTMLElement} rootEl - Container to fill with cards.
    * @param {object} opts
    * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
-   * @param {number} [opts.limit=6] - Max cards to show.
+   * @param {number} opts.limit - Max cards to show.
    * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
    * @param {{showLabel: (labelId: number, source: string) => Promise<void>}} [opts.labelPopup] - Optional shared
    *      LabelPopup instance; when present, clicking a card image opens the interactive pano + detail view and the
@@ -32,7 +32,7 @@ export class MistakeGallery {
   constructor(rootEl, opts) {
     this.root = rootEl;
     this.userId = opts.userId;
-    this.limit = opts.limit || 6;
+    this.limit = opts.limit;
     this.seeAllEl = opts.seeAllEl || null;
     this.labelPopup = opts.labelPopup || null;
     this.readOnly = Boolean(opts.readOnly);
@@ -365,7 +365,7 @@ export class MistakeGallery {
    * @param {string} comment - The note text.
    */
   async #saveNote(m, sec, comment) {
-    const trimmed = (comment || '').trim();
+    const trimmed = comment.trim();
     sec.querySelectorAll('button, textarea, a').forEach((el) => el.setAttribute('disabled', 'disabled'));
     try {
       const res = await fetch('/userapi/mistakeNote', {

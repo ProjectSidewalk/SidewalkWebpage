@@ -394,7 +394,7 @@ class ShareController @Inject() (
     val offY: Int    = (scaledH - SHARE_IMAGE_HEIGHT) / 2
     g.drawImage(base, -offX, -offY, scaledW, scaledH, null)
 
-    // The colored "small" icon variant is the same marker family the Gallery overlays on card photos, carrying the
+    // The colored "small" icon variant is the same marker family Gallery overlays on card photos, carrying the
     // label type's canonical color (the large `{name}.png` illustrations are grayscale).
     val iconFile: File = environment.getFile(s"public/${labelType.smallIconPath}")
     if (iconFile.exists()) {

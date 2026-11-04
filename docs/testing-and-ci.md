@@ -216,7 +216,7 @@ Parallel jobs:
   run under
   **scoverage**, and a final `coverageReport` step enforces the
   **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
-- **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
+- **backend** — `setup-java@v6` (temurin 21, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
   and `scalafmtSbtCheck` (the build files: `build.sbt` and `project/*.scala`) as separate steps, each under `if:
   always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy
   `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. All
@@ -314,7 +314,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 86 / 82 / 85 / 87 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 88 / 84 / 86 / 89 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)

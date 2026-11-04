@@ -26,15 +26,15 @@ export class CrossCityStats {
    * @param {HTMLElement} section - The #ud-cities-section element.
    * @param {object} opts
    * @param {string} opts.currentCityName - Display name of the deployment being viewed.
-   * @param {string} [opts.statsUrl='/userapi/crossCityStats'] - Endpoint to fetch; the admin's view of a user's
-   *     dashboard points it at that user's breakdown instead of the viewer's own.
+   * @param {string} opts.statsUrl - Endpoint to fetch; the admin's view of a user's dashboard points it at that
+   *     user's breakdown instead of the viewer's own.
    * @param {string} [opts.mapboxApiKey] - Mapbox token; without it the map is skipped and the rest still renders.
    */
   constructor(section, opts) {
     this.#section = section;
-    this.#statsUrl = opts.statsUrl || '/userapi/crossCityStats';
-    this.#currentCityName = opts.currentCityName || '';
-    this.#mapboxToken = opts.mapboxApiKey || '';
+    this.#statsUrl = opts.statsUrl;
+    this.#currentCityName = opts.currentCityName;
+    this.#mapboxToken = opts.mapboxApiKey;
   }
 
   /** Fetches the breakdown and renders the section, leaving it hidden on any failure. */
@@ -247,8 +247,8 @@ export class CrossCityStats {
     for (const g of geo.cities) {
       const stat = statsByCity.get(g.city_id);
       if (!stat) continue;
-      if (g.center_lat === null || g.center_lat === undefined) continue;
-      if (g.center_lng === null || g.center_lng === undefined) continue;
+      // A city with no map parameters is sent without a center.
+      if (typeof g.center_lat !== 'number' || typeof g.center_lng !== 'number') continue;
       const n = stat.labels || 0;
       features.push({
         type: 'Feature',

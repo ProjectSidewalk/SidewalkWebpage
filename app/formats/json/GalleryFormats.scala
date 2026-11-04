@@ -41,7 +41,7 @@ object GalleryFormats {
       loadedLabels: Seq[Int],
       sort: Option[String],
       staticImageryOnly: Option[Boolean],
-      // A review list (#5444). When present and non-empty it replaces every filter above: the Gallery is showing
+      // A review list (#5444). When present and non-empty it replaces every filter above: Gallery is showing
       // exactly these labels, in this order, so intersecting with a type or validation filter would silently drop
       // items the reviewer asked to see.
       labelIds: Option[Seq[Int]]

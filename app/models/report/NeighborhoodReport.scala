@@ -1002,21 +1002,21 @@ object ReportFormat {
  * The URLs behind every number on the page, so "no number without a way to see what's behind it" has one home. A count
  * links to its labels; a score links to the AccessScore tool, the one place its parts can all be seen.
  *
- * A region-wide count of at most [[MaxListedIds]] labels links to exactly those labels through the Gallery's review list
- * (#5444). Over the cap a list would be truncated, so the link falls back to the Gallery's filters, which select the same
+ * A region-wide count of at most [[MaxListedIds]] labels links to exactly those labels through Gallery's review list
+ * (#5444). Over the cap a list would be truncated, so the link falls back to Gallery's filters, which select the same
  * region, type and verdicts. Those can't express "has a human vote", so over the cap the reviewed and confirmed counts
  * land on the nearest filter rather than an exact list. A street's count has no such fallback, since no filter selects
- * one street: it stays a list, and the Gallery says so on the page if the list went over its cap.
+ * one street: it stays a list, and Gallery says so on the page if the list went over its cap.
  */
 object ReportLinks {
 
   /** Mirrors `GalleryController.MaxLabelIds`, read from there so the two can't drift. */
   val MaxListedIds: Int = controllers.GalleryController.MaxLabelIds
 
-  // Everything except what review marked incorrect: the labels this report counts. The Gallery's default omits unsure.
+  // Everything except what review marked incorrect: the labels this report counts. Gallery's default omits unsure.
   private val CountedValidationOptions = "correct,unsure,unvalidated"
 
-  /** @return The Gallery's review list for exactly these labels; truncated by it, with a notice, over [[MaxListedIds]]. */
+  /** @return Gallery's review list for exactly these labels; truncated by it, with a notice, over [[MaxListedIds]]. */
   def labelList(ids: Seq[Int]): String =
     // Past the cap only its first ids are sent, with the total, so a pooled item of thousands still fits in a URL.
     if (ids.size <= MaxListedIds) s"/gallery?labelIds=${ids.mkString(",")}"
@@ -1027,7 +1027,7 @@ object ReportLinks {
    * @param labelType   The type to filter to, or None for all
    * @param severities  Ratings to filter to (empty for all)
    * @param validations The Gallery validation options to select
-   * @return The Gallery's filtered view.
+   * @return Gallery's filtered view.
    */
   def galleryFilter(
       regionId: Int,
@@ -1051,14 +1051,14 @@ object ReportLinks {
   /** @return LabelMap opened on this region. */
   def labelMap(regionId: Int): String = s"/labelMap?regions=$regionId"
 
-  /** @return The Gallery showing the region's counted labels at the worst end of any rated type's scale. */
+  /** @return Gallery showing the region's counted labels at the worst end of any rated type's scale. */
   def worstFilter(regionId: Int): String =
     galleryFilter(
       regionId,
       severities = LabelType.ordered.flatMap(t => ReportRules.worstRating(t.ratingScale)).distinct
     )
 
-  /** @return The Gallery showing what this report counts in this region. */
+  /** @return Gallery showing what this report counts in this region. */
   def gallery(regionId: Int): String = galleryFilter(regionId)
 
   /**

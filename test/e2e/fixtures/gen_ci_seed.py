@@ -232,7 +232,7 @@ pano_rows.append("  -- Unexpired, and last checked well before the TTL cutoff: t
                             backup=False, checked=OLD, expired_at=None))
 pano_rows.append("  -- A LABELED Mapillary pano due for a check, so the nightly sweep's sampling query sees a non-gsv\n"
                  "  -- source. Real, from Richmond -- the one city on Mapillary imagery. Expired and unbacked, so it\n"
-                 "  -- stays out of the Gallery; Validate and Explore already filter it out on the city's pano source.\n"
+                 "  -- stays out of Gallery; Validate and Explore already filter it out on the city's pano source.\n"
                  + pano_row(mp, width=mp['width'], height=mp['height'], expired=True, backup=False,
                             checked=OLD, expired_at=OLD))
 w(f"INSERT INTO sidewalk_teaneck.pano_data ({pano_cols})\nVALUES\n"
@@ -270,7 +270,7 @@ w("""
 -- rest cover the forks the share, gallery and edit specs read. `correct` stays NULL, so all still need validating.
 --
 -- The two NoSidewalk labels have no crop, as prod has none for them either: still validatable (Validate reads the
--- backup panorama, not crops), just absent from the Gallery -- which is what that state means in production.""")
+-- backup panorama, not crops), just absent from Gallery -- which is what that state means in production.""")
 tmp = collections.Counter()
 label_rows = []
 for l in ordered:

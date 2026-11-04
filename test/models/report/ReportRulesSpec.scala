@@ -632,7 +632,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
 
   // ---- Links -----------------------------------------------------------------------------------------------------
 
-  test("a count's link lists exactly its labels up to the Gallery's cap, and only past that falls back to a filter") {
+  test("a count's link lists exactly its labels up to Gallery's cap, and only past that falls back to a filter") {
     ReportLinks.count(Seq(5, 9), "fallback") shouldBe "/gallery?labelIds=5,9"
     ReportLinks.count(1 to ReportLinks.MaxListedIds, "fallback") should startWith("/gallery?labelIds=1,2,")
     ReportLinks.count(1 to ReportLinks.MaxListedIds + 1, "fallback") shouldBe "fallback"
@@ -684,7 +684,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     raised(0.97, 6.0) shouldBe 100.0
   }
 
-  test("a label list over the Gallery's cap sends only what it can show, with the total for its notice") {
+  test("a label list over Gallery's cap sends only what it can show, with the total for its notice") {
     ReportLinks.labelList(Seq(1, 2)) shouldBe "/gallery?labelIds=1,2"
     val many = 1 to (ReportLinks.MaxListedIds + 700)
     val url  = ReportLinks.labelList(many)

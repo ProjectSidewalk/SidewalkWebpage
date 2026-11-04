@@ -210,7 +210,7 @@ A pano's `pano_data.width`/`height` never change: Google re-renders pixels, neve
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
 
-Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+Crops are the image Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
 dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
@@ -439,7 +439,7 @@ A report ties a map, which says where something is, to photos, which show what i
 responsive page per region. Its address is the region's name (`ReportSlug`: lowercased, accents dropped, the id appended
 only where two regions share a name), computed from current names rather than stored; an id URL redirects to it. The title, numbers and full street list are server-rendered, so they survive a failed
 script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
-the labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its
+the labels it counts, so every count links to those labels through Gallery's `?labelIds=` review list, or to its
 filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so
 viewing one costs no billable Google or Mapbox call. A card's image is its crop's thumbnail or a placeholder, never the
 Gallery's Street View still.
