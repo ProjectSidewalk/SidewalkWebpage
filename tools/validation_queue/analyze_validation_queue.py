@@ -22,13 +22,12 @@ Everything here is pure and vectorized so the tests can pin it; the CLI only rea
 
 Usage (docs/validation-queue.md has the export commands):
 
-    python3.13 tools/validation_queue/analyze_validation_queue.py \\
+    python3 tools/validation_queue/analyze_validation_queue.py \\
         --pool scratchpad/validation-queue-pool.csv \\
         --validations scratchpad/validation-queue-validations.csv \\
         --city seattle --out scratchpad/validation-queue-seattle.md
 
-Runs on Python 3.8 (the interpreter the deployed app shells out to) as well as 3.13, since both halves of
-`make test-python` collect this module's tests. numpy is the only non-stdlib import.
+numpy is the only non-stdlib import.
 """
 
 import argparse

@@ -1,6 +1,6 @@
 """Render the #2886 report markdown into the artifact HTML (out/street-side.html) using artifact_shell.html for the
 head and styles, tables wrapped for horizontal scroll and the figures inlined as base64. Run in the web container:
-    python3.13 tools/experiments/2886-street-side/render_artifact.py
+    python3 tools/experiments/2886-street-side/render_artifact.py
 """
 import base64, re
 from pathlib import Path

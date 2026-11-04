@@ -1,8 +1,8 @@
 # City tools
 
 Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
-`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3` with
+[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (Python >= 3.12), which is what their
 `make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
 root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
@@ -35,12 +35,12 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
                                                                  # the tenant has several
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
                                                                  # 360° pictures only
    ```
    It checks each street's endpoints, then samples points along the street, and keeps a street only if the panos it

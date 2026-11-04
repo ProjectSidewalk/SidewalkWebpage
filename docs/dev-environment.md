@@ -270,10 +270,10 @@ The dev server hot-reloads, so you rarely restart it.
   renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
-- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
-  is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
-  offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
-  [`tools/README.md`](../tools/README.md); upgrade notes in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container's `python3` is 3.12, the same minor
+  as the `python3.12` the app shells out to on prod for in-band clustering, and it holds every script's libraries. Run
+  scripts as `python3 tools/...`. Details in [`tools/README.md`](../tools/README.md); upgrade notes in
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -314,9 +314,9 @@ make compile
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Werror`, so a `[success]` is also warning-clean.
 
-Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
-so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
-directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
+`sbt --client` uses the native thin client (`sbtn`), which the container's glibc is new enough for (#5268). A server
+belongs to one project directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the
+running `~ run` included.
 An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
 
 That server serves one command at a time, so **it will not run anything while `~ run` is up in the same

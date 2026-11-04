@@ -199,7 +199,7 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
       val regionId =
         run(sql"SELECT region_id FROM region WHERE deleted = FALSE ORDER BY region_id LIMIT 1".as[Int].head)
       val edgeId = run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].head)
-      // Millisecond precision: Postgres keeps microseconds, and Java 17's clock can carry nanos past that.
+      // Millisecond precision: Postgres keeps microseconds, and Java's clock can carry nanos past that.
       val runAt = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS)
       def row(
           way: Long,
