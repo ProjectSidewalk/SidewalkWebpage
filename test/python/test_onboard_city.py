@@ -5,8 +5,6 @@ Covers the pure helpers — the Overpass filter builder, osmnx tag flattening/no
 short-segment and region-stats QA logic, boundary-coverage, and the COPY/EWKB serialization used to build the SQL
 load file — plus the I/O layer (fetches, geopackage/SQL/report writers, the CLI, and ``main``) with the network and
 osmnx mocked out.
-
-The geo stack (requirements-offline-tools.txt) needs >= 3.12, so the whole module skips on the in-band 3.8 half.
 """
 
 import hashlib
@@ -16,19 +14,17 @@ import re
 import sys
 from types import SimpleNamespace
 
+import geopandas as gpd
 import pandas as pd
 import pytest
 import requests
+import shapely
+import shapely.errors
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping
+from shapely.ops import substring
 
-gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.12')
-
-import shapely  # noqa: E402
-import shapely.errors  # noqa: E402
-from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping  # noqa: E402
-from shapely.ops import substring  # noqa: E402
-
-import onboard_city as oc  # noqa: E402
-import overpass as op  # noqa: E402
+import onboard_city as oc
+import overpass as op
 
 
 @pytest.fixture(autouse=True)

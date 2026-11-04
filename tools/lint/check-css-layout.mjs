@@ -56,7 +56,11 @@ const PAGES = {
   },
   'pages/errors.css': { importers: ['frontend/js/pages/errorPage.js'] },
   'pages/explore': { importers: ['frontend/js/pages/explore.js', 'frontend/js/explore/'], prefixes: ['svl-'] },
-  'pages/gallery': { importers: ['frontend/js/pages/gallery.js', 'frontend/js/gallery/'], prefixes: ['gallery-'] },
+  // The card and its tags are components, since a report wears them too; the page keeps its own furniture.
+  'pages/gallery': {
+    importers: ['frontend/js/pages/gallery.js', 'frontend/js/gallery/'],
+    prefixes: ['gallery-expanded-', 'gallery-filter-', 'gallery-footer', 'gallery-list-bar', 'gallery-sort'],
+  },
   'pages/homepage.css': { importers: ['frontend/js/pages/main.js'] },
   'pages/labeling-guide.css': {
     importers: ['frontend/js/pages/labelingGuide.js', 'frontend/js/common/labelingGuide.js'],
@@ -64,6 +68,7 @@ const PAGES = {
   'pages/mobile-landing.css': { importers: ['frontend/js/pages/mobileLanding.js'] },
   'pages/mobile-validate.css': { importers: ['frontend/js/pages/mobileValidate.js', 'frontend/js/mobileValidate.js'] },
   'pages/route-builder.css': { importers: ['frontend/js/pages/routeBuilder.js', 'frontend/js/route-builder/'] },
+  'pages/report.css': { importers: ['frontend/js/pages/report.js', 'frontend/js/report/'], prefixes: ['report-'] },
   'pages/shared-label.css': { importers: ['frontend/js/pages/sharedLabel.js', 'frontend/js/shared-label/'] },
   'pages/user-dashboard.css': {
     importers: ['frontend/js/pages/dashboard/', 'frontend/js/user-dashboard/'],

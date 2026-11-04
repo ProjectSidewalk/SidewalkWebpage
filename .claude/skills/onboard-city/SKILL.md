@@ -71,7 +71,7 @@ settled (merges and boundary edits done), so the list you review is the one that
 
 1. **List them** with `repr`, which shows stray, doubled and non-breaking spaces a plain listing hides:
    ```
-   docker exec projectsidewalk-web sh -c "cd /home && python3.13 -c \"import geopandas as gpd; \
+   docker exec projectsidewalk-web sh -c "cd /home && python3 -c \"import geopandas as gpd; \
    gpkg = 'db/onboarding/<city-id>/<city-id>_qa.gpkg'; \
    [print(r.region_id, repr(r.name)) for r in gpd.read_file(gpkg, layer='qgis_region').itertuples()]\""
    ```

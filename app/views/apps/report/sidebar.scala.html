@@ -1,0 +1,62 @@
+@import models.report.NeighborhoodReport
+@import views.html.apps.report as reportViews
+
+@*
+ * The report's controls. On a narrow screen the column folds into a strip holding its disclosure button, the same as
+ * every other `.page-*` shell; the button is rendered here rather than built in JS so its label goes through Play's
+ * i18n. Laid out in the shared filter sidebar's sections, as the AccessScore tool's is. Print and copy-link need
+ * JavaScript, so report.js reveals them.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using messages: Messages, assets: AssetsFinder)
+
+<aside class="page-sidebar report-sidebar" id="report-sidebar" aria-label="@Messages("report.sidebar.label")">
+  <button type="button" class="page-sidebar-toggle" id="report-sidebar-toggle" hidden>
+    <span class="page-sidebar-toggle-label">@Messages("report.sidebar.label")</span>
+    <svg class="page-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <div class="page-nav report-sidebar__body" id="report-sidebar-body">
+    <section class="filter-sidebar__section report-control" id="report-map-controls" aria-labelledby="report-map-title" hidden>
+      <div class="filter-sidebar__heading-row">
+        <h2 class="filter-sidebar__heading" id="report-map-title">@Messages("report.map.title")</h2>
+      </div>
+      @* report.js reveals this only where the city's streets have a grade. *@
+      <fieldset class="report-color-by" id="report-color-by" hidden>
+        <legend class="report-color-by__title">@Messages("report.map.color.title")</legend>
+        <div class="report-toggle">
+          <input type="radio" name="report-color" id="report-color-score" value="score" checked>
+          <label for="report-color-score">@Messages("report.map.color.score")</label>
+        </div>
+        <div class="report-toggle">
+          <input type="radio" name="report-color" id="report-color-slope" value="slope">
+          <label for="report-color-slope">@Messages("report.map.color.slope")</label>
+        </div>
+        <ul class="report-legend" id="report-slope-legend" hidden></ul>
+      </fieldset>
+      <div class="report-toggle">
+        <input type="checkbox" id="report-sidewalks-toggle">
+        <label for="report-sidewalks-toggle">@Messages("report.map.sidewalks")</label>
+        @reportViews.info(Messages("report.map.sidewalks.help"))
+      </div>
+      <ul class="report-legend" id="report-sidewalk-legend" hidden>
+        <li><span class="report-legend__line report-legend__line--present" aria-hidden="true"></span>@Messages("report.map.sidewalks.present")</li>
+        <li><span class="report-legend__line report-legend__line--absent" aria-hidden="true"></span>@Messages("report.map.sidewalks.absent")</li>
+      </ul>
+    </section>
+    @* The AccessScore tool's own panel, so the two read as one control. It needs the engine config, so report.js
+       reveals it. *@
+    <div id="report-weights-control" hidden>
+      @common.accessScoreWeights(2, "report-control")(reportViews.info(Messages("report.weights.help")))
+    </div>
+    <div class="report-actions" id="report-actions" hidden>
+      <button type="button" class="button button--secondary button--small report-action" id="report-print">
+        <span class="ps-mask-icon report-action__icon report-action__icon--print" aria-hidden="true"></span>@Messages("report.print")
+      </button>
+      <button type="button" class="button button--secondary button--small report-action" id="report-copy-link">
+        <span class="ps-mask-icon report-action__icon report-action__icon--link" aria-hidden="true"></span>@Messages("report.copy.link")
+      </button>
+    </div>
+  </div>
+</aside>

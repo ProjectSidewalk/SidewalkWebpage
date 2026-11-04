@@ -1,8 +1,8 @@
 # City tools
 
 Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
-`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3` with
+[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (Python >= 3.12), which is what their
 `make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
 root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
@@ -35,19 +35,20 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
                                                                  # the tenant has several
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
                                                                  # 360° pictures only
    ```
    It checks each street's endpoints, then samples points along the street, and keeps a street only if the panos it
    found cover enough of it for a labeler's walk to finish (the rule under "Search radius" below). It writes streets
    without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary (presence + capture-date range)
    to `street_imagery_summary.csv`, both in the same dir.
-3. Run `make hide-streets-without-imagery` to mark those streets in the database.
+3. Run `make hide-streets-without-imagery` to apply the summary: streets without imagery are marked `no_imagery`,
+   and `no_imagery` streets the scan found imagery on are reopened, so a rescan corrects an earlier verdict either way.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
 second across all workers, default 10 — deliberately conservative; Google allows ~500/s).
@@ -225,9 +226,8 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint_<provider>.csv`, so a re-run resumes
   where it left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir
   and the checkpoint is per provider, a scan can never resume another city's or another provider's results:
-  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. The final
-  no-imagery CSV is derived from the checkpoint at the end — its schema is unchanged, so
-  `make hide-streets-without-imagery` is unaffected. `failed_streets.csv` is rewritten every run (empty when nothing
+  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. Both output
+  CSVs are derived from the checkpoint at the end. `failed_streets.csv` is rewritten every run (empty when nothing
   failed), so a rerun with a fixed key clears it.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
   whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than

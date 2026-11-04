@@ -592,13 +592,13 @@ Then, separately, the small PR that adds the per-side `NoSidewalk` rule to the q
 ## Reproducing this report
 
 ```bash
-python3.13 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data           # SDOT layers (network)
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py load
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py compute   # ~4 min
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/street_side.py export
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/analyze_street_side.py
+python3 tools/experiments/2886-street-side/download_sdot.py tools/experiments/2886-street-side/data           # SDOT layers (network)
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py load
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py compute   # ~4 min
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/street_side.py export
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/analyze_street_side.py
 python3 tools/experiments/2886-street-side/fetch_share_images.py                                                # §4.7 picks + images (network)
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/experiments/2886-street-side/case_maps.py      # §4.7 figures
+docker exec -w /home/<worktree> projectsidewalk-web python3 tools/experiments/2886-street-side/case_maps.py      # §4.7 figures
 ```
 
 `tools/experiments/2886-street-side/out/summary.json` holds every number quoted above; `tables.md` every table, including the ones

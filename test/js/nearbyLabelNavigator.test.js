@@ -66,6 +66,16 @@ describe('createNearbyLabelNavigator', () => {
     expect(nav.prev(1)).toBeNull();
   });
 
+  test('hasPrev() on a label the user stepped back to counts only the labels before it', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    nav.next(1); // -> 2
+    nav.next(2); // -> 3
+    nav.prev(3); // back to 2; the trail now ends at 2 itself
+    expect(nav.hasPrev(2)).toBe(true);
+    nav.prev(2); // back to 1
+    expect(nav.hasPrev(1)).toBe(false);
+  });
+
   test('next() after prev() returns to the abandoned label (back/forward semantics)', async () => {
     const nav = (await loadFactory())(mapDataWith(LINE));
     nav.next(1); // -> 2

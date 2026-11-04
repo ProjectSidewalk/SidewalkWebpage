@@ -504,3 +504,18 @@ with respect to the image holder. This allows the validation menu to be placed o
   background-color: var(--color-asphalt-500);
   color: var(--color-asphalt-500);
 }
+
+/* Scoped to the card badge, not every .ai-icon-marker on the page: cqw against .gallery-card keeps it proportional
+   to the card, and the expanded view's marker has no size container to resolve against — it keeps main.css's size. */
+.ai-icon-marker-card {
+  width: clamp(12px, 3cqw, 16px);
+  height: clamp(12px, 3cqw, 16px);
+  top: -6px;
+  left: -5px;
+}
+
+/* There is no specific intended function for hover/click on labels on the gallery page.
+We should allow the pointer events to pass through and behave the same way as they do on the background. */
+.label-icon-gallery, .icon-outline {
+  pointer-events: none;
+}

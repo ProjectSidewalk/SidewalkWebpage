@@ -106,7 +106,51 @@ object AccessScoreSpotlight {
    * @return              Whether the region belongs in the ranked lists.
    */
   def regionQualifies(row: RegionSpotlightRowForApi, minCompletion: Double = MinRegionCompletion): Boolean =
-    row.score.isDefined && math.round(row.completionRate * 100) >= math.round(minCompletion * 100)
+    row.score.isDefined && completionQualifies(row.completionRate, minCompletion)
+
+  /**
+   * @param completionRate The region's rate, from [[completionRate]].
+   * @return               Whether the rate clears the floor, compared on the rounded percent.
+   */
+  def completionQualifies(completionRate: Double, minCompletion: Double = MinRegionCompletion): Boolean =
+    math.round(completionRate * 100) >= math.round(minCompletion * 100)
+
+  /**
+   * A region's explored share of its street length. A region with no streets is vacuously complete, the same reading
+   * `/regions/completionRates` publishes; it has no score either way, so it can never be ranked on the strength of that
+   * 1.0.
+   *
+   * @return           The rate in [0, 1].
+   */
+  def completionRate(completion: Option[NamedRegionCompletion]): Double = completion match {
+    case Some(c) if c.totalDistance > 0 => math.min(1.0, math.max(0.0, c.auditedDistance / c.totalDistance))
+    case Some(_)                        => 1.0
+    case None                           => 0.0
+  }
+
+  /**
+   * Whether a rolled-up stretch of street is ranked: the bars [[models.street.StreetAccessScoreTable.getSpotlight]]
+   * applies in SQL, for a caller holding the rows rather than the snapshot.
+   *
+   * @param clusterCount Clusters scoring its segments, which excludes those pooled on intersections.
+   */
+  def stretchIsRanked(lengthMeters: Double, auditCount: Int, clusterCount: Int, score: Option[Double]): Boolean =
+    score.isDefined && auditCount > 0 && lengthMeters >= MinStreetLengthMeters &&
+      (clusterCount >= MinStreetClusters || clusterCount == 0)
+
+  /**
+   * Rolls edge scores up into one stretch's: weighted by length where there is any, and a plain mean where every scored
+   * edge is zero-length, so a degenerate geometry can't turn a real score into a division by zero.
+   *
+   * @param edges (score, length in meters) per edge.
+   * @return      The roll-up, or None with no edges.
+   */
+  def stretchScore(edges: Seq[(Double, Double)]): Option[Double] = {
+    val weight: Double = edges.map { case (_, length) => math.max(0.0, length) }.sum
+    if (edges.isEmpty) None
+    else if (weight > 0) Some(edges.map { case (score, length) => score * math.max(0.0, length) }.sum / weight)
+    else Some(edges.map { case (score, _) => score }.sum / edges.size)
+  }
 
   /**
    * Whether a ranked unit belongs in the "Highest scores" list: at or above [[HighestMinScore]].
@@ -168,13 +212,7 @@ object AccessScoreSpotlight {
     val completionByRegion: Map[Int, NamedRegionCompletion] = completions.map(c => c.regionId -> c).toMap
     regionScores.map { region =>
       val completion: Option[NamedRegionCompletion] = completionByRegion.get(region.regionId)
-      // A region with no streets is vacuously complete, the same reading `/regions/completionRates` publishes; it
-      // has no score either way, so it can never be ranked on the strength of that 1.0.
-      val rate: Double = completion match {
-        case Some(c) if c.totalDistance > 0 => math.min(1.0, math.max(0.0, c.auditedDistance / c.totalDistance))
-        case Some(_)                        => 1.0
-        case None                           => 0.0
-      }
+      val rate: Double                              = completionRate(completion)
       RegionAccessScore(
         regionAccessScoreId = 0, // Assigned by the serial on insert.
         regionId = region.regionId,
@@ -237,20 +275,13 @@ object AccessScoreSpotlight {
       // order of the map above.
       .sortBy { case ((osmWayId, regionId), _) => (osmWayId, regionId) }
       .map { case ((osmWayId, regionId), edges) =>
-        val scored: Seq[(Double, Double)] = edges.flatMap(e => e.score.map(s => (s, math.max(0.0, e.lengthMeters))))
-        val weight: Double                = scored.map { case (_, length) => length }.sum
         StreetAccessScore(
           streetAccessScoreId = 0, // Assigned by the serial on insert.
           osmWayId = osmWayId,
           regionId = regionId,
           streetEdgeId = edges.maxBy(_.lengthMeters).streetEdgeId,
           name = edges.flatMap(_.streetName).headOption,
-          // Weighted by length where there is any, and a plain mean where every scored edge is zero-length, so a
-          // degenerate geometry can't turn a real score into a division by zero.
-          score =
-            if (scored.isEmpty) None
-            else if (weight > 0) Some(scored.map { case (s, l) => s * l }.sum / weight)
-            else Some(scored.map { case (score, _) => score }.sum / scored.size),
+          score = stretchScore(edges.flatMap(e => e.score.map(_ -> e.lengthMeters))),
           lengthM = edges.map(e => math.max(0.0, e.lengthMeters)).sum,
           auditCount = edges.map(_.auditCount).sum,
           clusterCount = edges.map(_.clusterCounts.values.sum).sum,

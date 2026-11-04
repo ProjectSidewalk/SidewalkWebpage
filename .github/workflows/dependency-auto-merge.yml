@@ -27,12 +27,10 @@ jobs:
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      # pip is left out: the only CI leg that installs its bumps (offline tooling) is advisory, so a broken one would
-      # merge and break the web image build. So are the npm-imagery groups (dependabot.yml): nothing in CI drives a
-      # pano viewer, so their bumps wait for a person to try them in a city that uses each one.
+      # The npm-imagery groups (dependabot.yml) are left out: nothing in CI drives a pano viewer, so their bumps wait
+      # for a person to try them in a city that uses each one.
       - name: Enable auto-merge for patch & minor
         if: >-
-          steps.meta.outputs.package-ecosystem != 'pip' &&
           !startsWith(steps.meta.outputs.dependency-group, 'npm-imagery') && (
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||
           steps.meta.outputs.update-type == 'version-update:semver-minor')

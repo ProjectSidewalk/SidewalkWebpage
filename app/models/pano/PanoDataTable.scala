@@ -483,6 +483,22 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * The attribution owed for each of the given panos, for a page that shows their imagery server-rendered.
+   *
+   * @param panoIds Panos to look up.
+   * @return Pano ID -> its attribution; a pano with nothing to attribute is absent.
+   */
+  def getAttributions(panoIds: Seq[String]): DBIO[Map[String, ImageryAttribution.Line]] = {
+    panoDataRecords
+      .filter(_.panoId inSet panoIds)
+      .map(pano => (pano.panoId, pano.source, pano.copyright, pano.license))
+      .result
+      .map(_.flatMap { case (panoId, source, copyright, license) =>
+        ImageryAttribution.line(source, copyright, license).map(panoId -> _)
+      }.toMap)
+  }
+
+  /**
    * Fetches the full metadata row for a single pano.
    * @param panoId Unique ID for the panorama
    */

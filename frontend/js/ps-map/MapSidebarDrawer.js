@@ -151,10 +151,9 @@ export class MapSidebarDrawer {
    * centered over the map (the status pill) centers on the part the reader can see.
    */
   #publishWidth() {
-    const style = this.#sidebar.parentElement?.style;
-    if (!style) return;
+    const style = this.#sidebar.parentElement.style;
     style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
-    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft ?? 0}px`);
+    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */
@@ -193,7 +192,8 @@ export class MapSidebarDrawer {
       this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
-      this.#map.setPadding({ ...this.#map.getPadding(), left: newWidth });
+      // Through the shared target, so an overlay that sets its own edge later keeps the dragged width.
+      setPaddingEdges(this.#map, { left: newWidth }, { animate: false });
       this.#publishWidth();
     };
 

@@ -1,0 +1,23 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+
+@*
+ * What a report's URL shows while the city's AccessScores are being computed for the first time since a deploy. Reports
+ * state AccessScore's own numbers, so until those exist there is nothing honest to print.
+ *
+ * @param user       The signed-in user, if any (navbar only).
+ *@
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@common.main(commonData, Messages("report.computing.title"), url = "/report") {
+  @common.navbar(commonData, user)
+
+  <main class="report-page" id="report-page">
+    <h1 class="report-title">@Messages("report.computing.title")</h1>
+    <p class="report-section__intro">@Messages("report.computing.body")</p>
+    <p><a href="@request.uri">@Messages("report.computing.retry")</a></p>
+  </main>
+
+  @ViteAssets.stylesheets("report")
+}

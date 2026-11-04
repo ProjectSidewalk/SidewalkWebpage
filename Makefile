@@ -1,7 +1,7 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
         upgrade-dev-db lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
-        test-python test-python-app test-python-tools \
+        test-python \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
@@ -273,14 +273,14 @@ onboard-city:
 # e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/onboard_city.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/onboard_city.py --city-id $(id) $(args)"
 
 # Imagery preflight or full scan for a city's streets (tools/city/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:
 # e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
 # what `make onboard-city` runs for you. Main checkout only, like build-city-data.
 check-imagery:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/check_streets_for_imagery.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -300,7 +300,7 @@ export-street-gradient-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
 
 street-gradient:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/street_gradient.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/street_gradient.py --city-id $(id) $(args)"
 
 import-street-gradient:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
@@ -311,36 +311,14 @@ export-osm-lineage-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
 
 osm-lineage:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/backfill_osm_lineage.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/backfill_osm_lineage.py --city-id $(id) $(args)"
 
 import-osm-lineage:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-osm-lineage.sh $(args)"
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
-# Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
-# import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
-# explained in pyproject.toml.
-pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
-                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py \
-                    --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
-pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=tools/city/check_streets_for_imagery.py -e COVERAGE_OMIT2=tools/city/onboard_city.py \
-                    -e COVERAGE_OMIT3=tools/city/street_gradient.py -e COVERAGE_OMIT4=tools/city/osm_lineage.py \
-                    -e COVERAGE_OMIT5=tools/city/backfill_osm_lineage.py
-cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
-
-# Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
 test-python:
-	@$(MAKE) --no-print-directory test-python-app || fail=1; \
-	$(MAKE) --no-print-directory test-python-tools || fail=1; \
-	exit $${fail:-0}
-
-test-python-app:
-	@docker exec $(tty-flags) $(cov-omit-app) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(pytest-args-app) $(args)"
-
-test-python-tools:
-	@docker exec $(tty-flags) $(cov-omit-tools) $(web-container) sh -c "cd $(container-dir) && python3.13 -m pytest $(pytest-args-tools) $(args)"
+	@docker exec $(tty-flags) $(web-container) sh -c "cd $(container-dir) && python3 -m pytest $(args)"
 
 # Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
 # this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host

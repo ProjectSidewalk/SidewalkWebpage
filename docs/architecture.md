@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 21).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
   native DOM and CSS on the `main.css` design tokens.
@@ -433,6 +433,58 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
 `/clusteringResults`, `/ai/submitLabelsOnPano`.
 
+### Neighborhood reports (`/report/neighborhood/:slug`)
+
+A report ties a map, which says where something is, to photos, which show what it is (#3889, #5876): one public,
+responsive page per region. Its address is the region's name (`ReportSlug`: lowercased, accents dropped, the id appended
+only where two regions share a name), computed from current names rather than stored; an id URL redirects to it. The title, numbers and full street list are server-rendered, so they survive a failed
+script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
+the labels it counts, so every count links to those labels through the Gallery's `?labelIds=` review list, or to its
+filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so
+viewing one costs no billable Google or Mapbox call. A card's image is its crop's thumbnail or a placeholder, never the
+Gallery's Street View still.
+
+The report's scores are AccessScore's, and they must agree with what the tool, the Spotlight and the API say about the
+same place. `ReportService` reads the city's `getFullCityScores` cache rather than scoring anything itself, and the same
+public data backs every figure: the street scores, the label clusters ("locations") and the raw labels, each linked as a
+CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-After` rather than an inferred number.
+`AccessScoreSpotlight` holds the bars for what gets ranked (`regionQualifies`, `stretchIsRanked`, `stretchScore`), so the
+report and the Spotlight can't disagree about them. The page ranks explored street segments, roughly blocks: the unit
+AccessScore scores and the map colors, so a section never holds parts its number doesn't describe. Each is named by the
+streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
+on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
+Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. A
+fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+`ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
+labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
+Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
+out. Photos come from `/cropImage/:type/:id/thumbnail`,
+because a page of full-size crops weighs around 100 MB.
+
+`ReportPage` decides when each piece exists, since a region can have fifty streets and a browser about 16 WebGL contexts:
+a street's map and cards start as its section nears the viewport, and at most `MAX_LIVE_MAPS` maps live at once, given to
+the near sections closest to it. Each `ReportStreetSection` keeps one source of what's lit, whichever side the pointer is
+on: hover a Gallery `Card` and its map icon and elevation-profile pin light, with the photo's view wedge drawn, and hover
+an icon and its card lights. Under the map sits `AccessScoreElevationProfile`, fed by `stitchProfile`, which joins a
+stretch's per-edge `/v3/api/streetGrade` answers end to end. For print, a small SVG sketch stands in for each canvas.
+Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend says so.
+
+Below the segment list, a worst-problems map (#5889) puts a dot, in its type's label color, on every location whose
+rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
+Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
+switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
+and a dot opens its label's Gallery card in a popup. It prints as the counts alone.
+
+A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
+(`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads
+the report with the weights in the tool's own `w` and `gs` parameters, and the server scores the whole report under
+them: `AccessScoreWeights.reweight` rebuilds every cached street and crossing score from the per-type counts each
+row already carries (the same arithmetic as the tool's client-side reweighting, with no database read), and fixes,
+card costs and the street order all follow. The page never shows numbers from two weightings at once. Custom weights
+must not pass for AccessScore's own, so a stamp stays in the header and in print, and every score links to the tool
+under the same weights.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
@@ -549,7 +601,8 @@ loaded by the corresponding Twirl view:
   query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
   is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
   hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
-  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  worse than a refused one. A linking page whose list is far over the cap (the Neighborhood Report's pooled items)
+  sends only the first 500 ids plus `labelIdsTotal=<n>`, which the notice counts instead, so the URL stays short. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
@@ -830,11 +883,11 @@ what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validatio
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
 find and run it: `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`,
 `ClusterService` resolves the script against the app root rather than the process working directory (a staged app
-runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installable on the `python3` the
-app invokes. Don't add libraries to `requirements.txt` that have dropped 3.8.
+runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installed into the `python3.12`
+the app invokes (the deploy does that).
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%) — one CI
-run per interpreter, the in-band leg blocking and the offline-tooling leg advisory. See
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%, a blocking
+CI check). See
 [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types

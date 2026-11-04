@@ -37,6 +37,7 @@ export class Card {
   #gsvImageUrl;
   #tracker;
   #cardFilter;
+  /** @type {?string} */ #voteSource;
   #regionNames;
 
   #markerWrapper;
@@ -100,8 +101,12 @@ export class Card {
    * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
+   * @param {object} [options]
+   * @param {?string} [options.voteSource] - The source its votes are recorded under on a page other than the Gallery,
+   *     since analyses key on it; the Gallery's own two sources otherwise.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, options = {}) {
+    this.#voteSource = options.voteSource ?? null;
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -256,6 +261,11 @@ export class Card {
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
+  }
+
+  /** @returns {?string} The source to record this card's votes under, when its page has its own. */
+  getVoteSource() {
+    return this.#voteSource;
   }
 
   /**

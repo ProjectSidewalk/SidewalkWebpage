@@ -50,6 +50,7 @@ import { util } from './utilities.js';
 import '../../css/components/elevation-profile.css';
 
 export class AccessScoreElevationProfile {
+  /** The default viewBox width; text is sized in viewBox units, so see the `width` option. */
   static #WIDTH = 340;
   static #HEIGHT = 132;
   /** Side margins hold the endpoint elevations beside the line, where they cannot collide with the bracket above it. */
@@ -64,6 +65,7 @@ export class AccessScoreElevationProfile {
   /** Numbers each chart's legend title, so its list can be labeled by it while two popups' charts coexist. */
   static #nextId = 0;
 
+  #width = AccessScoreElevationProfile.#WIDTH;
   /** @type {HTMLElement} */ #root;
   /** @type {SVGSVGElement} */ #svg;
   /** @type {Element} */ #cursorLine;
@@ -75,6 +77,7 @@ export class AccessScoreElevationProfile {
   /** @type {AccessScoreProfile} */ #profile;
   /** @type {{stretches: AccessScoreProfileStretch[], lengths: Map<number, number>, length: number}} */ #analysis;
   /** @type {(kind: string, value?: string) => void} */ #onLog;
+  /** @type {(meters: ?number) => void} */ #onCursor;
   /** Classes pinned by pressing their legend rows. */
   #pinned = new Set();
   /**
@@ -104,11 +107,20 @@ export class AccessScoreElevationProfile {
    * @param {AccessScoreProfileMarker[]} [options.markers] - Markers to pin along the line; see [[setMarkers]].
    * @param {(id: ?number) => void} [options.onMarkerHover] - A marker's id as the pointer reaches it, null as it
    *   leaves.
+   * @param {(meters: ?number) => void} [options.onCursor] - How far along the street the pointer or key cursor is, so
+   *   a host can show the place on a map; null as it leaves.
+   * @param {number} [options.width] - The viewBox width. The chart scales to its slot, text included, so a host much
+   *   wider than a popup passes its own width in CSS px to keep the text at its set size instead of magnified.
    */
-  constructor(slot, profile, { breaks, steepest, label, onLog = () => {}, markers = [], onMarkerHover = () => {} }) {
+  constructor(slot, profile, {
+    breaks, steepest, label, onLog = () => {}, markers = [], onMarkerHover = () => {}, onCursor = () => {},
+    width = AccessScoreElevationProfile.#WIDTH,
+  }) {
+    this.#width = Math.max(width, AccessScoreElevationProfile.#WIDTH);
     this.#profile = profile;
     this.#onLog = onLog;
     this.#onMarkerHover = onMarkerHover;
+    this.#onCursor = onCursor;
     this.#analysis = AccessScoreElevationProfile.analyze(profile, breaks);
     const colors = AccessScoreGradeRamp.colors(breaks.length + 1);
     const { length } = this.#analysis;
@@ -232,7 +244,7 @@ export class AccessScoreElevationProfile {
     const titleId = `elevation-profile-legend-${self.#nextId++}`;
     const casing = `<path class="elevation-profile__casing" d="M${pts.map(at).join(' L')}"></path>`;
     return `<figure class="elevation-profile">
-        <svg class="elevation-profile__chart" viewBox="0 0 ${self.#WIDTH} ${self.#HEIGHT}" role="slider" tabindex="0"
+        <svg class="elevation-profile__chart" viewBox="0 0 ${this.#width} ${self.#HEIGHT}" role="slider" tabindex="0"
              aria-label="${util.escapeHTML(label)}" aria-valuemin="0" aria-valuemax="${n - 1}" aria-valuenow="0"
              aria-valuetext="${util.escapeHTML(this.#stretchText(0))}" aria-orientation="horizontal">
           <g aria-hidden="true">
@@ -300,7 +312,7 @@ export class AccessScoreElevationProfile {
     const { x } = this.#scales();
     const [x1, x2] = [x(steepest.from), x(steepest.to)];
     const { left, right } = self.#PAD;
-    const cx = Math.min(Math.max((x1 + x2) / 2, left + 50), self.#WIDTH - right - 50);
+    const cx = Math.min(Math.max((x1 + x2) / 2, left + 50), this.#width - right - 50);
     // Above the line's highest point under the bracket or under its label, which is wider than a 30 m stretch, so
     // the text clears the line where the street is higher beside the stretch than on it. The line is read at the
     // span's two edges as well as at the samples inside it: a fine model's 10 m stretch can fall between two
@@ -371,7 +383,7 @@ export class AccessScoreElevationProfile {
   #scales() {
     const { top, right, bottom, left } = AccessScoreElevationProfile.#PAD;
     const z = this.#profile.elevations_meters;
-    const width = AccessScoreElevationProfile.#WIDTH - left - right;
+    const width = this.#width - left - right;
     const height = AccessScoreElevationProfile.#HEIGHT - top - bottom;
     const low = Math.min(...z);
     const high = Math.max(...z);
@@ -416,7 +428,7 @@ export class AccessScoreElevationProfile {
     this.#svg.addEventListener('pointermove', (e) => {
       const box = this.#svg.getBoundingClientRect();
       const { left, right } = AccessScoreElevationProfile.#PAD;
-      const width = AccessScoreElevationProfile.#WIDTH;
+      const width = this.#width;
       const vx = ((e.clientX - box.left) / box.width) * width;
       const along = (vx - left) / (width - left - right);
       // Clamped at both ends alike, so the pads either side of the line hold the nearest stretch.
@@ -486,9 +498,12 @@ export class AccessScoreElevationProfile {
     if (!stretch) {
       this.#cursorLine.setAttribute('visibility', 'hidden');
       this.#paint();
+      this.#onCursor(null);
       return;
     }
-    const x = this.#scales().x((this.#cursor + 0.5) * this.#profile.spacing_meters).toFixed(1);
+    const meters = (this.#cursor + 0.5) * this.#profile.spacing_meters;
+    this.#onCursor(meters);
+    const x = this.#scales().x(meters).toFixed(1);
     this.#cursorLine.setAttribute('x1', x);
     this.#cursorLine.setAttribute('x2', x);
     this.#cursorLine.setAttribute('visibility', 'visible');

@@ -233,7 +233,6 @@ export class Compass {
         return this.#directionIcons.leftTurn;
       case 'u-turn':
         return this.#directionIcons.uTurn;
-      default:
     }
   }
 
@@ -309,25 +308,16 @@ export class Compass {
 
   /**
    * Mapping from an angle to a direction.
-   * @param {number} angle
-   * @returns {string|undefined}
+   * @param {number} angle - Degrees the user needs to rotate, normalized to [0, 360).
+   * @returns {string}
    */
   #angleToDirection(angle) {
-    if (angle < 20 || angle > 340) {
-      return 'straight';
-    } else if (angle >= 20 && angle < 45) {
-      return 'slight-left';
-    } else if (angle <= 340 && angle > 315) {
-      return 'slight-right';
-    } else if (angle >= 45 && angle < 150) {
-      return 'left';
-    } else if (angle <= 315 && angle > 210) {
-      return 'right';
-    } else if (angle <= 210 && angle >= 150) {
-      return 'u-turn';
-    } else {
-      console.debug('It shouldn\'t reach here.');
-    }
+    if (angle < 20 || angle > 340) return 'straight';
+    if (angle < 45) return 'slight-left';
+    if (angle > 315) return 'slight-right';
+    if (angle < 150) return 'left';
+    if (angle > 210) return 'right';
+    return 'u-turn';
   }
 
   /**
@@ -349,7 +339,6 @@ export class Compass {
         return i18next.t('center-ui.compass.left');
       case 'u-turn':
         return i18next.t('center-ui.compass.u-turn');
-      default:
     }
   }
 

@@ -75,6 +75,14 @@ describe('Gallery Z / Shift+Z shortcut', () => {
     expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
   });
 
+  it('goes by the letter printed on the key, as the card\'s vote keys do (#5883)', () => {
+    // On a German keyboard Y and Z swap places, so the key printed Y (where QWERTY has Z) votes Agree, not zoom.
+    release({ key: 'y', code: 'KeyZ' });
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+    release({ key: 'z', code: 'KeyY' });
+    expect(expandedView.panoManager.zoomIn).toHaveBeenCalledTimes(1);
+  });
+
   it('Shift+Z zooms out and logs it', () => {
     release({ key: 'Z', code: 'KeyZ', shiftKey: true });
     expect(expandedView.panoManager.zoomOut).toHaveBeenCalledTimes(1);
