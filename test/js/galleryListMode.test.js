@@ -1,5 +1,5 @@
 /**
- * Tests for the Gallery's review-list mode (`/gallery?labelIds=…`, issue #5444).
+ * Tests for Gallery's review-list mode (`/gallery?labelIds=…`, issue #5444).
  *
  * List mode is a different contract from the filtered grid: the server picked the cards and their order, so the
  * client must show them as they arrived, never re-fetch while paging through them, and never let the (unrendered)
@@ -59,7 +59,7 @@ const FULL_PAGE = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212];
 /** One card past a page, so paging and the page-boundary handoff are exercised. */
 const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 
-describe('the Gallery in review-list mode', () => {
+describe('Gallery in review-list mode', () => {
   let GalleryFilter;
   let CardContainer;
   /** The real ExpandedView, so the "k of N" indicator and the cross-page handoff are actually exercised. */
@@ -263,6 +263,12 @@ describe('the Gallery in review-list mode', () => {
         enable: vi.fn(),
       };
       tracker = fakeTracker();
+      // A failed request is reported on the console; silenced here and asserted by the tests that fail one.
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     /** @returns {string} The rendered "k of N" text, or '' while the indicator is hidden. */
@@ -342,6 +348,31 @@ describe('the Gallery in review-list mode', () => {
         .toBe('gallery:list-truncated:{"count":100,"max":500}');
     });
 
+    it('rewrites the count of a list that fits the cap, which renders no truncation notice', async () => {
+      document.getElementById('gallery-list-truncated').remove();
+
+      await listContainer(LIST_IDS, []);
+
+      expect(document.getElementById('gallery-list-count').textContent).toBe('gallery:list-count:{"count":3}');
+    });
+
+    it('still shows the list, or releases the page on a failure, when the strip is missing', async () => {
+      // The strip's lines are looked up by id rather than assumed, so a page without them must not take the list down.
+      for (const id of ['gallery-list-count', 'gallery-list-truncated', 'gallery-list-error',
+        'gallery-list-unavailable']) document.getElementById(id).remove();
+
+      const container = await listContainer(LIST_IDS, [7]);
+      expect(container.getListSize()).toBe(LIST_IDS.length);
+
+      freshControls();
+      cardFilter.enable.mockClear();
+      const failed = CardContainer.create(ui, pageParams(LIST_IDS), cardFilter, tracker);
+      failRequest();
+      await failed;
+      expect(cardFilter.enable).toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalled();
+    });
+
     it('leaves the unavailable list hidden when every id came back', async () => {
       await listContainer(LIST_IDS, []);
 
@@ -389,6 +420,7 @@ describe('the Gallery in review-list mode', () => {
       expect(labelsNotFoundShown()).toBe(false);
       // The count the server rendered still stands, rather than being rewritten to "0 labels in this list".
       expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels in this list');
+      expect(console.error).toHaveBeenCalledWith(new Error('/label/labels responded 500'));
     });
 
     it('treats an answer with no labels in it as a failed request', async () => {
@@ -400,6 +432,7 @@ describe('the Gallery in review-list mode', () => {
 
       expect(document.getElementById('gallery-list-error').hidden).toBe(false);
       expect(cardFilter.enable).toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith(new Error('/label/labels returned no labels'));
     });
 
     it('reloads the cards when the sidebar reports a change', async () => {
@@ -551,7 +584,7 @@ describe('the Gallery in review-list mode', () => {
 
       it('does not let that deep link ambush the next page turn', async () => {
         // A target on page 1 was the worst of it: the late restore ran #setPage(1) and undid the turn the
-        // user had just made, which reads as the Gallery refusing to page.
+        // user had just made, which reads as Gallery refusing to page.
         slowExpandedView();
         window.history.replaceState({}, '', `/gallery?labelIds=x&labelId=${LONG_LIST[0]}`);
         const raced = await listContainer(LONG_LIST, [], LONG_LIST);

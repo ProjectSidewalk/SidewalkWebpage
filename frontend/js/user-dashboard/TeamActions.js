@@ -26,8 +26,7 @@ export class TeamActions {
         dialog.showModal();
       }));
 
-    const cancel = document.getElementById('ud-team-cancel');
-    if (cancel) cancel.addEventListener('click', () => dialog.close());
+    document.getElementById('ud-team-cancel').addEventListener('click', () => dialog.close());
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -44,7 +43,6 @@ export class TeamActions {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('ud-team-select'));
     document.querySelectorAll('.ud-join-team-btn').forEach((/** @type {HTMLButtonElement} */ btn) => {
       btn.addEventListener('click', () => TeamActions.#join(btn));
-      if (!select) return;
       const sync = () => {
         btn.disabled = select.value === '' || select.value === select.dataset.currentTeam;
       };
@@ -67,9 +65,9 @@ export class TeamActions {
   /** Switches the user to the selected open team, then reloads. */
   static async #join(btn) {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('ud-team-select'));
-    const teamId = parseInt(select && select.value, 10);
+    const teamId = parseInt(select.value, 10);
     // The placeholder, or the team they're already on: either way there's nothing to write.
-    if (!teamId || teamId <= 0 || select.value === select.dataset.currentTeam) return;
+    if (!teamId || select.value === select.dataset.currentTeam) return;
     btn.setAttribute('disabled', 'disabled');
     try {
       const res = await fetch(
@@ -135,7 +133,6 @@ export class TeamActions {
   static settingsTeamSaved(teamId) {
     const select = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
     const option = [...select.options].find((o) => o.value === String(teamId));
-    if (!option) return;
     select.dataset.currentTeam = option.value;
     // Only the team a user is already on can be closed; every other option came from the open teams.
     TeamActions.#setLeaveButton({ name: option.textContent, open: true });
@@ -156,18 +153,17 @@ export class TeamActions {
     // The team being left is the one data-current-team names, not whatever is selected — those differ whenever the
     // dropdown holds an unsaved pick.
     const previous = [...select.options].find((o) => o.value === select.dataset.currentTeam);
-    if (previous) {
-      // A team they could switch back to stays in the list; a closed one would be a dead choice.
-      const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
-      if (previous.value !== '' && wasOpen) previous.selected = false;
-      else previous.remove();
-    }
+    // A team they could switch back to stays in the list; a closed one would be a dead choice. With no team there's
+    // no Leave button, so the placeholder goes too.
+    const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
+    if (!wasOpen) previous.remove();
 
     const option = document.createElement('option');
     option.value = team ? String(team.id) : '';
     option.textContent = team ? team.name : select.dataset.placeholder;
-    option.selected = true;
     select.prepend(option);
+    // Picked once it's in the list: the spec breaks a tie between two pre-selected options by keeping the later one.
+    option.selected = true;
     // The save compares against this to skip re-writing a team the user is already on.
     select.dataset.currentTeam = option.value;
 

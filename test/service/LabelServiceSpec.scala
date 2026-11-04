@@ -242,7 +242,7 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       // for, and none is dropped for being out of order.
       val returned = run(labelTable.getGalleryLabelsByIdQuery(viewer, servedIds.reverse, userId).result).map(_._1)
       returned.toSet mustBe servedIds.toSet
-      // A fanned-out join would show up here as a label appearing twice, which the Gallery would page through twice.
+      // A fanned-out join would show up here as a label appearing twice, which Gallery would page through twice.
       returned.distinct.size mustBe returned.size
     }
 

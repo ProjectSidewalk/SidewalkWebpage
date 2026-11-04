@@ -301,3 +301,43 @@ describe('comment timestamps', () => {
     expect(document.getElementById('ts-bad').textContent).toBe('unknown');
   });
 });
+
+describe('a page missing its optional pieces', () => {
+  /**
+   * Builds the page, drops some of its elements, then starts the controller on what is left.
+   * @param {Array<string>} ids - Ids of the elements to remove before the controller starts.
+   * @param {string} [extra] - Markup appended to the page first, e.g. the hours KPI.
+   * @param {object} [hours] - What the hours endpoint answers.
+   * @returns {import('vitest').Mock} The fetch stub.
+   */
+  function loadWithout(ids, extra = '', hours = HOURS) {
+    buildDom();
+    document.body.insertAdjacentHTML('beforeend', extra);
+    ids.forEach((id) => document.getElementById(id).remove());
+    const stub = routeFetch({ [URLS.saveUrl]: { success: true }, [URLS.hoursUrl]: hours });
+    new AdminUser({ userId: 'u1', username: 'mapper', ...URLS, pageUrlFor: (u) => u });
+    return stub;
+  }
+
+  test('saves without a status line to report on', async () => {
+    const stub = loadWithout(['au-save-status']);
+    await save();
+    expect(sent(stub, URLS.saveUrl)).toHaveLength(1);
+    expect(document.getElementById('au-save-btn').disabled).toBe(false);
+  });
+
+  test('the Excluded box still toggles when there is no quality dropdown to lock', () => {
+    loadWithout(['au-quality']);
+    const box = document.getElementById('au-excluded');
+    box.checked = true;
+    expect(() => box.dispatchEvent(new Event('change'))).not.toThrow();
+  });
+
+  test('fills the hours KPI without a screen-reader line or a note to write into', async () => {
+    loadWithout([], `
+      <div id="au-hours-kpi" aria-busy="true"><span id="au-hours-value">…</span></div>`,
+    { ...HOURS, unreachable_cities: 2 });
+    await flush();
+    expect(document.getElementById('au-hours-value').textContent).toBe('2.0 h');
+  });
+});

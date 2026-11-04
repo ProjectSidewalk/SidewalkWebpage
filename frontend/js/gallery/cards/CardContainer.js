@@ -144,7 +144,6 @@ export class CardContainer {
       this.#tracker.push('NextPageClick', null, null);
     });
     uiCardContainer.prevPage.addEventListener('click', () => {
-      if (this.#currentPage <= 1) return;
       this.prevPage();
       this.#tracker.push('PrevPageClick', null, null);
     });
@@ -212,22 +211,17 @@ export class CardContainer {
     uiCardContainer.holder.addEventListener('click', (event) => {
       const target = event.target.closest(cardClickSelector);
       if (!target) return;
-      // If the user clicks on the image body in the card, just use the provided id.
-      // If they click the AI icon or the no-image placeholder, use the image id from the same card.
-      // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
-      // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
-      // the correct form).
+      // The image carries the card's id itself. The AI icon and the no-image placeholder sit beside it in the same
+      // image holder (see Card), so they borrow its id. The "+n" pill lives down in the tags, whose container is
+      // named by the bare label id instead.
       let cardId;
-      if (target.classList.contains('ai-icon-marker-card') || target.classList.contains('gallery-image-placeholder')) {
-        const imageHolder = target.closest('.image-holder');
-        const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
-        cardId = parentImage ? parentImage.id : null;
-      } else if (target.classList.contains('static-gallery-image')) {
+      if (target.classList.contains('static-gallery-image')) {
         cardId = target.id;
-      } else {
+      } else if (target.classList.contains('additional-count')) {
         cardId = `label_id_${target.closest('.card-tags').id}`;
+      } else {
+        cardId = target.closest('.image-holder').querySelector('.static-gallery-image').id;
       }
-      if (!cardId) return;
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
 
@@ -359,13 +353,6 @@ export class CardContainer {
       return card;
     });
     return { newCards, unavailableLabelIds: response.unavailableLabelIds };
-  }
-
-  /**
-   * Returns cards of current type.
-   */
-  getCards() {
-    return this.#cardsByType;
   }
 
   /**
@@ -537,7 +524,6 @@ export class CardContainer {
    * sample, and a random Gallery seeded with them would open on, say, the thirty most severe labels.
    */
   updateCardsBySort() {
-    if (this.#listMode) return;
     this.#resetLoadedCards();
     this.#setPage(1);
     this.updateCardsNewPage();
@@ -625,13 +611,6 @@ export class CardContainer {
     this.#cardFilter.disable();
     ui.labelsNotFound.style.display = 'none';
     ui.pageControl.style.display = 'none';
-  }
-
-  /**
-   * Flush all Cards currently being rendered.
-   */
-  clearCurrentCards() {
-    this.#currentCards = new CardBucket();
   }
 
   getCurrentPage() {

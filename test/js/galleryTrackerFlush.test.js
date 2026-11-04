@@ -1,5 +1,5 @@
 /**
- * Tests for the Gallery's interaction log (frontend/js/gallery/data/Tracker.js and Form.js, #5648).
+ * Tests for Gallery's interaction log (frontend/js/gallery/data/Tracker.js and Form.js, #5648).
  *
  * The Tracker owns the buffer and decides when a batch goes out; the Form only packages and sends it. What is worth
  * pinning is the contract between them: a batch is sent once the buffer passes its limit and holds exactly the
@@ -13,6 +13,8 @@ mockModule('i18next', () => ({ default: { language: 'en' } }));
 
 describe('the Gallery interaction log', () => {
   let tracker;
+  /** @type {typeof import('../../frontend/js/gallery/data/Form.js').Form} */
+  let Form;
   /** @type {Array<{body: object[], keepalive: boolean}>} Every batch POSTed, in order. */
   let sent = [];
 
@@ -23,15 +25,25 @@ describe('the Gallery interaction log', () => {
       sent.push({ url, body: JSON.parse(body), keepalive: !!keepalive });
       return Promise.resolve({ ok: true });
     });
-    const { Form, Tracker } = await loadModules(
+    let Tracker;
+    ({ Form, Tracker } = await loadModules(
       'frontend/js/gallery/data/Form.js', 'frontend/js/gallery/data/Tracker.js',
-    );
+    ));
     tracker = new Tracker(new Form('/galleryTask'));
   });
 
   beforeEach(() => {
     sent = [];
+    // A successful send says so on the console; silenced here and asserted where it matters.
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Lets a send's response handling run, since flush() doesn't hand back the request's promise. */
+  const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
   /** @returns {string[]} The action names in one sent batch. */
   const actionsIn = (batch) => batch.body.flatMap((entry) => entry.interactions.map((i) => i.action));
@@ -74,5 +86,61 @@ describe('the Gallery interaction log', () => {
     expect(actionsIn(sent[0])).toEqual([
       'RefreshTracker', ...[...Array(9).keys()].map((i) => `Action${i + 1}`), 'Unload',
     ]);
+  });
+
+  it('records the pano and every note an action carries', () => {
+    tracker.push('Click_Agree', { panoId: 'pano-1' }, { labelId: 5, viaKeyboard: false });
+    tracker.push('NextPageClick', null, null);
+
+    const [agree, next] = tracker.getActions().slice(-2);
+    expect(agree).toMatchObject({ action: 'Click_Agree', pano_id: 'pano-1', note: 'labelId:5,viaKeyboard:false' });
+    expect(next).toMatchObject({ action: 'NextPageClick', pano_id: null, note: '' });
+  });
+
+  it('says on the console that a batch reached the server', async () => {
+    tracker.flush();
+    await settle();
+
+    expect(console.log).toHaveBeenCalledWith('Data logged successfully');
+  });
+
+  describe('sending a batch', () => {
+    let fetchBefore;
+
+    beforeEach(() => {
+      fetchBefore = window.fetch;
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      window.fetch = fetchBefore;
+    });
+
+    it('sends a list of submissions as it is, rather than wrapping it again', async () => {
+      const form = new Form('/galleryTask');
+      const submission = form.compileSubmissionData([{ action: 'Test' }]);
+
+      await form.submit([submission, submission]);
+
+      expect(sent.at(-1).body).toHaveLength(2);
+      expect(sent.at(-1).keepalive).toBe(false);
+    });
+
+    it('reports a batch the server refused', async () => {
+      window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500 }));
+
+      await new Form('/galleryTask').submit({ interactions: [] });
+
+      expect(console.error).toHaveBeenCalledWith('Failed to log data: 500');
+    });
+
+    it('reports a batch that never reached the server, without throwing', async () => {
+      const offline = new TypeError('Failed to fetch');
+      window.fetch = vi.fn(() => Promise.reject(offline));
+
+      await expect(new Form('/galleryTask').submit({ interactions: [] })).resolves.toBeUndefined();
+
+      expect(console.error).toHaveBeenCalledWith(offline);
+    });
   });
 });

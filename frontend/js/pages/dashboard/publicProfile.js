@@ -21,7 +21,6 @@ loadContributionMap({
   mapboxApiKey: data.mapboxApiKey,
   streetsURL: data.streetsUrl,
   labelsURL: data.labelsUrl,
-  wireLabelPopup: true,
 });
 
 window.appManager.ready(async () => {

@@ -333,7 +333,7 @@ export class ReportPage {
   }
 
   /**
-   * Opens a location's card over the worst map, built by the Gallery's own code so it reads and votes as it does there.
+   * Opens a location's card over the worst map, built by Gallery's own code so it reads and votes as it does there.
    * @param {{labelId: ?number, labelType: string}} problem
    * @returns {Promise<void>} Resolves once the card is drawn, or has failed to be.
    */
@@ -474,7 +474,7 @@ export class ReportPage {
 
   /**
    * Uses the small thumbnail, never the billable Street View still a Gallery card falls back to; with no crop the pane
-   * gets the Gallery's own placeholder.
+   * gets Gallery's own placeholder.
    * @param {HTMLElement} item
    * @param {Record<string, any>} fix
    * @param {?Record<string, any>} entry - The Gallery endpoint's answer for the fix's label, if it had one.
@@ -504,7 +504,7 @@ export class ReportPage {
   }
 
   /**
-   * The label's icon where it sits in the photo, as the Gallery's card places it: the crop's recorded position, or the
+   * The label's icon where it sits in the photo, as Gallery's card places it: the crop's recorded position, or the
    * label's own on the labeling canvas, re-expressed for the square pane the photo is cover-fitted into.
    * @param {string} labelType
    * @param {Record<string, any>} entry - The Gallery endpoint's answer for the fix's label.

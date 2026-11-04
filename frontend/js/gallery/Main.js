@@ -1,4 +1,4 @@
-/** Wires the Gallery together: the one place its modules are built, so every dependency between them is visible. */
+/** Wires Gallery together: the one place its modules are built, so every dependency between them is visible. */
 
 import { BadgeAchievements } from '../common/BadgeAchievements.js';
 import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
@@ -20,7 +20,7 @@ import { KeyboardManager } from './keyboard/KeyboardManager.js';
  */
 
 /**
- * Builds the Gallery's modules and starts it.
+ * Builds Gallery's modules and starts it.
  * @param {GalleryParams} params - What the page was opened with.
  * @returns {Promise<void>} Resolves once the first page of cards has been requested and the expanded view is built.
  */

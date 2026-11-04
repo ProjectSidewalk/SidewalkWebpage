@@ -109,7 +109,7 @@ trait LabelService {
 object LabelServiceImpl {
 
   /**
-   * How many labels the Gallery's review list checks imagery for at a time (#5444).
+   * How many labels Gallery's review list checks imagery for at a time (#5444).
    *
    * Sized to stay in the same order as the filtered path's per-type batches, so a 500-id list costs the provider no
    * more concurrency than an ordinary Gallery page does.
@@ -394,7 +394,7 @@ class LabelServiceImpl @Inject() (
       } else if (staticImageryOnly) {
         labelTypes.intersect(LabelType.staticValidatableLabelTypes)
       } else {
-        // An explicit request is honored as given: the Gallery offers Occlusion and Other, which the default mix
+        // An explicit request is honored as given: Gallery offers Occlusion and Other, which the default mix
         // (primaryLabelTypes) leaves out.
         labelTypes
       }
@@ -487,7 +487,7 @@ class LabelServiceImpl @Inject() (
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
-    // TODO can we make this and the Gallery queries transactions to prevent label dupes?
+    // TODO can we make this and Gallery queries transactions to prevent label dupes?
     def query(queue: ValidationQueue, excluded: Set[Int], excludedFaces: Set[LabelServiceImpl.FaceKey]) =
       labelTable.retrieveLabelListForValidationQuery(
         userId,
@@ -645,7 +645,7 @@ class LabelServiceImpl @Inject() (
             // likely to, and walking a 48k-label queue fifty rows at a time is the failure mode this guards against.
             // A fixed order is the exception: its dead rows (imagery gone, no crop) sit at the same offsets on every
             // request, since nothing loads them and so nothing excludes them, and ending here would make a prefix of
-            // dead rows read as the end of the Gallery. That walk goes on while batches are full, under a cap.
+            // dead rows read as the end of Gallery. That walk goes on while batches are full, under a cap.
             val batchFull: Boolean = labels.size >= batchSize
             val walkOn: Boolean    = walkPastEmpty && batchFull && emptyBatches < LabelServiceImpl.MaxEmptyBatches
             if (newValidLabels.isEmpty && !walkOn) {

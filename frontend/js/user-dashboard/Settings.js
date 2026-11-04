@@ -19,18 +19,16 @@ export class Settings {
   /**
    * @param {object} opts - Configuration.
    * @param {string} opts.saveUrl - Endpoint the form POSTs to.
-   * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
    * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
    *   save that changes it can reload the page onto the new units.
    */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
-    this.currentUsername = opts.currentUsername;
     this.currentUnits = opts.currentUnits;
     this.saveBtn = document.getElementById('set-save-btn');
     this.status = document.getElementById('set-save-status');
     this.#baseline = this.#snapshot();
-    if (this.saveBtn) this.saveBtn.addEventListener('click', () => this.#save());
+    this.saveBtn.addEventListener('click', () => this.#save());
     // The guard's save skips the units reload: the page they're headed to renders in the new units anyway, and
     // reloading this one would strand them here.
     new UnsavedChangesGuard({
@@ -85,7 +83,6 @@ export class Settings {
     try {
       const { ok, error } = await saveUserSettings(this.saveUrl, payload);
       if (ok) {
-        this.currentUsername = payload.username || this.currentUsername;
         // Hand the written team to the controls, so a second save skips it and Leave speaks for it, not the old one.
         if (payload.team_id !== null) TeamActions.settingsTeamSaved(payload.team_id);
         // What was just written is the baseline now, with team_id flattened to the null a team already joined sends,
@@ -115,7 +112,6 @@ export class Settings {
    * @param {boolean|null} ok - true = success styling, false = error styling, null = neutral.
    */
   #setStatus(text, ok) {
-    if (!this.status) return;
     this.status.textContent = text;
     this.status.classList.remove('ud-save-ok', 'ud-save-err');
     if (ok === true) this.status.classList.add('ud-save-ok');

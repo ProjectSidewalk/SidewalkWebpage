@@ -30,7 +30,7 @@ import '../../../css/components/filter-sidebar.css';
  * Owns the sidebar's interaction rules — toggling an option, select/deselect all, the "Only" affordance, tag pills
  * and their drawers, the indeterminate glyph, count rendering — and knows nothing about what the filters filter.
  * Hosts subscribe with `onChange` and apply `getState()` however they like: LabelMap rewrites Mapbox layer filters
- * in place, the Gallery re-queries the server. That split is the point: the two differ in how filters are *applied*,
+ * in place, Gallery re-queries the server. That split is the point: the two differ in how filters are *applied*,
  * not in how they are *chosen*.
  *
  * The DOM is the single source of truth for filter state — checkbox `checked`, `aria-pressed` on severity toggles,
@@ -80,7 +80,7 @@ export class FilterSidebar {
       this.#syncSectionAction(btn.dataset.section);
     });
 
-    // A type can arrive already narrowed by tags — the Gallery renders the URL's tags as applied — and its glyph
+    // A type can arrive already narrowed by tags — Gallery renders the URL's tags as applied — and its glyph
     // has to say so from the first paint, not from the first click.
     this.#optionsIn('label-type').forEach((cb) => this.#syncPartialGlyph(FilterSidebar.#valueOf(cb)));
   }

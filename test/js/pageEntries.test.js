@@ -297,11 +297,11 @@ describe('the other single-purpose entries', () => {
 
   test('settings get the account\'s values, and both account forms are wired once the DOM is in', async () => {
     await boot('dashboard/settings.js', {
-      data: { saveUrl: '/userapi/settings', username: 'mikey', units: 'metric' },
+      data: { saveUrl: '/userapi/settings', units: 'metric' },
       markup: '<form id="set-password-form"></form><form id="set-devices-form"></form>',
     });
     expect(h.settings[0].args)
-      .toEqual([{ saveUrl: '/userapi/settings', currentUsername: 'mikey', currentUnits: 'metric' }]);
+      .toEqual([{ saveUrl: '/userapi/settings', currentUnits: 'metric' }]);
     document.dispatchEvent(new Event('DOMContentLoaded'));
     expect(h.accountForm.map((r) => r.args[0])).toEqual([el('set-password-form'), el('set-devices-form')]);
   });

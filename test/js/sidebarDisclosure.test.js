@@ -1,7 +1,7 @@
 /**
- * Tests the sidebar disclosure shared by the `.api-*` shells and the Gallery's filter column (#4691).
+ * Tests the sidebar disclosure shared by the `.api-*` shells and Gallery's filter column (#4691).
  *
- * The two surfaces build their button differently — the shells synthesise one from the active nav item, the Gallery
+ * The two surfaces build their button differently — the shells synthesise one from the active nav item, Gallery
  * renders its own in Twirl so the label goes through Play's i18n — so what has to be pinned is that both end up with
  * the same behaviour: the open state lives on the sidebar root as `mobile-visible`, `aria-expanded` tracks it, and
  * `aria-controls` names what actually opens. A drift here is invisible until a screen reader hits it.
@@ -16,7 +16,7 @@ async function load() {
 }
 
 describe('wireSidebarDisclosure', () => {
-  /** Builds the Gallery's shape: a Twirl-rendered button beside the sections it discloses. */
+  /** Builds Gallery's shape: a Twirl-rendered button beside the sections it discloses. */
   function buildGallery() {
     document.body.innerHTML = `
           <div class="sidebar">
@@ -72,7 +72,7 @@ describe('wireSidebarDisclosure', () => {
     expect(toggle.getAttribute('aria-controls')).toBe('some-nav');
   });
 
-  it('reports each state change to the caller, so the Gallery can log the interaction', async () => {
+  it('reports each state change to the caller, so Gallery can log the interaction', async () => {
     const {wire} = await load();
     const {toggle, root} = buildGallery();
     const seen = [];

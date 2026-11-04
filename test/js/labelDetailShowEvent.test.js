@@ -32,7 +32,7 @@ mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
  * @param {boolean} [opts.paging=true] - Render the prev/next arrows, which the template emits only for a host that
  *     asked for them (`withPaging`).
  * @param {boolean} [opts.asDialog=false] - Mount the card in a <dialog>, the way LabelPopup's hosts do, rather
- *     than in the <div> the Gallery and the share page use.
+ *     than in the <div> Gallery and the share page use.
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
@@ -290,7 +290,7 @@ describe('the label card\'s open event (#5139)', () => {
   });
 
   test('a label shown from a meta object logs one open, and nothing else is logged', async () => {
-    // The Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
+    // Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
     await showMeta();
 
     expect(window.logWebpageActivity.mock.calls).toEqual([['LabelDetail_Show_labelId=42_source=TestSource']]);

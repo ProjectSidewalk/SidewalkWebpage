@@ -271,7 +271,7 @@ export class LabelMiniCard {
       source: this.#opts.source,
       undone,
       redone: !undone && prev !== null,
-      // Which picture the vote was judged on, as the Gallery and the landing grid report it.
+      // Which picture the vote was judged on, as Gallery and the landing grid report it.
       viewer_type: label.crop_url ? 'StaticCrop' : 'StaticApi',
     };
   }

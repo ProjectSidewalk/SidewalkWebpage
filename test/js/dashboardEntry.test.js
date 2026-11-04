@@ -91,7 +91,6 @@ describe('the user dashboard', () => {
     await boot('dashboard.js');
     expect(h.contributionMap).toEqual({
       mapId: 'user-dashboard-choropleth', mapboxApiKey: 'pk.test', streetsURL: '/streets', labelsURL: '/labels',
-      wireLabelPopup: true,
     });
   });
 
@@ -181,7 +180,6 @@ describe('the public profile', () => {
     await boot('publicProfile.js', { username: 'viewer' });
     expect(h.contributionMap).toEqual({
       mapId: 'public-profile-choropleth', mapboxApiKey: 'pk.test', streetsURL: '/streets', labelsURL: '/labels',
-      wireLabelPopup: true,
     });
     expect(h.badges.rendered).toBe(true);
     expect(h.popupArgs)

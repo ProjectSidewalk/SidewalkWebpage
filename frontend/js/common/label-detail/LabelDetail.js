@@ -215,7 +215,7 @@ export class LabelDetail {
    * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
    *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
    * @param {() => boolean} [opts.isOpen] - Whether the card is on screen right now, which the keyboard shortcuts
-   *     (#5194) will not fire without. Only inline hosts that show and hide their panel need it (the Gallery's
+   *     (#5194) will not fire without. Only inline hosts that show and hide their panel need it (Gallery's
    *     expanded view): a <dialog> host answers for itself, and a host that never hides the card (the share page,
    *     where the card *is* the page) has nothing to answer.
    */
@@ -641,7 +641,7 @@ export class LabelDetail {
   /**
    * The vote each shortcut casts, keyed the way KeyboardShortcuts.keyOf names a key: by the letter printed on it, so
    * the card reads the same keys as Validate on any layout (#5618). A/Y for agree and D/N for disagree are the pairs
-   * Validate and the Gallery have long offered, kept so the muscle memory carries over.
+   * Validate and Gallery have long offered, kept so the muscle memory carries over.
    */
   static #VOTE_KEYS = {
     KeyA: 'Agree', KeyY: 'Agree', KeyD: 'Disagree', KeyN: 'Disagree', KeyU: 'Unsure',
@@ -658,7 +658,7 @@ export class LabelDetail {
    * cast agree, disagree and unsure (#5194).
    *
    * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
-   * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
+   * thing on the page with nothing inside it holding focus — Gallery's expanded view opens from a click on an
    * `<img>`, which takes none — so a listener on the root would never see those keys at all. And every pano viewer
    * registers a window-capture listener that `stopPropagation()`s the arrow keys (plus A/D/W/S on GSV) to keep
    * them from steering the imagery, which ends the dispatch there: a bubble-phase listener anywhere on the page
@@ -2570,7 +2570,7 @@ export class LabelDetail {
       meta.tags = body.tags ?? [];
       if (!conflict) this.#logEdit(meta, prev, change, sameTags);
       // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
-      // The host still hears of a plain save, which is how a tag pick saved by paging on reaches the Gallery's grid.
+      // The host still hears of a plain save, which is how a tag pick saved by paging on reaches Gallery's grid.
       if (this.#currentLabelMeta !== meta) {
         if (!conflict && !typeChange && typeof this.#onEdit === 'function') this.#onEdit(meta);
         return;

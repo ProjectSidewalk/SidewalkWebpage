@@ -51,7 +51,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(count(q, 'agree')).toBe('5');
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
-      // A quick A then S pages on before the vote lands (#5883); the Gallery's grid card still has to record it.
+      // A quick A then S pages on before the vote lands (#5883); Gallery's grid card still has to record it.
       expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({ label_id: 42 }));
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
     });
@@ -269,7 +269,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       expect(first).toMatchObject({ severity: 3, tags: [] });
       expect(logged()).toContain('Click_module=LabelDetail_action=EditSeverity_old=2_new=3_labelId=42');
-      // The host finds its copy by id, as the Gallery's grid does, so a save made just before paging still sticks.
+      // The host finds its copy by id, as Gallery's grid does, so a save made just before paging still sticks.
       expect(onEdit).toHaveBeenCalledWith(first);
       expect(q('.label-detail__col--severity .label-detail__edit-status').textContent).toBe('');
     });

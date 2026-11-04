@@ -27,7 +27,7 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number} lat
  * @property {number} lng
  * @property {number[]} labelIds
- * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first the Gallery's cap allows.
+ * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first Gallery's cap allows.
  * @property {boolean} atCrossing
  * @property {number} costPoints
  * @property {number} poolSize
@@ -375,7 +375,7 @@ export class ReportStreetSection {
   }
 
   /**
-   * A click on a card's picture opens the label, as it opens the expanded view in the Gallery.
+   * A click on a card's picture opens the label, as it opens the expanded view in Gallery.
    * @param {MouseEvent} e
    */
   #openLabel(e) {
