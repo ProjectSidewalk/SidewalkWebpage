@@ -471,8 +471,8 @@ export class TaskContainer {
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * How far along the current street the user has walked, counting the pano they're on now.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
    * @returns {number}
    */
   getCurrentTaskDistance(unit) {
@@ -790,7 +790,8 @@ export class TaskContainer {
     const point = turf.point([latLng.lng, latLng.lat]);
     let nearest = null;
     let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
-    for (const task of [this.#currentTask, ...this._tasks]) {
+    // A Set, since the current task is usually among the loaded ones too; listed first so it wins a tie.
+    for (const task of new Set([this.#currentTask, ...this._tasks])) {
       const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
       if (distM < nearestM) {
         nearest = task;
@@ -808,8 +809,9 @@ export class TaskContainer {
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * The combined length of every loaded street.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
+   * @returns {number}
    */
   getTotalTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };

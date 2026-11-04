@@ -66,6 +66,7 @@ beforeAll(() => { window.HTMLDialogElement.prototype.show = function show() { th
 afterAll(() => { delete window.HTMLDialogElement.prototype.show; });
 afterEach(() => {
   documentListeners.splice(0).forEach(([type, fn]) => document.removeEventListener(type, fn));
+  window.history.replaceState(null, '', '/');
 });
 
 beforeEach(() => {
@@ -93,7 +94,6 @@ describe('starting a visit', () => {
     expect(h.main.param).toEqual({ imagerySource: 'gsv', sessionUrl: '/explore/session', viewerType: h.Viewer });
     expect(h.main.session).toBe(h.session);
     expect(window.svl).toBe('svl');
-    window.history.replaceState(null, '', '/');
   });
 
   test('a viewer library that fails to preload only warns; the tool still starts', async () => {

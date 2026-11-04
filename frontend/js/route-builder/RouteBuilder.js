@@ -331,7 +331,6 @@ export class RouteBuilder {
   #initEstTimeTooltip() {
     const val = this.#routeTimeEl;
     const tip = this.#routeTimeTipEl;
-    if (!val || !tip) return;
     const show = () => {
       tip.hidden = false;
     };

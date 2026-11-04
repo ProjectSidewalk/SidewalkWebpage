@@ -37,6 +37,8 @@ export class ShareWidget {
   #fitToViewport = false;
   /** @type {?(() => void)} Called after a user-initiated close; see the constructor. */
   #onDismiss = null;
+  /** @type {?number} The deferred listener registration, cancelled if the popover closes before it runs. */
+  #listenTimer = null;
 
   // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
   static #SHED_ORDER = ['x', 'bluesky'];
@@ -257,10 +259,8 @@ export class ShareWidget {
     if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
-    // A popover closed before this runs has already removed its listeners, and adding them now would leave them
-    // behind for good.
-    setTimeout(() => {
-      if (!this.#open) return;
+    this.#listenTimer = setTimeout(() => {
+      this.#listenTimer = null;
       document.addEventListener('click', this.#boundOutsideClick, true);
       document.addEventListener('keydown', this.#boundKeydown, true);
     }, 0);
@@ -279,6 +279,8 @@ export class ShareWidget {
     if (this.#popover) this.#popover.hidden = true;
     this.#open = false;
     this.#trigger.setAttribute('aria-expanded', 'false');
+    clearTimeout(this.#listenTimer);
+    this.#listenTimer = null;
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (returnFocus) this.#trigger.focus();

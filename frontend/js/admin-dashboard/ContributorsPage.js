@@ -183,9 +183,7 @@ export class ContributorsPage {
   /** Histogram of contributors by the agreement rate of their own labels (only those with validated labels). */
   #renderAccuracy(labelers) {
     const rated = labelers.filter((u) => (u.own_validated || 0) > 0);
-    // own_validated_agreed_pct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
-    const maxVal = rated.reduce((m, u) => Math.max(m, u.own_validated_agreed_pct || 0), 0);
-    const factor = maxVal <= 1 ? 100 : 1;
+    const factor = ContributorsPage.#pctFactor(rated, 'own_validated_agreed_pct');
 
     const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
     for (const u of rated) {

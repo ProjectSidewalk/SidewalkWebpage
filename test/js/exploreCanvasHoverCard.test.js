@@ -195,6 +195,19 @@ describe('Canvas hover card and redraws', () => {
       expect(page.ui.hoverCard.style.visibility).toBe('hidden');
     });
 
+    test('a share pressed from the keyboard after the card let its label go points nowhere and does not throw', async () => {
+      vi.useFakeTimers();
+      hoverLabel();
+      pointer(layer, 'mousemove', 400, 200);
+      vi.advanceTimersByTime(500);
+      shareWidgets[0].setTarget.mockClear();
+
+      await shareWidgets[0].opts.beforeOpen();
+
+      expect(c.form.ensureLabelSaved).toHaveBeenCalledWith(undefined);
+      expect(shareWidgets[0].setTarget).not.toHaveBeenCalled();
+    });
+
     test('closes with the card when something else takes the card down', () => {
       hoverLabel();
       canvas.showLabelHoverInfo(undefined);

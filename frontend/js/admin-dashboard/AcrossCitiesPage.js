@@ -760,8 +760,7 @@ export class AcrossCitiesPage {
       e.active_users += w.active_users || 0;
       m.set(w.week_start, e);
     }
-    // One entry per week, so no two compare equal.
-    return [...m.values()].sort((a, b) => (a.week_start < b.week_start ? -1 : 1));
+    return [...m.values()].sort((a, b) => a.week_start.localeCompare(b.week_start));
   }
 
   /** Draws the three over-time line charts for the currently selected range. */

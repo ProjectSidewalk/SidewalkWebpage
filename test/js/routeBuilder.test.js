@@ -1014,18 +1014,6 @@ describe('RouteBuilder', () => {
       expect(world.saveModal.opts.getSuggestedName()).toBe('');
     });
 
-    test('a page without the estimate tip still starts', async () => {
-      await setupRouteBuilder();
-      $('route-time-tip').remove();
-      const mapParams = {
-        city_center: { lng: 0, lat: 0 },
-        default_zoom: 12,
-        southwest_boundary: { lng: -1, lat: -1 },
-        northeast_boundary: { lng: 1, lat: 1 },
-      };
-
-      expect(() => new RouteBuilder('pk.test', mapParams, true, 2)).not.toThrow();
-    });
   });
 
   describe('smaller interactions', () => {
