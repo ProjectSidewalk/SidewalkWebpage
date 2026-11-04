@@ -146,6 +146,15 @@ describe('the nightly jobs panel', () => {
     expect(rows().map((r) => r[0])).toEqual(['Never run', 'Overdue but ok', 'Failed', 'Fine']);
   });
 
+  test('puts a status the page does not know first among the on-time jobs, since it is a reason to look', async () => {
+    await render([
+      job({ label: 'Late', last_status: 'succeeded', overdue: true }),
+      job({ label: 'Fine', last_status: 'succeeded', overdue: false }),
+      job({ label: 'Mystery', last_status: 'paused', overdue: false }),
+    ]);
+    expect(rows().map((r) => r[0])).toEqual(['Late', 'Mystery', 'Fine']);
+  });
+
   test('shows a run its process died in as interrupted, in the bad tone, between abandoned and failed', async () => {
     await render([
       job({ label: 'Failed', last_status: 'failed' }),

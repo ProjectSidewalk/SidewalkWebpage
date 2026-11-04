@@ -23,9 +23,9 @@ export class AdminUser {
   #hoursUrl;
   /** @type {(username: string) => string} */
   #pageUrlFor;
-  /** @type {HTMLElement|null} */
+  /** @type {HTMLElement} */
   #saveBtn;
-  /** @type {HTMLElement|null} */
+  /** @type {HTMLElement} */
   #saveStatus;
   /** @type {boolean} */
   #excluded;
@@ -51,12 +51,12 @@ export class AdminUser {
     this.#pageUrlFor = opts.pageUrlFor;
     this.#saveBtn = document.getElementById('au-save-btn');
     this.#saveStatus = document.getElementById('au-save-status');
-    this.#saveBtn?.addEventListener('click', () => this.#save());
+    this.#saveBtn.addEventListener('click', () => this.#save());
 
-    const excludedBox = /** @type {HTMLInputElement|null} */ (document.getElementById('au-excluded'));
+    const excludedBox = /** @type {HTMLInputElement} */ (document.getElementById('au-excluded'));
     // defaultChecked is the saved state; a browser restoring a checked box after reload must not skip the prompt.
-    this.#excluded = excludedBox?.defaultChecked ?? false;
-    excludedBox?.addEventListener('change', () => this.#syncQualityToExcluded(excludedBox.checked));
+    this.#excluded = excludedBox.defaultChecked;
+    excludedBox.addEventListener('change', () => this.#syncQualityToExcluded(excludedBox.checked));
 
     document.querySelectorAll('.ud-admin-flag').forEach((block) => {
       block.querySelector('.ud-admin-flag-set').addEventListener('click', () => this.#setFlags(block, true));
@@ -83,7 +83,6 @@ export class AdminUser {
   async #loadHours() {
     const kpi = document.getElementById('au-hours-kpi');
     const value = document.getElementById('au-hours-value');
-    if (!kpi || !value) return;
 
     let data;
     try {
@@ -102,8 +101,7 @@ export class AdminUser {
     const total = Number(data.total_hours) || 0;
     value.textContent = `${total.toFixed(1)} h`;
     kpi.removeAttribute('aria-busy');
-    const label = document.getElementById('au-hours-label');
-    if (cities.length > 1 && label) label.textContent = 'Exploring & validating, all cities';
+    if (cities.length > 1) document.getElementById('au-hours-label').textContent = 'Exploring & validating, all cities';
     if (data.show_breakdown) AdminUser.#renderHoursCities(cities);
 
     // An unreached city may have held hours, so the total is a floor. An admin verifying a claim needs to know that
@@ -115,8 +113,7 @@ export class AdminUser {
       AdminUser.#showNote(`Couldn't total ${cityWord} just now, so these hours may read low. ${retry}`);
     }
 
-    const status = document.getElementById('au-hours-status');
-    if (status) status.textContent = `Logged hours loaded: ${total.toFixed(1)} hours.`;
+    document.getElementById('au-hours-status').textContent = `Logged hours loaded: ${total.toFixed(1)} hours.`;
   }
 
   /**
@@ -127,7 +124,7 @@ export class AdminUser {
   static #renderHoursCities(cities) {
     const holder = document.getElementById('au-hours-cities-table');
     const section = document.getElementById('au-hours-cities');
-    if (!holder || !section || !cities.length) return;
+    if (!cities.length) return;
 
     const rows = cities.map((city) => `
       <tr>
@@ -147,7 +144,6 @@ export class AdminUser {
   /** @param {string} text - Message for the note beneath the hours KPIs. */
   static #showNote(text) {
     const note = document.getElementById('au-hours-note');
-    if (!note) return;
     note.textContent = text;
     note.hidden = false;
   }
@@ -158,8 +154,7 @@ export class AdminUser {
    * @param {boolean} excluded - Whether the Excluded box is now checked.
    */
   #syncQualityToExcluded(excluded) {
-    const quality = /** @type {HTMLSelectElement|null} */ (document.getElementById('au-quality'));
-    if (!quality) return;
+    const quality = /** @type {HTMLSelectElement} */ (document.getElementById('au-quality'));
     if (excluded) {
       this.#qualityBeforeExcluded = quality.value;
       quality.value = 'false';
@@ -290,7 +285,6 @@ export class AdminUser {
    * @param {boolean|null} ok - true = success styling, false = error styling, null = neutral.
    */
   static #setStatus(el, text, ok) {
-    if (!el) return;
     el.textContent = text;
     el.classList.remove('ud-save-ok', 'ud-save-err');
     if (ok === true) el.classList.add('ud-save-ok');

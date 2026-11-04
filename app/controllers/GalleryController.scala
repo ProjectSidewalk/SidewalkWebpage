@@ -19,7 +19,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * The Gallery's controller, including its review-list mode (#5444).
+ * Gallery's controller, including its review-list mode (#5444).
  */
 object GalleryController {
 
@@ -152,7 +152,7 @@ class GalleryController @Inject() (
    * Returns labels of specified type, severities, and tags.
    *
    * A read-only POST (the filter payload is JSON, hence not a GET), so it is user-aware rather than secured (#4643):
-   * the Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
+   * Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
    * the "already validated by you"/"your own label" checks match nothing, same as a brand-new anonymous account.
    */
   def getLabels: Action[JsValue] = cc.securityService.UserAwareAction(parse.json) { implicit request =>
@@ -161,7 +161,7 @@ class GalleryController @Inject() (
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         val n: Int = submission.n
-        // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
+        // An empty set of types means "every type", which is what the landing grid and Gallery's default ask for.
         val labelTypes: Set[LabelType] = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.withNameOption).toSet
         val loadedLabels: Set[Int]     = submission.loadedLabels.toSet
         val valOptions: Set[String]    = submission.validationOptions.getOrElse(Seq()).toSet

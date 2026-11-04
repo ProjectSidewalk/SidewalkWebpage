@@ -1,6 +1,6 @@
 /* ============================================================
    Filter sidebar — the shared filter panel driven by FilterSidebar (common/filter-sidebar/). Today it overlays the
-   left side of the map on LabelMap, Admin, and User Profile; the Gallery adopts the same controls (#4585).
+   left side of the map on LabelMap, Admin, and User Profile; Gallery adopts the same controls (#4585).
    ============================================================ */
 
 .filter-sidebar {
@@ -152,7 +152,7 @@ body.filter-sidebar-resizing {
  * Below ~600px a 350px panel leaves no usable map beside it (its 280px drag minimum can't coexist with one
  * either), so the open drawer covers the map instead. The JS side reads this same width from
  * MapSidebarDrawer.NARROW_QUERY, which skips the map's left padding for the same reason — keep the two in step.
- * The Gallery is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
+ * Gallery is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
  */
 @media (width <= 600px) {
   .filter-sidebar {

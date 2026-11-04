@@ -144,7 +144,6 @@ export class CardContainer {
       this.#tracker.push('NextPageClick', null, null);
     });
     uiCardContainer.prevPage.addEventListener('click', () => {
-      if (this.#currentPage <= 1) return;
       this.prevPage();
       this.#tracker.push('PrevPageClick', null, null);
     });
@@ -212,22 +211,17 @@ export class CardContainer {
     uiCardContainer.holder.addEventListener('click', (event) => {
       const target = event.target.closest(cardClickSelector);
       if (!target) return;
-      // If the user clicks on the image body in the card, just use the provided id.
-      // If they click the AI icon or the no-image placeholder, use the image id from the same card.
-      // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
-      // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
-      // the correct form).
+      // The image carries the card's id itself. The AI icon and the no-image placeholder sit beside it in the same
+      // image holder (see Card), so they borrow its id. The "+n" pill lives down in the tags, whose container is
+      // named by the bare label id instead.
       let cardId;
-      if (target.classList.contains('ai-icon-marker-card') || target.classList.contains('gallery-image-placeholder')) {
-        const imageHolder = target.closest('.image-holder');
-        const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
-        cardId = parentImage ? parentImage.id : null;
-      } else if (target.classList.contains('static-gallery-image')) {
+      if (target.classList.contains('static-gallery-image')) {
         cardId = target.id;
-      } else {
+      } else if (target.classList.contains('additional-count')) {
         cardId = `label_id_${target.closest('.card-tags').id}`;
+      } else {
+        cardId = target.closest('.image-holder').querySelector('.static-gallery-image').id;
       }
-      if (!cardId) return;
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
 
@@ -359,13 +353,6 @@ export class CardContainer {
       return card;
     });
     return { newCards, unavailableLabelIds: response.unavailableLabelIds };
-  }
-
-  /**
-   * Returns cards of current type.
-   */
-  getCards() {
-    return this.#cardsByType;
   }
 
   /**
@@ -513,10 +500,6 @@ export class CardContainer {
    * When a filter is updated; update which Cards are shown.
    */
   updateCardsByFilter() {
-    // List mode renders no filter controls, so nothing should reach this; guard anyway, since applying the sidebar's
-    // empty state would silently throw the list away.
-    if (this.#listMode) return;
-
     const newLabelTypes = this.#cardFilter.getStatus().currentLabelTypes;
     // Only need to refresh UI if the label types changed, since the tags are swapped out.
     if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
@@ -537,7 +520,6 @@ export class CardContainer {
    * sample, and a random Gallery seeded with them would open on, say, the thirty most severe labels.
    */
   updateCardsBySort() {
-    if (this.#listMode) return;
     this.#resetLoadedCards();
     this.#setPage(1);
     this.updateCardsNewPage();
@@ -625,13 +607,6 @@ export class CardContainer {
     this.#cardFilter.disable();
     ui.labelsNotFound.style.display = 'none';
     ui.pageControl.style.display = 'none';
-  }
-
-  /**
-   * Flush all Cards currently being rendered.
-   */
-  clearCurrentCards() {
-    this.#currentCards = new CardBucket();
   }
 
   getCurrentPage() {
@@ -728,7 +703,6 @@ export class CardContainer {
    */
   static #renderListCount(shown) {
     const countEl = document.getElementById('gallery-list-count');
-    if (!countEl) return;
     const requested = Number(countEl.dataset.requested);
     countEl.textContent = shown < requested
       ? i18next.t('gallery:list-count-partial', { shown, count: requested })
@@ -747,13 +721,12 @@ export class CardContainer {
     if (!truncatedEl) return;
     const dropped = Number(truncatedEl.dataset.dropped);
     const max = Number(truncatedEl.dataset.max);
-    if (dropped > 0) truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
+    truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
   }
 
   /** Tells the reviewer the list could not be loaded, rather than letting a failed request read as an empty queue. */
   static #showListError() {
-    const errorEl = document.getElementById('gallery-list-error');
-    if (errorEl) errorEl.hidden = false;
+    document.getElementById('gallery-list-error').hidden = false;
   }
 
   /**
@@ -766,10 +739,9 @@ export class CardContainer {
    */
   static #renderUnavailableIds(labelIds) {
     const disclosure = document.getElementById('gallery-list-unavailable');
-    if (!disclosure) return;
     const list = disclosure.querySelector('.gallery-list-bar__ids');
     const summary = disclosure.querySelector('summary');
-    if (!list || !summary || !labelIds || labelIds.length === 0) {
+    if (!labelIds || labelIds.length === 0) {
       disclosure.hidden = true;
       return;
     }

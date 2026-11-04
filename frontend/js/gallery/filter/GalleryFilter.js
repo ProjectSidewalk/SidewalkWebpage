@@ -1,5 +1,5 @@
 /**
- * The Gallery's half of the shared filter sidebar (#4585).
+ * Gallery's half of the shared filter sidebar (#4585).
  *
  * FilterSidebar owns the controls and their interaction rules; this class turns the resulting state into a card
  * query — mirroring the selection into the URL, asking the card container to refetch, and logging the interaction.
@@ -31,7 +31,7 @@ export class GalleryFilter {
   #clearButton;
   /**
    * @type {?HTMLSelectElement} The admin's "Sort by" (#2705). Absent for everyone else and in review-list mode, and
-   * then the Gallery is in its random order.
+   * then Gallery is in its random order.
    */
   #sortSelect;
   /** Whether the select had focus when the filters were last disabled, so enable() can hand it back. */
@@ -198,9 +198,10 @@ export class GalleryFilter {
     if (section.hidden) return;
 
     const rated = types.filter((type) => util.misc.labelTypeHasSeverity(type));
-    const positive = rated.length > 0 && rated.every((type) => util.misc.isPositiveLabelType(type));
-    // A label type whose severity reads in the direction the whole selection reads, for the icons and level names.
-    const iconType = positive ? rated[0] : (rated.find((type) => !util.misc.isPositiveLabelType(type)) ?? rated[0]);
+    const positive = rated.every((type) => util.misc.isPositiveLabelType(type));
+    // A label type whose severity reads in the direction the whole selection reads, for the icons and level names:
+    // any negative one when the selection mixes directions, else the first.
+    const iconType = rated.find((type) => !util.misc.isPositiveLabelType(type)) ?? rated[0];
 
     const headingKey = positive ? 'common:quality' : 'common:severity';
     const heading = section.querySelector('.filter-sidebar__heading');
@@ -324,7 +325,7 @@ export class GalleryFilter {
       tracker.push(checked ? 'SeverityApply' : 'SeverityUnapply', null, { Severity: severityName(value) });
     } else if (section === 'label-type') {
       tracker.push(checked ? 'LabelTypeApply' : 'LabelTypeUnapply', null, { Label_Type: value });
-    } else if (section === 'label-validations') {
+    } else {
       tracker.push(checked ? 'ValidationOptionApply' : 'ValidationOptionUnapply', null, {
         ValidationOption: value,
       });
@@ -359,7 +360,7 @@ export class GalleryFilter {
   /** @returns {Record<string, string[]>} The tags narrowing each selected label type, keyed by type name. */
   getAppliedTagsByType() {
     const tags = this.#sidebar?.getState().tags ?? {};
-    return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type] ?? []]));
+    return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type]]));
   }
 
   /** @returns {string[]} Every tag narrowing something, deduped — what the URL carries and the cards highlight. */

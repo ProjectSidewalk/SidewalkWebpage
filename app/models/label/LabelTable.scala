@@ -785,7 +785,7 @@ object LabelTable {
 
   /**
    * Parses the label_comments_agg view's JSON into LabelComment objects — the single Scala-side reader of that wire
-   * shape, used by both the Gallery and getRecentLabelsMetadata.
+   * shape, used by both Gallery and getRecentLabelsMetadata.
    */
   private[label] def parseCommentsJson(json: String): Seq[LabelComment] = {
     play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
@@ -2038,7 +2038,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Retrieves the Gallery's labels of the given types, severities, and tags, in the given order.
+   * Retrieves Gallery's labels of the given types, severities, and tags, in the given order.
    *
    * The random Gallery runs this once per type (the service spreads its request across the types), so for it the set
    * is one type. A sorted Gallery (#2705) runs it once over every selected type, because a global order can only come
@@ -2135,7 +2135,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Retrieves exactly the labels named by `labelIds`, for the Gallery's review-list mode (#5444).
+   * Retrieves exactly the labels named by `labelIds`, for Gallery's review-list mode (#5444).
    *
    * A review list is explicit: the rater asked for these ids and has to be shown every one of them, so this applies
    * none of the quality gates `getGalleryLabelsQuery` does (contributor quality, the disagree ratio, the label type,
@@ -2175,10 +2175,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   private type GalleryLabelInfo = (Label, LabelPoint, PanoData, String, Int, Boolean)
 
   /**
-   * Turns a Gallery base query into the rows the Gallery's label metadata is read from.
+   * Turns a Gallery base query into the rows Gallery's label metadata is read from.
    *
    * Shared by the filtered query and the by-id review-list query (#5444) so the two can never drift into returning
-   * differently-shaped rows. The AI validation is joined in either way — the Gallery shows it — while filtering on
+   * differently-shaped rows. The AI validation is joined in either way — Gallery shows it — while filtering on
    * it is the caller's business, and an empty `aiValOptions` means no filtering at all.
    *
    * @param labelInfo    The label and its point/pano/region/AI-author joins.

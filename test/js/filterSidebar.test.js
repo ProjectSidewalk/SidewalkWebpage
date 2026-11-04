@@ -2,7 +2,7 @@
  * Tests for the shared FilterSidebar controller (frontend/js/common/filter-sidebar/FilterSidebar.js, issue #4585).
  *
  * FilterSidebar is the host-agnostic half of the filter sidebar: it owns the controls and their interaction rules,
- * while hosts (LabelMap's MapSidebarFilter today, the Gallery next) apply the resulting state. These tests pin the
+ * while hosts (LabelMap's MapSidebarFilter today, Gallery next) apply the resulting state. These tests pin the
  * rules that the hosts depend on — what a click does to the DOM, what `getState()` reports, and what the change
  * descriptor carries — so the Gallery adoption can't silently redefine them.
  */
@@ -353,7 +353,7 @@ describe('FilterSidebar', () => {
     });
 
     it('shows the partial glyph on a type that arrives already tagged', () => {
-      // The Gallery renders the URL's tags as applied, so the glyph has to say so from the first paint.
+      // Gallery renders the URL's tags as applied, so the glyph has to say so from the first paint.
       tagPill('CurbRamp').classList.add('tag-pill--active');
 
       new FilterSidebar(root, {});

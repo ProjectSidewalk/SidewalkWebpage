@@ -521,7 +521,7 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
-      # Shared with backend-tests. Without a region /explore is a server error; without labels the Gallery,
+      # Shared with backend-tests. Without a region /explore is a server error; without labels Gallery,
       # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the
       # schema is already at HEAD.
       - name: Seed the test city

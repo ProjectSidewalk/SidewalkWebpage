@@ -277,7 +277,6 @@ export class PartnersPage {
    * from the server, since the only cause is a concurrent edit elsewhere.
    */
   async #move(scope, index, delta) {
-    if (this.#reorderBusy[scope]) return;
     const rows = this.#partners[scope];
     const target = index + delta;
     [rows[index], rows[target]] = [rows[target], rows[index]];

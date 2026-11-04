@@ -1,8 +1,9 @@
 /**
- * The Gallery's expanded view passing an edit made on the label card back to the grid card (#3671, #5853).
+ * Gallery's expanded view passing an edit made on the label card back to the grid card (#3671, #5853), and the
+ * same for a vote, a comment, and a delete or restore (#5840).
  *
  * A type change reaches the view only after the card has re-read the new type's votes, by which time the user may
- * have paged on, so the edit has to land on the edited label's grid card rather than whichever one is open.
+ * have paged on, so each change has to land on its own label's grid card rather than whichever one is open.
  */
 import { loadModules, mockModule } from './loader.js';
 
@@ -40,6 +41,9 @@ function stubCard(labelId) {
     updateLabelType: vi.fn((t) => { labelType = t; }),
     updateSeverityAndTags: vi.fn(),
     setVotes: vi.fn(),
+    updateUserValidation: vi.fn(),
+    updateComments: vi.fn(),
+    setDeleted: vi.fn(),
   };
 }
 
@@ -86,5 +90,45 @@ describe('an edit from the expanded view (#5853)', () => {
     cardOpts.onEdit(edited('Obstacle'));
     expect(cards[7].updateSeverityAndTags).toHaveBeenCalled();
     expect(cards[7].setVotes).not.toHaveBeenCalled();
+  });
+});
+
+describe('other changes from the expanded view (#5840)', () => {
+  test('a vote lands on its own label\'s grid card after paging on, and one for a card not loaded is dropped', () => {
+    view.updateCardIndex(0);
+    view.updateCardIndex(1);
+
+    cardOpts.onVote('Disagree', { label_id: 7 });
+    cardOpts.onVote('Agree', { label_id: 99 });
+
+    expect(cards[7].updateUserValidation).toHaveBeenCalledWith('Disagree');
+    expect(cards[8].updateUserValidation).not.toHaveBeenCalled();
+  });
+
+  test('a comment list lands on its label\'s grid card, so reopening the label shows it', () => {
+    const comments = [{ comment: 'curb is cracked', mine: true }];
+
+    cardOpts.onComments({ label_id: 8, comments });
+    cardOpts.onComments({ label_id: 99, comments });
+
+    expect(cards[8].updateComments).toHaveBeenCalledWith(comments);
+  });
+
+  test('a delete marks the grid card and files the admin\'s Disagree, keeping their comment', () => {
+    cardOpts.onDelete({ label_id: 7, deleted: true, can_restore: true, user_validation: 'Disagree' });
+
+    expect(cards[7].setDeleted).toHaveBeenCalledWith(true, true);
+    expect(cards[7].updateUserValidation).toHaveBeenCalledWith('Disagree', { dropOwnComment: false });
+  });
+
+  test('a restore clears the delete and its vote, and a change for a card not loaded is dropped', () => {
+    cardOpts.onDelete({ label_id: 8, deleted: false });
+    cardOpts.onDelete({ label_id: 99, deleted: true, can_restore: false, user_validation: null });
+    cardOpts.onEdit({ ...edited('Obstacle'), label_id: 99 });
+
+    expect(cards[8].setDeleted).toHaveBeenCalledWith(false, false);
+    expect(cards[8].updateUserValidation).toHaveBeenCalledWith(null, { dropOwnComment: false });
+    expect(cards[7].setDeleted).not.toHaveBeenCalled();
+    expect(cards[7].updateLabelType).not.toHaveBeenCalled();
   });
 });

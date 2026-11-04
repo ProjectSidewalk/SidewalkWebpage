@@ -1,5 +1,5 @@
 /**
- * The Gallery's card, on a report. The Gallery's own endpoint supplies what a card is drawn from, so a card here reads
+ * Gallery's card, on a report. Gallery's own endpoint supplies what a card is drawn from, so a card here reads
  * the same as one there, votes the same way, and credits its imagery the same way.
  */
 

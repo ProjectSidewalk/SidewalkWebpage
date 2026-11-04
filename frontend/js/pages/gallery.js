@@ -1,4 +1,4 @@
-/** Entry point for the Gallery. */
+/** Entry point for Gallery. */
 import { startGallery } from '../gallery/Main.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import '../../css/components/gallery-card.css';

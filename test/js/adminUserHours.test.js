@@ -9,27 +9,11 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { drawManageUserPage } from './support/manageUserPage.js';
 
 mockModule('i18next', () => ({ default: { language: 'en' } }));
 
 const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
-
-/** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
-function buildDom() {
-  document.body.innerHTML = `
-    <div class="ps-kpis">
-      <div class="ps-kpi" id="au-hours-kpi" aria-busy="true">
-        <span class="ps-kpi-value" id="au-hours-value">…</span>
-        <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
-      </div>
-    </div>
-    <span id="au-hours-status" class="sr-only" role="status" aria-live="polite"></span>
-    <div id="au-hours-cities" hidden>
-      <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
-      <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
-    </div>
-    <div class="ud-nudge" id="au-hours-note" hidden></div>`;
-}
 
 /**
  * Builds the page's controller against a stubbed hours endpoint and waits for the fetch to settle.
@@ -38,7 +22,7 @@ function buildDom() {
  * @returns {Promise<void>} Resolves once #loadHours has finished rendering.
  */
 async function load(response) {
-  buildDom();
+  drawManageUserPage();
   window.fetch = vi.fn(() => (response instanceof Error
     ? Promise.reject(response)
     : Promise.resolve({ ok: true, json: () => Promise.resolve(response) })));
@@ -172,7 +156,7 @@ describe('AdminUser cross-city hours', () => {
   });
 
   it('treats an error status like a failed request', async () => {
-    buildDom();
+    drawManageUserPage();
     window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 502, json: () => Promise.resolve({}) }));
     new AdminUser({
       userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags',

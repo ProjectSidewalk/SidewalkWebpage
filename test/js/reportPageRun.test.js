@@ -373,7 +373,7 @@ describe('ReportPage', () => {
     expect(document.querySelector('.report-fix__still').getAttribute('src')).toBe('data:image/png;base64,AAAA');
   });
 
-  test('a fix with no photo gets the Gallery\'s placeholder, and one whose map never settles keeps its sketch', async () => {
+  test('a fix with no photo gets Gallery\'s placeholder, and one whose map never settles keeps its sketch', async () => {
     deps.createMap.mockImplementation((host, options) => {
       const map = { host, options, destroy: vi.fn(), colorBy: vi.fn(), snapshot: vi.fn(async () => null) };
       maps.push(map);

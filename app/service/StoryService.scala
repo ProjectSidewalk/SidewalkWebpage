@@ -351,7 +351,7 @@ class StoryServiceImpl @Inject() (
 
   /**
    * Signed label-preview URLs (saved crop, else provider static image) for the given labels, resolved with one
-   * batched pano-metadata query — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
+   * batched pano-metadata query — the same crop-then-GSV strategy as Gallery and the admin activity feed.
    * Used for photoless stories so every listing row can still carry an image.
    *
    * @param labelTypesById The label type of each label needing a preview, keyed by label id.

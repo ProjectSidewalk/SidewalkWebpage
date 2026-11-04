@@ -228,7 +228,7 @@ describe('ReportStreetSection', () => {
     expect(reference.querySelector('.sr-only').textContent).toContain('opens-new-tab');
   });
 
-  test('a location with several labels links to them in the Gallery, and past the cap says how many there were', async () => {
+  test('a location with several labels links to them in Gallery, and past the cap says how many there were', async () => {
     const pooled = { ...cardData(1), labelIds: [11, 12, 13], listIds: [11, 12] };
     const section = build([pooled, { ...cardData(2), labelIds: [21, 22], listIds: [21, 22] }]);
     await section.loadCards();

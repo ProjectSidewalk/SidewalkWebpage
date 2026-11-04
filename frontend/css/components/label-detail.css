@@ -667,7 +667,7 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
 
 /* Wrapping is keyed to the columns' own width, not the viewport's: three hosts size this card independently of
-   the window (the 650px modal, the Gallery's 52vw expanded view, the share page's grid track), and a translated
+   the window (the 650px modal, Gallery's 52vw expanded view, the share page's grid track), and a translated
    "Disagree" widens the two fixed columns well past their English measurement. Since neither of those can shrink,
    the zero basis + floor on tags below breaks the line exactly when they stop fitting — whatever the host, width,
    or language. */
@@ -1210,7 +1210,7 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
 
-/* "k of N" position in the Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
+/* "k of N" position in Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
    far through a fixed review list you are is the point of the mode, and a hover-revealed counter would not say. */
 .label-detail__position {
   position: absolute;
