@@ -116,6 +116,17 @@ describe('Explore publishes the links clearance from Mapillary\'s in-place pill 
     expect(container.parentElement).toBe(renderer);
   });
 
+  test('renders before the pill arrives are waited through', async () => {
+    await createPanoManager();
+    document.getElementById('pano').appendChild(document.createElement('div'));
+    await flushObservers();
+    expect(observedNodes).toEqual([]);
+
+    const { container } = renderSdkAttribution();
+    await flushObservers();
+    expect(observedNodes).toEqual([container]);
+  });
+
   test('the hand-off happens once, not on every later render inside the pano', async () => {
     await createPanoManager();
     const {renderer} = renderSdkAttribution();
