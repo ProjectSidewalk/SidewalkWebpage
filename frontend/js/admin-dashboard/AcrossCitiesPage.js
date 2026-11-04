@@ -760,7 +760,7 @@ export class AcrossCitiesPage {
       e.active_users += w.active_users || 0;
       m.set(w.week_start, e);
     }
-    return [...m.values()].sort((a, b) => (a.week_start < b.week_start ? -1 : a.week_start > b.week_start ? 1 : 0));
+    return [...m.values()].sort((a, b) => a.week_start.localeCompare(b.week_start));
   }
 
   /** Draws the three over-time line charts for the currently selected range. */
@@ -1263,7 +1263,7 @@ export class AcrossCitiesPage {
     if (legendEl) {
       legendEl.innerHTML = present.map(([key, name]) => `
         <span class="ac-legend-item">
-          <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
+          <span class="ac-legend-swatch" style="background:${util.misc.getLabelColors(key)}"></span>
           ${util.escapeHTML(name)}
         </span>`).join('');
     }
@@ -1284,7 +1284,7 @@ export class AcrossCitiesPage {
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
           tips.push(tip);
           return `<span class="ac-stack-seg" data-ps-tooltip="${util.escapeHTML(tip)}"
-            style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
+            style="width:${(share * 100).toFixed(2)}%;background:${util.misc.getLabelColors(key)}"></span>`;
         }).join('');
       }
       return `
@@ -1886,13 +1886,6 @@ export class AcrossCitiesPage {
     const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
     return `<svg class="ac-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`
       + `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
-  }
-
-  /** Canonical label-type color via the shared helper, with a gray fallback. */
-  #color(labelType) {
-    const c = util.misc.getLabelColors(labelType);
-    if (c) return c;
-    return '#b3b3b3';
   }
 
   // --- Helpers ----------------------------------------------------------------------------------------------------

@@ -43,6 +43,10 @@ describe('Explore Main builds in dependency order', () => {
     const { built, buildOrder } = exploreMain;
     expect(built.tracker.onFlush).toHaveBeenCalledWith(expect.any(Function));
     expect(buildOrder.indexOf('form')).toBeLessThan(built.tracker.onFlush.mock.invocationCallOrder[0]);
+
+    // A full log buffer is posted by the Form along with any unsaved labels.
+    built.tracker.onFlush.mock.calls[0][0]();
+    expect(built.form.submitData).toHaveBeenCalled();
   });
 
   it('builds the arrows before the service that answers them, and the keyboard after everything it drives', () => {
