@@ -39,7 +39,9 @@ function buildFixture({ labelTypes = true, validations = true, admin = true } = 
           <input type="checkbox" id="${type}-checkbox" checked data-filter-type="label-type">
           <span class="filter-sidebar__count" data-count-for="${type}"></span>
           <button type="button" class="tag-pill" data-tag="narrow" data-label-type="${type}">narrow</button>
-          <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">Only</button>
+          <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">
+            Only
+          </button>
         </li>`).join('');
 
   const validationRows = ['correct', 'incorrect', 'unsure', 'unvalidated'].map((option) => `
@@ -138,7 +140,8 @@ describe('MapSidebarFilter', () => {
     beforeEach(() => build());
 
     test.each([
-      ['turning a severity off', () => click('[data-severity="2"]'), 'Click_module=MapSidebar_SeverityUnapply_severity=2'],
+      ['turning a severity off', () => click('[data-severity="2"]'),
+        'Click_module=MapSidebar_SeverityUnapply_severity=2'],
       ['turning N/A severity off', () => click('[data-severity="0"]'),
         'Click_module=MapSidebar_SeverityUnapply_severity=null'],
       ['hiding a label type', () => toggle('Obstacle-checkbox'),

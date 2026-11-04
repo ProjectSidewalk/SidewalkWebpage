@@ -66,6 +66,7 @@ function fakeMap({ padding = { left: 0, right: 0, top: 0, bottom: 0 }, zoom = 14
     getBounds: () => ({ contains: () => inBounds }),
     getLayer: (id) => id === 'labels-CurbRamp',
     setFilter(id, expr) { this.filters[id] = expr; },
+    setPadding: vi.fn(),
     jumpTo: vi.fn(),
     easeTo: vi.fn(),
   };
@@ -124,6 +125,7 @@ const CURB_RAMP = window.labelTypes.find((lt) => lt.name === 'CurbRamp');
 describe('createLabelSpotlight', () => {
   let createLabelSpotlight;
   let CreateMapLayerTracker;
+  let setPaddingEdges;
   let dialog;
   let map;
   let mapData;
@@ -168,8 +170,11 @@ describe('createLabelSpotlight', () => {
       observe() {}
     };
     setWindow(1600, 900);
-    ({ createLabelSpotlight, CreateMapLayerTracker } = await loadModules(
-      'frontend/js/ps-map/psMapUtilities.js', 'frontend/js/ps-map/labelSpotlight.js'));
+    ({ createLabelSpotlight, CreateMapLayerTracker, setPaddingEdges } = await loadModules(
+      'frontend/js/ps-map/psMapUtilities.js',
+      'frontend/js/ps-map/mapPadding.js',
+      'frontend/js/ps-map/labelSpotlight.js',
+    ));
     map = fakeMap();
     mapData = CreateMapLayerTracker();
     mapData.layerNames.CurbRamp = 'labels-CurbRamp';
@@ -222,6 +227,18 @@ describe('createLabelSpotlight', () => {
 
       // Mapbox centers within the padded area, 400–1600, so its center is at 1000.
       expect(offsetFromCenter(COORDS, map.jumpTo.mock.calls[0][0]).x).toBeCloseTo(1362.5 - 1000, 3);
+    });
+
+    test('a drawer still easing open is measured where it is going, and the move takes it there', () => {
+      // The map still reports no padding: the drawer's ease toward 400 has only just begun.
+      setPaddingEdges(map, { left: 400 }, { animate: false });
+      map.getPadding = () => ({ left: 0, right: 0, top: 0, bottom: 0 });
+      openDialogAt(475, 100, 1125, 800);
+      build().spotlight(7, true);
+
+      const camera = map.jumpTo.mock.calls[0][0];
+      expect(offsetFromCenter(COORDS, camera).x).toBeCloseTo(1362.5 - 1000, 3);
+      expect(camera.padding).toEqual({ left: 400, right: 0, top: 0, bottom: 0 });
     });
 
     test('on a phone the dot is parked in the space below the dialog', () => {

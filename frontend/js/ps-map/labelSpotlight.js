@@ -1,6 +1,7 @@
 import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { filterLabelLayers } from './psMapUtilities.js';
+import { paddingTarget } from './mapPadding.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
 
@@ -210,9 +211,11 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
     const gutterX = Math.max(gutterRight, gutterLeft);
     const gutterY = box.bottom - dialogBottom;
     // Mapbox's center is the center of the viewport inside the map's padding (a page's drawers, #5748), and the
-    // offset below is from there; the container's own center would land the dot a drawer's half-width off.
+    // offset below is from there; the container's own center would land the dot a drawer's half-width off. The
+    // padding is the one the drawers are heading for, and the move carries it, since a move cuts short a padding
+    // ease still under way and would strand it half-way.
     const mapRect = map.getContainer().getBoundingClientRect();
-    const pad = map.getPadding();
+    const pad = paddingTarget(map);
     const mapCenter = {
       x: mapRect.left + pad.left + (mapRect.width - pad.left - pad.right) / 2,
       y: mapRect.top + pad.top + (mapRect.height - pad.top - pad.bottom) / 2,
@@ -229,7 +232,7 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
     // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
     // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
     // and with it the beacon and tail — under the centered dialog. This keeps jump and ease placing identically.
-    const camera = { center: centerShowingLabelAt(coords, dx, dy, zoom), zoom };
+    const camera = { center: centerShowingLabelAt(coords, dx, dy, zoom), zoom, padding: pad };
     if (jump) map.jumpTo(camera);
     else map.easeTo(camera);
     setBeacon(labelId, 'spotlight');

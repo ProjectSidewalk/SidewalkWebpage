@@ -192,7 +192,8 @@ export class MapSidebarDrawer {
       this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
-      this.#map.setPadding({ ...this.#map.getPadding(), left: newWidth });
+      // Through the shared target, so an overlay that sets its own edge later keeps the dragged width.
+      setPaddingEdges(this.#map, { left: newWidth }, { animate: false });
       this.#publishWidth();
     };
 

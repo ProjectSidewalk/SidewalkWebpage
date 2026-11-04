@@ -56,7 +56,7 @@ function fakeMap() {
  * @param {boolean} [options.narrow=false] Start below the drawer's breakpoint.
  * @param {boolean} [options.startCollapsed=false] Pass the same-named drawer option.
  * @param {boolean} [options.chrome=true] Render the reopen button and resize handle; a page may leave both out.
- * @returns {object} The drawer, its elements, the map stub, and the viewport control.
+ * @returns {object} The drawer, its elements, the map stub, the viewport control, and the padding helper's setter.
  */
 async function build({narrow = false, startCollapsed = false, chrome = true} = {}) {
   document.body.innerHTML = `
@@ -77,12 +77,13 @@ async function build({narrow = false, startCollapsed = false, chrome = true} = {
   viewport.setNarrow(narrow);
   window.logWebpageActivity = vi.fn();
 
-  const { MapSidebarDrawer } = await loadModules('frontend/js/ps-map/MapSidebarDrawer.js');
+  const { MapSidebarDrawer, setPaddingEdges } = await loadModules(
+    'frontend/js/ps-map/mapPadding.js', 'frontend/js/ps-map/MapSidebarDrawer.js');
   const map = fakeMap();
   const drawer = new MapSidebarDrawer(map, sidebar, {startCollapsed});
 
   return {
-    drawer, map, viewport, sidebar,
+    drawer, map, viewport, sidebar, setPaddingEdges,
     openBtn: document.getElementById('filter-sidebar-open'),
     closeBtn: document.getElementById('filter-sidebar-close'),
     handle: document.getElementById('filter-sidebar-resize-handle'),
@@ -330,6 +331,17 @@ describe('MapSidebarDrawer', () => {
       expect(handle.style.left).toBe('450px');
       expect(map.lastPadding()).toEqual({left: 450, top: 0, right: 0, bottom: 0});
       expect(sidebar.parentElement.style.getPropertyValue('--map-inset-left')).toBe('450px');
+    });
+
+    it('keeps a dragged width when another overlay later sets its own edge', async () => {
+      const {handle, map, setPaddingEdges} = await buildDraggable();
+      pointer(handle, 'pointerdown');
+      pointer(handle, 'pointermove', 450);
+
+      // As AccessScore's dock does when it folds.
+      setPaddingEdges(map, {bottom: 120}, {animate: false});
+
+      expect(map.lastPadding()).toEqual({left: 450, top: 0, right: 0, bottom: 120});
     });
 
     it('keeps the panel between its narrowest and widest sizes', async () => {

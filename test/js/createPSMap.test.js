@@ -296,13 +296,13 @@ describe('createPSMap', () => {
     const viewport = { labelsURL: '/labels/all', viewportLabelLoading: true };
 
     test('builds empty label layers and lets the loader fill them as the map moves', async () => {
-      const options = { minZoom: 13 };
+      const options = { minFetchZoom: 13 };
       const { map, result } = await start({ ...viewport, streetsURL: '/streets', viewportLabelOptions: options });
       expect(layers.fetchLabelFeed).not.toHaveBeenCalled();
       expect(layers.addLabelsToMap).toHaveBeenCalledWith(map, EMPTY, expect.any(Object));
       const [loader] = loaders;
       expect(loader.url).toBe('/labels/all');
-      expect(loader.options.minZoom).toBe(13);
+      expect(loader.options.minFetchZoom).toBe(13);
       expect(loader.started).toBe(true);
       expect(result[4].labelLoader).toBe(loader);
       expect(result[4].streetCounts).toEqual({ audited: 1, outdated: 0, unaudited: 2 });
