@@ -151,10 +151,9 @@ export class MapSidebarDrawer {
    * centered over the map (the status pill) centers on the part the reader can see.
    */
   #publishWidth() {
-    const style = this.#sidebar.parentElement?.style;
-    if (!style) return;
+    const style = this.#sidebar.parentElement.style;
     style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
-    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft ?? 0}px`);
+    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */

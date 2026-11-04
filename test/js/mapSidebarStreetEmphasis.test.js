@@ -36,7 +36,7 @@ function buildFixture() {
       <div id="filter-sidebar">
         <button type="button" id="filter-sidebar-close">close</button>
         <section class="filter-sidebar__section" data-filter-section="streets">
-          <ul class="filter-sidebar__list">${streetRows}</ul>
+          <ul class="filter-sidebar__list">${streetRows}<li class="filter-sidebar__item" id="street-note">Note</li></ul>
         </section>
       </div>
       <button type="button" id="filter-sidebar-open">open</button>
@@ -162,6 +162,28 @@ describe('street row emphasis', () => {
     focusByPointer('audited-street');
     fire('audited-street', 'mouseenter');
     fire('audited-street', 'mouseleave');
+
+    expect(emphasizedState()).toBeNull();
+  });
+
+  it('keeps the pointer\'s emphasis when a clicked row loses its unringed focus', () => {
+    focusByPointer('audited-street');
+    fire('audited-street', 'mouseenter');
+    fire('audited-street', 'focusout');
+
+    expect(emphasizedState()).toBe('audited');
+  });
+
+  it('emphasizes a focused row in a browser that cannot tell whether focus is visible', () => {
+    const checkbox = document.getElementById('outdated-street');
+    checkbox.matches = () => { throw new SyntaxError('unknown pseudo-class'); };
+    checkbox.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(emphasizedState()).toBe('outdated');
+  });
+
+  it('ignores a row in the streets list that has no checkbox', () => {
+    fire(null, 'mouseenter', document.getElementById('street-note'));
 
     expect(emphasizedState()).toBeNull();
   });
