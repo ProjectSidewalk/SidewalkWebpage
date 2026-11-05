@@ -123,9 +123,11 @@
     <div id="already-completed-region-overlay">
       <div class="overlay-text">
         <div id="already-completed-region-text">
-          <p><span class="overlay-header">Neighborhood Already Complete!</span></p>
-          <p>You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.</p>
-          <span class="overlay-option" id="accept-redirect">OK</span>
+          <p><span class="overlay-header">@Messages("audit.region.already.complete.title")</span></p>
+          <p>@Messages("audit.region.already.complete.body")</p>
+          @* Leaves Explore rather than reloading it: a reload can be handed the same taskless session again. *@
+          <a class="overlay-option" id="already-completed-region-validate" href="@routes.ValidateController.validate()">@Messages("audit.all.regions.finished.validate")</a>
+          <a class="overlay-option" id="already-completed-region-cities" href="@routes.ApplicationController.cities">@Messages("audit.all.regions.finished.other.cities")</a>
         </div>
       </div>
     </div>

@@ -43,10 +43,6 @@ util.onDomReady(() => {
   document.getElementById('redirect-new').addEventListener('click', () => {
     window.location.href = '/explore?newRegion=true';
   });
-  // Already Completed Region Overlay
-  document.getElementById('accept-redirect').addEventListener('click', () => {
-    window.location.href = '/explore';
-  });
 });
 
 /** Replays touches as mouse events, so the tool's mouse handlers work on a touch screen. */
@@ -89,7 +85,7 @@ window.appManager.ready(async () => {
   if (!exploreSession.task) {
     // The user has finished their assigned region, so there is nothing to explore until they pick a new one.
     document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
-    document.getElementById('already-completed-region-overlay').style.display = 'block';
+    showAlreadyCompletedRegion();
     return;
   }
   // Console and e2e handle; nothing in the app reads it.
@@ -107,4 +103,15 @@ function showAllRegionsFinished() {
     window.logWebpageActivity('Click_AllRegionsFinished_OtherCities');
   });
   dialog.show();
+}
+
+/** Shows the overlay for a session with no task: the user has finished the region they were given. */
+function showAlreadyCompletedRegion() {
+  document.getElementById('already-completed-region-validate').addEventListener('click', () => {
+    window.logWebpageActivity('Click_AlreadyCompletedRegion_Validate');
+  });
+  document.getElementById('already-completed-region-cities').addEventListener('click', () => {
+    window.logWebpageActivity('Click_AlreadyCompletedRegion_OtherCities');
+  });
+  document.getElementById('already-completed-region-overlay').style.display = 'block';
 }

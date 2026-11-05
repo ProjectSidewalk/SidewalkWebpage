@@ -1848,16 +1848,15 @@ kbd {
   border: 1px solid var(--color-neutral-white);
   border-radius: 5px;
   display: inline-block;
+  color: var(--color-neutral-white);
+  text-decoration: none;
 }
 
-.overlay-option:hover {
+.overlay-option:hover, .overlay-option:focus-visible {
   background-color: var(--color-neutral-white);
   color: var(--color-neutral-black);
   cursor: pointer;
-}
-
-#accept-redirect {
-  width: 75px;
+  text-decoration: none;
 }
 
 /* Overlay box - end */

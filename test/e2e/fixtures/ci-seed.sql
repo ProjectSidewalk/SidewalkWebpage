@@ -38,8 +38,8 @@
 -- GeodesicDistanceSpec asserts that agreement for labels_per_meter, region_completion and route.distance_meters.
 -- =====================================================================================================================
 
--- With zero region rows /explore is a server error before any JS runs (#4748). With one, a fresh anonymous user
--- deterministically starts the audit TUTORIAL, whose panorama tiles are local assets.
+-- One region, so Explore has somewhere to start: with none, every visit gets the all-regions-finished end state. With
+-- it, a fresh anonymous user deterministically starts the audit TUTORIAL, whose panorama tiles are local assets.
 INSERT INTO sidewalk_teaneck.region (region_id, data_source, name, geom, deleted)
 VALUES (18, 'https://njogis-newjersey.opendata.arcgis.com/datasets/764362ac87254d77b976a080f926a6fe_0/explore?filters=eyJNVU5fTkFNRSI6WyJUZWFuZWNrIFRvd25zaGlwIl19', 'Tyron Park',
         ST_Multi(ST_GeomFromText(
@@ -48,8 +48,9 @@ VALUES (18, 'https://njogis-newjersey.opendata.arcgis.com/datasets/764362ac87254
 ON CONFLICT (region_id) DO NOTHING;
 
 -- Street 1 is the tutorial street. Region completion excludes it, so a region holding only it is complete for
--- everyone and never assigned (the same 500 as no region). It joins the region beside the real streets instead, as
--- in every real city: the label card's query needs a region, and the tutorial-labeling spec reads through it.
+-- everyone and never assigned (the same end state as no region). It joins the region beside the real streets
+-- instead, as in every real city: the label card's query needs a region, and the tutorial-labeling spec reads
+-- through it.
 INSERT INTO sidewalk_teaneck.street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
 VALUES
   (479, ST_GeomFromText('LINESTRING(-73.99309 40.90276,-73.9922537 40.9038259)', 4326),

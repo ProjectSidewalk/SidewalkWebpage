@@ -38,7 +38,9 @@ const MARKUP = `
   <div id="area-completion-overlay-wrapper">
     <button id="continue-current"></button><button id="redirect-new"></button>
   </div>
-  <div id="already-completed-region-overlay" style="display: none"><button id="accept-redirect"></button></div>
+  <div id="already-completed-region-overlay" style="display: none">
+    <a id="already-completed-region-validate"></a><a id="already-completed-region-cities"></a>
+  </div>
   <dialog id="all-regions-finished">
     <a id="all-regions-finished-validate"></a><a id="all-regions-finished-cities"></a>
   </dialog>`;
@@ -111,6 +113,12 @@ describe('starting a visit', () => {
     expect(h.main).toBeUndefined();
     expect(document.querySelector('.tool-ui').classList.contains('ps-invisible')).toBe(false);
     expect(el('already-completed-region-overlay').style.display).toBe('block');
+
+    el('already-completed-region-validate').click();
+    el('already-completed-region-cities').click();
+    expect(window.logWebpageActivity.mock.calls).toEqual([
+      ['Click_AlreadyCompletedRegion_Validate'], ['Click_AlreadyCompletedRegion_OtherCities'],
+    ]);
   });
 
   test('a city with no street left opens the all-finished dialog, whose links are logged', async () => {
@@ -129,15 +137,14 @@ describe('starting a visit', () => {
 });
 
 describe('the region overlays', () => {
-  test('"continue" hides the region-complete overlay; the redirects leave for a new region or Explore', async () => {
+  test('"continue" hides the region-complete overlay; "new region" leaves for one', async () => {
     await boot();
     el('continue-current').click();
     expect(el('area-completion-overlay-wrapper').style.display).toBe('none');
 
     const navigations = navigationAttempts();
     el('redirect-new').click();
-    el('accept-redirect').click();
-    expect(navigations).toHaveBeenCalledTimes(2);
+    expect(navigations).toHaveBeenCalledTimes(1);
   });
 });
 
