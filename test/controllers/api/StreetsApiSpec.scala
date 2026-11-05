@@ -1,13 +1,17 @@
 package controllers.api
 
+import models.api.StreetGradientApiFields
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
+import org.apache.pekko.util.ByteString
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.Helpers.*
 import play.api.test.FakeRequest
-import util.SidewalkSpec
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * Locks the response contract of the Streets API: GET /v3/api/streets returns a GeoJSON FeatureCollection by default
@@ -18,9 +22,21 @@ import util.SidewalkSpec
  * `UserAwareAction` (no auth needed) and make no external WS calls on the request path. The eager scheduling actors
  * are disabled so they don't fire background DB/WS work during the test.
  *
+ * The grade fields (#5431) need a street with a `street_gradient` row, which CI's seed lacks, so the spec seeds a
+ * region of its own with one sampled and one unsampled street, and deletes them in `afterAll` (a request runs in its
+ * own transaction, so a rollback cannot do it).
+ *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
+ *
+ * `BeforeAndAfterAll` is mixed in before `GuiceOneAppPerSuite` so that `afterAll` runs while the app is still up.
  */
-class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class StreetsApiSpec
+    extends SidewalkSpec
+    with BeforeAndAfterAll
+    with GuiceOneAppPerSuite
+    with RolledBackDb
+    with StreetFixtures
+    with OptionValues {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -33,6 +49,45 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
+
+  private var gradeRegion: Int     = 0
+  private var sampledStreet: Int   = 0
+  private var unsampledStreet: Int = 0
+  private val GradeSpecWay         = 9_000_101L
+
+  private val gradeFieldNames: Seq[String] = StreetGradientApiFields.statFields.map(_.name)
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    gradeRegion = run(insertRegion())
+    sampledStreet = run(insertStreet(Some(gradeRegion)))
+    unsampledStreet = run(insertStreet(Some(gradeRegion)))
+    // The streets API inner-joins each street's primary OSM way, so both streets need one.
+    val _ = run(
+      sqlu"""INSERT INTO osm_way_street_edge (osm_way_street_edge_id, osm_way_id, street_edge_id)
+             VALUES ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 1 FROM osm_way_street_edge), $GradeSpecWay,
+                     $sampledStreet),
+                    ((SELECT COALESCE(MAX(osm_way_street_edge_id), 0) + 2 FROM osm_way_street_edge), $GradeSpecWay,
+                     $unsampledStreet)""" andThen
+        sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
+                                            meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m,
+                                            elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5)
+               VALUES ($sampledStreet, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
+                       ARRAY[10400, 10250, 10150, 10050, 10000], 'usgs-3dep-10m', 10,
+                       '0123456789abcdef0123456789abcdef')"""
+    )
+  }
+
+  override def afterAll(): Unit = {
+    try {
+      // The gradient rows and region links go with the streets; the way links have no cascade.
+      val _ = run(
+        sqlu"DELETE FROM osm_way_street_edge WHERE street_edge_id IN ($sampledStreet, $unsampledStreet)" andThen
+          sqlu"DELETE FROM street_edge WHERE street_edge_id IN ($sampledStreet, $unsampledStreet)" andThen
+          sqlu"DELETE FROM region WHERE region_id = $gradeRegion"
+      )
+    } finally super.afterAll()
+  }
 
   "GET /v3/api/streets" should {
     "return 200 GeoJSON FeatureCollection by default" in {
@@ -83,10 +138,58 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
         "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count," +
-          "audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point"
+          "audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point," +
+          "mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct,meters_over_8pct," +
+          "grade_confidence,grade_quality,dem_source"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"
+    }
+
+    "carry a sampled street's grade fields, and nulls on a street with no gradient row (#5431)" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/streets?regionId=$gradeRegion")).get
+      status(resp) mustBe OK
+      val byId = (contentAsJson(resp) \ "features")
+        .as[Seq[JsObject]]
+        .map(f => (f \ "properties").as[JsObject])
+        .map(p => (p \ "street_edge_id").as[Int] -> p)
+        .toMap
+      byId.keySet mustBe Set(sampledStreet, unsampledStreet)
+
+      // The grade fields come last, after every field the endpoint already had.
+      byId(sampledStreet).keys.toSeq.takeRight(gradeFieldNames.size) mustBe gradeFieldNames
+
+      val sampled = byId(sampledStreet)
+      (sampled \ "mean_grade").as[Double] mustBe 0.06
+      (sampled \ "max_grade").as[Double] mustBe 0.09
+      (sampled \ "net_grade").as[Double] mustBe -0.04
+      (sampled \ "total_climb_meters").as[Double] mustBe 1.5
+      (sampled \ "total_descent_meters").as[Double] mustBe 5.5
+      (sampled \ "meters_over_5pct").as[Double] mustBe 40.0
+      (sampled \ "meters_over_8pct").as[Double] mustBe 10.0
+      (sampled \ "grade_confidence").as[String] mustBe "high"
+      (sampled \ "grade_quality").as[String] mustBe "measured"
+      (sampled \ "dem_source").as[String] mustBe "usgs-3dep-10m"
+      // The profile stays on /v3/api/streetGrade.
+      sampled.keys must not contain "profile"
+
+      // Present and null, not missing, so every feature has the same keys.
+      gradeFieldNames.foreach(name => (byId(unsampledStreet) \ name).toOption mustBe Some(JsNull))
+    }
+
+    "carry the grade fields as CSV cells, empty on a street with no gradient row (#5431)" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/streets?regionId=$gradeRegion&filetype=csv")).get
+      status(resp) mustBe OK
+      val lines  = contentAsString(resp).linesIterator.filter(_.nonEmpty).toSeq
+      val header = lines.head.split(",", -1).toSeq
+      header.takeRight(gradeFieldNames.size) mustBe gradeFieldNames
+      // The point cells hold a comma inside quotes, so read the grade cells off the end of each row.
+      def gradeCells(streetEdgeId: Int): Seq[String] =
+        lines.find(_.startsWith(s"$streetEdgeId,")).value.split(",", -1).toSeq.takeRight(gradeFieldNames.size)
+
+      gradeCells(sampledStreet) mustBe Seq("0.06", "0.09", "-0.04", "1.5", "5.5", "40.0", "10.0", "high", "measured",
+        "usgs-3dep-10m")
+      gradeCells(unsampledStreet) mustBe Seq.fill(gradeFieldNames.size)("")
     }
 
     "return 400 INVALID_PARAMETER for an unrecognized status value" in {
@@ -136,6 +239,13 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       bytes.containsSlice(org.apache.pekko.util.ByteString("osm_ways")) mustBe true         // #5741
       bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
+
+    "carry the grade fields as columns (#5431)" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/streets?regionId=$gradeRegion&filetype=geopackage")).get
+      status(resp) mustBe OK
+      val bytes = contentAsBytes(resp)
+      gradeFieldNames.foreach(name => bytes.containsSlice(ByteString(name)) mustBe true)
+    }
   }
 
   "GET /v3/api/streets?filetype=shapefile" should {
@@ -143,6 +253,14 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // The DBF field names live inside compressed entries, so this only smoke-tests that the export (including the
       // outdated featureBuilder wiring, which would 500 on a schema/value mismatch) still assembles end to end.
       val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=shapefile")).get
+      status(resp) mustBe OK
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
+    }
+
+    "assemble with a sampled street in it (#5431)" in {
+      // The grade columns' names and values are read back in RawLabelExportSpec; this proves the endpoint's own
+      // stream carries the statistics into a writer whose schema has room for them.
+      val resp = route(app, FakeRequest(GET, s"/v3/api/streets?regionId=$gradeRegion&filetype=shapefile")).get
       status(resp) mustBe OK
       contentAsBytes(resp).take(2).utf8String mustBe "PK"
     }

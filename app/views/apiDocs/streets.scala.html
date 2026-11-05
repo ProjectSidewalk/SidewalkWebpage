@@ -1,4 +1,5 @@
 @import models.utils.SeoUtils
+@import models.street.StreetGradientStats
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -9,7 +10,7 @@
 
   <div class="page-section" id="streets-intro-section">
     <h1 class="page-heading" id="streets-api">Streets API <a href="#streets-api" class="permalink">#</a></h1>
-    <p>The Streets API provides access to Project Sidewalk's street segment data, including auditing statistics, accessibility label counts, and geographic information. Project Sidewalk uses <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a> for street data, filtered to particular <a href="https://wiki.openstreetmap.org/wiki/Key:highway" target="_blank" rel="noopener">way types</a>. Users are routed through these streets to find and label sidewalk accessibility features and barriers. OSM-derived fields (street geometry, <code>way_type</code>, <code>max_speed</code>) are &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License</a>.</p>
+    <p>The Streets API provides access to Project Sidewalk's street segment data, including auditing statistics, accessibility label counts, and geographic information. Project Sidewalk uses <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a> for street data, filtered to particular <a href="https://wiki.openstreetmap.org/wiki/Key:highway" target="_blank" rel="noopener">way types</a>. Users are routed through these streets to find and label sidewalk accessibility features and barriers. Each street also carries its running grade, measured from an elevation model rather than labeled, so unaudited streets have it too (see <a href="#street-grade">Street grade</a>). OSM-derived fields (street geometry, <code>way_type</code>, <code>max_speed</code>) are &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License</a>.</p>
   </div>
 
   <div class="page-section" id="streets-preview-section">
@@ -41,6 +42,16 @@
             id="page-entry"
             data-mapbox-api-key="@commonData.mapboxApiKey"
             src='@assets.path("build/js/api-docs/streets.js")'></script>
+  </div>
+
+  <div class="page-section" id="street-grade-section">
+    <h2 class="page-heading" id="street-grade">Street grade<a href="#street-grade" class="permalink">#</a></h2>
+    <p>Every street carries ten grade fields, <code>mean_grade</code> through <code>dem_source</code>: its running grade (how steep it is along its length), sampled along its centerline from a bare-earth elevation model. Grade needs no labeling, so it is there for unaudited streets too, and it is <code>null</code> on a street that has not been sampled, including every street in a city whose grades have not been imported. The same fields, from the same source, ride on the <a href="@routes.ApiDocsController.accessScoreStreets#street-grade">AccessScore: Streets API</a>, where they also feed each street's score. This API says <strong>grade</strong> and never <em>slope</em>, which accessibility standards also use for a sidewalk's cross slope: that cannot be measured from a centerline and is not reported.</p>
+    <p>A bare-earth model removes bridges and knows nothing of tunnels, so a street on a structure reports <code>grade_quality: "structure"</code> and no grade, not the grade of the ground beneath it. How grades are sampled, and how accurate they are, is on the <a href="@routes.ApiDocsController.streetGrade#data-source">Street Grade API</a> page, which also serves one street's elevation profile, the one grade field too heavy for a city-wide file.</p>
+
+    <h3 class="page-heading" id="street-grade-credits">Elevation model credits<a href="#street-grade-credits" class="permalink">#</a></h3>
+    <p>Each street names the model it was sampled from in <code>dem_source</code>. If you publish the grade fields, credit the model as below, and cite it where you would cite data; <a href="@routes.ApiDocsController.accessScoreStreets#scoring-config"><code>/v3/api/accessScoreConfig</code></a> lists the ones this city uses under <code>grade.sources</code>, with the same credit lines and citations. A city sampled from rasters that are not in this table yet is credited by its <code>dem_source</code> alone.</p>
+    @apiDocs.elevationCredits("street-grade-credits")
   </div>
 
   <div class="page-section" id="endpoint-section">
@@ -211,7 +222,17 @@
             "way_to_frac": 1,
             "same_direction": false
           }
-        ]
+        ],
+        "mean_grade": 0.0412,
+        "max_grade": 0.0687,
+        "net_grade": -0.0398,
+        "total_climb_meters": 0.4,
+        "total_descent_meters": 5.1,
+        "meters_over_5pct": 32.5,
+        "meters_over_8pct": 0,
+        "grade_confidence": "high",
+        "grade_quality": "measured",
+        "dem_source": "usgs-3dep-10m"
       }
     },
     {
@@ -249,7 +270,17 @@
             "way_to_frac": 0.31,
             "same_direction": true
           }
-        ]
+        ],
+        "mean_grade": null,
+        "max_grade": null,
+        "net_grade": null,
+        "total_climb_meters": null,
+        "total_descent_meters": null,
+        "meters_over_5pct": null,
+        "meters_over_8pct": null,
+        "grade_confidence": "high",
+        "grade_quality": "structure",
+        "dem_source": "usgs-3dep-10m"
       }
     },
     ...
@@ -358,21 +389,74 @@
             <td><code>string</code></td>
             <td>Timestamp when the most recent accessibility label was applied to this street segment, in ISO 8601 format. May be <code>null</code> if no labels exist.</td>
           </tr>
+
+            <!-- Street Grade -->
+          <tr>
+            <td><code>properties.mean_grade</code></td>
+            <td><code>number</code></td>
+            <td>The street's mean absolute running grade over every 10&nbsp;m baseline, as a fraction (<code>0.05</code> is a 5% grade). Like every grade field it comes from an elevation model, not from labels, so an unaudited street has it too; see <a href="#street-grade">Street grade</a>. <code>null</code> where the street has not been sampled or has no usable profile (<code>grade_quality</code> says which).</td>
+          </tr>
+          <tr>
+            <td><code>properties.max_grade</code></td>
+            <td><code>number</code></td>
+            <td>The steepest absolute grade over any 30&nbsp;m baseline (any 10&nbsp;m baseline on a street shorter than 30&nbsp;m), as a fraction. Never below <code>mean_grade</code>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.net_grade</code></td>
+            <td><code>number</code></td>
+            <td>End-to-end grade as a fraction, signed in the direction of the street's geometry: negative where the street runs downhill from its first coordinate to its last. The one grade field a coarse (30&nbsp;m) elevation model supports, so it can be set while the others are <code>null</code>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.total_climb_meters</code></td>
+            <td><code>number</code></td>
+            <td>Summed rise along the street in the direction of its geometry, in meters.</td>
+          </tr>
+          <tr>
+            <td><code>properties.total_descent_meters</code></td>
+            <td><code>number</code></td>
+            <td>Summed fall along the street in the same direction, in meters.</td>
+          </tr>
+          <tr>
+            <td><code>properties.meters_over_5pct</code></td>
+            <td><code>number</code></td>
+            <td>Meters of the street steeper than @StreetGradientStats.percentLabel(StreetGradientStats.WalkingSurfaceLimit) (1:20), the ADA / PROWAG running-slope limit for a walking surface.</td>
+          </tr>
+          <tr>
+            <td><code>properties.meters_over_8pct</code></td>
+            <td><code>number</code></td>
+            <td>Meters of the street steeper than @StreetGradientStats.percentLabel(StreetGradientStats.RampLimit) (1:12), the limit for a ramp; the field is named for the round figure. Never more than <code>meters_over_5pct</code>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.grade_confidence</code></td>
+            <td><code>string</code></td>
+            <td><code>high</code> for an elevation model at 10&nbsp;m or finer, <code>medium</code> to 20&nbsp;m, <code>low</code> beyond. <code>null</code> where the street has not been sampled.</td>
+          </tr>
+          <tr>
+            <td><code>properties.grade_quality</code></td>
+            <td><code>string</code></td>
+            <td><code>measured</code>; <code>structure</code> (a bridge, tunnel, or covered way, which a bare-earth model cannot see, so every grade is <code>null</code>); <code>suspect</code> (the sampled profile was implausible, so the grades come from a straight line between the street's ends, or are <code>null</code>); or <code>no_data</code> (the model has nothing under the street). <code>null</code> where the street has not been sampled.</td>
+          </tr>
+          <tr>
+            <td><code>properties.dem_source</code></td>
+            <td><code>string</code></td>
+            <td>The elevation model the street was sampled from, which is what its <a href="#street-grade-credits">credit</a> is keyed on. <code>null</code> where the street has not been sampled.</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point
-951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[""18b26a38-24ab-402d-a64e-158fc0bb8a8a"",""53ad4d79-9a7b-4d3c-a753-63bbfca34c9b""]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"[{""osm_way_id"":11584845,""street_from_frac"":0,""street_to_frac"":0.62,""way_from_frac"":0.4,""way_to_frac"":1,""same_direction"":true},{""osm_way_id"":11584846,""street_from_frac"":0.62,""street_to_frac"":1,""way_from_frac"":0.75,""way_to_frac"":1,""same_direction"":false}]","-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
-952,11566031,8,Teaneck Community Charter School,primary,,open,"[""8af92eb8-fb84-4aa6-9539-abc95216dcd7""]",8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"[{""osm_way_id"":11566031,""street_from_frac"":0,""street_to_frac"":1,""way_from_frac"":0.18,""way_to_frac"":0.31,""same_direction"":true}]","-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point,mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct,meters_over_8pct,grade_confidence,grade_quality,dem_source
+951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[""18b26a38-24ab-402d-a64e-158fc0bb8a8a"",""53ad4d79-9a7b-4d3c-a753-63bbfca34c9b""]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"[{""osm_way_id"":11584845,""street_from_frac"":0,""street_to_frac"":0.62,""way_from_frac"":0.4,""way_to_frac"":1,""same_direction"":true},{""osm_way_id"":11584846,""street_from_frac"":0.62,""street_to_frac"":1,""way_from_frac"":0.75,""way_to_frac"":1,""same_direction"":false}]","-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345",0.0412,0.0687,-0.0398,0.4,5.1,32.5,0,high,measured,usgs-3dep-10m
+952,11566031,8,Teaneck Community Charter School,primary,,open,"[""8af92eb8-fb84-4aa6-9539-abc95216dcd7""]",8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"[{""osm_way_id"":11566031,""street_from_frac"":0,""street_to_frac"":1,""way_from_frac"":0.18,""way_to_frac"":0.31,""same_direction"":true}]","-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345",,,,,,,,high,structure,usgs-3dep-10m
 ...</code></pre>
 
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
+    <p>The ten grade columns come after <code>start_point</code> and <code>end_point</code>, so a reader that goes by column position keeps the columns it already knew.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. That limit is why <code>osmWays</code> is not the JSON list but one <code>way:from-to:mark</code> entry per way, comma-separated: the way id, the stretch of the street it covers to three places, and <code>:+</code> where the way runs the street's direction and <code>:-</code> where it runs the other way; a way with no position is its id alone. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. That limit is why <code>osmWays</code> is not the JSON list but one <code>way:from-to:mark</code> entry per way, comma-separated: the way id, the stretch of the street it covers to three places, and <code>:+</code> where the way runs the street's direction and <code>:-</code> where it runs the other way; a way with no position is its id alone. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object. Because the DBF format truncates column names at 10 characters, the grade fields use short names: <code>meanGrade</code>, <code>maxGrade</code>, <code>netGrade</code>, <code>climbM</code>, <code>descentM</code>, <code>mOver5pct</code>, <code>mOver8pct</code>, <code>gradeConf</code>, <code>gradeQual</code> and <code>demSource</code>, the same as the AccessScore: Streets shapefile's; the GeoJSON, CSV, and GeoPackage formats keep the full names. The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the street data with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>

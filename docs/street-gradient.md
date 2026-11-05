@@ -233,6 +233,11 @@ keys, `#acs-slope-*`) keep the older word: renaming them would change nothing a 
   `grade_confidence`, `grade_quality`, `dem_source`), null on a street that has not been sampled. They are declared
   once, in `StreetGradientApiFields`. The statistics are read without `profile_cm`, so a city-wide request never
   pulls the arrays. The full-city cache holds them, so an import shows up within its ten-minute freshness window.
+- **`/v3/api/streets`** carries the same ten fields from the same list (#5431), for a client that wants grades but no
+  scores. They come last (after `start_point` and `end_point` in the CSV) so position-based readers keep their
+  columns. The stream looks them up a batch at a time through `StreetGradientTable.getStats`, so there is no cache to
+  wait out. The two street shapefiles share their abbreviated DBF columns (`gradeShapefileSpec` in
+  `ShapefilesCreatorHelper`).
 - **`/v3/api/streetGrade?streetEdgeId=`** serves one street's statistics and its profile, in meters at a
   stated spacing. A sampled street with no profile (a structure, a gap, a coarse-model row) answers 200 with
   `profile: null`; only a street with no row is a 404. `stale: true` marks a street whose geometry has changed since
@@ -331,8 +336,8 @@ that a transformation be disclosed. `dem_source` on every row is what makes that
 
 `DemSource` (app/models/street) holds the credit line, licence, publisher page and the publisher's own suggested
 citation (verbatim, or none; never one we compose) for each model, and is the one place they are written. It is
-shown in five places: the credits table (`apiDocs/elevationCredits.scala.html`) on the `accessScoreStreets` and
-`streetGrade` api-docs pages, `grade.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
+shown in five places: the credits table (`apiDocs/elevationCredits.scala.html`) on the `accessScoreStreets`,
+`streets` and `streetGrade` api-docs pages, `grade.sources` on `accessScoreConfig`, the `attribution` object of a `streetGrade`
 response, and the attribution line of both the AccessScore tool's map and the Street Grade docs preview (it rides on
 the street source, so a basemap swap cannot drop it), plus under the tool popup's Grade block. **A new adapter in the script needs a
 `DemSource` entry**: `test_street_gradient.py` fails until every `REMOTE_SOURCES` name has one. A city sampled with

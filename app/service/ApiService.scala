@@ -299,8 +299,22 @@ class ApiServiceImpl @Inject() (
   private def planEachRun[R, S <: NoStream, E <: Effect](action: DBIOAction[R, S, E]) =
     SqlFragments.withLocalSetting("plan_cache_mode", "force_custom_plan")(action)
 
+  /**
+   * Streams the streets, each with its slope statistics (#5431).
+   *
+   * The statistics are looked up a batch at a time through `StreetGradientTable.getStats`, the same profile-free read
+   * the AccessScore API makes, rather than joined into the streets query: it keeps one definition of which columns a
+   * city-wide payload reads, and costs one primary-key read per batch the stream already fetches from Postgres.
+   */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, ?] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
+      .grouped(batchSize)
+      .mapAsync(1) { streets =>
+        getStreetGradientStats(streets.map(_.streetEdgeId)).map { stats =>
+          streets.map(street => street.copy(gradient = stats.get(street.streetEdgeId)))
+        }
+      }
+      .mapConcat(identity)
   }
 
   def getSidewalkPresence(
