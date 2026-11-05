@@ -96,8 +96,7 @@ export class ExpandedView {
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
     // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
-    // or Enter or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks. A switched-off
-    // arrow keeps focus and so still takes clicks (#5135); those do nothing.
+    // or Enter or Space on the focused arrow; both are logged as shortcuts. A switched-off arrow ignores every click.
     if (this.leftArrow) {
       this.leftArrow.addEventListener('click', (e) => {
         if (!isPagingDisabled(this.leftArrow)) this.previousLabel(e.detail === 0);

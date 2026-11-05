@@ -96,8 +96,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
-  // duplicate handlers that would double-advance the navigator on a single click. A switched-off arrow is still
-  // clickable (it keeps focus, #5135), so the guard also covers it: no log line, no paging.
+  // duplicate handlers that would double-advance the navigator on a single click. A switched-off arrow does nothing.
   if (prevBtn) {
     prevBtn.addEventListener('click', (e) => {
       if (!nearbyNav || isPagingDisabled(prevBtn)) return;
@@ -115,7 +114,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
     });
   }
 
-  /** Greys out whichever arrow has nowhere to go from the shown label, leaving focus on it if it has focus. */
+  /** Switches off whichever arrow has nowhere to go from the shown label. */
   function updatePagingState() {
     if (!nearbyNav) return;
     setPagingDisabled(prevBtn, !nearbyNav.hasPrev(currentLabelId));

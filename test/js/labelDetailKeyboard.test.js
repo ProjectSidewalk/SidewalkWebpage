@@ -678,9 +678,8 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // A vote-column button disables natively while its validation saves, so the browser has nowhere to put
-      // focus but the body. The popup is modal, so nothing else on the page can be typed at — the keys are
-      // still the card's.
+      // A vote button disables while its validation saves, dropping focus to the body. The popup is modal, so the
+      // keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();

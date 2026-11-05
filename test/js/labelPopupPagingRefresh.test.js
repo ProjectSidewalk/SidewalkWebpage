@@ -24,7 +24,7 @@ function renderPopupMarkup() {
         </dialog>`;
 }
 
-/** Whether an arrow is switched off; the arrows use aria-disabled so they keep focus (#5135). */
+/** Whether an arrow is switched off (aria-disabled, #5135). */
 const isOff = (btn) => btn.getAttribute('aria-disabled') === 'true';
 
 /** A label feature in the shape addLabelsToMap produces. */
@@ -145,8 +145,8 @@ describe('LabelPopup paging state', () => {
   });
 
   describe('switching an arrow off while it has focus (#5135)', () => {
-    // jsdom won't focus inside a closed <dialog>, and showModal() is stubbed out above, so open it by hand. jsdom
-    // also runs no focus fixup, so the tests pin the cause a browser acts on: the arrow is never natively disabled.
+    // jsdom won't focus inside a closed <dialog> and showModal() is stubbed, so open it by hand. jsdom never drops
+    // focus off a disabled button, so the tests check the arrow is never natively disabled.
     beforeEach(() => document.getElementById('label-modal').setAttribute('open', ''));
 
     test('Next keeps focus when the label it pages to is the last reachable one', async () => {
@@ -157,9 +157,9 @@ describe('LabelPopup paging state', () => {
       nextBtn.click();
       await Promise.resolve();
 
-      // On label 2 the only other label is the one just visited, so Next switches off under the reader's focus.
+      // On label 2 the only other label was just visited, so Next switches off.
       expect(isOff(nextBtn)).toBe(true);
-      expect(nextBtn.disabled).toBe(false); // Never native `disabled`: a browser drops focus off that.
+      expect(nextBtn.disabled).toBe(false); // Native disabled would drop focus.
       expect(document.activeElement).toBe(nextBtn);
     });
 

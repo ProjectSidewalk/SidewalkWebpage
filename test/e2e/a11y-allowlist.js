@@ -35,18 +35,14 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 /** The ` [state]` suffix an A11Y_ALLOWLIST key may carry. EXEMPT_PAGES keys never take one; a11y.spec.js says why. */
 const STATE_SUFFIX = / \[.*\]$/;
 
-/**
- * State keys forced by specs other than a11y-api-docs-states.spec.js, which checks every state key names one it or
- * this list forces. The spec that forces a state reads its key from here, so the two can't drift apart.
- */
+/** State keys forced by specs other than a11y-api-docs-states.spec.js, so its stale-key check knows them too. */
 const OTHER_FORCED_STATES = {
-  galleryExpandedCard: '/gallery [expanded card]', // label-card-paging.spec.js: a Gallery card open (#5135).
+  galleryExpandedCard: '/gallery [expanded card]', // label-card-paging.spec.js (#5135).
 };
 
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
 const A11Y_ALLOWLIST = {
-  // A label the viewer can't edit dims its tags to 0.6, so the "None" of an untagged one drops to 2.43:1; a tagged
-  // first card won't show it, which only marks this stale.
+  // Only an untagged first card shows this, so a tagged one just flags it stale.
   [OTHER_FORCED_STATES.galleryExpandedCard]: [
     {rule: 'color-contrast', selector: '.label-detail__tags', issue: '#5917',
       note: 'read-only tags are dimmed with opacity'},

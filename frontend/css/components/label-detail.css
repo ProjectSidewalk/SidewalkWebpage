@@ -1197,9 +1197,7 @@ button.label-detail__meta-cell:focus-visible {
   color: var(--color-neutral-black);
 }
 
-/* The arrows switch off with `aria-disabled` rather than `disabled` so one keeps keyboard focus when paging greys out
-   the arrow just pressed (#5135); the focus ring below still applies. `:disabled` is matched too so a native toggle
-   can't leave a live-looking arrow that does nothing. */
+/* Arrows switch off with aria-disabled so the one just pressed keeps keyboard focus (#5135). */
 .label-detail__paging:is(:disabled, [aria-disabled="true"]) {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);

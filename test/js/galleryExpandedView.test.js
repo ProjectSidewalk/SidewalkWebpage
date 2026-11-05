@@ -126,7 +126,7 @@ function renderGrid(container) {
 const root = () => document.querySelector('.gallery-expanded-view');
 const prev = () => document.querySelector('.label-detail__paging--prev');
 const next = () => document.querySelector('.label-detail__paging--next');
-/** Whether an arrow is switched off; the arrows use aria-disabled so they keep focus (#5135). */
+/** Whether an arrow is switched off (aria-disabled, #5135). */
 const isOff = (btn) => btn.getAttribute('aria-disabled') === 'true';
 const position = () => document.querySelector('.label-detail__position');
 const pano = () => document.querySelector('.label-detail__pano');
@@ -218,7 +218,7 @@ describe('the Gallery expanded view', () => {
 
     expect(shownId()).toBe(3);
     expect(isOff(next())).toBe(true);
-    expect(next().disabled).toBe(false); // Never native `disabled`: a browser drops focus off that.
+    expect(next().disabled).toBe(false); // Native disabled would drop focus.
     expect(document.activeElement).toBe(next());
 
     tracker.push.mockClear();
