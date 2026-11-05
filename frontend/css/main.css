@@ -1831,7 +1831,7 @@ kbd {
   top: 28%;
 }
 
-#area-completion-overlay p, #already-completed-region-text p {
+#area-completion-overlay p, #already-completed-region-text p, #already-completed-region-text h2 {
   border-radius: 5px;
   padding: 7px;
 }

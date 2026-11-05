@@ -107,6 +107,7 @@ function showAllRegionsFinished() {
 
 /** Shows the overlay for a session with no task: the user has finished the region they were given. */
 function showAlreadyCompletedRegion() {
+  document.getElementById('page-loading').style.visibility = 'hidden';
   document.getElementById('already-completed-region-new').addEventListener('click', () => {
     window.logWebpageActivity('Click_AlreadyCompletedRegion_NewRegion');
   });

@@ -113,6 +113,7 @@ describe('starting a visit', () => {
     expect(h.main).toBeUndefined();
     expect(document.querySelector('.tool-ui').classList.contains('ps-invisible')).toBe(false);
     expect(el('already-completed-region-overlay').style.display).toBe('block');
+    expect(el('page-loading').style.visibility).toBe('hidden');
 
     el('already-completed-region-new').click();
     el('already-completed-region-validate').click();
