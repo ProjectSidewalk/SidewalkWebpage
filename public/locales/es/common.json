@@ -149,7 +149,7 @@
     "sand/gravel": "barro/arena/grava",
     "uncovered manhole": "registro sin tapa",
     "ends abruptly": "termina abruptamente",
-    "street has a sidewalk": "la calle tiene una banqueta",
+    "other side has a sidewalk": "el otro lado tiene una banqueta",
     "street has no sidewalks": "la calle no tiene banquetas",
     "gravel/dirt road": "camino de tierra",
     "shared pedestrian/car space": "plataforma única",

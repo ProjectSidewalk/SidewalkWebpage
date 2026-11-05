@@ -279,7 +279,7 @@
         "sand-gravel": "Schlamm/Sand/Kies (<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "offen<tag-underline>e</tag-underline>r Schacht",
         "ends-abruptly": "endet <tag-underline>a</tag-underline>brupt",
-        "street-has-a-sidewalk": "St<tag-underline>r</tag-underline>asse hat ein Trottoir",
+        "other-side-has-a-sidewalk": "ande<tag-underline>r</tag-underline>e Seite hat ein Trottoir",
         "street-has-no-sidewalks": "S<tag-underline>t</tag-underline>rasse hat kein Trottoir",
         "gravel-dirt-road": "Kies-/Naturstrasse (<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "gemeinsamer Raum für Fussgäng<tag-underline>e</tag-underline>r:innen und Autos",
