@@ -678,14 +678,13 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Any natively disabled control leaves this behind when it switches off under the reader's focus (the
-      // paging arrows avoid it with aria-disabled, #5135, but a vote button saving its validation does not),
-      // so the browser has nowhere to put focus but the body. The popup is modal, so nothing else on the page
-      // can be typed at — the keys are still the card's.
+      // A vote-column button disables natively while its validation saves, so the browser has nowhere to put
+      // focus but the body. The popup is modal, so nothing else on the page can be typed at — the keys are
+      // still the card's.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__vote--unsure'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -701,7 +700,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__vote--unsure'));
 
       press('KeyA');
       await flush();
@@ -721,8 +720,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
 
       // And the run continues: the next key still reaches the card.
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
       press('ArrowRight');
-      expect(nextArrow().getAttribute('aria-disabled')).not.toBe('true');
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {

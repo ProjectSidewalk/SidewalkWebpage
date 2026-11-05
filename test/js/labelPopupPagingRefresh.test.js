@@ -163,7 +163,7 @@ describe('LabelPopup paging state', () => {
       expect(document.activeElement).toBe(nextBtn);
     });
 
-    test('a refetch that switches off the focused arrow leaves focus on it, and a refetch back switches it on', async () => {
+    test('a refetch switching off the focused arrow keeps focus; one back switches it on', async () => {
       await popup.showLabel(1, 'LabelMap');
       landViewportData(TWO_LABELS);
       nextBtn.focus();
