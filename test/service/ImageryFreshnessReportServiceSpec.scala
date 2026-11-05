@@ -216,7 +216,8 @@ class ImageryFreshnessReportServiceSpec extends SidewalkSpec with BeforeAndAfter
       val result = report()
       val plan   = Await.result(app.injector.instanceOf[ImageryFreshnessService].pollPlan, 60.seconds)
       result.pollBatchSize mustBe plan.batchSize
-      result.pollPassNights mustBe plan.passNights
+      result.pollAuditedPassNights mustBe plan.auditedPassNights
+      result.pollUnauditedPassNights mustBe plan.unauditedPassNights
       result.pollBatchPinned mustBe plan.overridden
       result.overdueAfterHours mustBe ScheduledJobs.OverdueAfterHours
     }

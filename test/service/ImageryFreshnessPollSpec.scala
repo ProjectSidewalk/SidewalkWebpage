@@ -107,11 +107,25 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     batchSizeFor(14037, None, 14, 6000, 5000) shouldBe 5000 // Crossed bounds: the protective ceiling wins.
   }
 
-  test("PollPlan.passNights rounds a partial final night up, and reads a zero batch as no pass") {
-    PollPlan(14037, 1003, overridden = false).passNights shouldBe 14
-    PollPlan(23995, 500, overridden = true).passNights shouldBe 48
-    PollPlan(1544, 500, overridden = false).passNights shouldBe 4
-    PollPlan(0, 500, overridden = false).passNights shouldBe 0
-    PollPlan(100, 0, overridden = true).passNights shouldBe 0
+  test("PollPlan: audited streets at least the batch cycle on their own and unaudited ones are never reached") {
+    // streetsToPoll serves audited streets strictly first, so with A >= B every slot goes to them.
+    val plan = PollPlan(openStreets = 23995, auditedStreets = 9000, batchSize = 500, overridden = true)
+    plan.auditedPassNights shouldBe 18 // ceil(9,000 / 500).
+    plan.unauditedPassNights shouldBe None
+    PollPlan(2000, 1003, 1003, overridden = false).unauditedPassNights shouldBe None // A == B leaves no slot either.
+  }
+
+  test("PollPlan: audited streets under the batch are re-polled nightly and unaudited ones share what is left") {
+    val plan = PollPlan(openStreets = 14037, auditedStreets = 600, batchSize = 1003, overridden = false)
+    plan.auditedPassNights shouldBe 1
+    plan.unauditedPassNights shouldBe Some(34) // ceil(13,437 / (1,003 - 600)), rounding the partial night up.
+    PollPlan(1544, 0, 500, overridden = false).unauditedPassNights shouldBe Some(4) // No audits: the whole batch.
+    PollPlan(1544, 0, 500, overridden = false).auditedPassNights shouldBe 0
+  }
+
+  test("PollPlan: no unaudited streets is a zero-night pass, and a zero batch reaches nothing") {
+    PollPlan(800, 800, 500, overridden = false).unauditedPassNights shouldBe Some(0)
+    PollPlan(100, 10, 0, overridden = true).auditedPassNights shouldBe 0
+    PollPlan(100, 10, 0, overridden = true).unauditedPassNights shouldBe None
   }
 }

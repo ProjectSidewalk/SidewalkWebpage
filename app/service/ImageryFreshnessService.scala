@@ -88,7 +88,9 @@ object ImageryFreshnessService {
         s"(of $streetsSelected selected); $noImageryStreetsPolled of $noImageryStreetsSelected no-imagery streets " +
         s"re-checked, $reopenCandidatesFound reopen candidate(s) found." +
         plan.fold("")(p =>
-          s" Batch ${p.batchSize} of ${p.openStreets} open streets: a full pass every ${p.passNights} nights."
+          s" Batch ${p.batchSize} of ${p.openStreets} open streets (${p.auditedStreets} audited): audited streets " +
+            s"every ${p.auditedPassNights} nights, unaudited " +
+            p.unauditedPassNights.fold("not reached while audited streets fill the batch.")(n => s"every $n nights.")
         )
     )
 
@@ -111,40 +113,63 @@ object ImageryFreshnessService {
       "batch_size"                  -> plan.map(_.batchSize),
       "batch_size_overridden"       -> plan.map(_.overridden),
       "open_streets"                -> plan.map(_.openStreets),
-      "pass_nights"                 -> plan.map(_.passNights)
+      "audited_streets"             -> plan.map(_.auditedStreets),
+      "audited_pass_nights"         -> plan.map(_.auditedPassNights),
+      "unaudited_pass_nights"       -> plan.flatMap(_.unauditedPassNights)
     )
   }
 
   /**
    * How tonight's main poll batch is sized for this city (#5402).
    *
-   * @param openStreets Open, non-tutorial streets: the population the rotation cycles through.
-   * @param batchSize   Streets the poll asks for per night.
-   * @param overridden  True when `street-imagery-poll.batch-size` pinned the batch instead of the per-city sizing.
+   * The batch is sized against every open street, but the rotation (StreetImageryTable.streetsToPoll) strictly
+   * polls audited streets first, so the two halves of the city cycle at different rates and a single "pass length"
+   * would misstate both: audited streets take every slot they can, and unaudited ones only get what is left.
+   *
+   * @param openStreets    Open, non-tutorial streets: the population the rotation draws from.
+   * @param auditedStreets Of those, streets with a completed audit, which the rotation always serves first.
+   * @param batchSize      Streets the poll asks for per night.
+   * @param overridden     True when `street-imagery-poll.batch-size` pinned the batch instead of the per-city sizing.
    */
-  case class PollPlan(openStreets: Int, batchSize: Int, overridden: Boolean) {
+  case class PollPlan(openStreets: Int, auditedStreets: Int, batchSize: Int, overridden: Boolean) {
 
-    /** Nights one rotation over every open street takes at this batch size; what an operator actually wants to know. */
-    def passNights: Int = if (batchSize <= 0) 0 else math.ceil(openStreets.toDouble / batchSize).toInt
+    /** Streets without a completed audit, which only get the slots audited streets leave. */
+    def unauditedStreets: Int = math.max(0, openStreets - auditedStreets)
+
+    /**
+     * Nights one pass over the audited streets takes. When they number fewer than the batch, every one is re-polled
+     * nightly, so this is 1 (0 for a city with no audited streets or no batch).
+     */
+    def auditedPassNights: Int =
+      if (batchSize <= 0) 0 else math.ceil(auditedStreets.toDouble / batchSize).toInt
+
+    /**
+     * Nights one pass over the unaudited streets takes, from the slots audited streets leave free each night; None
+     * when audited streets fill the whole batch, so unaudited ones are never reached. Some(0) when there are none.
+     */
+    def unauditedPassNights: Option[Int] =
+      if (unauditedStreets == 0) Some(0)
+      else if (batchSize <= 0 || auditedStreets >= batchSize) None
+      else Some(math.ceil(unauditedStreets.toDouble / (batchSize - auditedStreets)).toInt)
   }
 
   /**
-   * Sizes the nightly batch so one pass over a city's open streets takes about `passNights` nights (#5402).
+   * Sizes the nightly batch to `openStreets / passNights`, so the batch grows with the city (#5402).
    *
-   * A flat batch made a big city's first pass take one to two months, during which its never-polled streets have no
-   * median and can't be flagged for re-audit; GSV metadata is free, so the only reasons to cap the batch are run time
-   * and Mapillary's rate limits, which the ceiling covers. The ceiling wins if the two bounds are misconfigured to
+   * A street has no median, and so can't be flagged for re-audit, until it has been polled once, so a big city needs
+   * a proportionally big batch to keep that wait short; GSV metadata is free, so the only reasons to cap the batch are
+   * run time and Mapillary's rate limits, which the ceiling covers. The ceiling wins if the two bounds are misconfigured to
    * cross, since it is the bound that protects something.
    *
    * {{{
-   * batchSizeFor(14037, None, 14, 500, 5000)      // 1003: DC finishes a pass in 14 nights
+   * batchSizeFor(14037, None, 14, 500, 5000)      // 1003: DC's 14,037 streets over 14 nights
    * batchSizeFor(1544, None, 14, 500, 5000)       // 500: small cities keep the floor
    * batchSizeFor(14037, Some(2000), 14, 500, 5000) // 2000: an explicit override wins verbatim
    * }}}
    *
    * @param openStreets  Streets the rotation cycles through.
    * @param overrideSize A hand-pinned batch size, used verbatim when present.
-   * @param passNights   Target length of one full pass; values below 1 are treated as 1.
+   * @param passNights   Nights the open-street count is spread over; values below 1 are treated as 1.
    * @param minBatch     Floor on the computed batch.
    * @param maxBatch     Ceiling on the computed batch.
    * @return             Streets to poll per night.
@@ -274,10 +299,20 @@ class ImageryFreshnessServiceImpl @Inject() (
   private val passNights: Int   = config.get[Int]("street-imagery-poll.pass-nights")
   private val minBatchSize: Int = config.get[Int]("street-imagery-poll.min-batch-size")
   private val maxBatchSize: Int = config.get[Int]("street-imagery-poll.max-batch-size")
-  // Read as a string so an env var exported empty (how a stage "unsets" one) means auto-sizing rather than a parse
-  // failure at boot.
+  // Read as a string so an env var exported empty (how a stage "unsets" one) means auto-sizing, while any other
+  // non-positive or non-numeric value fails boot naming the setting rather than polling a nonsense batch.
   private val batchSizeOverride: Option[Int] =
-    config.getOptional[String]("street-imagery-poll.batch-size").map(_.trim).filter(_.nonEmpty).map(_.toInt)
+    config.getOptional[String]("street-imagery-poll.batch-size").map(_.trim).filter(_.nonEmpty).map { raw =>
+      raw.toIntOption
+        .filter(_ > 0)
+        .getOrElse(
+          // The key is in the message itself: reportError only adds a file position, which an env var doesn't have.
+          throw config.reportError(
+            "street-imagery-poll.batch-size",
+            s"street-imagery-poll.batch-size (STREET_IMAGERY_POLL_BATCH_SIZE) must be a positive integer, got '$raw'"
+          )
+        )
+    }
   private val noImageryPollBatchSize: Int = config.get[Int]("street-imagery-poll.no-imagery-batch-size")
 
   // 25m matches check_streets_for_imagery.py's sample radius: wide enough to catch imagery on the roadway around a
@@ -359,9 +394,10 @@ class ImageryFreshnessServiceImpl @Inject() (
    * re-deriving them from config.
    */
   def pollPlan: Future[PollPlan] =
-    db.run(streetImageryTable.countStreetsToPoll).map { openStreets =>
+    db.run(streetImageryTable.countStreetsToPoll).map { case (openStreets, auditedStreets) =>
       PollPlan(
         openStreets,
+        auditedStreets,
         batchSizeFor(openStreets, batchSizeOverride, passNights, minBatchSize, maxBatchSize),
         batchSizeOverride.isDefined
       )

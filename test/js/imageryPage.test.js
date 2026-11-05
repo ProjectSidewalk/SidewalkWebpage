@@ -158,7 +158,8 @@ const report = (overrides = {}) => ({
   run_days: [{ day: '2026-08-19', streets_polled: 400, streets_skipped: 100, audits_flagged: 2,
     audits_unflagged: 0, streets_selected: 500, streets_refreshed: 3, poll_failures: 0, sync_failures: 0 }],
   poll_batch_size: 500,
-  poll_pass_nights: 1,
+  poll_audited_pass_nights: 1,
+  poll_unaudited_pass_nights: 1,
   poll_batch_pinned: false,
   overdue_after_hours: 36,
   poll_job: POLL,
@@ -539,19 +540,29 @@ describe('ImageryPage rotation roll-up', () => {
     expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('batch size 500');
   });
 
-  test('quotes the server\'s full-pass length for the batch it sized, and says when the size is pinned', async () => {
-    await renderPage({ pipeline: report({ poll_batch_size: 1003, poll_pass_nights: 14 }) });
-    expect(rollupRow('Full pass over all streets').cells[1].textContent).toBe('every ~14 nights');
-    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('1,003 streets a night');
-    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('sized from this city');
+  test('quotes separate audited and unaudited pass lengths for the batch the server sized', async () => {
+    await renderPage({ pipeline: report({ poll_batch_size: 1003, poll_audited_pass_nights: 1,
+      poll_unaudited_pass_nights: 34 }) });
+    expect(rollupRow('Audited streets: full pass').cells[1].textContent).toBe('every ~1 nights');
+    expect(rollupRow('Audited streets: full pass').cells[2].textContent).toContain('1,003 streets a night');
+    expect(rollupRow('Audited streets: full pass').cells[2].textContent).toContain('sized from this city');
+    expect(rollupRow('Unaudited streets: full pass').cells[1].textContent).toBe('every ~34 nights');
+    expect(rollupRow('Unaudited streets: full pass').cells[2].textContent).toContain('slots audited streets leave');
+  });
 
-    await renderPage({ pipeline: report({ poll_pass_nights: 48, poll_batch_pinned: true }) });
-    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('pinned');
+  test('says unaudited streets are not reached when audited ones fill a pinned batch', async () => {
+    await renderPage({ pipeline: report({ poll_audited_pass_nights: 18, poll_unaudited_pass_nights: null,
+      poll_batch_pinned: true }) });
+    expect(rollupRow('Audited streets: full pass').cells[1].textContent).toBe('every ~18 nights');
+    expect(rollupRow('Audited streets: full pass').cells[2].textContent).toContain('pinned');
+    expect(rollupRow('Unaudited streets: full pass').cells[1].textContent).toBe('—');
+    expect(rollupRow('Unaudited streets: full pass').cells[2].textContent)
+      .toContain('not reached while audited streets fill the batch');
   });
 
   test('shows no pass length when the report carries none', async () => {
-    await renderPage({ pipeline: report({ poll_pass_nights: undefined }) });
-    expect(rollupRow('Full pass over all streets').cells[1].textContent).toBe('—');
+    await renderPage({ pipeline: report({ poll_audited_pass_nights: undefined }) });
+    expect(rollupRow('Audited streets: full pass').cells[1].textContent).toBe('—');
   });
 
   test('says the rotation is not advancing rather than projecting from zero', async () => {

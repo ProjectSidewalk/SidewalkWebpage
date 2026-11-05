@@ -78,8 +78,8 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "pollPlan" should {
     "size the batch from the city's own open-street count when nothing pins it (#5402)" in {
-      val plan        = await(serviceWith().pollPlan)
-      val openStreets = await(
+      val plan                          = await(serviceWith().pollPlan)
+      val (openStreets, auditedStreets) = await(
         app.injector
           .instanceOf[DatabaseConfigProvider]
           .get[models.utils.MyPostgresProfile]
@@ -87,6 +87,8 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           .run(app.injector.instanceOf[StreetImageryTable].countStreetsToPoll)
       )
       plan.openStreets mustBe openStreets
+      plan.auditedStreets mustBe auditedStreets
+      auditedStreets must be <= openStreets
       plan.overridden mustBe false
       plan.batchSize mustBe ImageryFreshnessService.batchSizeFor(
         openStreets,
@@ -106,13 +108,22 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         ).pollPlan
       )
       oneNight.batchSize mustBe math.max(1, openStreets)
-      oneNight.passNights mustBe (if (openStreets == 0) 0 else 1)
+      // Every street fits in one night, so both halves of the rotation are covered nightly.
+      oneNight.auditedPassNights mustBe (if (auditedStreets == 0) 0 else 1)
+      oneNight.unauditedPassNights must contain(if (openStreets == auditedStreets) 0 else 1)
     }
 
     "use a pinned batch size verbatim, and say it was pinned" in {
       val plan = await(serviceWith("street-imagery-poll.batch-size" -> "37").pollPlan)
       plan.batchSize mustBe 37
       plan.overridden mustBe true
+    }
+
+    "refuse to boot on an override that isn't a positive integer, naming the setting" in {
+      for (bad <- Seq("0", "-5", "lots")) {
+        val thrown = the[play.api.PlayException] thrownBy serviceWith("street-imagery-poll.batch-size" -> bad)
+        thrown.getMessage must include("street-imagery-poll.batch-size")
+      }
     }
 
     "treat an override exported empty as unset" in {
@@ -175,14 +186,30 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "record how the batch was sized, so the run history shows the pass length each night ran at (#5402)" in {
-      val plan    = ImageryFreshnessService.PollPlan(openStreets = 14037, batchSize = 1003, overridden = false)
+      val plan    = ImageryFreshnessService.PollPlan(14037, 600, 1003, overridden = false)
       val details = PollResult(Some("GSV"), 1003, 1000, 3, plan = Some(plan)).runDetails
       (details \ "batch_size").as[Int] mustBe 1003
       (details \ "open_streets").as[Int] mustBe 14037
-      (details \ "pass_nights").as[Int] mustBe 14
+      (details \ "audited_streets").as[Int] mustBe 600
+      (details \ "audited_pass_nights").as[Int] mustBe 1
+      (details \ "unaudited_pass_nights").as[Int] mustBe 34 // ceil(13,437 / 403 free slots).
       (details \ "batch_size_overridden").as[Boolean] mustBe false
       PollResult(Some("GSV"), 1003, 1000, 3, plan = Some(plan)).summary must
-        endWith("Batch 1003 of 14037 open streets: a full pass every 14 nights.")
+        endWith(
+          "Batch 1003 of 14037 open streets (600 audited): audited streets every 1 nights, unaudited every " +
+            "34 nights."
+        )
+
+      // Audited streets filling the batch is recorded as an explicit null, not a number that would read as a pass.
+      val full = PollResult(
+        Some("GSV"),
+        500,
+        500,
+        0,
+        plan = Some(ImageryFreshnessService.PollPlan(23995, 9000, 500, overridden = true))
+      ).runDetails
+      (full \ "audited_pass_nights").as[Int] mustBe 18
+      (full \ "unaudited_pass_nights").get mustBe JsNull
     }
 
     "carry the reason a poll covered nothing, so a skipped night isn't recorded as a zero-count one" in {

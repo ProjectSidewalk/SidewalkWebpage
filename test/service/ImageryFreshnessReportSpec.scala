@@ -4,7 +4,7 @@ import actor.ScheduledJobs
 import models.utils.{BackgroundJobRun, JobRunStatus, JobRunTrigger}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsNull, Json}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
@@ -230,7 +230,8 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
         jobs = Seq.empty,
         runDays = buildDays(Seq(run(pollJob, "2026-08-10", 0, Map("streets_polled" -> 3)))),
         pollBatchSize = 1003,
-        pollPassNights = 14,
+        pollAuditedPassNights = 3,
+        pollUnauditedPassNights = None,
         pollBatchPinned = false,
         noImageryBatchSize = 25,
         overdueAfterHours = 36L,
@@ -241,7 +242,9 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
 
       (json \ "poll_batch_size").as[Int] mustBe 1003
       // The page says "full pass every N nights" from these rather than re-deriving the sizing on the client.
-      (json \ "poll_pass_nights").as[Int] mustBe 14
+      (json \ "poll_audited_pass_nights").as[Int] mustBe 3
+      // Unaudited streets never reached is an explicit null, which the page words differently from a pass length.
+      (json \ "poll_unaudited_pass_nights").get mustBe JsNull
       (json \ "poll_batch_pinned").as[Boolean] mustBe false
       // The regained-imagery rotation is sized separately, so its pace has to travel separately too.
       (json \ "no_imagery_batch_size").as[Int] mustBe 25

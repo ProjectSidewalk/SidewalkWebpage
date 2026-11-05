@@ -57,7 +57,9 @@ case class ImageryRunDay(
  * @param jobs              Roster state for the three jobs that make up the pipeline, including never-run ones.
  * @param runDays           Per-night counts across the window.
  * @param pollBatchSize     Streets the next poll will ask for, sized per city (#5402); it sets the rotation's pace.
- * @param pollPassNights    Nights one pass over every open street takes at that batch size.
+ * @param pollAuditedPassNights   Nights one pass over the audited streets takes; the rotation serves them first.
+ * @param pollUnauditedPassNights Nights one pass over the unaudited streets takes in the slots left over, or None
+ *                                when audited streets fill the batch and unaudited ones are never reached.
  * @param pollBatchPinned   True when an operator pinned the batch size instead of letting it scale with the city.
  * @param noImageryBatchSize Retired streets the regained-imagery re-check asks for per night, setting the pace of
  *                          its own separate rotation (#4929).
@@ -72,7 +74,8 @@ case class ImageryFreshnessReport(
     jobs: Seq[NightlyJobStatus],
     runDays: Seq[ImageryRunDay],
     pollBatchSize: Int,
-    pollPassNights: Int,
+    pollAuditedPassNights: Int,
+    pollUnauditedPassNights: Option[Int],
     pollBatchPinned: Boolean,
     noImageryBatchSize: Int,
     overdueAfterHours: Long,
@@ -104,13 +107,14 @@ object ImageryFreshnessReport {
           "reopen_candidates"   -> day.reopenCandidates
         )
       }),
-      "poll_batch_size"       -> report.pollBatchSize,
-      "poll_pass_nights"      -> report.pollPassNights,
-      "poll_batch_pinned"     -> report.pollBatchPinned,
-      "no_imagery_batch_size" -> report.noImageryBatchSize,
-      "overdue_after_hours"   -> report.overdueAfterHours,
-      "poll_job"              -> report.pollJob,
-      "sync_job"              -> report.syncJob
+      "poll_batch_size"            -> report.pollBatchSize,
+      "poll_audited_pass_nights"   -> report.pollAuditedPassNights,
+      "poll_unaudited_pass_nights" -> report.pollUnauditedPassNights,
+      "poll_batch_pinned"          -> report.pollBatchPinned,
+      "no_imagery_batch_size"      -> report.noImageryBatchSize,
+      "overdue_after_hours"        -> report.overdueAfterHours,
+      "poll_job"                   -> report.pollJob,
+      "sync_job"                   -> report.syncJob
     )
   }
 }
@@ -254,7 +258,8 @@ class ImageryFreshnessReportServiceImpl @Inject() (
       runDays = ImageryFreshnessReportService
         .buildRunDays(runs, ImageryFreshnessReportService.PollJob, ImageryFreshnessReportService.SyncJob),
       pollBatchSize = plan.batchSize,
-      pollPassNights = plan.passNights,
+      pollAuditedPassNights = plan.auditedPassNights,
+      pollUnauditedPassNights = plan.unauditedPassNights,
       pollBatchPinned = plan.overridden,
       noImageryBatchSize = noImageryBatchSize,
       overdueAfterHours = ScheduledJobs.OverdueAfterHours,

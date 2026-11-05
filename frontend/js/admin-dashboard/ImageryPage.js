@@ -477,15 +477,17 @@ export class ImageryPage {
       : 0;
     const batchSize = this.#report?.poll_batch_size;
     const rotationNights = perNight > 0 ? Math.ceil(audited.length / perNight) : null;
-    // The server's own projection of a full pass at the batch it sized for this city (#5402), as opposed to the
-    // audited-only figure above, which is measured from the nights actually recorded.
-    const passNights = this.#report?.poll_pass_nights;
-    const passLabel = Number.isFinite(passNights) && passNights > 0
-      ? `every ~${passNights.toLocaleString()} nights`
-      : '—';
-    const passNote = this.#report?.poll_batch_pinned
-      ? 'the batch size is pinned by STREET_IMAGERY_POLL_BATCH_SIZE, so the pass length grows with the city'
-      : 'the batch is sized from this city\'s street count so every street is re-checked on a fixed cadence';
+    // The server's projection at the batch it sized for this city (#5402), as opposed to the measured figure above.
+    // Audited streets take every slot they can, so the two halves cycle at different rates and get a row each.
+    const auditedPass = this.#report?.poll_audited_pass_nights;
+    const unauditedPass = this.#report?.poll_unaudited_pass_nights;
+    const passLabel = (n) => (Number.isFinite(n) && n > 0 ? `every ~${n.toLocaleString()} nights` : '—');
+    const sizing = this.#report?.poll_batch_pinned
+      ? 'batch size pinned by STREET_IMAGERY_POLL_BATCH_SIZE'
+      : 'batch sized from this city\'s street count';
+    const unauditedNote = unauditedPass === null
+      ? 'not reached while audited streets fill the batch'
+      : 'in the slots audited streets leave free each night';
 
     const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
     const row = (label, value, note) => `
@@ -521,8 +523,9 @@ export class ImageryPage {
                 ? `at ${perNight.toLocaleString()} streets a night (batch size ${
                   (batchSize || 0).toLocaleString()})`
                 : 'no street polled in this window; the rotation is stalled')}
-            ${row('Full pass over all streets', passLabel,
-              `at ${(batchSize || 0).toLocaleString()} streets a night; ${passNote}`)}
+            ${row('Audited streets: full pass', passLabel(auditedPass),
+              `served first, at ${(batchSize || 0).toLocaleString()} streets a night (${sizing})`)}
+            ${row('Unaudited streets: full pass', passLabel(unauditedPass), unauditedNote)}
             ${row('Oldest imagery record', oldest ? util.escapeHTML(oldest.slice(0, 10)) : '—',
               'the record written longest ago, by any feeder')}
             ${row('Oldest poll', oldestPoll ? util.escapeHTML(oldestPoll.slice(0, 10)) : '—',
