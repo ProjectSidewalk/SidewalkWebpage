@@ -36,7 +36,14 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 const STATE_SUFFIX = / \[.*\]$/;
 
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
-const A11Y_ALLOWLIST = {};
+const A11Y_ALLOWLIST = {
+  // The open card's state from label-card-paging.spec.js. A label the viewer can't edit dims its tags to 0.6, so the
+  // "None" of an untagged one drops to 2.43:1; a tagged first card won't show it, which only marks this stale.
+  '/gallery [expanded card]': [
+    {rule: 'color-contrast', selector: '.label-detail__tags', issue: '#5917',
+      note: 'read-only tags are dimmed with opacity'},
+  ],
+};
 
 /**
  * Splits a page's axe violations into what its allowlist covers and what fails the gate.

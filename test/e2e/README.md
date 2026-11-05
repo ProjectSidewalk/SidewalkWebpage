@@ -9,8 +9,9 @@ phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
 (#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
-Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
-Validate and reads the votes back (#4948).
+Explore's tutorial and reads the label back (#4777), `validate-interactions.spec.js`, which votes on labels in
+Validate and reads the votes back (#4948), and `label-card-paging.spec.js`, which pages a Gallery card back to the
+first label and checks the switched-off arrow keeps focus and ignores presses (#5135).
 
 ## Running locally
 
@@ -251,5 +252,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
+| `label-card-paging.spec.js` | Pages Gallery's open card to the first label: Prev switches off with `aria-disabled`, keeps focus, ignores Enter, Space and clicks, and passes axe (#5135) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
