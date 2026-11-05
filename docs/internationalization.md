@@ -72,7 +72,7 @@ which crawlers read without running JS, or a future email), call **`TagTranslati
 countryId)`** rather than copying tags into `conf/messages`. It reads those same files and resolves a tag the way
 i18next does: the `common:tag.<name>` key with `:` turned into `-`, the language chain (`en-US` → `en`; `pt-BR`
 skips plain `pt`), the country overlay (`common-india.json`, `common-zurich.json`), and `$t(common:tag.…)` nesting.
-A tag with no translation prints as its English name, as it does in the browser. The files are read once per process.
+A tag with no translation prints as its English name. The files are read once per process.
 
 ### Interpolated values and HTML
 

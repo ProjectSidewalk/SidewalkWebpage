@@ -24,7 +24,8 @@ import service.{
   StoryService,
   TagTranslationService
 }
-import util.SidewalkSpec
+import models.utils.MyPostgresProfile.api.*
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
@@ -46,7 +47,7 @@ import scala.concurrent.duration.*
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  * Valid-label tests source ids from the connected DB and cancel (not fail) when no suitable label exists.
  */
-class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class ShareControllerSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -247,17 +248,21 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "translate the tags in a Spanish page's og:description and say og:locale es_ES (#4445)" in {
-      // A tag whose Spanish name differs from its English one, so an untranslated tag can't pass by coincidence.
-      val es: Lang = Lang("es")
-      labelWhere(_.tags.exists(t => tagTranslations.translate(t, es, countryId) != t)) match {
-        case None        => cancel("No recent label with a tag that has a distinct Spanish name in the test DB.")
-        case Some(label) =>
-          val req                = FakeRequest(GET, s"/label/${label.labelId}").withHeaders(ACCEPT_LANGUAGE -> "es")
-          val body               = contentAsString(route(app, req).get)
-          val names: Seq[String] = label.tags.take(3).map(tagTranslations.translate(_, es, countryId))
-          val expected: String   = messagesApi("share.meta.description.tags", names.mkString(", "))(using es)
-          ogDescription(body) must include(HtmlFormat.escape(expected).body)
-          // Expected values are the current translations and region map on purpose; a wording change updates them.
+      // Picked by tag name in SQL, not through the service under test, so a broken service fails here rather than
+      // cancels. The CI seed's labels 900029-900031 carry the tag; a dev DB may hold others, so any shown one will do.
+      val labelId: Option[Int] = run(
+        sql"""SELECT label_id FROM label
+              WHERE array_position(tags, 'parked car') BETWEEN 1 AND 3 AND NOT deleted AND NOT tutorial
+              ORDER BY label_id BETWEEN 900029 AND 900031 DESC, label_id DESC LIMIT 1""".as[Int].headOption
+      )
+      labelId match {
+        case None     => cancel("No label tagged 'parked car' in the test DB.")
+        case Some(id) =>
+          val req  = FakeRequest(GET, s"/label/$id").withHeaders(ACCEPT_LANGUAGE -> "es")
+          val body = contentAsString(route(app, req).get)
+          // Expected values are the current translation and region map on purpose; a wording change updates them.
+          ogDescription(body) must include("auto estacionado")
+          ogDescription(body) must not include "parked car"
           body must include("property=\"og:locale\" content=\"es_ES\"")
       }
     }

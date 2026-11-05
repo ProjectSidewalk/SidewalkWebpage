@@ -24,7 +24,7 @@ import scala.util.Using
  *     → `en`), then `en`; plain `pt` is never tried for `pt-BR` because the site doesn't offer it;
  *   - in each language a country overlay (`common-india.json`, `common-zurich.json`) wins over `common.json`;
  *   - a value's `$t(common:tag.<other>)` nesting is expanded in the same language chain.
- * A tag with no translation anywhere comes back as its raw English name, which is also what the client shows.
+ * A tag with no translation anywhere comes back as its raw English name.
  *
  * Files are read once per language and cached for the life of the process: assets never change under a running app.
  *
