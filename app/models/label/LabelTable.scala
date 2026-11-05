@@ -1816,7 +1816,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       Set.empty, asGoldExample = true)
       .join(goldExamples)
       .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
-      .filter { case ((l, _, _, _, _, _, _, _, _, _), g) => !GoldExampleTable.reasonSettled(userId, g.reason, l.labelType) }
+      .filter { case ((l, _, _, _, _, _, _, _, _, _), g) =>
+        !GoldExampleTable.reasonSettled(userId, g.reason, l.labelType)
+      }
       .sortBy(_ => random)
       .map { case (row, g) => (asValidationMetadata(row, includeAiTags), g.reason) }
   }
