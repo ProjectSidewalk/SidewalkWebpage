@@ -264,14 +264,12 @@ describe('Validate pano marker activation', () => {
       expect(control.showLabelCard).not.toHaveBeenCalled();
     });
 
-    test('the focus a click gives the marker does not reopen the card the click closed', () => {
-      markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
-      markerEl().focus();
-      expect(control.showLabelCard).not.toHaveBeenCalled();
-
-      // Once the press is over, focus is the keyboard's again.
+    test('a left press is kept from focusing the marker; keyboard focus opens the card', () => {
+      const down = new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0});
+      markerEl().dispatchEvent(down);
+      expect(down.defaultPrevented).toBe(true);
       markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
-      markerEl().blur();
+
       markerEl().focus();
       expect(control.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
     });
@@ -288,7 +286,8 @@ describe('Validate pano marker activation', () => {
       markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 0, clientX: 100, clientY: 100}));
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 100 + dx, clientY: 100 + dy}));
       markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 100 + dx, clientY: 100 + dy}));
-      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: 100 + dx, clientY: 100 + dy}));
+      const at = {clientX: 100 + dx, clientY: 100 + dy};
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 1, ...at}));
     }
 
     test('a click pins the card, as the button’s primary gesture (#4843)', () => {
@@ -311,7 +310,7 @@ describe('Validate pano marker activation', () => {
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 160, clientY: 100}));
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 101, clientY: 100}));
       markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 101, clientY: 100}));
-      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: 101, clientY: 100}));
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 1, clientX: 101, clientY: 100}));
 
       expect(control.hideLabelCard).toHaveBeenCalledTimes(1);
       expect(toggleLabelCardPin).not.toHaveBeenCalled();
@@ -337,10 +336,11 @@ describe('Validate pano marker activation', () => {
       expect(control.hideLabelCard).not.toHaveBeenCalled();
     });
 
-    test('a click with no press behind it, as a screen reader sends, pins the card too', () => {
-      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    test('a pointerless click (detail 0), a screen reader’s press, toggles like Enter/Space, not pinning', () => {
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 0}));
 
-      expect(toggleLabelCardPin).toHaveBeenCalledTimes(1);
+      expect(toggleLabelCard).toHaveBeenCalledTimes(1);
+      expect(toggleLabelCardPin).not.toHaveBeenCalled();
     });
   });
 

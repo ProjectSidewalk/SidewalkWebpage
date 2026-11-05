@@ -4,9 +4,10 @@
  * frontend/js/validate/panorama/PanoOverlay.js.
  *
  * Hover opens the card before a click can land, so a click pins it (it then outlasts the pointer leaving) and a second
- * click unpins and closes it. Enter/Space stay a plain toggle: focus already opens the card, so the keyboard needs no pin.
- * aria-expanded has to follow the card throughout, and a press on the marker must not take the card down before its
- * click arrives, nor leave focus on the marker, where keys would go to the card instead of the shortcuts.
+ * click unpins and closes it. Enter/Space, and a click with no pointer behind it, stay a plain toggle: focus already
+ * opens the card, so they need no pin. aria-expanded has to follow the card throughout, and a press on the marker must
+ * not take the card down before its click arrives, nor leave focus on the marker, where keys would go to the card
+ * instead of the shortcuts.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
@@ -31,7 +32,7 @@ describe('pinning the Validate label card', () => {
   function click() {
     marker().dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 10, clientY: 10 }));
     marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 10, clientY: 10 }));
   }
 
   beforeEach(async () => {
@@ -96,11 +97,24 @@ describe('pinning the Validate label card', () => {
     expect(control.isCardVisible()).toBe(false);
   });
 
-  it('a click with no hover first (a screen reader’s press) opens and pins the card, logging the open', () => {
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  it('a pointerless press (a screen reader’s, detail 0) toggles rather than pins, logging only the open', () => {
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
 
-    expect(control.isCardHeldOpen()).toBe(true);
-    expect(tracker.push.mock.calls.map((call) => call[0])).toEqual(['MouseOver_Label', 'Click_PinLabelCard']);
+    expect(control.isCardVisible()).toBe(true);
+    expect(control.isCardHeldOpen()).toBe(false);
+    expect(tracker.push.mock.calls.map((call) => call[0])).toEqual(['MouseOver_Label']);
+  });
+
+  it('a pointerless press closes a card that focus opened, on the first press, without pinning', () => {
+    marker().focus();
+    expect(control.isCardVisible()).toBe(true);
+    tracker.push.mockClear();
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+
+    expect(control.isCardVisible()).toBe(false);
+    expect(expanded()).toBe('false');
+    // The toggle's close logs nothing, as Enter/Space's always has; above all, no pin.
+    expect(tracker.push).not.toHaveBeenCalled();
   });
 
   it('a pan that starts on the marker closes even a pinned card, and does not re-pin it', () => {
@@ -111,7 +125,7 @@ describe('pinning the Validate label card', () => {
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: 80, clientY: 10 }));
     expect(control.isCardVisible()).toBe(false);
     marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 10, clientY: 10 }));
 
     expect(control.isCardVisible()).toBe(false);
     expect(expanded()).toBe('false');
@@ -122,10 +136,10 @@ describe('pinning the Validate label card', () => {
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: 30, clientY: 10 }));
     document.getElementById('view-control-layer')
       .dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 30, clientY: 10 }));
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true })); // A screen reader's press: no mousedown.
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); // A screen reader's press.
 
-    expect(control.isCardHeldOpen()).toBe(true);
-    expect(tracker.push).toHaveBeenLastCalledWith('Click_PinLabelCard');
+    expect(control.isCardVisible()).toBe(true);
+    expect(tracker.push).toHaveBeenLastCalledWith('MouseOver_Label');
   });
 
   it('a press elsewhere on the pano still closes a pinned card at once', () => {
@@ -142,10 +156,11 @@ describe('pinning the Validate label card', () => {
     const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: 10, clientY: 10 });
     marker().dispatchEvent(down);
     marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 10, clientY: 10 }));
 
-    expect(down.defaultPrevented).toBe(true); // What keeps a real browser from focusing the tabindex=0 marker.
-    expect(document.activeElement).not.toBe(marker());
+    // jsdom never focuses on mousedown, so activeElement can't show the fix; a cancelled mousedown is what keeps a
+    // real browser from focusing the tabindex=0 marker.
+    expect(down.defaultPrevented).toBe(true);
     expect(control.isCardHeldOpen()).toBe(true);
   });
 

@@ -206,16 +206,13 @@ export class LabelVisibilityControl {
       // A click pins the card open and a second click unpins and closes it (#4843), so the button's primary gesture
       // means something. PanoOverlay leaves a press on the marker alone, so the hover card is still up when the click
       // lands; a press that turns into a pan takes the card down here instead, once it moves.
-      // `pressing` also keeps the focus a click gives the marker from reopening a card the same press just closed.
-      let pressing = false;
       let dragged = false;
       marker.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
-        // A focused marker routes keys to the card (KeyboardManager#inLabelCard), so a click that left focus here
-        // would turn Y into nothing and Enter into an unpin rather than a submit. PanoOverlay ignores defaultPrevented,
-        // so the pan this press may start is unaffected.
+        // A mouse press must not focus the marker: a focused marker routes keys to the card
+        // (KeyboardManager#inLabelCard), so Y would do nothing and Enter would toggle the card rather than submit.
+        // PanoOverlay ignores defaultPrevented, so the pan this press may start is unaffected.
         e.preventDefault();
-        pressing = true;
         dragged = false;
         const startX = e.clientX;
         const startY = e.clientY;
@@ -228,7 +225,6 @@ export class LabelVisibilityControl {
         };
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', (up) => {
-          pressing = false;
           window.removeEventListener('mousemove', onMove);
           // Released off the marker, so no click will land on it to clear the flag; left set, it would swallow the
           // next click that comes with no press behind it (a screen reader's).
@@ -236,20 +232,22 @@ export class LabelVisibilityControl {
         }, { once: true });
       });
 
-      // Also the activation a screen reader sends, which may come with no mousedown before it; dragged is then false.
-      marker.addEventListener('click', () => {
+      marker.addEventListener('click', (e) => {
         // The pan has already closed the card; a release that happens to land back on the marker isn't a click on it.
         if (dragged) {
           dragged = false;
           return;
         }
-        this.toggleLabelCardPin();
+        // detail 0 is a press with no pointer behind it: a screen reader's activation, or one a keyboard synthesizes.
+        // No hover opened the card first, so it toggles, as Enter/Space do; a pin would leave a card that focus
+        // opened still up after the first press instead of closing it.
+        if (e.detail === 0) this.toggleLabelCard();
+        else this.toggleLabelCardPin();
       });
 
       // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
       // can travel from the marker onto the card's controls before the hide fires.
       marker.addEventListener('focus', (e) => {
-        if (pressing) return;
         // Focus returning from inside the card is not an open request: it is either Escape closing the card, which
         // must stay closed, or Shift+Tab walking back out, whose focusout just scheduled a hide this cancel undoes.
         const cameFrom = /** @type {Node} */ (e.relatedTarget);
