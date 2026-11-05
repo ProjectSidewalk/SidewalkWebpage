@@ -393,4 +393,5 @@ module.exports = {
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
+  GOOGLE_MAPS_HOSTS,
 };

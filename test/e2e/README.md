@@ -10,7 +10,10 @@ community stat bands across widths and fails when one stat runs into the next (#
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
 (#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
 Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
-Validate and reads the votes back (#4948).
+Validate and reads the votes back (#4948). A few pages also get a behavior spec of their own: `access-score.spec.js`
+drives the AccessScore tool against a stubbed three-street fixture, and `report.spec.js` works a neighborhood report
+(#5876): its MapLibre maps, each map's own "Places" switch, the worst-problems key against its dots, a weight slider
+reopening the report under those weights, a street's card-to-marker linkage, and the stories section.
 
 ## Running locally
 
@@ -253,3 +256,5 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
+| `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |
+| `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason against CI's seed |
