@@ -56,9 +56,9 @@ file, and this table says which doc to read first:
   dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
   versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
 - Never cause a billable Google pano or map: Google bills every `StreetViewPanorama` and `Map` created, local tiles
-  or not. `test/e2e/` runs on a Maps stub that fails any request reaching Google, so pano interaction there is fine.
-  Outside it, never browser-test a page that builds a pano (Explore and its tutorial, Validate, label cards); hand the
-  developer a checklist or console snippet instead.
+  or not. Never browser-test a page that builds a pano (Explore and its tutorial, Validate, the `label-detail` card)
+  outside `test/e2e/`, which stubs Google Maps. A new or changed interaction on one gets a spec there; hand the
+  developer a checklist only for what a spec can't reach (`test/e2e/README.md` → "Pano pages").
 
 ## Before a change is done
 
@@ -72,10 +72,6 @@ file, and this table says which doc to read first:
   `# shellcheck disable=SCxxxx` line that says why.
 - **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
-- **A new or changed interaction on Explore, Validate, or a label card gets a Playwright spec in `test/e2e/`.** Those
-  pages bill Google when opened by hand and jsdom can't fake focus or pointer sequences, so the browser spec is the
-  only QA that is both free and repeatable. Other UI relies on the smoke and axe gates (every page in
-  `test/e2e/pages.js`) plus unit tests; don't add a browser spec for a copy, colour, or template change.
 - **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the
   tree), though `make test-e2e` tests whatever app is on :9000. A hand-typed `docker exec … "cd /home && …"` still
   checks the main checkout, so use the targets.

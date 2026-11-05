@@ -14,7 +14,7 @@ discarded-`DBIO` data-integrity bug (#4228) — none of which have anything guar
 **Goal:** stand up a layered, best-practices test suite + GitHub Actions CI, delivered in **independently mergeable
 phases**, the first of which requires *zero tests to exist* so it can land immediately.
 
-**Non-goals (for now):** deep canvas/imagery E2E, high coverage targets, or rewriting the frontend to a module system.
+**Non-goals (for now):** imagery rendering E2E, high coverage targets, or rewriting the frontend to a module system.
 
 ## Test architecture — four layers (fat base, thin top)
 
@@ -27,7 +27,7 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
 - **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless
   Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a
   **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs
-  against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
+  against. **Landed with #4504**; interaction specs followed.
 
 ## Test database
 
@@ -339,12 +339,10 @@ time they were set. Measure with `make test-js args=--coverage`.
 
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
   covers the build files) auto-formats before pushing.
-- **E2E: thin, with one standing exception** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed
-  Mapbox and Google Maps, run on every PR (`e2e-smoke`). Browser interaction specs are written only where a jsdom
-  test cannot prove the behavior and a hand check would bill Google: **a new or changed interaction on Explore,
-  Validate, or a label card gets one** (the first were labeling in Explore's tutorial, #4777, and voting in
-  Validate, #4948). Everything else stays at the gates plus unit tests, so the suite's run time tracks the number of
-  pano-page interactions, not the number of UI changes. Deep canvas and imagery rendering stays manual.
+- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and Google Maps, run on
+  every PR (`e2e-smoke`), plus interaction specs where jsdom falls short (layout, real clicks, Tab order). **A new
+  or changed interaction on a pano page always gets one**, since checking it by hand bills Google. Imagery
+  rendering stays manual.
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is
