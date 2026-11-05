@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 21).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
   native DOM and CSS on the `main.css` design tokens.
@@ -210,7 +210,7 @@ A pano's `pano_data.width`/`height` never change: Google re-renders pixels, neve
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
 
-Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+Crops are the image Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
 dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
@@ -229,7 +229,7 @@ says (the centre, unless the window shifted off a pole) — and the files look a
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
 against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
 on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
-the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet, photo strip and street panel) — take it from the
 row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
 image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
 must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
@@ -439,6 +439,58 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
 `/clusteringResults`, `/ai/submitLabelsOnPano`.
 
+### Neighborhood reports (`/report/neighborhood/:slug`)
+
+A report ties a map, which says where something is, to photos, which show what it is (#3889, #5876): one public,
+responsive page per region. Its address is the region's name (`ReportSlug`: lowercased, accents dropped, the id appended
+only where two regions share a name), computed from current names rather than stored; an id URL redirects to it. The title, numbers and full street list are server-rendered, so they survive a failed
+script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
+the labels it counts, so every count links to those labels through Gallery's `?labelIds=` review list, or to its
+filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so
+viewing one costs no billable Google or Mapbox call. A card's image is its crop's thumbnail or a placeholder, never the
+Gallery's Street View still.
+
+The report's scores are AccessScore's, and they must agree with what the tool, the Spotlight and the API say about the
+same place. `ReportService` reads the city's `getFullCityScores` cache rather than scoring anything itself, and the same
+public data backs every figure: the street scores, the label clusters ("locations") and the raw labels, each linked as a
+CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-After` rather than an inferred number.
+`AccessScoreSpotlight` holds the bars for what gets ranked (`regionQualifies`, `stretchIsRanked`, `stretchScore`), so the
+report and the Spotlight can't disagree about them. The page ranks explored street segments, roughly blocks: the unit
+AccessScore scores and the map colors, so a section never holds parts its number doesn't describe. Each is named by the
+streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
+on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
+Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. A
+fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+`ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
+labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
+Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
+out. Photos come from `/cropImage/:type/:id/thumbnail`,
+because a page of full-size crops weighs around 100 MB.
+
+`ReportPage` decides when each piece exists, since a region can have fifty streets and a browser about 16 WebGL contexts:
+a street's map and cards start as its section nears the viewport, and at most `MAX_LIVE_MAPS` maps live at once, given to
+the near sections closest to it. Each `ReportStreetSection` keeps one source of what's lit, whichever side the pointer is
+on: hover a Gallery `Card` and its map icon and elevation-profile pin light, with the photo's view wedge drawn, and hover
+an icon and its card lights. Under the map sits `AccessScoreElevationProfile`, fed by `stitchProfile`, which joins a
+stretch's per-edge `/v3/api/streetGrade` answers end to end. For print, a small SVG sketch stands in for each canvas.
+Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend says so.
+
+Below the segment list, a worst-problems map (#5889) puts a dot, in its type's label color, on every location whose
+rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
+Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
+switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
+and a dot opens its label's Gallery card in a popup. It prints as the counts alone.
+
+A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
+(`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads
+the report with the weights in the tool's own `w` and `gs` parameters, and the server scores the whole report under
+them: `AccessScoreWeights.reweight` rebuilds every cached street and crossing score from the per-type counts each
+row already carries (the same arithmetic as the tool's client-side reweighting, with no database read), and fixes,
+card costs and the street order all follow. The page never shows numbers from two weightings at once. Custom weights
+must not pass for AccessScore's own, so a stamp stays in the header and in print, and every score links to the tool
+under the same weights.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
@@ -552,7 +604,8 @@ loaded by the corresponding Twirl view:
   query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
   is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
   hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
-  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  worse than a refused one. A linking page whose list is far over the cap (the Neighborhood Report's pooled items)
+  sends only the first 500 ids plus `labelIdsTotal=<n>`, which the notice counts instead, so the URL stays short. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
@@ -607,8 +660,32 @@ loaded by the corresponding Twirl view:
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
   raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
   every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
-  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
-  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  per histogram bin, since a symbol's image can't read feature-state, #5311), the street panel
+  (`AccessScoreStreetPanel.js`, #5748: what a click on a street or a place opens, a drawer on the map's right that
+  says why the street scores what it does in figures, every explanation in words behind an "i" — the block and its
+  two crossings drawn in their score colors, the block as its elevation profile where the city has one with the
+  problems along it pinned where they are (`AccessScoreElevationProfile` markers), a signed effect bar per label type
+  totaled over the block and its scored crossings with grade among them — and backs it with the evidence, one
+  `LabelMiniCard` tile per cluster along the block and at each crossing, costliest first, each wearing what that
+  cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
+  type since the engine scores a cluster from its median rating and tag counts); a row hovered keeps only its type's
+  tiles, uncapped, and pressed pins that; a tile lights its dot on the map; a street end with no crossing names the
+  street the road continues as, a button that selects it, or says dead end; a crossing's dot, hovered or focused, lights that crossing's clusters and opens the crossing card
+  (`AccessScoreCrossingCard.js`: a Mapbox inset of the intersection, built once and recentered since Mapbox bills
+  the map load, never a Street View pano, with the crossing's clusters on it, the corner types' effects and the
+  crops of its costliest clusters as pictures only, the votable tiles being just below), and pressed flies the map
+  to the crossing; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
+  through `ps-map/mapPadding.js`, which keeps the padding the map is heading for so no owner eases to another's
+  half-way value or cuts short a fly-to; the
+  dock folds to its bar while it is open, and a place's panel is its nearest street's headed by the place; a region
+  keeps a Mapbox popup), the clusters' shared cache (`AccessScoreClusterFeed.js`: a region's `/v3/api/labelClusters`
+  feed and the `/label/id` JSON behind each picture, fetched once for the panel and the photo strip), the cluster
+  sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop cards, the sheet as many
+  cards wide as the cluster has up to the window's width, and tied to its dot as LabelMap's card is to its label
+  through the shared `ps-map/labelSpotlight.js`: a beacon on the dot, the camera parking it in the free gutter
+  beside the sheet, between the drawers, and a tail from sheet to dot, with prev and next arrows that tour the
+  clusters on the map through the same `ps-map/nearbyLabelNavigator.js` LabelMap's card uses, nearest unvisited
+  next and the trail back), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
@@ -621,8 +698,8 @@ loaded by the corresponding Twirl view:
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
-  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band, the
+  panel and the popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
 - **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
@@ -809,11 +886,11 @@ what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validatio
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
 find and run it: `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`,
 `ClusterService` resolves the script against the app root rather than the process working directory (a staged app
-runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installable on the `python3` the
-app invokes. Don't add libraries to `requirements.txt` that have dropped 3.8.
+runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installed into the `python3.12`
+the app invokes (the deploy does that).
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%) — one CI
-run per interpreter, the in-band leg blocking and the offline-tooling leg advisory. See
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%, a blocking
+CI check). See
 [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types

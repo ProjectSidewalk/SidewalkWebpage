@@ -451,9 +451,10 @@ export class Onboarding {
           strokeStyle: 'rgba(255, 255, 255, 1)',
         };
         this.#drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
-      } else if (annotation.type === 'label') {
-        // Example labels pop in staggered, in the order the copy introduces them; POV/resize redraws after the
-        // entrance render them at rest. Under prefers-reduced-motion they appear at rest immediately.
+      } else {
+        // The only other kind is an example label. These pop in staggered, in the order the copy introduces them, and
+        // POV/resize redraws after the entrance render them at rest. Under prefers-reduced-motion they skip the
+        // entrance and appear at rest straight away.
         if (annotation.appearStart === undefined) {
           annotation.appearStart = reduceMotion ? -Infinity : performance.now() + newLabelCount * 350;
           newLabelCount += 1;
@@ -602,13 +603,10 @@ export class Onboarding {
     let anchor = resolveAnchor();
     if (!anchor || !floating) return;
 
-    // (Re)create the arrow element Floating UI positions; showMessage's html() call wipes the box's contents.
-    let arrowEl = floating.querySelector('.fui-arrow');
-    if (!arrowEl) {
-      arrowEl = document.createElement('div');
-      arrowEl.className = 'fui-arrow';
-      floating.appendChild(arrowEl);
-    }
+    // The arrow Floating UI positions, built fresh since showMessage has just rewritten the box's contents.
+    const arrowEl = document.createElement('div');
+    arrowEl.className = 'fui-arrow';
+    floating.appendChild(arrowEl);
     floating.style.position = 'absolute';
 
     const pane = document.getElementById('street-view-holder');

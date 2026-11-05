@@ -1,0 +1,211 @@
+/*
+ * The AccessScore model's "Adjust the weights" panel (AccessScoreWeightsPanel.js): one slider row per scored label
+ * type with its helps/hurts tag and the type's average effect, folded behind its heading. Shared by the AccessScore
+ * tool and the neighborhood report so the two read as one control. The sliders are the .ps-range primitive.
+ */
+
+/* ---- Sliders ---- */
+
+/* The sliders themselves are the shared .ps-range primitive (main.css); only the rows around them live here. */
+
+.ps-weight {
+  margin-top: var(--space-sm);
+}
+
+.ps-weight__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: 2px;
+}
+
+.ps-weight__icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.ps-weight__label {
+  flex: 1 1 auto;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+/* "helps" / "hurts": the factor's direction in a word, tinted with the ramp's two poles. */
+.ps-weight__role {
+  font: var(--text-tiny-semibold);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.ps-weight__role--feature {
+  color: var(--color-jade-800);
+  background: var(--color-jade-200);
+}
+
+.ps-weight__role--problem {
+  color: var(--color-orange-800);
+  background: var(--color-orange-200);
+}
+
+.ps-weight__value {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* At a weight of 0 the factor is out of the score, so the row fades like a street outside a brush. The slider keeps
+   full contrast: it is the control that turns the factor back on. */
+.ps-weight--off .ps-weight__head {
+  opacity: 0.55;
+}
+
+.ps-weight--off .ps-weight__value {
+  font: var(--text-small-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* "Updated · 12 streets changed" (#5223). It fades itself out and collapses, so it never takes room in the resting
+   panel. */
+.ps-flash {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-medium);
+  color: var(--color-jade-800);
+  opacity: 0;
+}
+
+.ps-flash:empty {
+  display: none;
+}
+
+.ps-flash--on {
+  animation: ps-flash-fade 1.6s ease-out forwards;
+}
+
+@keyframes ps-flash-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The message is information, not decoration, so reduced motion keeps it and drops only the fade. */
+@media (prefers-reduced-motion: reduce) {
+  .ps-flash--on {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* The average contribution under each slider: a thin bar whose length is relative to the largest type's. */
+.ps-weight__contrib {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 12px;
+  margin-top: 2px;
+}
+
+.ps-weight__bar {
+  display: block;
+  height: 4px;
+  width: 0;
+  max-width: 55%;
+  border-radius: 2px;
+  background: var(--color-neutral-400);
+  transition: width var(--transition-fast);
+}
+
+.ps-weight__bar--feature {
+  background: var(--color-score-ramp-5);
+}
+
+.ps-weight__bar--problem {
+  background: var(--color-score-ramp-1);
+}
+
+.ps-weight__bar-label {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A heading row's action ("Reset weights", "Select all"): shown only once it has something to do. */
+.ps-heading-action {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ---- A section folded behind its heading (the weights, and any other a page folds the same way) ---- */
+
+.ps-disclosure__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The button inherits the heading's type so the fold reads as the heading, with only the chevron saying it opens. */
+.ps-disclosure {
+  display: flex;
+  align-items: center;
+
+  /* Folded, a long heading plus its hint can outgrow a narrow sidebar: the hint drops to a second line rather
+     than run under the "Reset weights" beside it. */
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ps-disclosure:hover {
+  color: var(--color-link-200);
+}
+
+.ps-disclosure:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Inset to sit flush with the heading's left edge: the glyph has its own margin inside the 22px box. */
+.ps-disclosure__chevron {
+  width: 22px;
+  height: 22px;
+  margin-left: -6px;
+  flex: none;
+}
+
+/* "Custom" beside a folded heading: the one fact the fold would hide. Empty while the weights are the defaults. */
+.ps-disclosure__hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-left: var(--space-xxs);
+}
+
+.ps-disclosure__hint:empty {
+  display: none;
+}
+
+/* Open, the sliders themselves say the weights are custom, and the word would only crowd the row's "Reset
+   weights" — in a narrow sidebar the two collide outright. */
+.ps-disclosure[aria-expanded="true"] .ps-disclosure__hint {
+  display: none;
+}
+
+.ps-weights[hidden] {
+  display: none;
+}
+
+.ps-weights-section .filter-sidebar__heading {
+  white-space: nowrap;
+}

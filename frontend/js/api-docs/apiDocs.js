@@ -336,7 +336,7 @@ function setupDownloadButtons() {
     }
 
     const filename = filenameFromDisposition(response.headers.get('Content-Disposition'))
-      || `${document.documentElement.getAttribute('data-api-endpoint')}.${FILE_EXTENSIONS[format] || format}`;
+      || `${document.documentElement.getAttribute('data-api-endpoint')}.${FILE_EXTENSIONS[format]}`;
     const blobUrl = URL.createObjectURL(blob);
     const saveLink = document.createElement('a');
     saveLink.href = blobUrl;

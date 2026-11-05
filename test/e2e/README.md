@@ -40,9 +40,10 @@ Three details worth knowing when something looks odd:
   400s anything else — including `web:9000` and any other port — and because `localhost` now resolves inside
   the web container rather than on your host.
 - It inherits the web container's **mounts** (not its image filesystem), so the repo is at `/home` and worktree
-  paths resolve unchanged. The one exception is `/home/node_modules`, which is deliberately masked with an empty
-  tmpfs so `require('@playwright/test')` resolves to the runner in the image instead of the repo's own copy —
-  two copies in one process makes Playwright abort with *"did not expect `test()` to be called here"*.
+  paths resolve unchanged. The one exception is `/home/node_modules` (and a worktree's own `node_modules`, where
+  `make qa-worktree` has installed one), deliberately masked with an empty tmpfs so `require('@playwright/test')`
+  resolves to the runner in the image instead of the repo's own copy — two copies in one process makes Playwright
+  abort with *"did not expect `test()` to be called here"*.
 - Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
   `--user`), so you can read and delete them from the host like any other file.
 
@@ -164,7 +165,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Every panorama it names is expired**, as the rows it was taken from are. That is what keeps the server side
   hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
   imagery nor the `GOOGLE_MAPS_SECRET` CI does not have (#4948). What stands in is on disk — `install-media.sh`,
-  run right after the seed, installs the backup panoramas Pannellum renders and the crops the Gallery reads.
+  run right after the seed, installs the backup panoramas Pannellum renders and the crops Gallery reads.
   The *browser* still tries the primary viewer first, and what happens next is the Google Maps stub's call
   (phase 2, below): by default it answers `ZERO_RESULTS` for a pano it has never seen, the way Google does for an
   expired one, so Validate and the label popups render those backups through Pannellum — the path the seed was

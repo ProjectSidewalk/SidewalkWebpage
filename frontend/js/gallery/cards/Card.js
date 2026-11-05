@@ -37,6 +37,7 @@ export class Card {
   #gsvImageUrl;
   #tracker;
   #cardFilter;
+  /** @type {?string} */ #voteSource;
   #regionNames;
 
   #markerWrapper;
@@ -100,8 +101,12 @@ export class Card {
    * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
+   * @param {object} [options]
+   * @param {?string} [options.voteSource] - The source its votes are recorded under on a page other than Gallery,
+   *     since analyses key on it; Gallery's own two sources otherwise.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, options = {}) {
+    this.#voteSource = options.voteSource ?? null;
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -182,8 +187,7 @@ export class Card {
     const regionName = this.#regionNames[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
-      // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
-      // grid intact.
+      // "View on Label Map" uses. Same tab: Gallery keeps its filters in the URL, so Back returns to this grid intact.
       const location = document.createElement('a');
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
@@ -258,6 +262,11 @@ export class Card {
     this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
   }
 
+  /** @returns {?string} The source to record this card's votes under, when its page has its own. */
+  getVoteSource() {
+    return this.#voteSource;
+  }
+
   /**
    * This function returns labelId property.
    *
@@ -288,10 +297,10 @@ export class Card {
    * Get a property.
    *
    * @param {string} propName - Property name.
-   * @returns {*} Property value if property name is valid. Otherwise false.
+   * @returns {*} Property value.
    */
   getProperty(propName) {
-    return (propName in this.#properties) ? this.#properties[propName] : false;
+    return this.#properties[propName];
   }
 
   /**
@@ -498,29 +507,25 @@ export class Card {
 
   /**
    * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
-   * the Gallery's filter; the next load sorts that out.
+   * Gallery's filter; the next load sorts that out.
    * @param {string} labelType
    */
   updateLabelType(labelType) {
     if (labelType === this.getLabelType()) return;
     this.#properties.label_type = labelType;
     const labelTypeName = util.misc.labelTypeName(labelType);
-    const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     const iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
-    if (icon) icon.src = iconPath;
+    this.labelIcon.src = iconPath;
     const placeholderIcon = this.#placeholder?.querySelector('img');
     if (placeholderIcon) placeholderIcon.src = iconPath;
-    const header = this.#card.querySelector('.card-header__type');
-    if (header) header.textContent = labelTypeName;
-    const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));
-    if (image) image.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
+    this.#card.querySelector('.card-header__type').textContent = labelTypeName;
+    this.#panoImage.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
     // The severity block exists only for rated types; updateSeverityAndTags fills it if present.
-    const cardData = this.#card.querySelector('.card-data');
     let cardSeverity = this.#card.querySelector('.card-severity');
-    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity && cardData) {
+    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity) {
       cardSeverity = document.createElement('div');
       cardSeverity.className = 'card-severity';
-      cardData.prepend(cardSeverity);
+      this.#card.querySelector('.card-data').prepend(cardSeverity);
     } else if (!util.misc.labelTypeHasSeverity(labelType) && cardSeverity) {
       cardSeverity.remove();
     }
@@ -557,20 +562,6 @@ export class Card {
     this.validationInfoDisplay.setAiValidation(properties.ai_validation);
     this.validationInfoDisplay.updateValCounts(votes.num_agree, votes.num_disagree, properties.user_validation);
     this.validationMenu.showValidationOnCard(properties.user_validation);
-  }
-
-  /**
-   * Set aspect of status.
-   *
-   * @param {string} key - Status name.
-   * @param {*} value - Status value.
-   */
-  setStatus(key, value) {
-    if (key in this.#status) {
-      this.#status[key] = value;
-    } else {
-      throw new Error(`${this.constructor.name}: Illegal status name.`);
-    }
   }
 
   /**

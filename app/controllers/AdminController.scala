@@ -460,7 +460,7 @@ class AdminController @Inject() (
    * Builds the best available preview-image URL for a recent-activity item, or None when it has no label to preview.
    *
    * Prefers a saved label crop (the actual cropped label view) when one exists on disk; otherwise falls back to a
-   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors the Gallery's
+   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors Gallery's
    * crop-then-GSV image strategy.
    *
    * @param item     The recent-activity item.
@@ -1433,7 +1433,7 @@ class AdminController @Inject() (
       .toSeq
       .sortBy { case (thread, _) => thread.getName }
       .foreach { case (thread, frames) =>
-        val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
+        val cpuSeconds = threadCpu.getThreadCpuTime(thread.threadId()) / 1e9
         info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
         frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
       }

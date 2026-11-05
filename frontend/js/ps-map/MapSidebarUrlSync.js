@@ -7,7 +7,7 @@
  * streets) are parsed on construction, validated against the rendered controls, and applied through
  * MapSidebarFilter. Unknown or invalid tokens are ignored; an absent or fully-invalid param leaves that section
  * at its default, while a present-but-empty one ("severities=") is the deselect-all state and restores as such.
- * Param naming mirrors the Gallery's filter params (camelCase, comma-separated, severity 'null' token for the
+ * Param naming mirrors Gallery's filter params (camelCase, comma-separated, severity 'null' token for the
  * N/A toggle); tags carry their label type ("CurbRamp:narrow") because tag names repeat across types.
  *
  * Writing: filter changes and user-initiated map movement rewrite the URL via debounced history.replaceState
@@ -119,17 +119,12 @@ export class MapSidebarUrlSync {
 
   /** Debounces URL writes so a burst of filter clicks or a continuous pan produces one replaceState. */
   #scheduleWrite() {
-    if (this.#writeTimer) clearTimeout(this.#writeTimer);
+    clearTimeout(this.#writeTimer);
     this.#writeTimer = setTimeout(() => this.#writeUrl(), 300);
   }
 
   /** Rewrites the URL from the current filter state and viewport, omitting params that match the defaults. */
   #writeUrl() {
-    if (this.#writeTimer) {
-      clearTimeout(this.#writeTimer);
-      this.#writeTimer = null;
-    }
-
     const url = new URL(window.location.href);
     const state = this.#filter.getState();
 

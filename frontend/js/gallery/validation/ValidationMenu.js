@@ -92,7 +92,7 @@ export class ValidationMenu {
     } else {
       // Add onClick functions for the validation buttons.
       for (const [valKey, button] of Object.entries(this.#validationButtons)) {
-        button.addEventListener('click', this.validateOnClickOrKeyPress(valKey, false, false));
+        button.addEventListener('click', this.validateOnClick(valKey, false));
         // Tells the open reason pop-up that a press here is a re-vote for it to follow, not a click outside (#5475).
         button.dataset.reasonAnchor = '';
       }
@@ -107,8 +107,8 @@ export class ValidationMenu {
    * @param {ValidationInfoDisplay} valInfoDisplay
    */
   #addValidationInfoOnClicks(valInfoDisplay) {
-    valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true, false);
-    valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
+    valInfoDisplay.agreeContainer.onclick = this.validateOnClick('validate-agree', true);
+    valInfoDisplay.disagreeContainer.onclick = this.validateOnClick('validate-disagree', true);
     valInfoDisplay.agreeContainer.dataset.reasonAnchor = '';
     valInfoDisplay.disagreeContainer.dataset.reasonAnchor = '';
     // Focusable from script only, so the pop-up can hand focus back to the thumb it hangs off after a pick.
@@ -128,19 +128,18 @@ export class ValidationMenu {
   }
 
   /**
-   * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
+   * OnClick function for the validation buttons and thumbs; Enter or Space on a focused strip button fires it too.
    *
    * The buttons are toggles: clicking the option already selected clears the vote (#4653), matching the label detail
    * card that opens from this same card.
    *
    * @param {string} newValKey
    * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
-   * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
    * @returns {(e?: Event) => Promise<?Response>} A function returning a Promise that resolves once the validation
    *     has been submitted, with the server's response, or null if the request never completed or was refused
    *     because a reason pick is still being written (#5475).
    */
-  validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
+  validateOnClick(newValKey, thumbsClick) {
     return async (e) => {
       if (this.#voteLocked) return null;
       const undone = this.#currSelected === newValKey;
@@ -148,7 +147,7 @@ export class ValidationMenu {
       // The reason pop-up hangs off the control that cast the vote (#5475): the strip button, or the thumb's holder.
       const anchor = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null;
       // Enter or Space on a strip button is a click with no pointer behind it; focus then belongs in the chips.
-      const viaKeyboard = keyboardShortcut || (e instanceof MouseEvent && e.detail === 0);
+      const viaKeyboard = e instanceof MouseEvent && e.detail === 0;
       // Whatever the pop-up was asking about is about to change under it; it comes back on the new vote's success.
       if (reasonPopover().isOpenFor(this.#galleryCard)) reasonPopover().close();
 
@@ -156,13 +155,13 @@ export class ValidationMenu {
       // whether this is a new validation worth a badge check.
       try {
         const previous = this.#refCard.getProperty('user_validation') ?? null;
-        const res = await this.#validateLabel(validationOption, thumbsClick, keyboardShortcut, undone);
+        const res = await this.#validateLabel(validationOption, thumbsClick, undone);
         // Restyle the card only once the server has taken the vote. Updating it up front would leave the card showing
         // a vote — or a cleared vote — that the backend never recorded, whenever the request fails.
         if (res.ok) {
           const current = undone ? null : validationOption;
           this.#refCard.updateUserValidation(current);
-          this.#refCard.validationInfoDisplay?.animateVoteChange?.(previous, current);
+          this.#refCard.validationInfoDisplay.animateVoteChange(previous, current);
           // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
           // archives a canned reason it doesn't offer, so a pick racing the vote could be archived by it.
           if (!undone && this.#reasonedVote(validationOption)) {
@@ -207,21 +206,18 @@ export class ValidationMenu {
 
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
     const valInfo = this.#refCard.validationInfoDisplay;
-    if (valInfo) {
-      valInfo.setVoteIconFilled('Agree', false);
-      valInfo.setVoteIconFilled('Disagree', false);
-    }
+    valInfo.setVoteIconFilled('Agree', false);
+    valInfo.setVoteIconFilled('Disagree', false);
   }
 
   /**
    * Consolidate data on the validation and submit as a POST request.
    * @param {string} action - Validation result — the vote being cast, or the one being cleared when `undone`.
    * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
-   * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
-   * @param {boolean} [undone=false] - Clear the user's existing `action` vote rather than cast one (#4653).
+   * @param {boolean} undone - Clear the user's existing `action` vote rather than cast one (#4653).
    * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
    */
-  #validateLabel(action, thumbsClick, keyboardShortcut, undone = false) {
+  #validateLabel(action, thumbsClick, undone) {
     const refCard = this.#refCard;
     let actionStr;
     let sourceStr;
@@ -234,9 +230,6 @@ export class ValidationMenu {
     }
     // A cleared vote leaves no label_validation row behind, so the event name is where it's recorded at all.
     actionStr += undone ? `Clear${action}` : action;
-    if (keyboardShortcut) {
-      actionStr = actionStr.replace('Click', 'KeyboardShortcut');
-    }
     this.#tracker.push(
       actionStr, { panoId: refCard.getProperty('pano_id') }, { labelId: refCard.getProperty('label_id') },
     );
@@ -258,14 +251,14 @@ export class ValidationMenu {
       canvas_y: Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2),
       start_timestamp: validationTimestamp,
       end_timestamp: validationTimestamp,
-      source: sourceStr,
+      source: refCard.getVoteSource() ?? sourceStr,
       undone,
       redone: !undone && refCard.getProperty('user_validation') !== null,
       viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi',
     };
 
     const isNewValidation = !undone && refCard.getProperty('user_validation') === null;
-    // A first-time visitor browses the Gallery with no session (#4643), so a card vote can be their first-ever
+    // A first-time visitor browses Gallery with no session (#4643), so a card vote can be their first-ever
     // write: lazyIdentityFetch mints the anonymous session on an auth-shaped failure and retries once (#4442).
     return util.lazyIdentityFetch('/labelmap/validate', {
       method: 'POST',

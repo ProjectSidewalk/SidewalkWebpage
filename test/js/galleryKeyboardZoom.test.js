@@ -1,5 +1,5 @@
 /**
- * The Gallery's Z / Shift+Z zoom shortcut (#5142): frontend/js/gallery/keyboard/KeyboardManager.js calling
+ * Gallery's Z / Shift+Z zoom shortcut (#5142): frontend/js/gallery/keyboard/KeyboardManager.js calling
  * PopupPanoManager's zoomIn()/zoomOut() (frontend/js/common/label-detail/PopupPanoManager.js).
  *
  * These pin the key → manager call → viewer POV chain (the manager has to have the methods the key calls), the
@@ -46,7 +46,7 @@ function createManager(PopupPanoManager, viewer) {
   return { manager, viewerType };
 }
 
-/** Releases a key on the page, the event the Gallery's manager listens for. */
+/** Releases a key on the page, the event Gallery's manager listens for. */
 function release(init) {
   document.body.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, ...init }));
 }
@@ -73,6 +73,14 @@ describe('Gallery Z / Shift+Z shortcut', () => {
     expect(expandedView.panoManager.zoomIn).toHaveBeenCalledTimes(1);
     expect(expandedView.panoManager.zoomOut).not.toHaveBeenCalled();
     expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ZoomIn', null, { code: 'KeyZ' });
+  });
+
+  it('goes by the letter printed on the key, as the card\'s vote keys do (#5883)', () => {
+    // On a German keyboard Y and Z swap places, so the key printed Y (where QWERTY has Z) votes Agree, not zoom.
+    release({ key: 'y', code: 'KeyZ' });
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+    release({ key: 'z', code: 'KeyY' });
+    expect(expandedView.panoManager.zoomIn).toHaveBeenCalledTimes(1);
   });
 
   it('Shift+Z zooms out and logs it', () => {
@@ -133,6 +141,26 @@ describe('Gallery Z / Shift+Z shortcut', () => {
   it.each(['ctrlKey', 'metaKey', 'altKey'])('leaves Z to the browser with %s held', (modifier) => {
     release({ key: 'z', code: 'KeyZ', [modifier]: true });
     expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+    expect(tracker.push).not.toHaveBeenCalled();
+  });
+
+  it('Escape closes the expanded view and brings back the grid, but not while it is already closed', () => {
+    expandedView.closeExpandedViewAndRemoveCardTransparency.mockClear();
+    release({ key: 'Escape', code: 'Escape' });
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).toHaveBeenCalledTimes(1);
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+
+    expandedView.open = false;
+    release({ key: 'Escape', code: 'Escape' });
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a key that is no Gallery shortcut, and one with no code at all', () => {
+    expandedView.closeExpandedViewAndRemoveCardTransparency.mockClear();
+    release({ key: 'q', code: 'KeyQ' });
+    release({ key: 'z' });
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).not.toHaveBeenCalled();
     expect(tracker.push).not.toHaveBeenCalled();
   });
 

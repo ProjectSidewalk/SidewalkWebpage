@@ -11,11 +11,11 @@ while compilation and the dev server happen in the web container via `npm start`
 
 ## A note on the JDK
 
-The project targets **Java 17** (`build.sbt` sets `-source/-target 17`) and **Scala 3.9**. The app compiles inside
+The project targets **Java 21** (`build.sbt` sets `-source/-target 21`) and **Scala 3.9**. The app compiles inside
 the Docker container, which already has the right JDK, so you don't strictly need a local JDK to run Project Sidewalk.
 You *do* want one installed locally for your editor's language tooling (indexing, navigation, inline errors) to work.
-Install a **Java 17** JDK (e.g. [Temurin 17](https://adoptium.net/temurin/releases/?version=17), or
-`sudo apt install openjdk-17-jdk` on Debian/Ubuntu) and point your editor at it.
+Install a **Java 21** JDK (e.g. [Temurin 21](https://adoptium.net/temurin/releases/?version=21), or
+`sudo apt install openjdk-21-jdk` on Debian/Ubuntu) and point your editor at it.
 
 ## IntelliJ IDEA
 
@@ -39,7 +39,7 @@ On first launch, install the **Scala** plugin when prompted. Then add these from
 
 If you see **"Project JDK is not defined"** or **"No Scala SDK in module"** at the top of the window, IntelliJ can't
 find a JDK/Scala SDK and won't be able to analyze the code. Open
-`File → Project Structure → Project` and set the **SDK** to your local **Java 17** JDK (see
+`File → Project Structure → Project` and set the **SDK** to your local **Java 21** JDK (see
 [A note on the JDK](#a-note-on-the-jdk) above). The Scala SDK is supplied by the Scala plugin once it's installed.
 
 ### Format on save
@@ -59,7 +59,7 @@ Scala services and the big frontend modules. ([JetBrains docs](https://www.jetbr
 VS Code is excellent for the **vanilla-JS frontend** and works well for Scala with the Metals extension.
 
 - **Scala:** install the **[Metals](https://scalameta.org/metals/docs/editors/vscode/)** extension. On first open of
-  the project it will import the build (it uses your local Java 17 JDK) and then provide navigation, inline errors,
+  the project it will import the build (it uses your local Java 21 JDK) and then provide navigation, inline errors,
   and formatting. Metals reads `.scalafmt.conf` directly — run **Format Document** (or enable
   `"editor.formatOnSave": true`) to keep Scala files formatted.
 - **Frontend:** no build tooling is needed in the editor — files are plain ES modules that Vite bundles. Let the

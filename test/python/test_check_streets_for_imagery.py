@@ -886,6 +886,20 @@ def test_make_fetch_reraises_after_max_attempts(monkeypatch):
         fetch('http://x')
 
 
+def test_get_json_retries_gsv_unknown_error(monkeypatch):
+    answers = [{'status': 'UNKNOWN_ERROR'}, {'status': 'OK', 'date': '2024-05'}]
+
+    class _Resp:
+        def json(self):
+            return answers.pop(0)
+
+    monkeypatch.setattr(cs.requests, 'request', lambda **_kwargs: _Resp())
+    sleeps = []
+    fetch = cs.make_fetch(max_attempts=3, sleep=sleeps.append)
+    assert fetch('http://x')['status'] == 'OK'
+    assert len(sleeps) == 1  # one retry, not a failed street
+
+
 def test_get_json_defaults_to_get(monkeypatch):
     class _Resp:
         def json(self):

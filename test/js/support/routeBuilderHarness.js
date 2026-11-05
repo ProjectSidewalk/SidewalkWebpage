@@ -456,10 +456,13 @@ export const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
  * @param {string} [opts.url='/routeBuilder'] - The page's address, e.g. with a `?preview=` deep link.
  * @param {?object} [opts.pendingRoute=null] - What SaveModal.consumePendingRoute hands back.
  * @param {boolean} [opts.dataBeforeMap=false] - Whether the regions and streets arrive before the map has loaded.
+ * @param {?GeoJSON.FeatureCollection} [opts.regions] - Regions to draw (default regionData()); null: not here yet.
+ * @param {?GeoJSON.FeatureCollection} [opts.streets] - Streets to draw (default streetData()); null: not here yet.
  * @returns {Promise<{rb: object, map: FakeMap}>}
  */
 export async function setupRouteBuilder({
   signedIn = true, minutesPer100m = 2, url = '/routeBuilder', pendingRoute = null, dataBeforeMap = false,
+  regions = regionData(), streets = streetData(),
 } = {}) {
   for (const key of Object.keys(world)) delete world[key];
   Object.assign(world, {
@@ -489,8 +492,8 @@ export async function setupRouteBuilder({
   const rb = new RouteBuilder('pk.test', MAP_PARAMS, signedIn, minutesPer100m);
   const map = world.map;
   if (!dataBeforeMap) map.fire('load');
-  rb.renderRegions(regionData());
-  rb.renderStreets(streetData());
+  if (regions) rb.renderRegions(regions);
+  if (streets) rb.renderStreets(streets);
   if (dataBeforeMap) map.fire('load');
   await flush();
   return { rb, map };

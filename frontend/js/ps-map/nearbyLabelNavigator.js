@@ -12,10 +12,14 @@
  * already passed) and re-derives subscribers' state. "prev" is exempt from the predicate: it retraces where the
  * user has actually been, and the spotlight keeps that label visible whatever the filters say.
  *
- * @param {MapLayerTracker} mapData - The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
+ * @param {{sortedLabels: Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>}} mapData - The map layer tracker
+ *     returned by addLabelsToMap, or anything else with its `sortedLabels` (features bucketed by type): only that
+ *     is read.
  * @param {object} [options] - Navigation options.
  * @param {(labelType: string, feature: GeoJSON.Feature) => boolean} [options.isCandidate] - Called with a label's
  *     type and GeoJSON feature; returns whether "next" may land on it. Omit to page over every loaded label.
+ * @param {string} [options.idKey='label_id'] - The property that identifies a feature: `label_cluster_id` when
+ *     the features toured are AccessScore's clusters rather than labels (#5748).
  * @returns {{next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
  *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
  *     getCoords: (labelId: number) => ?Array<number>, getLabelType: (labelId: number) => ?string,
@@ -27,7 +31,7 @@
  *     the tour after the host's predicate changed — both notify onRefresh subscribers so everything derived from
  *     the reachable set (e.g. the popup's arrow states) follows it.
  */
-export function createNearbyLabelNavigator(mapData, { isCandidate = () => true } = {}) {
+export function createNearbyLabelNavigator(mapData, { isCandidate = () => true, idKey = 'label_id' } = {}) {
   // label_id -> [lng, lat] and label_id -> label type for every label on the map, flattened across types. The
   // scans themselves walk mapData.sortedLabels directly rather than a third per-label map of features: the loaded
   // set is city-sized on desktop, so every parallel structure is another few hundred thousand entries.
@@ -38,8 +42,8 @@ export function createNearbyLabelNavigator(mapData, { isCandidate = () => true }
     typeById.clear();
     for (const [labelType, features] of Object.entries(mapData.sortedLabels)) {
       for (const f of features) {
-        coordsById.set(f.properties.label_id, f.geometry.coordinates);
-        typeById.set(f.properties.label_id, labelType);
+        coordsById.set(f.properties[idKey], f.geometry.coordinates);
+        typeById.set(f.properties[idKey], labelType);
       }
     }
   };
@@ -69,7 +73,7 @@ export function createNearbyLabelNavigator(mapData, { isCandidate = () => true }
    * @returns {boolean}
    */
   const isReachable = (labelType, feature, currentId) => {
-    const id = feature.properties.label_id;
+    const id = feature.properties[idKey];
     return id !== currentId && !visited.has(id) && isCandidate(labelType, feature);
   };
 
@@ -103,7 +107,7 @@ export function createNearbyLabelNavigator(mapData, { isCandidate = () => true }
           const d = dist2(here, f.geometry.coordinates, kx);
           if (d < bestD) {
             bestD = d;
-            best = f.properties.label_id;
+            best = f.properties[idKey];
           }
         }
       }

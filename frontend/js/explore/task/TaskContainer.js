@@ -431,26 +431,14 @@ export class TaskContainer {
    * Find incomplete tasks (i.e., street edges) that are connected to the given task.
    *
    * @param {Task} taskIn - Task to check whether any available tasks are connected
-   * @param {number} threshold - Distance threshold in km, unless specified in unit parameter
-   * @param {{units: import('@turf/turf').Units}} [unit] - The distance unit; defaults to the user's
+   * @param {number} threshold - Distance threshold in km
    * @returns {Task[]} Array of tasks that are connected to the given task
    */
-  #findConnectedTasks(taskIn, threshold, unit) {
-    if (!unit) unit = { units: 'kilometers' };
-    let tasks = this.getTasks();
-
-    const connectedTasks = [];
-    if (taskIn && tasks) {
-      tasks = tasks.filter((t) => t.isLeftToWalk() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
-
-      for (let i = 0, len = tasks.length; i < len; i++) {
-        if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
-          connectedTasks.push(tasks[i]);
-        }
-      }
-    }
-
-    return connectedTasks;
+  #findConnectedTasks(taskIn, threshold) {
+    if (!taskIn) return [];
+    return this.getTasks()
+      .filter((t) => t.isLeftToWalk() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId())
+      .filter((t) => taskIn.isConnectedTo(t, threshold, { units: 'kilometers' }));
   }
 
   /**
@@ -461,16 +449,8 @@ export class TaskContainer {
    */
   getCompletedTaskDistance(units) {
     if (!units) units = { units: util.turfDistanceUnits() };
-    const walkedTasks = this.getWalkedTasks();
-    let feature;
     let distance = 0;
-
-    if (walkedTasks) {
-      for (let i = 0, len = walkedTasks.length; i < len; i++) {
-        feature = walkedTasks[i].getGeoJSON();
-        distance += turf.length(feature, units);
-      }
-    }
+    for (const task of this.getWalkedTasks()) distance += turf.length(task.getGeoJSON(), units);
     if (!this.#currentTask.isComplete() && !this.#currentTask.wasGivenUpOnImagery()) {
       distance += this.getCurrentTaskDistance(units);
     }
@@ -485,33 +465,21 @@ export class TaskContainer {
    */
   getAllUsersCompletedTaskDistance() {
     const unit = { units: util.turfDistanceUnits() };
-    const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
-    let feature;
     let distance = 0;
-
-    if (tasks) {
-      for (let i = 0; i < tasks.length; i++) {
-        feature = tasks[i].getGeoJSON();
-        distance += turf.length(feature, unit);
-      }
-    }
+    for (const task of this.getCompletedTasksAllUsersUsingPriority()) distance += turf.length(task.getGeoJSON(), unit);
     return distance;
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * How far along the current street the user has walked, counting the pano they're on now.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
    * @returns {number}
    */
   getCurrentTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
 
-    if (this.#currentTask) {
-      const currentLatLng = this.#panoManager.getPosition();
-      this.#currentTask.updateTheFurthestPointReached(currentLatLng);
-      return this.#currentTask.getAuditedDistance(unit);
-    }
-    return 0;
+    this.#currentTask.updateTheFurthestPointReached(this.#panoManager.getPosition());
+    return this.#currentTask.getAuditedDistance(unit);
   }
 
   /**
@@ -795,7 +763,7 @@ export class TaskContainer {
   recordExploreMove(latLng) {
     const current = this.#currentTask;
     const nearest = this.tasksLoaded() ? this.#nearestTask(latLng) : null;
-    if (nearest && current && nearest !== current) {
+    if (nearest && nearest !== current) {
       this.#tracker.push('ExploreAddress_StreetSwitch', {
         from: current.getStreetEdgeId(),
         to: nearest.getStreetEdgeId(),
@@ -807,10 +775,8 @@ export class TaskContainer {
       if (nearest.getCoveredRanges().length === 0) nearest.setProperty('taskStart', new Date());
       this.setCurrentTask(nearest);
     }
-    if (this.#currentTask) {
-      this.#currentTask.recordVisit(latLng);
-      this.renderTask(this.#currentTask);
-    }
+    this.#currentTask.recordVisit(latLng);
+    this.renderTask(this.#currentTask);
   }
 
   /**
@@ -824,8 +790,8 @@ export class TaskContainer {
     const point = turf.point([latLng.lng, latLng.lat]);
     let nearest = null;
     let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
-    const candidates = this.#currentTask ? [this.#currentTask, ...this._tasks] : this._tasks;
-    for (const task of candidates) {
+    // A Set, since the current task is usually among the loaded ones too; listed first so it wins a tie.
+    for (const task of new Set([this.#currentTask, ...this._tasks])) {
       const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
       if (distM < nearestM) {
         nearest = task;
@@ -839,23 +805,17 @@ export class TaskContainer {
    * Get the street id of the current task.
    */
   getCurrentTaskStreetEdgeId() {
-    return this.#currentTask ? this.#currentTask.getStreetEdgeId() : null;
+    return this.#currentTask.getStreetEdgeId();
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * The combined length of every loaded street.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
+   * @returns {number}
    */
   getTotalTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
-    const tasks = this.getTasks();
-
-    if (tasks) {
-      const distanceArray = tasks.map((t) => t.lineDistance(unit));
-      return util.array.sum(distanceArray);
-    } else {
-      return null;
-    }
+    return util.array.sum(this.getTasks().map((t) => t.lineDistance(unit)));
   }
 
   /**

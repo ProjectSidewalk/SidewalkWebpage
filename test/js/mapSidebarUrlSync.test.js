@@ -137,9 +137,19 @@ describe('MapSidebarUrlSync', () => {
   const checkbox = (id) => document.getElementById(id);
   const tagPill = (type, tag) => document.querySelector(`.tag-pill[data-label-type="${type}"][data-tag="${tag}"]`);
 
-  /** Builds the sidebar + URL sync over the fixture with a stub map; the URL should be set before calling. */
-  function build() {
+  /**
+   * Builds the sidebar + URL sync over the fixture with a stub map; the URL should be set before calling.
+   * @param {object} [options]
+   * @param {boolean} [options.severityOnly=false] - Drop every section but severity, as a host page may.
+   * @returns {MapSidebarUrlSync} The sync under test.
+   */
+  function build({ severityOnly = false } = {}) {
     buildFixture();
+    if (severityOnly) {
+      document.querySelectorAll('.filter-sidebar__section').forEach((section) => {
+        if (!section.querySelector('.severity-button')) section.remove();
+      });
+    }
     mapData = buildMapData();
     const sidebarFilter = new MapSidebarFilter(map, mapData);
     return new MapSidebarUrlSync(sidebarFilter, map);
@@ -296,6 +306,14 @@ describe('MapSidebarUrlSync', () => {
       vi.advanceTimersByTime(300);
 
       expect(search()).toBe('?severities=1,2,3&lat=47.61235&lng=-122.33457&zoom=11.26');
+    });
+
+    it('writes only the severities on a page whose sidebar has no other section', () => {
+      build({ severityOnly: true });
+      sevBtn(3).click();
+      vi.advanceTimersByTime(300);
+
+      expect(search()).toBe('?severities=null,1,2&lat=47.61235&lng=-122.33457&zoom=11.26');
     });
 
     it('deletes a param when its section returns to the rendered default', () => {

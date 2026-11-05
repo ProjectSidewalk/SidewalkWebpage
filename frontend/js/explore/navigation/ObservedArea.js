@@ -178,10 +178,8 @@ export class ObservedArea {
     this.#angle = null;
     this.#leftAngle = null;
     this.#rightAngle = null;
-    if (this.#currArea) {
-      this.#currArea.minAngle = null;
-      this.#currArea.maxAngle = null;
-    }
+    this.#currArea.minAngle = null;
+    this.#currArea.maxAngle = null;
     this.update();
   }
 
@@ -202,7 +200,8 @@ export class ObservedArea {
     let heading = pov.heading;
     // What the viewer actually rendered across the frame (#5083); the curve alone under-counts a wide window at zoom 3.
     const fov = this.#frame.renderedHFov(pov.zoom);
-    if (this.#angle) {
+    // Compared against null, not falsiness, here and below: a heading or edge of exactly 0 (north) is still a reading.
+    if (this.#angle !== null) {
       if (heading - this.#angle > 180) {
         heading -= 360;
       }
@@ -213,10 +212,10 @@ export class ObservedArea {
     this.#angle = heading;
     this.#leftAngle = this.#angle - fov / 2;
     this.#rightAngle = this.#angle + fov / 2;
-    if (!this.#currArea.minAngle || this.#leftAngle < this.#currArea.minAngle) {
+    if (this.#currArea.minAngle === null || this.#leftAngle < this.#currArea.minAngle) {
       this.#currArea.minAngle = this.#leftAngle;
     }
-    if (!this.#currArea.maxAngle || this.#rightAngle > this.#currArea.maxAngle) {
+    if (this.#currArea.maxAngle === null || this.#rightAngle > this.#currArea.maxAngle) {
       this.#currArea.maxAngle = this.#rightAngle;
     }
     this.#fractionObserved = Math.min(this.#currArea.maxAngle - this.#currArea.minAngle, 360) / 360;

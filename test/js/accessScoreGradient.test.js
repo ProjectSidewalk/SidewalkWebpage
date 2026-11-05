@@ -247,7 +247,7 @@ describe('street slope in the AccessScore tool', () => {
     let selected;
 
     /** The class rows in display order: steepest first, the no-slope row last. */
-    const rowsInOrder = () => [...document.querySelectorAll('.acs-map-legend__class')];
+    const rowsInOrder = () => [...document.querySelectorAll('.ps-map-legend__class')];
 
     /**
          * Adds a legend to the document and shows its slope classes, as the map view does.
@@ -271,6 +271,17 @@ describe('street slope in the AccessScore tool', () => {
     const click = (button, modifiers = {}) =>
       button.dispatchEvent(new MouseEvent('click', { bubbles: true, ...modifiers }));
 
+    test('as a plain key (a report map), the rows are no buttons, and one street\'s grade marks its class', () => {
+      const rows = mount({ brushable: false });
+      expect(document.querySelectorAll('.ps-map-legend button')).toHaveLength(0);
+      expect(document.querySelectorAll('.ps-map-legend__hint')).toHaveLength(0);
+      legend.markGrade(0.06);
+      const here = rows.filter((r) => r.classList.contains('ps-map-legend__class--here'));
+      expect(here).toEqual([rows[AccessScoreGradeRamp.classIndexOf(0.06, breaks)]]);
+      legend.markGrade(null);
+      expect(rows.at(-1).classList.contains('ps-map-legend__class--here')).toBe(true);
+    });
+
     test('offers one button per class plus the no-slope one, and names the statistic it is classing', () => {
       const buttons = mount();
       expect(buttons).toHaveLength(breaks.length + 2);
@@ -285,14 +296,14 @@ describe('street slope in the AccessScore tool', () => {
         return probe.style.background;
       };
       const swatches = rowsInOrder().slice(0, -1).map((b) =>
-      /** @type {HTMLElement} */ (b.querySelector('.acs-map-legend__class-swatch')).style.background);
+      /** @type {HTMLElement} */ (b.querySelector('.ps-map-legend__class-swatch')).style.background);
       expect(swatches).toEqual([...AccessScoreGradeRamp.colors(breaks.length + 1)].reverse().map(asStyled));
       expect(new Set(swatches).size).toBe(breaks.length + 1);
       expect(buttons.every((b) => b.getAttribute('aria-pressed') === 'false')).toBe(true);
-      const title = document.querySelector('.acs-map-legend__title').textContent;
+      const title = document.querySelector('.ps-map-legend__title').textContent;
       expect(title).toContain('accessscore:slope-statistic-max-grade');
       legend.setGrade(true, 'mean_grade');
-      expect(document.querySelector('.acs-map-legend__title').textContent)
+      expect(document.querySelector('.ps-map-legend__title').textContent)
         .toContain('accessscore:slope-statistic-mean-grade');
     });
 
@@ -300,7 +311,7 @@ describe('street slope in the AccessScore tool', () => {
       mount();
       expect(document.body.textContent).not.toContain('accessscore:grade-legend-coarse');
       mount({ gradeCoarse: true });
-      const hints = [...document.querySelectorAll('.acs-map-legend__hint')].map((p) => p.textContent);
+      const hints = [...document.querySelectorAll('.ps-map-legend__hint')].map((p) => p.textContent);
       expect(hints).toEqual(['accessscore:grade-legend-coarse', 'accessscore:grade-legend-hint']);
     });
 
@@ -310,10 +321,10 @@ describe('street slope in the AccessScore tool', () => {
       expect(selected).toEqual([[3]]);
       expect(buttons[3].getAttribute('aria-pressed')).toBe('true');
       // Everything outside the selection is muted rather than hidden: it is still the legend.
-      expect(buttons[0].classList.contains('acs-map-legend__class--out')).toBe(true);
+      expect(buttons[0].classList.contains('ps-map-legend__class--out')).toBe(true);
       click(buttons[3]);
       expect(selected[1]).toEqual([]);
-      expect(buttons.some((b) => b.classList.contains('acs-map-legend__class--out'))).toBe(false);
+      expect(buttons.some((b) => b.classList.contains('ps-map-legend__class--out'))).toBe(false);
     });
 
     test('ctrl or cmd click adds a class and takes one away, and a plain click starts over', () => {
@@ -357,7 +368,7 @@ describe('street slope in the AccessScore tool', () => {
       expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
       expect(buttons[4].getAttribute('aria-pressed')).toBe('true');
       legend.setSelection([]);
-      expect(buttons.some((b) => b.classList.contains('acs-map-legend__class--out'))).toBe(false);
+      expect(buttons.some((b) => b.classList.contains('ps-map-legend__class--out'))).toBe(false);
     });
 
     test('a basemap swap rebuilds the rows and keeps the selection pressed', () => {
@@ -366,7 +377,7 @@ describe('street slope in the AccessScore tool', () => {
       legend.setDark(true);
       const rebuilt = (k) => rowsInOrder().find((b) => Number(b.dataset.class) === k);
       expect(rebuilt(3).getAttribute('aria-pressed')).toBe('true');
-      expect(rebuilt(0).classList.contains('acs-map-legend__class--out')).toBe(true);
+      expect(rebuilt(0).classList.contains('ps-map-legend__class--out')).toBe(true);
     });
   });
 

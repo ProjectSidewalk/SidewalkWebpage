@@ -39,7 +39,6 @@ export class AccountForm {
    * @param {boolean} ok - Whether to style it as a success.
    */
   #setStatus(text, ok) {
-    if (!this.#status) return;
     this.#status.textContent = text;
     this.#status.classList.toggle('ud-save-ok', ok);
   }

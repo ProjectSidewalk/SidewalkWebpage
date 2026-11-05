@@ -1,5 +1,5 @@
-/* The Gallery's filter column. The controls themselves come from the shared sidebar (filter-sidebar.css, #4585);
-   what's here is only the column that holds them, since the Gallery scrolls its sidebar with the page instead of
+/* Gallery's filter column. The controls themselves come from the shared sidebar (filter-sidebar.css, #4585);
+   what's here is only the column that holds them, since Gallery scrolls its sidebar with the page instead of
    floating it over a map. */
 
 #card-filter {

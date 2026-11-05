@@ -38,6 +38,8 @@ export class LabelMiniCard {
    * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    * @param {object} options - Presentation and callbacks.
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
+   * @param {boolean} [options.showType=false] - Whether a sheet card's caption opens with the label type's name, as
+   *   the Gallery card's does; off where the host's heading already names it (a cluster sheet of one type).
    * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
    * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
@@ -47,10 +49,10 @@ export class LabelMiniCard {
    * @param {Function} [options.onImageUrlRefresh] - Called with a copy of the label after its picture's signed URL
    *     was re-signed (#5861), so a host that caches the label JSON can keep the fresh URL for its next render.
    */
-  constructor(label, { size = 'sheet', onOpen = () => {}, onVote = () => {}, source, log = () => {}, className = '',
-    tag = 'li', onImageUrlRefresh = () => {} }) {
+  constructor(label, { size = 'sheet', showType = false, onOpen = () => {}, onVote = () => {}, source, log = () => {},
+    className = '', tag = 'li', onImageUrlRefresh = () => {} }) {
     this.#label = { ...label };
-    this.#opts = { size, onOpen, onVote, source, log, className, onImageUrlRefresh };
+    this.#opts = { size, showType, onOpen, onVote, source, log, className, onImageUrlRefresh };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -141,6 +143,7 @@ export class LabelMiniCard {
       : '';
     const body = this.#opts.size === 'sheet'
       ? `<div class="lmc__body">
+          ${this.#opts.showType ? `<span class="lmc__type">${esc(typeName)}</span>` : ''}
           <span class="lmc__meta">
             ${ratingHtml}
             ${date ? `<span class="lmc__date">${esc(date)}</span>` : ''}
@@ -324,7 +327,7 @@ export class LabelMiniCard {
       source: this.#opts.source,
       undone,
       redone: !undone && prev !== null,
-      // Which picture the vote was judged on, as the Gallery and the landing grid report it.
+      // Which picture the vote was judged on, as Gallery and the landing grid report it.
       viewer_type: label.crop_url ? 'StaticCrop' : 'StaticApi',
     };
   }

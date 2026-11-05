@@ -184,8 +184,8 @@ export class PanoDateNote {
     this.#tracker.push('PanoDateNote_Shown', {
       streetEdgeId,
       state,
-      captureDate: this.#captureDateIso ?? null,
-      lastMappedAt: lastMappedAt ?? null,
+      captureDate: this.#captureDateIso,
+      lastMappedAt,
       mappedByThisUser: byThisUser,
     });
   }

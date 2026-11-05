@@ -5,7 +5,7 @@
 
 import i18next from 'i18next';
 import { ShareWidget } from '../../common/share/ShareWidget.js';
-import { getImage, util } from '../../common/utilities.js';
+import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 import '../../../css/components/tag-pills.css';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
@@ -87,7 +87,7 @@ export class ContextMenu {
     navigationService.onMoveStarted(() => {
       if (this.isOpen()) this.hide();
     });
-    document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
+    document.addEventListener('mousedown', () => this.#handleMouseDown());
     this.#menuWindow.addEventListener('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
     for (const radio of this.#severityRadios) radio.addEventListener('change', (e) => this.#handleSeverityChange(e));
     this.#descriptionTextBox.addEventListener('change', (e) => this.#handleDescriptionTextBoxChange(e));
@@ -149,16 +149,13 @@ export class ContextMenu {
   }
 
   /**
-   * Handles clicking outside of context menu holder. If so, close the context menu and note if user rated severity.
-   * @param {Event} e
+   * Closes the menu on a click outside it, noting whether the user rated severity. A click inside the menu never
+   * gets here, since the menu stops its own mousedowns from reaching the document.
    */
-  #handleMouseDown(e) {
-    const clickedOut = !this.#menuWindow.contains(/** @type {Node} */ (e.target));
+  #handleMouseDown() {
     if (this.isOpen()) {
-      if (clickedOut) {
-        this.#tracker.push('ContextMenu_CloseClickOut', null, this.#status.targetLabel);
-        this.handleSeverityPopup();
-      }
+      this.#tracker.push('ContextMenu_CloseClickOut', null, this.#status.targetLabel);
+      this.handleSeverityPopup();
       this.hide();
     }
   }
@@ -226,10 +223,8 @@ export class ContextMenu {
     this.#tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity }, label);
 
     this.updateRadioButtonImages();
-    if (label) {
-      label.edit({ severity });
-      this.#changeListeners.forEach((listener) => listener());
-    }
+    label.edit({ severity });
+    this.#changeListeners.forEach((listener) => listener());
   }
 
   /**
@@ -245,9 +240,6 @@ export class ContextMenu {
       .then((json) => {
         this.labelTags = json;
         callback();
-      })
-      .catch((result) => {
-        throw result;
       });
   }
 
@@ -258,7 +250,7 @@ export class ContextMenu {
   updateRadioButtonImages() {
     if (!this.#severityRadioHolder) return;
     const checkedSev = Number(this.#severityRadios.find((r) => r.checked)?.value);
-    const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
+    const labelType = this.#status.targetLabel.getLabelType();
     this.#severityRadioHolder.querySelectorAll('.severity-button').forEach((button) => {
       const sev = Number(button.dataset.severity);
       const img = button.querySelector('.severity-button__icon');
@@ -268,10 +260,8 @@ export class ContextMenu {
       // from code, and this keeps the styling keyed to the same value that picks the smiley above.
       button.classList.toggle('severity-button--checked', sev === checkedSev);
       const colors = util.misc.getSeverityLevelColors(sev, labelType);
-      if (colors) {
-        button.style.setProperty('--level-wash', colors.wash);
-        button.style.setProperty('--level-edge', colors.edge);
-      }
+      button.style.setProperty('--level-wash', colors.wash);
+      button.style.setProperty('--level-edge', colors.edge);
     });
   }
 
@@ -279,7 +269,7 @@ export class ContextMenu {
    * Swap the context menu's rating section text based on whether the current label type is a positive type.
    */
   #updateRatingText() {
-    const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
+    const labelType = this.#status.targetLabel.getLabelType();
     const positive = util.misc.isPositiveLabelType(labelType);
     const headerKey = positive ? 'rate-quality' : 'rate-severity';
     const infoKey = positive ? 'rate-quality-info' : 'rate-severity-info';
@@ -493,75 +483,66 @@ export class ContextMenu {
   #setTags(label) {
     this.#tags = [];
     this.#tagHolder.replaceChildren();
-    if (label) {
-      const labelTags = this.labelTags;
-      if (labelTags) {
-        labelTags.forEach((tag) => {
-          if (tag.label_type === label.getProperty('labelType')) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'context-menu-tag tag-pill tag-pill--interactive';
-            button.dataset.tagId = String(tag.tag_id);
+    const labelTags = this.labelTags;
+    if (labelTags) {
+      labelTags.forEach((tag) => {
+        if (tag.label_type === label.getProperty('labelType')) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'context-menu-tag tag-pill tag-pill--interactive';
+          button.dataset.tagId = String(tag.tag_id);
 
-            // Set tag texts to new underlined version as defined in the util label description map.
-            const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
-            button.innerHTML = `<span class="tag-pill__label">${tagText}</span>`;
-            button.addEventListener('click', (e) => this.#handleTagClick(e));
-            this.#tagHolder.append(button);
-            this.#tags.push(button);
+          // Set tag texts to new underlined version as defined in the util label description map.
+          const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
+          button.innerHTML = `<span class="tag-pill__label">${tagText}</span>`;
+          button.addEventListener('click', (e) => this.#handleTagClick(e));
+          this.#tagHolder.append(button);
+          this.#tags.push(button);
 
-            // Add tooltip with tag example if we have an example image to show.
-            // If there's a server-specific image, try that first. Get default image as a backup.
-            let exampleImage;
-            const imageUrl = util.assetPath(`images/examples/tags/${tag.tag_id}.png`);
-            let citySpecificImageUrl;
-            if (window.cityId === 'chandigarh-india') {
-              citySpecificImageUrl = util.assetPath(`images/examples/tags/india/${tag.tag_id}.png`);
-            } else if (['zurich', 'zurich-infra3d', 'staging'].includes(window.cityId)) {
-              citySpecificImageUrl = util.assetPath(`images/examples/tags/zurich/${tag.tag_id}.png`);
-            }
-
-            // Try the server-specific image, getting normal image as a backup.
-            if (citySpecificImageUrl) {
-              exampleImage = util.getImage(citySpecificImageUrl)
-                .catch(() => {
-                  return getImage(imageUrl);
-                });
-            } else {
-              exampleImage = util.getImage(imageUrl);
-            }
-
-            // Now that we have the image, create the tooltip.
-            exampleImage.then((img) => {
-              // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
-              const underlineClassOffset = 15;
-              let keyChar;
-              let tooltipHeader;
-              // If first letter is used for shortcut, the string will start with "<tag-underline".
-              if (tagText[0] === '<') {
-                keyChar = tagText[underlineClassOffset];
-                tooltipHeader = tagText.substring(0, underlineClassOffset)
-                  + tagText[underlineClassOffset].toUpperCase()
-                  + tagText.substring(underlineClassOffset + 1);
-              } else {
-                const underlineIndex = tagText.indexOf('<');
-                keyChar = tagText[underlineIndex + underlineClassOffset];
-                tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
-              }
-              // The tooltip renders as HTML, so its shortcut letter is escaped on the way in.
-              const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
-                c: keyChar, interpolation: { escapeValue: true },
-              });
-              const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
-
-              button.setAttribute(
-                // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
-                'data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
-              );
-            });
+          // Add tooltip with tag example if we have an example image to show.
+          // If there's a server-specific image, try that first. Get default image as a backup.
+          let exampleImage;
+          const imageUrl = util.assetPath(`images/examples/tags/${tag.tag_id}.png`);
+          let citySpecificImageUrl;
+          if (window.cityId === 'chandigarh-india') {
+            citySpecificImageUrl = util.assetPath(`images/examples/tags/india/${tag.tag_id}.png`);
+          } else if (['zurich', 'zurich-infra3d', 'staging'].includes(window.cityId)) {
+            citySpecificImageUrl = util.assetPath(`images/examples/tags/zurich/${tag.tag_id}.png`);
           }
-        });
-      }
+
+          if (citySpecificImageUrl) {
+            exampleImage = util.getImage(citySpecificImageUrl).catch(() => util.getImage(imageUrl));
+          } else {
+            exampleImage = util.getImage(imageUrl);
+          }
+
+          exampleImage.then((img) => {
+            const underlineClassOffset = 15;
+            let keyChar;
+            let tooltipHeader;
+            // If first letter is used for shortcut, the string will start with "<tag-underline".
+            if (tagText[0] === '<') {
+              keyChar = tagText[underlineClassOffset];
+              const first = tagText[underlineClassOffset].toUpperCase();
+              // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
+              tooltipHeader = `${tagText.substring(0, underlineClassOffset)}${first}${tagText.substring(16)}`;
+            } else {
+              const underlineIndex = tagText.indexOf('<');
+              keyChar = tagText[underlineIndex + underlineClassOffset];
+              tooltipHeader = `${tagText[0].toUpperCase()}${tagText.substring(1)}`;
+            }
+            // The tooltip renders as HTML, so its shortcut letter is escaped on the way in.
+            const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
+              c: keyChar, interpolation: { escapeValue: true },
+            });
+            const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
+
+            button.setAttribute(
+              'data-ps-tooltip-html', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
+            );
+          }).catch(() => {}); // A tag with no example picture simply gets no tooltip.
+        }
+      });
     }
   }
 
@@ -624,9 +605,6 @@ export class ContextMenu {
 
       this.#setTags(targetLabel);
       this.#setTagColor(targetLabel);
-      if (this.#getStatus('disableTagging')) {
-        this.disableTagging();
-      }
 
       // Hide the severity menu for label types that don't have a severity rating.
       this.#severityMenu.classList.toggle('ps-hidden', !util.misc.labelTypeHasSeverity(labelType));
@@ -696,7 +674,7 @@ export class ContextMenu {
       beforeOpen: async () => {
         const label = this.#getStatus('targetLabel');
         await this.#form.ensureLabelSaved(label);
-        if (label) this.#pointShareAtLabel(label);
+        this.#pointShareAtLabel(label);
       },
     });
   }

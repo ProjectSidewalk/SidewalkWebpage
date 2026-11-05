@@ -157,6 +157,15 @@ describe('MapStatusPill', () => {
     expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
   });
 
+  test('a leave with nothing held, from a pointer resting where the hint appeared, keeps the countdown going', () => {
+    const pill = new MapStatusPill(container);
+    pill.setState('belowFloor');
+    vi.advanceTimersByTime(1000);
+    pillEl().dispatchEvent(new Event('mouseleave'));
+    vi.advanceTimersByTime(MapStatusPill.HINT_DURATION_MS - 1000);
+    expect(pillEl().classList.contains('map-status-pill--leaving')).toBe(true);
+  });
+
   test('a hint that follows the loading note gets its close button back', () => {
     const pill = new MapStatusPill(container);
     pill.setState('loading');

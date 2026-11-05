@@ -1,5 +1,5 @@
 /**
- * The client's knowledge of the Gallery's admin "Sort by" (#2705): which sort names mean an order at all, and when
+ * The client's knowledge of Gallery's admin "Sort by" (#2705): which sort names mean an order at all, and when
  * the filters leave a sort nothing to rank.
  *
  * The order itself is never re-derived here. The server's `GallerySort` ranks the labels and the page keeps them in
@@ -8,7 +8,7 @@
  * rendered from the enum).
  */
 
-/** The sort the Gallery is in when no order has been asked for, and the only one a non-admin ever sees. */
+/** The sort Gallery is in when no order has been asked for, and the only one a non-admin ever sees. */
 export const RANDOM_SORT = 'random';
 
 /**

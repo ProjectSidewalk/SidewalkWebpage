@@ -32,11 +32,11 @@
 
 <div class="label-detail__pano-wrap">
   @if(withPaging) {
-    <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" aria-label="Previous label" aria-keyshortcuts="ArrowLeft">
+    <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" data-i18n-aria-label="labelmap:previous-label" aria-label="Previous label" aria-keyshortcuts="ArrowLeft">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 18 8.5 12 14.5 6"/></svg>
     </button>
-    @* "k of N" for the Gallery's review-list mode (#5444); LabelDetail's hosts that page through a filtered grid
-       have no fixed N, so it stays empty and hidden unless the Gallery fills it. Deliberately not a live region:
+    @* "k of N" for Gallery's review-list mode (#5444); LabelDetail's hosts that page through a filtered grid
+       have no fixed N, so it stays empty and hidden unless Gallery fills it. Deliberately not a live region:
        it changes on every arrow press, which is exactly what the arrows' own labels already announce. *@
     <span class="label-detail__position" hidden></span>
   }
@@ -68,7 +68,7 @@
     <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false" aria-keyshortcuts="U" data-i18n="common:unsure">Unsure</button>
   </div>
   @if(withPaging) {
-    <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label" aria-keyshortcuts="ArrowRight">
+    <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" data-i18n-aria-label="labelmap:next-label" aria-label="Next label" aria-keyshortcuts="ArrowRight S">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9.5 18 15.5 12 9.5 6"/></svg>
     </button>
   }

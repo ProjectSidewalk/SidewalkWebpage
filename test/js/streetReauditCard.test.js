@@ -96,6 +96,36 @@ describe('the street re-audit hover card', () => {
       expect(card()).not.toBeNull();
     });
 
+    it('never asks the server about a street the pointer left before the hover delay', async () => {
+      const instance = hoverStreet();
+      await settle(100);
+      instance.cancelScheduled();
+      await settle(250);
+
+      expect(window.fetch).not.toHaveBeenCalled();
+    });
+
+    it('asks only about the street the pointer settled on, not the one it crossed first', async () => {
+      const instance = hoverStreet();
+      await settle(100);
+      instance.scheduleFor(STREET_ID + 1, { lng: 1, lat: 2 });
+      await settle(250);
+
+      expect(window.fetch).toHaveBeenCalledTimes(1);
+      expect(window.fetch).toHaveBeenCalledWith(`/contribution/street/${STREET_ID + 1}/reauditSummary`);
+    });
+
+    it('knows which street it is open for, so the street click does not stack a second popup', async () => {
+      const instance = hoverStreet();
+      expect(instance.isShowingFor(STREET_ID)).toBe(false);
+      await settle(250);
+
+      expect(instance.isShowingFor(STREET_ID)).toBe(true);
+      expect(instance.isShowingFor(STREET_ID + 1)).toBe(false);
+      instance.hide();
+      expect(instance.isShowingFor(STREET_ID)).toBe(false);
+    });
+
     it('drops a card whose street the pointer already left while the request was in flight', async () => {
       let respond;
       window.fetch = vi.fn(() => new Promise((resolve) => { respond = resolve; }));
@@ -184,6 +214,43 @@ describe('the street re-audit hover card', () => {
       await settle(200);
 
       expect(card()).toBeNull();
+    });
+
+    it('stays open when the pointer comes back to its street within the hand-off delay', async () => {
+      const instance = hoverStreet();
+      await settle(250);
+      popupElement.matches = () => false;
+
+      instance.scheduleHide();
+      await settle(100);
+      instance.scheduleFor(STREET_ID, { lng: 1, lat: 2 });
+      await settle(200);
+
+      expect(card()).not.toBeNull();
+    });
+
+    it('closes when the pointer leaves the card, unless it comes straight back in', async () => {
+      hoverStreet();
+      await settle(250);
+      popupElement.matches = () => false;
+
+      popupElement.dispatchEvent(new Event('mouseleave'));
+      popupElement.dispatchEvent(new Event('mouseenter'));
+      await settle(200);
+      expect(card()).not.toBeNull();
+
+      popupElement.dispatchEvent(new Event('mouseleave'));
+      await settle(200);
+      expect(card()).toBeNull();
+    });
+
+    it('ignores keys other than Escape', async () => {
+      hoverStreet();
+      await settle(250);
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+      expect(card()).not.toBeNull();
     });
 
     it('closes on Escape (WCAG 1.4.13)', async () => {

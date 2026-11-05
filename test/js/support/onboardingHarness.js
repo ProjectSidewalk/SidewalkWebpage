@@ -128,9 +128,11 @@ export function fakeLabel(labelType, panoXY) {
  * @param {object} [options]
  * @param {boolean} [options.reducedMotion] - Whether the visitor asked for reduced motion.
  * @param {boolean} [options.start] - Whether to call `start()`, or leave that to the test.
+ * @param {object[]} [options.states] - A script to play instead of the real one, for a step shape the real script
+ *   never has (a step with no annotations, say). Ids are free; `start()` still looks for 'initialize'.
  * @returns {{onboarding: Onboarding, c: object}} The tutorial and its collaborators.
  */
-export function setupOnboarding({ reducedMotion = false, start = true } = {}) {
+export function setupOnboarding({ reducedMotion = false, start = true, states = null } = {}) {
   for (const key of Object.keys(world)) delete world[key];
   Object.assign(world, { draws: [], icons: [], markers: [], povListeners: new Map(), now: 0 });
   document.body.innerHTML = PAGE;
@@ -274,7 +276,9 @@ export function setupOnboarding({ reducedMotion = false, start = true } = {}) {
   };
   c.ui = ui;
   c.frame = { width: 720, height: 480, iconRadius: 17 };
-  c.states = new OnboardingStates(c.contextMenu, c.compass, c.panoManager, ui.minimap);
+  c.states = states
+    ? { get: () => states }
+    : new OnboardingStates(c.contextMenu, c.compass, c.panoManager, ui.minimap);
 
   const onboarding = new Onboarding(ui, c.frame, c.states, c.minimap, c.panoManager, c.navArrows, c.compass,
     c.navigationService, c.missionContainer, c.labelContainer, c.observedArea, c.form, c.missionProgressBar,

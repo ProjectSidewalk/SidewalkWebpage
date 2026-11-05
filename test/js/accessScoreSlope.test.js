@@ -218,13 +218,13 @@ describe('slope in the AccessScore scoring controls', () => {
 
     test('a weight of 0 reads "Off" and mutes its row: the term is out of the score, not merely small', () => {
       const { el } = mount();
-      expect(el('acs-slope-weight-row').classList.contains('acs-weight--off')).toBe(false);
+      expect(el('acs-slope-weight-row').classList.contains('ps-weight--off')).toBe(false);
       edit(el('acs-slope-weight'), 0, 'input');
       expect(el('acs-slope-weight-value').textContent).toBe('accessscore:weight-off');
-      expect(el('acs-slope-weight-row').classList.contains('acs-weight--off')).toBe(true);
+      expect(el('acs-slope-weight-row').classList.contains('ps-weight--off')).toBe(true);
       edit(el('acs-slope-weight'), 0.05, 'input');
       expect(el('acs-slope-weight-value').textContent).toBe('×0.05');
-      expect(el('acs-slope-weight-row').classList.contains('acs-weight--off')).toBe(false);
+      expect(el('acs-slope-weight-row').classList.contains('ps-weight--off')).toBe(false);
     });
 
     test('reports what the settings reach, so a weight of 0 and a threshold nothing passes read apart', () => {

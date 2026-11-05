@@ -678,12 +678,12 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     calls = _fake_run(monkeypatch, {'COPY (SELECT': (0, 'street_edge_id,region_id\n1,1\n2,1\n')})
     city_dir = tmp_path / 'db' / 'onboarding' / 'x'
     city_dir.mkdir(parents=True)
-    (city_dir / 'streets_with_no_imagery.csv').write_text('street_edge_id\n2\n')
+    (city_dir / 'street_imagery_summary.csv').write_text('street_edge_id,region_id,has_imagery\n1,1,True\n2,1,False\n')
     snc.run_imagery_scan('sidewalk_x', 'x', 'panoramax')
     joined = _joined(calls)
     assert (city_dir / 'street_edge_endpoints.csv').read_text().startswith('street_edge_id,region_id')
     assert any('check_streets_for_imagery.py --city-id x --panoramax' in cmd for cmd in joined)
-    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/streets_with_no_imagery.csv' in cmd
+    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
     assert any('import-street-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
@@ -712,7 +712,7 @@ def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, 
     # The build's flags stand in for the osm_way cache, which a city has no rows in until its first nightly refresh.
     assert any('export-street-gradient-input.sh sidewalk_x x --structures onboarding/x/street_structures.csv' in cmd
                for cmd in joined)
-    assert any('projectsidewalk-web python3.13 tools/city/street_gradient.py --city-id x' in cmd for cmd in joined)
+    assert any('projectsidewalk-web python3 tools/city/street_gradient.py --city-id x' in cmd for cmd in joined)
     assert any('import-street-gradient.sh sidewalk_x onboarding/x/street_gradient.csv' in cmd for cmd in joined)
     captured = capsys.readouterr()
     assert 'Sampling the elevation model' in captured.out and 'usgs-3dep-10m' in captured.err

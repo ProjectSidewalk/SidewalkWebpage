@@ -10,7 +10,7 @@
 
 import {
   A, B, D, E, F, NOWHERE, RouteBuilder, buildRoute, clickMap, drawnRoute, flags, flush, logged, openPopups,
-  setupRouteBuilder, world,
+  regionData, setupRouteBuilder, streetData, world,
 } from './support/routeBuilderHarness.js';
 
 const $ = (id) => document.getElementById(id);
@@ -37,6 +37,36 @@ function stubFetch(respond) {
 
 /** The /userapi/routes/<id>/streets body for a stored street list of [id, reversed] pairs. */
 const storedStreets = (...pairs) => ({ streets: pairs.map(([id, reverse]) => ({ street_id: id, reverse })) });
+
+/**
+ * The harness's streets plus one more, for data shapes the shared network doesn't have.
+ * @param {number} id
+ * @param {Array<[number, number]>} coords
+ * @returns {GeoJSON.FeatureCollection}
+ */
+function streetsWith(id, coords) {
+  const data = streetData();
+  data.features.push({
+    type: 'Feature',
+    properties: { street_edge_id: id, region_id: 2 },
+    geometry: { type: 'LineString', coordinates: coords },
+  });
+  return data;
+}
+
+/**
+ * Opens a saved route made of the given streets in the editor, as a click on its card would.
+ * @param {...[number, boolean]} pairs - The stored [street id, reversed] pairs.
+ */
+async function openSavedRoute(...pairs) {
+  stubFetch(() => storedStreets(...pairs));
+  world.savedRoutes.opts.onView(5);
+  await flush();
+}
+
+/** Presses Ctrl+Z (or another modifier combo) on the page body. */
+const pressUndo = (init = { ctrlKey: true }) => document.body.dispatchEvent(
+  new KeyboardEvent('keydown', { key: 'z', bubbles: true, cancelable: true, ...init }));
 
 describe('RouteBuilder', () => {
   describe('the overview', () => {
@@ -943,5 +973,305 @@ describe('RouteBuilder', () => {
         expect(map.camera.at(-1)).toEqual(['jumpTo', { center: [0.001, 0], zoom: 17, bearing: 0, pitch: 0 }]);
         expect(world.saveModal.open).toHaveBeenCalledWith('Loop', null);
       });
+  });
+
+  describe('data that arrives out of order', () => {
+    test('before the regions arrive, zooming and clicking do nothing, and the regions then draw for the zoom',
+      async () => {
+        const { rb, map } = await setupRouteBuilder({ regions: null });
+
+        map.fire('mousemove', { lngLat: A });
+        world.frame();
+        clickMap(map, A);
+        expect(openPopups('rb-cursor-guide')).toEqual([]);
+        expect(map.camera).toEqual([]);
+
+        map.zoomTo(RouteBuilder.PLACE_ZOOM);
+        world.directions.opts.onSetStart(A);
+        expect(flags(map)).toEqual([]);
+
+        rb.renderRegions(regionData());
+        await flush();
+        expect(map.layout['regions-label.visibility']).toBe('none');
+      });
+
+    test('the layers are stacked only once the street layers exist too', async () => {
+      const { rb, map } = await setupRouteBuilder({ streets: null });
+
+      map.fire('sourcedataloading');
+      expect(map.layerOrder).toEqual([]);
+
+      rb.renderStreets(streetData());
+      await flush();
+      map.fire('sourcedataloading');
+      expect(map.layerOrder).toContain('streets-chosen');
+    });
+
+    test('before the streets arrive, there is nothing to lose and no name to suggest', async () => {
+      await setupRouteBuilder({ streets: null });
+
+      expect(world.guard.isDirty()).toBe(false);
+      expect(world.saveModal.opts.getSuggestedName()).toBe('');
+    });
+
+  });
+
+  describe('smaller interactions', () => {
+    test('Cmd+Z undoes on a Mac', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+
+      pressUndo({ metaKey: true });
+
+      expect(drawnRoute(map)).toEqual([]);
+    });
+
+    test('Ctrl+Z on an empty planner changes nothing', async () => {
+      const { map } = await setupRouteBuilder();
+
+      pressUndo();
+
+      expect(flags(map)).toEqual([]);
+      expect(panelState()).toBe('empty');
+    });
+
+    test('other keys on the estimate leave its tip alone', async () => {
+      await setupRouteBuilder();
+      const press = new KeyboardEvent('keydown', { key: 'a', cancelable: true });
+
+      $('route-time-val').dispatchEvent(press);
+
+      expect($('route-time-tip').hidden).toBe(true);
+      expect(press.defaultPrevented).toBe(false);
+    });
+
+    test('the points-of-interest toggle turns POI labels back on, and does nothing before the style loads',
+      async () => {
+        const { map } = await setupRouteBuilder();
+        map.styleLayers = [{ id: 'poi-label', type: 'symbol' }];
+        const toggle = $('poi-toggle-checkbox');
+
+        toggle.dispatchEvent(new Event('change'));
+        expect(map.layout['poi-label.visibility']).toBe('visible');
+
+        map.getStyle = () => undefined;
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(map.layout['poi-label.visibility']).toBe('visible');
+      });
+
+    test('moving within one region keeps its tint without setting it again', async () => {
+      const { map } = await setupRouteBuilder();
+      const setState = vi.spyOn(map, 'setFeatureState');
+
+      map.fire('mousemove', { features: [{ properties: { region_id: 1 } }] }, 'regions-fill');
+      map.fire('mousemove', { features: [{ properties: { region_id: 1 } }] }, 'regions-fill');
+
+      expect(setState).toHaveBeenCalledTimes(1);
+      expect(map.stateOf('regions', 1)).toEqual({ hover: true });
+    });
+
+    test('hovering open space in the overview shows no guide', async () => {
+      const { map } = await setupRouteBuilder();
+
+      map.fire('mousemove', { lngLat: NOWHERE });
+      world.frame();
+
+      expect(openPopups('rb-cursor-guide')).toEqual([]);
+    });
+
+    test('the guide is one bubble whose words follow the stage', async () => {
+      const { map } = await setupRouteBuilder();
+      map.zoomTo(RouteBuilder.PLACE_ZOOM);
+      const hoverAt = (lngLat) => {
+        map.fire('mousemove', { lngLat });
+        world.frame();
+      };
+
+      hoverAt(A);
+      hoverAt(B);
+      clickMap(map, A);
+      hoverAt(D);
+
+      expect(world.popups.filter((p) => p.options.className === 'rb-cursor-guide')).toHaveLength(1);
+      expect(openPopups('rb-cursor-guide').map((p) => p.text)).toEqual(['guide-pick-end']);
+    });
+
+    test('pointing at the drawn route hides the guide, since a click there opens its menu', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      map.rendered['streets-chosen'] = [{}];
+
+      map.fire('mousemove', { lngLat: B });
+      world.frame();
+
+      expect(openPopups('rb-cursor-guide')).toEqual([]);
+    });
+
+    test('resting on the route while its menu is already open does not reopen it', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      world.popover.isOpen = () => true;
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      map.fire('mousemove', { lngLat: B }, 'streets-chosen');
+      vi.advanceTimersByTime(RouteBuilder.ROUTE_MENU_HOVER_MS);
+
+      expect(world.popover.cancelHoverClose).toHaveBeenCalled();
+      expect(world.popover.open).not.toHaveBeenCalled();
+    });
+
+    test('a first click already at street level keeps the zoom where it is', async () => {
+      const { map } = await setupRouteBuilder();
+      map.zoomTo(17);
+
+      clickMap(map, A);
+
+      expect(map.camera.map(([method]) => method)).toEqual(['scroll']);
+      expect(flags(map)).toEqual([['start', at(A)]]);
+    });
+
+    test('the save modal stashes the current camera, and closing it hands focus back to Save', async () => {
+      const { map } = await setupRouteBuilder();
+      map.zoomTo(16);
+
+      expect(world.saveModal.opts.getCamera()).toEqual({ center: [0.001, 0.0005], zoom: 16, bearing: 0, pitch: 0 });
+      world.saveModal.opts.onClose();
+      expect(document.activeElement).toBe($('save-button'));
+    });
+
+    test('the choice made in the leave prompt is logged', async () => {
+      await setupRouteBuilder();
+
+      world.guard.onChoice('Discard');
+
+      expect(logged()).toContain('RouteBuilder_Click=UnsavedLeave_Discard');
+    });
+
+    test('a route in a region the page has no name for is counted and named plainly', async () => {
+      const regions = regionData();
+      regions.features = regions.features.filter((r) => r.properties.region_id === 1);
+      const { map } = await setupRouteBuilder({ regions });
+
+      buildRoute(map, D, E);
+
+      expect($('route-stats-caption').textContent).toBe('street-count count=1');
+      expect(world.saveModal.opts.getSuggestedName()).toBe('');
+    });
+  });
+
+  describe('the preview, again', () => {
+    test('pressing Preview mid-walk keeps the one walk going', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+
+      click('preview-button');
+      world.frame(0);
+      click('preview-button');
+
+      expect(world.frames.size).toBe(1);
+      world.frame(RouteBuilder.EXPLORER_ANIMATION_MS);
+      expect(map.getSource('route-explorer').data.features).toHaveLength(1);
+    });
+
+    test('a second preview started during the first one\'s linger is not cut short', async () => {
+      const { map } = await setupRouteBuilder();
+      buildRoute(map, A, D);
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      click('preview-button');
+      world.frame(0);
+      world.frame(RouteBuilder.EXPLORER_ANIMATION_MS);
+      click('preview-button');
+      world.frame(0);
+      vi.advanceTimersByTime(500);
+
+      expect(map.getSource('route-explorer').data.features).toHaveLength(1);
+    });
+
+    test('a route with no length has nothing to walk', async () => {
+      const here = [0.003, 0.003];
+      const { map } = await setupRouteBuilder({ streets: streetsWith(50, [here, here]) });
+      await openSavedRoute([50, false]);
+
+      click('preview-button');
+
+      expect(drawnRoute(map)).toEqual([[50, false]]);
+      expect(world.frames.size).toBe(0);
+    });
+
+    test('a street that repeats its first point still walks from its start', async () => {
+      const { map } = await setupRouteBuilder({ streets: streetsWith(51, [[0.004, 0], [0.004, 0], [0.005, 0]]) });
+      await openSavedRoute([51, false]);
+
+      click('preview-button');
+      world.frame(0);
+
+      expect(map.getSource('route-explorer').data.features[0].geometry.coordinates).toEqual([0.004, 0]);
+    });
+  });
+
+  describe('loading and restoring, edge cases', () => {
+    test('declining to discard edits keeps the open route open when its card is clicked again', async () => {
+      const { map } = await setupRouteBuilder();
+      await openSavedRoute([1, false]);
+      clickMap(map, D);
+      world.confirmAnswer = false;
+
+      world.savedRoutes.opts.onView(5);
+      await flush();
+
+      expect(world.confirms).toHaveLength(1);
+      expect(drawnRoute(map)).toEqual([[1, false], [2, false]]);
+    });
+
+    test('a load the user has already moved past fails quietly', async () => {
+      const { map } = await setupRouteBuilder();
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let failFirst;
+      stubFetch((url) => (url.includes('/5/')
+        ? new Promise((resolve) => { failFirst = () => resolve({ status: 500 }); })
+        : storedStreets([3, false])));
+
+      world.savedRoutes.opts.onView(5);
+      await flush();
+      world.savedRoutes.opts.onView(6);
+      await flush();
+      failFirst();
+      await flush();
+
+      expect(toastMessages()).not.toContain('route-load-error');
+      expect(error).not.toHaveBeenCalled();
+      expect(drawnRoute(map)).toEqual([[3, false]]);
+    });
+
+    test('back from signing in, the typed description is put back too', async () => {
+      await setupRouteBuilder({
+        pendingRoute: { streets: [{ street_id: 1, reverse: false }], name: 'Loop', description: 'Flat', camera: null },
+      });
+
+      expect(world.saveModal.open).toHaveBeenCalledWith('Loop', 'Flat');
+    });
+
+    test('back from signing in with an unusable camera, the map stays where it is', async () => {
+      const { map } = await setupRouteBuilder({
+        pendingRoute: { streets: [{ street_id: 1, reverse: false }], name: '', camera: { center: [NaN, 0], zoom: 17 } },
+      });
+
+      expect(map.camera.filter(([method]) => method === 'jumpTo')).toEqual([]);
+      expect(world.saveModal.open).toHaveBeenCalledWith(null, null);
+    });
+
+    test('back from signing in, a tilted, turned camera is restored as it was', async () => {
+      const { map } = await setupRouteBuilder({
+        pendingRoute: {
+          streets: [{ street_id: 1, reverse: false }],
+          name: 'Loop',
+          camera: { center: [0.001, 0], zoom: 17, bearing: 30, pitch: 45 },
+        },
+      });
+
+      expect(map.camera.at(-1)).toEqual(['jumpTo', { center: [0.001, 0], zoom: 17, bearing: 30, pitch: 45 }]);
+    });
   });
 });

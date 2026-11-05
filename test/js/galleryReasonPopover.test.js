@@ -7,12 +7,16 @@
  * view with its comment box, since the grid card has no box of its own. The vote holds while a pick is written.
  *
  * Setup follows galleryValidationMenu.test.js, with a fuller card stub and the fetch the votes and picks go through.
+ * The later cases (#5840) cover a card payload missing the optional fields a pick reads, and a pick that reaches
+ * the card while its last one is still being written.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
 
-mockModule('i18next', () => ({ default: { t: (key) => key } }));
+/** Which keys the locale files carry; every one, unless a test takes some away. */
+let i18nextExists = () => true;
+mockModule('i18next', () => ({ default: { t: (key) => key, exists: (key) => i18nextExists(key) } }));
 mockModule('frontend/js/common/BadgeAchievements.js', () => ({ BadgeAchievements: { recordValidation() {} } }));
 
 let ValidationMenu;
@@ -59,6 +63,7 @@ function makeMenu(props = {}) {
     setProperty: (key, value) => { state[key] = value; },
     getLabelType: () => state.label_type,
     getImageSource: () => 'crop',
+    getVoteSource: () => null,
     labelIcon: document.createElement('div'), // jsdom lays nothing out; the vote's canvas_x/y read as 0.
     validationInfoDisplay: thumbs,
     updateUserValidation(vote) {
@@ -75,6 +80,7 @@ const button = (card, option) => card.querySelector(`.gallery-card-${option}-but
 const click = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
 
 beforeEach(async () => {
+  i18nextExists = () => true;
   document.body.innerHTML = '';
   tracker = fakeTracker();
   post = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 3 }) }));
@@ -260,8 +266,98 @@ describe('the reason pop-up on a Gallery card (#5475)', () => {
     await flush();
     post.mockImplementationOnce(() => new Promise(() => {}));
     click(chips()[0]);
-    const res = await menu.validateOnClickOrKeyPress('validate-agree', false, false)();
+    const res = await menu.validateOnClick('validate-agree', false)();
     expect(res).toBeNull();
     expect(posted('/labelmap/validate')).toHaveLength(1);
+  });
+
+  test('a vote cast with no event behind it hangs its reasons off the strip\'s button for that vote', async () => {
+    const { card, menu } = makeMenu();
+
+    await menu.validateOnClick('validate-unsure', false)();
+
+    expect(popoverShown()).toBe(true);
+    expect(reasonPopover().anchor).toBe(button(card, 'unsure'));
+  });
+
+  test('a card with no comment list, view or camera spot still posts a pick, from the label\'s own fields', async () => {
+    const { card, props } = makeMenu({ comments: undefined, pov: undefined, camera_lat: undefined,
+      camera_lng: undefined });
+    click(button(card, 'disagree'));
+    await flush();
+
+    click(chips()[0]);
+    await flush();
+
+    expect(posted('/labelmap/comment')[0]).toMatchObject({
+      heading: 10, pitch: -5, zoom: 1, lat: 47.6, lng: -122.3, reason: 'wrong-type',
+    });
+    expect(props.comments.map((c) => [c.reason, c.mine, c.commenter])).toEqual([['wrong-type', true, 0]]);
+  });
+
+  test('a first comment from the viewer takes the next avatar number past everyone else\'s', async () => {
+    const { card, props } = makeMenu({
+      comments: ['an old plain-text comment', { comment: 'no number', mine: false }, { comment: 'b', commenter: 4 }],
+    });
+    click(button(card, 'disagree'));
+    await flush();
+
+    click(chips()[0]);
+    await flush();
+
+    expect(props.comments.find((c) => c.mine).commenter).toBe(5);
+    expect(props.comments).toHaveLength(4);
+  });
+
+  test('a failed save that lands after the question has gone says nothing, and frees the vote', async () => {
+    const { card } = makeMenu();
+    click(button(card, 'disagree'));
+    await flush();
+    let failComment;
+    post.mockImplementationOnce(() => new Promise((_resolve, reject) => { failComment = reject; }));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    click(chips()[0]);
+
+    reasonPopover().close();
+    const markFailed = vi.spyOn(reasonPopover(), 'markFailed');
+    const error = new Error('offline');
+    failComment(error);
+    await flush();
+
+    expect(consoleError).toHaveBeenCalledWith(error);
+    expect(markFailed).not.toHaveBeenCalled();
+    expect(button(card, 'agree').disabled).toBe(false);
+  });
+
+  test('a pick or typed reason that reaches the card while the last is still being written is dropped', async () => {
+    const open = vi.spyOn(reasonPopover(), 'open');
+    const { card } = makeMenu();
+    click(button(card, 'disagree'));
+    await flush();
+    const { onPick, onSubmitOther } = open.mock.calls[0][0];
+    post.mockImplementationOnce(() => new Promise(() => {}));
+    click(chips()[0]);
+    const before = post.mock.calls.length;
+
+    onPick('driveway', false);
+    onSubmitOther('typed words', false);
+
+    expect(post.mock.calls.length).toBe(before);
+    expect(events().filter((e) => e.includes('Reason_Option') || e.includes('Other_Save')))
+      .toEqual(['Click_DisagreeReason_Option=wrong-type']);
+  });
+
+  test('a reason id the catalog has no words for posts nothing', async () => {
+    const open = vi.spyOn(reasonPopover(), 'open');
+    i18nextExists = (key) => !key.includes('not-a-reason');
+    const { card } = makeMenu();
+    click(button(card, 'disagree'));
+    await flush();
+
+    open.mock.calls[0][0].onPick('not-a-reason', false);
+    await flush();
+
+    expect(posted('/labelmap/comment')).toEqual([]);
+    expect(events()).not.toContain('Click_DisagreeReason_Option=not-a-reason');
   });
 });

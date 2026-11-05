@@ -1,7 +1,7 @@
 /**
  * Tests for GalleryFilter (frontend/js/gallery/filter/GalleryFilter.js, issue #4585).
  *
- * GalleryFilter is the Gallery's adapter for the shared FilterSidebar: it turns the sidebar's state into a card
+ * GalleryFilter is Gallery's adapter for the shared FilterSidebar: it turns the sidebar's state into a card
  * query — the URL the page can be reloaded from, the refetch, and the tracker events — and keeps the severity block
  * in step with the selected label type. These tests pin that translation, since a wrong query param shows the wrong
  * cards without anything looking broken.
@@ -25,7 +25,7 @@ const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
 const DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
 
-/** Builds the sidebar markup the Gallery renders: label types, severity toggles, validations. */
+/** Builds the sidebar markup Gallery renders: label types, severity toggles, validations. */
 function buildFixture() {
   const typeRows = LABEL_TYPES.map((type) => `
         <li class="filter-sidebar__item filter-sidebar__item--expandable">
@@ -197,6 +197,22 @@ describe('GalleryFilter', () => {
       expect(filter.getStatus().currentLabelTypes).toEqual([]);
     });
 
+    it('with no sidebar and no list, answers the empty defaults and writes a bare URL', () => {
+      // The class promises every method is safe with nothing to read, so a caller never has to check first.
+      document.body.innerHTML = '';
+      const filter = new GalleryFilter(null, null, null, { regionIds: [], aiValidationOptions: [] }, tracker);
+      filter.onUpdate(onUpdate);
+      filter.clearFilters();
+      filter.update();
+
+      expect(currentUrl()).toBe('/gallery');
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(filter.getStatus().currentLabelTypes).toEqual([]);
+      expect(filter.getAppliedSeverities()).toEqual([]);
+      expect(filter.getAppliedValidationOptions()).toEqual([]);
+      expect(filter.getAppliedTagsByType()).toEqual({});
+    });
+
     it('does not treat a deep link as a filter worth offering to clear', () => {
       window.history.replaceState({}, '', '/gallery?labelId=123');
       build();
@@ -328,6 +344,17 @@ describe('GalleryFilter', () => {
       tagPill('Obstacle').click();
       expect(tracker.push)
         .toHaveBeenCalledWith('TagApply', null, { Tag: 'obstacle-tag', Label_Type: 'Obstacle' });
+    });
+
+    it('logs taking a tag or a validation option back off as an unapply', () => {
+      tagPill('Obstacle').click();
+      tagPill('Obstacle').click();
+      expect(tracker.push)
+        .toHaveBeenCalledWith('TagUnapply', null, { Tag: 'obstacle-tag', Label_Type: 'Obstacle' });
+
+      document.querySelector('#correct').click();
+      expect(tracker.push)
+        .toHaveBeenCalledWith('ValidationOptionUnapply', null, { ValidationOption: 'correct' });
     });
 
     it('logs the batch actions the shared sidebar adds', () => {

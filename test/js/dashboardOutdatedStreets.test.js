@@ -282,6 +282,24 @@ describe('the dashboard\'s needs-re-audit list', () => {
 
       expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('2025年10月');
     });
+
+    it('keeps the server\'s imagery month when its machine-readable month is unusable', async () => {
+      renderSection(3);
+      document.querySelectorAll('.ud-reaudit-imagery-date').forEach((el) => el.setAttribute('datetime', 'soon'));
+      new OutdatedStreets(document.getElementById('ud-reaudit-list'), { mapReady: Promise.resolve(map) }).init();
+
+      expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('October 2025');
+    });
+  });
+
+  it('pages five at a time when the list does not say its page size', async () => {
+    renderSection(13);
+    document.getElementById('ud-reaudit-list').removeAttribute('data-page-size');
+    new OutdatedStreets(document.getElementById('ud-reaudit-list'), { mapReady: Promise.resolve(map) }).init();
+
+    showMoreButton().click();
+
+    expect(shownStreetIds()).toHaveLength(10);
   });
 
   it('logs a revisit with the street it sends the mapper to', async () => {

@@ -140,6 +140,15 @@ describe('MapDownloadControl.buildDownloadUrl', () => {
     expect(queryOf(url).has('regionId')).toBe(false);
   });
 
+  test('a page without the label type or validation sections downloads every type and status', () => {
+    const state = makeState();
+    delete state.sections['label-type'];
+    delete state.sections['label-validations'];
+    const params = queryOf(MapDownloadControl.buildDownloadUrl(state, { format: 'csv' }));
+    expect(params.has('labelType')).toBe(false);
+    expect(params.has('validationStatus')).toBe(false);
+  });
+
   test('omits empty selections (the UI disables downloads in that state)', () => {
     const url = MapDownloadControl.buildDownloadUrl(
       makeState({ severities: [], labelTypes: [], validations: [] }), { format: 'geojson' });
@@ -318,6 +327,57 @@ describe('MapDownloadControl panel', () => {
     expect(document.activeElement).toBe(container.querySelector('.map-download-control__docs-link'));
   });
 
+  /**
+   * Presses a key on whatever has focus, as the browser would deliver it.
+   * @param {string} key - The KeyboardEvent key.
+   */
+  const press = (key) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  const docsLink = () => container.querySelector('.map-download-control__docs-link');
+
+  test('ArrowDown on the closed pill opens the panel at its first item', () => {
+    mount();
+    button().focus();
+    press('ArrowDown');
+    expect(panel().hidden).toBe(false);
+    expect(document.activeElement).toBe(items()[0]);
+  });
+
+  test('ArrowUp on the closed pill opens the panel at its last item', () => {
+    mount();
+    button().focus();
+    press('ArrowUp');
+    expect(panel().hidden).toBe(false);
+    expect(document.activeElement).toBe(docsLink());
+  });
+
+  test('other keys on the closed pill leave it closed', () => {
+    mount();
+    button().focus();
+    press('a');
+    expect(panel().hidden).toBe(true);
+    expect(window.logWebpageActivity).not.toHaveBeenCalled();
+  });
+
+  test('Home and End jump to the first and last items, and other keys do nothing', () => {
+    mount();
+    button().click();
+    press('End');
+    expect(document.activeElement).toBe(docsLink());
+    press('Home');
+    expect(document.activeElement).toBe(items()[0]);
+    press('a');
+    expect(document.activeElement).toBe(items()[0]);
+    expect(panel().hidden).toBe(false);
+  });
+
+  test('a click inside the panel that misses every item keeps it open', async () => {
+    mount();
+    button().click();
+    await flushTimeouts();
+    container.querySelector('.map-download-control__title').click();
+    expect(panel().hidden).toBe(false);
+  });
+
   test('Tab closes the panel only after the browser has moved focus on', async () => {
     mount();
     button().click();
@@ -357,6 +417,32 @@ describe('MapDownloadControl panel', () => {
     expect(container.querySelector('.map-download-control__caveat').hidden).toBe(true);
     expect(panel().getAttribute('aria-describedby').split(' '))
       .not.toContain(container.querySelector('.map-download-control__caveat').id);
+  });
+
+  test('downloads anyway when the server cannot be asked whether the file is already being built', async () => {
+    window.fetch = vi.fn().mockRejectedValue(new TypeError('offline'));
+    mount();
+    button().click();
+    items()[1].click();
+    await settle();
+    expect(anchorClicks).toHaveLength(1);
+  });
+
+  test('logs a click on the API docs link', () => {
+    mount();
+    button().click();
+    container.querySelector('.map-download-control__docs-link').dispatchEvent(new MouseEvent('click'));
+    expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=MapDownload_DocsLink');
+  });
+
+  test('removing the control takes it off the page and stops listening for outside clicks', async () => {
+    mount();
+    button().click();
+    await flushTimeouts();
+    const removed = vi.spyOn(document, 'removeEventListener');
+    control.onRemove();
+    expect(container.isConnected).toBe(false);
+    expect(removed).toHaveBeenCalledWith('click', expect.any(Function), true);
   });
 
   test('warns screen reader users that the docs link opens in a new tab', () => {

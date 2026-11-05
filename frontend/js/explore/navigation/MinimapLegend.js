@@ -46,13 +46,13 @@ export class MinimapLegend {
   /**
    * Expands or collapses the legend, keeping the toggle's ARIA state in sync.
    * @param {boolean} expanded - Whether the card should be visible.
-   * @param {string} [logEvent] - Tracker event to record, if this was user-initiated.
+   * @param {string} logEvent - Tracker event recording how the user asked for it.
    */
   #setExpanded(expanded, logEvent) {
     this.#expanded = expanded;
     this.#uiMinimap.legendToggle.setAttribute('aria-expanded', String(expanded));
     this.#uiMinimap.legendToggle.classList.toggle('minimap-legend-toggle-hidden', expanded);
     this.#uiMinimap.legendCard.classList.toggle('minimap-legend-card-hidden', !expanded);
-    if (logEvent) this.#tracker.push(logEvent);
+    this.#tracker.push(logEvent);
   }
 }

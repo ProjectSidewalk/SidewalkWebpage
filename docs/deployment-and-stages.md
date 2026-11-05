@@ -344,11 +344,11 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 A deploy builds the app essentially the same way you do locally, in this order:
 
 1. Install Python deps (`requirements.txt`) — needed by `label_clustering.py`, which the running app invokes
-   **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
-   fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
-   system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
-   into the 3.13 on whichever user account runs those scripts.
+   **in-band** during clustering. These must land in the `/usr/bin/python3.12` the app shells out to
+   (`ClusterService`), or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
+   That is Rocky 9's add-on `python3.12` package, installed beside the system Python, which stays untouched (#4396).
+   The out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` is only installed in the web
+   container.
 2. `npm ci`, then `npm run build` (**Vite**): every page's JS bundle (minified, with a sourcemap beside it that
    carries the sources, since `frontend/js/` itself is not served), the stylesheets (`frontend/css/` is not served
    either), and the manifest `views.ViteAssets` reads to link them.
@@ -385,7 +385,7 @@ outside the build tree** via its environment variable (a variable that is set bu
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
 | `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-cut from pano imagery) | Error logged at boot |
-| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews and crop thumbnails (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
 every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's

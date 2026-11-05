@@ -144,6 +144,13 @@
   aspect-ratio: 3 / 2;
 }
 
+/* The type's name heads a caption where the host asked for it (the street panel's tiles, #5748). */
+.lmc__type {
+  flex-basis: 100%;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+}
+
 .lmc__body {
   display: flex;
   flex-wrap: wrap;

@@ -25,21 +25,18 @@ export const ApiDocsMap = (function () {
    * Builds a Mapbox map in the given container and resolves once it has loaded.
    *
    * @param {object} options - Map options.
-   * @param {HTMLElement|string} options.container - Map container element, or its element ID.
+   * @param {HTMLElement} options.container - Map container element.
    * @param {string} options.mapboxApiKey - Mapbox access token.
    * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
    * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
    * @param {number} [options.fitPadding] - Padding around `bounds`, in px. Defaults to 12% of the map's width, max 75.
    * @param {mapboxgl.LngLatLike} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
    * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
-   * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
    * @returns {Promise<mapboxgl.Map>} Resolves with the Mapbox map once it has loaded and been dimmed.
    */
   function create(options) {
     mapboxgl.accessToken = options.mapboxApiKey;
-    const element = typeof options.container === 'string'
-      ? document.getElementById(options.container)
-      : options.container;
+    const element = options.container;
     // A share of the map's own width, because a flat 75px is breathing room on a desktop map and most of a phone.
     const fitPadding = options.fitPadding ?? Math.min(75, Math.round(element.clientWidth * 0.12));
 
@@ -72,15 +69,15 @@ export const ApiDocsMap = (function () {
       const finish = () => {
         map.off('error', fail);
         // Dimmed before the promise resolves, so every layer a caller adds afterwards lands on top of the scrim.
-        const dim = options.dim ?? BASEMAP_DIM_OPACITY;
-        if (dim > 0) {
-          // A `background` layer covers the viewport at any zoom.
-          map.addLayer({
-            id: 'basemap-dim',
-            type: 'background',
-            paint: { 'background-color': ApiDocsTheme.color('--color-neutral-black'), 'background-opacity': dim },
-          });
-        }
+        // A `background` layer covers the viewport at any zoom.
+        map.addLayer({
+          id: 'basemap-dim',
+          type: 'background',
+          paint: {
+            'background-color': ApiDocsTheme.color('--color-neutral-black'),
+            'background-opacity': BASEMAP_DIM_OPACITY,
+          },
+        });
         resolve(map);
       };
       if (map.loaded()) finish();
@@ -258,25 +255,22 @@ export const ApiDocsMap = (function () {
   }
 
   /**
-   * Fills a legend overlay with a continuous color bar, tick labels spread evenly beneath it, and an optional swatch
-   * row for the features the ramp doesn't cover.
+   * Fills a legend overlay with a continuous color bar, tick labels spread evenly beneath it, and a swatch row for
+   * the features the ramp doesn't cover.
    *
    * @param {HTMLElement} element - The overlay element to fill.
    * @param {string} title - Legend heading.
    * @param {Array<string>} ramp - The colors passed to the matching `gradientColorExpression`.
    * @param {Array<string>} tickLabels - Labels under the bar, low end first.
-   * @param {{color: string, label: string}} [none] - Swatch color and name for features with no value, matching
-   *                                                 `gradientColorExpression`'s `noneColor`. Omit when every feature
-   *                                                 lands somewhere on the ramp.
+   * @param {{color: string, label: string}} none - Swatch color and name for features with no value, matching
+   *   `gradientColorExpression`'s `noneColor`.
    */
   function renderGradientLegend(element, title, ramp, tickLabels, none) {
     // A discrete category has no honest position on a continuous bar, so it gets its own row below the ticks.
-    const noneRow = none
-      ? `<div class="map-legend-item">
+    const noneRow = `<div class="map-legend-item">
            <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(none.color)};"></span>
            ${util.escapeHTML(none.label)}
-         </div>`
-      : '';
+         </div>`;
     element.innerHTML = `
       <h4>${util.escapeHTML(title)}</h4>
       <div class="map-legend-gradient"></div>
@@ -290,12 +284,12 @@ export const ApiDocsMap = (function () {
   }
 
   /**
-   * Fills a legend overlay with one swatch-and-name row per category, plus an optional note beneath them.
+   * Fills a legend overlay with one swatch-and-name row per category, plus a note beneath them.
    *
    * @param {HTMLElement} element - The overlay element to fill.
    * @param {string} title - Legend heading.
    * @param {Array<{color: string, label: string}>} items - One row per category, in display order.
-   * @param {string} [note] - A line of context under the rows, e.g. how to read the geometry.
+   * @param {string} note - A line of context under the rows, e.g. how to read the geometry.
    */
   function renderSwatchLegend(element, title, items, note) {
     const rows = items.map((item) => `
@@ -307,7 +301,7 @@ export const ApiDocsMap = (function () {
     element.innerHTML = `
       <h4>${util.escapeHTML(title)}</h4>
       ${rows}
-      ${note ? `<div class="map-legend-note">${util.escapeHTML(note)}</div>` : ''}
+      <div class="map-legend-note">${util.escapeHTML(note)}</div>
     `;
   }
 

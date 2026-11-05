@@ -252,6 +252,30 @@ class ImageController @Inject() (
     }
   }
 
+  /**
+   * Serves a crop's thumbnail, for a page that shows many crops at once. Gated like the crop itself, since it is the
+   * same imagery.
+   *
+   * @param labelType The label's type, which names its crop's directory.
+   * @param labelId   The label.
+   * @return `Ok` with an `image/jpeg`, or `NotFound` if the label has no usable crop.
+   */
+  def serveCropThumbnail(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
+    val earlyReject =
+      if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
+      else if (!LabelType.labelTypeNames.contains(labelType)) Some(BadRequest(invalidLabelTypeMessage(labelType)))
+      else verifySignature(request, s"/cropImage/$labelType/$labelId/thumbnail")
+
+    earlyReject match {
+      case Some(result) => Future.successful(result)
+      case None         =>
+        cropService.cropThumbnail(labelId, LabelType.withName(labelType)).map {
+          case Some(file) => Ok.sendFile(file, inline = true).as("image/jpeg")
+          case None       => NotFound("Crop image not found")
+        }
+    }
+  }
+
   // TODO multipart form data would be better for uploading images than using JSON.
   def saveImage = cc.securityService.SecuredAction { implicit request: Request[AnyContent] =>
     val body: AnyContent          = request.body

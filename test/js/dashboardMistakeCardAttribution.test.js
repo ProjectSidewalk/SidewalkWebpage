@@ -2,7 +2,7 @@
  * Tests the imagery credit on a dashboard "recent mistakes" card (frontend/js/user-dashboard/MistakeGallery.js, #5254).
  *
  * The card shows the label's saved crop, which is our own copy of the provider's image, so it has to credit that
- * provider the same way the Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
+ * provider the same way Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
  * the whole point is checking that the card hooks them up.
  */
 
@@ -44,7 +44,7 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
   async function renderGallery(opts = {}) {
     document.body.innerHTML = '<div id="ud-mistakes"></div>';
-    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
+    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', limit: 6, ...opts });
     await gallery.render();
   }
 

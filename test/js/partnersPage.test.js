@@ -658,7 +658,7 @@ describe('PartnersPage official-contact errors', () => {
       .toBe('Landing page preview: Contact … directly.');
   });
 
-  test('says something went wrong for a refusal with no reason, or a request that never arrives', async () => {
+  test('says something went wrong for a refusal with no reason or no body, or a request that never arrives', async () => {
     const form = buildContact();
     const replies = { 'GET /adminapi/officialContact': { body: { name: null, url: null } },
       'PUT /adminapi/officialContact': { ok: false, status: 500, body: {} } };
@@ -670,6 +670,11 @@ describe('PartnersPage official-contact errors', () => {
     expect(contactError()).toBe('Something went wrong. Please try again.');
 
     replies['PUT /adminapi/officialContact'] = new TypeError('Failed to fetch');
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+    expect(contactError()).toBe('Something went wrong. Please try again.');
+    // A proxy's error page has no JSON body to read a reason from.
+    replies['PUT /adminapi/officialContact'] = { ok: false, status: 502 };
     form.dispatchEvent(new Event('submit', { cancelable: true }));
     await settle();
     expect(contactError()).toBe('Something went wrong. Please try again.');
