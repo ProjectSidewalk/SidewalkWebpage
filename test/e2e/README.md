@@ -8,10 +8,8 @@ plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the res
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
-(#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
-Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
-Validate and reads the votes back (#4948), and `validate-marker-click.spec.js`, which hovers, clicks, drags and keys the
-label marker to open, pin and close its card (#4843).
+(#5060). It also holds interaction specs, which every new or changed interaction on a pano page needs (see
+"Pano pages" below).
 
 ## Running locally
 
@@ -143,6 +141,17 @@ keeps it out of the smoke half — one definition, used for the a11y project's `
 noise, each with a comment explaining the cause — never to get a red run green. `pageerror` (an uncaught
 exception) is never allowlisted.
 
+## Pano pages
+
+Explore, Validate, and the `label-detail` card bill Google when opened by hand, so their interactions are tested
+here. What a spec there can't reach still gets a checklist:
+
+- **Call `serveAnyPano(context)`** in a Validate or label-card spec. Without it, a dev database's live panos don't
+  load, the page lands on the no-mission modal, and the spec skips, which looks like a pass.
+- **Street View itself never renders** (the stub stands in), so Street View-only behavior isn't covered.
+- **Explore specs reach only the tutorial**, where a new user lands. A change outside it needs new setup to reach
+  a mission, or a PR note that it's untested.
+
 ## Where it runs in CI
 
 The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
@@ -252,6 +261,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
-| `validate-marker-click.spec.js` | Validate's label marker by hover, click, drag and keyboard: the card opens, pins, and closes (#4843) |
+| `validate-marker-click.spec.js` | Hovers, clicks, drags and keys Validate's label marker to open, pin and close its card (#4843) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
