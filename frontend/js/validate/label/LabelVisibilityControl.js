@@ -223,9 +223,12 @@ export class LabelVisibilityControl {
           this.hideLabelCard();
         };
         window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('mouseup', (up) => {
           pressing = false;
           window.removeEventListener('mousemove', onMove);
+          // Released off the marker, so no click will land on it to clear the flag; left set, it would swallow the
+          // next click that comes with no press behind it (a screen reader's).
+          if (!marker.contains(/** @type {Node} */ (up.target))) dragged = false;
         }, { once: true });
       });
 

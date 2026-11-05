@@ -116,6 +116,17 @@ describe('pinning the Validate label card', () => {
     expect(expanded()).toBe('false');
   });
 
+  it('a pan from the marker released elsewhere does not swallow the next bare click', () => {
+    marker().dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 10, clientY: 10 }));
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: 30, clientY: 10 }));
+    document.getElementById('view-control-layer')
+      .dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 30, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true })); // A screen reader's press: no mousedown.
+
+    expect(control.isCardHeldOpen()).toBe(true);
+    expect(tracker.push).toHaveBeenLastCalledWith('Click_PinLabelCard');
+  });
+
   it('a press elsewhere on the pano still closes a pinned card at once', () => {
     hover();
     click();
