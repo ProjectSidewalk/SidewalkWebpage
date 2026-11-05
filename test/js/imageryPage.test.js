@@ -560,6 +560,12 @@ describe('ImageryPage rotation roll-up', () => {
       .toContain('not reached while audited streets fill the batch');
   });
 
+  test('says a city with every street audited has no unaudited streets, rather than a bare dash', async () => {
+    await renderPage({ pipeline: report({ poll_unaudited_pass_nights: 0 }) });
+    expect(rollupRow('Unaudited streets: full pass').cells[1].textContent).toBe('—');
+    expect(rollupRow('Unaudited streets: full pass').cells[2].textContent).toBe('no unaudited streets');
+  });
+
   test('shows no pass length when the report carries none', async () => {
     await renderPage({ pipeline: report({ poll_audited_pass_nights: undefined }) });
     expect(rollupRow('Audited streets: full pass').cells[1].textContent).toBe('—');

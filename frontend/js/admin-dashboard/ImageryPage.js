@@ -485,9 +485,9 @@ export class ImageryPage {
     const sizing = this.#report?.poll_batch_pinned
       ? 'batch size pinned by STREET_IMAGERY_POLL_BATCH_SIZE'
       : 'batch sized from this city\'s street count';
-    const unauditedNote = unauditedPass === null
-      ? 'not reached while audited streets fill the batch'
-      : 'in the slots audited streets leave free each night';
+    let unauditedNote = 'in the slots audited streets leave free each night';
+    if (unauditedPass === null) unauditedNote = 'not reached while audited streets fill the batch';
+    else if (unauditedPass === 0) unauditedNote = 'no unaudited streets';
 
     const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
     const row = (label, value, note) => `

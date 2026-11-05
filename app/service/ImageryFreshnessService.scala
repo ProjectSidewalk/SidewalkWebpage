@@ -158,8 +158,8 @@ object ImageryFreshnessService {
    *
    * A street has no median, and so can't be flagged for re-audit, until it has been polled once, so a big city needs
    * a proportionally big batch to keep that wait short; GSV metadata is free, so the only reasons to cap the batch are
-   * run time and Mapillary's rate limits, which the ceiling covers. The ceiling wins if the two bounds are misconfigured to
-   * cross, since it is the bound that protects something.
+   * run time and Mapillary's rate limits, which the ceiling covers. The ceiling wins if the two bounds are
+   * misconfigured to cross, since it is the bound that protects something.
    *
    * {{{
    * batchSizeFor(14037, None, 14, 500, 5000)      // 1003: DC's 14,037 streets over 14 nights
