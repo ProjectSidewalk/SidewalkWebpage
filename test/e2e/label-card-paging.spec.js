@@ -15,11 +15,11 @@
 const {test, expect, serveAnyPano, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {WCAG_TAGS, partitionViolations, formatViolations} = require('./a11y-allowlist');
+const {OTHER_FORCED_STATES, WCAG_TAGS, partitionViolations, formatViolations} = require('./a11y-allowlist');
 
 const GALLERY = PAGES.find((p) => p.path === '/gallery');
 // The a11y-allowlist.js key for the open card, a render state the page walk never reaches.
-const A11Y_STATE = `${GALLERY.path} [expanded card]`;
+const A11Y_STATE = OTHER_FORCED_STATES.galleryExpandedCard;
 const NO_BACKUP_404 = /status of 404 .*\/backupImage\/[^/]+\/metadata\)$/;
 
 /**
