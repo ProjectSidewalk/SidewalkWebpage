@@ -806,7 +806,7 @@ class AdminServiceImpl @Inject() (
         labelTotal(labelsWeek),
         valTotal(valsWeek),
         auditsWeek,
-        contributors.count,
+        contributors,
         apiExternal.map(_.count).sum,
         apiClients,
         awaitingVal,

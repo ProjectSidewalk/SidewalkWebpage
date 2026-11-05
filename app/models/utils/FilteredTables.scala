@@ -209,7 +209,8 @@ object FilteredTables {
   /**
    * Who counts as a contributor (#3976): a non-excluded user with at least one counted label or at least one vote,
    * voided votes included because the participation happened. The public `total_users` and the admin Overview's
-   * Contributors card both read this one fragment (#4344), so the two can't report different people.
+   * Contributors card share this one definition (#4344). The admin count additionally drops AI-role accounts, which
+   * the public `total_users` does not (yet), so the two differ by the AI accounts that contributed.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause, one row per distinct `user_id` (a `text` column).

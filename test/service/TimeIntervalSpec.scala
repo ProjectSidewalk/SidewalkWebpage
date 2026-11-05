@@ -58,7 +58,7 @@ class TimeIntervalSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
         run(auditTaskInteractionTable.calculateTimeExploring(interval)).timeInterval mustBe interval
         run(auditTaskInteractionTable.calculateMedianExploringTime(interval)).timeInterval mustBe interval
       }
-      run(userStatTable.countAllUsersContributed()).count must be >= 0
+      run(userStatTable.countAllUsersContributed()) must be >= 0
     }
   }
 }

@@ -1129,9 +1129,9 @@ class UserStatTable @Inject() (
    * [[models.utils.FilteredTables.contributorIds]] fragment so the two can't drift (#4344). AI accounts are dropped,
    * as on the admin Across Cities page, because the admin card counts people.
    *
-   * @return The count, as a [[UserCount]] over all roles and all time.
+   * @return The number of distinct non-AI contributors, all time.
    */
-  def countAllUsersContributed(): DBIO[UserCount] = {
+  def countAllUsersContributed(): DBIO[Int] = {
     sql"""
       SELECT COUNT(*)
       FROM #${FilteredTables.contributorIds()}
@@ -1141,7 +1141,7 @@ class UserStatTable @Inject() (
           WHERE user_role.user_id = contributor.user_id
               AND user_role.role = 'AI'
       );
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
+    """.as[Int].head
   }
 
   /**

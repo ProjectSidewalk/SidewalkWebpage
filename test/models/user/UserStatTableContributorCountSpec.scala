@@ -111,7 +111,7 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
         _            <- seedLabel(excluded)
         _            <- seedVote(excluded, labelId)
         after        <- userStatTable.countAllUsersContributed()
-      } yield (before.count, after.count))
+      } yield (before, after))
 
       // Only the labeler and the validator are new contributors.
       after mustBe before + 2
@@ -129,7 +129,7 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
         adminCount <- userStatTable.countAllUsersContributed()
         apiIds     <- configTable.getContributorUserIdsBySchema(schema)
         aiIds      <- configTable.getAiUserIds
-      } yield (adminCount.count, apiIds, aiIds.toSet, aiUser))
+      } yield (adminCount, apiIds, aiIds.toSet, aiUser))
 
       apiIds must contain(aiUser)
       adminCount mustBe apiIds.distinct.filterNot(aiIds).size
