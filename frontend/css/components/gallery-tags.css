@@ -1,0 +1,37 @@
+.gallery-tag {
+  display: inline-block;
+  margin: 2px;
+  padding: 0 5px;
+  border: 1px solid var(--color-neutral-black);
+  border-radius: 10px;
+  text-align: left;
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  width: fit-content;
+  white-space: nowrap;
+  max-width: 98%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thumbnail-tag {
+  cursor: default;
+  font-weight: bold;
+  padding: 1px 5px;
+  color: var(--color-asphalt-500);
+}
+
+/* Shown in the shared tooltip card, not the gallery card, so the card-relative sizing above doesn't apply. */
+.not-added {
+  background-color: var(--color-neutral-white);
+  font: var(--text-caption-regular);
+  margin: 1px;
+}
+
+.additional-count {
+  margin: 3px -2px;
+  border-style: none;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: inherit;
+}

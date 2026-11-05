@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
 import play.api.libs.json.Json
@@ -22,10 +22,8 @@ object AuthTokenCleanerActor {
 class AuthTokenCleanerActor @Inject() (
     authenticationService: service.AuthenticationService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)
@@ -45,7 +43,7 @@ class AuthTokenCleanerActor @Inject() (
           24.hours,
           self,
           AuthTokenCleanerActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("AuthTokenCleanerActor created")
     }

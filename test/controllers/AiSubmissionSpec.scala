@@ -1,19 +1,19 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the pano-provenance contract of POST /ai/submitLabelsOnPano (#4806): a submission whose pano block carries
@@ -21,8 +21,9 @@ import scala.concurrent.duration._
  * pano — while a payload without the key leaves any stored blob untouched (the Explore write path shares this upsert
  * and its payloads never carry the key). A blob that isn't an object, or is absurdly large, is refused outright.
  *
- * Uses `labels: []` payloads throughout: the endpoint upserts the pano and inserts no labels, so the spec needs no
- * street/region/mission fixtures and leaves only pano rows, which it deletes on both ends of the run.
+ * Uses `labels: []` payloads throughout, apart from one the endpoint refuses before writing (#4808): the endpoint
+ * upserts the pano and inserts no labels, so the spec needs no street/region/mission fixtures and leaves only pano
+ * rows, which it deletes on both ends of the run. Submissions with labels are [[AiSubmissionOverwriteSpec]]'s.
  *
  * Boots the real application against Postgres+PostGIS (like the /v3 API specs). The endpoint's two fail-closed gates
  * are opened via config overrides: `internal-api-key` (bearer auth) and the running city's AI-submission flag.
@@ -34,7 +35,7 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   private val internalApiKey = "test-internal-api-key"
 
@@ -49,11 +50,11 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
   // app whose city flag this spec can't address, so fail loudly here instead of failing obscurely four cases later.
   private val cityId = sys.env.getOrElse(
     "SIDEWALK_CITY_ID",
-    throw new IllegalStateException("SIDEWALK_CITY_ID must be set to run AiSubmissionSpec")
+    throw IllegalStateException("SIDEWALK_CITY_ID must be set to run AiSubmissionSpec")
   )
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .configure(
         "internal-api-key"                                 -> internalApiKey,
@@ -152,6 +153,11 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
       storedMetadata(barePanoId) mustBe None
     }
 
+    "accept overwrite=true on a pano-only submission for a pano with no AI labels (#5382)" in {
+      status(post(payload(None, id = barePanoId) + ("overwrite" -> Json.toJson(true)))) mustBe OK
+      panoRowCount(barePanoId) mustBe 1
+    }
+
     "reject a source_metadata that isn't a JSON object" in {
       status(post(payloadWithRawMetadata(Json.toJson("not an object")))) mustBe BAD_REQUEST
       storedMetadata().map(Json.parse) mustBe Some(metadataV2)
@@ -171,6 +177,18 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
       val badLatPay = base + ("pano" -> ((base \ "pano").as[JsObject] + ("lat" -> Json.toJson(999.0))))
 
       status(post(badLatPay)) mustBe INTERNAL_SERVER_ERROR
+      panoRowCount(badLatPanoId) mustBe 0
+    }
+
+    "refuse labels on a pano without the position to place them with a 400, not a 500 (#4808)" in {
+      // Reuses the bad-lat pano id: the previous case left no row for it, and neither may this one.
+      val base = payload(None, id = badLatPanoId) +
+        ("labels" -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 3500, "confidence" -> 0.9)))
+      val noLatPay = base + ("pano" -> ((base \ "pano").as[JsObject] - "lat"))
+
+      val resp = post(noLatPay)
+      status(resp) mustBe BAD_REQUEST
+      contentAsString(resp) must include("needs the pano's")
       panoRowCount(badLatPanoId) mustBe 0
     }
   }

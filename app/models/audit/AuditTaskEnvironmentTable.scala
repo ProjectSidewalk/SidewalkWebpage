@@ -3,7 +3,8 @@ package models.audit
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.IpAddress
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -22,7 +23,7 @@ case class AuditTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: Option[String],
+    ipAddress: IpAddress,
     language: String,
     cssZoom: Int,
     timestamp: Option[OffsetDateTime]
@@ -41,16 +42,14 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
   def screenWidth: Rep[Option[Int]]          = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]         = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]]   = column[Option[String]]("operating_system")
-  def ipAddress: Rep[Option[String]]         = column[Option[String]]("ip_address")
+  def ipAddress: Rep[IpAddress]              = column[IpAddress]("ip_address")
   def language: Rep[String]                  = column[String]("language", O.Default("en"))
   def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
-    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> (
-    (AuditTaskEnvironment.apply _).tupled,
-    AuditTaskEnvironment.unapply
-  )
+    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp)
+    .mapTo[AuditTaskEnvironment]
 
   def auditTask =
     foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)

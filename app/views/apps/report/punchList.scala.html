@@ -1,0 +1,81 @@
+@import models.report.{NeighborhoodReport, ReportFix, ReportFormat, ReportLinks, ReportRules}
+@import views.html.apps.report as reportViews
+
+@*
+ * One location per street. It walks every ranked street rather than only the listed ones, since a neighborhood with no
+ * street under the list's bar can still hold a clear fix. The `city:id` reference is there because label ids repeat
+ * across cities.
+ *
+ * @param report The computed report.
+ * @param cityId The deployment's id, which qualifies each label id.
+ *@
+@(report: NeighborhoodReport, cityId: String
+)(using messages: Messages, assets: AssetsFinder)
+
+@* A fix can come from a segment past the detailed ones, which has no section to jump to; the tool shows it instead. *@
+@streetLink(fix: ReportFix) = @{
+  if (report.detailed.exists(_.street.worst.toolEdgeId == fix.street.worst.toolEdgeId)) s"#street-${fix.street.worst.toolEdgeId}"
+  else ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId, report.weights)
+}
+
+@streetName(fix: ReportFix) = @{
+  fix.street.worst.name.getOrElse(Messages("report.street.unnamed", fix.street.worst.toolEdgeId.toString))
+}
+
+<section class="report-section report-punch" aria-labelledby="report-punch-title">
+  <h2 class="report-section__title" id="report-punch-title">@Messages("report.punch.title") @reportViews.info(Messages("report.punch.rule.short"))</h2>
+  @if(report.fixes.nonEmpty) {<p class="report-section__lede">@Messages("report.fix.lede")</p>}
+  @if(report.fixes.isEmpty) {
+    <p class="report-empty">@Messages("report.punch.none")</p>
+  } else {
+    @* One card per fix, the spot from above beside the photo of it. report.js draws both panes: the map as a still
+       picture, since a page can't hold a live map per card, and the photo from Gallery's own endpoint. *@
+    <ol class="report-fixes">
+      @for((fix, index) <- report.fixes.zipWithIndex) {
+        <li class="report-fix" data-label-id="@fix.label.labelId">
+          <div class="report-fix__views">
+            <a class="report-fix__pane report-fix__map" href="@streetLink(fix)" data-fix-map data-report-event="Report_OpenStreet"
+               aria-label="@Messages("report.fix.map", streetName(fix))">
+              <span class="report-fix__rank" aria-hidden="true">@(index + 1)</span>
+            </a>
+            <a class="report-fix__pane report-fix__photo" href="@ReportLinks.label(fix.label.labelId)" data-fix-photo data-report-event="Report_OpenLabel"
+               aria-label="@Messages("report.fix.photo", Messages(fix.item.labelType.nameKey))"></a>
+          </div>
+          <div class="report-fix__body">
+            <div class="report-fix__head">
+              <h3 class="report-fix__street"><a href="@streetLink(fix)" data-report-event="Report_OpenStreet">@streetName(fix)</a></h3>
+              <a class="report-fix__cost" href="@ReportLinks.accessScoreStreet(fix.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore"
+                 aria-label="@Messages("report.photo.cost", ReportFormat.oneDecimal(fix.item.costPoints))">+@ReportFormat.oneDecimal(fix.item.costPoints)</a>
+            </div>
+            <p class="report-fix__type">
+              <img src='@assets.path(fix.item.labelType.smallIconSvgPath)' alt="" width="18" height="18">
+              @Messages(fix.item.labelType.nameKey)
+            </p>
+            @for(rating <- fix.item.severity) {
+              <p class="report-fix__rating">@Messages("report.rating", rating, ReportRules.worstRating(fix.item.labelType.ratingScale).getOrElse(rating))</p>
+            }
+            @reportViews.places(report.placesNear(fix.street.worst.toolEdgeId), fix.street.worst.score)
+            @* The rise first, so the card's +N is stated in words, then why this one spot is worth that much. *@
+            @defining(fix.reason) { reason =>
+              <p class="report-fix__why">
+                @Messages("report.fix.raise", ReportFormat.score(fix.street.worst.score), ReportFormat.oneDecimal(fix.raisedScore), ReportFormat.oneDecimal(fix.item.costPoints))
+                @for((key, args) <- reason) {@Messages(key, args*)}
+              </p>
+            }
+            @if(fix.label.tags.nonEmpty) {
+              <ul class="report-tags">
+                @for(tag <- fix.label.tags) { <li class="report-tag" data-i18n="common:tag.@tag">@tag</li> }
+              </ul>
+            }
+            <p class="report-fix__foot">
+              @if(fix.item.locations.size > 1) {
+                <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size)</a>
+              }
+              <a href="@ReportLinks.label(fix.label.labelId)" target="_blank" rel="noopener" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId<span class="sr-only" data-i18n="common:pano-attribution.opens-new-tab">(opens in a new tab)</span></a>
+            </p>
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</section>

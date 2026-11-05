@@ -5,9 +5,10 @@ version: 2
 #
 # Cadence is monthly so version-currency PRs arrive as one predictable batch for a two-person team, rather
 # than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
-# are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
-# minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
-# a human. See issue #4385 for the standing dependency/platform maintenance strategy.
+# are a separate channel and still fire immediately. Green patch & minor bumps auto-merge via
+# `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need a human. Each ecosystem gets
+# two groups so a red major can't hold the safe patch & minor bumps hostage in the same PR (#4395).
+# See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -15,8 +16,37 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
-      npm-dependencies:
+      # The imagery viewers (proj4 is only Infra3d's) and the minimap's map library (#5734): CI never drives a pano or
+      # the minimap, so a broken minor would merge green, and dependency-auto-merge.yml leaves both groups to a person.
+      # Dependabot takes the first group that matches.
+      npm-imagery:
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      # A group covers version updates only unless it says so; without this one, the same packages' security updates
+      # would arrive ungrouped and auto-merge.
+      npm-imagery-security:
+        applies-to: security-updates
+        patterns:
+          - "mapillary-js"
+          - "pannellum"
+          - "@inovitas/infra3dapi"
+          - "@photo-sphere-viewer/*"
+          - "three"
+          - "maplibre-gl"
+          - "pmtiles"
+          - "proj4"
+      npm-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      npm-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
       # Everything that supplies `error`-severity rules to a blocking `frontend` step, plus the jsdom suite: a
       # *major* here turns the build red rather than merely nagging, so majors stay a human decision while minors
@@ -34,9 +64,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest"
+      - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "jest-environment-jsdom"
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jsdom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
         update-types: ["version-update:semver-major"]
@@ -44,30 +76,48 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@stylistic/eslint-plugin"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-plugin-jsdoc"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@stylistic/stylelint-plugin"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-plugin-use-baseline"
         update-types: ["version-update:semver-major"]
+      # A TypeScript major changes what `make lint-js-types` reports.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Held below 3.25 on purpose; docs/upgrading-libraries.md says why. Patches within 3.24 still come through.
+      - dependency-name: "mapbox-gl"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: monthly
     groups:
-      github-actions:
+      github-actions-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      github-actions-major:
+        patterns: ["*"]
+        update-types: ["major"]
 
   - package-ecosystem: docker
-    directory: "/"
+    # docker/shellcheck/ holds only the ShellCheck image pin that `make shellcheck` and CI run (#5589).
+    directories: ["/", "/docker/shellcheck"]
     schedule:
       interval: monthly
     groups:
-      docker:
+      docker-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      docker-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
-      # Stay on JDK 17 (an LTS). Dependabot keeps re-proposing odd, non-LTS temurin majors (19, 21-preview…);
-      # 19 was already rejected as EOL (#4247). The Java 17→21 LTS move is a deliberate, tracked migration
-      # (#4385, #3936), not a bot bump. Minor/OS bumps within 17 (e.g. focal→jammy) are still allowed.
+      # Stay on JDK 21 (an LTS, the one prod runs). Dependabot keeps re-proposing non-LTS temurin majors; 19 was
+      # already rejected as EOL (#4247). The next LTS move (25) is a deliberate migration that has to land on prod
+      # first (#4385), not a bot bump. Patch bumps within 21 still come through; the tag's Ubuntu suffix stays put,
+      # since it is what makes the image's python3 the 3.12 prod runs (#4396).
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
 
@@ -78,15 +128,9 @@ updates:
     schedule:
       interval: monthly
     groups:
-      pip-dependencies:
+      pip-patch-minor:
         patterns: ["*"]
-    ignore:
-      # requirements.txt is frozen at the last releases that install on Python 3.8 — the interpreter the deployed app
-      # shells out to for in-band clustering (docs/upgrading-libraries.md). scipy and haversine appear *only* in that
-      # file, so a bump is always wrong and always fails CI (#5108). pandas and requests stay watched despite being
-      # frozen there too: they're shared with requirements-offline-tools.txt (3.13), Dependabot's pip updater can't
-      # scope an ignore to one requirements file, and an ignore would suppress that file's security PRs as well.
-      # Retiring 3.8 (#4385) is what actually ends the monthly noise — and is the only way to clear
-      # GHSA-gc5v-m9x4-r6x2, whose fix (requests 2.33.0) declares requires_python >= 3.10.
-      - dependency-name: "scipy"
-      - dependency-name: "haversine"
+        update-types: ["patch", "minor"]
+      pip-major:
+        patterns: ["*"]
+        update-types: ["major"]

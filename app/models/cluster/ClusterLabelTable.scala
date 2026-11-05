@@ -3,7 +3,7 @@ package models.cluster
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class ClusterLabelTableDef(tag: Tag) extends Table[ClusterLabel](tag, "cluster_l
   def clusterId: Rep[Int]      = column[Int]("cluster_id")
   def labelId: Rep[Int]        = column[Int]("label_id")
 
-  def * = (clusterLabelId, clusterId, labelId) <> ((ClusterLabel.apply _).tupled, ClusterLabel.unapply)
+  def * = (clusterLabelId, clusterId, labelId).mapTo[ClusterLabel]
 
   def cluster =
     foreignKey("cluster_label_cluster_id_fkey", clusterId, TableQuery[ClusterTableDef])(
@@ -28,6 +28,7 @@ class ClusterLabelTableDef(tag: Tag) extends Table[ClusterLabel](tag, "cluster_l
 @ImplementedBy(classOf[ClusterLabelTable]) trait ClusterLabelTableRepository {
   def countClusterLabels: DBIO[Int]
   def insertMultiple(clusterLabels: Seq[ClusterLabel]): DBIO[Seq[Int]]
+  def deleteForLabel(labelId: Int): DBIO[Int]
 }
 
 @Singleton
@@ -43,4 +44,10 @@ class ClusterLabelTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   def insertMultiple(newClusterLabels: Seq[ClusterLabel]): DBIO[Seq[Int]] = {
     (clusterLabels returning clusterLabels.map(_.clusterLabelId)) ++= newClusterLabels
   }
+
+  /**
+   * Takes a label out of its cluster, for when its type changes (#3671): clusters are per type, and the clustering job
+   * only revisits a region whose membership differs from the API's, so this is also what gets the region re-clustered.
+   */
+  def deleteForLabel(labelId: Int): DBIO[Int] = clusterLabels.filter(_.labelId === labelId).delete
 }

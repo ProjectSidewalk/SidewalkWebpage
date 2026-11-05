@@ -1,0 +1,7 @@
+# Skip code we didn't write or that users never run; problems found there would just be noise.
+paths-ignore:
+  - public/vendor
+  - test
+  - tools
+  # Translation files; .es (Spanish) is also a JavaScript file extension, so they fail to parse as code.
+  - conf

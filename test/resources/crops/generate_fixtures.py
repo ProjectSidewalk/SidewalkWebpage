@@ -9,8 +9,9 @@ Outputs, all beside this script:
   synthetic-pano.png   1024x512 RGB pano whose every pixel is a distinct function of (x, y), so a one-pixel shift or a
                        seam error changes bytes. A periodic pattern (a checkerboard) would hide exactly those bugs.
   mechanics.json       Hand-chosen windows on that pano exercising the seam wrap at both edges, the pole shift at both
-                       edges, the size cap and half-to-even rounding, each with the box CropRunner computed. Permanent:
-                       these are equirectangular topology facts, not the sizing rule.
+                       edges, the size cap and half-to-even rounding, each with the box CropRunner computed and where
+                       the label lands inside it (label_position_in_crop). Permanent: these are equirectangular
+                       topology facts, not the sizing rule.
   expected/<case>.png  The pixels CropRunner cut for each mechanics case (PNG, so the comparison is exact; the
                        reference tool itself stores JPEG).
   sizing-v2.json       What the sizing rule asks for over a grid of label positions and pano heights, plus one window
@@ -64,8 +65,12 @@ def main():
         crop = CropRunner.extract_crop(pano, box.left, box.top, box.width, box.height)
         assert crop.size[0] <= CropRunner.CROP_MAX_STORED_WIDTH
         crop.save(os.path.join(HERE, 'expected', name + '.png'), format='PNG')
+        # Where the label lands in the cut window (scale 1.0: cut-window pixels), the registration the marker is
+        # drawn from (SidewalkWebpage#2660); the seam and pole cases are what make it more than `x - left`.
+        label_x, label_y = CropRunner.label_position_in_crop(x, y, box, PANO_W)
         mechanics.append({'case': name, 'pano_x': x, 'pano_y': y, 'requested_width': requested,
-                          'pano_width': PANO_W, 'pano_height': PANO_H, 'box': box_dict(box)})
+                          'pano_width': PANO_W, 'pano_height': PANO_H, 'box': box_dict(box),
+                          'label_in_crop': [label_x, label_y]})
     with open(os.path.join(HERE, 'mechanics.json'), 'w') as f:
         json.dump(mechanics, f, indent=1, sort_keys=True)
 
@@ -75,7 +80,7 @@ def main():
         for frac in (0.0, 0.1, 0.25, 0.4, 0.5, 0.55, 0.6, 0.7, 0.85, 0.999):
             pano_y = frac * pano_height
             pano_x = 0.37 * pano_width
-            window = CropRunner.crop_window_width(pano_y, pano_height)
+            window = CropRunner.crop_window_width(pano_y, pano_width, pano_height)
             rows.append({'pano_height': pano_height, 'pano_width': pano_width, 'pano_x': pano_x, 'pano_y': pano_y,
                          'predict_crop_size': CropRunner.predict_crop_size(pano_y, pano_height),
                          'window_width': window,
@@ -84,12 +89,24 @@ def main():
     for pano_y in (3328, 2000, 0, 6000):
         rows.append({'pano_height': 6656, 'pano_width': 13312, 'pano_x': 1000.0, 'pano_y': float(pano_y),
                      'predict_crop_size': CropRunner.predict_crop_size(pano_y, 6656),
-                     'window_width': CropRunner.crop_window_width(pano_y, 6656),
+                     'window_width': CropRunner.crop_window_width(pano_y, 13312, 6656),
                      'box': box_dict(CropRunner.compute_crop_box(
-                         1000.0, pano_y, CropRunner.crop_window_width(pano_y, 6656), 13312, 6656))})
+                         1000.0, pano_y, CropRunner.crop_window_width(pano_y, 13312, 6656), 13312, 6656))})
+
+    # A pano that is not 2:1, where the window width's axis shows (panorama-tools #106): the same angle is a
+    # different pixel count as an azimuthal span than as an elevation one.
+    for pano_width, pano_height in ((4096, 4096), (3000, 6000)):
+        pano_y = 0.55 * pano_height
+        rows.append({'pano_height': pano_height, 'pano_width': pano_width, 'pano_x': 0.5 * pano_width,
+                     'pano_y': pano_y,
+                     'predict_crop_size': CropRunner.predict_crop_size(pano_y, pano_height),
+                     'window_width': CropRunner.crop_window_width(pano_y, pano_width, pano_height),
+                     'box': box_dict(CropRunner.compute_crop_box(
+                         0.5 * pano_width, pano_y, CropRunner.crop_window_width(pano_y, pano_width, pano_height),
+                         pano_width, pano_height))})
 
     e2e_x, e2e_y = 512, 300
-    window = CropRunner.crop_window_width(e2e_y, PANO_H)
+    window = CropRunner.crop_window_width(e2e_y, PANO_W, PANO_H)
     box = CropRunner.compute_crop_box(e2e_x, e2e_y, window, PANO_W, PANO_H)
     CropRunner.extract_crop(pano, box.left, box.top, box.width, box.height).save(
         os.path.join(HERE, 'expected', 'sizing_e2e.png'), format='PNG')

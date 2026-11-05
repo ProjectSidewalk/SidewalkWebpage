@@ -68,8 +68,7 @@
     "add-note": "💬 Add a note",
     "note-placeholder": "Add a note about this label (optional)…",
     "save-note": "Save note",
-    "popup-heading": "Your label was validated as incorrect. Do you agree this was a mistake?",
-    "your-label": "Your label: {{type}}"
+    "popup-heading": "Your label was validated as incorrect. Do you agree this was a mistake?"
   },
   "settings-form": {
     "saving": "Saving…",
@@ -87,7 +86,6 @@
   "stories": {
     "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
   },
-  "routes-link-copied": "Link copied!",
   "routes-rename-aria": "New route name",
   "routes-rename-save": "Save",
   "routes-rename-cancel": "Cancel",

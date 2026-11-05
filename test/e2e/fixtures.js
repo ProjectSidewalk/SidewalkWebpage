@@ -21,10 +21,6 @@ delete PHONE_DEVICE.defaultBrowserType;
 // entries are added only for observed, understood noise — never to get a red run green. `pageerror` (an
 // uncaught exception) is NEVER allowlisted.
 const CONSOLE_ERROR_ALLOWLIST = [
-  // i18next probes optional per-locale/namespace overlays (/assets/locales/{lng}/{ns}.json); a missing overlay
-  // 404s by design and i18next falls back through the locale chain. Anchored to the browser's resource-load
-  // failure line so a real app error whose text merely mentions a locale path can't hide behind it.
-  /^console\.error: Failed to load resource: .*\(.*\/assets\/locales\/.+\.json(\?[^)]*)?\)$/,
   // Mapbox telemetry; stubbed to 204 by stubMapbox but belt-and-braces for pages that skip the stub.
   /events\.mapbox\.com/,
   // The app ships CSP in REPORT-ONLY mode (conf/application.conf, reportOnly = true): the browser logs each
@@ -133,8 +129,9 @@ async function stubGoogleMaps(context, leaks) {
 
 /**
  * Makes the Google Maps stub resolve every pano id on this context's pages, instead of only ids it has seen (its
- * default, Google's contract, which sends an expired pano down the Pannellum + backup path). For a spec that wants
- * the primary-viewer path — production's when Google still serves a panorama our metadata check has retired. Must
+ * default, Google's contract, which sends an expired pano down the Pannellum + backup path). Production's shape
+ * when Google still serves a panorama our metadata check has retired — which a page that trusts the flag must
+ * not take up (Validate, #5561), and one that asks the provider first renders through the primary viewer. Must
  * run before navigation: it is an init script the stub reads at install.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context whose pages should see every pano resolve.
@@ -159,7 +156,7 @@ async function stubMakeabilityLab(context) {
 }
 
 /**
- * Stubs the neighborhood and street layers that createPSMap loads before a map's label feed.
+ * Stubs the region and street layers that createPSMap loads before a map's label feed.
  *
  * On a seeded schema those are ~7.4 MB (Seattle) that must download, parse, and reach mapbox-gl before
  * createPSMap resolves — and only then can a label-feed assertion become true. That doesn't reliably fit the
@@ -170,15 +167,14 @@ async function stubMakeabilityLab(context) {
  */
 async function stubMapBaseLayers(context) {
   const emptyGeoJson = {type: 'FeatureCollection', features: []};
-  // `*` stops at a path separator, so the /neighborhoods route can't swallow /neighborhoods/completionRate —
-  // which answers with a rate array, not GeoJSON (addNeighborhoodsToMap looks regions up in it by region_id).
-  await context.route('**/neighborhoods*', (route) => route.fulfill({json: emptyGeoJson}));
-  await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: []}));
+  // Matched on the exact path: a `**/regions*` glob would also stub the public /v3/api/regions.
+  await context.route((url) => url.pathname === '/regions', (route) => route.fulfill({json: emptyGeoJson}));
+  await context.route((url) => url.pathname === '/regions/completionRates', (route) => route.fulfill({json: []}));
   await context.route('**/contribution/streets/all*', (route) => route.fulfill({json: emptyGeoJson}));
 }
 
 /**
- * Waits until the shared AppManager (public/js/common/AppManager.js, wired into every page by
+ * Waits until the shared AppManager (frontend/js/common/AppManager.js, wired into every page by
  * app/views/common/main.scala.html) reports initialization complete.
  *
  * This is the WAIT, not the assertion: AppManager catches exceptions thrown by init tasks and ready
@@ -219,6 +215,44 @@ async function loadAndSettle(page, context, p) {
   if (p.loadingOverlay) await page.locator('#page-loading').waitFor({state: 'hidden'});
   // Settle window: errors from late async work (post-ready fetches, image/map callbacks) land here.
   await page.waitForTimeout(1000);
+}
+
+/**
+ * Loads `/validate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the seed always makes
+ * one, so the mission-only checks would otherwise skip and stay green. A local database may have none to give.
+ * @param {import('@playwright/test').Page} page The test's page.
+ * @param {string} path The page to load.
+ * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
+ */
+async function loadValidate(page, path) {
+  const response = await page.goto(path);
+  base.expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
+  // Checked before waiting, as in loadAndSettle: /mobile under a desktop UA lands on / and would otherwise time out.
+  base.expect(page.url(), `${path} landed on ${page.url()}`).toContain(path);
+  await waitForAppReady(page);
+  const onMission = await waitForValidateTerminalState(page);
+  await page.waitForTimeout(1000);
+  if (process.env.CI) {
+    base.expect(onMission, 'CI got no mission: the seed no longer makes one, or none of its labels\' imagery loaded '
+      + '(#4810)').toBe(true);
+  }
+  return onMission;
+}
+
+/**
+ * Waits for Validate to settle into either of its two legitimate end states: a mission, or the "no new mission"
+ * modal, which also covers a mission whose labels all lacked imagery (#4810). Callers let the console assertion
+ * judge whichever ran.
+ * @param {import('@playwright/test').Page} page The page under test.
+ * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
+ */
+async function waitForValidateTerminalState(page) {
+  await page.waitForFunction(() => window.svv);
+  // Both end states take the loading overlay down, so a stuck one is a failure on either path.
+  await base.expect(page.locator('#page-loading')).toBeHidden();
+  const noMission = await page.evaluate(() => window.svv.modalNoNewMission.isShowing());
+  if (noMission) await base.expect(page.locator('#modal-mission-foreground')).toBeVisible();
+  return !noMission;
 }
 
 /**
@@ -355,6 +389,7 @@ module.exports = {
   stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
+  loadValidate,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,

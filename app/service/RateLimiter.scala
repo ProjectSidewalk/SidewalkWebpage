@@ -30,7 +30,7 @@ class RateLimiter @Inject() (config: Configuration) {
   /** A fixed window: when it started, how long it lasts, and how many attempts have landed in it. */
   private case class Window(startMs: Long, windowMs: Long, count: Int)
 
-  private val windows = new ConcurrentHashMap[String, Window]()
+  private val windows = ConcurrentHashMap[String, Window]()
 
   /** Current time in milliseconds. `protected` so tests can override it to drive window expiry deterministically. */
   protected def nowMs: Long = System.currentTimeMillis()

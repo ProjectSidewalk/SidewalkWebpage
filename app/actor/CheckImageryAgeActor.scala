@@ -2,14 +2,14 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, ImageryFreshnessService, JobRunService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object CheckImageryAgeActor {
@@ -29,10 +29,8 @@ object CheckImageryAgeActor {
 class CheckImageryAgeActor @Inject() (
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)
@@ -52,7 +50,7 @@ class CheckImageryAgeActor @Inject() (
           24.hours,
           self,
           CheckImageryAgeActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageryAgeActor created")
     }

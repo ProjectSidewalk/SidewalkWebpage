@@ -1,27 +1,36 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.label.AiImageSource.AiImageSource
-import models.utils.MyPostgresProfile.api._
-import models.utils.{AiTagConfidence, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{AiTagConfidence, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
-// NOTE need to update ai_image_source enum in postgres as well if changing this Enumeration.
-object AiImageSource extends Enumeration {
-  type AiImageSource = Value
-  val Download = Value("download")
-  val Cache    = Value("cache")
+// NOTE need to update ai_image_source enum in postgres as well if changing this enum.
+enum AiImageSource(val name: String) extends NamedEnum {
+  case Download extends AiImageSource("download")
+  case Cache    extends AiImageSource("cache")
 }
 
+object AiImageSource extends PgEnumCompanion[AiImageSource]("ai_image_source")
+
+/**
+ * One AI API answer about a label, with the provenance needed to tell which weights produced it.
+ *
+ * @param validatorRevision HuggingFace commit of the validator repo (`validatorModelId`). None on rows from API
+ *                          versions before 1.0.2, which loaded whatever was on HF main.
+ * @param taggerRevision    HuggingFace commit of the per-type tagger repo, `sidewalk-tagger-ai-<label type>`. None
+ *                          when the type isn't tagged, and on rows from API versions before 1.0.5.
+ */
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
-    validationResult: ValidationOption.Value,
+    labelType: LabelType,
+    validationResult: ValidationOption,
     validationAccuracy: Double,
     validationConfidence: Double,
     tags: Option[List[String]],
@@ -30,40 +39,44 @@ case class LabelAiAssessment(
     apiVersion: String,
     validatorModelId: String,
     validatorTrainingDate: OffsetDateTime,
+    validatorRevision: Option[String],
     taggerModelId: Option[String],
     taggerTrainingDate: Option[OffsetDateTime],
+    taggerRevision: Option[String],
     timestamp: OffsetDateTime,
     labelValidationId: Option[Int],
     aiImageSource: AiImageSource
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
-  def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                             = column[Int]("label_id")
-  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
-  def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
-  def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")
-  def tags: Rep[Option[List[String]]]               = column[Option[List[String]]]("tags", O.Default(Some(List())))
-  def tagsNotPresent: Rep[Option[List[String]]]     =
+  def labelAiAssessmentId: Rep[Int]             = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                         = column[Int]("label_id")
+  def labelType: Rep[LabelType]                 = column[LabelType]("label_type")
+  def validationResult: Rep[ValidationOption]   = column[ValidationOption]("validation_result")
+  def validationAccuracy: Rep[Double]           = column[Double]("validation_accuracy")
+  def validationConfidence: Rep[Double]         = column[Double]("validation_confidence")
+  def tags: Rep[Option[List[String]]]           = column[Option[List[String]]]("tags", O.Default(Some(List())))
+  def tagsNotPresent: Rep[Option[List[String]]] =
     column[Option[List[String]]]("tags_not_present", O.Default(Some(List())))
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
   def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
+  def validatorRevision: Rep[Option[String]]            = column[Option[String]]("validator_revision")
   def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
   def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
+  // CHECK in the DB: only set when tagger_model_id is.
+  def taggerRevision: Rep[Option[String]] = column[Option[String]]("tagger_revision")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
   def aiImageSource: Rep[AiImageSource]   = column[AiImageSource]("ai_image_source")
 
   def * =
-    (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,
-      tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId, taggerTrainingDate, timestamp,
-      labelValidationId, aiImageSource) <> (
-      (LabelAiAssessment.apply _).tupled,
-      LabelAiAssessment.unapply
-    )
+    (labelAiAssessmentId, labelId, labelType, validationResult, validationAccuracy, validationConfidence, tags,
+      tagsNotPresent, tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, validatorRevision,
+      taggerModelId, taggerTrainingDate, taggerRevision, timestamp, labelValidationId, aiImageSource)
+      .mapTo[LabelAiAssessment]
 
   def label           = foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelValidation =
@@ -76,7 +89,7 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
 trait LabelAiAssessmentTableRepository {}
 
 @Singleton
-class LabelAiAssessmentTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelAiAssessmentTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
 ) extends LabelAiAssessmentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

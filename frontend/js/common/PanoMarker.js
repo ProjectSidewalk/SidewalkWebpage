@@ -1,0 +1,340 @@
+/**
+ * Source: https://github.com/marmat/google-maps-api-addons/blob/master/panomarker/src/panomarker.js
+ *
+ * PanoMarker
+ * Version 2.0
+ *
+ * @author kaktus621@gmail.com (Martin Matysiak)
+ * @author michaelssaugstad@gmail.com (Mikey Saugstad) - Updated Dec 2025 to use generic Panorama viewer (not just GSV).
+ * @file A marker that can be placed inside custom StreetView panoramas.
+ *
+ * This class takes simple heading and pitch values from the panorama's center in order to move the marker correctly
+ * with the user's viewport changes. The marker actually sits on top of the panorama DOM-wise.
+ */
+
+import { util } from './utilities.js';
+import './pano-viewer/panoUtilities.js';
+/** @typedef {import('./pano-viewer/PanoViewer.js').PanoViewer} PanoViewer */
+
+/**
+ * @license Copyright 2014 — 2015 Martin Matysiak.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+export class PanoMarker {
+  /**
+   * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
+   * upon construction. Note that the position must be set for the marker to display.
+   *
+   * @param {object} opts - A set of parameters to customize the marker.
+   * @param {PanoViewer} opts.panoViewer - Panorama viewer on which to display marker.
+   * @param {HTMLElement} opts.markerContainer - The container holding the markers.
+   * @param {string} [opts.className] - The class name which will be assigned to the created div node.
+   * @param {string} [opts.icon] - URL to an image file that shall be used.
+   * @param {string} [opts.id] - A unique identifier that will be assigned to the created div-node.
+   * @param {{heading: number, pitch: number}} [opts.position] - Marker position on the panorama.
+   * @param {{width: number, height: number}} [opts.size] - The size of the marker in pixels.
+   * @param {string} [opts.title] - Hover tooltip.
+   * @param {boolean} [opts.visible=true] - If true, the marker is visible.
+   * @param {number} [opts.zIndex=1] - The marker's z-index.
+   * @param {() => void} [opts.onDraw] - Called after every draw, for anything anchored to the marker's position.
+   */
+  constructor(opts) {
+    if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
+    if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
+
+    /** @type {HTMLElement} */
+    this.markerContainer_ = opts.markerContainer;
+
+    /** @type {PanoViewer} */
+    this.panoViewer_ = opts.panoViewer;
+
+    /** @type {?string} */
+    this.className_ = opts.className || null;
+
+    /** @type {?(() => void)} */
+    this.onDraw_ = opts.onDraw || null;
+
+    /** @type {?string} */
+    this.icon_ = opts.icon || null;
+
+    /** @type {?string} */
+    this.id_ = opts.id || null;
+
+    /** @type {?HTMLDivElement} */
+    this.marker_ = null;
+
+    /** @type {{heading: number, pitch: number}} */
+    this.position_ = opts.position || { heading: 0, pitch: 0 };
+
+    /** @type {{width: number, height: number}} */
+    this.size_ = opts.size || { width: 32, height: 32 };
+
+    /** @type {string} */
+    this.title_ = opts.title || '';
+
+    /** @type {boolean} */
+    this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
+
+    /** @type {number} */
+    this.zIndex_ = opts.zIndex || 1;
+
+    /**
+     * New code (April 17, 2019) -- modified by Aileen
+     * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
+     * @private
+     * @type {(
+     *   centeredPov: {heading: number, pitch: number},
+     *   newPov: {heading: number, pitch: number, zoom: number},
+     *   canvasWidth: number, canvasHeight: number, margin: number, hFov?: number
+     * ) => {x: number, y: number}|null}
+     */
+    this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
+    const pixelCanvas = document.createElement('canvas');
+    if (pixelCanvas && (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl'))) {
+      this.povToPixel_ = util.pano.centeredPovToCanvasCoord;
+    }
+
+    // At last, call some methods which use the initialized parameters.
+    this.createMarker();
+  }
+
+  /**
+   * Sets up a marker and then calls draw().
+   */
+  createMarker = function () {
+    const marker = document.createElement('div');
+    marker.classList.add('icon-outline', 'label-marker');
+
+    // Basic style attributes for every marker.
+    marker.style.position = 'absolute';
+    // To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393
+    marker.style.cursor = 'inherit';
+    marker.style.width = `${this.size_.width}px`;
+    marker.style.height = `${this.size_.height}px`;
+    // Markers are square, so width is the diameter. Published so decorations can size themselves off the marker
+    // instead of hardcoding px that only look right at one of its sizes (e.g. main.css's .label-marker-pulse halo,
+    // where Validate's marker is 22px on desktop but 52px on mobile).
+    marker.style.setProperty('--marker-diameter', `${this.size_.width}px`);
+    marker.style.display = this.visible_ ? 'block' : 'none';
+    marker.style.zIndex = this.zIndex_;
+
+    // Set other CSS attributes based on the given parameters.
+    if (this.id_) {
+      marker.id = this.id_;
+    }
+    if (this.className_) {
+      // Added, not assigned: .label-marker is what draws the icon, so replacing the list renders an empty marker.
+      marker.classList.add(...this.className_.split(' '));
+    }
+    if (this.title_) {
+      marker.title = this.title_;
+    }
+    // --label-icon rather than the element's own background, so hiding the label can crossfade just the icon
+    // (.label-marker::before) while the ring around it stays to mark the spot.
+    if (this.icon_) {
+      marker.style.setProperty('--label-icon', `url(${this.icon_})`);
+    }
+
+    // If neither icon, class nor id is specified, assign the basic Google Maps marker image to the marker.
+    if (!(this.id_ || this.className_ || this.icon_)) {
+      marker.style.setProperty(
+        '--label-icon', 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)',
+      );
+    }
+
+    this.marker_ = marker;
+    this.markerContainer_.appendChild(marker);
+
+    // Attach to some global events. Keep a single bound reference (and the viewer it was registered on) so
+    // removeMarker can detach both listeners — otherwise each recreated marker leaks a window + pov_changed
+    // handler that keeps re-running draw() on a dead marker. See issue #4231.
+    this.boundDraw_ = this.draw.bind(this);
+    this.listenerViewer_ = this.panoViewer_;
+    window.addEventListener('resize', this.boundDraw_);
+    this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
+
+    this.draw();
+  };
+
+  /**
+   * Removes the marker.
+   */
+  removeMarker = function () {
+    // Detach the listeners registered in createMarker, by reference, so they don't accumulate (#4231).
+    window.removeEventListener('resize', this.boundDraw_);
+    this.listenerViewer_.removeListener('pov_changed', this.boundDraw_);
+    this.marker_.parentNode.removeChild(this.marker_);
+    this.marker_ = null;
+  };
+
+  /**
+   * Draws the marker on the canvas.
+   */
+  draw = function () {
+    if (!this.panoViewer_) {
+      return;
+    }
+
+    // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
+    // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
+    if (this.marker_) {
+      const pov = this.panoViewer_.getPov();
+      const width = this.markerContainer_.offsetWidth;
+      const height = this.markerContainer_.offsetHeight;
+      // The fov the viewer renders for this container's shape, not the zoom curve alone: GSV clamps its vertical
+      // field on a tall or wide viewport (#5083), and a marker projected with the curve would sit off its feature.
+      const coords = this.povToPixel_(
+        this.position_, pov, width, height, this.size_.width,
+        util.pano.renderedHFov(pov.zoom, width / height, this.panoViewer_.getViewerType?.()),
+      );
+      if (coords !== null) {
+        this.marker_.style.left = `${coords.x - this.size_.width / 2}px`;
+        this.marker_.style.top = `${coords.y - this.size_.height / 2}px`;
+      } else {
+        // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
+        this.marker_.style.left = `${-(9999 + this.size_.width)}px`;
+        this.marker_.style.top = '0';
+      }
+
+      this.onDraw_?.();
+    }
+  };
+
+  // Getter to be roughly equivalent to the regular google.maps.Marker. //
+
+  /** @returns {?string} The className or null if not set upon marker creation. */
+  getClassName = function () {
+    return this.className_;
+  };
+
+  /** @returns {?string} The current icon, if any. */
+  getIcon = function () {
+    return this.icon_;
+  };
+
+  /** @returns {?string} The identifier or null if not set upon marker creation. */
+  getId = function () {
+    return this.id_;
+  };
+
+  /** @returns {PanoViewer} The current PanoViewer. */
+  getPanoViewer = function () {
+    return this.panoViewer_;
+  };
+
+  /** @returns {HTMLDivElement} The container holding the markers. */
+  getMarkerContainer = function () {
+    return this.markerContainer_;
+  };
+
+  /** @returns {{heading: number, pitch: number}} The marker's location on the panorama. */
+  getPosition = function () {
+    return this.position_;
+  };
+
+  /** @returns {{width: number, height: number}} The size of the marker in pixels. */
+  getSize = function () {
+    return this.size_;
+  };
+
+  /** @returns {string} The marker's rollover text. */
+  getTitle = function () {
+    return this.title_;
+  };
+
+  /** @returns {boolean} Whether the marker is currently visible. */
+  getVisible = function () {
+    return this.visible_;
+  };
+
+  /** @returns {number} The marker's z-index. */
+  getZIndex = function () {
+    return this.zIndex_;
+  };
+
+  // Setter for the properties mentioned above. //
+
+  /** @param {string} className - The new className. */
+  setClassName = function (className) {
+    this.className_ = className;
+    if (this.marker_) {
+      this.marker_.className = className;
+      this.marker_.classList.add('icon-outline', 'label-marker'); // Structural; .label-marker draws the icon.
+    }
+  };
+
+  /** @param {?string} icon - URL to a new icon, or null in order to remove it. */
+  setIcon = function (icon) {
+    this.icon_ = icon;
+    if (this.marker_) {
+      this.marker_.style.setProperty('--label-icon', icon ? `url(${icon})` : '');
+    }
+  };
+
+  /** @param {string} id - The new id. */
+  setId = function (id) {
+    this.id_ = id;
+    if (this.marker_) {
+      this.marker_.id = id;
+    }
+  };
+
+  /** @param {PanoViewer} panoViewer - The panorama in which to show the marker. */
+  setPanoViewer = function (panoViewer) {
+    this.panoViewer_ = panoViewer;
+  };
+
+  /** @param {HTMLDivElement} markerContainer - The container holding the markers. */
+  setMarkerContainer = function (markerContainer) {
+    this.markerContainer_ = markerContainer;
+  };
+
+  /** @param {{heading: number, pitch: number}} position - The desired location for the marker on the pano. */
+  setPosition = function (position) {
+    this.position_ = position;
+    this.draw();
+  };
+
+  /** @param {{width: number, height: number}} size - The new size of the marker in pixels. */
+  setSize = function (size) {
+    this.size_ = size;
+    if (this.marker_) {
+      this.marker_.style.width = `${size.width}px`;
+      this.marker_.style.height = `${size.height}px`;
+      this.marker_.style.setProperty('--marker-diameter', `${size.width}px`);
+      this.draw();
+    }
+  };
+
+  /** @param {string} title - The new rollover text. */
+  setTitle = function (title) {
+    this.title_ = title;
+    if (this.marker_) {
+      this.marker_.title = title;
+    }
+  };
+
+  /** @param {boolean} show - Whether the marker shall be visible. */
+  setVisible = function (show) {
+    this.visible_ = show;
+    if (this.marker_) {
+      this.marker_.style.display = show ? 'block' : 'none';
+    }
+  };
+
+  /** @param {number} zIndex - The new z-index. */
+  setZIndex = function (zIndex) {
+    this.zIndex_ = zIndex;
+    if (this.marker_) {
+      this.marker_.style.zIndex = zIndex;
+    }
+  };
+}

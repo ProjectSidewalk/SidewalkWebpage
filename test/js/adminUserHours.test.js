@@ -6,39 +6,14 @@
  * breakdown shown or withheld on the client's own reading of the city list, and an unreachable city that vanishes
  * instead of marking the total as a floor. The failure path matters for the same reason — a KPI left on its loading
  * placeholder reads as "zero hours" to an admin verifying a claim.
- *
- * Runs under jsdom (jest.config.js). AdminUser is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule } from './loader.js';
+import { drawManageUserPage } from './support/manageUserPage.js';
 
-const ADMIN_USER_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
-let AdminUser;
-
-beforeAll(() => {
-  AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
-});
-
-/** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
-function buildDom() {
-  document.body.innerHTML = `
-    <div class="ps-kpis">
-      <div class="ps-kpi" id="au-hours-kpi" aria-busy="true">
-        <span class="ps-kpi-value" id="au-hours-value">…</span>
-        <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
-      </div>
-    </div>
-    <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
-    <div id="au-hours-cities" hidden>
-      <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
-      <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
-    </div>
-    <div class="ud-nudge" id="au-hours-note" hidden></div>`;
-}
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**
  * Builds the page's controller against a stubbed hours endpoint and waits for the fetch to settle.
@@ -47,8 +22,8 @@ function buildDom() {
  * @returns {Promise<void>} Resolves once #loadHours has finished rendering.
  */
 async function load(response) {
-  buildDom();
-  global.fetch = jest.fn(() => (response instanceof Error
+  drawManageUserPage();
+  window.fetch = vi.fn(() => (response instanceof Error
     ? Promise.reject(response)
     : Promise.resolve({ ok: true, json: () => Promise.resolve(response) })));
   new AdminUser({
@@ -75,12 +50,11 @@ const rowHours = () => Array.from(document.querySelectorAll('#au-hours-cities-ta
   .map((td) => Number(td.textContent));
 
 beforeEach(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
-  delete global.fetch;
+  delete window.fetch;
 });
 
 describe('AdminUser cross-city hours', () => {
@@ -179,6 +153,24 @@ describe('AdminUser cross-city hours', () => {
     expect(hoursText()).toBe('—');
     expect(document.getElementById('au-hours-kpi').hasAttribute('aria-busy')).toBe(false);
     expect(document.getElementById('au-hours-note').textContent).toContain("Couldn't total this user's hours");
+  });
+
+  it('treats an error status like a failed request', async () => {
+    drawManageUserPage();
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 502, json: () => Promise.resolve({}) }));
+    new AdminUser({
+      userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags',
+      hoursUrl: '/adminapi/users/u1/crossCityHours', pageUrlFor: (u) => `/admin/user/${u}/manage`,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(hoursText()).toBe('—');
+    expect(console.error).toHaveBeenCalledWith('Cross-city hours failed to load', expect.any(Error));
+  });
+
+  it('reads an answer with no city list or total as zero hours and no breakdown', async () => {
+    await load({ show_breakdown: true });
+    expect(hoursText()).toBe('0.0 h');
+    expect(document.getElementById('au-hours-cities').hidden).toBe(true);
   });
 
   it('announces the loaded total to screen readers', async () => {

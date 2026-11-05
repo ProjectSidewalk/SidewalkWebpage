@@ -65,7 +65,6 @@ test.server.warning.message = <strong>You''re on a test server.</strong> Your wo
 test.server.warning.label = Test server notice
 test.server.warning.close = Dismiss notice
 dont.show.again = Don''t show again
-explore.alert.close = Close
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
@@ -92,6 +91,7 @@ state.name.massachusetts = MA
 state.name.texas = TX
 state.name.kentucky = KY
 state.name.iowa = IA
+state.name.alaska = AK
 
 navbar.explore = Explore
 navbar.validate = Validate
@@ -100,6 +100,7 @@ navbar.api = API
 navbar.about = About
 navbar.tools = Tools
 navbar.labelmap = Label Map
+navbar.accessscore = AccessScore
 navbar.leaderboard = Leaderboard
 navbar.stories = Stories
 navbar.routes = Routes
@@ -137,6 +138,7 @@ seo.title.gallery = Sidewalk Gallery — Project Sidewalk
 seo.title.labeling.guide = Labeling Guide — Project Sidewalk
 seo.title.terms = Terms of Use — Project Sidewalk
 seo.title.label.map = Label Map for {0} — Project Sidewalk
+seo.title.access.score = AccessScore for {0} — Project Sidewalk
 seo.title.cities = Deployment Cities — Project Sidewalk
 seo.title.leaderboard = Leaderboard — Project Sidewalk
 seo.title.stories = Community Stories — Project Sidewalk
@@ -150,6 +152,7 @@ seo.title.welcome = Welcome — Project Sidewalk
 seo.title.forgot.password = Recover Password — Project Sidewalk
 seo.title.reset.password = Reset Password — Project Sidewalk
 seo.title.service.hours = Volunteer Info — Project Sidewalk
+seo.title.unsubscribe = Unsubscribe — Project Sidewalk
 seo.title.time.check = Time Check — Project Sidewalk
 seo.title.about = About — Project Sidewalk
 seo.description.default = Help map and assess sidewalks in {0} through virtual exploration. Open data on curb ramps, obstacles, and surface problems for a more accessible world.
@@ -158,14 +161,13 @@ seo.description.explore = Virtually walk the streets of {0} and label curb ramps
 seo.description.validate = Review sidewalk accessibility labels placed by others in {0} and help improve data quality.
 seo.description.gallery = Browse street-level images of sidewalk accessibility features and barriers found in {0}.
 seo.description.label.map = Interactive map of every sidewalk accessibility label in {0}: curb ramps, obstacles, surface problems, and more.
+seo.description.access.score = Explore {0}''s sidewalk accessibility scores street by street or neighborhood by neighborhood, and weight the factors that matter to you.
 seo.description.cities = Project Sidewalk is deployed in cities around the world. See every deployment city or bring Project Sidewalk to yours.
 seo.description.api = Free and open sidewalk accessibility data for {0}: raw labels, label clusters, streets, and Access Scores in JSON, CSV, GeoJSON, GeoPackage, and Shapefile formats.
 seo.description.about = Learn about Project Sidewalk: our mission to map the world''s sidewalks, the research team behind it, and the open data it produces.
 seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view exploration with accessibility labels placed along a sidewalk.
 
-# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
-# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
-# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
+# About page (#4237, #4631). Numbers, team, publications, and funders load from APIs, not from here.
 about.title = About Project Sidewalk
 about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
 about.hero.subtitle = Project Sidewalk is an open-source academic research project at the University of Washington and the University of Illinois Chicago that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
@@ -204,46 +206,45 @@ about.impact.newberg.body = After residents mapped local sidewalks, the city cou
 about.impact.zurich.place = Zurich, Switzerland
 about.impact.zurich.body = Zurich publishes Project Sidewalk data in the city''s open data portal, and the deployment won a Smart City Hub Switzerland Award in the citizen-science category.
 about.impact.schools.place = Classrooms across the U.S.
-about.impact.schools.body = Students use Project Sidewalk to learn data science and civic advocacy — from Girl Scouts in Oradell, New Jersey presenting findings to their city council, to <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">middle schoolers in Waltham, Massachusetts earning statewide civics recognition</a>.
-about.impact.more = Want more? Our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> shares news, resources, and guides for putting Project Sidewalk to work in your community.
+about.impact.schools.body = Students use Project Sidewalk to learn data science and civic advocacy — from Girl Scouts in Oradell, New Jersey presenting findings to their city council, to <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/" target="_blank" rel="noopener">middle schoolers in Waltham, Massachusetts earning statewide civics recognition</a>.
+about.impact.more = Want more? Our sister site <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a> shares news, resources, and guides for putting Project Sidewalk to work in your community.
 about.where.title = Where we are
 about.where.body = From Seattle to Mexico City to Zurich, volunteers have put <span data-live-stat="num_cities">{0}</span> cities in <span data-live-stat="num_countries">{1}</span> countries on the accessibility map — one street at a time.
-about.where.links = <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/">bring Project Sidewalk to your city</a>.
+about.where.links = <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">bring Project Sidewalk to your city</a>.
 about.history.title = Our history
-about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from a <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> and the <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, with early support from a <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> and the <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
 about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
 about.history.2019 = The DC pilot study shows that online crowdsourcing can be used to map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
-about.history.2021 = An <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">NSF Smart &amp; Connected Communities grant</a> deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = An <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">NSF Smart &amp; Connected Communities grant</a> deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
 about.history.today.label = Today
 about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
 about.team.title = The team
-about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
+about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
 about.team.current.title = Current team
 about.team.past.title = Past leadership
-about.team.past.kotarohara = Started Project Sidewalk with Professor Froehlich as his PhD student, pioneering the crowdsourcing and computer-vision methods behind the project — the subject of his <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">dissertation</a>.
+about.team.past.kotarohara = Started Project Sidewalk with Professor Froehlich as his PhD student, pioneering the crowdsourcing and computer-vision methods behind the project — the subject of his <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf" target="_blank" rel="noopener">dissertation</a>.
 about.team.past.davidjacobs = Co-PI on the original NSF grant and the initial Google Faculty Research Award that launched Project Sidewalk, guiding its early computer-vision research.
-about.team.past.manaswisaha = Helped lead the first wide-scale deployment in Washington, DC and designed tools for understanding urban accessibility data — the subject of her <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">dissertation</a>.
+about.team.past.manaswisaha = Helped lead the first wide-scale deployment in Washington, DC and designed tools for understanding urban accessibility data — the subject of her <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf" target="_blank" rel="noopener">dissertation</a>.
 about.team.contributors.title = Contributors
 about.team.contributors.intro = More than {0} people have contributed code, designs, and ideas to Project Sidewalk, including {1} students from high school through PhD. Part of our mission is to help computer science and design students work on societally impactful projects through experiential learning.
-about.team.contributors = … plus community partners and thousands of volunteer mappers around the world — see the <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">full project page</a> for more.
+about.team.contributors = … plus community partners and thousands of volunteer mappers around the world — see the <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">full project page</a> for more.
 about.pubs.title = Related publications
-about.pubs.intro = Project Sidewalk research is published at leading human–computer interaction and accessibility venues. If you use our data or tools in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>.
-about.pubs.fallback = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
+about.pubs.intro = Project Sidewalk research is published at leading human–computer interaction and accessibility venues. If you use our data or tools in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292" target="_blank" rel="noopener">CHI 2019 paper</a>.
+about.pubs.fallback = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">all Project Sidewalk publications</a> on the Makeability Lab website.
 about.pubs.showAll = Show all {0} publications
 about.pubs.cite.title = How to cite Project Sidewalk
 about.pubs.cite.plain = Citation
 about.pubs.cite.copy = Copy
-about.pubs.cite.copied = Copied
 about.data.title = Open data &amp; open source
-about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>, too.
+about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">code is open source</a>, too.
 about.partners.title = Community partners
 about.partners.body = We work hand in hand with disability advocacy organizations, governments, schools, and community groups around the world — including Easterseals, World Enabled, Liga Peatonal, and the Active Transportation Alliance — to plan deployments, run community mapping events, and turn data into local action.
-about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Learn how to use Project Sidewalk in your community</a>.
+about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Learn how to use Project Sidewalk in your community</a>.
 about.funding.title = Research funding
 about.funding.body = Project Sidewalk is grant-funded academic research, supported by the National Science Foundation with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
 about.cta.title = Help us map every sidewalk
 about.cta.city = Bring Project Sidewalk to your city
-about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, or follow us on <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> and <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
+about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">GitHub</a>, or follow us on <a href="https://www.linkedin.com/company/project-sidewalk/" target="_blank" rel="noopener">LinkedIn</a> and <a href="https://bsky.app/profile/projectsidewalk.bsky.social" target="_blank" rel="noopener">Bluesky</a>.
 
 landing.create.path = Let''s create a path for everyone
 landing.start.exploring = Start Exploring
@@ -256,6 +257,7 @@ landing.how.you.help.find = FIND PROBLEMS
 landing.how.you.help.assess = ASSESS SEVERITY
 landing.validate.title = Validate What Others Found
 landing.validate.content = Start helping in seconds: check recent labels that volunteers placed in {0} and tell us whether they got it right.
+landing.spotlight.title = Where {0}''s Sidewalks Score Highest and Lowest
 landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
@@ -284,11 +286,12 @@ landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and ma
 landing.deployment.map.title = Explore other cities
 landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
 landing.partners.title = Community Partners in {0}
-landing.partners.tagline = Our work in {0} is made possible through our amazing community partners, including:
+landing.partners.tagline = Our work in {0} is made possible through our community partners, including:
+landing.partners.official.contact = Project Sidewalk is a research tool. To report a problem or request a repair, contact {0} directly. Feel free to include links to Project Sidewalk <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> or <a href="/stories" data-partner-source="official-contact-stories">stories</a> in your request.
 landing.partners.logo.alt = {0} logo
 landing.partners.created.by = Project Sidewalk was created with {0} by
 landing.partners.created.heart = love
-landing.partners.created.credits = …and shaped by longtime partners like <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, the <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a>, and <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, along with 100+ student contributors and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
+landing.partners.created.credits = …and shaped by longtime partners like <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, the <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a>, and <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, along with 100+ student contributors and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab logo
 landing.partners.creator.uw.alt = Paul G. Allen School of Computer Science & Engineering at the University of Washington logo
 landing.partners.creator.uic.alt = University of Illinois Chicago Institute on Disability and Human Development logo
@@ -312,9 +315,9 @@ footer.api = Sidewalk API
 footer.connect = CONNECT
 footer.email = Email Us
 footer.funding = WE ARE PROUDLY FUNDED BY
-footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> and <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
-footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
-footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
+footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> and <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">University of Washington</a>
+footer.version = Version {0} | Last Updated: {1}
 
 audit.tutorial.complete.1 = You did it!
 audit.tutorial.complete.2 = You completed the tutorial!
@@ -327,8 +330,8 @@ audit.ribbon.sidewalk.labels = SIDEWALK LABELS
 audit.ribbon.other.labels = OTHER ACCESSIBILITY LABELS
 audit.ribbon.explore = <u>E</u>xplore
 audit.ribbon.curb.ramp = <u>C</u>urb Ramp
-audit.ribbon.missing.ramp = <u>M</u>issing Curb Ramp
-audit.ribbon.obstacle = <u>O</u>bstacle in Path
+audit.ribbon.missing.ramp = <u>M</u>issing Ramp
+audit.ribbon.obstacle = <u>O</u>bstacle
 audit.ribbon.surface.problem = <u>S</u>urface Problem
 audit.ribbon.no.sidewalk = <u>N</u>o Sidewalk
 audit.ribbon.crosswalk = Marked Cross<u>w</u>alk
@@ -343,6 +346,10 @@ audit.center.ui.tags.info = Please add tags to your labels, which enriches the d
 audit.center.ui.description.header = Describe (optional)
 audit.center.ui.description.placeholder = Description
 
+audit.all.regions.finished.title = You''ve explored every neighborhood in {0}!
+audit.all.regions.finished.body = Thank you! You''ve checked every street we have in {0}. You can keep helping by validating other people''s labels, or by exploring another city.
+audit.all.regions.finished.validate = Validate labels
+audit.all.regions.finished.other.cities = Explore another city
 audit.survey.title = Please take this one-time survey about Project Sidewalk
 audit.survey.enjoyment.question = How much have you been enjoying using Project Sidewalk?
 audit.survey.enjoyment.option.1 = Very boring
@@ -383,6 +390,7 @@ authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.confirm.password = Confirm password
 authenticate.service.hours.title = Are you planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
+authenticate.news.email = Send me occasional news about Project Sidewalk
 authenticate.signup = Sign up
 authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
 authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
@@ -400,6 +408,7 @@ authenticate.close = Close
 authenticate.show.password = Show password
 authenticate.hide.password = Hide password
 authenticate.username.rule = 3–30 characters — letters, numbers, hyphens, and underscores
+authenticate.username.hint = Pick a nickname — you don''t have to use your real name. It''s shown publicly on the leaderboard and your profile, and you can change it anytime.
 authenticate.pw.rule.length = At least {0} characters
 authenticate.pw.rule.uppercase = One uppercase letter
 authenticate.pw.rule.lowercase = One lowercase letter
@@ -410,6 +419,7 @@ authenticate.pw.strength.1 = Weak
 authenticate.pw.strength.2 = Okay
 authenticate.pw.strength.3 = Good
 authenticate.pw.strength.4 = Strong
+authenticate.pw.breached = This password has shown up in a known data breach. Please pick a different one.
 authenticate.create.account = Create my account
 authenticate.new.detail = New to Project Sidewalk? <a href="#" id="form-open-sign-up">Create an account</a>
 authenticate.new.detail.link = New to Project Sidewalk? <a href="{0}">Create an account</a>
@@ -430,9 +440,64 @@ welcome.card.leaderboard.title = The leaderboard
 welcome.card.leaderboard.body = See how your mapping stacks up across the city — solo or with a team.
 welcome.cta.resume = Back to where you left off
 welcome.cta.dashboard = See my dashboard
+welcome.privacy.title = Who can see you
+welcome.privacy.body = Your username “{0}” and your progress can show up on the public leaderboard and on your profile page, which anyone can visit. You choose — and you can change your mind anytime in Settings.
+welcome.privacy.default.private = This deployment keeps new accounts private by default, so nothing below is shared until you turn it on.
+welcome.privacy.noscript = Turning these on and off needs JavaScript. You can change them anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.service.prompt = Mapping for school or volunteer credit?
 welcome.service.button = Sign me up for service hours
+timecheck.eyebrow = Your impact so far
+timecheck.heading = Nice work, {0}!
+timecheck.intro = Every hour you spend labeling makes sidewalks easier to navigate for people with disabilities. Here''s the time Project Sidewalk has logged for you.
+timecheck.hours.one = hour mapping & validating
+timecheck.hours.many = hours mapping & validating
+timecheck.scope = Across {0} Project Sidewalk cities — your account is the same one in every city, so this is your full total.
+timecheck.cheer.none = Your very first hour is waiting — jump in and make your mark on the map!
+timecheck.cheer.started = You''re off the mark, and every single label already counts.
+timecheck.cheer.momentum = You''re building real momentum. Keep it going!
+timecheck.cheer.dedication = That''s serious dedication — your city is more accessible because of you.
+timecheck.cheer.commitment = Incredible commitment. You''re a force for accessibility.
+timecheck.cheer.legend = You''re a Project Sidewalk legend. The whole community thanks you.
+timecheck.breakdown.title = Where your time came from
+timecheck.breakdown.city = City
+timecheck.breakdown.hours = Hours
+timecheck.breakdown.here = you''re here
+timecheck.incomplete.one = Heads up: we couldn''t check 1 city just now, so your total may be low. Try reloading in a few minutes, or email <a href="mailto:{0}">{0}</a> if it doesn''t sort itself out.
+timecheck.incomplete.many = Heads up: we couldn''t check {0} cities just now, so your total may be low. Try reloading in a few minutes, or email <a href="mailto:{1}">{1}</a> if it doesn''t sort itself out.
+timecheck.fact.loading = Crunching the numbers can take a moment — thanks for your patience while this page loads.
+timecheck.fact.wrong.total = Total looks off? The usual cause is mapping while signed out. Email <a href="mailto:{0}">{0}</a> with when you worked and which pages you used, and we''ll help sort it out.
+timecheck.service.on.title = You''re signed up for service hours
+timecheck.service.on.body = Remember to email your supervisor for feedback each round — see <a href="{0}">how service hours work</a>.
+timecheck.service.off.title = Earning school or volunteer credit?
+timecheck.service.off.body = Sign up to have these hours officially recognized and verified by a supervisor.
+timecheck.service.off.cta = How it works
+timecheck.cta.explore = Keep mapping
+servicehours.eyebrow = Volunteer with Project Sidewalk
+servicehours.title = Earning community service hours
+servicehours.intro = Mapping sidewalks counts as real volunteer work — many students earn school or organization service hours here. We track your time automatically; you map, get feedback, and submit your hours when you''re done.
+servicehours.anon.title = Sign up to earn service hours
+servicehours.anon.body = Create a free account, then opt in to have your volunteer hours officially recognized.
+servicehours.anon.cta = Create an account
+servicehours.optedin.title = You''re signed up for service hours
+servicehours.optedin.body = You have currently opted in to earning community service hours with Project Sidewalk. You can opt out anytime, or manage this in <a href="{0}">Settings</a>.
+servicehours.optedin.cta = Opt out
+servicehours.optedout.title = You''re not signed up for service hours
+servicehours.optedout.body = Opt in to have your volunteer or school hours officially recognized and verified by your supervisor.
+servicehours.optedout.cta = Sign me up
+servicehours.supervisor = Your volunteer supervisor: {0}
+servicehours.step1.title = Learn what good labels look like
+servicehours.step1.body = Read <a href="{0}" target="_blank">the common-mistakes guide</a> first — a few minutes here saves hours of corrections later.
+servicehours.step2.title = Map for one hour
+servicehours.step2.body = Signed in, click <strong>{0}</strong> below and label for an hour. Your time is tracked automatically while you work.
+servicehours.step3.title = Email us for feedback
+servicehours.step3.body = Send your username and sign-up email address to your supervisor at the address above. {0} reviews your labels and replies within a couple of days with feedback and tips.
+servicehours.step4.title = Keep mapping, round by round
+servicehours.step4.body = Do another hour, reply to the same email thread, and repeat. Once your labels look great, you''re cleared to work as many hours as you need.
+servicehours.warning = <strong>The feedback emails are required.</strong> Hours submitted without them are usually rejected — the training rounds are how we keep the map trustworthy.
+servicehours.fact.timecheck = See your logged time anytime on the <a href="{0}">Time Check page</a> — it''s also in your account menu, next to the link back to this page.
+servicehours.fact.submit = Submitting your hours? List <strong>{0}</strong> as your supervisor, with the email address above.
+servicehours.cta.timecheck = Check my time
 
 
 reset.pw.forgot.title = Forgot your password?
@@ -442,6 +507,14 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
 reset.pw.email.send.link = Send Email
 reset.pw.email.reset.pw.sent = An email to reset your password has been sent.
+unsubscribe.confirm.title = Unsubscribe from Project Sidewalk news?
+unsubscribe.confirm.intro = You''ll stop getting news and updates about the project at the email on your account. Emails about your account, like password resets, still arrive.
+unsubscribe.confirm.submit = Unsubscribe
+unsubscribe.done.title = You''re unsubscribed
+unsubscribe.done.intro = We won''t send you project news anymore. Changed your mind? Turn it back on in <a href="{0}">Settings</a>.
+unsubscribe.invalid.title = This link isn''t valid
+unsubscribe.invalid.intro = The unsubscribe link may have been cut off when it was copied. You can also manage email in <a href="{0}">Settings</a>, or write to <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+reset.pw.email.send.failed = We couldn''t send the email right now. Please try again later.
 reset.pw.email.reset.request.message = You recently asked to reset your password for your Project Sidewalk account. Click the link below to reset your password:
 reset.pw.email.reset.not.requested = If you did not request a password reset, please ignore this message or send us an email to let us know.
 reset.pw.email.reset.valid.duration = This password reset will be valid for the next 60 minutes
@@ -449,7 +522,7 @@ reset.pw.email.signature = The Project Sidewalk team
 
 reset.pw.submit.new.pw = Type in your new password.
 reset.pw.message = Reset password
-reset.pw.successful = Password reset!
+reset.pw.successful = Password reset! You''ve been signed out on your other devices.
 reset.pw.invalid.reset.link = Invalid Reset Link
 
 dashboard.current.team.greeting = Team: {0}
@@ -479,7 +552,7 @@ dashboard.team.name = Team name
 dashboard.team.description = Team description (optional)
 dashboard.team.button = Create team
 
-labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label every curb ramp regardless of whether there are problems.
+labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm" target="_blank" rel="noopener">ADA</a>). Label every curb ramp regardless of whether there are problems.
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
 labeling.guide.surface.problem.summary = A surface problem is a problem that would cause a bumpy or otherwise uncomfortable experience for someone using a wheelchair or other assistive devices. If something on a surface would make it hard or impossible to cross, it should be labeled as a Surface Problem. For surface problems that cover a large area, you should place a Surface Problem label at the start of the problem, and then continue placing labels every few feet (about 1 per panorama) until the end of the problem.
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
@@ -497,14 +570,25 @@ gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.cards.sorted = Labels are sorted by "{0}" based on selected filters
+gallery.sort.by = Sort By
+gallery.sort.random = Random
+gallery.sort.newest = Newest first
+gallery.sort.oldest = Oldest first
+gallery.sort.most.severe = Most severe first
+gallery.sort.least.severe = Least severe first
+gallery.sort.most.disputed = Most disputed first
 gallery.clear.filters = Clear Filters
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in this list
+gallery.list.truncated = {0,choice,1#1 id was|1<{0} ids were} past the {1}-id limit and could not be loaded.
+gallery.list.error = The list couldn''t be loaded. Reload the page to try again.
+gallery.list.browse.all = Browse all labels
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Welcome to RouteBuilder
 routebuilder.intro.content = Build a route and share it with others.
 routebuilder.directions.start.aria = Start address or place
 routebuilder.directions.end.aria = End address or place
-routebuilder.stat.time.tooltip = Estimated from the typical pace of Project Sidewalk explorers in this city (about {0} minutes per 100 meters).
 routebuilder.save = Save route
 routebuilder.delete.route.icon.alt = An orange circle with a white exclamation mark in the center
 routebuilder.not.saved = Route has not been saved.
@@ -522,6 +606,7 @@ routebuilder.optional = (optional)
 routebuilder.route.description.placeholder = e.g., Our main route from the library to school
 routebuilder.description.error.length = Route descriptions can be at most {0} characters.
 routebuilder.description.error.allowed = That description is not allowed. Please revise it.
+routebuilder.streets.error.unknown = That route uses a street we no longer have. Please reload the page and build it again.
 routebuilder.signin.nudge = Sign in to keep your routes in your dashboard, where you can find, rename, and share them anytime.
 routebuilder.signin.to.save = Sign In & Save
 routebuilder.continue.without.account = Save Without an Account
@@ -547,6 +632,7 @@ footer.logo.create.alt = Center for Research and Education on Accessible Technol
 cities.dashboard.cities = Deployment Cities
 cities.dashboard.distance = Streets Explored
 cities.dashboard.cities.icon.alt = Wheelchair user from Project Sidewalk logo holding a flag
+cities.spotlight.title = Where Sidewalks Score Highest and Lowest Across Our Cities
 cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
 cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We''re always looking for new partners to help transform the future of urban accessibility.
 cities.dashboard.cta.button = Learn How to Deploy
@@ -573,7 +659,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validations
 sharedlabel.stat.miles = miles explored
 sharedlabel.legend.title = What these labels mean
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Your dashboard
 dashboard.you = You
 dashboard.hero.greeting = Welcome back, {0} 👋
@@ -673,6 +759,7 @@ dashboard.routes.rename = Rename
 dashboard.routes.delete = Delete
 dashboard.routes.stats = Explored by {0} · Completed by {1}
 dashboard.routes.stats.tooltip = Explored: how many people have started exploring this route. Completed: how many finished the whole route.
+dashboard.routes.region.and.more = {0} + {1} more
 dashboard.routes.view.title = View this route in RouteBuilder
 dashboard.routes.none = You haven''t built any routes yet.
 dashboard.routes.build.one = Build your first route →
@@ -698,12 +785,16 @@ dashboard.team.error.signin = Please sign in to create a team.
 dashboard.team.error.name.length = Team name must be 2–50 characters.
 dashboard.team.error.desc.length = Description is too long (max 300 characters).
 dashboard.team.error.name.allowed = That name isn''t allowed — please choose another.
+dashboard.team.error.name.comma = Team name can''t contain a comma.
+dashboard.team.error.name.numeric = Team name can''t be only numbers.
+dashboard.team.error.name.taken = That name is already taken by another team.
 dashboard.team.error.desc.allowed = That description isn''t allowed — please choose another.
 dashboard.nav.aria = Dashboard sections
 dashboard.nav.you = You
 dashboard.nav.community = Community
 dashboard.nav.dashboard = Dashboard
 dashboard.nav.settings = Settings
+dashboard.nav.manageuser = Manage user
 dashboard.toc.header = On This Page
 dashboard.settings.title = Settings
 dashboard.settings.intro = Manage your account, your team, and what you share with the community.
@@ -715,15 +806,33 @@ dashboard.settings.username.error.allowed = That username isn''t allowed — ple
 dashboard.settings.username.error.taken = That username is already taken.
 dashboard.settings.email = Email
 dashboard.settings.email.help = Used for sign-in and password resets. To change your email, contact <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+dashboard.settings.preferences = Preferences
 dashboard.settings.units = Measurement units
 dashboard.settings.units.auto = Default
 dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Miles & feet
 dashboard.settings.units.help = Distances across the site use these units. Leave it on "Default" to use the measurement units associated with the site''s language.
+dashboard.settings.password = Change password
+dashboard.settings.password.current = Current password
+dashboard.settings.password.new = New password
+dashboard.settings.password.new.confirm = Confirm new password
+dashboard.settings.password.forgot = Forgot your current password? <a href="{0}">Reset it by email</a> instead.
+dashboard.settings.password.submit = Change password
+dashboard.settings.password.changed = Your password has been changed, and you''ve been signed out on your other devices.
+dashboard.settings.password.error.current = That isn''t your current password.
+dashboard.settings.password.error.same = Your new password must be different from your current one.
+dashboard.settings.password.error.throttled = Too many attempts. Please wait up to {0} minutes, then try again.
+dashboard.settings.devices = Signed-in devices
+dashboard.settings.devices.help = Signed in somewhere you no longer use, like a shared computer? Sign out everywhere except this browser.
+dashboard.settings.devices.submit = Sign out of other devices
+dashboard.settings.devices.signed.out = You''ve been signed out on your other devices.
 dashboard.settings.service.hours = Volunteer service hours
 dashboard.settings.service.hours.toggle = Sign me up for community service hours
 dashboard.settings.service.hours.help = Opts you in to official recognition — your supervisor can verify your hours — and adds "Service hours" and "Time check" to your account menu.
 dashboard.settings.service.hours.link = How service hours work
+dashboard.settings.news.email = Email updates
+dashboard.settings.news.email.toggle = Send me news about Project Sidewalk
+dashboard.settings.news.email.help = Occasional updates about the project, each with an unsubscribe link. Emails about your account, like password resets, always arrive.
 dashboard.settings.team = Team
 dashboard.settings.team.label = Your team
 dashboard.settings.team.help = Join a team or class to map together and appear on the team leaderboard.
@@ -770,6 +879,16 @@ leaderboard.thisweek.none = ✨ No labels yet this week — be the first on the 
 leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Create or join a team to make a difference together!
 leaderboard.teams.none = 👥 No teams yet — be the first! Create one and invite friends or classmates.
+leaderboard.myteam.title = Your team: {0}
+leaderboard.myteam.intro = How you stack up against your teammates in {0}.
+leaderboard.myteam.none = 👥 No one on your team is on the leaderboard yet.
+leaderboard.myteam.you.hidden = You''re not listed because you turned off “{0}.”
+leaderboard.myteam.you.settings = Change it in Settings
+leaderboard.myteam.you.nolabels = You''ll show up here once you place your first label.
+leaderboard.myteam.pager = Team leaderboard pages
+leaderboard.myteam.prev = ‹ Previous
+leaderboard.myteam.next = Next ›
+leaderboard.myteam.page = Page {0} of {1}
 leaderboard.allcities.title = All cities, all-time
 leaderboard.allcities.intro = The top mappers across every Project Sidewalk city, ranked by total labels.
 leaderboard.allcities.note = Distance is refreshed once a day.
@@ -792,7 +911,7 @@ stories.page.search.placeholder = Type to filter stories…
 routes.page.search.placeholder = Type to filter routes…
 community.page.sort = Sort by
 community.page.sort.newest = Newest first
-community.page.sort.neighborhood = Neighborhood
+community.page.sort.region = Neighborhood
 community.page.count = {0} shown
 community.page.no.results = Nothing matches your search.
 community.page.cap.note = Only the newest {0} are shown.
@@ -827,3 +946,163 @@ error.500.id = Error ID: {0}
 error.500.report = If this keeps happening, please {0} and include the Error ID above so we can investigate.
 error.500.report.link = let us know
 error.home = Return to home
+
+# Neighborhood reports (#5876).
+report.seo.title = {0}: Neighborhood Report — Project Sidewalk
+report.eyebrow = Neighborhood report
+report.generated = Generated {0}.
+report.latest.observation = Latest label {0}.
+report.print = Print / Save PDF
+report.copy.link = Copy link
+report.count = {0}
+report.coverage.screened.label = Streets screened
+report.coverage.screened.value = {0} of {1} {2}
+report.coverage.screened.detail = {0}% of the explorable streets
+report.coverage.observations.label = Labels
+report.coverage.observations.detail = from {0,choice,1#1 person|1<{0} people} since {1}
+report.coverage.observations.none = None recorded yet
+report.coverage.reviewed.label = Reviewed
+report.coverage.reviewed.detail = checked by at least one reviewer
+report.coverage.confirmed.label = Confirmed
+report.coverage.confirmed.detail = more reviewers agreed than disagreed
+report.coverage.imagery.label = Median imagery year
+report.coverage.imagery.detail = {0}% is more than {1} years old
+report.coverage.imagery.none = No imagery dates recorded
+report.coverage.excluded = {0,choice,1#1 label|1<{0} labels} marked incorrect by review {0,choice,1#is|1<are} left out of every count on this page.
+report.headline.label = Headline finding
+report.headline.evidence = See {0,choice,1#this location|1<these {0} locations}
+report.headline.noalternate = {0,choice,1#Nearly every missing curb ramp has|1<About 1 in {0} missing curb ramps has} no way around it.
+report.headline.concentration = Just {0} streets hold {1}% of the locations rated worst.
+report.headline.worst = {0,choice,1#1 location|1<{0} locations} rated at the worst level, on {1,choice,1#1 street|1<{1} streets}.
+report.headline.none = None of the {0} locations here is rated at the worst level.
+report.streets.title = Street segments, lowest score first
+report.street.unnamed = Unnamed street ({0})
+report.street.score = Score {0}
+report.street.length = {0} {1} explored
+report.rule.label = How this list works.
+report.rule.text = Scores are AccessScore''s, from 0 to 100, lower meaning harder to get around. A street segment is a street between two intersections, roughly a block. It scores from what was found along it, and a crossing from what was found there, whichever street it was labeled from. A segment''s score averages its block and the crossing at each end, each counting the same. Each segment is listed on its own, so one street can appear more than once. A segment is ranked once it has been explored, is at least {0} m long, and has at least {1} locations along it or none at all.
+report.punch.title = Fixes that would matter most
+report.fix.map = Map of the spot on {0}
+report.fix.photo = Photo of the {0}
+report.fix.lede = The +number at the top of each card is how many points, out of 100, its street segment''s score would rise if that one spot were fixed.
+report.fix.raise = Fixing it would raise this segment''s score by {2} points, from {0} to {1}.
+report.places.near = Near
+report.place.school = school
+report.place.health = health care
+report.place.library = library
+report.place.grocery = grocery store
+report.place.transit = transit stop
+report.place.park = park
+report.place.community = community center
+report.place.government = government office
+report.fix.why.noalternate = It counts for this much because AccessScore weighs a missing curb ramp more heavily when there''s no other ramp nearby: anyone who needs one has no way around this corner.
+report.fix.why.corner = It counts for this much because it''s at a corner: a segment''s score weighs each corner at its ends as much as the whole block between them, and the corner counts against every street that meets there too.
+report.fix.why.worst = It counts for this much because it''s rated as severe as it gets, and nothing else found on {0} pulls the score down further.
+report.fix.why.costliest = Of everything found on {0}, this spot, for its type and rating, pulls the score down the most.
+report.punch.none = No location qualifies yet: this list needs one rated at or next to the worst that a reviewer has agreed with.
+report.punch.rule = How these were chosen: going down the ranked street segments, the one location per street that costs its segment''s score the most, meaning how far the score would rise without it. A location must cost at least {0,choice,1#1 point|1<{0} points}, be rated at or next to the worst (or be a type with no rating), and have a label at that rating that a reviewer agreed with and none disagreed with. Missing sidewalks along one segment count as one location here, since one pin more or less rarely moves a score. A segment with many problems can have no single location worth that much, so it may not appear.
+report.rating = Rated {0} of {1} ({1} is worst)
+report.inventory.title = What was observed, by type
+report.inventory.problems = Problems
+report.inventory.features = Access features
+report.inventory.neutral = Other labels
+report.inventory.none = No labels have been recorded here yet.
+report.inventory.type = Type
+report.inventory.observed = Labels
+report.inventory.worst.short = Worst rating
+report.inventory.worst.problems = Rated most severe
+report.inventory.worst.features = Rated poor
+report.inventory.worst.neutral = Rated most severe
+report.inventory.confirmed = Confirmed correct
+report.inventory.define.locations = Distinct spots. Several labels on one feature count once, and this is what AccessScore counts.
+report.inventory.define.observed = Every label placed here, leaving out any that validators rejected.
+report.inventory.define.worst = Labels given the worst rating: most severe for a problem, poor for a feature such as a curb ramp.
+report.inventory.define.confirmed = Labels that more validators agreed with than disagreed with.
+report.inventory.tags = Most common tags
+report.inventory.unrated = Not rated
+report.inventory.ratings.title = How each type was rated
+report.inventory.ratings.lede = Labels at each rating, as a share of the type''s labels. Problems are rated by severity, from low to high; features such as curb ramps by quality, from good to poor.
+report.scale.severity = severity
+report.scale.quality = quality
+report.scale.severity.1 = Low
+report.scale.severity.2 = Medium
+report.scale.severity.3 = High
+report.scale.quality.1 = Good
+report.scale.quality.2 = OK
+report.scale.quality.3 = Poor
+report.inventory.note = A location is one spot: labels from several people on the same feature count as one, and that''s what AccessScore counts. A dash means the type carries no rating, or isn''t scored.
+report.deeper.title = Go deeper
+report.deeper.labelmap = See every label on the map
+report.deeper.gallery = Browse the photos in Gallery
+report.deeper.accessscore = See AccessScore for this neighborhood
+report.deeper.explore = Help screen more streets here
+report.beta.badge = Beta
+report.beta.note = This report is new, so its layout and wording may still change. Tell us what''s useful or what looks wrong:
+report.provenance.title = About this report
+report.provenance.generated = Generated at
+report.provenance.version = App version
+report.provenance.data = Data
+report.provenance.csv = The labels this report counts (CSV)
+report.provenance.reviewers = Reviewers are people: votes cast by AI validators aren''t counted as reviewers on this page, though they do count toward whether a label is marked incorrect.
+report.coverage.unclustered = {0,choice,1#1 label is not part of any location, so it does not|1<{0} labels are not part of any location, so they do not} affect a score. They were added since the last AccessScore update, or came from a labeler whose work is left out of scoring.
+report.score.label = Neighborhood AccessScore
+report.score.value = {0} of 100
+report.score.detail = Lower means harder to get around.
+report.score.none = Not scored yet
+report.score.none.detail = AccessScore gives a neighborhood a score once {0}% of its streets are explored. So far, {1}% are.
+report.headline.nosidewalk = Sidewalks are missing somewhere along {0} of the {1} streets explored here.
+report.streets.title.sofar = Street segments so far, lowest score first
+report.streets.sofar = Only {0}% explored, so this can change.
+report.streets.none.unranked = No street segment here has enough evidence for AccessScore to rank it yet.
+report.street.block = Block {0}
+report.street.crossings = Crossings {0}
+report.street.slope = Slope costs {0} points
+report.street.length.partial = {0} of {1} {2} explored
+report.street.road = One of {0,choice,1#1 explored segment|1<{0} explored segments} on this street; together they score {1} over {2} {3}.
+report.street.between = between {0} and {1}
+report.street.near = near {0}
+report.streets.more = Show the other {0,choice,1#street segment|1<{0} street segments}
+report.count.locations = {0,choice,1#1 location|1<{0} locations}
+report.rule.docs = How AccessScore is calculated
+report.photo.cost = Costs this street {0} points
+report.inventory.locations = Locations
+report.inventory.unscored = Not scored
+report.provenance.scored = AccessScore updated
+report.provenance.csv.streets = The street scores (CSV)
+report.provenance.csv.locations = The locations behind them (CSV)
+report.computing.title = This report is still being prepared
+report.computing.body = AccessScore is calculating this city''s scores, which takes a minute or two after an update. Reports use those same scores, so this one has to wait for them.
+report.computing.retry = Try again
+report.map.street.label = Map of {0}
+report.map.region.label = Map of the streets in {0}
+report.map.color.title = Color streets by
+report.map.color.score = AccessScore
+report.map.color.slope = Steepest grade
+report.weights.title = Weights
+report.weights.help = How much each kind of problem or feature counts. Moving one re-scores this page with AccessScore''s own formula.
+report.weights.reset = Reset weights
+report.weights.custom = Custom weights: these scores are not AccessScore''s published ones.
+report.map.sidewalks.absent = Labeled no sidewalk
+report.map.sidewalks.present = Likely sidewalk
+report.map.sidewalks.help = Draws each side of a street in place of its center line: in the street''s own color where a sidewalk is likely, dashed where one was labeled missing. Inferred from labels, not surveyed: a sidewalk shown here means nobody labeled it missing.
+report.map.sidewalks = Sidewalks (inferred)
+report.map.title = On the maps
+report.streets.score.label = AccessScore {0}
+report.sidebar.label = Report settings
+report.toc.details = Segment by segment
+report.details.order = {0,choice,1#The lowest-scoring street segment|1<The {0} lowest-scoring street segments}, lowest score first, in the same order as the list above.
+report.toc.streets = All street segments
+report.toc.summary = Summary
+report.toc.title = On this page
+report.provenance.rules = How the numbers work
+report.punch.rule.short = On each street, the one location whose fix would raise its segment''s score the most. About this report has the full rule.
+report.rule.short = AccessScore''s own scores, 0 to 100. Lower means harder to get around. About this report explains how they work.
+report.worst.title = Where the worst problems are
+report.worst.rule = Every location rated at the worst end of its type''s scale: high severity for a problem, poor for a feature such as a curb ramp. A location''s rating is the median of the labels on it, the one its score uses, so these counts can be lower than the labels rated worst in the table below.
+report.worst.none = No location here is rated at the worst end of its scale.
+report.worst.none.sofar = No location here is rated at the worst end of its scale yet.
+report.worst.map.label = Map of the worst problems in {0}
+report.worst.lede = {0,choice,1#1 location|1<{0} locations} rated worst, by type:
+report.worst.count.label = {0,choice,1#1 location|1<{0} locations}: {1}. See the labels
+report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map. Turn on "{0}" in the sidebar to see them as dashed lines on the other maps.
+report.toc.worst = Worst problems

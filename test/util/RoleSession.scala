@@ -1,21 +1,22 @@
 package util
 
-import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.silhouette.api.Silhouette
+import play.silhouette.api.services.AuthenticatorService
+import play.silhouette.impl.authenticators.CookieAuthenticator
 import service.AuthenticationService
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Mints signed-in sessions holding a given role, for specs that pin a role-gated route with a real caller.
@@ -25,11 +26,11 @@ import scala.concurrent.duration._
  * route and promoted with a DB write, mirroring how a throwaway admin is made for QA; the promotion is undone in
  * `afterAll` so no standing admin is left in a shared development database. The account is identified by resolving
  * the session's own authenticator, so concurrently running suites minting their own sessions can't be confused for
- * it. Mix into a `PlaySpec` **before** `GuiceOneAppPerSuite` (`PlaySpec with RoleSession with GuiceOneAppPerSuite
+ * it. Mix into a `SidewalkSpec` **before** `GuiceOneAppPerSuite` (`SidewalkSpec with RoleSession with GuiceOneAppPerSuite
  * with AnonSession`): the demotion in `afterAll` needs the app's DB pool, and a trait mixed in later would run its
  * `afterAll` outside the app's lifetime.
  */
-trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPerSuite with AnonSession =>
+trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPerSuite & AnonSession =>
 
   private lazy val roleSessionDbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -42,7 +43,7 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
    * A bare signup carries the Anonymous role, which is sent to sign in whatever role an action wants; only a
    * registered role (e.g. "Registered", "Administrator") reaches the branch that refuses by name.
    */
-  protected def sessionAs(role: Role.Value): Seq[Cookie] = {
+  protected def sessionAs(role: Role): Seq[Cookie] = {
     val cookies = freshAnonSession()
     val userId  = userIdOf(cookies)
     promotedUserIds ::= userId
@@ -50,32 +51,44 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
     cookies
   }
 
-  /** The user id behind a session's cookies, read back through Silhouette from the authenticator they carry. */
-  protected def userIdOf(cookies: Seq[Cookie]): String = {
+  /** The app's cookie authenticator service, for specs that read or forge session cookies. */
+  protected lazy val authenticatorService: AuthenticatorService[CookieAuthenticator] =
     // Resolved through Guice's TypeLiteral rather than injector.instanceOf: the latter takes a ClassTag, so the
     // DefaultEnv parameter erases and Guice looks for a raw Silhouette binding that does not exist.
-    val silhouetteKey = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
-    val env           = app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env
+    app.injector
+      .instanceOf[GuiceInjector]
+      .getInstance(Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {}))
+      .env
+      .authenticatorService
+
+  /** The user id behind a session's cookies, read back through Silhouette from the authenticator they carry. */
+  protected def userIdOf(cookies: Seq[Cookie]): String = {
     val authenticator =
-      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies: _*)), 30.seconds)
+      Await.result(authenticatorService.retrieve(using FakeRequest().withCookies(cookies*)), 30.seconds)
     val user = authenticator.flatMap { auth =>
       Await.result(app.injector.instanceOf[AuthenticationService].retrieve(auth.loginInfo), 30.seconds)
     }
     user.map(_.userId).getOrElse(fail("The minted session's cookies resolve to no user."))
   }
 
-  /** Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. */
-  protected def setRole(userId: String, role: Role.Value): Unit = {
+  /**
+   * Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. A signed-in
+   * role also gets Infra3D access, as a real one would be granted it; anonymous users can never have it.
+   */
+  protected def setRole(userId: String, role: Role): Unit = {
     val _ = Await.result(
       roleSessionDbConfig.db.run(
-        // The cast is required: the URL sets no stringtype=unspecified, so pgjdbc binds this as varchar, and Postgres
-        // has no varchar-to-enum assignment cast. Qualified so it doesn't depend on search_path.
         sqlu"""UPDATE sidewalk_login.user_role
-               SET role = ${role.toString}::sidewalk_login.role
+               SET role = $role
                WHERE user_id = $userId"""
       ),
       60.seconds
     )
+    setInfra3dAccess(userId, access = role != Role.Anonymous)
+  }
+
+  private def setInfra3dAccess(userId: String, access: Boolean): Unit = {
+    val _ = Await.result(app.injector.instanceOf[AuthenticationService].setInfra3dAccess(userId, access), 60.seconds)
   }
 
   override def afterAll(): Unit = {

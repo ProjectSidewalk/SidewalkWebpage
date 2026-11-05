@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -16,7 +16,7 @@ class VersionTableDef(tag: Tag) extends Table[Version](tag, "version") {
   def versionStartTime: Rep[OffsetDateTime] = column[OffsetDateTime]("version_start_time")
   def description: Rep[Option[String]]      = column[Option[String]]("description")
 
-  def * = (versionId, versionStartTime, description) <> ((Version.apply _).tupled, Version.unapply)
+  def * = (versionId, versionStartTime, description).mapTo[Version]
 }
 
 @ImplementedBy(classOf[VersionTable])
@@ -45,7 +45,7 @@ object VersionTable {
 }
 
 @Singleton
-class VersionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class VersionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends VersionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

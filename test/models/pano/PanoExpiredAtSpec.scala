@@ -1,19 +1,19 @@
 package models.pano
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `pano_data.expired_at` (#4928, evolution 358).
@@ -21,16 +21,16 @@ import scala.concurrent.duration._
  * The column answers "when did this pano's imagery go away", which `last_checked` cannot: the nightly sweep re-checks
  * already-expired panos and bumps `last_checked` every time, so only a value written on the false -> true edge can
  * date the disappearance. Every case here is that edge condition — stamped once, never re-stamped by a confirming
- * re-check, cleared when the imagery comes back.
+ * re-check, cleared when the imagery comes back. It also checks that a still-there re-check leaves `last_viewed` alone.
  *
  * Seeds its own pano rather than hunting for one in the connected DB, so it can never pass vacuously. Requires a
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no background sweep touches the row mid-test.
  */
-class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class PanoExpiredAtSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   private val dbConfig      = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -110,6 +110,19 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
       an[Exception] must be thrownBy {
         run(sqlu"UPDATE pano_data SET expired_at = now() WHERE pano_id = $panoId")
       }
+    }
+  }
+
+  "updateExpiredStatus" should {
+    "record a still-there check in last_checked without touching last_viewed" in {
+      val viewedAt = OffsetDateTime.now.minusDays(30)
+      run(panoDataTable.upsert(freshPano(viewedAt)))
+      val checkedAt = OffsetDateTime.now
+      run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), checkedAt))
+
+      val pano = run(panoDataTable.getPano(panoId)).get
+      micros(pano.lastViewed) mustBe micros(viewedAt)
+      micros(pano.lastChecked) mustBe micros(checkedAt)
     }
   }
 

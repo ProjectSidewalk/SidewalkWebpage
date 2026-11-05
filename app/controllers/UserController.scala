@@ -1,29 +1,30 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
-import forms._
-import models.auth.DefaultEnv
-import models.user.{Role, SidewalkUserWithRole, UserUtm}
-import models.utils.ProfanityGuard
-import net.ceedubs.ficus.Ficus._
+import controllers.helper.ControllerUtils.{clearUtmCookie, fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
+import forms.*
+import models.auth.{DefaultEnv, RememberMeSettings}
+import models.user.{NewsEmailOptOutSource, Role, SidewalkUserWithRole, UserUtm}
+import models.utils.{IpAddress, ProfanityGuard}
 import play.api.i18n.Messages
-import play.api.libs.json.{JsError, JsObject, JsString, Json}
+import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
+import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
-import play.silhouette.api.Authenticator.Implicits._
-import play.silhouette.api._
+import play.silhouette.api.*
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
-import play.silhouette.api.util.{Clock, PasswordHasher}
+import play.silhouette.api.util.PasswordHasher
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
 
+import java.time.OffsetDateTime
 import java.util.UUID
-import javax.inject._
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.*
+import scala.concurrent.{blocking, ExecutionContext, Future}
 import scala.util.Random
+import scala.util.control.NonFatal
 
 @Singleton
 class UserController @Inject() (
@@ -34,38 +35,19 @@ class UserController @Inject() (
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     passwordHasher: PasswordHasher,
-    clock: Clock,
+    rememberMeSettings: RememberMeSettings,
     mailerClient: MailerClient,
     rateLimiter: service.RateLimiter
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * True when the auth dialog submitted via fetch and wants JSON back instead of a redirect/page.
    */
-  private def wantsJson(implicit request: play.api.mvc.RequestHeader): Boolean =
+  private def wantsJson(using request: play.api.mvc.RequestHeader): Boolean =
     request.headers.get("X-Requested-With").contains("XMLHttpRequest")
-
-  /**
-   * Maps form binding errors to the async error contract: `{"errors": {field -> localized message}}`.
-   *
-   * Form-level (global) errors, like a password mismatch, land under the `_summary` key that the dialog renders as
-   * its top banner.
-   */
-  private def formErrorsJson(formWithErrors: play.api.data.Form[_])(implicit messages: Messages): JsObject = {
-    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
-      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
-    }
-    Json.obj("errors" -> JsObject(fields))
-  }
-
-  /**
-   * The async error contract for a single field: `{"errors": {field -> localized message}}`.
-   */
-  private def fieldErrorJson(field: String, message: String): JsObject =
-    Json.obj("errors" -> Json.obj(field -> message))
 
   /**
    * Counts this attempt against a named rate limit's keys; if any is exceeded, returns a ready 429, else `None`.
@@ -80,7 +62,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if throttled, `None` if the attempt is allowed.
    */
-  private def rateLimited(name: String, keys: Seq[String], redirect: String)(implicit
+  private def rateLimited(name: String, keys: Seq[String], redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit       = rateLimiter.limit(name)
@@ -100,7 +82,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if already over budget, `None` if there is room.
    */
-  private def failureThrottled(name: String, key: String, redirect: String)(implicit
+  private def failureThrottled(name: String, key: String, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit = rateLimiter.limit(name)
@@ -115,7 +97,7 @@ class UserController @Inject() (
    * @param limit       The limit they tripped; its window is the fallback when a key has no live window.
    * @param redirect    Where the no-JS fallback should bounce to.
    */
-  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(implicit
+  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): play.api.mvc.Result = {
     // Quote the longest wait among the tripped scopes, from when its window actually clears (#4740).
@@ -144,7 +126,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signInMobile() = Action { request =>
+  def signInMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signIn().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -165,29 +147,35 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signUpMobile() = Action { request =>
+  def signUpMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
   /**
-   * Handles the sign-out action.
+   * Signs the user out and redirects to `url`.
+   *
+   * Anyone else goes home instead: `url` is often a tool page, which makes a new account for a visitor without one.
+   * A link from another site never signs anyone out, so other sites can't sign users out (#5706).
    */
-  def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, "SignOut")
-    silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
+  def signOut(url: String) = silhouette.UserAwareAction.async { implicit request =>
+    val fromOtherSite = request.headers.get("Sec-Fetch-Site").contains("cross-site")
+    (request.identity, request.authenticator) match {
+      case _ if fromOtherSite                => Future.successful(Redirect("/"))
+      case (Some(user), Some(authenticator)) =>
+        cc.loggingService.insert(user.userId, request.ipAddress, "SignOut")
+        silhouette.env.eventBus.publish(LogoutEvent(user, request))
+        silhouette.env.authenticatorService.discard(authenticator, Redirect(safeLocalPath(url)))
+      case (None, Some(authenticator)) => silhouette.env.authenticatorService.discard(authenticator, Redirect("/"))
+      case _                           => Future.successful(Redirect("/"))
+    }
   }
 
-  /**
-   * Handles the 'forgot password' action
-   */
-  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
-        Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
-      }
-    } else Future.successful(Redirect(url))
+  /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
+  def forgotPassword = silhouette.UserAwareAction.async { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
+      Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData, request.identity))
+    }
   }
 
   /**
@@ -198,7 +186,7 @@ class UserController @Inject() (
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token))
+          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token, request.identity))
         }
       case None =>
         Future.successful(
@@ -207,9 +195,7 @@ class UserController @Inject() (
     }
   }
 
-  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  // User-aware (#4643): public pages log page-view/interaction beacons through this for cookie-less visitors too;
-  // a missing identity is logged under the shared default anonymous user inside LoggingService.
+  // Saves a page's activity string to webpage_activity. Works without a session too, logging no user (#4643).
   def logWebpageActivity() = cc.securityService.UserAwareAction(parse.json) { implicit request =>
     request.body
       .validate[String]
@@ -228,7 +214,7 @@ class UserController @Inject() (
    * Powers the one-click opt-in on `/welcome` and the toggle on `/serviceHoursInstructions` (both plain form POSTs so
    * they work without JS). Anonymous users can't opt in — they're sent to sign-up instead.
    *
-   * @param enabled Whether to enable (true) or disable (false) `user_role.community_service`.
+   * @param enabled Whether to enable (true) or disable (false) `user_settings.community_service`.
    * @param next    Same-origin path to return to; defaults to (and is constrained to) `/serviceHoursInstructions`.
    */
   def setServiceHours(enabled: Boolean, next: Option[String]) =
@@ -236,7 +222,7 @@ class UserController @Inject() (
       val target = safeLocalPath(next.getOrElse("/serviceHoursInstructions"), "/serviceHoursInstructions")
       if (request.identity.role == Role.Anonymous) Future.successful(Redirect(routes.UserController.signUp()))
       else
-        authenticationService.setCommunityServiceStatus(request.identity.userId, enabled).map { _ =>
+        userService.setCommunityService(request.identity.userId, enabled).map { _ =>
           cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ServiceHours_Set=$enabled")
           Redirect(target)
         }
@@ -246,7 +232,7 @@ class UserController @Inject() (
    * Authenticates a user.
    */
   def authenticate() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String          = request.ipAddress
+    val ipAddress: IpAddress       = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
     // Two per-IP bounds, both before any work happens. The per-minute one caps how *fast* one address can drive the
@@ -332,22 +318,12 @@ class UserController @Inject() (
                           // Correct credentials: refund the account's budget so a run of typos doesn't follow the
                           // user into their next session.
                           rateLimiter.clear(idKey)
-                          val c = config.underlying
                           silhouette.env.authenticatorService
                             .create(loginInfo)
-                            .map {
-                              case authenticator if data.rememberMe =>
-                                // Set up the remember me cookie.
-                                authenticator.copy(
-                                  expirationDateTime = clock.now + c
-                                    .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
-                                  idleTimeout = c.getAs[FiniteDuration](
-                                    "silhouette.authenticator.rememberMe.authenticatorIdleTimeout"
-                                  ),
-                                  cookieMaxAge =
-                                    c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
-                                )
-                              case authenticator => authenticator
+                            .map { authenticator =>
+                              if (data.rememberMe)
+                                authenticator.copy(cookieMaxAge = Some(rememberMeSettings.cookieMaxAge))
+                              else authenticator
                             }
                             .flatMap { authenticator =>
                               // Log successful sign in attempt.
@@ -356,15 +332,17 @@ class UserController @Inject() (
 
                               // Sign in the user.
                               silhouette.env.eventBus.publish(LoginEvent(user, request))
-                              silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
-                                silhouette.env.authenticatorService.embed(v, result)
-                              }
+                              for {
+                                v      <- silhouette.env.authenticatorService.init(authenticator)
+                                signIn <- silhouette.env.authenticatorService.embed(v, result)
+                                _      <- saveUtms(user.userId)
+                              } yield clearUtmCookie(signIn, config)
                             }
                         case None =>
                           // Log failed sign-in due to a database issue.
                           val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
                           cc.loggingService.insert(currUserId, ipAddress, activity)
-                          Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                          Future.failed(IdentityNotFoundException("Couldn't find the user in db"))
                       }
                     }
                     .recover {
@@ -406,7 +384,7 @@ class UserController @Inject() (
    * Registers a new user.
    */
   def signUpPost() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String         = request.ipAddress
+    val ipAddress: IpAddress      = request.ipAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
     // Grab the URL we want to redirect to that was passed as a hidden field in the form.
@@ -478,22 +456,53 @@ class UserController @Inject() (
                 val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
                 val newUser           =
                   SidewalkUserWithRole(newUserId, data.username, email, Role.Registered, communityService = false,
-                    false)
-                val pwInfo = passwordHasher.hash(data.password)
+                    false, measurementSystem = None)
+                val pwInfo              = passwordHasher.hash(data.password)
+                val newsEmailPreChecked = configService.getNewsEmailPreChecked
 
-                for {
+                (for {
                   user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
                   authenticator <- silhouette.env.authenticatorService.create(loginInfo)
                   value         <- silhouette.env.authenticatorService.init(authenticator)
                   result        <- silhouette.env.authenticatorService.embed(value, result)
+                  _             <- saveUtms(user.userId)
+                  // A box left at its default writes nothing. Ticking a box that started unchecked is consent; an
+                  // unchecked box is an opt-out, recorded as turned off or left off.
+                  _ <- (data.newsEmail, newsEmailPreChecked) match {
+                    case (true, true)  => Future.successful(0)
+                    case (true, false) => userService.consentToNewsEmail(user.userId)
+                    case (false, true) =>
+                      userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.SignUpOptedOut)
+                    case (false, false) =>
+                      userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.SignUpNotOptedIn)
+                  }
                 } yield {
                   // Log the sign-up/in.
                   cc.loggingService.insert(user.userId, ipAddress, "SignUp")
                   cc.loggingService.insert(user.userId, ipAddress, "SignIn")
+                  if (data.newsEmail != newsEmailPreChecked) {
+                    val _ = cc.loggingService.insert(
+                      user.userId,
+                      ipAddress,
+                      s"Click_module=NewsEmail_subscribed=${data.newsEmail}_source=SignUp"
+                    )
+                  }
 
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))
-                  result
+                  clearUtmCookie(result, config)
+                }).recoverWith {
+                  // Two sign-ups for one email or username at once both pass the checks above, or the account holding
+                  // it has no role row and is invisible to them; either way the schema rejects the second insert.
+                  case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+                    if (e.getServerErrorMessage.getConstraint == "sidewalk_user_username_key")
+                      rejection(
+                        "Duplicate_Username_Error",
+                        "username",
+                        Messages("authenticate.error.username.exists"),
+                        Conflict
+                      )
+                    else rejection("Duplicate_Email_Error", "email", Messages("user.exists"), Conflict)
                 }
               }
             }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
@@ -512,14 +521,21 @@ class UserController @Inject() (
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) if user.role != Role.Anonymous =>
-        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          privacy    <- userService.getPrivacySettings(user.userId)
+        } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")
           // Landing on a generic entry point isn't an interruption worth naming; anything else is a page the user
           // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
-          val resumedPath = resumeUrl.takeWhile(_ != '?')
-          val resumed     = resumedPath != "/" && resumedPath != "/explore"
-          Ok(views.html.authentication.welcome(commonData, user, resumeUrl, resumed))
+          val resumedPath                    = resumeUrl.takeWhile(_ != '?')
+          val resumed                        = resumedPath != "/" && resumedPath != "/explore"
+          val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
+          Ok(
+            views.html.authentication.welcome(commonData, user, resumeUrl, resumed, onLeaderboard, publicProfile,
+              configService.getPrivateProfilesByDefault)
+          )
         }
       case _ => Future.successful(Redirect("/"))
     }
@@ -530,9 +546,10 @@ class UserController @Inject() (
    */
   def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
+    val target  = safeLocalPath(url)
     request.identity match {
       case Some(user) =>
-        Future.successful(Redirect(url, qString))
+        Future.successful(Redirect(target, qString))
       case None =>
         // Each anon sign-up costs a bcrypt hash and inserts across several tables, unauthenticated, so it needs its
         // own IP bound. Checked directly rather than via rateLimited(): that helper's no-JS branch redirects, and any
@@ -546,12 +563,12 @@ class UserController @Inject() (
             TooManyRequests(Messages("authenticate.error.too.many"))
               .withHeaders("Retry-After" -> retryAfter.toString)
           )
-        } else signUpAnonUser(url, qString)
+        } else signUpAnonUser(target, qString)
     }
   }
 
-  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `url`. */
-  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(implicit
+  /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `target`. */
+  private def signUpAnonUser(target: String, qString: Map[String, Seq[String]])(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val randomPassword: String = Random.alphanumeric take 16 mkString ""
@@ -566,44 +583,50 @@ class UserController @Inject() (
       value         <- silhouette.env.authenticatorService.init(authenticator)
       // Strip UTM params from redirect to avoid double-capture in index().
       qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
-      result <- silhouette.env.authenticatorService.embed(value, Redirect(url, qStringNoUtm))
+      result <- silhouette.env.authenticatorService.embed(value, Redirect(target, qStringNoUtm))
 
-      // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229). UTM
-      // params are stripped from the redirect URL (above) to avoid double-capture when index() also checks for UTM
-      // params on returning users.
-      _ <- {
-        if (ControllerUtils.hasUtmParams(qString)) {
-          val flat = qString.map { case (k, v) => k -> v.mkString }
-          userService.insertUserUtm(
-            UserUtm(
-              0, user.userId, flat.get("utm_source"), flat.get("utm_medium"), flat.get("utm_campaign"),
-              flat.get("utm_content"), flat.get("utm_term"), configService.getCityId, java.time.OffsetDateTime.now
-            )
-          )
-        } else Future.successful(())
-      }
+      _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString))
     } yield {
       // Log the anon sign-up along with url and query string of the page they came from.
       val activityStr =
-        if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
-        else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
+        if (qString.isEmpty) s"""AnonAutoSignUp_url="$target""""
+        else s"""AnonAutoSignUp_url="$target?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
       cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
       silhouette.env.eventBus.publish(SignUpEvent(user, request))
       silhouette.env.eventBus.publish(LoginEvent(user, request))
 
-      result
+      clearUtmCookie(result, config)
     }
   }
 
   /**
-   * Sends an email with password reset instructions.
+   * Credits campaign visits to an account that just signed up or in: those held in the cookie, then the link's own.
+   * Best-effort, since analytics must never block an account; rows go in oldest first so their ids follow visit order.
    *
-   * It sends an email to the given address if it exists in the database. Otherwise we do not show the user
-   * a notice for not existing email addresses to prevent the leak of existing email addresses.
+   * @param linkUtm Campaign params on the current request's link.
+   * @return        Completes even if the write fails.
+   */
+  private def saveUtms(userId: String, linkUtm: Map[String, String] = Map.empty)(using
+      request: RequestHeader
+  ): Future[Unit] = {
+    val linkVisit = Option.when(linkUtm.nonEmpty)(
+      UserUtm.fromParams(userId, linkUtm, configService.getCityId, OffsetDateTime.now)
+    )
+    val visits = ControllerUtils.utmVisitsFromCookie(request).map(_.copy(userId = userId)) ++ linkVisit
+    visits
+      .foldLeft(Future.unit)((prev, visit) => prev.flatMap(_ => userService.insertUserUtm(visit).map(_ => ())))
+      .recover { case e => logger.error(s"Failed to save campaign visits for user $userId", e) }
+  }
+
+  /**
+   * Sends password reset instructions to the submitted email when it belongs to an account.
+   *
+   * The confirmation is the same whether or not the address is registered; only a failed send is reported to the
+   * user (#4531).
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String      = request.ipAddress
+    val ipAddress: IpAddress   = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
     // Per-IP throttle on reset requests; the per-target-email one is post-bind, further down.
@@ -614,7 +637,7 @@ class UserController @Inject() (
         .fold(
           form =>
             configService.getCommonPageData(request2Messages.lang).map { commonData =>
-              BadRequest(views.html.authentication.forgotPassword(form, commonData))
+              BadRequest(views.html.authentication.forgotPassword(form, commonData, request.identity))
             },
           email => {
             // Per-target-email throttle (only possible after form binding) so one address can't be reset-mail bombed
@@ -627,17 +650,29 @@ class UserController @Inject() (
     }
   }
 
-  /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
-  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: String)(implicit
+  /**
+   * Emails password reset instructions to `email` if it belongs to an account.
+   *
+   * An unknown address and a delivered email get the same confirmation, so the response never says whether an
+   * address is registered. A send that fails is the one exception: the user is told it did not go out rather than
+   * left waiting for mail that will never arrive (#4531). That does differ from the unknown-address response while
+   * the mailer is down, a signal the per-IP and per-email `forgot` throttles keep expensive to probe.
+   *
+   * @param email The address the user typed into the form.
+   * @param userId The signed-in user making the request, if any.
+   * @param ipAddress The requester's IP address, for the webpage_activity log.
+   * @return A redirect back to the form carrying an `info` flash when the reset link was sent or the address is
+   *         unknown, or an `error` flash when the send failed.
+   */
+  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
-    val result = Redirect(routes.UserController.forgotPassword())
+    val sentResult = Redirect(routes.UserController.forgotPassword)
       .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
     cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
     authenticationService.findByEmail(email).flatMap {
       case Some(user) =>
-        // User exists, create a new token and send an email with the reset link.
         authenticationService.createToken(user.userId).flatMap { authTokenID =>
           val url = routes.UserController.resetPasswordPage(authTokenID).absoluteURL()
 
@@ -648,29 +683,31 @@ class UserController @Inject() (
             bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
           )
 
-          try {
-            mailerClient.send(resetEmail)
-            cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
-            Future.successful(result)
-          } catch {
-            case e: Exception =>
+          // The SMTP client blocks for up to play.mailer.connectiontimeout + play.mailer.timeout; `blocking` lets the
+          // pool compensate rather than starve other requests on it. An unsent token is harmless: nobody knows it,
+          // it expires on its own, and a retry creates a fresh one.
+          Future(blocking(mailerClient.send(resetEmail)))
+            .map { _ =>
+              cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
+              sentResult
+            }
+            .recover { case NonFatal(e) =>
               cc.loggingService.insert(
                 userId,
                 ipAddress,
                 s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
               )
-              logger.error("Failed to send password reset email", e)
-              // Show the same confirmation regardless: a mailer outage must not 500 the user, nor reveal
-              // (via a differing response) that this email is registered. Delivery health is ops' concern.
-              Future.successful(result)
-          }
+              logger.error(s"Failed to send password reset email to $email", e)
+              Redirect(routes.UserController.forgotPassword)
+                .flashing("error" -> Messages("reset.pw.email.send.failed"))
+            }
         }
 
-      // This is the case where the email was not found in the database.
+      // Nothing is sent for an unknown address, so nothing can fail: same confirmation as a delivery.
       case None =>
         cc.loggingService
           .insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=EmailNotFound""")
-        Future.successful(result)
+        Future.successful(sentResult)
     }
   }
 
@@ -687,7 +724,7 @@ class UserController @Inject() (
   }
 
   /** Validates the reset `token` and updates the account's password from the submitted form. */
-  private def resetPasswordWithToken(token: String)(implicit
+  private def resetPasswordWithToken(token: String)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     authenticationService.validateToken(token).flatMap {
@@ -698,16 +735,25 @@ class UserController @Inject() (
             form =>
               configService.getCommonPageData(request2Messages.lang).map { commonData =>
                 cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-                BadRequest(views.html.authentication.resetPassword(form, commonData, token))
+                BadRequest(views.html.authentication.resetPassword(form, commonData, token, request.identity))
               },
             passwordData =>
               authenticationService.findByUserId(authToken.userID).flatMap {
                 case Some(user) =>
                   val passwordInfo = passwordHasher.hash(passwordData.password)
-                  authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
+                  authenticationService.updatePassword(user.userId, passwordInfo).flatMap { _ =>
                     authenticationService.removeToken(token)
                     cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
-                    Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
+                    val flash = "success" -> Messages("reset.pw.successful")
+                    // A browser signed in to this account keeps a new cookie and goes to Settings, because /signIn
+                    // bounces a signed-in user to the homepage, losing the message.
+                    (request.identity, request.authenticator) match {
+                      case (Some(identity), Some(authenticator)) if identity.userId == user.userId =>
+                        val settings = routes.UserDashboardController.settings.withFragment("change-password")
+                        silhouette.env.authenticatorService.renew(authenticator, Redirect(settings).flashing(flash))
+                      case _ =>
+                        Future.successful(Redirect(routes.UserController.signIn()).flashing(flash))
+                    }
                   }
                 case _ =>
                   Future.successful(

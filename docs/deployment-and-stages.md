@@ -30,6 +30,82 @@ mechanism as `application.local.conf` in local dev). For example, the Silhouette
 `prod-authenticator` in the base config and is overridden in the test/local overlays, so sessions don't collide
 across environments.
 
+### Search-engine indexing
+
+The app decides whether a deployment may be indexed, from static config only. `SeoUtils.isIndexable` requires all
+three of: `environment-type = "prod"`, `city-params.status.<cityId> = "public"`, and a pano source that isn't
+Infra3D (whose imagery licence puts every page behind a sign-in, so a cookie-less crawler can reach nothing). That
+one predicate drives every indexing signal:
+
+| Signal | Where | On a non-indexable deployment |
+|---|---|---|
+| `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, routed 4xx |
+| `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
+
+`robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
+`Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
+`noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
+
+`SearchIndexingCheck` (a `StartupChecksModule` check) logs each instance's verdict at boot, so the rollout below is
+verifiable from the deploy log rather than by curling every host:
+
+```
+INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
+pano-viewer-type=gsv); 41 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+```
+
+`AiSeedRowsRepair` (the same module) logs one line per boot about the SidewalkAI user's per-schema rows, which a city
+created by cloning a donor or restoring an onboarding dump lacks until its first boot on a release that carries the
+repair (#5349). A restart is what triggers it; the two lines to expect are:
+
+```
+INFO m.AiSeedRowsRepair - SidewalkAI seed rows: present.
+WARN m.AiSeedRowsRepair - SidewalkAI seed rows: inserted its user_stat row and aiValidation missions for CurbRamp,
+NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, Other. This schema was created without
+281.sql's rows (#5349).
+```
+
+An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
+foreign-key case (`sidewalk_login` has no SidewalkAI account).
+
+`OrphanedJobRunSweep` (the same module) closes the `background_job_run` rows the previous process left open (#5236):
+a deploy or crash that kills a job mid-run leaves its row `running`, and nothing else would ever close it. Every run
+that started before this JVM did is marked `interrupted` (one WARN line each), which is safe because a stage runs
+exactly one process per city schema. Expect one of:
+
+```
+INFO m.OrphanedJobRunSweep - Orphaned job runs: none.
+WARN m.OrphanedJobRunSweep - Orphaned job run: #1234 crop-generation-actor (scheduled) started
+2026-09-05T06:00:01-07:00 was still open when this process started at 2026-09-07T17:09:12.345-07:00; marked
+interrupted.
+```
+
+A WARN on a boot that followed a deploy names the jobs that deploy cut off. Each job's own outcome is logged by
+`JobRunService` as `<job> (<trigger>) run succeeded in Ns.` or `<job> (<trigger>) run failed after Ns: <error>`.
+
+It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
+is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
+refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
+the Taiwan deployments all read `${city-params.status.taipei}`, so editing one entry moves six.
+
+`SeoRobotsFilter` is prepended to `play.filters.enabled` so it is the outermost filter — Play composes that list
+outermost-first, so appending it would leave CSRF and AllowedHosts rejections uncovered.
+
+Every vhost `lab/sidewalk-tools` provisions hardcodes `Header set X-Robots-Tag "noindex, nofollow"`. Apache applies
+that *after* the backend, so it masks whatever the app says — suppressing all of production, while being the only
+thing keeping the private cities out of the index (#5120). Removing it is
+[sidewalk-tools !65](https://gitlab.cs.washington.edu/lab/sidewalk-tools/-/merge_requests/65) plus a sweep of the
+existing `/etc/httpd/conf.d/*.cs.conf` files by IT. **Ordering matters:** the app-side predicate must be deployed
+before the header is stripped from a *private* city's vhost, or that city is exposed in the gap. Public cities' vhosts
+can be swept at any time.
+
+The vhost header currently covers non-2xx responses too — measured 2026-09-09, a 404 from a private city comes back
+with `X-Robots-Tag: noindex, nofollow` — so do not plan the sweep on the assumption that the app-side header is
+strictly broader. It is broader in one direction (it follows the city's own config instead of the vhost template) and
+narrower in one: a 500 raised by an exception escaping the filter chain is recovered outside the filters and carries
+no header. Google does not index 5xx, so this costs nothing in practice, but the claim "strictly broader" is wrong.
+
 ## How code reaches each stage
 
 Deployment is driven by what you push to the [`SidewalkWebpage`](https://github.com/ProjectSidewalk/SidewalkWebpage)
@@ -160,7 +236,9 @@ A hotfix that changes no schema *still* needs step 4 for the displayed version t
 
 Deploying an older tag rolls the **schema** back too: `autoApplyDowns=true` (`conf/application.conf`, no stage
 override) means each city instance runs the `Downs` of every evolution above the target version at startup,
-unattended. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
+unattended. CI runs the Downs of every evolution newer than the last release before it ships (#5839,
+[`evolutions.md`](evolutions.md) → "Downs have to work"), but on test data, so it can't rule out a conflict with
+real data. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
@@ -266,12 +344,14 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 A deploy builds the app essentially the same way you do locally, in this order:
 
 1. Install Python deps (`requirements.txt`) — needed by `label_clustering.py`, which the running app invokes
-   **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
-   fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
-   system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
-   into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
+   **in-band** during clustering. These must land in the `/usr/bin/python3.12` the app shells out to
+   (`ClusterService`), or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
+   That is Rocky 9's add-on `python3.12` package, installed beside the system Python, which stays untouched (#4396).
+   The out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` is only installed in the web
+   container.
+2. `npm ci`, then `npm run build` (**Vite**): every page's JS bundle (minified, with a sourcemap beside it that
+   carries the sources, since `frontend/js/` itself is not served), the stylesheets (`frontend/css/` is not served
+   either), and the manifest `views.ViteAssets` reads to link them.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
@@ -285,7 +365,7 @@ and for local dev — and degrade gracefully to "unknown" elsewhere (e.g. CI's s
 the build.
 
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
-the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
+the deploy.** The backend is built with `-Werror`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
 
 ### Directories that must survive a deploy
@@ -304,8 +384,8 @@ outside the build tree** via its environment variable (a variable that is set bu
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops, and the downscaled panos beside them (both re-cut from pano imagery) | Error logged at boot |
-| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-cut from pano imagery) | Error logged at boot |
+| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews and crop thumbnails (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
 every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
@@ -313,12 +393,35 @@ every deployed stage *and* a staged binary run by hand (export the four variable
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
-`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts both the crops and,
-under `<city-id>/pano-downscaled/`, the display copies of panos too wide for a WebGL texture — so it has to be local
-and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is right for a
-store nothing in the app writes. The downscaled copies deliberately do not live there:
-`PanoDataService.localBackupImageFile` finds a pano by extension, so a downscaled `.jpg` beside a native `.png` would
-be picked up *as* the native file and cut from at the wrong scale.
+`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts the crops — so it has
+to be local and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660),
+and its first run after that table lands walks every crop the city has to classify it (a header read and a stat per
+file); to have that done before the next night, trigger the job from the Management page or
+`POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture are cut on
+demand into `SIDEWALK_IMAGES_DIR` instead, under `pano-display/` beside the crops (#5256), so the pano store holds
+nothing derived and anything copying it can take the directory whole.
+
+The minimap basemap job writes there too (#5716): tile archives in each city's `basemap/` folder, and one shared
+`pmtiles` tool in `tools/` (or the city's own folder if `tools/` isn't writable). Both are rebuilt if deleted. The job
+needs outbound HTTPS to `build-metadata.protomaps.dev` and `build.protomaps.com`, and to `github.com` and
+`release-assets.githubusercontent.com` for the tool download.
+
+`pano-display/` is derived, disposable and deliberately unpruned. Deleting it, whole or in part, costs a ~2 s re-cut
+the next time a device asks for one. Nothing sweeps it because ordinary use cannot grow it: a copy is cut only for a
+pano too wide for the requesting device, only at one of three allowed widths, and only for the small minority of
+hardware that cannot texture the native file. Those conditions rarely coincide, and an individual pano is seldom
+looked at more than once. The ceiling is three files per wide pano the app can serve locally, reachable only by
+walking every one of them on purpose through a two-thread cut pool over days. If that ever shows up as disk
+pressure, deleting the directory is the entire remedy.
+
+**Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
+it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
+`ExploreUploadWindow`). A store restored from backup, `cp`'d, or `rsync`'d without `-t`/`-a` carries the copy's time
+on every file, so every browser snapshot then reads as job-cut and gets its marker moved to the window's centre —
+wrongly, and the row it writes stops the pass looking again. Preserve mtimes when you move one; if that is not
+possible, reconcile the store *before* the move (or `DELETE FROM label_crop` after it, so the pass starts over
+against files it can still date).
 
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
@@ -336,6 +439,12 @@ check — not a comment in `application.conf` — is what holds the contract.
 `assets.path("css/main.css")` resolves to that URL (`/assets/css/91f6…-main.css`), and since `conf/routes` serves
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
+
+The one asset family that doesn't go through `assets.path` is Vite's shared JS chunks (`public/build/js/chunks/`): a
+page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
+hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer. The
+stylesheet a lazily loaded chunk brings in (`public/build/css/`) is fetched the same way but keeps the hourly default:
+the stage rewrites the icon URLs inside it after Vite has hashed its name, so a deploy can change what that URL serves.
 
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
@@ -374,7 +483,7 @@ page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset b
 `util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
 and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
-`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+`/assets/...` URLs out of `frontend/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). It also rejects string
 surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
@@ -384,10 +493,13 @@ fingerprints the wrong file. All necessary because neither half of a mistake rai
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
 ([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
 form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
-stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
-keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
+**A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists.
+file that exists. In a source stylesheet (`frontend/css/`) that is the file's root-absolute path under `public/`
+(`url("/images/icons/x.svg")`): Vite rewrites it to `/assets/…` (`renderBuiltUrl` in `vite.config.mjs`) in
+`public/build/css/`, which is what the stage then sees, so `make lint-asset-paths` (rule 6) rejects a relative path
+or an `/assets/` prefix there, and a library's stylesheet goes through the same build because a module imports it.
 
 Two things about that stage are load-bearing:
 
@@ -397,9 +509,9 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
-  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
-  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
+  `make lint-asset-paths` applies the same rule to `frontend/css/` (rule 5 in
+  [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  Bundles under `public/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in
@@ -411,7 +523,7 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 Health checks treat an instance as up when an anonymous request to **`/anonSignUp`** returns a valid session cookie
 (`PLAY_SESSION`) — i.e. the app can boot into an anonymous session. This is the same anonymous-session trick used to
 exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
-return server errors are automatically restarted, and application logs are archived on each rebuild.
+return server errors are automatically restarted.
 
 ## Logs
 
@@ -420,7 +532,8 @@ Each running city instance writes a **rolling file log** (configured in [`conf/l
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
   `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
   own `logs/` subdirectory**; the app also mirrors output to stdout.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap; logs are archived on each rebuild.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
+  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
@@ -438,7 +551,13 @@ may require membership in that account's group; if you're locked out, ask UW CSE
 hostnames, and ports are omitted here for the same reason as the rest of this doc — see the note at the top.)
 
 **A `502` with nothing in the app log — where to look.** Successful requests aren't access-logged and a reverse-proxy
-`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Two checks:
+`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Apache's
+`ProxyTimeout` is **60 s**: a request the app takes longer than that to answer is a `502` at the client no matter
+what the JVM does next, which is why the full-city AccessScore endpoints give up waiting at 45 s and answer `503` +
+`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418) — lower the proxy's timeout and that constant has
+to follow. That `Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses
+(`ProxyErrorOverride`), which is worth checking whenever the Apache config changes; without it the AccessScore tool
+falls back to its own backoff and still converges, just more slowly. Two checks:
 
 - **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
   (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to
@@ -446,11 +565,23 @@ hostnames, and ports are omitted here for the same reason as the rest of this do
   app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
   points at the app/DB.
 - **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
-  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  [#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)), the app only sees a dropped connection — the
   real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
   application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
   hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
+
+## Backups
+
+UW CSE IT backs up the production database every night. The backups alternate between a full copy of the database's
+files (the fastest way to restore everything) and a SQL dump (which can restore a single city or table, and still
+works after a Postgres upgrade). Copies are also kept in a different building and periodically archived off site. The
+test database is not backed up, and the [persistent media directories](#directories-that-must-survive-a-deploy) are
+covered separately.
+
+The details are in the **Backups** section of the README in the private ops repo
+([`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools)). To restore from a backup, contact UW
+CSE IT.
 
 ## Runtime configuration contract
 
@@ -466,8 +597,8 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
-| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
-| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
+| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
+| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
 > this repo and the deployment tooling in the IT ops repo.

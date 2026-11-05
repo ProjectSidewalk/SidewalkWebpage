@@ -2,16 +2,10 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
-    // including the download buttons in apiDocs.js
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'regions');
-  </script>
 
   <div class="page-section" id="regions-intro-section">
     <h1 class="page-heading" id="regions-api">Regions API <a href="#regions-api" class="permalink">#</a></h1>
@@ -24,22 +18,11 @@
 
     <div id="regions-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pages/api-docs/regions.css")'>
-    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
-       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/regionsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        RegionsPreview.setup({
-          mapboxApiKey: '@commonData.mapboxApiKey'
-        }).init();
-      });
-    </script>
+    @ViteAssets.stylesheets("api-docs/regions", alreadyLinked = "api-docs/layout")
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/regions.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">
@@ -77,12 +60,6 @@
         <span class="format-icon">📦</span> GeoPackage
         <span class="format-hint">Open GIS format</span>
       </button>
-    </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Generating your download...</div>
-      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
     </div>
 
     <p class="download-note">Note: This downloads all region data. For filtered data, use the <a href="#query-parameters">API Query Parameters</a> described below.</p>
@@ -239,12 +216,12 @@
           <tr>
             <td><code>properties.audited_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets that have ever been quality-audited, in meters. This is the region's completion measure, so it counts only audits that count toward completion — audits by high-quality, non-excluded users that aren't flagged low-quality, incomplete, or stale — regardless of imagery age: a street whose audits predate newer imagery stays counted here (see <code>outdated_distance_m</code> for that signal). Recomputed nightly, so it can trail same-day auditing slightly.</td>
+            <td>Length of the region's streets that have ever been quality-audited, in meters. This is the region's completion measure, so it counts only audits that count toward completion — audits by high-quality users that aren't flagged low-quality, incomplete, or stale — regardless of imagery age: a street whose audits predate newer imagery stays counted here (see <code>outdated_distance_m</code> for that signal). Recomputed nightly, so it can trail same-day auditing slightly.</td>
           </tr>
           <tr>
             <td><code>properties.outdated_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Note that this is <em>not</em> an exact subset of <code>audited_distance_m</code> — it counts any completed audit, while <code>audited_distance_m</code> counts only audits that advance the region's completion (see that field). A street audited solely by a low-quality or excluded user therefore appears here but not there. For a strict subset pair over one audit population, use <code>km_explored_no_overlap</code> and <code>km_needs_reaudit</code> on <a href="/v3/api-docs/overall-stats">/v3/api/overallStats</a>.</td>
+            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Note that this is <em>not</em> an exact subset of <code>audited_distance_m</code> — it counts any audit, while <code>audited_distance_m</code> only counts high-quality audits. A street audited only by a low-quality user shows here but not there. For a strict subset pair over one audit population, use <code>km_explored_no_overlap</code> and <code>km_needs_reaudit</code> on <a href="/v3/api-docs/overall-stats">/v3/api/overallStats</a>.</td>
           </tr>
           <tr>
             <td><code>properties.completion_rate</code></td>
@@ -274,17 +251,22 @@
     <p>Note: The complete MultiPolygon geometry is simplified to a single center point in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. Because the DBF format truncates column names at 10 characters, the attribute table (.dbf) uses short codes for the GeoJSON properties: <code>regionId</code>, <code>name</code>, <code>labelCount</code>, <code>streetCnt</code>, <code>userCount</code>, <code>auditCount</code>, <code>totalDistM</code>, <code>audDistM</code>, <code>outdDistM</code>, <code>complRate</code>, <code>firstLabel</code>, <code>lastLabel</code>. (<code>streetCnt</code> was written as the truncated <code>streetCoun</code> before September 2026.) The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the region data with full geometry and attributes. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the region data with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid region ID).</li>
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
     </ul>
 
     @apiDocs.errorResponseBody()

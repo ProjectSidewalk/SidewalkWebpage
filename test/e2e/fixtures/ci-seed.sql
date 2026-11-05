@@ -1,7 +1,7 @@
 -- =====================================================================================================================
 -- The test city CI runs against (sidewalk_teaneck): real prod rows for region 18 (Tyron Park) -- its
--- streets, labels and panoramas. GENERATED: edit tools/gen_ci_seed.py and re-run it, not this file (#5115). The
--- slice it reads comes from tools/ci_seed_slice.sql, which records which rows were taken and why those.
+-- streets, labels and panoramas. GENERATED: edit test/e2e/fixtures/gen_ci_seed.py and re-run it, not this file (#5115). The
+-- slice it reads comes from test/e2e/fixtures/ci_seed_slice.sql, which records which rows were taken and why those.
 --
 -- Real data, because a fixture that invents its own coordinates and panorama ids can only show that the code runs,
 -- not that it runs on the shape of data it will meet.
@@ -35,7 +35,7 @@
 --
 -- Cached columns (user_stat.meters_audited, labels_per_meter, high_quality, region_completion,
 -- route.distance_meters) are COMPUTED at the end by the same rules their runtime recomputes use, never hardcoded:
--- GeodesicDistanceSpec asserts exactly that agreement.
+-- GeodesicDistanceSpec asserts that agreement for labels_per_meter, region_completion and route.distance_meters.
 -- =====================================================================================================================
 
 -- With zero region rows /explore is a server error before any JS runs (#4748). With one, a fresh anonymous user
@@ -47,9 +47,9 @@ VALUES (18, 'https://njogis-newjersey.opendata.arcgis.com/datasets/764362ac87254
         FALSE)
 ON CONFLICT (region_id) DO NOTHING;
 
--- The template's own street 1 stays out of the region: it is the tutorial street, which region completion excludes,
--- so a region holding only it counts as vacuously complete for everyone and is never assigned -- the same 500 as
--- having no region at all.
+-- Street 1 is the tutorial street. Region completion excludes it, so a region holding only it is complete for
+-- everyone and never assigned (the same 500 as no region). It joins the region beside the real streets instead, as
+-- in every real city: the label card's query needs a region, and the tutorial-labeling spec reads through it.
 INSERT INTO sidewalk_teaneck.street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
 VALUES
   (479, ST_GeomFromText('LINESTRING(-73.99309 40.90276,-73.9922537 40.9038259)', 4326),
@@ -67,6 +67,13 @@ SELECT s.street_edge_id, 18
 FROM (VALUES (479), (842), (1141), (1334)) AS s(street_edge_id)
 WHERE NOT EXISTS (
   SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = s.street_edge_id
+);
+
+INSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)
+SELECT config.tutorial_street_edge_id, 18
+FROM sidewalk_teaneck.config
+WHERE NOT EXISTS (
+  SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = config.tutorial_street_edge_id
 );
 
 -- Every street needs an OSM way, because /v3/api/rawLabels and the label-clusters API both INNER JOIN
@@ -150,7 +157,7 @@ VALUES
    FALSE, NULL, '2020-01-01 00:00:00+00', FALSE),
   -- A LABELED Mapillary pano due for a check, so the nightly sweep's sampling query sees a non-gsv
   -- source. Real, from Richmond -- the one city on Mapillary imagery. Expired and unbacked, so it
-  -- stays out of the Gallery; Validate and Explore already filter it out on the city's pano source.
+  -- stays out of Gallery; Validate and Explore already filter it out on the city's pano source.
   ('1050859256685844', 'mapillary', '2024-09', 11000, 5500, 11000, 5500,
    37.539015301397, -77.441233369283, 35.915695572831, 2.9712443964874025, 2.10982137066022, 'HKocen',
    TRUE, '2020-01-01 00:00:00+00', '2020-01-01 00:00:00+00', FALSE)
@@ -190,7 +197,7 @@ ON CONFLICT (audit_task_id) DO NOTHING;
 -- rest cover the forks the share, gallery and edit specs read. `correct` stays NULL, so all still need validating.
 --
 -- The two NoSidewalk labels have no crop, as prod has none for them either: still validatable (Validate reads the
--- backup panorama, not crops), just absent from the Gallery -- which is what that state means in production.
+-- backup panorama, not crops), just absent from Gallery -- which is what that state means in production.
 INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type,
                                     street_edge_id, temporary_label_id, time_created, deleted, tutorial,
                                     severity, tags)
@@ -419,21 +426,41 @@ ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
-                                               start_timestamp, end_timestamp, source, viewer_type)
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900001, 900002, 'Agree', '00000000-5115-4000-8000-000000000002', 900004, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default')
+        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default', 'CurbRamp')
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.validation_task_comment (validation_task_comment_id, mission_id, label_id, user_id,
                                                       ip_address, pano_id, heading, pitch, zoom, lat, lng,
-                                                      timestamp, comment)
+                                                      timestamp, comment, label_type)
 VALUES (900001, 900004, 900002, '00000000-5115-4000-8000-000000000002', '127.0.0.1', 'gQIxyDH1bxP1In5JOau-mg',
         120.0, -10.0, 1.0, 40.90629255696513, -73.99868476842572, now() - INTERVAL '5 days',
-        'Agreed, the ramp is there and usable.')
+        'Agreed, the ramp is there and usable.', 'CurbRamp')
 ON CONFLICT (validation_task_comment_id) DO NOTHING;
 
--- What a real Agree leaves behind on the label itself.
-UPDATE sidewalk_teaneck.label SET agree_count = 1, correct = TRUE
+-- A second Agree from the SidewalkAI account (SidewalkUserTable.aiUserId, which the evolutions create), so a label
+-- has both a human and an AI vote. Shaped like prod's AI votes: their own mission, no region.
+INSERT INTO sidewalk_teaneck.user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)
+SELECT 900005, '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 0, TRUE, FALSE
+WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.user_stat WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4');
+
+INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
+VALUES (900005, 'aiValidation', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4',
+        now() - INTERVAL '4 days', now() - INTERVAL '4 days',
+        FALSE, 0.0, FALSE, NULL, 1, 1, 'CurbRamp', FALSE)
+ON CONFLICT (mission_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
+                                               canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
+VALUES (900002, 900002, 'Agree', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 900005, 300, 200, 120.0, -10.0, 1.0,
+        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default', 'CurbRamp')
+ON CONFLICT (label_validation_id) DO NOTHING;
+
+-- What the two Agrees leave behind on the label itself.
+UPDATE sidewalk_teaneck.label SET agree_count = 2, correct = TRUE
 WHERE label_id = 900002 AND agree_count = 0;
 
 -- A route over the region's streets. distance_meters is computed the way RouteTable.updateStats does, because

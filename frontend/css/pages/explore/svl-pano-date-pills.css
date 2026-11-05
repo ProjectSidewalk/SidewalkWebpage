@@ -1,0 +1,56 @@
+/* The bottom-left imagery corner (#5413). Two layouts, toggled by PanoDateNote through .svl-pano-pill: a lone
+   capture date stays bare shadowed text, but once an assessment note joins it both become chips on
+   .pano-overlay-button's surface, so the eye has something to separate two facts by and the corner reads as tool UI
+   rather than as part of the imagery.
+
+   The info button sits inside the date element in both (Main.js hands PanoInfoPopover that element) because what it
+   explains is the imagery — after both pills it would be stranded between two unrelated facts. */
+.svl-pano-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: calc(2px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  border-radius: calc(999px * var(--ui-scale, 1));
+  background-color: var(--color-asphalt-400);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-regular);
+
+  /* The holder shadows its text for legibility over bare imagery; on a filled pill that only smears it. */
+  text-shadow: none;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* .svl-pano-pill's own display would otherwise win over the UA's [hidden]; unpilled, the UA rule already covers it. */
+.svl-pano-pill[hidden] {
+  display: none;
+}
+
+/* Unpilled, this is all that separates the date from the info button; pilled, the pill's padding owns it. */
+#svl-panorama-date {
+  padding-right: calc(3px * var(--ui-scale, 1));
+}
+
+#svl-panorama-date-pill.svl-pano-pill #svl-panorama-date {
+  padding-right: 0;
+}
+
+/* #pano-info-button's baseline nudge assumes a stretched flex child; here the holder centers it already. */
+#svl-panorama-date-pill #pano-info-button {
+  margin-top: 0;
+}
+
+#svl-panorama-date-pill.svl-pano-pill #pano-info-button {
+  margin-left: calc(6px * var(--ui-scale, 1));
+}
+
+/* The note carries a psTooltip spelling out what its two dates mean; without a cursor change nothing says so. */
+#svl-pano-date-note {
+  cursor: help;
+}
+
+/* Amber on the one state that asks for something, so the corner answers "anything to do here?" before it is read;
+   the wording carries that alone (WCAG 1.4.1). Dark text: the pill's default white dies on a light surface. */
+.svl-pano-pill--action {
+  background-color: var(--color-banana-700);
+  color: var(--color-asphalt-700);
+}

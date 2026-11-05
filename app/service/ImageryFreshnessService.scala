@@ -14,7 +14,7 @@ import play.api.{Configuration, Logger}
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -149,7 +149,8 @@ object ImageryFreshnessService {
   /** Distance from the origin to the segment a-b, in the same planar units as the inputs. */
   private def originToSegmentMeters(a: (Double, Double), b: (Double, Double)): Double = {
     val (ax, ay)  = a
-    val (dx, dy)  = (b._1 - ax, b._2 - ay)
+    val (bx, by)  = b
+    val (dx, dy)  = (bx - ax, by - ay)
     val lengthSq  = dx * dx + dy * dy
     val t: Double = if (lengthSq == 0.0) 0.0 else math.max(0.0, math.min(1.0, -(ax * dx + ay * dy) / lengthSq))
     math.hypot(ax + t * dx, ay + t * dy)
@@ -211,12 +212,12 @@ class ImageryFreshnessServiceImpl @Inject() (
     panoDataService: PanoDataService,
     streetImageryTable: StreetImageryTable,
     streetReopenCandidateTable: StreetReopenCandidateTable,
-    auditTaskTable: AuditTaskTable,
-    implicit val ec: ExecutionContext
-) extends ImageryFreshnessService
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
+    extends ImageryFreshnessService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import ImageryFreshnessService._
-  import models.utils.MyPostgresProfile.api._
+  import ImageryFreshnessService.*
+  import models.utils.MyPostgresProfile.api.given
 
   private val logger = Logger(this.getClass)
 
@@ -269,22 +270,22 @@ class ImageryFreshnessServiceImpl @Inject() (
       // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
       // fetch would throw synchronously in the batch fold and abandon every remaining street.
       case PanoSource.Gsv =>
-        config.getOptional[String]("google-maps-api-key") match {
+        PanoDataService.googleServerKey(config) match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
-            Future.failed(new MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
+            Future.failed(MissingImageryCredentialException("No google-maps-server-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
           case None        =>
             Future.failed(
-              new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
+              MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
       // Panoramax's API is public, so there is no credential to resolve (#5185).
       case PanoSource.Panoramax => pollStreets("Panoramax")(fetchPanoramaxPointObservations)
-      // Infra3d is deliberately not polled, though it could be: scripts/check_streets_for_imagery.py --infra3d shows
+      // Infra3d is deliberately not polled, though it could be: tools/city/check_streets_for_imagery.py --infra3d shows
       // the query (framegate's nearest-frame `knn/query`, with the token PanoDataService.getInfra3dToken mints, and
       // the frame `timestamp` as the capture date). It isn't worth a nightly run because each Infra3d city is a single
       // commissioned drive -- one campaign, whose project_uid is hardcoded per city in Infra3dViewer.js -- so the
@@ -340,7 +341,7 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Re-checks one no_imagery street for regained imagery and maintains its reopen-candidate row (#4929).
    *
-   * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its updated_at bump
+   * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its polled_at stamp
    * is what advances this rotation. What the candidate is built from is then read back through
    * StreetImageryTable.attributedImagery rather than taken from pollOneStreet's return: the latter is filtered only by
    * proximity to this street, while attribution additionally requires this street to be the *nearest* one, and on a
@@ -396,7 +397,7 @@ class ImageryFreshnessServiceImpl @Inject() (
    *
    * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
-   * leaves updated_at un-bumped so the next night's rotation retries the street.
+   * leaves polled_at unstamped so the next night's rotation retries the street.
    *
    * @return The attributable observations when the street was conclusively polled and upserted (empty = confirmed
    *         nothing attributable there), or None when it was skipped -- observations rather than a bare success
@@ -419,7 +420,7 @@ class ImageryFreshnessServiceImpl @Inject() (
               metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
             })
             val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
-            (identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous).collect {
+            (identified.groupBy(_.panoId).map { case (_, samePano) => samePano.head }.toSeq ++ anonymous).collect {
               case PanoObservation(_, capture, Some((lat, lng))) => PolledPano(lat, lng, capture, pointIndex)
             }
           }
@@ -441,7 +442,9 @@ class ImageryFreshnessServiceImpl @Inject() (
    * resulting dates: older coverage can sit closer to the sample point than a newer drive, so new imagery goes
    * unnoticed until another sample point or another night catches it. The mirror-image false positive -- the radius
    * reaching a pano on a parallel service road or alley -- is handled downstream: the response carries the pano's
-   * position, and pollOneStreet drops observations that don't lie on the polled street.
+   * position, and pollOneStreet drops observations that don't lie on the polled street. The same filter is what stops
+   * an answer from outside the radius altogether, which Google does give: `radius` is a hint, not a bound, and a 25 m
+   * query has come back with a photosphere in another state (#5114).
    */
   private def fetchGsvPointObservations(
       apiKey: String
@@ -495,7 +498,8 @@ class ImageryFreshnessServiceImpl @Inject() (
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
-    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
+    val graphUrl     = config.get[String]("mapillary-graph-url")
+    ws.url(s"$graphUrl/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
       .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
       .withRequestTimeout(5.seconds)
       .get()
@@ -537,7 +541,7 @@ class ImageryFreshnessServiceImpl @Inject() (
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
     ws.url(s"https://api.panoramax.xyz/api/search?bbox=$bbox&filter=field_of_view%3D360&sortby=-ts&limit=100")
-      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
       .withRequestTimeout(5.seconds)
       .get()
       .map { response =>

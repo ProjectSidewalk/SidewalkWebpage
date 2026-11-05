@@ -1,12 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins ConfigTable's cross-schema fan-out against a city schema that has not applied evolution 373 (#4103) and so
@@ -16,10 +15,10 @@ import util.RolledBackDb
  * /v3/api/aggregateStats and the Owner scorecard. The lookup-table arms of `ConfigTable.LabelTypeSql` have no other
  * coverage — the dev DB is always on the enum — so this spec goes away with the probe itself (#5118).
  */
-class ConfigTableLabelTypeShapeSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ConfigTableLabelTypeShapeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val configTable = app.injector.instanceOf[ConfigTable]
 

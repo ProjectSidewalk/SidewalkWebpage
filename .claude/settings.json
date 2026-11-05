@@ -23,6 +23,7 @@
       "Bash(make htmlhint:*)",
       "Bash(make lint-locales:*)",
       "Bash(make lint:*)",
+      "Bash(make shellcheck:*)",
       "Bash(gh label list:*)"
     ],
     "deny": [
@@ -68,6 +69,45 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/comment-trim-check.sh\"",
             "statusMessage": "Checking whether added comments need a trim pass"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lease-hook.sh\" stop",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__claude-in-chrome__navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lease-hook.sh\" pre-tool",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lease-hook.sh\" heartbeat",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lease-hook.sh\" end",
+            "timeout": 10
           }
         ]
       }

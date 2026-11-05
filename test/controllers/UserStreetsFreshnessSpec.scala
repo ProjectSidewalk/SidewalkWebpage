@@ -1,18 +1,18 @@
 package controllers
 
 import models.audit.AuditTaskTableDef
+import models.region.RegionTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
-import util.{AnonSession, RolledBackDb, StreetFixtures}
+import util.{AnonSession, RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.concurrent.{Await, Future}
 
@@ -34,7 +34,7 @@ import scala.concurrent.{Await, Future}
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class UserStreetsFreshnessSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with GuiceOneAppPerSuite
     with RolledBackDb
@@ -44,7 +44,7 @@ class UserStreetsFreshnessSpec
   // The limiter counts every session this suite mints against one loopback address, and a 429 would surface as a
   // failed session mint rather than as anything about the feed.
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -54,11 +54,15 @@ class UserStreetsFreshnessSpec
   private val auditTasks        = TableQuery[AuditTaskTableDef]
   private val streetEdges       = TableQuery[StreetEdgeTableDef]
   private val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
+  private val regions           = TableQuery[RegionTableDef]
 
   private def awaitF[T](f: Future[T]): T = Await.result(f, dbTimeout)
 
   /** The streets this suite seeded, held for afterAll to sweep. */
   private val seededStreetIds = scala.collection.mutable.Set[Int]()
+
+  /** The live region the seeded streets sit in, since the feed leaves out streets in no live region. */
+  private var seededRegionId: Option[Int] = None
 
   /** A mapper with one refreshed street and one that still needs a re-audit. */
   private case class Mapper(username: String, freshStreet: Int, staleStreet: Int)
@@ -80,7 +84,8 @@ class UserStreetsFreshnessSpec
       )
     )
     // Set rather than assumed: a private profile answers 403 and the feed would never be reached.
-    val _     = run(sqlu"""UPDATE user_stat SET public_profile = TRUE WHERE user_id = ${user.userId}""")
+    val _ = run(sqlu"""UPDATE user_stat SET public_profile = TRUE WHERE user_id = ${user.userId}""")
+    seededRegionId = Some(run(insertRegion()))
     val fresh = seedStreet()
     val stale = seedStreet()
     val _     = run(audit(fresh, user.userId))
@@ -90,7 +95,7 @@ class UserStreetsFreshnessSpec
 
   /** Registers each street as it is created, so a failure part-way through the seed still leaves it to be swept. */
   private def seedStreet(): Int = {
-    val streetEdgeId = run(insertStreet())
+    val streetEdgeId = run(insertStreet(seededRegionId))
     seededStreetIds += streetEdgeId
     streetEdgeId
   }
@@ -103,7 +108,8 @@ class UserStreetsFreshnessSpec
           .seq(
             auditTasks.filter(_.streetEdgeId inSet streetIds).delete,
             streetEdgeRegions.filter(_.streetEdgeId inSet streetIds).delete,
-            streetEdges.filter(_.streetEdgeId inSet streetIds).delete
+            streetEdges.filter(_.streetEdgeId inSet streetIds).delete,
+            regions.filter(_.regionId inSet seededRegionId.toSeq).delete
           )
           .transactionally
       )
@@ -124,7 +130,7 @@ class UserStreetsFreshnessSpec
   private def feed: JsValue = {
     val resp = route(
       app,
-      FakeRequest(GET, s"/userapi/public/${mapper.username}/streets").withCookies(freshAnonSession(): _*)
+      FakeRequest(GET, s"/userapi/public/${mapper.username}/streets").withCookies(freshAnonSession()*)
     ).get
     status(resp) mustBe OK
     contentAsJson(resp)

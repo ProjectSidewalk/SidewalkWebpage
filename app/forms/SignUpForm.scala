@@ -1,15 +1,16 @@
 package forms
 
 import play.api.data.Form
-import play.api.data.Forms._
-import play.api.data.validation.Constraints._
+import play.api.data.Forms.*
+import play.api.data.validation.Constraints.*
 
 /**
  * The sign-up form, shared by the auth dialog and the full-page/mobile sign-up views.
  *
  * Username and password rules come from `UsernamePolicy` / `PasswordPolicy` so the live frontend checklist and the
  * rename flow enforce the same contract. Error messages are i18n keys so the async JSON responses localize. The
- * volunteer service-hours opt-in is not part of sign-up; it lives in the dashboard Settings page (#4375).
+ * volunteer service-hours opt-in is not part of sign-up; it lives in the dashboard Settings page (#4375). The
+ * project-news box (#5864) starts checked only where email law is opt-out (`news-email-opt-out-countries`).
  */
 object SignUpForm {
   val form = Form(
@@ -18,13 +19,13 @@ object SignUpForm {
         .verifying(minLength(UsernamePolicy.minLength))
         .verifying(maxLength(UsernamePolicy.maxLength))
         .verifying(pattern(UsernamePolicy.pattern, error = "authenticate.error.username.charset")),
-      "email"    -> email.verifying(nonEmpty),
-      "password" -> nonEmptyText
-        .verifying(minLength(PasswordPolicy.minLength))
-        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
+      "email"           -> email.verifying(nonEmpty),
+      "password"        -> PasswordPolicy.newPassword,
       "passwordConfirm" -> nonEmptyText,
-      "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value)
-    )(SignUpData.apply)(SignUpData.unapply).verifying(
+      "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value),
+      // An unchecked box sends nothing, which Play's boolean reads as false.
+      "newsEmail" -> boolean
+    )(SignUpData.apply)((d: SignUpData) => Some(Tuple.fromProductTyped(d))).verifying(
       "authenticate.error.password.mismatch",
       fields => fields.password == fields.passwordConfirm
     )
@@ -38,12 +39,14 @@ object SignUpForm {
    * @param password        The password of the user; must satisfy `PasswordPolicy`.
    * @param passwordConfirm Must equal `password`.
    * @param terms           Whether the user accepted the terms of use; must be true.
+   * @param newsEmail       Whether they want project news by email; false opts the new account out (#5864).
    */
   case class SignUpData(
       username: String,
       email: String,
       password: String,
       passwordConfirm: String,
-      terms: Boolean
+      terms: Boolean,
+      newsEmail: Boolean
   )
 }

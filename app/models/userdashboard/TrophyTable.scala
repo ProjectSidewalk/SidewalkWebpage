@@ -1,15 +1,23 @@
 package models.userdashboard
 
 import models.user.Role
-import models.utils.MyPostgresProfile
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
-import javax.inject._
+import javax.inject.*
+
+/** One week the user placed in the top 3 by label count; `weekOf` is the week's start date (yyyy-MM-dd). */
+case class WeeklyPodium(weekOf: String, rank: Int, labelCount: Int)
+
+/** A region where the user is the top labeler, with their label count there. */
+case class RegionChampion(regionName: String, regionId: Int, labelCount: Int)
 
 /**
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
  * table (kept real-time and simple, like the activity streak). All queries are scoped to the current city's schema
- * (unqualified table names, resolved by the connection search_path) and exclude deleted/tutorial labels.
+ * (unqualified table names, resolved by the connection search_path) and read only labels that count
+ * ([[FilteredTables.labels]]).
  *
  * Two eligibility rules are used deliberately:
  *   - Weekly podiums mirror the public weekly leaderboard exactly (role IN Registered/Administrator/Researcher, not
@@ -20,7 +28,12 @@ import javax.inject._
 @Singleton
 class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+  import profile.api.*
+
+  private given weeklyPodiumConverter: GetResult[WeeklyPodium] =
+    r => WeeklyPodium(r.nextString(), r.nextInt(), r.nextInt())
+  private given regionChampionConverter: GetResult[RegionChampion] =
+    r => RegionChampion(r.nextString(), r.nextInt(), r.nextInt())
 
   // Start of the US/Pacific week (Sunday) containing a given date expression — matches the leaderboard's week math.
   private def weekStart(dateExpr: String): String =
@@ -31,12 +44,11 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param userId The user whose placements to find.
    * @param limit  Max rows to return.
-   * @return       (week-start date as ISO yyyy-MM-dd, rank 1-3, label count) per qualifying week; the caller
-   *               formats the date for the viewer's locale.
+   * @return       One row per qualifying week.
    */
-  def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
-    val labelWeek = weekStart("label.time_created AT TIME ZONE 'US/Pacific'")
-    val nowWeek   = weekStart("now() AT TIME ZONE 'US/Pacific'")
+  def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[WeeklyPodium]] = {
+    val labelWeek = weekStart("label.time_created AT TIME ZONE 'America/Los_Angeles'")
+    val nowWeek   = weekStart("now() AT TIME ZONE 'America/Los_Angeles'")
     sql"""
       WITH weekly AS (
           SELECT sidewalk_user.user_id AS uid,
@@ -46,11 +58,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-          INNER JOIN label ON sidewalk_user.user_id = label.user_id
-          WHERE label.deleted = FALSE
-              AND label.tutorial = FALSE
-              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
-              AND user_stat.excluded = FALSE
+          INNER JOIN #${FilteredTables.labels()} ON sidewalk_user.user_id = label.user_id
+          WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.on_leaderboard = TRUE
               AND #$labelWeek < #$nowWeek
           GROUP BY sidewalk_user.user_id, wk
@@ -60,7 +69,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE uid = $userId AND rnk <= 3
       ORDER BY wk DESC
       LIMIT $limit;
-    """.as[(String, Int, Int)]
+    """.as[WeeklyPodium]
   }
 
   /**
@@ -69,20 +78,18 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param userId   The user to check.
    * @param aiUserId The AI account id to exclude from the ranking.
    * @param limit    Max regions to return.
-   * @return         (region name, region id, the user's label count in that region).
+   * @return         One row per region the user leads.
    */
-  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
+  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[RegionChampion]] = {
     sql"""
       WITH region_counts AS (
           SELECT street_edge_region.region_id AS rid,
                  label.user_id AS uid,
                  COUNT(*)::int AS lc,
                  RANK() OVER (PARTITION BY street_edge_region.region_id ORDER BY COUNT(*) DESC)::int AS rnk
-          FROM label
+          FROM #${FilteredTables.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          WHERE label.deleted = FALSE AND label.tutorial = FALSE
-              AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+          WHERE label.user_id <> $aiUserId
           GROUP BY street_edge_region.region_id, label.user_id
       )
       SELECT region.name, region.region_id, region_counts.lc
@@ -91,7 +98,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE region_counts.uid = $userId AND region_counts.rnk = 1 AND region.deleted = FALSE
       ORDER BY region_counts.lc DESC
       LIMIT $limit;
-    """.as[(String, Int, Int)]
+    """.as[RegionChampion]
   }
 
   /**
@@ -108,11 +115,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT DISTINCT ON (street_edge_region.region_id)
                  street_edge_region.region_id AS rid,
                  label.user_id AS uid
-          FROM label
+          FROM #${FilteredTables.labels()}
           INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-          INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          WHERE label.deleted = FALSE AND label.tutorial = FALSE
-              AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+          WHERE label.user_id <> $aiUserId
           ORDER BY street_edge_region.region_id, label.time_created ASC, label.label_id ASC
       )
       SELECT region.name, region.region_id
@@ -129,7 +134,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * Both flags come back from one round trip because the two trophies are always rendered together. Unlike the other
    * trophies these are participation facts about the user's own history, so no cross-user ranking or eligibility
-   * filtering applies — only the usual deleted/tutorial label exclusions.
+   * filtering applies, and an excluded user's own labels still count.
    *
    * @param userId The user to check.
    * @return       (has started at least one exploreAddress mission, has at least one label from such a mission).
@@ -144,10 +149,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ),
           EXISTS (
               SELECT 1
-              FROM label
+              FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
               INNER JOIN mission ON label.mission_id = mission.mission_id
               WHERE label.user_id = $userId
-                  AND label.deleted = FALSE AND label.tutorial = FALSE
                   AND mission.mission_type = 'exploreAddress'
           );
     """.as[(Boolean, Boolean)].head
@@ -162,10 +166,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityPioneerUserId(aiUserId: String): DBIO[Option[String]] = {
     sql"""
       SELECT label.user_id
-      FROM label
-      INNER JOIN user_stat ON label.user_id = user_stat.user_id
-      WHERE label.deleted = FALSE AND label.tutorial = FALSE
-          AND user_stat.excluded = FALSE AND label.user_id <> $aiUserId
+      FROM #${FilteredTables.labels()}
+      WHERE label.user_id <> $aiUserId
       ORDER BY label.time_created ASC, label.label_id ASC
       LIMIT 1;
     """.as[String].headOption

@@ -1,13 +1,13 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Locks the response contract of GET /v3/api/labelEdits (#2575): a JSON array of snake_case edit objects carrying the
@@ -16,15 +16,15 @@ import play.api.test.Helpers._
  *
  * Boots the real application against Postgres; the endpoint is a `UserAwareAction`, so no session is needed.
  */
-class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
+class LabelEditsApiContractSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
   // File-streamed responses (chunked JSON/CSV) need a real Materializer to consume.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/labelEdits" should {
     "return 200 with a JSON array of edit objects using snake_case keys" in {
@@ -39,6 +39,8 @@ class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
         (e \ "label_id").asOpt[Int] mustBe defined
         (e \ "label_type").asOpt[String] mustBe defined
         (e \ "user_id").asOpt[String] mustBe defined
+        (e \ "old_label_type").asOpt[String] mustBe defined
+        (e \ "new_label_type").asOpt[String] mustBe defined
         (e \ "old_tags").asOpt[Seq[String]] mustBe defined
         (e \ "new_tags").asOpt[Seq[String]] mustBe defined
         (e \ "source").asOpt[String] mustBe defined
@@ -52,8 +54,8 @@ class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelEdits?filetype=csv")).get
       status(resp) mustBe OK
       contentAsString(resp).linesIterator.next() mustBe
-        "label_edit_id,label_id,label_type,user_id,old_severity,new_severity,old_tags,new_tags," +
-        "source,edit_time,label_validation_id"
+        "label_edit_id,label_id,label_type,user_id,old_label_type,new_label_type,old_severity,new_severity," +
+        "old_tags,new_tags,source,edit_time,label_validation_id"
     }
 
     "filter by a valid source and return only that source" in {

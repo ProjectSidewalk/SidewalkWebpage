@@ -1,12 +1,13 @@
 package models.auth
 
+import models.auth.AuthorizationResult.*
 import models.user.{Role, SidewalkUserWithRole}
 import play.api.mvc.Request
 
 import scala.concurrent.Future
 
 case class WithAdmin() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(using
       request: Request[B]
   ): Future[AuthorizationResult] = {
     Future.successful {
@@ -20,7 +21,7 @@ case class WithAdmin() extends RoleBasedAuthorization[SidewalkUserWithRole, Defa
 // overview, #4329): every city's data lives in one database, so per-city Administrators must NOT see other cities'
 // detail — only Owners, who operate across deployments, may.
 case class WithOwner() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(using
       request: Request[B]
   ): Future[AuthorizationResult] = {
     Future.successful {
@@ -31,7 +32,7 @@ case class WithOwner() extends RoleBasedAuthorization[SidewalkUserWithRole, Defa
 }
 
 case class WithSignedIn() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(using
       request: Request[B]
   ): Future[AuthorizationResult] = {
     Future.successful {
@@ -43,7 +44,7 @@ case class WithSignedIn() extends RoleBasedAuthorization[SidewalkUserWithRole, D
 
 // Authorized if user is an admin or is requesting/modifying their own data.
 case class WithAdminOrIsUser(userId: String) extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(using
       request: Request[B]
   ): Future[AuthorizationResult] = {
     Future.successful {
@@ -56,12 +57,14 @@ case class WithAdminOrIsUser(userId: String) extends RoleBasedAuthorization[Side
 // Authorized if user is an admin or if they are registered and are requesting/modifying their own data.
 case class WithAdminOrRegisteredAndIsUser(userId: String)
     extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(using
       request: Request[B]
   ): Future[AuthorizationResult] = {
     Future.successful {
       if (Role.ADMIN_ROLES.contains(identity.role) || (identity.role != Role.Anonymous && identity.userId == userId))
         Authorized
+      // On their own data, signing in is all they need, and the sign-in prompt names the role it asks for.
+      else if (identity.userId == userId) NotAuthorized(currRole = identity.role, requiredRole = Role.Registered)
       else NotAuthorized(currRole = identity.role, requiredRole = Role.Administrator)
     }
   }

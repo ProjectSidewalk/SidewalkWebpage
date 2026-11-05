@@ -1,28 +1,43 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
-import models.user.UserStatTable
+import models.label.*
+import models.mission.MissionType
+import models.user.{Role, SidewalkUserWithRole, UserStatTable}
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import models.validation._
-import org.postgresql.util.PSQLException
+import models.utils.MyPostgresProfile.api.*
+import models.validation.*
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import java.time.OffsetDateTime
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
+/** A canned reason the user's standing vote on the label doesn't take (#5475); the comment is not stored. */
+case class ReasonNotOffered(reason: ValidationReason) extends Exception(s"reason '$reason' not offered here")
+
 /**
- * One validation as submitted, with the severity and tags the validator wants the label to have. Those are applied as
- * an edit linked to the vote only for an Agree that changes them (#2575).
+ * One vote to record, with the type, severity and tags the validator wants the label to have. Those are applied as an
+ * edit linked to the vote only for an Agree that changes them (#2575, #3671).
+ *
+ * @param validation   The vote, with `labelType` set to the type the validator was shown.
+ * @param newLabelType The type the label should become; an Agree carrying one is recorded as a vote on that type.
+ * @param canEdit      Whether an Agree may apply the submitted type, severity and tags; only admins edit through a vote.
+ * @param keepTypedComment Whether a vote change keeps typed words (#5475). Cards set it, since they show the words
+ *                     under the new vote; Validate's redo is an undo plus a fresh vote carrying its own comment.
  */
 case class ValidationSubmission(
     validation: LabelValidation,
+    newLabelType: Option[LabelType],
     severity: Option[Int],
     tags: List[String],
     comment: Option[ValidationTaskComment],
     undone: Boolean,
-    redone: Boolean
+    redone: Boolean,
+    canEdit: Boolean,
+    keepTypedComment: Boolean = false
 )
 
 @ImplementedBy(classOf[ValidationServiceImpl])
@@ -31,11 +46,13 @@ trait ValidationService {
   def countHumanValidations: Future[Int]
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
-  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
+  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Unit]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
-  def deleteComment(labelId: Int, userId: String): Future[Int]
+  def currentVote(labelId: Int, userId: String, labelType: LabelType): Future[Option[ValidationOption]]
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
+  def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
 }
 
 @Singleton
@@ -46,17 +63,23 @@ class ValidationServiceImpl @Inject() (
     validationTaskInteractionTable: ValidationTaskInteractionTable,
     validationTaskCommentTable: ValidationTaskCommentTable,
     labelTable: LabelTable,
+    labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
-    userStatTable: UserStatTable,
-    implicit val ec: ExecutionContext
-) extends ValidationService
+    labelEditTable: LabelEditTable,
+    missionService: MissionService,
+    userStatTable: UserStatTable
+)(using ec: ExecutionContext)
+    extends ValidationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationLabels = TableQuery[LabelValidationTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
 
   /** SQLState for a Postgres unique-constraint violation. */
-  private val UniqueViolation: String = "23505"
+  private val UniqueViolation: String = PSQLState.UNIQUE_VIOLATION.getState
+
+  /** SQLState for a Postgres deadlock; pgjdbc's PSQLState has no constant for it. */
+  private val DeadlockDetected: String = "40P01"
 
   /**
    * Runs a write that replaces a user's earlier row, re-running it once if a concurrent writer got there first.
@@ -64,9 +87,15 @@ class ValidationServiceImpl @Inject() (
    * Neither write path can see a concurrent writer's uncommitted row: one reads its own snapshot to decide whether to
    * replace and finds nothing, the other deletes and removes nothing, so both go on to insert. Re-running once is
    * enough: the winner has committed by then, so the retry's read or delete does see its row (#4377, #4942).
+   *
+   * A deadlock is re-run too. Batches lock their votes in label order, so two of them can't cross, but no one path
+   * can fix the order every other writer of these rows uses; Postgres aborts the whole transaction, so a re-run is
+   * safe.
    */
-  private def runWithUniqueViolationRetry[T](action: => DBIO[T]): Future[T] = {
-    db.run(action).recoverWith { case e: PSQLException if e.getSQLState == UniqueViolation => db.run(action) }
+  private def runWithConflictRetry[T](action: => DBIO[T]): Future[T] = {
+    db.run(action).recoverWith {
+      case e: PSQLException if e.getSQLState == UniqueViolation || e.getSQLState == DeadlockDetected => db.run(action)
+    }
   }
 
   def countValidations: Future[Int]                 = db.run(labelValidationTable.countValidations)
@@ -74,77 +103,36 @@ class ValidationServiceImpl @Inject() (
   def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
-   * Updates the validation counts and correctness columns in the label table given a new incoming validation.
-   * @param labelId label_id of the label with a new validation
-   * @param newResult the new validation if there is one (Agree, Disagree, or Unsure)
-   * @param oldResult the old validation if the user had validated this label in the past
+   * Whether a vote goes into the label's counts: not the labeler's own, not from an excluded user, and cast on the
+   * type the label has now (#3671). Must match `FilteredTables.isVerdictVote`.
    */
-  def updateValidationCounts(
-      labelId: Int,
-      newResult: Option[ValidationOption.Value],
-      oldResult: Option[ValidationOption.Value]
-  ): DBIO[Int] = {
-    labelTable
-      .find(labelId)
-      .flatMap {
-        case Some(label) =>
-          // Get the validation counts that are in the database right now.
-          val oldCounts: (Int, Int, Int) = (label.agreeCount, label.disagreeCount, label.unsureCount)
-
-          // Add 1 to the correct count for the new validation. In case of delete, no match is found.
-          val countsWithNewVal: (Int, Int, Int) = newResult match {
-            case Some(ValidationOption.Agree)    => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-            case Some(ValidationOption.Disagree) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-            case Some(ValidationOption.Unsure)   => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
-            case _                               => oldCounts
-          }
-
-          // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
-          val countsWithoutOldVal: (Int, Int, Int) = oldResult match {
-            case Some(ValidationOption.Agree)    => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-            case Some(ValidationOption.Disagree) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-            case Some(ValidationOption.Unsure)   => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-            case _                               => countsWithNewVal
-          }
-
-          // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
-          val labelCorrect: Option[Boolean] = {
-            if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
-            else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
-            else None
-          }
-
-          // Update the agree_count, disagree_count, unsure_count, and correct columns in the label table.
-          labelsUnfiltered
-            .filter(_.labelId === labelId)
-            .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-            .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
-
-        case None =>
-          DBIO.successful(0)
-      }
-      .transactionally
-  }
+  private def counts(vote: LabelValidation, label: Label, excludedUser: Boolean): Boolean =
+    label.userId != vote.userId && !excludedUser && vote.labelType == label.labelType
 
   /**
    * Deletes a validation in the label_validation table, unwinding the edit it was submitted with. Also updates
    * validation counts in the label table.
    * @param oldVal The validation to delete.
+   * @param retracted Whether the vote is being taken back, as opposed to replaced by a newer one from the same user.
+   *                  A replacement keeps any type change the vote carried; see revertEditForValidation.
    * @return Int count of rows deleted, either 0 or 1.
    */
-  private def deleteLabelValidation(oldVal: LabelValidation): DBIO[Int] = {
+  private def deleteLabelValidation(oldVal: LabelValidation, retracted: Boolean): DBIO[Int] = {
     (for {
       _ <- {
         if (oldVal.validationResult == ValidationOption.Agree)
-          labelEditService.revertEditForValidation(oldVal.labelValidationId)
+          labelEditService.revertEditForValidation(oldVal.labelValidationId, retracted)
         else DBIO.successful(false)
       }
       excludedUser <- userStatTable.isExcludedUser(oldVal.userId)
-      labeler      <- labelTable.find(oldVal.labelId).map(_.get.userId)
+      // Read after the revert: unwinding a type change puts the label back on the type this vote was cast on. Locked so
+      // a type change can't land between this check and the count update.
+      label        <- labelsUnfiltered.filter(_.labelId === oldVal.labelId).forUpdate.result.head
       rowsAffected <- validationLabels.filter(_.labelValidationId === oldVal.labelValidationId).delete
       _            <- {
-        if (labeler != oldVal.userId & !excludedUser)
-          updateValidationCounts(oldVal.labelId, None, Some(oldVal.validationResult))
+        // A duplicate undo request finds the vote already gone, and must not take it off the counts a second time.
+        if (rowsAffected > 0 && counts(oldVal, label, excludedUser))
+          labelTable.addValidationVote(oldVal.labelId, oldVal.validationResult, -1)
         else DBIO.successful(0)
       }
     } yield {
@@ -158,11 +146,12 @@ class ValidationServiceImpl @Inject() (
    */
   def insert(labelVal: LabelValidation): DBIO[Int] = {
     for {
-      isExcludedUser       <- userStatTable.isExcludedUser(labelVal.userId)
-      userThatAppliedLabel <- labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).result.head
-      _                    <- {
-        if (userThatAppliedLabel != labelVal.userId & !isExcludedUser)
-          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
+      isExcludedUser <- userStatTable.isExcludedUser(labelVal.userId)
+      // Locked so a type change can't land between this check and the count update.
+      label <- labelsUnfiltered.filter(_.labelId === labelVal.labelId).forUpdate.result.head
+      _     <- {
+        if (counts(labelVal, label, isExcludedUser))
+          labelTable.addValidationVote(labelVal.labelId, labelVal.validationResult, 1)
         else DBIO.successful(0)
       }
       newValId <- (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
@@ -172,20 +161,50 @@ class ValidationServiceImpl @Inject() (
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int] =
     db.run(validationTaskEnvironmentTable.insert(env))
 
-  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] =
-    db.run(validationTaskInteractionTable.insertMultiple(interactions))
+  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Unit] =
+    db.run(validationTaskInteractionTable.insertMultiple(interactions)).map(_ => ())
 
   /**
    * Records the user's comment on a label, replacing whatever they had said about it before.
    *
+   * A canned reason has to be one the user's standing vote takes (#5475), and that vote can be moving at the same
+   * moment: a vote change on the label card deletes the old comment and inserts the new vote in its own
+   * transaction. So the vote row is read `FOR UPDATE` inside this transaction, and the vote path takes the same lock
+   * before it archives the comment: whichever is second waits, and a reason that waited on a vote change finds the
+   * row gone and is refused rather than filed under the new vote. The controller's earlier read of the vote is only
+   * the friendly early answer.
+   *
    * @return The validation_task_comment_id of the comment that was stored.
+   * @throws ReasonNotOffered when the reason isn't one the user's current vote on the label takes.
    */
-  def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
+  def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithConflictRetry {
+    val reasonAllowed: DBIO[Unit] = comment.reason match {
+      case None         => DBIO.successful(())
+      case Some(reason) =>
+        labelValidationTable.lockValidation(comment.labelId, comment.userId, comment.labelType).flatMap { vote =>
+          if (vote.exists(v => ValidationReason.offered(comment.labelType, v.validationResult).contains(reason)))
+            DBIO.successful(())
+          else DBIO.failed(ReasonNotOffered(reason))
+        }
+    }
     (for {
-      _         <- validationTaskCommentTable.deleteIfExists(comment.labelId, comment.userId)
+      _ <- reasonAllowed
+      _ <- validationTaskCommentTable.archive(
+        comment.labelId,
+        comment.userId,
+        comment.labelType,
+        ValidationCommentChangeType.Edit
+      )
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
+
+  /**
+   * The user's standing vote on a label, as the reason a comment may carry has to be one that vote takes (#5475).
+   * @return The vote on the label's given type, or None when they have none.
+   */
+  def currentVote(labelId: Int, userId: String, labelType: LabelType): Future[Option[ValidationOption]] =
+    db.run(labelValidationTable.getValidation(labelId, userId, labelType)).map(_.map(_.validationResult))
 
   /**
    * Removes the user's comment on a label, if they left one.
@@ -193,10 +212,14 @@ class ValidationServiceImpl @Inject() (
    * Backs the label card's explicit Delete control (#5015). Deleting is otherwise only reachable by clearing the
    * vote the comment rode in on, which throws away the verdict along with the text.
    *
+   * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
+   * deliberate delete rather than a side effect (#5076).
+   *
+   * @param labelType The type the comment is about. Comments on the label's other types stay.
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String): Future[Int] =
-    db.run(validationTaskCommentTable.deleteIfExists(labelId, userId))
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int] =
+    db.run(validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete))
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -204,7 +227,56 @@ class ValidationServiceImpl @Inject() (
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] =
-    runWithUniqueViolationRetry(submitValidationsDbio(validationSubmissions))
+    runWithConflictRetry(submitValidationsDbio(validationSubmissions))
+
+  /**
+   * Deletes a label from the label popup (#3591). An admin deleting someone else's label first files a Disagree, so
+   * the delete counts against the labeler the way a vote would. Anyone but the labeler or an admin is refused.
+   */
+  def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome] = {
+    val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
+    db.run(labelTable.find(labelId)).flatMap {
+      case None                                                     => Future.successful(LabelEditOutcome.NotFound)
+      case Some(label) if label.userId != editor.userId && !isAdmin => Future.successful(LabelEditOutcome.Forbidden)
+      case Some(label) if label.deleted                 => Future.successful(LabelEditOutcome.Applied(label))
+      case Some(label) if label.userId == editor.userId =>
+        db.run(labelEditService.deleteLabelDbio(labelId, editor.userId, source).transactionally)
+      case Some(label) =>
+        missionService
+          .resumeOrCreateNewValidateMission(editor.userId, MissionType.LabelmapValidation, label.labelType)
+          .flatMap { mission =>
+            runWithConflictRetry(
+              (for {
+                _       <- disagreeAsAdmin(label, editor.userId, mission.get.missionId, source)
+                outcome <- labelEditService.deleteLabelDbio(labelId, editor.userId, source)
+              } yield outcome).transactionally
+            )
+          }
+    }
+  }
+
+  /** A Disagree on the label from where it was placed, the only viewpoint a delete has. */
+  private def disagreeAsAdmin(label: Label, adminId: String, missionId: Int, source: UiSource): DBIO[Seq[Int]] = {
+    val now = OffsetDateTime.now
+    labelPointTable.labelPoints.filter(_.labelId === label.labelId).result.head.flatMap { point =>
+      submitValidationsDbio(
+        Seq(
+          ValidationSubmission(
+            LabelValidation(0, label.labelId, label.labelType, ValidationOption.Disagree, adminId, missionId,
+              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom, point.canvasWidth,
+              point.canvasHeight, now, now, source, ViewerType.Default),
+            newLabelType = None,
+            label.severity,
+            label.tags,
+            comment = None,
+            undone = false,
+            redone = false,
+            canEdit = false
+          )
+        )
+      )
+    }
+  }
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -212,53 +284,130 @@ class ValidationServiceImpl @Inject() (
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]] = {
-    val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
-      val validation: LabelValidation = valSubmission.validation
+    // Locks are taken in label order, so two batches from one user touching the same labels can't deadlock (#5475).
+    // The sort is stable, so an undo and its redo on one label still run in the order they were cast.
+    val inLockOrder: Seq[ValidationSubmission] = validationSubmissions.sortBy(_.validation.labelId)
+    val valSubmitActions: Seq[DBIO[Int]]       = for (valSubmission <- inLockOrder) yield {
+      // An Agree that changes the label's type is a vote on the new type (#3671): it is what the validator asserts,
+      // and it starts the re-typed label's count at one agree while every earlier vote drops out as stale.
+      val typeChange: Option[LabelType] = valSubmission.newLabelType.filter(_ =>
+        valSubmission.validation.validationResult == ValidationOption.Agree && valSubmission.canEdit
+      )
+      val validation: LabelValidation =
+        typeChange.fold(valSubmission.validation)(t => valSubmission.validation.copy(labelType = t))
 
-      labelValidationTable.getValidation(validation.labelId, validation.userId).flatMap { existingVal =>
-        // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
-        // them: a POST retried after its original committed, or the label served again in a later mission. Removing
-        // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
-        // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
-        val oldValRemoved = existingVal match {
-          case Some(oldVal) => deleteLabelValidation(oldVal).map(_ > 0)
-          case None         => DBIO.successful(false)
-        }
-
-        // Comments are keyed by (label, user) rather than by validation — one apiece, per
-        // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
-        // for them: an undo/redo retracts the comment that came with
-        // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
-        // user's earlier free text alone — nothing could restore it.
-        val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
-          validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
-        } else DBIO.successful(0)
-
-        // If the validation is new or is an update for an undone label, save it.
-        val newValInserted = if (!valSubmission.undone) {
-          for {
-            newValId: Int <- insert(validation)
-            // Only an Agree applies the submitted severity and tags; the edit is linked to the vote so an undo unwinds it.
-            _ <- {
-              if (validation.validationResult == ValidationOption.Agree) {
-                labelEditService.applyEdit(validation.labelId, validation.userId, valSubmission.severity,
-                  valSubmission.tags, validation.source, Some(newValId))
-              } else DBIO.successful(None)
+      // A vote on a deleted label is dropped (#3591): a mission batch or stale card must not hand a verdict to a label
+      // its labeler deleted before it had one. An admin's delete files its Disagree first, so that one lands.
+      val deleted: DBIO[Boolean] =
+        labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
+      // A redo replaces the vote just cast, which sits on another type when it was an admin's type-changing Agree: the
+      // redo is filed on the type the validator saw, so the same-type lookup below would miss it. Only a vote that made
+      // that type change qualifies; the user's own vote on another type stays (#5853).
+      val redoneOtherType: DBIO[Option[LabelValidation]] =
+        if (valSubmission.redone)
+          labelValidationTable
+            .lockNewestValidation(validation.labelId, validation.userId)
+            .flatMap {
+              case Some(v) if v.labelType != validation.labelType =>
+                labelEditTable
+                  .findByLabelValidationId(v.labelValidationId)
+                  .map(_.filter(e => e.oldLabelType != e.newLabelType).map(_ => v))
+              case _ => DBIO.successful(None)
             }
-            // Insert the comment if there is one.
-            _ <- valSubmission.comment match {
-              case Some(comment) => validationTaskCommentTable.insert(comment)
-              case None          => DBIO.successful(0)
-            }
-          } yield newValId
-        } else DBIO.successful(0)
+        else DBIO.successful(None)
 
-        for {
-          _        <- oldCommentRemoved
-          _        <- oldValRemoved
-          newValId <- newValInserted
-        } yield newValId
-      }
+      deleted.flatMap(
+        if (_) DBIO.successful(0)
+        else
+          // Locked before the comment is archived, as `replaceComment` does, so a reason filed from another tab is
+          // either archived here or finds its vote gone. The redo's lock goes first so two vote paths can't deadlock.
+          redoneOtherType
+            .zip(labelValidationTable.lockValidation(validation.labelId, validation.userId, validation.labelType))
+            .flatMap { case (redoneVal, existingVal) =>
+              // Removed first, and as a retraction: the redo names the old type, so keeping the type change would
+              // leave the new vote stale on arrival. Unwinding it puts the label back on the type this vote is on.
+              val redoneValRemoved = redoneVal match {
+                case Some(v) =>
+                  for {
+                    _ <- validationTaskCommentTable
+                      .archive(v.labelId, v.userId, v.labelType, ValidationCommentChangeType.ValidationChange)
+                    _ <- deleteLabelValidation(v, retracted = true)
+                  } yield ()
+                case None => DBIO.successful(())
+              }
+
+              // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive
+              // without them: a POST retried after its original committed, or the label served again in a later
+              // mission. Removing first makes those a clean replacement (latest verdict wins) instead of a
+              // unique-constraint violation, and reuses the redo path so severity/tags, label_history, and validation
+              // counts unwind first (#4377).
+              val oldValRemoved = existingVal match {
+                case Some(oldVal) => deleteLabelValidation(oldVal, retracted = valSubmission.undone).map(_ > 0)
+                case None         => DBIO.successful(false)
+              }
+
+              // Comments are keyed by (label, user, type), like votes, so only clear one when this submission
+              // accounts for it: an undo/redo retracts the comment that came with the vote (unless a card's vote change
+              // keeps typed words), and a submission carrying its own replaces it. A repeat validation carrying none
+              // leaves the user's earlier text alone.
+              val oldCommentRemoved =
+                if (valSubmission.redone && valSubmission.keepTypedComment && valSubmission.comment.isEmpty) {
+                  // A canned reason explains one vote, so no menu would show it under a vote that doesn't offer it.
+                  // A card's first vote also arrives as a redo, so typed words with no vote behind them (left before
+                  // #4653) are kept by it too: they describe the label, whichever vote they end up under.
+                  val offered = ValidationReason.offered(validation.labelType, validation.validationResult)
+                  validationTaskCommentTable
+                    .findReason(validation.labelId, validation.userId, validation.labelType)
+                    .flatMap {
+                      case Some(Some(reason)) if !offered.contains(reason) =>
+                        validationTaskCommentTable.archive(
+                          validation.labelId,
+                          validation.userId,
+                          validation.labelType,
+                          ValidationCommentChangeType.ValidationChange
+                        )
+                      case _ => DBIO.successful(0)
+                    }
+                } else if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
+                  // A retracted vote taking the text with it is no request to erase anything, so the history tells it
+                  // apart from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one
+                  // is retracted rather than replaced.
+                  val changeType =
+                    if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
+                    else ValidationCommentChangeType.ValidationChange
+                  validationTaskCommentTable
+                    .archive(validation.labelId, validation.userId, validation.labelType, changeType)
+                } else DBIO.successful(0)
+
+              // If the validation is new or is an update for an undone label, save it.
+              val newValInserted = if (!valSubmission.undone) {
+                for {
+                  newValId: Int <- insert(validation)
+                  // Only an Agree applies the submitted type, severity and tags; the edit is linked to the vote so an
+                  // undo unwinds it.
+                  _ <- {
+                    if (validation.validationResult == ValidationOption.Agree && valSubmission.canEdit) {
+                      labelEditService.applyEdit(validation.labelId, validation.userId, typeChange,
+                        valSubmission.severity, valSubmission.tags, validation.source, Some(newValId))
+                    } else DBIO.successful(None)
+                  }
+                  // Filed under the vote's type, which is the new one after a type change.
+                  _ <- valSubmission.comment match {
+                    case Some(comment) =>
+                      validationTaskCommentTable.insert(comment.copy(labelType = validation.labelType))
+                    case None => DBIO.successful(0)
+                  }
+                } yield newValId
+              } else DBIO.successful(0)
+
+              for {
+                _        <- redoneValRemoved
+                _        <- oldCommentRemoved
+                _        <- oldValRemoved
+                newValId <- newValInserted
+              } yield newValId
+            }
+      )
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.

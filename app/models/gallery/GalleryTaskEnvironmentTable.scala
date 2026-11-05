@@ -3,7 +3,8 @@ package models.gallery
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.IpAddress
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -19,7 +20,7 @@ case class GalleryTaskEnvironment(
     screenWidth: Option[Int],
     screenHeight: Option[Int],
     operatingSystem: Option[String],
-    ipAddress: Option[String],
+    ipAddress: IpAddress,
     language: String,
     userId: Option[String]
 )
@@ -35,15 +36,12 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
   def screenWidth: Rep[Option[Int]]        = column[Option[Int]]("screen_width")
   def screenHeight: Rep[Option[Int]]       = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
-  def ipAddress: Rep[Option[String]]       = column[Option[String]]("ip_address")
-  def language: Rep[String]                = column[String]("language")
+  def ipAddress: Rep[IpAddress]            = column[IpAddress]("ip_address")
+  def language: Rep[String]                = column[String]("language", O.Default("en"))
   def userId: Rep[Option[String]]          = column[Option[String]]("user_id")
 
   def * = (galleryTaskEnvironmentId, browser, browserVersion, browserWidth, browserHeight, availWidth, availHeight,
-    screenWidth, screenHeight, operatingSystem, ipAddress, language, userId) <> (
-    (GalleryTaskEnvironment.apply _).tupled,
-    GalleryTaskEnvironment.unapply
-  )
+    screenWidth, screenHeight, operatingSystem, ipAddress, language, userId).mapTo[GalleryTaskEnvironment]
 
   def user = foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
 }

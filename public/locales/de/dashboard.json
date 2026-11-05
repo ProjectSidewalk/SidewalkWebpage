@@ -68,8 +68,7 @@
     "add-note": "💬 Notiz hinzufügen",
     "note-placeholder": "Notiz zu dieser Beschriftung hinzufügen (optional)…",
     "save-note": "Notiz speichern",
-    "popup-heading": "Ihre Beschriftung wurde als falsch validiert. Stimmen Sie zu, dass das ein Fehler war?",
-    "your-label": "Ihre Beschriftung: {{type}}"
+    "popup-heading": "Ihre Beschriftung wurde als falsch validiert. Stimmen Sie zu, dass das ein Fehler war?"
   },
   "settings-form": {
     "saving": "Wird gespeichert…",
@@ -87,7 +86,6 @@
   "stories": {
     "none": "Sie haben noch keine Geschichten geschrieben. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte schreiben“."
   },
-  "routes-link-copied": "Link kopiert!",
   "routes-rename-aria": "Neuer Routenname",
   "routes-rename-save": "Speichern",
   "routes-rename-cancel": "Abbrechen",

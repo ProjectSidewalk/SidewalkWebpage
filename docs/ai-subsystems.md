@@ -31,19 +31,30 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 **Flow:**
 1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs nightly at the time
    `app/actor/ScheduledJobs.scala` gives it (staggered per city), selecting up to 800 labels/day via
-   `LabelTable.getLabelsToValidateWithAi` (unassessed, GSV-only, prioritized).
+   `LabelTable.getLabelsToValidateWithAi` (not assessed as its current type, GSV-only, prioritized). A label whose
+   type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
+   rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
-   `{label_type, panorama_id, x, y, city}` to
+   `{label_type, panorama_id, x, y, city, coord_frame}`, plus the pano's `camera_pitch` and `camera_roll` (degrees)
+   when known, finite and within ±30°, with the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
-3. The response (validation result + estimated accuracy + per-tag scores + model provenance)
-   is stored in `label_ai_assessment`. If AI validations are enabled for the city and
+   `coord_frame` is `level` for human labels, whose `pano_x/pano_y` are in the gravity-levelled viewer frame; the API
+   uses the pitch and roll to centre its crop on the clicked point rather than the tilt-shifted stored pixel
+   (#4784/#5788), and must skip that for `rig`-frame coordinates (AI-labeler submissions, #5790). The API rejects
+   out-of-range poses with a 400, so those are not sent and the label is assessed uncorrected.
+3. The response (validation result + estimated accuracy + per-tag scores + model provenance: API version, and
+   each model's id, training date and HuggingFace revision)
+   is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
+   the label is retyped (#3671) — the AI is asked about one type, so its answer only speaks to that type. If AI validations are enabled for the city and
    estimated accuracy ≥ `ai-validation-min-accuracy` (0.92 everywhere today), a real
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).
 4. Surfaced in the *Humans vs AI* admin dashboard (`/admin/humans-vs-ai`) and the AI icon
-   (`AiLabelIndicator.js`) across Gallery/Validate/LabelMap.
+   (`frontend/js/common/aiLabelIndicator.js`) across Gallery/Validate/LabelMap. The icon carries the
+   "AI can make mistakes" tooltip everywhere except Validate's marker, where the label card the
+   same hover opens shows the sentence instead (`LabelCardView`, #5359).
 
 **Models:**
 - *Validator* (from [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai)):
@@ -56,13 +67,17 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
   maximize recall subject to precision ≥ 0.92 (Wilson lower bound ≥ 0.90) — deliberately the
   same 0.92 as `ai-validation-min-accuracy`.
 
-**Config:** `ai-enabled`, `sidewalk-ai-api-hostname` (`application.conf`);
+**Config:** `ai-enabled`, `sidewalk-ai-api-hostname`, `sidewalk-ai-api-key` (`application.conf`; the password must
+match the AI server's, and when rotating it, update every stage *before* the AI server so nothing fails in between);
 `ai-tag-suggestions-enabled`, `ai-validation-enabled`, `ai-validation-min-accuracy`
 (`cityparams.conf`, per city).
 
 **DB:** `label_ai_assessment`, `label_ai_failure`, AI user
 `51b0b927-3c8a-45b2-93de-bd878d1e5cf4` (role `AI`), mission type `aiValidation`
-(evolutions 281/282, 321/322).
+(evolutions 281/282, 321/322; model revisions since 420). The AI user's per-schema rows — its `user_stat` row and
+one `aiValidation` mission per label type — are re-created at boot by
+`AiSeedRowsRepair` wherever a schema lacks them, since a city cloned from a donor or
+restored from an onboarding dump never ran 281 (#5349).
 
 ### Subsystem B — AI-generated labels (RampNet + auto-labeler)
 
@@ -79,10 +94,33 @@ validation.
    (`AiController.submitAiLabel`).
 2. `ExploreService.submitAiLabelData` computes lat/lng + POV, creates an AI mission/audit
    task, inserts real `label` rows under the AI user, and records provenance in
-   `label_ai_info`.
+   `label_ai_info`. The pano's `copyright` is reduced to the contributor's bare name on the
+   way in (`ImageryAttribution.normalizeCopyright`): the labeler sends a whole attribution,
+   `© name / Mapillary (CC BY-SA 4.0)`, and the server composes the sign, provider and licence
+   around the stored name itself, so storing the whole thing credited everything twice (#5360).
 3. Labels then enter the normal human-validation pipeline — which is also the feedback signal
    for improving the model (continual-improvement roadmap:
-   `sidewalk-auto-labeler/docs/design-review-2026-07.md`).
+   `sidewalk-auto-labeler/docs/design-review-2026-07.md`). A lone AI vote leaves a label one
+   vote short of consensus, so the crowd queue keeps serving it until a human concurs, and a
+   label the humans lean against goes to Expert Validate's triage queue
+   (`docs/validation-queue.md`).
+
+**Resubmitting a pano (#5382).** A re-run of the labeler re-POSTs panos it has already
+submitted, so a submission with labels is refused with a **409** when the AI user already has
+live labels of its `label_type` on that pano, and nothing is written (the pano upsert
+included). The body carries `pano_id`, `label_type` and `existing_label_count` beside the
+message. Sending `"overwrite": true` (default `false`) instead soft-deletes those labels
+(`deleted_by` the AI user, `deleted_source = 'SidewalkAI'`, so their `label_point`,
+`label_ai_info` and validations stay and an admin can restore them) in the same transaction
+as the new inserts; with `labels: []` it just retires them. The check is per label type, so a
+model for another type is neither refused by nor wipes them. Two concurrent *first*
+submissions of one pano could both pass the check; the labeler submits sequentially.
+
+**Incomplete payloads get a 400 (#4808).** A label's lat/lng and POV come from the pano's
+`width`, `height`, `lat`, `lng` and `camera_heading`, so a submission with labels that lacks
+any of them is refused with a 400 before anything is written; they stay optional on a
+`labels: []` submission. A label whose nearest street has no live region is still a 500, a
+data-integrity fault rather than a bad request, and it rolls back the whole submission.
 
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
@@ -106,7 +144,9 @@ alongside the AI-label endpoint; model id updated June 2026.
 → Gemini API. Enabled only where `GEMINI_API_KEY` is configured. Independent of subsystems
 A/B — no PS-trained models, no DB tables, no validation loop. (Note: this is our only
 subsystem that ships GSV imagery to a third-party API; A and B keep imagery within
-UW-controlled infrastructure.)
+UW-controlled infrastructure.) The two images are the street's endpoints, facing along it; each endpoint's pano is
+first placed by the free metadata call and checked to lie within 25 m, then fetched by pano id, so a far answer from
+Google is dropped rather than sent to Gemini (#5464).
 
 ## AI project timeline — every AI/CV repo in the org
 
@@ -154,7 +194,7 @@ production, superseded by `sidewalk-ai-api`.
 
 ```
 sidewalk-validator-ai ─┐ (HF: project-sidewalk-validator-models)
-sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-models)          RampNet
+sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-<type>)          RampNet
                        ▼                                             │ (HF: rampnet-model)
                 sidewalk-ai-api  /process                            ▼
                        ▲                                   sidewalk-auto-labeler

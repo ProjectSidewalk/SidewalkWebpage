@@ -1,11 +1,10 @@
 package models.street
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.LocalDate
 
@@ -22,21 +21,22 @@ import java.time.LocalDate
  * All cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS like
  * the other DB-backed specs. Actors are disabled.
  */
-class StreetReopenCandidateSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class StreetReopenCandidateSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val candidateTable = app.injector.instanceOf[StreetReopenCandidateTable]
 
   private val capture = LocalDate.parse("2025-06-01")
 
-  /** A street that belongs to a non-deleted region, so it can appear in candidatesForReview's region join. */
+  /** A non-tutorial street in a non-deleted region, so it can appear in candidatesForReview's region join. */
   private def streetInRegion: DBIO[Int] = {
     sql"""SELECT street_edge_region.street_edge_id
           FROM street_edge_region
           JOIN region ON street_edge_region.region_id = region.region_id
           WHERE region.deleted = FALSE
+            AND street_edge_region.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           ORDER BY street_edge_region.street_edge_id
           LIMIT 1""".as[Int].head
   }
@@ -166,13 +166,13 @@ class StreetReopenCandidateSpec extends PlaySpec with GuiceOneAppPerSuite with R
 
   "deleteForNonRetiredStreets" should {
     "drop evidence about a street whose status has moved on, and keep a retired street's" in {
-      // The only case here needing two distinct streets — one to retire, one to move on. CI's schema links exactly
-      // one street to a region, so read the pair up front and cancel rather than fail on `.head` of an empty result.
+      // Needs two streets (one to retire, one to move on); cancel on a schema with fewer rather than fail on `.head`.
       val streetIds = run(
         sql"""SELECT street_edge_region.street_edge_id
               FROM street_edge_region
               JOIN region ON street_edge_region.region_id = region.region_id
               WHERE region.deleted = FALSE
+                AND street_edge_region.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               ORDER BY street_edge_region.street_edge_id
               LIMIT 2""".as[Int]
       )

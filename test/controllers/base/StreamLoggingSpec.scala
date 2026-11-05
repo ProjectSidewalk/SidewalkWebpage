@@ -1,0 +1,63 @@
+package controllers.base
+
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.scalatest.Assertion
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import util.{LogCapture, SidewalkSpec}
+
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration.DurationInt
+
+/**
+ * Pins what a streamed response logs when it ends early: to Pekko a client that stops reading looks like a normal
+ * finish, so telling the two apart is deliberate work (#4161).
+ */
+class StreamLoggingSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually {
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
+
+  given mat: Materializer    = app.materializer
+  given ec: ExecutionContext = app.actorSystem.dispatcher
+
+  /** The smallest controller that can call the protected helper. */
+  private class Probe extends CustomBaseController(app.injector.instanceOf[CustomControllerComponents]) {
+    def wrap(source: Source[String, ?]): Source[String, ?] = logStreamFailures(source, "probe")
+  }
+
+  private val rows: Source[String, ?] = Source(1 to 100).map(_.toString)
+
+  /** Runs `body` with the probe's log captured, then retries `check` on it: the logging runs on another thread. */
+  private def logged(body: Probe => Any)(check: Seq[String] => Assertion): Unit =
+    LogCapture.capturing(classOf[Probe].getName) { messages =>
+      body(Probe())
+      val _ = eventually(timeout(Span(5, Seconds)))(check(messages()))
+    }
+
+  "logStreamFailures" should {
+    "log nothing for a full send, and the row count for a cut-off" in {
+      // One capture for both, so the cut-off's message proves the logging had time to run for the full send too.
+      logged { p =>
+        Await.result(p.wrap(rows).runWith(Sink.ignore), 10.seconds)
+        Await.result(p.wrap(rows).take(5).runWith(Sink.ignore), 10.seconds)
+      } { messages =>
+        messages must have size 1
+        messages.head must include("cut off")
+        messages.head must include("5 rows")
+      }
+    }
+
+    "log an error when the source itself fails" in {
+      val broken = rows.concat(Source.failed(RuntimeException("db went away")))
+      logged(p => Await.ready(p.wrap(broken).runWith(Sink.ignore), 10.seconds)) { messages =>
+        messages must have size 1
+        messages.head must include("failed mid-flight")
+      }
+    }
+  }
+}

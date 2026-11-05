@@ -1,7 +1,7 @@
 package modules
 
 import play.api.http.HttpConfiguration
-import play.api.i18n._
+import play.api.i18n.*
 import play.api.{Configuration, Environment}
 
 import javax.inject.{Inject, Singleton}
@@ -32,7 +32,7 @@ class CustomMessagesApiProvider @Inject() (
     }
 
     // Create MessagesApi with merged messages using all the same config as parent.
-    new DefaultMessagesApi(
+    DefaultMessagesApi(
       finalMessages, langs, langCookieName = langCookieName, langCookieSecure = langCookieSecure,
       langCookieHttpOnly = langCookieHttpOnly, langCookieSameSite = langCookieSameSite,
       httpConfiguration = httpConfiguration, langCookieMaxAge = langCookieMaxAge

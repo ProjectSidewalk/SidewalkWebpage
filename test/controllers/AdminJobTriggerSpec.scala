@@ -1,46 +1,58 @@
 package controllers
 
 import actor.{
+  BasemapRefreshActor,
   CheckImageExpiryActor,
   ClusteringActor,
   CropGenerationActor,
   FunnelStatActor,
   OsmWayRefreshActor,
+  PlacesRefreshActor,
   RecalculateStreetPriorityActor,
+  SidewalkPresenceActor,
+  StreetGradientStalenessActor,
   UserStatActor
 }
+import models.street.StreetPriorityRecalc
 import models.user.Role
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
 import service.{
   AdminService,
+  BasemapRefreshResult,
+  BasemapService,
   ClusterService,
   ClusteringResults,
   CropService,
+  OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
+  PlacesRefreshResult,
+  PlacesService,
+  SidewalkPresenceRebuildResult,
+  SidewalkPresenceService,
+  StreetGradientStaleness,
   StreetService
 }
-import util.{AnonSession, RoleSession, RolledBackDb, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
 import scala.concurrent.Future
 
 /**
- * Functional tests for the seven admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the nine admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -49,14 +61,14 @@ import scala.concurrent.Future
  * and read the row back.
  *
  * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
- * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * shell out to the Python clusterer, and call out to the OSM API and the imagery providers; the assertion here is about
  * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled so a nightly run can't be mistaken for a triggered one.
  */
 class AdminJobTriggerSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
@@ -64,24 +76,49 @@ class AdminJobTriggerSpec
     with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated   = 4611
-  private val FunnelRows     = 4612
-  private val WaysRefreshed  = 4613
+  private val UsersUpdated  = 4611
+  private val FunnelRows    = 4612
+  private val WaysRefreshed =
+    OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27, tagsRecovered = 19, tagsUnrecoverable = 2)
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, dimsUnverified = 4622, downscaledWritten = 4623, downscaledDeleted = 4625, errors = 4624
+    dimsMismatch = 4621, dimsUnverified = 4622, provenanceExplore = 4628, provenanceWindow = 4629,
+    provenanceUnresolved = 4630, errors = 4624
   )
 
+  private val PresenceResult =
+    SidewalkPresenceRebuildResult(faces = 4631, inserted = 4632, updated = 4633, deleted = 4634)
+
+  private val PlacesResult = PlacesRefreshResult(
+    skipped = false, fetched = 4635, dropped = 4636, total = 4637, inserted = 4638, updated = 4639, deleted = 4640,
+    fetchedAt = None
+  )
+
+  private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
+  private val PriorityRecalc  = StreetPriorityRecalc(streetsChanged = 4660, streetsWithoutRow = 4661)
+
+  private val BasemapResult =
+    BasemapRefreshResult(skipped = false, Some("basemap-20261015-4643.pmtiles"), Some("20261015"), Some(4644L))
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
-  @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
+  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
 
+  /** As `cropRunning`, for the sidewalk-presence rebuild, whose trigger refuses the same way. */
+  @volatile private var presenceRunning: Boolean = false
+
+  /** As `cropRunning`, for the places refresh, whose trigger refuses the same way. */
+  @volatile private var placesRunning: Boolean = false
+
+  /** As `cropRunning`, for the minimap basemap refresh. */
+  @volatile private var basemapRunning: Boolean = false
+
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -95,11 +132,16 @@ class AdminJobTriggerSpec
           )
         ),
         bind[StreetService].toInstance(
-          StubService.answering[StreetService](Map("recalculateStreetPriority" -> Future.successful(Seq(1, 2))))
+          StubService.answering[StreetService](
+            Map(
+              "recalculateStreetPriority"    -> Future.successful(PriorityRecalc),
+              "countStreetGradientStaleness" -> Future.successful(StalenessResult)
+            )
+          )
         ),
         bind[PanoDataService].toInstance(
           StubService.answering[PanoDataService](
-            Map(
+            Map[String, Any](
               "checkForImagery" -> Future.successful(ImageryResult),
               // Play builds every controller to route one request, and ImageController reads this in its constructor.
               "getCropDirectory" -> ".crops"
@@ -116,11 +158,29 @@ class AdminJobTriggerSpec
         ),
         bind[OsmWayService].toInstance(
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
+        ),
+        bind[SidewalkPresenceService].toInstance(
+          StubService.answeringWith[SidewalkPresenceService](
+            Map(
+              "rebuild"   -> (() => Future.successful(PresenceResult)),
+              "isRunning" -> (() => presenceRunning)
+            )
+          )
+        ),
+        bind[PlacesService].toInstance(
+          StubService.answeringWith[PlacesService](
+            Map("refresh" -> (() => Future.successful(PlacesResult)), "isRunning" -> (() => placesRunning))
+          )
+        ),
+        bind[BasemapService].toInstance(
+          StubService.answeringWith[BasemapService](
+            Map("refresh" -> (() => Future.successful(BasemapResult)), "isRunning" -> (() => basemapRunning))
+          )
         )
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
 
@@ -132,10 +192,10 @@ class AdminJobTriggerSpec
 
   // A POST carries the CSRF token the admin UI's fetch wrapper sends; on a GET the token is simply unused.
   private def asAdmin(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(adminCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(adminCookies*).withCSRFToken).get
 
   private def asVisitor(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(visitorCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(visitorCookies*).withCSRFToken).get
 
   private def highestRunId: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
@@ -143,7 +203,8 @@ class AdminJobTriggerSpec
   private def runsSince(idFloor: Int, jobName: String): Seq[BackgroundJobRun] =
     run(
       jobRunTable.backgroundJobRuns
-        .filter(row => row.jobName === jobName && row.backgroundJobRunId > idFloor)
+        .filter(row => row.jobName === jobName)
+        .filter(row => row.backgroundJobRunId > idFloor)
         .result
     )
 
@@ -209,7 +270,7 @@ class AdminJobTriggerSpec
       jobRun.status mustBe JobRunStatus.Succeeded
       // This one covers only the recalculation step, not the region_completion rebuild the nightly sequence wraps
       // around it, so it reports a null count rather than a number a reader could mistake for a rebuild that ran.
-      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(None)
+      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(PriorityRecalc, None)
     }
   }
 
@@ -221,6 +282,101 @@ class AdminJobTriggerSpec
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe ImageryResult.runDetails
+    }
+  }
+
+  "POST /adminapi/rebuildSidewalkPresence" should {
+    "record the rebuild as a manual run of the nightly sidewalk-presence job, with its counts" in {
+      val (code, body, jobRun) = trigger("/adminapi/rebuildSidewalkPresence", SidewalkPresenceActor.Name, POST)
+      code mustBe OK
+      body must include(PresenceResult.faces.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe PresenceResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while the nightly rebuild is already running" in {
+      // Two rebuilds racing insert the same new street's faces and the loser aborts on the primary key; refusing
+      // before the run is recorded keeps that non-event off the Health panel.
+      presenceRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/rebuildSidewalkPresence", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, SidewalkPresenceActor.Name) mustBe empty
+      } finally presenceRunning = false
+    }
+  }
+
+  "POST /adminapi/recountStreetGradientStaleness" should {
+    "record the recount as a manual run of the nightly staleness job, with its counts" in {
+      val (code, body, jobRun) =
+        trigger("/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name, POST)
+      code mustBe OK
+      body must include(StalenessResult.unsampled.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe StalenessResult.runDetails
+    }
+  }
+
+  "POST /adminapi/refreshPlaces" should {
+    // Answers before the Overpass round trip finishes, as crop generation does, so the run row is read back later.
+    "answer at once and record the refresh as a manual run of the nightly job, with its counts" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/refreshPlaces", POST)
+      status(response) mustBe ACCEPTED
+      contentAsString(response) must include("started")
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, PlacesRefreshActor.Name)
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.details.value mustBe PlacesResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a refresh is already in flight" in {
+      placesRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/refreshPlaces", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, PlacesRefreshActor.Name) mustBe empty
+      } finally placesRunning = false
+    }
+  }
+
+  "POST /adminapi/refreshBasemap" should {
+    "answer at once and record the rebuild as a manual run of the nightly job, with its result" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/refreshBasemap", POST)
+      status(response) mustBe ACCEPTED
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, BasemapRefreshActor.Name)
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.details.value mustBe BasemapResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a rebuild is already in flight" in {
+      basemapRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/refreshBasemap", POST)
+        status(response) mustBe CONFLICT
+        runsSince(idFloor, BasemapRefreshActor.Name) mustBe empty
+      } finally basemapRunning = false
     }
   }
 
@@ -264,7 +420,7 @@ class AdminJobTriggerSpec
       osmWayAnswer = Future.successful(WaysRefreshed)
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe OK
-      body must include(WaysRefreshed.toString)
+      body must include(WaysRefreshed.waysRefreshed.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe OsmWayRefreshActor.runDetails(WaysRefreshed)
@@ -273,7 +429,7 @@ class AdminJobTriggerSpec
     "record a half-finished refresh as a failure, and say so rather than reporting a count" in {
       // This job runs for tens of minutes over a shared community API and can die partway. The run row is the only
       // durable account of that, and the caller is told progress is kept -- both are easy to lose to a refactor.
-      osmWayAnswer = Future.failed(new RuntimeException("overpass timed out"))
+      osmWayAnswer = Future.failed(RuntimeException("overpass timed out"))
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe SERVICE_UNAVAILABLE
       body must include("trigger again to resume")
@@ -308,6 +464,9 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/recalculateStreetPriority", RecalculateStreetPriorityActor.Name),
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
+        (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
+        (POST, "/adminapi/refreshBasemap", BasemapRefreshActor.Name),
+        (POST, "/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)
       ).foreach { case (method, path, jobName) =>

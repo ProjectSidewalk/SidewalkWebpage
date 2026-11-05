@@ -4,7 +4,7 @@
  *
  * Every case intercepts the feed and the base map layers (these assert request behavior, not data), so they
  * behave identically against a seeded dev schema and CI's empty one, in content and in how long they take
- * (#5081). The zoom floor is exercised in the jest suite (test/js/viewportLabelLoader.test.js) instead —
+ * (#5081). The zoom floor is exercised in the Vitest suite (test/js/viewportLabelLoader.test.js) instead —
  * mobile emulation plus zoom thresholds are flaky here.
  */
 const {test, expect, stubMapbox, stubMapBaseLayers, waitForAppReady} = require('./fixtures');

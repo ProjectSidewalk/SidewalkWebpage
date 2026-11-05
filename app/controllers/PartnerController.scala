@@ -1,10 +1,10 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.partner.{PartnerLogoUpload, PartnerMetadata, PartnerRejection}
 import models.user.{Role, SidewalkUserWithRole}
-import play.api.Configuration
+import models.utils.OfficialContact
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
@@ -15,17 +15,18 @@ import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * HTTP surface for community-partner logos (#4516): the admin CRUD under /adminapi and the public logo bytes the
- * landing page renders. City-scoped writes are admin-gated; the global (all-cities) scope is Owner-only, split onto
- * its own /adminapi/globalPartners routes so the posture is visible in the routes file.
+ * landing page renders. It also serves the Partners page's official-contact notice (#5462), which renders in the
+ * landing page's partners section and is edited on the same admin page. City-scoped writes are admin-gated; the global
+ * (all-cities) scope is Owner-only, split onto its own /adminapi/globalPartners routes so the posture is visible in
+ * the routes file.
  */
 @Singleton
 class PartnerController @Inject() (
     cc: CustomControllerComponents,
-    implicit val config: Configuration,
     configService: ConfigService,
-    partnerService: PartnerService,
-    implicit val ec: ExecutionContext
-) extends CustomBaseController(cc) {
+    partnerService: PartnerService
+)(using ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
   // Wire cap plus 1 MiB of multipart-framing headroom, so a valid max-size logo isn't cut off by its own boundaries.
   private val bodyCap: Long = partnerService.logoUploadMaxBytes + (1L << 20)
@@ -122,15 +123,41 @@ class PartnerController @Inject() (
       case Some((bytes, mime, updatedAt)) =>
         val etag    = "\"" + PartnerMetadata.logoVersionOf(updatedAt) + "\""
         val headers = Seq(CACHE_CONTROL -> "public, max-age=31536000, immutable", ETAG -> etag)
-        if (request.headers.get(IF_NONE_MATCH).contains(etag)) NotModified.withHeaders(headers: _*)
-        else Ok(bytes).as(mime).withHeaders(headers: _*)
+        if (request.headers.get(IF_NONE_MATCH).contains(etag)) NotModified.withHeaders(headers*)
+        else Ok(bytes).as(mime).withHeaders(headers*)
     }
   }
 
+  /** The city's official contact for the landing-page notice; both fields are null when the notice is off. */
+  def getOfficialContact = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    configService.getOfficialContact.map(contact => Ok(officialContactJson(contact)))
+  }
+
+  /**
+   * Sets the city's official contact from posted `name` and `url` (any admin). A blank `url` turns the notice off. The
+   * rejection message is shown as-is on the admin page, so validation lives in one place.
+   */
+  def updateOfficialContact = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    val fields = request.body.asJson.map(json => ((json \ "name").asOpt[String], (json \ "url").asOpt[String]))
+    fields match {
+      case Some((name, Some(url))) =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Click_module=AdminOfficialContactUpdate")
+        ConfigService.validateOfficialContact(name.getOrElse(""), url) match {
+          case Left(error)    => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> error)))
+          case Right(contact) =>
+            configService
+              .setOfficialContact(contact)
+              .map(_ => Ok(Json.obj("success" -> true) ++ officialContactJson(contact)))
+        }
+      case _ => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected name and url")))
+    }
+  }
+
+  private def officialContactJson(contact: Option[OfficialContact]): JsObject =
+    Json.obj("name" -> contact.map(_.name), "url" -> contact.map(_.url))
+
   /** Shared body of the two create actions; `cityId` is the scope the route already authorized. */
-  private def create(
-      cityId: Option[String]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def create(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asMultipartFormData match {
       case None       => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected a form")))
       case Some(body) =>
@@ -157,9 +184,7 @@ class PartnerController @Inject() (
   }
 
   /** Shared body of the two reorder actions; `cityId` is the scope the route already authorized. */
-  private def reorder(
-      cityId: Option[String]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def reorder(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asJson.flatMap(json => (json \ "partner_ids").asOpt[Seq[Int]]) match {
       case None      => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected partner_ids")))
       case Some(ids) =>

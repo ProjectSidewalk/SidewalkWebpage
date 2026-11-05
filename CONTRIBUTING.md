@@ -77,16 +77,16 @@ that's the single source of truth, and most rules are enforced for you by the li
 PR:
 
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
-  actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
+  actively migrating *off* ES5 — don't add to it.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity),
-  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `public/js/`), or
-  `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
-  ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
-  **All of them are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
-  merge — just like scalafmt.
+  `make lint-css-layout` (the `frontend/css/` layout), `make lint-asset-paths` (asset URLs in `frontend/js/`),
+  `make shellcheck` (the `.sh` files), or `make lint` for all of them (it also runs the evolutions lint). The trees
+  are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
+  finding is from your change. **All of them are blocking CI checks** now (in the `Frontend (build)` job; ShellCheck
+  is its own `Shell script lint` job), so a lint failure blocks the merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
   `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
   and the manual checklist are in **[`docs/accessibility.md`](docs/accessibility.md)**.
@@ -113,10 +113,10 @@ user-facing text, add at least temporary (machine) translations for the other la
 ## Testing your changes
 
 There's a backend test suite (ScalaTest) under `test/` — mainly public-API functional specs. Run it with
-`sbt --client test` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
+`make test-scala` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
 up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). CI runs the
 whole suite as a blocking, required check — a new spec is picked up by existing, with nothing to enroll it in — but
-coverage is still thin, so also compile (`sbt --client compile`) and exercise behavior in the running app. See
+coverage is still thin, so also compile (`make compile`) and exercise behavior in the running app. See
 [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
 
 **Update logging.** User interactions (clicks, key presses, etc.) should be logged. If you add or change
@@ -168,17 +168,17 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 apply). A PR can only merge once the **blocking CI checks pass** — **`Backend (compile + scalafmt)`**,
 **`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, locale key-parity, the CSS layout check and the
 asset-path check, so any frontend lint failure blocks the merge), **`Route reachability lint`**, **`Evolutions lint`**,
-**`Backend tests (API, PostGIS)`**, **`Python tests (in-band script)`** and **`E2E smoke (Playwright)`**. The rule:
+**`Shell script lint`**, **`Backend tests (API, PostGIS)`**, **`Python tests`** and **`E2E smoke (Playwright)`**. The
+rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
   It also means nobody pushes straight to `develop`: a direct push has no PR for the checks to run against.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
-- **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
-  can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
-- **Advisory work never blocks.** `Python tests (offline tooling)` is the one check that reports status without
-  being required — it covers an operator utility that never runs on the server. Everything else in the checks list
-  gates the merge, the Jest suite included (#5132).
+- **Coverage can block too.** `Backend tests (API, PostGIS)` and the Vitest step of `Frontend (build)` each end on a
+  coverage ratchet, so removing tests can fail the build even when everything still passes.
+- **Advisory work never blocks.** `Dependency review` and `CodeQL` report status without being required. Everything
+  else in the checks list gates the merge, the Vitest suite included (#5132).
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 

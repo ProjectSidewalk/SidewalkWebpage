@@ -233,6 +233,11 @@ rather than the markup.
 When you touch tool UI in the meantime, the going-forward rule is the ordinary one: new controls are real semantic
 elements (`<button>`, `<a>`, `<input>`) with names and keyboard handlers, never a `div` with a click listener.
 
+Immersive mode (Explore #5085, Validate #5560) moves controls on screen but not in the DOM, so the tab order and
+the shortcuts are the boxed page's; the toggle button carries the state in its name ("Enter" / "Exit immersive
+mode") and a one-time toast names the <kbd>F</kbd> key that leaves it. Everything floating over imagery sits on the
+asphalt scrim or a white pill, never as bare text.
+
 ## Reporting a problem
 
 Open an issue with the **`Website Accessibility`** label. Include the page, the assistive technology and browser (with

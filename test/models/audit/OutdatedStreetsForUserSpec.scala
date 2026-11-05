@@ -2,12 +2,11 @@ package models.audit
 
 import models.street.{StreetImagery, StreetImagerySource, StreetImageryTableDef}
 import models.utils.ConfigTableDef
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -24,10 +23,10 @@ import java.time.{LocalDate, OffsetDateTime}
  * near-empty schema. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in
  * dev/CI). Scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class OutdatedStreetsForUserSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class OutdatedStreetsForUserSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val auditTaskTable = app.injector.instanceOf[AuditTaskTable]
 
@@ -36,10 +35,12 @@ class OutdatedStreetsForUserSpec extends PlaySpec with GuiceOneAppPerSuite with 
 
   private val ListLimit = 12
 
-  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] =
+  private def setImagery(streetEdgeId: Int, median: Option[LocalDate]): DBIO[Int] = {
+    val polledAt = OffsetDateTime.now
     streetImagery.insertOrUpdate(
-      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, OffsetDateTime.now)
+      StreetImagery(streetEdgeId, None, median, median, 1, StreetImagerySource.ImageryPoll, polledAt, Some(polledAt))
     )
+  }
 
   "getOutdatedStreetsForUser" should {
     "list a street only once the user's audit of it is flagged" in {
@@ -314,6 +315,23 @@ class OutdatedStreetsForUserSpec extends PlaySpec with GuiceOneAppPerSuite with 
       } yield pairs.map(_._1.streetEdgeId))
 
       streetIds.size mustBe 1
+    }
+
+    "leave out streets in deleted regions, matching the list's count" in {
+      val (streetIds, listCount) = runRolledBack(for {
+        userId          <- insertUser()
+        regionId        <- insertRegion()
+        deletedRegionId <- insertRegion(deleted = true)
+        liveStreet      <- insertStreet(Some(regionId))
+        hiddenStreet    <- insertStreet(Some(deletedRegionId))
+        _               <- audit(liveStreet, userId, outdated = true)
+        _               <- audit(hiddenStreet, userId, outdated = true)
+        pairs           <- auditTaskTable.getAuditedStreets(userId)
+        count           <- auditTaskTable.countOutdatedStreetsForUser(userId)
+      } yield (pairs.map(_._1.streetEdgeId), count))
+
+      streetIds.size mustBe 1
+      listCount mustBe 1
     }
   }
 }

@@ -1,18 +1,18 @@
 package models.pano
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `pano_data.license` (#5202, evolution 376).
@@ -26,10 +26,10 @@ import scala.concurrent.duration._
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no background sweep touches the row mid-test.
  */
-class PanoLicenseSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class PanoLicenseSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   private val dbConfig      = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]

@@ -2,11 +2,11 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class LabelAiFailure(labelId: Int, reason: String, timestamp: OffsetDateTime)
@@ -17,10 +17,7 @@ class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (labelId, reason, timestamp) <> (
-    (LabelAiFailure.apply _).tupled,
-    LabelAiFailure.unapply
-  )
+  def * = (labelId, reason, timestamp).mapTo[LabelAiFailure]
 
   def label = foreignKey("label_ai_failure_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
@@ -29,7 +26,7 @@ class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label
 trait LabelAiFailureTableRepository {}
 
 @Singleton
-class LabelAiFailureTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelAiFailureTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
 ) extends LabelAiFailureTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

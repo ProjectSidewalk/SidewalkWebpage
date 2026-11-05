@@ -980,6 +980,36 @@
    "pano_y": 6000.0,
    "predict_crop_size": 1500.0,
    "window_width": 3328.0
+  },
+  {
+   "box": {
+    "height": 181,
+    "left": 1912,
+    "shifted": false,
+    "top": 2162,
+    "width": 272
+   },
+   "pano_height": 4096,
+   "pano_width": 4096,
+   "pano_x": 2048.0,
+   "pano_y": 2252.8,
+   "predict_crop_size": 217.42647630490924,
+   "window_width": 271.78309538113655
+  },
+  {
+   "box": {
+    "height": 133,
+    "left": 1400,
+    "shifted": false,
+    "top": 3234,
+    "width": 199
+   },
+   "pano_height": 6000,
+   "pano_width": 3000,
+   "pano_x": 1500.0,
+   "pano_y": 3300.0000000000005,
+   "predict_crop_size": 318.49581489976947,
+   "window_width": 199.0598843123559
   }
  ]
 }

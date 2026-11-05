@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -9,7 +9,7 @@ import java.time.OffsetDateTime
  * cases are sub-second roundings that the DB-backed StoryControllerSpec (which asserts only coarse bounds on a live
  * clock) cannot pin down.
  */
-class StoryServiceSpec extends PlaySpec {
+class StoryServiceSpec extends SidewalkSpec {
 
   // A story posted at 10:00:00Z counts against the rolling 24h cap until 10:00:00Z the next day.
   private val posted = Some(OffsetDateTime.parse("2026-08-01T10:00:00Z"))

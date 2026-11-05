@@ -5,7 +5,7 @@
 @import service.{AdminUserProfileData, CommonPageData}
 @(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminData: AdminUserProfileData,
     currTeam: Option[Team], teams: Seq[Team]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * The Manage user page beside a user's dashboard (`/admin/user/:username/manage`, #4964): the account settings an admin may
@@ -18,6 +18,7 @@
 @roleLocked = @{!Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role)}
 @isOwner = @{user.role == Role.Owner}
 @qualityLocked = @{isOwner || (user.role == Role.Administrator && viewer.role != Role.Owner)}
+@isExcluded = @{adminData.userStats.excluded}
 @qualityWord(high: Boolean) = @{if (high) "High" else "Low"}
 @selectedIf(cond: Boolean) = @{if (cond) Html("selected") else Html("")}
 @disabledIf(cond: Boolean) = @{if (cond) Html("disabled") else Html("")}
@@ -56,15 +57,15 @@
         <label class="ud-label" for="au-role">Role</label>
         <select class="ps-select ps-select--large" id="au-role" @disabledIf(roleLocked)>
           @if(roleLocked) {
-            <option value="@user.role" selected>@user.role</option>
+            <option value="@user.role.name" selected>@user.role.name</option>
           } else {
             @for(r <- Role.ADMIN_ASSIGNABLE_ROLES) {
-              <option value="@r" @selectedIf(r==user.role)>@r</option>
+              <option value="@r.name" @selectedIf(r==user.role)>@r.name</option>
             }
           }
         </select>
         @if(roleLocked) {
-          <span class="ud-field-help">@user.role accounts can't be moved to another role.</span>
+          <span class="ud-field-help">@user.role.name accounts can't be moved to another role.</span>
         }
       </div>
       <div class="ud-field">
@@ -79,7 +80,7 @@
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-quality">Work quality</label>
-        <select class="ps-select ps-select--large" id="au-quality" @disabledIf(qualityLocked)>
+        <select class="ps-select ps-select--large" id="au-quality" @disabledIf(qualityLocked || isExcluded)>
           <option value="auto" @selectedIf(adminData.userStats.highQualityManual.isEmpty)>Automatic (currently @qualityWord(adminData.userStats.highQuality).toLowerCase)</option>
           <option value="true" @selectedIf(adminData.userStats.highQualityManual.contains(true))>High quality</option>
           <option value="false" @selectedIf(adminData.userStats.highQualityManual.contains(false))>Low quality</option>
@@ -92,6 +93,19 @@
           }
         </span>
       </div>
+      <label class="ud-check" for="au-excluded">
+        <input type="checkbox" id="au-excluded" @if(isExcluded){checked} @disabledIf(qualityLocked)>
+        <span class="ud-check-text">
+          <strong>Excluded</strong>
+          <span class="ud-field-help">
+            @if(qualityLocked) {
+              @if(isOwner) {An Owner can't be excluded.} else {An admin can only be excluded by an Owner.}
+            } else {
+              For malicious data, or users who weren't really trying to do the task. Hides all of their labels and validations, and marks them low quality. Only applies to this city.
+            }
+          </span>
+        </span>
+      </label>
       <label class="ud-check" for="au-community-service">
         <input type="checkbox" id="au-community-service" @if(user.communityService){checked} @disabledIf(isOwner)>
         <span class="ud-check-text">
@@ -146,7 +160,7 @@
         <span class="ps-kpi-label">Labels per km</span>
       </div>
       <div class="ps-kpi">
-        <span class="ps-kpi-value" id="au-high-quality">@qualityWord(adminData.userStats.highQuality)</span>
+        <span class="ps-kpi-value" id="au-high-quality">@if(isExcluded){Excluded}else{@qualityWord(adminData.userStats.highQuality)}</span>
         <span class="ps-kpi-label">Work quality@if(adminData.userStats.highQualityManual.isDefined){ (manual)}</span>
       </div>
       <div class="ps-kpi">
@@ -154,7 +168,7 @@
         <span class="ps-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
       </div>
     </div>
-    <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="au-hours-status" class="sr-only" role="status" aria-live="polite"></span>
     <div id="au-hours-cities" hidden>
       <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
       <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
@@ -212,19 +226,13 @@
     }
   </div>
 
-  <script src="@assets.path("js/user-dashboard/AdminUser.js")"></script>
-  <script>
-    window.appManager.ready(() => {
-      new AdminUser({
-        userId: '@user.userId',
-        username: '@user.username',
-        saveUrl: '@routes.AdminController.saveUserSettings',
-        flagsUrl: '@routes.AdminController.setTaskFlagsBeforeDate()',
-        hoursUrl: '@routes.UserProfileController.adminGetCrossCityHours(user.userId)',
-        pageUrlFor: (username) => `/admin/user/${encodeURIComponent(username)}/manage`
-      });
-    });
-  </script>
+  @ViteAssets.stylesheets("dashboard/manageUser", alreadyLinked = "dashboard/shell")
+  <script type="module" id="page-entry" src='@assets.path("build/js/dashboard/manageUser.js")'
+          data-user-id="@user.userId"
+          data-username="@user.username"
+          data-save-url="@routes.AdminController.saveUserSettings"
+          data-flags-url="@routes.AdminController.setTaskFlagsBeforeDate()"
+          data-hours-url="@routes.UserProfileController.adminGetCrossCityHours(user.userId)"></script>
 }
 
 @common.main(commonData, s"Manage ${user.username} — Project Sidewalk", i18Namespaces = Seq("common", "dashboard")) {

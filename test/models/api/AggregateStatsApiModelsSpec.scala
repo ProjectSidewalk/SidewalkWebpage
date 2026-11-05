@@ -29,7 +29,7 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
   test("JSON uses snake_case keys and nests per-label-type counts under by_label_type") {
     val json = sampleStats.toJson
 
-    (json \ "status").as[String] shouldBe "OK"
+    (json \ "status").toOption shouldBe None
     (json \ "km_explored").as[Double] shouldBe 1000.5
     (json \ "km_explored_no_overlap").as[Double] shouldBe 800.25
     (json \ "total_labels").as[Int] shouldBe 300
@@ -47,24 +47,24 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (curbRamp \ "labels_validated_disagree").as[Int] shouldBe 10
   }
 
-  test("CSV is snake_case key/value rows under a metric,value header") {
+  test("CSV keys are the dotted JSON path of the value they carry, under a metric,value header (#4320)") {
     AggregateStats.csvHeader shouldBe "metric,value"
 
     val rows = sampleStats.toCsvRows
-    rows should contain("km_explored,1000.5")
+    rows.head shouldBe "km_explored,1000.5"
     rows should contain("total_labels,300")
     rows should contain("total_users,60")
-    rows should contain("number_of_countries,5")
+    rows should contain("num_countries,5")
 
-    // Label type names are split on their camelCase boundary, matching the JSON's per-type block.
-    rows should contain("curb_ramp_labels,200")
-    rows should contain("no_sidewalk_labels_validated_disagree,5")
+    rows should contain("by_label_type.CurbRamp.labels,200")
+    rows should contain("by_label_type.NoSidewalk.labels_validated_disagree,5")
   }
 
   test("per-label-type blocks are ordered by label type id in both formats") {
     (sampleStats.toJson \ "by_label_type").as[JsObject].fields.map(_._1) shouldBe Seq("CurbRamp", "NoSidewalk")
 
     val rows = sampleStats.toCsvRows
-    rows.indexOf("curb_ramp_labels,200") should be < rows.indexOf("no_sidewalk_labels,100")
+    rows.indexOf("by_label_type.CurbRamp.labels,200") should be <
+      rows.indexOf("by_label_type.NoSidewalk.labels,100")
   }
 }

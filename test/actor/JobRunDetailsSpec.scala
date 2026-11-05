@@ -1,9 +1,17 @@
 package actor
 
-import org.scalatestplus.play.PlaySpec
+import models.street.StreetPriorityRecalc
 import play.api.libs.json.{JsNull, Json}
 import service.CropService.CropRunResult
-import service.{ClusteringResults, CropSizingRule}
+import service.{
+  ClusteringResults,
+  CropSizingRule,
+  IntersectionRebuildResult,
+  OsmWayRefreshResult,
+  SidewalkPresenceRebuildResult,
+  StreetGradientStaleness
+}
+import util.SidewalkSpec
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -18,7 +26,7 @@ import service.{ClusteringResults, CropSizingRule}
  *
  * Pure — no database, no application.
  */
-class JobRunDetailsSpec extends PlaySpec {
+class JobRunDetailsSpec extends SidewalkSpec {
 
   "the run details of a job with both a nightly and a hand trigger" should {
     "record user stats under the key its readers use" in {
@@ -29,8 +37,13 @@ class JobRunDetailsSpec extends PlaySpec {
       FunnelStatActor.runDetails(12) mustBe Json.obj("rows_written" -> 12)
     }
 
+    "record the street gradient staleness counts under the keys the Health panel shows" in {
+      StreetGradientStaleness(1204, 37).runDetails mustBe Json.obj("streets_unsampled" -> 1204, "streets_stale" -> 37)
+    }
+
     "record the OSM way refresh under the key its readers use" in {
-      OsmWayRefreshActor.runDetails(13) mustBe Json.obj("ways_refreshed" -> 13)
+      OsmWayRefreshActor.runDetails(OsmWayRefreshResult(13, 2, 3, 1)) mustBe
+        Json.obj("ways_refreshed" -> 13, "ways_missing" -> 2, "tags_recovered" -> 3, "tags_unrecoverable" -> 1)
     }
 
     "record clustering under the keys its readers use" in {
@@ -38,31 +51,53 @@ class JobRunDetailsSpec extends PlaySpec {
         Json.obj("labels_clustered" -> 14, "clusters_created" -> 15)
     }
 
-    "record crop generation's every count, and the rule that cut the store" in {
-      CropRunResult(
-        panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
-        dimsMismatch = 25, dimsUnverified = 26, downscaledWritten = 27, downscaledDeleted = 28, errors = 29
+    "record the intersection rebuild's every count" in {
+      IntersectionRebuildResult(
+        intersections = 30, inserted = 31, updated = 32, deleted = 33, clustersAttributed = 34
       ).runDetails mustBe Json.obj(
-        "crop_rule_version"    -> CropSizingRule.Version,
-        "panos_opened"         -> 20,
-        "panos_without_backup" -> 21,
-        "crops_written"        -> 22,
-        "shifted_vertically"   -> 23,
-        "out_of_frame"         -> 24,
-        "dims_mismatch"        -> 25,
-        "dims_unverified"      -> 26,
-        "downscaled_written"   -> 27,
-        "downscaled_deleted"   -> 28,
-        "errors"               -> 29
+        "intersections"       -> 30,
+        "inserted"            -> 31,
+        "updated"             -> 32,
+        "deleted"             -> 33,
+        "clusters_attributed" -> 34
       )
     }
 
-    "record the street-priority rebuild's count, or a null where no rebuild ran" in {
+    "record the sidewalk presence rebuild's every count" in {
+      SidewalkPresenceRebuildResult(faces = 40, inserted = 41, updated = 42, deleted = 43).runDetails mustBe
+        Json.obj("faces" -> 40, "inserted" -> 41, "updated" -> 42, "deleted" -> 43)
+    }
+
+    "record crop generation's every count, and the rule that cut the store" in {
+      CropRunResult(
+        panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
+        dimsMismatch = 25, dimsUnverified = 26, provenanceExplore = 31, provenanceWindow = 32,
+        provenanceUnresolved = 33, errors = 29
+      ).runDetails mustBe Json.obj(
+        "crop_rule_version"     -> CropSizingRule.Version,
+        "panos_opened"          -> 20,
+        "panos_without_backup"  -> 21,
+        "crops_written"         -> 22,
+        "shifted_vertically"    -> 23,
+        "out_of_frame"          -> 24,
+        "dims_mismatch"         -> 25,
+        "dims_unverified"       -> 26,
+        "provenance_explore"    -> 31,
+        "provenance_window"     -> 32,
+        "provenance_unresolved" -> 33,
+        "errors"                -> 29
+      )
+    }
+
+    "record the street-priority counts, with a null rebuild count where no rebuild ran" in {
       // The hand-trigger runs the recalculation alone. Null rather than 0 so a reader can tell the rebuild that
       // seeded no regions from the trigger that never rebuilt, and rather than a missing key so both triggers write
       // one shape.
-      RecalculateStreetPriorityActor.runDetails(Some(16)) mustBe Json.obj("regions_seeded" -> 16)
-      RecalculateStreetPriorityActor.runDetails(None) mustBe Json.obj("regions_seeded" -> JsNull)
+      val recalc = StreetPriorityRecalc(streetsChanged = 17, streetsWithoutRow = 2)
+      RecalculateStreetPriorityActor.runDetails(recalc, Some(16)) mustBe
+        Json.obj("streets_changed" -> 17, "streets_without_row" -> 2, "regions_seeded" -> 16)
+      RecalculateStreetPriorityActor.runDetails(recalc, None) mustBe
+        Json.obj("streets_changed" -> 17, "streets_without_row" -> 2, "regions_seeded" -> JsNull)
     }
   }
 }

@@ -95,8 +95,8 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    edit it for the city you want to run:
    - **`SIDEWALK_CITY_ID`** — the city to run (e.g. `seattle-wa`); see the [City IDs table](#city-ids).
    - **`DATABASE_USER`** — that city's database user, replacing the default `sidewalk` (e.g. `sidewalk_seattle`).
-   - **`platform`** — leave it commented. Every host builds the web image for its own architecture as of
-     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069), so Apple Silicon is native
+   - **`platform`** — leave it commented. Every host builds the web and db images for their own architecture as of
+     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and [#5789](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5789), so Apple Silicon is native
      without it. Uncomment it *only* if a native build fails, to force an emulated `linux/amd64` build.
 
 2. **Stage the database dumps.** Put the dump files from your maintainer in the **`db/`** directory and rename them
@@ -117,12 +117,15 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
 4. **Import users and data** from a *second* terminal on your host (outside the web-container shell):
 
    ```bash
-   make import-users                   # load sidewalk_users-dump (the login schema)
+   make import-users replace=1         # load sidewalk_users-dump (the login schema)
    make import-dump db=<database_user> # load <database_user>-dump; db= defaults to "sidewalk"
    ```
 
-   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~900 MB, so it runs for a
-   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size. Read the
+   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~1 GB, so it runs for a
+   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size.
+   `replace=1` is for this first import only: a fresh DB has no accounts of its own to keep, and merging all ~6M
+   accounts one by one takes about 20 minutes. Later imports merge (see
+   [Switching / adding another city](#switching--adding-another-city)). Read the
    output carefully — if it errors, **don't** continue; check [Troubleshooting](#troubleshooting) and ask. (A
    `schema "public" already exists` notice is the one error you can safely ignore.) For what each script does and the
    full set of DB lifecycle/maintenance targets, see [`db/scripts/README.md`](../db/scripts/README.md).
@@ -133,9 +136,9 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs Grunt (JS/CSS concatenation + watch) in the background, then `sbt ~ run` for continuous
-   recompile. The first compile takes 5+ minutes; later ones are seconds. Use `npm run debug` if you want a JVM
-   debug port attached. It's ready when you see `Listening for HTTP on .../9000`.
+   `npm start` runs the asset build (`npm run build`: Vite, for every page's JS and CSS bundle), keeps a
+   watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
+   takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
 6. **Open the app:** http://localhost:9000 (or `127.0.0.1:9000`). The first load is slow while Play applies
    evolutions and compiles on demand.
@@ -164,6 +167,7 @@ Other handy targets:
 | `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
 | `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
+| `make upgrade-dev-db` | Copy your Postgres 16 database into the Postgres 18 one. See [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). |
 
 ---
 
@@ -172,8 +176,12 @@ Other handy targets:
 Each city is a separate database. To switch:
 
 1. Put the new dump in `db/`, renamed to `<database_user>-dump` (see the [City IDs table](#city-ids)).
-2. If that dump is newer than your existing ones, also re-import users with a fresh `sidewalk_users-dump`
-   (ask a maintainer if unsure — the creation date is in the original filename).
+2. If that dump is newer than your users dump, get a users dump at least as new, rename it `sidewalk_users-dump`,
+   and run `make import-users` (ask a maintainer if unsure — the creation date is in the original filename). It
+   merges: accounts you're missing are added, and the ones you have, including local test accounts your other cities
+   point at, are kept, so the cities you already imported keep working. `make import-users replace=1` wipes the login
+   schema and restores the dump from scratch instead. That also drops the parts of every city that depend on it
+   (foreign keys, a survey column, a view), so after it, re-import every other city you have.
 3. `make import-dump db=<database_user>` (from the host, outside the Docker shell).
 4. Update **`DATABASE_USER`** and **`SIDEWALK_CITY_ID`** in `docker-compose.override.yml` to match.
 5. `make dev` again.
@@ -216,7 +224,8 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | mendota-il | sidewalk_mendota | | waltham-ma | sidewalk_waltham |
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
-| bayonne | sidewalk_bayonne | | laurens-ia | sidewalk_laurens_ia |
+| bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
+| juneau-ak | sidewalk_juneau_ak | | | |
 
 ---
 
@@ -252,15 +261,19 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/js/*/build/`
-  automatically. **Edit `src/` files only; never edit `build/` output**, and don't run `grunt` by hand. If a new
-  `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Vite
+  bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
+  soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
+  restarts for. The watcher builds in Vite's development mode: the CSS stays unminified for DevTools (Vite writes no
+  CSS source map), and the previous build stays in place while the next is written, so a reload mid-rebuild still
+  renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
-- **Python** (the standalone utilities in `scripts/`) — the container has **two** interpreters. `python3` is the base
-  image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the offline tooling
-  and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
-  [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container's `python3` is 3.12, the same minor
+  as the `python3.12` the app shells out to on prod for in-band clustering, and it holds every script's libraries. Run
+  scripts as `python3 tools/...`. Details in [`tools/README.md`](../tools/README.md); upgrade notes in
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -291,15 +304,25 @@ make dev
 
 ### Checking that backend changes compile
 
-The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
-collide with a running `sbt ~ run`:
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** hands the command to a background
+sbt server rather than starting its own:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
+make compile
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
-sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+sets `-Werror`, so a `[success]` is also warning-clean.
+
+`sbt --client` uses the native thin client (`sbtn`), which the container's glibc is new enough for (#5268). A server
+belongs to one project directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the
+running `~ run` included.
+An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
+
+That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
+checkout** — `run` holds the task for as long as the app lives, and your command queues behind it forever with
+nothing on screen. (A `~ compile` is fine; a watch loop yields between runs.) So run the app and compile it from
+different checkouts. [`tools/dev/sbt-run.sh`](../tools/dev/sbt-run.sh) refuses with an explanation rather than hanging.
 
 ### Running the backend tests
 
@@ -307,9 +330,16 @@ ScalaTest specs live under `test/` — mostly functional specs for the public AP
 specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
 
 ```bash
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
-docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+make test-scala
+make test-scala only=controllers.api.PublicApiSpec
 ```
+
+The specs render views, whose stylesheet tags come from the asset build's manifest, so the tree needs a build
+(`npm run build`; `npm start` and `make qa-worktree` both do one). Without one the target stops and says so.
+
+Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
+than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
+`earlyoom` comes to kill one mid-run. A second `make test-scala` says who it's waiting on, then starts when they finish.
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
 new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it — and read
@@ -319,10 +349,9 @@ cancel in both directions: most want rows your schema may not have, while `Night
 CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line there means the seed stopped covering
 something.
 
-There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
-`node_modules` are in the container, not on your host). [`docs/testing-and-ci.md`](testing-and-ci.md) covers
-what each layer is for.
+There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Vitest suite for
+frontend modules (`make test-js` — Vitest's `node_modules` are in the container, not on your host).
+[`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
 
@@ -333,7 +362,7 @@ any uncaught page error or console error. With your dev app running, in a second
 ```bash
 make test-e2e                               # the whole suite
 make test-e2e args="-g labelMap --no-deps"  # one page
-make test-e2e wt=<worktree-name>            # a worktree's specs
+make test-e2e wt=<worktree-name>            # a worktree's specs, from anywhere
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
@@ -352,19 +381,59 @@ make qa-worktree wt=<worktree-name>
 
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
-repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, frees `:9000`, kills any stray `sbt --client` server or hung `sbtn` task sharing the worktree's
-`target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `npm run watch` so later edits
+rebuild automatically, takes `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+(either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
-reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
+reaps the watcher. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
 
-Both targets run the **worktree's own** copy of `tools/qa-worktree.sh` when it has one (falling back to the main
+Both targets run the **worktree's own** copy of `tools/dev/qa-worktree.sh` when it has one (falling back to the main
 checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
 Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
 check out a branch that has it or run the script directly:
-`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
+
+**Every other container target checks the checkout you run it from.** The container mounts the main checkout at
+`/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
+`make scalafmt`, `make test-python` and the rest, run from a worktree, check that worktree, and `wt=<name>` points them
+at one from anywhere. `make lint` opens by naming the tree it checks. Make stops with an error for a checkout the
+container can't see (one outside the main checkout). This takes the worktree's own Makefile, so a branch older than
+#5291 needs `develop` merged in first. The exceptions:
+
+- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and stops if another checkout holds
+  it. Start the worktree's app with `make qa-worktree wt=<name>` first.
+- `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
+- A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
+
+### Sharing the app and the test database
+
+Only one checkout at a time can use the app on `:9000` or the Scala test database. A lease
+([`tools/dev/lease.sh`](../tools/dev/lease.sh)) records who holds each, so a busy command names the holder instead of
+stopping their work.
+
+- `make qa-worktree` and `make test-e2e` stop when another checkout holds `:9000`. `wait=1` (qa-worktree) queues for
+  it; `force=1` takes it anyway.
+- `make test-scala` always waits its turn.
+- `make lease-status` shows holders and the queue. `make lease-take res=<name>` and `make lease-release res=<name>`
+  claim anything else; one taken from your own terminal lasts until you release it.
+
+A lease ends when it's released or its process exits. An app from plain `npm start` has no lease, so `qa-worktree`
+still stops it. Hooks in `.claude/settings.json` nudge a Claude session when someone waits on what it holds, and
+release its leases when it ends.
+
+The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until it
+idles out after an hour, or until `make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
+
+Each checkout has its own `target/`. What grows without bound there is packaged build output: every `sbt
+dist`/`stage` writes ~1GB of jars named after the current version and removes none of the older ones. Clear just
+those, keeping compiled classes so the next `make compile` is still incremental:
+
+```bash
+make clean-dist              # this checkout
+make clean-dist wt=<name>    # a worktree's
+```
 
 When you're done with a worktree for good, remove it with:
 
@@ -379,7 +448,7 @@ instead. It stops and tells you if the worktree still has uncommitted or untrack
 those along with it) or if the worktree is **locked**: an active Claude Code worktree session holds a lock, and git
 refuses a locked worktree even with `--force`. Unlike the QA targets it runs host-side, because a worktree's `.git`
 file points at the main repo by absolute host path; the direct invocation is
-`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
+`bash .claude/worktrees/<name>/tools/dev/worktree-remove.sh <name>`.
 
 To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
 accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in
@@ -395,11 +464,12 @@ WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username
 
 ### Exercising authenticated routes
 
-Most routes need a session. Grab an anonymous cookie once, then reuse the jar:
+Public pages and the public API work without a session, so skip this for them: every session is a new account. For
+Explore, Validate, dashboards and most saves, grab an anonymous cookie once, then reuse the jar:
 
 ```bash
 curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
-curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/v3/api/labelTypes"
+curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
 ### Inspecting the database
@@ -444,6 +514,22 @@ Two more things to know before drawing conclusions from a query:
   Never infer a table's production size or existence from the local DB; when reasoning about query cost or indexes,
   treat those two, not `webpage_activity`, as the heavyweight logs.
 
+### Moving your database to Postgres 18
+
+Dev runs Postgres 18 (#3955) on a new data volume, `<project>_pgdata18` (`<project>` is your checkout folder,
+lowercased). The first `make dev` after this change starts an **empty** database; your cities are still in the old
+`<project>_pgdata` volume. To copy them over, stop `npm start` and run:
+
+```bash
+make upgrade-dev-db   # all=1 copies every database, not just sidewalk
+```
+
+It compares each city's label count when it's done, and takes a few minutes per large city. Or skip it and
+`make import-dump` the cities you need.
+
+Keep the old volume while you still use branches from before this change, since they start Postgres 16 on it. Then
+delete it with the `docker volume rm` line the script prints.
+
 ---
 
 ## Troubleshooting
@@ -458,14 +544,15 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). (The old Postgres 16 `<project>_pgdata` volume is meant to be dangling.) Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
-| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
+| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
-| A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
+| A new JS file isn't in the bundle | Nothing imports it yet: import it from the page's entry in `frontend/js/pages/` or from a file that entry reaches. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
+| `docker compose build db` fails with `no match for platform in manifest` | Your checkout predates [#5789](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5789), when the db image was built on `postgis/postgis`, which is published for amd64 only. Pull `develop` and rebuild: `docker compose build db`. If you worked around it with `platform: linux/amd64`, remove that and check `docker image inspect projectsidewalk/db:18 --format '{{.Architecture}}'` says `arm64`; Compose reuses an existing image rather than rebuilding it. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |
 
 ### Recovering a schema stranded below evolution 372
@@ -511,7 +598,7 @@ only over the *name*: Postgres won't hold a table and an enum called `role` in o
 
 Schemas already past 372 are never touched, and need no down-migration.
 
-Two other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
+Three other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
 
 - **`column "infra3d_access" does not exist`** — 313 reads it and 316 drops it. A schema below 303 self-heals,
   since 303 re-adds the column with `IF NOT EXISTS`; one in the 303–312 window needs it restored (exactly as 316's
@@ -519,6 +606,8 @@ Two other evolutions can strand a schema the same way, because they read shared 
 - **`function replace(jsonb, unknown, unknown) does not exist`** — 276 converts `config.excluded_tags` from text to
   jsonb. A dump whose `play_evolutions` predates 276 but whose `config` was already converted can't replay it;
   restore the column to the pre-276 text value from that schema's own dump.
+- **`column "community_service" does not exist`**: 385 reads it from `user_role` and 418 drops it. Use a newer
+  dump.
 
 Both are symptoms of the same underlying problem: a committed dump whose contents disagree with the
 `play_evolutions` it ships with. If an evolution fails on a table or column that should exist at that level, check
@@ -526,7 +615,7 @@ the dump (`pg_restore -s -t <table> -f - db/<dump>`) before assuming your local 
 
 **Slick query errors while developing:**
 
-- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api._`.
+- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api.*`.
 - `type mismatch ... NoStream,Nothing ...` (often misleading) → try wrapping the queries in `.transactionally`, or
   use `DBIO.seq().andThen()`.
 

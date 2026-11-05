@@ -1,13 +1,13 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.Helpers._
-import models.utils.MyPostgresProfile.api._
+import play.api.test.Helpers.*
+import models.utils.MyPostgresProfile.api.given
 import play.api.test.FakeRequest
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Locks the response contract of GET /v3/api/rawLabels: GeoJSON FeatureCollection by default, a snake_case CSV header
@@ -21,19 +21,40 @@ import play.api.test.FakeRequest
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
   // File-streamed responses (chunked GeoJSON/CSV) need a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"
+
+  // For picking a real label to test against. Uses the same filters as the API, or we could pick a label it hides
+  // (like a fresh tutorial label).
+  private val apiVisiblePositionedLabels =
+    """FROM label
+       INNER JOIN label_point ON label.label_id = label_point.label_id
+       INNER JOIN osm_way_street_edge_primary ON label.street_edge_id = osm_way_street_edge_primary.street_edge_id
+       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+       INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+       INNER JOIN user_stat ON label.user_id = user_stat.user_id
+       WHERE label_point.geom IS NOT NULL
+         AND label.deleted = FALSE
+         AND label.tutorial = FALSE
+         AND user_stat.excluded = FALSE
+         AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+         AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"""
+
+  // Roughly 100 m across.
+  private def bboxAround(lng: Double, lat: Double): String =
+    s"bbox=${lng - 0.0005},${lat - 0.0005},${lng + 0.0005},${lat + 0.0005}"
 
   "GET /v3/api/rawLabels" should {
     "return 200 GeoJSON FeatureCollection by default" in {
@@ -57,7 +78,7 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
           "street_edge_id,osm_way_id,region_id,region_name,street_side,centerline_offset_m,correct,agree_count," +
           "disagree_count,unsure_count," +
-          "validations,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y," +
+          "validations,comments,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y," +
           "canvas_width,canvas_height,pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch," +
           "camera_roll,pano_url,latitude,longitude"
       )
@@ -69,38 +90,15 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "carry street_side and centerline_offset_m on a real feature, consistent with each other (#2886)" in {
       // The row converter is positional, so only a feature read from the DB proves the two columns land in the right
       // fields. Needs a positioned label to build a bbox around; an empty schema cancels rather than passes.
-      //
-      // The anchor has to satisfy the same predicates getLabelDataWithFilters applies, or the bbox can enclose only
-      // labels the endpoint filters out and the assertions below fail on an empty list. The newest label_point is
-      // exactly the wrong pick: anyone who has just been labelling in the Explore tutorial leaves one there.
-      val dbConfig =
-        app.injector.instanceOf[play.api.db.slick.DatabaseConfigProvider].get[models.utils.MyPostgresProfile]
-      val anchor = scala.concurrent.Await.result(
-        dbConfig.db.run(
-          sql"""SELECT label_point.lng, label_point.lat
-                FROM label
-                INNER JOIN label_point ON label.label_id = label_point.label_id
-                INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
-                INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-                INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-                INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-                INNER JOIN user_stat ON label.user_id = user_stat.user_id
-                WHERE label_point.geom IS NOT NULL
-                  AND label.deleted = FALSE
-                  AND label.tutorial = FALSE
-                  AND user_stat.excluded = FALSE
-                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-                ORDER BY label.label_id DESC
-                LIMIT 1"""
-            .as[(Double, Double)]
-            .headOption
-        ),
-        scala.concurrent.duration.DurationInt(60).seconds
+      val anchor = run(
+        sql"""SELECT label.label_id, label_point.lng, label_point.lat
+              #$apiVisiblePositionedLabels
+              ORDER BY label.label_id DESC
+              LIMIT 1""".as[(Int, Double, Double)].headOption
       )
       assume(anchor.isDefined, "no API-visible positioned labels in this schema; needs a seeded DB")
-      val (lng, lat) = anchor.get
-      val bbox       = s"bbox=${lng - 0.0005},${lat - 0.0005},${lng + 0.0005},${lat + 0.0005}"
+      val (_, lng, lat) = anchor.get
+      val bbox          = bboxAround(lng, lat)
 
       val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$bbox")).get
       status(resp) mustBe OK
@@ -122,6 +120,105 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
           case other                    => fail(s"side without an offset: $other")
         }
       }
+    }
+
+    "mark each vote in validations as Human or AI (#4319)" in {
+      // Pick a label with an AI vote so both values get tested.
+      val anchor = run(
+        sql"""SELECT label.label_id, label_point.lng, label_point.lat
+              #$apiVisiblePositionedLabels
+                AND EXISTS (
+                  SELECT 1
+                  FROM label_validation
+                  INNER JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+                  INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+                  WHERE label_validation.label_id = label.label_id
+                    AND user_role.role = 'AI'
+                    AND user_stat.excluded = FALSE
+                )
+              ORDER BY label.label_id DESC
+              LIMIT 1""".as[(Int, Double, Double)].headOption
+      )
+      assume(anchor.isDefined, "no API-visible label with an AI validation in this schema; needs a seeded DB")
+      val (labelId, lng, lat) = anchor.get
+
+      val rawResp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?${bboxAround(lng, lat)}")).get
+      status(rawResp) mustBe OK
+      val features = (contentAsJson(rawResp) \ "features").as[Seq[play.api.libs.json.JsObject]].map(_ \ "properties")
+
+      // The list should add up to the counts.
+      features.foreach { props =>
+        val results =
+          (props \ "validations").as[Seq[play.api.libs.json.JsObject]].map(v => (v \ "validation").as[String])
+        results.count(_ == "Agree") mustBe (props \ "agree_count").as[Int]
+        results.count(_ == "Disagree") mustBe (props \ "disagree_count").as[Int]
+        results.count(_ == "Unsure") mustBe (props \ "unsure_count").as[Int]
+      }
+
+      val feature = features.find(props => (props \ "label_id").as[Int] == labelId)
+      feature mustBe defined
+      val fromRawLabels = (feature.get \ "validations")
+        .as[Seq[play.api.libs.json.JsObject]]
+        .map(v => ((v \ "user_id").as[String], (v \ "validation").as[String], (v \ "validator_type").as[String]))
+      fromRawLabels.map(_._3) must contain("AI")
+
+      // /validations also includes excluded users' votes, so check for a subset.
+      val valResp = route(app, FakeRequest(GET, s"/v3/api/validations?labelId=$labelId")).get
+      status(valResp) mustBe OK
+      val fromValidations = contentAsJson(valResp)
+        .as[Seq[play.api.libs.json.JsObject]]
+        .map(v => ((v \ "user_id").as[String], (v \ "validation_result").as[String], (v \ "validator_type").as[String]))
+      fromRawLabels.diff(fromValidations) mustBe empty
+    }
+
+    "list each label's validator comments by user_id, oldest first (#5849)" in {
+      val anchor = run(
+        sql"""SELECT label.label_id, label_point.lng, label_point.lat
+              #$apiVisiblePositionedLabels
+                AND EXISTS (
+                  SELECT 1
+                  FROM validation_task_comment
+                  WHERE validation_task_comment.label_id = label.label_id
+                    AND validation_task_comment.label_type = label.label_type
+                )
+              ORDER BY label.label_id DESC
+              LIMIT 1""".as[(Int, Double, Double)].headOption
+      )
+      assume(anchor.isDefined, "no API-visible label with a validator comment in this schema; needs a seeded DB")
+      val (labelId, lng, lat) = anchor.get
+      val expected            = run(
+        sql"""SELECT validation_task_comment.user_id, validation_task_comment.comment
+              FROM validation_task_comment
+              INNER JOIN label ON validation_task_comment.label_id = label.label_id
+                  AND validation_task_comment.label_type = label.label_type
+              WHERE validation_task_comment.label_id = $labelId
+                -- The same commenters as the votes in validations: not the labeler, not excluded.
+                AND validation_task_comment.user_id <> label.user_id
+                AND NOT EXISTS (
+                  SELECT 1 FROM user_stat
+                  WHERE user_stat.user_id = validation_task_comment.user_id AND user_stat.excluded
+                )
+              ORDER BY validation_task_comment.timestamp""".as[(String, String)]
+      )
+
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?${bboxAround(lng, lat)}")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[play.api.libs.json.JsObject]].map(_ \ "properties")
+      // Every label carries the list, empty when it has no comments.
+      features.foreach(props => (props \ "comments").validate[Seq[play.api.libs.json.JsObject]].isSuccess mustBe true)
+
+      val feature = features.find(props => (props \ "label_id").as[Int] == labelId)
+      feature mustBe defined
+      val comments = (feature.get \ "comments").as[Seq[play.api.libs.json.JsObject]]
+      comments.map(c => ((c \ "user_id").as[String], (c \ "comment").as[String])) mustBe expected
+      comments.foreach(c => (c \ "username").toOption mustBe None)
+      // A commenter's vote is one of the label's counted votes, with the same value.
+      val votes = (feature.get \ "validations")
+        .as[Seq[play.api.libs.json.JsObject]]
+        .map(v => ((v \ "user_id").as[String], (v \ "validation").as[String]))
+      comments
+        .flatMap(c => (c \ "validation").asOpt[String].map(vote => ((c \ "user_id").as[String], vote)))
+        .foreach(votes must contain(_))
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {

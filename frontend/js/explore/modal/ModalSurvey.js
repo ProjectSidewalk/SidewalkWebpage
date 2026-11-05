@@ -1,0 +1,75 @@
+/**
+ * Shows a survey modal for select users and reports whether it was completed or skipped.
+ *
+ * A native <dialog>, opened modally so the page behind it is inert. There is no dismissing it with Escape or a click
+ * outside: the user either submits it or skips it with the X, and both close it.
+ */
+
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
+
+export class ModalSurvey {
+  #interactionLock;
+  #zoomControl;
+
+  /** @type {HTMLDialogElement} */
+  #dialog;
+
+  /** @type {HTMLFormElement} */
+  #form;
+
+  #submitted = false;
+
+  /**
+   * @param {Gate} interactionLock - Held while the survey is up.
+   * @param {ZoomControl} zoomControl - Kept from zooming while the survey is up.
+   */
+  constructor(interactionLock, zoomControl) {
+    this.#interactionLock = interactionLock;
+    this.#zoomControl = zoomControl;
+    this.#dialog = /** @type {HTMLDialogElement} */ (document.getElementById('survey-modal-container'));
+    this.#form = /** @type {HTMLFormElement} */ (document.getElementById('survey-form'));
+
+    this.#dialog.addEventListener('cancel', (e) => e.preventDefault()); // Escape, where closedby is unsupported.
+    this.#dialog.addEventListener('close', this.#handleHideSurvey);
+    this.#dialog.addEventListener('keydown', (e) => e.stopPropagation()); // Typing an answer isn't a shortcut.
+    this.#form.addEventListener('submit', this.#handleSubmitSurvey);
+    document.getElementById('survey-skip-button').addEventListener('click', () => this.#dialog.close());
+  }
+
+  /** Opens the survey, with panorama interactions disabled for as long as it is up. */
+  open() {
+    if (this.#dialog.open) return;
+    this.#submitted = false;
+    this.#interactionLock.hold('survey');
+    this.#zoomControl.zoomInGate.hold('survey');
+    this.#zoomControl.zoomOutGate.hold('survey');
+    this.#dialog.showModal();
+    // showModal() lands focus on the first control, the skip X. The survey opens on its own mid-labeling, so a key
+    // the user is already pressing would skip it; the dialog itself takes the focus instead.
+    this.#dialog.focus();
+  }
+
+  // Re-enables panorama interactions once the survey modal is closed. Any close that isn't the submit is a skip,
+  // whichever way it happened, so the skip is logged here rather than on the X.
+  #handleHideSurvey = () => {
+    if (!this.#submitted) window.logWebpageActivity('SurveySkip');
+    this.#interactionLock.release('survey');
+    this.#zoomControl.zoomInGate.release('survey');
+    this.#zoomControl.zoomOutGate.release('survey');
+  };
+
+  // Submits the survey responses, then hides the modal. Prevents the page from reloading with the posted data.
+  #handleSubmitSurvey = (e) => {
+    e.preventDefault();
+    const answers = [...new FormData(this.#form)].map(([name, value]) => ({ name, value }));
+    fetch('/survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(answers),
+    }).then(() => {
+      this.#submitted = true;
+      this.#dialog.close();
+    });
+  };
+}

@@ -28,8 +28,8 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
       day: String,
       hour: Int,
       details: Map[String, Int],
-      status: JobRunStatus.Value = JobRunStatus.Succeeded,
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      status: JobRunStatus = JobRunStatus.Succeeded,
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): BackgroundJobRun = {
     BackgroundJobRun(
       0,
@@ -93,6 +93,18 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
       days.head.streetsPolled mustBe 0
       days.head.pollFailures mustBe 1
       days.head.syncFailures mustBe 0
+    }
+
+    "count a run its process died in as a failure, not a quiet night" in {
+      val days = buildDays(
+        Seq(
+          run(pollJob, "2026-08-11", 0, Map.empty),
+          run(syncJob, "2026-08-11", 1, Map.empty, status = JobRunStatus.Interrupted)
+        )
+      )
+
+      days.head.pollFailures mustBe 0
+      days.head.syncFailures mustBe 1
     }
 
     "report nights oldest first, and only nights something ran" in {

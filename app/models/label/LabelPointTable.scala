@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -25,41 +25,46 @@ case class LabelPoint(
     panoY: Int,
     canvasX: Int,
     canvasY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
     heading: Double,
     pitch: Double,
     zoom: Double,
     lat: Option[Double],
     lng: Option[Double],
     geom: Option[Point],
-    computationMethod: Option[ComputationMethod.Value],
+    computationMethod: Option[ComputationMethod],
     centerlineOffsetM: Option[Double],
-    streetSide: Option[StreetSide.Value]
+    streetSide: Option[StreetSide]
 )
 
 class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
-  def labelPointId: Rep[Int]                                  = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                                       = column[Int]("label_id")
-  def panoX: Rep[Int]                                         = column[Int]("pano_x")
-  def panoY: Rep[Int]                                         = column[Int]("pano_y")
-  def canvasX: Rep[Int]                                       = column[Int]("canvas_x")
-  def canvasY: Rep[Int]                                       = column[Int]("canvas_y")
-  def heading: Rep[Double]                                    = column[Double]("heading")
-  def pitch: Rep[Double]                                      = column[Double]("pitch")
-  def zoom: Rep[Double]                                       = column[Double]("zoom")
-  def lat: Rep[Option[Double]]                                = column[Option[Double]]("lat")
-  def lng: Rep[Option[Double]]                                = column[Option[Double]]("lng")
-  def geom: Rep[Option[Point]]                                = column[Option[Point]]("geom")
-  def computationMethod: Rep[Option[ComputationMethod.Value]] =
-    column[Option[ComputationMethod.Value]]("computation_method")
-  def centerlineOffsetM: Rep[Option[Double]] = column[Option[Double]]("centerline_offset_m")
+  def labelPointId: Rep[Int] = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]      = column[Int]("label_id")
+  def panoX: Rep[Int]        = column[Int]("pano_x")
+  def panoY: Rep[Int]        = column[Int]("pano_y")
+  def canvasX: Rep[Int]      = column[Int]("canvas_x")
+  def canvasY: Rep[Int]      = column[Int]("canvas_y")
+  // The frame canvasX/canvasY are expressed in (#5085). DEFAULT 720/480 covers rows that predate evolution 403; a
+  // CHECK keeps both positive.
+  def canvasWidth: Rep[Int]    = column[Int]("canvas_width", O.Default(LabelPointTable.canvasWidth))
+  def canvasHeight: Rep[Int]   = column[Int]("canvas_height", O.Default(LabelPointTable.canvasHeight))
+  def heading: Rep[Double]     = column[Double]("heading")
+  def pitch: Rep[Double]       = column[Double]("pitch")
+  def zoom: Rep[Double]        = column[Double]("zoom")
+  def lat: Rep[Option[Double]] = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]] = column[Option[Double]]("lng")
+  def geom: Rep[Option[Point]] = column[Option[Point]]("geom")
+  def computationMethod: Rep[Option[ComputationMethod]] = column[Option[ComputationMethod]]("computation_method")
+  def centerlineOffsetM: Rep[Option[Double]]            = column[Option[Double]]("centerline_offset_m")
   // GENERATED ALWAYS ... STORED in the DB, and Postgres rejects an explicit value, so `insertProjection` leaves it out.
-  def streetSide: Rep[Option[StreetSide.Value]] = column[Option[StreetSide.Value]]("street_side")
+  def streetSide: Rep[Option[StreetSide]] = column[Option[StreetSide]]("street_side")
 
-  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
-    computationMethod, centerlineOffsetM, streetSide) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
+  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
+    lng, geom, computationMethod, centerlineOffsetM, streetSide).mapTo[LabelPoint]
 
-  def insertProjection = (labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
-    computationMethod, centerlineOffsetM)
+  def insertProjection = (labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
+    lng, geom, computationMethod, centerlineOffsetM)
 
   def label       = foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelUnique = index("label_point_label_id_key", labelId, unique = true)
@@ -69,6 +74,12 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
  * Companion object with constants that are shared throughout codebase.
  */
 object LabelPointTable {
+
+  /**
+   * The boxed Explore frame, 720x480 logical px: the frame of every label stored before evolution 403, of AI labels
+   * (never drawn on a canvas, so their canvas_x/canvas_y are this frame's center), and the fallback when a client
+   * omits the frame. A human label's own frame is `LabelPoint.canvasWidth/canvasHeight`, never these (#5085).
+   */
   val canvasHeight: Int = 480
   val canvasWidth: Int  = 720
 }
@@ -77,7 +88,7 @@ object LabelPointTable {
 trait LabelPointTableRepository {}
 
 @Singleton
-class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends LabelPointTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -93,8 +104,9 @@ class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   def insert(point: LabelPoint): DBIO[Int] = {
     require(point.streetSide.isEmpty, "street_side is generated by the DB and cannot be inserted from Scala")
     (labelPoints.map(_.insertProjection) returning labelPoints.map(_.labelPointId)) += ((
-      point.labelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch, point.zoom,
-      point.lat, point.lng, point.geom, point.computationMethod, point.centerlineOffsetM
+      point.labelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.canvasWidth, point.canvasHeight,
+      point.heading, point.pitch, point.zoom, point.lat, point.lng, point.geom, point.computationMethod,
+      point.centerlineOffsetM
     ))
   }
 
@@ -120,7 +132,7 @@ class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         case 1    => DBIO.successful(1)
         case rows =>
           DBIO.failed(
-            new IllegalStateException(
+            IllegalStateException(
               s"Expected to set centerline_offset_m on 1 row for label_point $labelPointId against street edge " +
                 s"$streetEdgeId, updated $rows"
             )

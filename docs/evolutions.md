@@ -33,6 +33,31 @@ someone else's file on the number yours is using. Renumber yours (never theirs; 
    **your Down has to actually work**: a broken one fails here and leaves the row in `applying_down`, which is the
    state behind Play's "inconsistent state" error and does need hand-fixing.
 
+## Downs have to work: CI rolls them back
+
+Rolling back a release deploys an older tag, and every city then runs the Downs of each newer evolution on its own
+(see [deployment-and-stages.md](deployment-and-stages.md) → "Rolling back a release"). So `backend-tests` checks every
+evolution newer than the last release tag (`EvolutionsRoundTripSpec`, #5839), on the seeded test city plus a copy of
+it, so each Down and Up also runs where `sidewalk_login` has already moved, as in cities 2 to 54. It fails when:
+
+- a Down or an Up errors, in either city, one evolution at a time or all of them in one batch;
+- Downs then Ups don't come back to the same schema and data (sequence ids and dates/times aside, since a re-run Up
+  rewrites them);
+- Ups then Downs don't come back to the same schema and data (only sequence ids aside);
+- a Down changes nothing at all.
+
+A Down that deliberately doesn't undo everything — keeps an enum value Postgres can't drop (413), leaves `NOT NULL`
+off rather than lock a big table (411), is empty on purpose (410) — says so with a comment in its Downs,
+`-- partial-downs: <why>`. That evolution is then checked on schema only, after Downs then Ups.
+
+The check has blind spots. It sees only the seed's data, which never fills a column an unreleased evolution just
+added. And it starts the Ups-then-Downs check from what the Down left, so a Down that undoes only part of its Ups
+can still pass.
+
+**Never edit a released evolution.** Play hashes each one's text, so even a comment edit makes every city run the
+Downs back to it and re-apply everything after it on the next deploy. The `evolutions-lint` job fails on an edit to
+any file at or below the last release tag's highest.
+
 ## Every `CREATE TABLE` needs `ALTER TABLE <name> OWNER TO sidewalk;`
 
 Put it in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a
@@ -59,6 +84,11 @@ for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fr
 constraint silently rots into bad data; backfilling ones that should have been there from the start has cost whole
 PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK).
 
+A table-level `CONSTRAINT ... CHECK` that spans several columns (383.sql pins a derived table's verdict to its counts
+this way) needs a name that says what it asserts, e.g. `sidewalk_presence_basis_matches_count_check`. Postgres names
+an inline column `CHECK` `<table>_<column>_check` on its own, so a table-level constraint named after one of those
+columns collides with it and the whole evolution fails with `check constraint ... already exists`.
+
 **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`,
 `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline),
 `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. A column `DEFAULT` is mirrored with
@@ -76,14 +106,23 @@ When a column can only hold a fixed set of values, pick between two tools (#4103
   Scala enum. It makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no
   hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones
   (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`, `label_type`): a Scala
-  `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in
-  `MyPostgresProfile`. Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
+  `enum` extending `NamedEnum` whose `name` values match the enum labels, with a companion object extending
+  `PgEnumCompanion("<type name>")`. Raw SQL then takes a value as-is (`$status`), with no `::type` cast. Growing a set
+  later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
 - A plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache tables (e.g. `config.open_status`,
   `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil.
 
 Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name,
 `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter
 built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
+
+**A label added with `ADD VALUE` can't be used as an enum literal by a later evolution.** Play applies every
+pending evolution in one transaction, and Postgres refuses a new enum label until the transaction that added it has
+committed (`SQLSTATE 55P04`, "unsafe use of new value"). Prod is usually past the `ADD VALUE` by the time the later
+evolution ships, so it passes there and fails everywhere that applies both in one batch: the CI seed dump, which sits
+at whatever number it was last regenerated at, and any dev schema that is behind. 390.sql hit this against 375's
+`'panoramax'`. Compare through text instead, `WHERE source::text = 'panoramax'`, which never converts the literal
+to the enum.
 
 **An enum in the shared `sidewalk_login` schema needs a plpgsql guard.** Evolutions run once per city schema, so
 anything touching `sidewalk_login` has to be a no-op on runs 2..N. `IF NOT EXISTS` covers tables, columns and
@@ -118,6 +157,10 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
 `label_history` run to hundreds of thousands of rows per schema, `user_stat` to ~1M), and an evolution applies to
 **every** city schema in sequence on deploy, so a slow statement multiplies by 54. Concretely:
 
+- **A plpgsql statement keeps the plan it got the first time it ran in the session.** A trigger function reading
+  transition tables is planned for however many rows the first firing carried, and a plan made for an empty
+  statement (a nested loop) is then reused on a 300k-row bulk write, quadratically (424.sql: the lineage import's
+  re-rank took 5 hours on Chicago). Run such a join through `EXECUTE`, which plans every time.
 - **Prefer joins to correlated subqueries.** A scalar subquery in a SELECT list or a per-row `IN (SELECT …)` /
   `NOT IN (SELECT …)` re-executes per outer row; the same lookup as a `JOIN`/`LEFT JOIN` (or `EXISTS`/`NOT EXISTS`,
   which the planner turns into semi/anti-joins) lets the planner pick a hash join and stays fast when the outer set
@@ -129,6 +172,13 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
   serves each join/filter column (check with `\d`; don't assume), and what the driving row count is at prod scale.
   A statement with no index behind it on a large table needs a rewrite or a justification comment.
 - City schemas differ by ~1000x in size, so `EXPLAIN` against the largest local schema, not the smallest.
+- **A backfill that reads an `_interaction` table is a one-off script, not an evolution.** Evolutions run while the
+  app starts, so every city's server waits on them. `audit_task_interaction` and `validation_task_interaction` hold
+  hundreds of millions of rows in the big cities, indexed only by task id and action, and even a well-planned pass
+  over them takes minutes per city. Keep the evolution to the cheap part (add the column, nullable) and put the
+  backfill in a `scratchpad/*.sql` for `run-query-in-every-city.sh` (in the `sidewalk-server-tools` repo), run by a
+  maintainer after the deploy. The dev DB omits these tables in most schemas, so it can't tell you the
+  cost either way.
 
 ## Cached distance columns
 
@@ -137,13 +187,19 @@ distance columns (`user_stat.meters_audited`, `labels_per_meter` and the `high_q
 `region_completion`, `route.distance_meters`, and `label_point.centerline_offset_m`) must equal what their runtime
 recompute would produce, so changing a distance query means recomputing its caches in the same evolution, and the
 nightly refresh that maintains them has to reach every row a full recompute would touch (#4774).
-`GeodesicDistanceSpec` checks both against the connected database; it needs a *seeded* one, since its cache-freshness
-tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so an evolution
-that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must recompute it in the
-same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's backfill is the
-template); `StreetSideSpec` fails if a stored value differs from a fresh call. The `street_edge.geom` case is the
-easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization flips the
-sign of every offset on it, so labels silently swap sides while every value still looks plausible.
+`GeodesicDistanceSpec` checks both (for `meters_audited` and `high_quality` it compares evolution 347's backfill SQL
+with the runtime recompute, since the two must stay one formula). It needs a *seeded* database, since its
+cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so
+an evolution that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must recompute
+it in the same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's backfill is the
+template); `StreetSideSpec` fails if a stored value differs from a fresh call by over a millimetre (the slack a PROJ or
+PostGIS upgrade needs). The `street_edge.geom` case is the easiest to miss and the worst to get wrong: a street
+re-import that **reverses** an edge's digitization flips the sign of every offset on it, so labels silently swap sides
+while every value still looks plausible.
+
+`osm_way_street_edge.is_primary` (#5741) is the one cache a trigger maintains: the table has several writers and no
+nightly refresh, so statement triggers re-rank the streets each insert, delete or position change touches, and
+`OsmWayStreetEdgeSpec` fails on a flag that disagrees with a fresh ranking.
 
 ## A new table that cross-schema queries read
 

@@ -65,7 +65,6 @@ test.server.warning.message = <strong>U bevindt zich op een testserver.</strong>
 test.server.warning.label = Testservermelding
 test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
-explore.alert.close = Sluiten
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -75,8 +74,10 @@ city.state = {0}, {1}
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
+city.name.juneau-ak = Juneau
 
 state.name.california = Californië
+state.name.alaska = Alaska
 
 country.name.usa = USA
 country.name.netherlands = Nederland
@@ -93,6 +94,7 @@ navbar.api = API
 navbar.about = Over ons
 navbar.tools = Hulpmiddelen
 navbar.labelmap = Label Kaart
+navbar.accessscore = AccessScore
 navbar.leaderboard = Scoreboard
 navbar.stories = Verhalen
 navbar.routes = Routes
@@ -130,6 +132,7 @@ seo.title.gallery = Trottoirgalerij — Project Sidewalk
 seo.title.labeling.guide = Labelgids — Project Sidewalk
 seo.title.terms = Gebruiksvoorwaarden — Project Sidewalk
 seo.title.label.map = Labelkaart van {0} — Project Sidewalk
+seo.title.access.score = AccessScore voor {0} — Project Sidewalk
 seo.title.cities = Steden — Project Sidewalk
 seo.title.leaderboard = Scoreboard — Project Sidewalk
 seo.title.stories = Verhalen uit de community — Project Sidewalk
@@ -143,6 +146,7 @@ seo.title.welcome = Welkom — Project Sidewalk
 seo.title.forgot.password = Wachtwoord herstellen — Project Sidewalk
 seo.title.reset.password = Wachtwoord opnieuw instellen — Project Sidewalk
 seo.title.service.hours = Vrijwilligersinformatie — Project Sidewalk
+seo.title.unsubscribe = Afmelden — Project Sidewalk
 seo.title.time.check = Tijdcontrole — Project Sidewalk
 seo.title.about = Over ons — Project Sidewalk
 seo.description.default = Help de trottoirs van {0} in kaart te brengen en te beoordelen via virtuele verkenning. Open data over opritten, obstakels en oppervlakteproblemen voor een toegankelijkere wereld.
@@ -151,6 +155,7 @@ seo.description.explore = Wandel virtueel door de straten van {0} en label trott
 seo.description.validate = Beoordeel toegankelijkheidslabels die anderen in {0} hebben geplaatst en help de datakwaliteit te verbeteren.
 seo.description.gallery = Bekijk straatbeelden van toegankelijkheidskenmerken en obstakels op de trottoirs van {0}.
 seo.description.label.map = Interactieve kaart van alle toegankelijkheidslabels in {0}: trottoir opritten, obstakels, oppervlakteproblemen en meer.
+seo.description.access.score = Verken de toegankelijkheidsscores van de stoepen in {0} straat voor straat of buurt voor buurt, en weeg de factoren die voor jou tellen.
 seo.description.cities = Project Sidewalk is actief in steden over de hele wereld. Bekijk alle steden of breng Project Sidewalk naar jouw stad.
 seo.description.api = Gratis en open data over trottoirtoegankelijkheid in {0}: labels, labelclusters, straten en toegankelijkheidsscores in JSON, CSV, GeoJSON, GeoPackage en Shapefile.
 seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, het onderzoeksteam erachter en de open data die het oplevert.
@@ -195,46 +200,45 @@ about.impact.newberg.body = Nadat bewoners de lokale trottoirs in kaart brachten
 about.impact.zurich.place = Zürich, Zwitserland
 about.impact.zurich.body = Zürich publiceert Project Sidewalk-data in het open-dataportaal van de stad, en de uitrol won een Smart City Hub Switzerland Award in de categorie citizen science.
 about.impact.schools.place = Klaslokalen in de VS
-about.impact.schools.body = Leerlingen gebruiken Project Sidewalk om datavaardigheden en burgerschap te leren — van Girl Scouts in Oradell, New Jersey die hun bevindingen aan de gemeenteraad presenteerden tot <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">scholieren in Waltham, Massachusetts die staatsbrede erkenning kregen</a>.
-about.impact.more = Meer weten? Onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> deelt nieuws, hulpmiddelen en handleidingen om Project Sidewalk in jouw gemeenschap in te zetten.
+about.impact.schools.body = Leerlingen gebruiken Project Sidewalk om datavaardigheden en burgerschap te leren — van Girl Scouts in Oradell, New Jersey die hun bevindingen aan de gemeenteraad presenteerden tot <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/" target="_blank" rel="noopener">scholieren in Waltham, Massachusetts die staatsbrede erkenning kregen</a>.
+about.impact.more = Meer weten? Onze zustersite <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a> deelt nieuws, hulpmiddelen en handleidingen om Project Sidewalk in jouw gemeenschap in te zetten.
 about.where.title = Waar we actief zijn
 about.where.body = Van Seattle tot Mexico-Stad tot Zürich: vrijwilligers zetten <span data-live-stat="num_cities">{0}</span> steden in <span data-live-stat="num_countries">{1}</span> landen op de toegankelijkheidskaart, straat voor straat.
-about.where.links = <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/">breng Project Sidewalk naar jouw stad</a>.
+about.where.links = <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">breng Project Sidewalk naar jouw stad</a>.
 about.history.title = Onze geschiedenis
-about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, met vroege steun van een <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> en de <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, met vroege steun van een <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> en de <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
 about.history.2017 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad, terwijl het lab verhuist naar de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington.
 about.history.2019 = De pilotstudie in DC toont aan dat online crowdsourcing kan worden gebruikt om de trottoirs van een hele stad in kaart te brengen — en wint een Best Paper Award op CHI 2019.
-about.history.2021 = Een <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">NSF Smart &amp; Connected Communities-subsidie</a> verdiept onze samenwerking met de University of Illinois Chicago en Easterseals, met meer steden, onderwijsprogramma''s en onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = Een <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">NSF Smart &amp; Connected Communities-subsidie</a> verdiept onze samenwerking met de University of Illinois Chicago en Easterseals, met meer steden, onderwijsprogramma''s en onze zustersite <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
 about.history.today.label = Vandaag
 about.history.today = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden wereldwijd, native vertaald in {1} talen en aangedreven door duizenden vrijwilligers.
 about.team.title = Het team
-about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
+about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
 about.team.current.title = Huidig team
 about.team.past.title = Eerdere leiding
-about.team.past.kotarohara = Startte Project Sidewalk samen met professor Froehlich als zijn promovendus en ontwikkelde de crowdsourcing- en computervisiemethoden achter het project — het onderwerp van zijn <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">proefschrift</a>.
+about.team.past.kotarohara = Startte Project Sidewalk samen met professor Froehlich als zijn promovendus en ontwikkelde de crowdsourcing- en computervisiemethoden achter het project — het onderwerp van zijn <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf" target="_blank" rel="noopener">proefschrift</a>.
 about.team.past.davidjacobs = Co-PI van de oorspronkelijke NSF-subsidie en de eerste Google Faculty Research Award waarmee Project Sidewalk begon, en begeleidde het vroege computervisieonderzoek.
-about.team.past.manaswisaha = Hielp de eerste grootschalige inzet in Washington, DC te leiden en ontwierp tools om stedelijke toegankelijkheidsdata te begrijpen — het onderwerp van haar <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">proefschrift</a>.
+about.team.past.manaswisaha = Hielp de eerste grootschalige inzet in Washington, DC te leiden en ontwierp tools om stedelijke toegankelijkheidsdata te begrijpen — het onderwerp van haar <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf" target="_blank" rel="noopener">proefschrift</a>.
 about.team.contributors.title = Bijdragers
 about.team.contributors.intro = Meer dan {0} mensen hebben code, ontwerpen en ideeën bijgedragen aan Project Sidewalk, waaronder {1} studenten van de middelbare school tot en met promovendi. Onderdeel van onze missie is om informatica- en designstudenten via ervaringsgericht leren aan maatschappelijk relevante projecten te laten werken.
-about.team.contributors = … plus partnerorganisaties en duizenden vrijwillige mappers wereldwijd — zie de <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">projectpagina</a>.
+about.team.contributors = … plus partnerorganisaties en duizenden vrijwillige mappers wereldwijd — zie de <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">projectpagina</a>.
 about.pubs.title = Gerelateerde publicaties
-about.pubs.intro = Onderzoek van Project Sidewalk verschijnt op toonaangevende fora voor mens-computerinteractie en toegankelijkheid. Gebruik je onze data of tools in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019-artikel</a>.
-about.pubs.fallback = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
+about.pubs.intro = Onderzoek van Project Sidewalk verschijnt op toonaangevende fora voor mens-computerinteractie en toegankelijkheid. Gebruik je onze data of tools in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292" target="_blank" rel="noopener">CHI 2019-artikel</a>.
+about.pubs.fallback = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
 about.pubs.showAll = Toon alle {0} publicaties
 about.pubs.cite.title = Project Sidewalk citeren
 about.pubs.cite.plain = Citatie
 about.pubs.cite.copy = Kopiëren
-about.pubs.cite.copied = Gekopieerd
 about.data.title = Open data en open source
-about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>.
+about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">code is open source</a>.
 about.partners.title = Maatschappelijke partners
 about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
-about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
+about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
 about.funding.title = Onderzoeksfinanciering
 about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
 about.cta.title = Help ons elk trottoir in kaart te brengen
 about.cta.city = Breng Project Sidewalk naar jouw stad
-about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> of volg ons op <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> en <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
+about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">GitHub</a> of volg ons op <a href="https://www.linkedin.com/company/project-sidewalk/" target="_blank" rel="noopener">LinkedIn</a> en <a href="https://bsky.app/profile/projectsidewalk.bsky.social" target="_blank" rel="noopener">Bluesky</a>.
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
@@ -247,6 +251,7 @@ landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
 landing.validate.title = Beoordeel wat anderen hebben gevonden
 landing.validate.content = Help binnen enkele seconden mee: bekijk recente labels die vrijwilligers in {0} hebben geplaatst en laat ons weten of ze kloppen.
+landing.spotlight.title = Waar de stoepen in {0} het hoogst en het laagst scoren
 landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Kies hieronder een buurt die je wilt verkennen, of klik op de knop <a href="/explore">''Verkennen''</a> en er wordt automatisch een buurt aan je toegewezen!
 landing.choropleth.legend = Procent van de wijk compleet
@@ -275,11 +280,12 @@ landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing
 landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners in {0}
-landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze geweldige communitypartners, waaronder:
+landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze communitypartners, waaronder:
+landing.partners.official.contact = Project Sidewalk is een onderzoekstool. Neem voor het melden van een probleem of het aanvragen van een reparatie rechtstreeks contact op met {0}. Je kunt links naar <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> of <a href="/stories" data-partner-source="official-contact-stories">verhalen</a> van Project Sidewalk aan je verzoek toevoegen.
 landing.partners.logo.alt = Logo van {0}
 landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
-landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, het <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> en de <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, samen met 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
+landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, het <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> en de <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, samen met 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab-logo
 landing.partners.creator.uw.alt = Logo van de Paul G. Allen School of Computer Science & Engineering van de University of Washington
 landing.partners.creator.uic.alt = Logo van het Institute on Disability and Human Development van de University of Illinois Chicago
@@ -303,9 +309,9 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
-footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
-footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
-footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
+footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">University of Washington</a>
+footer.version = Versie {0} | Laatst geupdated: {1}
 
 audit.tutorial.complete.1 = Het is gelukt!
 audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
@@ -319,7 +325,7 @@ audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
 audit.ribbon.explore = Ontd<u>e</u>k
 audit.ribbon.curb.ramp = Trottoir Oprit (<u>C</u>)
 audit.ribbon.missing.ramp = Ontbrekende Trottoir Oprit
-audit.ribbon.obstacle = <u>O</u>bstakel in het Pad
+audit.ribbon.obstacle = <u>O</u>bstakel
 audit.ribbon.surface.problem = Oppervlakteprobleem (<u>S</u>)
 audit.ribbon.no.sidewalk = Gee<u>n</u> Trottoir
 audit.ribbon.crosswalk = Gemarkeerde oversteekplaats (<u>W</u>)
@@ -333,6 +339,10 @@ audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrij
 audit.center.ui.description.header = Beschrijf (optioneel)
 audit.center.ui.description.placeholder = Beschrijving
 
+audit.all.regions.finished.title = Je hebt elke buurt in {0} verkend!
+audit.all.regions.finished.body = Bedankt! Je hebt elke straat die we in {0} hebben gecontroleerd. Je kunt blijven helpen door de labels van anderen te valideren, of door een andere stad te verkennen.
+audit.all.regions.finished.validate = Labels valideren
+audit.all.regions.finished.other.cities = Een andere stad verkennen
 audit.survey.title = Een vriendelijk verzoek om deze eenmalige enquete over Project Sidewalk in te vullen
 audit.survey.enjoyment.question = Hoe vond je het om Project Sidewalk te gebruiken?
 audit.survey.enjoyment.option.1 = Erg saai
@@ -373,10 +383,11 @@ authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw accoun
 authenticate.confirm.password = Bevestig wachtwoord
 authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
+authenticate.news.email = Stuur mij af en toe nieuws over Project Sidewalk
 authenticate.signup = Een account maken
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Welkom terug
 authenticate.join = Doe mee met Project Sidewalk
 authenticate.tagline = Breng trottoirs in kaart. Help je stad toegankelijk te maken voor iedereen.
@@ -384,6 +395,7 @@ authenticate.close = Sluiten
 authenticate.show.password = Wachtwoord tonen
 authenticate.hide.password = Wachtwoord verbergen
 authenticate.username.rule = 3–30 tekens — letters, cijfers, koppeltekens en underscores
+authenticate.username.hint = Kies een bijnaam — je hoeft niet je echte naam te gebruiken. Hij is openbaar zichtbaar op het scoreboard en op je profiel, en je kunt hem altijd wijzigen.
 authenticate.pw.rule.length = Minstens {0} tekens
 authenticate.pw.rule.uppercase = Eén hoofdletter
 authenticate.pw.rule.lowercase = Eén kleine letter
@@ -394,6 +406,7 @@ authenticate.pw.strength.1 = Zwak
 authenticate.pw.strength.2 = Oké
 authenticate.pw.strength.3 = Goed
 authenticate.pw.strength.4 = Sterk
+authenticate.pw.breached = Dit wachtwoord komt voor in een bekend datalek. Kies een ander wachtwoord.
 authenticate.create.account = Mijn account aanmaken
 authenticate.new.detail = Nieuw bij Project Sidewalk? <a href="#" id="form-open-sign-up">Maak een account</a>
 authenticate.new.detail.link = Nieuw bij Project Sidewalk? <a href="{0}">Maak een account</a>
@@ -414,9 +427,64 @@ welcome.card.leaderboard.title = Het scorebord
 welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
 welcome.cta.resume = Terug naar waar je gebleven was
 welcome.cta.dashboard = Mijn dashboard bekijken
+welcome.privacy.title = Wie jou kan zien
+welcome.privacy.body = Je gebruikersnaam “{0}” en je voortgang kunnen verschijnen op het openbare scoreboard en op je profielpagina, die iedereen kan bekijken. Jij kiest, en je kunt je keuze altijd wijzigen bij Instellingen.
+welcome.privacy.default.private = Deze omgeving houdt nieuwe accounts standaard privé, dus hieronder wordt niets gedeeld totdat je het aanzet.
+welcome.privacy.noscript = Voor het aan- en uitzetten hiervan is JavaScript nodig. Je kunt het altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
 welcome.service.button = Aanmelden voor serviceuren
+timecheck.eyebrow = Jouw impact tot nu toe
+timecheck.heading = Goed bezig, {0}!
+timecheck.intro = Elk uur dat je labelt maakt stoepen begaanbaarder voor mensen met een beperking. Dit is de tijd die Project Sidewalk voor je heeft geregistreerd.
+timecheck.hours.one = uur karteren en valideren
+timecheck.hours.many = uur karteren en valideren
+timecheck.scope = Verspreid over {0} Project Sidewalk-steden — je account is overal hetzelfde, dus dit is je volledige totaal.
+timecheck.cheer.none = Je allereerste uur wacht op je — duik erin en zet je stempel op de kaart!
+timecheck.cheer.started = Je bent begonnen, en elk label telt al mee.
+timecheck.cheer.momentum = Je bouwt echt vaart op. Ga zo door!
+timecheck.cheer.dedication = Dat is serieuze toewijding — jouw stad is toegankelijker dankzij jou.
+timecheck.cheer.commitment = Ongelooflijke inzet. Je bent een kracht voor toegankelijkheid.
+timecheck.cheer.legend = Je bent een Project Sidewalk-legende. De hele gemeenschap bedankt je.
+timecheck.breakdown.title = Waar je tijd vandaan komt
+timecheck.breakdown.city = Stad
+timecheck.breakdown.hours = Uren
+timecheck.breakdown.here = je bent hier
+timecheck.incomplete.one = Let op: we konden 1 stad zojuist niet controleren, dus je totaal kan te laag zijn. Laad de pagina over een paar minuten opnieuw of mail naar <a href="mailto:{0}">{0}</a> als het niet vanzelf goed komt.
+timecheck.incomplete.many = Let op: we konden {0} steden zojuist niet controleren, dus je totaal kan te laag zijn. Laad de pagina over een paar minuten opnieuw of mail naar <a href="mailto:{1}">{1}</a> als het niet vanzelf goed komt.
+timecheck.fact.loading = Het uitrekenen kan even duren — bedankt voor je geduld terwijl deze pagina laadt.
+timecheck.fact.wrong.total = Klopt het totaal niet? Meestal komt dat doordat er uitgelogd is gekarteerd. Mail naar <a href="mailto:{0}">{0}</a> met wanneer je hebt gewerkt en welke pagina''s je gebruikte, dan helpen we je verder.
+timecheck.service.on.title = Je bent aangemeld voor maatschappelijke uren
+timecheck.service.on.body = Denk eraan je begeleider elke ronde te mailen voor feedback — zie <a href="{0}">hoe maatschappelijke uren werken</a>.
+timecheck.service.off.title = Studiepunten of vrijwilligersuren nodig?
+timecheck.service.off.body = Meld je aan om deze uren officieel te laten erkennen en door een begeleider te laten bevestigen.
+timecheck.service.off.cta = Hoe het werkt
+timecheck.cta.explore = Blijf karteren
+servicehours.eyebrow = Word vrijwilliger bij Project Sidewalk
+servicehours.title = Maatschappelijke uren verdienen
+servicehours.intro = Stoepen karteren telt als echt vrijwilligerswerk — veel scholieren en studenten halen hier uren voor school of hun organisatie. Wij houden je tijd automatisch bij: jij karteert, krijgt feedback en levert je uren in als je klaar bent.
+servicehours.anon.title = Meld je aan om uren te verdienen
+servicehours.anon.body = Maak een gratis account en meld je daarna aan om je vrijwilligersuren officieel te laten erkennen.
+servicehours.anon.cta = Account aanmaken
+servicehours.optedin.title = Je bent aangemeld voor maatschappelijke uren
+servicehours.optedin.body = Je doet op dit moment mee aan het urenprogramma van Project Sidewalk. Je kunt je altijd afmelden of dit beheren bij <a href="{0}">Instellingen</a>.
+servicehours.optedin.cta = Afmelden
+servicehours.optedout.title = Je bent niet aangemeld voor maatschappelijke uren
+servicehours.optedout.body = Meld je aan om je vrijwilligers- of schooluren officieel te laten erkennen en door je begeleider te laten bevestigen.
+servicehours.optedout.cta = Meld me aan
+servicehours.supervisor = Je begeleider: {0}
+servicehours.step1.title = Leer hoe goede labels eruitzien
+servicehours.step1.body = Lees eerst <a href="{0}" target="_blank">de gids met veelgemaakte fouten</a> — een paar minuten hier scheelt je later uren corrigeren.
+servicehours.step2.title = Karteer een uur lang
+servicehours.step2.body = Klik ingelogd hieronder op <strong>{0}</strong> en label een uur lang. Je tijd wordt automatisch bijgehouden terwijl je werkt.
+servicehours.step3.title = Mail ons voor feedback
+servicehours.step3.body = Stuur je gebruikersnaam en het e-mailadres waarmee je je hebt aangemeld naar het adres hierboven. {0} bekijkt je labels en reageert binnen een paar dagen met feedback en tips.
+servicehours.step4.title = Blijf karteren, ronde na ronde
+servicehours.step4.body = Doe nog een uur, reageer in dezelfde e-mailconversatie en herhaal. Zodra je labels er goed uitzien, mag je zoveel uren maken als je nodig hebt.
+servicehours.warning = <strong>De feedbackmails zijn verplicht.</strong> Uren die zonder die mails worden ingeleverd, worden meestal afgewezen — de oefenrondes houden de kaart betrouwbaar.
+servicehours.fact.timecheck = Je geregistreerde tijd zie je altijd op de <a href="{0}">urenpagina</a> — die staat ook in je accountmenu, naast de link terug naar deze pagina.
+servicehours.fact.submit = Lever je je uren in? Vermeld <strong>{0}</strong> als je begeleider, met het e-mailadres hierboven.
+servicehours.cta.timecheck = Mijn tijd bekijken
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 
 user.exists = E-mail bestaat al
@@ -431,6 +499,14 @@ reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
 reset.pw.email.send.link = E-mail verzenden
 reset.pw.email.reset.pw.sent = Er is een e-mail verzonden om je wachtwoord opnieuw in te stellen.
+unsubscribe.confirm.title = Afmelden voor nieuws van Project Sidewalk?
+unsubscribe.confirm.intro = Je ontvangt dan geen nieuws en updates over het project meer op het e-mailadres van je account. E-mails over je account, zoals het opnieuw instellen van je wachtwoord, komen nog steeds aan.
+unsubscribe.confirm.submit = Afmelden
+unsubscribe.done.title = Je bent afgemeld
+unsubscribe.done.intro = We sturen je geen projectnieuws meer. Van gedachten veranderd? Zet het weer aan bij <a href="{0}">Instellingen</a>.
+unsubscribe.invalid.title = Deze link is niet geldig
+unsubscribe.invalid.intro = De afmeldlink is misschien afgebroken bij het kopiëren. Je kunt e-mail ook beheren bij <a href="{0}">Instellingen</a>, of schrijven naar <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+reset.pw.email.send.failed = We konden de e-mail nu niet verzenden. Probeer het later opnieuw.
 reset.pw.email.reset.request.message = Je hebt onlangs gevraagd om je wachtwoord voor je Project Sidewalk-account opnieuw in te stellen. Klik op de onderstaande link om je wachtwoord opnieuw in te stellen:
 reset.pw.email.reset.not.requested = Als je geen wachtwoordreset hebt aangevraagd, negeer dan dit bericht of stuur ons een e-mail om het ons te laten weten.
 reset.pw.email.reset.valid.duration = Deze wachtwoordreset is de komende 60 minuten geldig
@@ -438,7 +514,7 @@ reset.pw.email.signature = Het Project Sidewalk-team
 
 reset.pw.submit.new.pw = Typ je nieuwe wachtwoord.
 reset.pw.message = Wachtwoord opnieuw instellen
-reset.pw.successful = Wachtwoord opnieuw ingesteld!
+reset.pw.successful = Wachtwoord opnieuw ingesteld! Je bent afgemeld op je andere apparaten.
 reset.pw.invalid.reset.link = Ongeldige resetlink
 
 dashboard.current.team.greeting = Team: {0}
@@ -468,7 +544,7 @@ dashboard.team.name = Teamnaam
 dashboard.team.description = Teambeschrijving (optioneel)
 dashboard.team.button = Maak een team
 
-labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
+labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm" target="_blank" rel="noopener">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
 labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem dat een hobbelige of anderszins ongemakkelijke ervaring zou kunnen veroorzaken voor iemand die een rolstoel of andere hulpmiddelen gebruikt. Als iets op een oppervlak het moeilijk of onmogelijk maakt om over te steken, moet het worden bestempeld als een oppervlakteprobleem. Voor oppervlakteproblemen die een groot gebied beslaan, moet u een oppervlakteprobleem-label aan het begin van het probleem plaatsen en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen tot het einde van het probleem.
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
@@ -485,14 +561,25 @@ gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.cards.sorted = Labels worden gesorteerd op "{0}" op basis van geselecteerde filters
+gallery.sort.by = Sorteren op
+gallery.sort.random = Willekeurig
+gallery.sort.newest = Nieuwste eerst
+gallery.sort.oldest = Oudste eerst
+gallery.sort.most.severe = Ernstigste eerst
+gallery.sort.least.severe = Minst ernstige eerst
+gallery.sort.most.disputed = Meest betwiste eerst
 gallery.clear.filters = Filters Wissen
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
+gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}
+gallery.list.error = De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.
+gallery.list.browse.all = Alle labels bekijken
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder
 routebuilder.intro.content = Bouw een route en deel deze met anderen.
 routebuilder.directions.start.aria = Startadres of plaats
 routebuilder.directions.end.aria = Eindadres of plaats
-routebuilder.stat.time.tooltip = Geschat op basis van het gebruikelijke tempo van Project Sidewalk-verkenners in deze stad (ongeveer {0} minuten per 100 meter).
 routebuilder.save = Route bewaren
 routebuilder.delete.route.icon.alt = Een oranje cirkel met een witte uitroepteken in het midden
 routebuilder.not.saved = Route is niet opgeslagen.
@@ -510,6 +597,7 @@ routebuilder.optional = (optioneel)
 routebuilder.route.description.placeholder = bijv. Onze vaste route van de bibliotheek naar school
 routebuilder.description.error.length = Routebeschrijvingen mogen maximaal {0} tekens lang zijn.
 routebuilder.description.error.allowed = Deze beschrijving is niet toegestaan. Pas hem aan.
+routebuilder.streets.error.unknown = Die route gebruikt een straat die we niet meer hebben. Laad de pagina opnieuw en bouw de route nog eens.
 routebuilder.signin.nudge = Log in om je routes in je dashboard te bewaren, waar je ze altijd kunt terugvinden, hernoemen en delen.
 routebuilder.signin.to.save = Inloggen & bewaren
 routebuilder.continue.without.account = Bewaren zonder account
@@ -534,6 +622,7 @@ dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
 dashboard.routes.stats = Door {0} verkend · Door {1} voltooid
 dashboard.routes.stats.tooltip = Verkend: hoeveel mensen deze route zijn gaan verkennen. Voltooid: hoeveel mensen de hele route hebben afgerond.
+dashboard.routes.region.and.more = {0} + {1} meer
 dashboard.routes.view.title = Bekijk deze route in RouteBuilder
 dashboard.routes.none = Je hebt nog geen routes gemaakt.
 dashboard.routes.build.one = Maak je eerste route →
@@ -557,6 +646,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
+cities.spotlight.title = Waar stoepen het hoogst en het laagst scoren in onze steden
 cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren
@@ -583,7 +673,7 @@ sharedlabel.stat.labels = labels
 sharedlabel.stat.validations = validaties
 sharedlabel.stat.miles = mijl verkend
 sharedlabel.legend.title = Wat deze labels betekenen
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Je dashboard
 dashboard.you = Jij
 dashboard.hero.greeting = Welkom terug, {0} 👋
@@ -686,12 +776,16 @@ dashboard.team.error.signin = Log in om een team aan te maken.
 dashboard.team.error.name.length = De teamnaam moet 2–50 tekens lang zijn.
 dashboard.team.error.desc.length = De beschrijving is te lang (max. 300 tekens).
 dashboard.team.error.name.allowed = Die naam is niet toegestaan — kies een andere.
+dashboard.team.error.name.comma = De teamnaam mag geen komma bevatten.
+dashboard.team.error.name.numeric = De teamnaam mag niet alleen uit cijfers bestaan.
+dashboard.team.error.name.taken = Die naam is al in gebruik door een ander team.
 dashboard.team.error.desc.allowed = Die beschrijving is niet toegestaan — kies een andere.
 dashboard.nav.aria = Dashboardonderdelen
 dashboard.nav.you = Jij
 dashboard.nav.community = Gemeenschap
 dashboard.nav.dashboard = Dashboard
 dashboard.nav.settings = Instellingen
+dashboard.nav.manageuser = Gebruiker beheren
 dashboard.toc.header = Op deze pagina
 dashboard.settings.title = Instellingen
 dashboard.settings.intro = Beheer je account, je team en wat je met de gemeenschap deelt.
@@ -703,15 +797,33 @@ dashboard.settings.username.error.allowed = Die gebruikersnaam is niet toegestaa
 dashboard.settings.username.error.taken = Die gebruikersnaam is al in gebruik.
 dashboard.settings.email = E-mail
 dashboard.settings.email.help = Wordt gebruikt om in te loggen en je wachtwoord te herstellen. Mail naar <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a> om je e-mailadres te wijzigen.
+dashboard.settings.preferences = Voorkeuren
 dashboard.settings.units = Maateenheden
 dashboard.settings.units.auto = Standaard
 dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Mijlen & voet
 dashboard.settings.units.help = Afstanden op de hele site gebruiken deze eenheden. Laat het op "Standaard" staan om de maateenheden van de taal van de site te gebruiken.
+dashboard.settings.password = Wachtwoord wijzigen
+dashboard.settings.password.current = Huidig wachtwoord
+dashboard.settings.password.new = Nieuw wachtwoord
+dashboard.settings.password.new.confirm = Bevestig nieuw wachtwoord
+dashboard.settings.password.forgot = Huidig wachtwoord vergeten? <a href="{0}">Stel het opnieuw in via e-mail</a>.
+dashboard.settings.password.submit = Wachtwoord wijzigen
+dashboard.settings.password.changed = Je wachtwoord is gewijzigd en je bent afgemeld op je andere apparaten.
+dashboard.settings.password.error.current = Dat is niet je huidige wachtwoord.
+dashboard.settings.password.error.same = Je nieuwe wachtwoord moet anders zijn dan je huidige.
+dashboard.settings.password.error.throttled = Te veel pogingen. Wacht maximaal {0} minuten en probeer het dan opnieuw.
+dashboard.settings.devices = Aangemelde apparaten
+dashboard.settings.devices.help = Aangemeld op een plek die je niet meer gebruikt, zoals een gedeelde computer? Meld je overal af behalve in deze browser.
+dashboard.settings.devices.submit = Afmelden op andere apparaten
+dashboard.settings.devices.signed.out = Je bent afgemeld op je andere apparaten.
 dashboard.settings.service.hours = Vrijwilligersuren
 dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
 dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.
 dashboard.settings.service.hours.link = Hoe serviceuren werken
+dashboard.settings.news.email = E-mailupdates
+dashboard.settings.news.email.toggle = Stuur mij nieuws over Project Sidewalk
+dashboard.settings.news.email.help = Af en toe nieuws over het project, elk met een afmeldlink. E-mails over je account, zoals het opnieuw instellen van je wachtwoord, komen altijd aan.
 dashboard.settings.team = Team
 dashboard.settings.team.label = Je team
 dashboard.settings.team.help = Sluit je aan bij een team of klas om samen in kaart te brengen en op het teamscoreboard te verschijnen.
@@ -758,6 +870,16 @@ leaderboard.thisweek.none = ✨ Nog geen labels deze week — wees de eerste op 
 leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Maak een team aan of sluit je aan om samen het verschil te maken!
 leaderboard.teams.none = 👥 Nog geen teams — wees de eerste! Maak er een aan en nodig vrienden of klasgenoten uit.
+leaderboard.myteam.title = Jouw team: {0}
+leaderboard.myteam.intro = Zo sta je ervoor ten opzichte van je teamgenoten in {0}.
+leaderboard.myteam.none = 👥 Nog niemand van je team staat in het klassement.
+leaderboard.myteam.you.hidden = Je staat er niet bij omdat je „{0}” hebt uitgezet.
+leaderboard.myteam.you.settings = Wijzig dit in Instellingen
+leaderboard.myteam.you.nolabels = Je verschijnt hier zodra je je eerste label plaatst.
+leaderboard.myteam.pager = Pagina''s van het teamklassement
+leaderboard.myteam.prev = ‹ Vorige
+leaderboard.myteam.next = Volgende ›
+leaderboard.myteam.page = Pagina {0} van {1}
 leaderboard.allcities.title = Alle steden, aller tijden
 leaderboard.allcities.intro = De beste deelnemers uit alle Project Sidewalk-steden, gerangschikt op het totale aantal labels.
 leaderboard.allcities.note = De afstand wordt één keer per dag bijgewerkt.
@@ -779,7 +901,7 @@ stories.page.search.placeholder = Typ om verhalen te filteren…
 routes.page.search.placeholder = Typ om routes te filteren…
 community.page.sort = Sorteren op
 community.page.sort.newest = Nieuwste eerst
-community.page.sort.neighborhood = Buurt
+community.page.sort.region = Buurt
 community.page.count = {0} weergegeven
 community.page.no.results = Niets komt overeen met je zoekopdracht.
 community.page.cap.note = Alleen de nieuwste {0} worden weergegeven.
@@ -814,3 +936,163 @@ error.500.id = Foutcode: {0}
 error.500.report = Als dit blijft gebeuren, {0} en vermeld de bovenstaande foutcode zodat we het kunnen onderzoeken.
 error.500.report.link = laat het ons dan weten
 error.home = Terug naar start
+
+# Buurtrapporten (#5876).
+report.seo.title = {0}: buurtrapport — Project Sidewalk
+report.eyebrow = Buurtrapport
+report.generated = Gegenereerd op {0}.
+report.latest.observation = Laatste label: {0}.
+report.print = Afdrukken of opslaan als pdf
+report.copy.link = Link kopiëren
+report.count = {0}
+report.coverage.screened.label = Bekeken straten
+report.coverage.screened.value = {0} van {1} {2}
+report.coverage.screened.detail = {0}% van de verkenbare straten
+report.coverage.observations.label = Labels
+report.coverage.observations.detail = van {0,choice,1#1 persoon|1<{0} personen} sinds {1}
+report.coverage.observations.none = Nog geen geregistreerd
+report.coverage.reviewed.label = Beoordeeld
+report.coverage.reviewed.detail = gecontroleerd door minstens één beoordelaar
+report.coverage.confirmed.label = Bevestigd
+report.coverage.confirmed.detail = meer beoordelaars eens dan oneens
+report.coverage.imagery.label = Mediaan beeldjaar
+report.coverage.imagery.detail = {0}% is ouder dan {1} jaar
+report.coverage.imagery.none = Geen beelddatums geregistreerd
+report.coverage.excluded = {0,choice,1#1 label dat bij controle als onjuist is gemarkeerd, telt|1<{0} labels die bij controle als onjuist zijn gemarkeerd, tellen} op deze pagina nergens mee.
+report.headline.label = Belangrijkste bevinding
+report.headline.evidence = Bekijk {0,choice,1#deze locatie|1<deze {0} locaties}
+report.headline.noalternate = {0,choice,1#Bij bijna elke ontbrekende stoepverlaging is|1<Bij ongeveer 1 op de {0} ontbrekende stoepverlagingen is} er geen manier om eromheen te gaan.
+report.headline.concentration = Slechts {0} straten bevatten {1}% van de locaties met de slechtste beoordeling.
+report.headline.worst = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoordeling, in {1,choice,1#1 straat|1<{1} straten}.
+report.headline.none = Geen van de {0} locaties hier heeft de slechtste beoordeling.
+report.streets.title = Straatdelen, laagste score eerst
+report.street.unnamed = Naamloze straat ({0})
+report.street.score = Score {0}
+report.street.length = {0} {1} verkend
+report.rule.label = Hoe deze lijst werkt.
+report.rule.text = De scores zijn die van AccessScore, van 0 tot 100; hoe lager, hoe lastiger om je te verplaatsen. Een straatdeel is een straat tussen twee kruispunten, ongeveer een blok. Het krijgt een score op basis van wat erlangs is gevonden, en een oversteekplaats op basis van wat daar is gevonden, vanuit welke straat het ook is gelabeld. De score van een straatdeel is het gemiddelde van het deel zelf en de oversteekplaats aan elk uiteinde, elk even zwaar. Elk straatdeel staat er apart in, dus een straat kan meer dan eens voorkomen. Een straatdeel wordt gerangschikt als het is verkend, minstens {0} m lang is en erlangs minstens {1} locaties of helemaal geen heeft.
+report.punch.title = De verbeteringen die het meest uitmaken
+report.fix.map = Kaart van de plek in {0}
+report.fix.photo = Foto: {0}
+report.fix.lede = Het +getal boven op elke kaart is hoeveel punten, op 100, de score van dat straatdeel zou stijgen als die ene plek werd hersteld.
+report.fix.raise = Herstel zou de score van dit straatdeel {2} punten verhogen, van {0} naar {1}.
+report.places.near = Vlakbij
+report.place.school = school
+report.place.health = zorglocatie
+report.place.library = bibliotheek
+report.place.grocery = supermarkt
+report.place.transit = halte
+report.place.park = park
+report.place.community = buurthuis
+report.place.government = overheidsloket
+report.fix.why.noalternate = Het weegt zo zwaar omdat AccessScore een ontbrekende stoepverlaging zwaarder telt als er geen andere in de buurt is: wie er een nodig heeft, kan deze hoek niet omzeilen.
+report.fix.why.corner = Het weegt zo zwaar omdat het op een hoek ligt: de score van een straatdeel telt elke hoek aan de uiteinden even zwaar als het hele blok ertussen, en de hoek telt ook mee voor elke straat die daar samenkomt.
+report.fix.why.worst = Het weegt zo zwaar omdat het als zo ernstig mogelijk is beoordeeld, en niets anders op {0} trekt de score verder omlaag.
+report.fix.why.costliest = Van alles wat op {0} is gevonden, trekt deze plek, door het type en de beoordeling, de score het meest omlaag.
+report.punch.none = Nog geen enkele locatie komt in aanmerking: deze lijst vraagt om een locatie met de slechtste of op een na slechtste beoordeling die een beoordelaar heeft bevestigd.
+report.punch.rule = Hoe deze zijn gekozen: langs de gerangschikte straatdelen, per straat de ene locatie die de score van het straatdeel het meest kost, dus hoeveel de score zonder die locatie zou stijgen. Een locatie moet minstens {0,choice,1#1 punt|1<{0} punten} kosten, de slechtste of op een na slechtste beoordeling hebben (of van een type zonder beoordeling zijn) en een label met die beoordeling hebben dat een beoordelaar heeft bevestigd en geen enkele heeft afgewezen. Ontbrekende stoepen langs één straatdeel tellen hier als één locatie, omdat een speld meer of minder een score zelden verandert. Een straatdeel met veel problemen kan geen enkele locatie hebben die zoveel waard is en staat er dan mogelijk niet bij.
+report.rating = Beoordeling {0} van {1} ({1} is het slechtst)
+report.inventory.title = Wat er is waargenomen, per type
+report.inventory.problems = Problemen
+report.inventory.features = Toegankelijkheidsvoorzieningen
+report.inventory.neutral = Overige labels
+report.inventory.none = Hier zijn nog geen labels vastgelegd.
+report.inventory.type = Type
+report.inventory.observed = Labels
+report.inventory.worst.short = Slechtste beoordeling
+report.inventory.worst.problems = Ernstigst beoordeeld
+report.inventory.worst.features = Slecht beoordeeld
+report.inventory.worst.neutral = Ernstigst beoordeeld
+report.inventory.confirmed = Bevestigd
+report.inventory.define.locations = Afzonderlijke plekken. Meerdere labels op hetzelfde object tellen één keer, en dat telt AccessScore.
+report.inventory.define.observed = Alle labels die hier zijn geplaatst, zonder de labels die validators afkeurden.
+report.inventory.define.worst = Labels met de slechtste beoordeling: ernstigst bij een probleem, slecht bij een voorziening zoals een stoepverlaging.
+report.inventory.define.confirmed = Labels met meer instemmende dan afwijzende stemmen.
+report.inventory.tags = Meest voorkomende tags
+report.inventory.unrated = Niet beoordeeld
+report.inventory.ratings.title = Hoe elk type is beoordeeld
+report.inventory.ratings.lede = Labels per beoordeling, als deel van de labels van het type. Problemen worden beoordeeld op ernst, van laag tot hoog; voorzieningen zoals stoepverlagingen op kwaliteit, van goed tot slecht.
+report.scale.severity = ernst
+report.scale.quality = kwaliteit
+report.scale.severity.1 = Laag
+report.scale.severity.2 = Gemiddeld
+report.scale.severity.3 = Hoog
+report.scale.quality.1 = Goed
+report.scale.quality.2 = Redelijk
+report.scale.quality.3 = Slecht
+report.inventory.note = Een locatie is één plek: labels van meerdere mensen op hetzelfde kenmerk tellen als één, en dat is wat AccessScore telt. Een streepje betekent dat het type geen beoordeling heeft of niet wordt gescoord.
+report.deeper.title = Verder verdiepen
+report.deeper.labelmap = Bekijk alle labels op de kaart
+report.deeper.gallery = Blader door de foto''s in de Galerij
+report.deeper.accessscore = Bekijk de AccessScore van deze buurt
+report.deeper.explore = Help hier meer straten bekijken
+report.beta.badge = Bèta
+report.beta.note = Dit rapport is nieuw, dus de opmaak en tekst kunnen nog veranderen. Laat ons weten wat nuttig is of wat niet klopt:
+report.provenance.title = Over dit rapport
+report.provenance.generated = Gegenereerd op
+report.provenance.version = App-versie
+report.provenance.data = Gegevens
+report.provenance.csv = De labels die dit rapport telt (CSV)
+report.provenance.reviewers = Beoordelaars zijn mensen: stemmen van AI-validators tellen op deze pagina niet als beoordelaars, maar wegen wel mee bij het als onjuist markeren van een label.
+report.coverage.unclustered = {0,choice,1#1 label hoort bij geen enkele locatie en beïnvloedt dus|1<{0} labels horen bij geen enkele locatie en beïnvloeden dus} geen score. Ze zijn toegevoegd na de laatste AccessScore-update, of komen van iemand wiens werk niet meetelt in de score.
+report.score.label = AccessScore van de buurt
+report.score.value = {0} van 100
+report.score.detail = Hoe lager, hoe lastiger om je te verplaatsen.
+report.score.none = Nog geen score
+report.score.none.detail = AccessScore geeft een buurt een score zodra {0}% van de straten is verkend. Tot nu toe is dat {1}%.
+report.headline.nosidewalk = Er ontbreken stoepen ergens langs {0} van de {1} hier verkende straten.
+report.streets.title.sofar = Straatdelen tot nu toe, laagste score eerst
+report.streets.sofar = Slechts {0}% verkend, dus dit kan veranderen.
+report.streets.none.unranked = Nog geen straatdeel hier heeft genoeg gegevens om door AccessScore te worden gerangschikt.
+report.street.block = Straatdeel {0}
+report.street.crossings = Oversteekplaatsen {0}
+report.street.slope = Helling kost {0} punten
+report.street.length.partial = {0} van {1} {2} verkend
+report.street.road = Een van {0,choice,1#1 verkend straatdeel|1<{0} verkende straatdelen} van deze straat; samen scoren ze {1} over de verkende {2} {3}.
+report.street.between = tussen {0} en {1}
+report.street.near = bij {0}
+report.streets.more = Toon {0,choice,1#het andere straatdeel|1<de andere {0} straatdelen}
+report.count.locations = {0,choice,1#1 locatie|1<{0} locaties}
+report.rule.docs = Hoe AccessScore wordt berekend
+report.photo.cost = Kost deze straat {0} punten
+report.inventory.locations = Locaties
+report.inventory.unscored = Niet gescoord
+report.provenance.scored = AccessScore bijgewerkt
+report.provenance.csv.streets = De straatscores (CSV)
+report.provenance.csv.locations = De locaties erachter (CSV)
+report.computing.title = Dit rapport wordt nog voorbereid
+report.computing.body = AccessScore berekent de scores van deze stad, wat na een update een minuut of twee duurt. Rapporten gebruiken diezelfde scores, dus dit rapport moet daarop wachten.
+report.computing.retry = Opnieuw proberen
+report.map.street.label = Kaart van {0}
+report.map.region.label = Kaart van de straten in {0}
+report.map.color.title = Straten kleuren op
+report.map.color.score = AccessScore
+report.map.color.slope = Steilste helling
+report.weights.title = Gewichten
+report.weights.help = Hoe zwaar elk soort probleem of kenmerk telt. Een wijziging berekent deze pagina opnieuw met de formule van AccessScore.
+report.weights.reset = Gewichten herstellen
+report.weights.custom = Eigen gewichten: deze scores zijn niet de gepubliceerde AccessScores.
+report.map.sidewalks.absent = Gelabeld als geen stoep
+report.map.sidewalks.present = Waarschijnlijk stoep
+report.map.sidewalks.help = Tekent elke straatkant in plaats van de middellijn: in de kleur van de straat waar waarschijnlijk een stoep is, gestreept waar er een als ontbrekend is gelabeld. Afgeleid uit labels, geen opname: een stoep die hier staat betekent dat niemand hem als ontbrekend heeft gelabeld.
+report.map.sidewalks = Stoepen (afgeleid)
+report.map.title = Op de kaarten
+report.streets.score.label = AccessScore {0}
+report.sidebar.label = Rapportinstellingen
+report.toc.details = Straatdeel voor straatdeel
+report.details.order = {0,choice,1#Het straatdeel met de laagste score|1<De {0} straatdelen met de laagste score}, laagste eerst, in dezelfde volgorde als de lijst hierboven.
+report.toc.streets = Alle straatdelen
+report.toc.summary = Samenvatting
+report.toc.title = Op deze pagina
+report.provenance.rules = Hoe de cijfers werken
+report.punch.rule.short = Per straat de ene locatie waarvan herstel de score van het straatdeel het meest verhoogt. ‘Over dit rapport’ bevat de volledige regel.
+report.rule.short = De scores van AccessScore, 0 tot 100. Hoe lager, hoe lastiger om je te verplaatsen. ‘Over dit rapport’ legt uit hoe ze werken.
+report.worst.title = Waar de ergste problemen zijn
+report.worst.rule = Elke locatie met de slechtste beoordeling op de schaal van haar type: hoge ernst voor een probleem, slecht voor een voorziening zoals een stoepafrit. De beoordeling van een locatie is de mediaan van haar labels, die haar score gebruikt, dus deze aantallen kunnen lager zijn dan de labels met de slechtste beoordeling in de tabel hieronder.
+report.worst.none = Geen enkele locatie hier heeft de slechtste beoordeling op haar schaal.
+report.worst.none.sofar = Nog geen enkele locatie hier heeft de slechtste beoordeling op haar schaal.
+report.worst.map.label = Kaart van de ergste problemen in {0}
+report.worst.lede = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoordeling, per type:
+report.worst.count.label = {0,choice,1#1 locatie|1<{0} locaties}: {1}. Bekijk de labels
+report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart. Zet "{0}" aan in de zijbalk om ze als stippellijnen op de andere kaarten te zien.
+report.toc.worst = Ergste problemen

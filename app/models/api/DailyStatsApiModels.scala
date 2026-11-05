@@ -4,9 +4,36 @@
  */
 package models.api
 
-import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OWrites}
+import play.api.libs.json.OWrites
+import slick.jdbc.GetResult
 
 import java.time.LocalDate
+
+/** One day's label counts for one label type, split by human vs. AI. */
+case class DailyLabelStat(date: LocalDate, labelType: String, humanLabels: Int, aiLabels: Int)
+
+object DailyLabelStat {
+  given getResult: GetResult[DailyLabelStat] =
+    r => DailyLabelStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt())
+}
+
+/** One day's validation counts for one label type, split by human vs. AI and by vote. */
+case class DailyValidationStat(
+    date: LocalDate,
+    labelType: String,
+    humanAgree: Int,
+    humanDisagree: Int,
+    humanUnsure: Int,
+    aiAgree: Int,
+    aiDisagree: Int,
+    aiUnsure: Int
+)
+
+object DailyValidationStat {
+  given getResult: GetResult[DailyValidationStat] = r =>
+    DailyValidationStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(),
+      r.nextInt(), r.nextInt(), r.nextInt())
+}
 
 /**
  * A single record in the daily label-and-validation time series.
@@ -40,37 +67,41 @@ case class DailyStatRecord(
     aiValidationsUnsure: Int
 )
 
-object DailyStatRecord {
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val writes: OWrites[DailyStatRecord]  = Json.writes[DailyStatRecord]
+object DailyStatRecord extends ApiFields[DailyStatRecord] {
+  import ApiFields.field
 
-  val csvHeader: String =
-    "date,label_type,human_labels,ai_labels," +
-      "human_validations_agree,human_validations_disagree,human_validations_unsure," +
-      "ai_validations_agree,ai_validations_disagree,ai_validations_unsure\n"
+  override val fields: Seq[ApiField[DailyStatRecord]] = Seq(
+    field("date")(_.date.toString),
+    field("label_type")(_.labelType),
+    field("human_labels")(_.humanLabels),
+    field("ai_labels")(_.aiLabels),
+    field("human_validations_agree")(_.humanValidationsAgree),
+    field("human_validations_disagree")(_.humanValidationsDisagree),
+    field("human_validations_unsure")(_.humanValidationsUnsure),
+    field("ai_validations_agree")(_.aiValidationsAgree),
+    field("ai_validations_disagree")(_.aiValidationsDisagree),
+    field("ai_validations_unsure")(_.aiValidationsUnsure)
+  )
+
+  given writes: OWrites[DailyStatRecord] = (record: DailyStatRecord) => toJson(record)
 
   /**
    * Merges label-stat and validation-stat rows (each keyed by date + label_type) into one unified
    * sequence of DailyStatRecord. Either sequence may have keys the other lacks; missing entries are
    * filled with zeros.
    *
-   * @param labels      Rows from the labels-by-day query: (date, labelType, humanLabels, aiLabels).
-   * @param validations Rows from the validations-by-day query: (date, labelType, humanAgree,
-   *                    humanDisagree, humanUnsure, aiAgree, aiDisagree, aiUnsure).
+   * @param labels      Rows from the labels-by-day query.
+   * @param validations Rows from the validations-by-day query.
    * @return            Merged sequence sorted by date then label type.
    */
-  def merge(
-      labels: Seq[(LocalDate, String, Int, Int)],
-      validations: Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
-  ): Seq[DailyStatRecord] = {
-    val labelMap      = labels.map(r => (r._1, r._2) -> (r._3, r._4)).toMap
-    val validationMap = validations.map(r => (r._1, r._2) -> (r._3, r._4, r._5, r._6, r._7, r._8)).toMap
-    (labelMap.keySet ++ validationMap.keySet).toSeq.sortBy(k => (k._1, k._2)).map { key =>
-      val (date, labelType)        = key
-      val (humanLabels, aiLabels)  = labelMap.getOrElse(key, (0, 0))
-      val (ha, hd, hu, aa, ad, au) = validationMap.getOrElse(key, (0, 0, 0, 0, 0, 0))
-      DailyStatRecord(date, labelType, humanLabels, aiLabels, ha, hd, hu, aa, ad, au)
+  def merge(labels: Seq[DailyLabelStat], validations: Seq[DailyValidationStat]): Seq[DailyStatRecord] = {
+    val labelMap      = labels.map(l => (l.date, l.labelType) -> l).toMap
+    val validationMap = validations.map(v => (v.date, v.labelType) -> v).toMap
+    (labelMap.keySet ++ validationMap.keySet).toSeq.sorted.map { case key @ (date, labelType) =>
+      val l = labelMap.getOrElse(key, DailyLabelStat(date, labelType, 0, 0))
+      val v = validationMap.getOrElse(key, DailyValidationStat(date, labelType, 0, 0, 0, 0, 0, 0))
+      DailyStatRecord(date, labelType, l.humanLabels, l.aiLabels, v.humanAgree, v.humanDisagree, v.humanUnsure,
+        v.aiAgree, v.aiDisagree, v.aiUnsure)
     }
   }
 }

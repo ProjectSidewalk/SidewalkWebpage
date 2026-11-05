@@ -1,14 +1,14 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.request.RemoteConnection
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import java.util.UUID
 
@@ -22,10 +22,10 @@ import java.util.UUID
  * X-Forwarded-For, so `withConnection` sets the resolved remote address directly; end-to-end header processing is
  * covered by `ForwardedClientIpSpec`.
  */
-class UserAuthRateLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
+class UserAuthRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                         -> true,
@@ -42,7 +42,7 @@ class UserAuthRateLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** A sign-in that can't succeed, from a caller-chosen source address so each test owns its own per-IP bucket. */
   private def badLogin(email: String, ip: String) = {
@@ -228,10 +228,10 @@ class UserAuthRateLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
  * cap never notices and a per-account cap never sees the same account twice. `UserAuthRateLimitSpec` has the budgets
  * the other way round and covers the burst cap.
  */
-class LoginIpVolumeRateLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
+class LoginIpVolumeRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                        -> true,
@@ -242,7 +242,7 @@ class LoginIpVolumeRateLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "The per-IP hourly login volume limiter" should {
     "throttle one address working through a series of different accounts" in {

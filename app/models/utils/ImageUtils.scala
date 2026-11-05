@@ -2,7 +2,7 @@ package models.utils
 
 import java.awt.image.BufferedImage
 import java.awt.{Rectangle, RenderingHints}
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.nio.file.{Files, StandardCopyOption}
 import javax.imageio.stream.{
   FileImageInputStream,
@@ -11,13 +11,32 @@ import javax.imageio.stream.{
   MemoryCacheImageOutputStream
 }
 import javax.imageio.{IIOImage, ImageIO, ImageReader, ImageWriteParam}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Try, Using}
 
 /**
  * Shared AWT/ImageIO helpers for the image-producing endpoints (share previews, story photos) and the crop job.
  */
 object ImageUtils {
+
+  /**
+   * The size an encoded image declares, read from its header without decoding a pixel. What `POST /saveImage` checks
+   * an upload against before `ImageIO.read` allocates a raster for it.
+   *
+   * @param bytes The encoded image.
+   * @return      (width, height), or None when no ImageIO reader claims the bytes.
+   */
+  def encodedDimensions(bytes: Array[Byte]): Option[(Int, Int)] =
+    Option(ImageIO.createImageInputStream(ByteArrayInputStream(bytes))).flatMap { stream =>
+      Using.resource(stream) { s =>
+        ImageIO.getImageReaders(s).asScala.nextOption().map { reader =>
+          try {
+            reader.setInput(s, false, true)
+            (reader.getWidth(0), reader.getHeight(0))
+          } finally reader.dispose()
+        }
+      }
+    }
 
   /**
    * Opens an image for region reads, handing `f` the reader plus the dimensions from the header alone.
@@ -33,12 +52,12 @@ object ImageUtils {
    * @throws IllegalArgumentException when no ImageIO reader claims the file.
    */
   def withReader[T](file: File)(f: (ImageReader, Int, Int) => T): T = {
-    Using.resource(new FileImageInputStream(file)) { stream =>
+    Using.resource(FileImageInputStream(file)) { stream =>
       val reader = ImageIO
         .getImageReaders(stream)
         .asScala
         .nextOption()
-        .getOrElse(throw new IllegalArgumentException(s"No image reader for ${file.getPath}"))
+        .getOrElse(throw IllegalArgumentException(s"No image reader for ${file.getPath}"))
       try {
         reader.setInput(stream, false, true)
         f(reader, reader.getWidth(0), reader.getHeight(0))
@@ -60,13 +79,51 @@ object ImageUtils {
    */
   def readRegion(reader: ImageReader, x: Int, y: Int, width: Int, height: Int): BufferedImage = {
     val param = reader.getDefaultReadParam
-    param.setSourceRegion(new Rectangle(x, y, width, height))
+    param.setSourceRegion(Rectangle(x, y, width, height))
+    reader.read(0, param)
+  }
+
+  /**
+   * The smallest power-of-two subsampling period that brings a `srcWidth` x `srcHeight` image inside what a pano
+   * viewer can texture, expressed the way Pannellum expresses it (#5256).
+   *
+   * Pannellum uploads an equirectangular pano as two halves, so its own refusal test is
+   * `max(width / 2, height) > MAX_TEXTURE_SIZE` — i.e. a device advertising 8192 renders a 16384-wide pano, which is
+   * exactly the widest GSV produces. `maxWidth` is that doubled figure, so the constraint here is `width <= maxWidth`
+   * *and* `height <= maxWidth / 2`, and the second one binds only on a pano that isn't 2:1.
+   *
+   * Powers of two because that is what a JPEG decoder can drop while decoding; the result may land under the cap
+   * rather than on it (11000 -> 5500), which costs some resolution and no correctness.
+   *
+   * @return The period to hand [[readSubsampled]]; 1 when the image already fits.
+   */
+  def subsamplePeriod(srcWidth: Int, srcHeight: Int, maxWidth: Int): Int = {
+    var period = 1
+    while (srcWidth / period > maxWidth || srcHeight / period > maxWidth / 2) period *= 2
+    period
+  }
+
+  /**
+   * Decodes the reader's image at 1/`period` of its size, taking every `period`-th pixel.
+   *
+   * The reduction happens inside the decode, so the full-size raster never exists: a 16384x8192 pano costs ~105 MB
+   * and ~2 s at period 2, against ~390 MB and ~10 s for the read-in-strips-and-rescale approach it replaces, whose
+   * appetite took prod JVMs down (#5239). What it buys memory with is quality — this drops pixels where an area
+   * average would blend them (PSNR ~30.6 dB against a box-filtered reference), which is the deliberate trade for a
+   * copy that exists only so a low-end GPU can display a pano at all.
+   *
+   * @param reader A reader from [[withReader]].
+   * @param period From [[subsamplePeriod]].
+   */
+  def readSubsampled(reader: ImageReader, period: Int): BufferedImage = {
+    val param = reader.getDefaultReadParam
+    param.setSourceSubsampling(period, period, 0, 0)
     reader.read(0, param)
   }
 
   /** Writes the image to the given file as PNG. Atomic, per [[atomically]]. */
   def writePng(img: BufferedImage, file: File): Unit = atomically(file) { tmp =>
-    if (!ImageIO.write(img, "png", tmp)) throw new IllegalStateException("No PNG writer available")
+    if (!ImageIO.write(img, "png", tmp)) throw IllegalStateException("No PNG writer available")
   }
 
   /**
@@ -127,7 +184,7 @@ object ImageUtils {
   }
 
   private def drawScaled(src: BufferedImage, width: Int, height: Int, imageType: Int): BufferedImage = {
-    val out = new BufferedImage(width, height, imageType)
+    val out = BufferedImage(width, height, imageType)
     val g2d = out.createGraphics()
     g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
     g2d.drawImage(src, 0, 0, width, height, null)
@@ -140,20 +197,20 @@ object ImageUtils {
    * Atomic, per [[atomically]].
    */
   def writeJpeg(img: BufferedImage, file: File, quality: Float): Unit = atomically(file) { tmp =>
-    Using.resource(new FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
+    Using.resource(FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
   }
 
   /** In-memory variant of `writeJpeg`, for images stored as DB bytes rather than files (partner logos, #4516). */
   def writeJpegBytes(img: BufferedImage, quality: Float): Array[Byte] = {
-    val baos = new ByteArrayOutputStream()
-    Using.resource(new MemoryCacheImageOutputStream(baos))(writeJpegTo(img, _, quality))
+    val baos = ByteArrayOutputStream()
+    Using.resource(MemoryCacheImageOutputStream(baos))(writeJpegTo(img, _, quality))
     baos.toByteArray
   }
 
   /** PNG bytes for an image; PNG is lossless, so unlike JPEG there is no quality knob. */
   def writePngBytes(img: BufferedImage): Array[Byte] = {
-    val baos = new ByteArrayOutputStream()
-    if (!ImageIO.write(img, "png", baos)) throw new IllegalStateException("No PNG writer available")
+    val baos = ByteArrayOutputStream()
+    if (!ImageIO.write(img, "png", baos)) throw IllegalStateException("No PNG writer available")
     baos.toByteArray
   }
 
@@ -169,7 +226,7 @@ object ImageUtils {
    */
   def sniffAcceptedFormat(file: File, accepted: Set[String], maxDimension: Int, maxPixels: Long): Option[String] = {
     Try {
-      val stream = new FileImageInputStream(file)
+      val stream = FileImageInputStream(file)
       try {
         ImageIO.getImageReaders(stream).asScala.nextOption().flatMap { reader =>
           try {
@@ -194,7 +251,7 @@ object ImageUtils {
       params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
       params.setCompressionQuality(quality)
       writer.setOutput(out)
-      writer.write(null, new IIOImage(img, null, null), params)
+      writer.write(null, IIOImage(img, null, null), params)
     } finally writer.dispose()
   }
 }

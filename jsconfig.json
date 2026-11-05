@@ -1,0 +1,22 @@
+// Type information for frontend/js/, read by editors (hover, go-to-definition) and by `make lint-js-types` (#5278).
+// Checking stays off here so editors don't double-report; tools/lint/js-types/tsconfig.json turns it on for the lint.
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "target": "es2022",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    // Only the Google Maps API, loaded by its own bootstrap rather than from npm; every other library ships its types.
+    "types": ["google.maps"],
+    // Strict mode (TypeScript 7's default) is a later ratchet: it roughly triples the error count.
+    "strict": false,
+    // The libraries' own declaration files carry mistakes of their own (mapbox-gl's JSDoc, lib conflicts a worker-side
+    // package drags in), which are theirs to fix; globals.d.ts is small enough to read.
+    "skipLibCheck": true,
+    // A jsconfig otherwise reads two levels of JavaScript under node_modules as code to check, so an untyped library
+    // (pannellum, prismjs) would be checked as if it were ours. 0 types each such import as `any`.
+    "maxNodeModuleJsDepth": 0
+  },
+  "include": ["frontend/js/**/*.js", "tools/lint/js-types/*.d.ts"]
+}

@@ -1,16 +1,15 @@
 package formats.json
 
-import formats.json.GalleryFormats._
-import formats.json.ValidateFormats.uiSourceReads
+import formats.json.GalleryFormats.*
 import models.utils.CommonUtils.UiSource
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsBoolean, JsError, JsString, JsSuccess, Json}
+import util.SidewalkSpec
 
 /**
  * Pure JSON-contract tests for the Gallery label-request reads and the UiSource wire format, covering the pieces the
  * landing-page validation grid (#1638) depends on: the optional `sort` field and the `LandingPage` source value.
  */
-class GalleryFormatsSpec extends PlaySpec {
+class GalleryFormatsSpec extends SidewalkSpec {
 
   // The two required fields; everything else in GalleryLabelsRequest is optional.
   private val baseRequest = Json.obj("n" -> 14, "loaded_labels" -> Json.arr())
@@ -41,11 +40,11 @@ class GalleryFormatsSpec extends PlaySpec {
 
   "uiSourceReads" should {
     "accept the landing-page validation grid's source" in {
-      JsString("LandingPage").validate[UiSource.UiSource] mustBe JsSuccess(UiSource.LandingPage)
+      JsString("LandingPage").validate[UiSource] mustBe JsSuccess(UiSource.LandingPage)
     }
 
     "reject an unknown source" in {
-      JsString("NotARealSource").validate[UiSource.UiSource] mustBe a[JsError]
+      JsString("NotARealSource").validate[UiSource] mustBe a[JsError]
     }
   }
 }

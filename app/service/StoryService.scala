@@ -4,11 +4,12 @@ import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.{LabelTypeEnum, LatLng}
-import models.story._
-import models.utils.MyPostgresProfile.api._
+import models.label.AccessImpact
+import models.label.{LabelType, LatLng}
+import models.story.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Environment, Logger}
 
@@ -25,7 +26,7 @@ import scala.util.Try
 @ImplementedBy(classOf[StoryServiceImpl])
 trait StoryService {
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]]
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]]
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]]
   def submitStory(
       labelId: Int,
       userId: String,
@@ -75,9 +76,9 @@ class StoryServiceImpl @Inject() (
     labelService: LabelService,
     panoDataService: PanoDataService,
     signingService: ImageSigningService,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends StoryService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends StoryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
@@ -131,7 +132,7 @@ class StoryServiceImpl @Inject() (
       meta: PhotoMetadata
   )
 
-  def storyMediaFile(storyMediaId: Int): File = new File(mediaBaseDir, s"story_$storyMediaId.jpg")
+  def storyMediaFile(storyMediaId: Int): File = File(mediaBaseDir, s"story_$storyMediaId.jpg")
 
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]] = {
     db.run(storyTable.getForLabel(labelId, viewerUserId, isAdmin))
@@ -140,12 +141,9 @@ class StoryServiceImpl @Inject() (
       })
   }
 
-  /**
-   * Whether the label marks an accessibility problem (vs a positive feature like a curb ramp), from
-   * LabelTypeEnum.isAccessProblem — the card's story prompts flip phrasing on this. None when the label doesn't exist.
-   */
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]] = {
-    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.isAccessProblem))
+  /** The label type's accessImpact; the card's story prompts flip on it. None when the label doesn't exist. */
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]] = {
+    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.accessImpact))
   }
 
   def submitStory(
@@ -189,7 +187,7 @@ class StoryServiceImpl @Inject() (
               case None         => insertStory(labelId, userId, text, displayNameMode, None)
               case Some(upload) =>
                 labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
@@ -259,7 +257,7 @@ class StoryServiceImpl @Inject() (
             newPhoto match {
               case Some(upload) =>
                 labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
@@ -314,7 +312,7 @@ class StoryServiceImpl @Inject() (
             target.getParentFile.mkdirs()
             Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
             ()
-          }(cpuEc)
+          }(using cpuEc)
           _ <- db.run(
             (for {
               _ <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
@@ -353,24 +351,23 @@ class StoryServiceImpl @Inject() (
 
   /**
    * Signed label-preview URLs (saved crop, else provider static image) for the given labels, resolved with one
-   * batched pano-metadata query — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
+   * batched pano-metadata query — the same crop-then-GSV strategy as Gallery and the admin activity feed.
    * Used for photoless stories so every listing row can still carry an image.
    *
    * @param labelTypesById The label type of each label needing a preview, keyed by label id.
    * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
    */
-  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelType]): Future[Map[Int, String]] = {
     if (labelTypesById.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
-        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom) =>
-          labelId -> ((panoId, source, heading, pitch, zoom))
-        }.toMap
+        val metaById = metas.map(meta => meta.labelId -> meta).toMap
         labelTypesById.flatMap { case (labelId, labelType) =>
           panoDataService
             .cropUrl(labelId, labelType)
-            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
-              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
+            .orElse(metaById.get(labelId).flatMap { m =>
+              panoDataService
+                .getBrowserImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
             })
             .map(labelId -> _)
         }
@@ -386,7 +383,7 @@ class StoryServiceImpl @Inject() (
           StoryForOwner(
             story,
             labelType.name,
-            labelType.isAccessProblem,
+            labelType.accessImpact,
             media.map(toMediaForView),
             labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
           )
@@ -548,7 +545,7 @@ class StoryServiceImpl @Inject() (
               // concurrent reader sees the complete file or nothing.
               Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
               ()
-            }(cpuEc).recoverWith { case e =>
+            }(using cpuEc).recoverWith { case e =>
               logger.error(s"Failed to place story media file for story $storyId: ${e.getMessage}")
               db.run(storyTable.delete(storyId)).flatMap(_ => Future.failed(e))
             }
@@ -562,7 +559,8 @@ class StoryServiceImpl @Inject() (
       }
       .recover {
         // The UNIQUE(label_id, user_id) constraint backs the pre-check against a concurrent double-submit.
-        case e: PSQLException if e.getSQLState == "23505" => Left(StoryRejection.AlreadyExists)
+        case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+          Left(StoryRejection.AlreadyExists)
       }
   }
 
@@ -605,7 +603,7 @@ class StoryServiceImpl @Inject() (
    * atomic rename; a crash can only leave junk under staging/, never a half-written serving file.
    */
   private def stageJpeg(img: BufferedImage): File = {
-    val stagingDir = new File(mediaBaseDir, "staging")
+    val stagingDir = File(mediaBaseDir, "staging")
     stagingDir.mkdirs()
     val staged = File.createTempFile("story_staged_", ".jpg", stagingDir)
     try {

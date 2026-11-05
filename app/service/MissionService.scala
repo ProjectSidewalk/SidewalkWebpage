@@ -4,18 +4,19 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats.AuditMissionProgress
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
+import models.street.StreetEdgeTable
 import models.user.SidewalkUserTable.aiUserId
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserAccountStateTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[MissionServiceImpl])
@@ -27,20 +28,33 @@ trait MissionService {
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
-  def resumeOrCreateNewAuditMission(userId: String, regionId: Int, userRoute: Option[UserRoute]): DBIO[Option[Mission]]
+
+  /**
+   * The user's incomplete audit mission in the region or route walk, else a new one; a tutorial mission instead for a
+   * user who hasn't finished the tutorial.
+   *
+   * @param revisitStreetId A requested street; if the user already explored it, it counts as distance left (#5692).
+   * @return None when the region has no distance left to assign; callers decide what the session falls back to.
+   */
+  def resumeOrCreateNewAuditMission(
+      userId: String,
+      regionId: Int,
+      userRoute: Option[UserRoute],
+      revisitStreetId: Option[Int] = None
+  ): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
       userId: String,
-      missionType: MissionType.Value,
-      labelType: LabelTypeEnum.Base
+      missionType: MissionType,
+      labelType: LabelType
   ): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelsProgress: Int,
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]]
   def updateValidationProgressOnly(
       userId: String,
@@ -51,10 +65,11 @@ trait MissionService {
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelType: Option[LabelTypeEnum.Base]
+      nextMissionLabelType: Option[LabelType]
   ): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
-  def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
+  def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
+  def getMission(missionId: Int): Future[Option[Mission]]
 }
 
 @Singleton
@@ -63,8 +78,10 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
-    implicit val ec: ExecutionContext
-) extends MissionService
+    streetEdgeTable: StreetEdgeTable,
+    userAccountStateTable: UserAccountStateTable
+)(using ec: ExecutionContext)
+    extends MissionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -131,10 +148,11 @@ class MissionServiceImpl @Inject() (
   def resumeOrCreateNewAuditMission(
       userId: String,
       regionId: Int,
-      userRoute: Option[UserRoute]
+      userRoute: Option[UserRoute],
+      revisitStreetId: Option[Int] = None
   ): DBIO[Option[Mission]] = {
     queryMissionTableExploreMissions(
-      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute
+      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute, revisitStreetId
     )
   }
 
@@ -157,6 +175,7 @@ class MissionServiceImpl @Inject() (
    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
    * @param distanceProgress Only required if actions contains "updateProgress".
    * @param userRoute Only relevant if actions contains "getMission": scopes the mission to this route walk.
+   * @param revisitStreetId Only relevant if actions contains "getMission": see resumeOrCreateNewAuditMission.
    */
   private def queryMissionTableExploreMissions(
       actions: Seq[String],
@@ -167,7 +186,8 @@ class MissionServiceImpl @Inject() (
       distanceProgress: Option[Double],
       auditTaskId: Option[Int],
       skipped: Option[Boolean],
-      userRoute: Option[UserRoute] = None
+      userRoute: Option[UserRoute] = None,
+      revisitStreetId: Option[Int] = None
   ): DBIO[Option[Mission]] = {
 
     val updateProgressAction =
@@ -191,8 +211,8 @@ class MissionServiceImpl @Inject() (
 
     val getMissionAction =
       if (actions.contains("getMission")) {
-        missionTable
-          .hasCompletedAuditOnboarding(userId)
+        userAccountStateTable
+          .hasCompletedExploreTutorial(userId)
           .flatMap { completedOnboarding =>
             // If they still need to do tutorial or are retaking it.
             if (!completedOnboarding || retakingTutorial.get) {
@@ -215,13 +235,9 @@ class MissionServiceImpl @Inject() (
                     DBIO.successful(Some(incompleteMission))
                   case _ =>
                     routeTable.getRouteDistance(userRoute.get.routeId).flatMap { routeDistance =>
-                      if (routeDistance > 0) {
-                        missionTable
-                          .createNextAuditMission(userId, routeDistance, regionId.get, Some(userRoute.get.userRouteId))
-                          .map(Some(_))
-                      } else {
-                        DBIO.successful(None)
-                      }
+                      missionTable
+                        .createNextAuditMission(userId, routeDistance, regionId.get, Some(userRoute.get.userRouteId))
+                        .map(Some(_))
                     }
                 }
             } else {
@@ -232,7 +248,7 @@ class MissionServiceImpl @Inject() (
                   case Some(incompleteMission) =>
                     DBIO.successful(Some(incompleteMission))
                   case _ =>
-                    getNextAuditMissionDistance(userId, regionId.get).flatMap { nextMissionDistance =>
+                    getNextAuditMissionDistance(userId, regionId.get, revisitStreetId).flatMap { nextMissionDistance =>
                       if (nextMissionDistance > 0) {
                         missionTable.createNextAuditMission(userId, nextMissionDistance, regionId.get).map(Some(_))
                       } else {
@@ -273,7 +289,7 @@ class MissionServiceImpl @Inject() (
   /**
    * Returns the user's incomplete exploreAddress mission, or creates one if none exists (#4451).
    *
-   * Deliberately bypasses the hasCompletedAuditOnboarding gate in queryMissionTableExploreMissions: address-drop-in
+   * Deliberately bypasses the tutorial check in queryMissionTableExploreMissions: address-drop-in
    * sessions skip the tutorial and go straight to the searched location.
    */
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission] = {
@@ -287,10 +303,20 @@ class MissionServiceImpl @Inject() (
 
   /**
    * Get the suggested distance in meters for the next mission this user does in this region.
+   *
+   * Capped at what's left (counting a revisited street) but never shorter than it, so it can't end partway along it.
+   *
+   * @param revisitStreetId A street the visit asked for; see resumeOrCreateNewAuditMission.
+   * @return The mission distance in meters; 0 when the user has nothing left in the region.
    */
-  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Double] = {
+  private def getNextAuditMissionDistance(
+      userId: String,
+      regionId: Int,
+      revisitStreetId: Option[Int]
+  ): DBIO[Double] = {
     for {
       distRemaining: Double  <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      revisitDist: Double    <- revisitStreetId.map(revisitedStreetLength(userId, _)).getOrElse(DBIO.successful(0d))
       completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
     } yield {
       val naiveMissionDist: Double =
@@ -298,9 +324,18 @@ class MissionServiceImpl @Inject() (
           distanceForLaterMissions
         else
           distancesForFirstAuditMissions(completedInRegion)
-      math.min(distRemaining, naiveMissionDist)
+      math.min(distRemaining + revisitDist, math.max(naiveMissionDist, revisitDist))
     }
   }
+
+  /**
+   * A street's length if the user already explored it, which leaves it out of getUnauditedDistance; else 0.
+   */
+  private def revisitedStreetLength(userId: String, streetEdgeId: Int): DBIO[Double] =
+    auditTaskTable.userHasAuditedStreet(streetEdgeId, userId).flatMap {
+      case true  => streetEdgeTable.getServedStreetLength(streetEdgeId).map(_.getOrElse(0d))
+      case false => DBIO.successful(0d)
+    }
 
   /**
    * Either resumes or creates a new validation mission.
@@ -310,8 +345,8 @@ class MissionServiceImpl @Inject() (
    */
   def resumeOrCreateNewValidateMission(
       userId: String,
-      missionType: MissionType.Value,
-      labelType: LabelTypeEnum.Base
+      missionType: MissionType,
+      labelType: LabelType
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelType))
@@ -328,9 +363,9 @@ class MissionServiceImpl @Inject() (
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelsProgress: Int,
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(
@@ -372,9 +407,9 @@ class MissionServiceImpl @Inject() (
       actions: Seq[String],
       userId: String,
       missionId: Option[Int],
-      missionType: Option[MissionType.Value],
+      missionType: Option[MissionType],
       labelsProgress: Option[Int],
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
 
     val updateProgressAction =
@@ -432,7 +467,7 @@ class MissionServiceImpl @Inject() (
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelType: Option[LabelTypeEnum.Base]
+      nextMissionLabelType: Option[LabelType]
   ): Future[Option[Mission]] = {
     val missionId: Int      = missionProgress.missionId
     val userId: String      = user.userId
@@ -440,7 +475,7 @@ class MissionServiceImpl @Inject() (
 
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(
-        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelType
+        userId, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelType
       )
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)
@@ -458,11 +493,14 @@ class MissionServiceImpl @Inject() (
 
     missionTable
       .getMission(missionId)
-      .flatMap { mission: Option[Mission] =>
-        val missionType: Option[MissionType.Value] = mission.map(_.missionType)
+      .flatMap { (mission: Option[Mission]) =>
+        val missionType: Option[MissionType] = mission.map(_.missionType)
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
-            updateCompleteAndGetNextMission(userId, regionId, missionId, skipped)
+            // Recorded before the next mission is picked, since picking it is what checks whether the tutorial is done.
+            userAccountStateTable
+              .markExploreTutorialCompleted(userId)
+              .andThen(updateCompleteAndGetNextMission(userId, regionId, missionId, skipped))
           } else
             DBIO.successful(None)
         } else if (missionType.contains(MissionType.ExploreAddress)) {
@@ -500,7 +538,9 @@ class MissionServiceImpl @Inject() (
       }
   }
 
-  def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]] = {
+  def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]] = {
     db.run(missionTable.selectCompletedExploreMissions(userId, regionId))
   }
+
+  def getMission(missionId: Int): Future[Option[Mission]] = db.run(missionTable.getMission(missionId))
 }

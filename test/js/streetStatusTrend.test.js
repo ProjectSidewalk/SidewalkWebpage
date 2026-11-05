@@ -8,30 +8,17 @@
  * change, a viewer east of UTC on a Monday morning — plus the rule that the headline can only ever count bars that
  * are actually on screen.
  *
- * Runs under jsdom (jest.config.js). These are bare top-level classes in a concatenated bundle, so they are eval'd
- * into global scope rather than required; StreetStatusColors (in StreetStatusMap.js) owns the status palette and
- * MiniLineChart does the drawing, so both have to be present first.
+ * StreetStatusColors (in StreetStatusMap.js) owns the status palette the chart legend is checked against.
  */
 
-/* global StreetStatusColors -- pulled into scope by the eval() loader below. */
+import { loadModules, mockModule } from './loader.js';
 
-const fs = require('fs');
-const path = require('path');
+const confirmDialog = { confirm: vi.fn() };
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
-function loadPage() {
-  const read = (file) => fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-  return (0, eval)(
-    `${read('MiniLineChart.js')}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${read('StreetStatusMap.js')}\nglobalThis.StreetStatusColors = StreetStatusColors;\n`
-    + `${read('AdminShell.js')}\nglobalThis.AdminShell = AdminShell;\n`
-    + `${read('StreetStatusTrend.js')}\nStreetStatusTrend;`
-  );
-}
-
-const StreetStatusTrend = loadPage();
+const { StreetStatusTrend, StreetStatusColors } = await loadModules(
+  'frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js',
+);
 
 const MARKUP = `
   <div id="street-status-trend-section">
@@ -82,7 +69,7 @@ function payload(overrides = {}) {
 
 async function render(data, { weeks = 3, onShowStreet } = {}) {
   document.body.innerHTML = MARKUP;
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => data }));
   await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks, onShowStreet }).init();
 }
 
@@ -95,15 +82,11 @@ function weekLabels() {
     .map((t) => t.textContent);
 }
 
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
 describe('the week grid', () => {
   const MONDAY = '2026-07-27T00:00:00-07:00';
 
   test('starts at the window the server reported and steps a week at a time', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: MONDAY,
       weeks: 3,
@@ -120,7 +103,7 @@ describe('the week grid', () => {
   });
 
   test('stops at today rather than drawing weeks that have not happened', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-03T12:00:00Z'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-03T12:00:00Z'));
     await render(payload({ since: MONDAY, weeks: 26 }));
     // The window is 26 weeks wide but only two of its Mondays have happened.
     expect(weekLabels()).toEqual(['Jul 27', 'Aug 3']);
@@ -132,7 +115,7 @@ describe('the week grid', () => {
 
 describe('the status-change chart', () => {
   test('counts only what it can draw, so the headline can never exceed the bars', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       weeks: 3,
@@ -152,7 +135,7 @@ describe('the status-change chart', () => {
   });
 
   test('draws a line per status, so a flat zero is visible as an answer', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       status_changes: [{ week_start: '2026-08-10', new_status: 'closed', street_count: 2 }],
@@ -164,7 +147,7 @@ describe('the status-change chart', () => {
   });
 
   test('names one change as singular', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       status_changes: [{ week_start: '2026-08-10', new_status: 'closed', street_count: 1 }],
@@ -180,7 +163,7 @@ describe('the imagery-change chart', () => {
   }
 
   test('charts losses and recoveries as separate series', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 4, returned_count: 2 }],
@@ -192,7 +175,7 @@ describe('the imagery-change chart', () => {
   });
 
   test('leaves a loss in the week it happened when the imagery later comes back', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [
@@ -207,7 +190,7 @@ describe('the imagery-change chart', () => {
   });
 
   test('zero-fills a week the server had nothing to report for', async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
     await render(payload({
       since: '2026-07-27T00:00:00-07:00',
       pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 1, returned_count: 0 }],
@@ -221,27 +204,27 @@ describe('the expiry note', () => {
   test('says how many expired panos the chart cannot account for', async () => {
     await render(payload({ panos_expired_undated: 1234 }));
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^1,234 panos were already expired before any of this was recorded/);
+      .toMatch(/^1,234 panos expired before logging began/);
   });
 
   test('warns that those panos can still chart a recovery with no loss before it', async () => {
     await render(payload({ panos_expired_undated: 1234 }));
     // Losses that predate the log, recoveries that don't: the page has to own the asymmetry or it reads as a bug.
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/recovery, with no matching loss before it/);
+      .toMatch(/charts as a recovery with no matching loss/);
   });
 
   test('says how many crossings were healed after the fact', async () => {
     await render(payload({ panos_healed: 7 }));
     // Healed rows are left out of the bars; dropped silently, the chart understates the losses it knows about.
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^7 panos crossed the boundary without the change being logged/);
+      .toMatch(/^7 panos changed on an unknown date/);
   });
 
   test('reports both gaps together, undated first', async () => {
     await render(payload({ panos_expired_undated: 1234, panos_healed: 7 }));
     const note = document.getElementById('trend-expiry-note').textContent;
-    expect(note.indexOf('1,234 panos were already expired')).toBeLessThan(note.indexOf('7 panos crossed'));
+    expect(note.indexOf('1,234 panos expired before logging began')).toBeLessThan(note.indexOf('7 panos changed'));
   });
 
   test('stays silent when every expired pano is accounted for', async () => {
@@ -260,14 +243,14 @@ describe('the regained-imagery queue', () => {
     expect(text).toContain('2026-08-01');
     // The detection timestamp is trimmed to a date, like the corroborated queue's.
     expect(text).toContain('2026-08-14');
-    expect([...row.querySelectorAll('button')].map((b) => b.textContent.trim())).toEqual(['Reopen', 'Dismiss']);
+    expect([...row.querySelectorAll('.reopen-queue-btn')].map((b) => b.textContent.trim())).toEqual(['Reopen', 'Dismiss']);
     // Each row's buttons name their street: a screen reader hearing six identical "Reopen"s learns nothing.
     expect(row.querySelector('[data-action="reopen"]').getAttribute('aria-label')).toBe('Reopen street 555');
     expect(row.querySelector('[data-action="dismiss"]').getAttribute('aria-label')).toBe('Dismiss street 555');
   });
 
   test('points the street id at the map above rather than at Explore, which cannot serve a retired street', async () => {
-    const onShowStreet = jest.fn().mockReturnValue(true);
+    const onShowStreet = vi.fn().mockReturnValue(null);
     await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet });
     const container = document.getElementById('trend-reopen-candidates');
     // An anchor here would be a link to /explore, which answers a 500 for every street this queue lists.
@@ -278,30 +261,24 @@ describe('the regained-imagery queue', () => {
     expect(container.querySelector('.reopen-queue-error')).toBeNull();
   });
 
-  test('says so when the map cannot show the street yet, instead of looking broken', async () => {
-    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => false });
+  test('shows why the map could not show the street, instead of looking broken', async () => {
+    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => 'The map is still loading.' });
     document.querySelector('[data-action="locate"]').click();
-    expect(document.querySelector('.reopen-queue-error').textContent).toMatch(/map is still loading/);
-  });
-
-  test('renders the street id as plain text when the page offered no map handler', async () => {
-    await render(payload({ reopen_candidates: [candidate()] }));
-    expect(document.querySelector('[data-action="locate"]')).toBeNull();
-    expect(document.querySelector('#trend-reopen-candidates tbody tr td').textContent).toContain('555');
+    expect(document.querySelector('.reopen-queue-error').textContent).toBe('The map is still loading.');
   });
 
   test('says the queue is empty rather than rendering a headerless table', async () => {
     await render(payload({ reopen_candidates: [] }));
     expect(document.querySelector('#trend-reopen-candidates table')).toBeNull();
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('tolerates a payload with no reopen_candidates field at all', async () => {
     // Pre-#4929 cached payloads and older fixtures simply lack the field; the section must not throw over it.
     await render(payload());
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('escapes a region name rather than trusting it as markup', async () => {
@@ -317,74 +294,74 @@ describe('the regained-imagery queue', () => {
 
   test('reopens only after confirmation, via PUT, then reloads the trend', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = jest.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
-    });
+    }));
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(globalThis.ConfirmDialog.confirm).toHaveBeenCalled();
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopen', { method: 'PUT' });
+    expect(confirmDialog.confirm).toHaveBeenCalled();
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopen', { method: 'PUT' });
     // The reload after a successful action, so the queue and the status-change chart both reflect the reopen.
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('does nothing when the confirmation is declined', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(false) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(false);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
-    global.fetch = jest.fn();
+    vi.stubGlobal('fetch', vi.fn());
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(window.fetch).not.toHaveBeenCalled();
   });
 
   test('dismisses without confirmation, via DELETE', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn() };
+    confirmDialog.confirm = vi.fn();
     const dismissBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Dismiss');
-    global.fetch = jest.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, status: 200, statusText: 'OK', json: async () => payload({ reopen_candidates: [] }),
-    });
+    }));
 
     dismissBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-    expect(globalThis.ConfirmDialog.confirm).not.toHaveBeenCalled();
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopenCandidate', { method: 'DELETE' });
+    expect(confirmDialog.confirm).not.toHaveBeenCalled();
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streets/555/reopenCandidate', { method: 'DELETE' });
   });
 
   test('quotes the server\'s explanation of a refusal, next to the buttons as well as at the top', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
     const reopenBtn = [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen');
     // A 409 is the stale-row case, and the server says which status the street actually has -- far more use than
     // the status code, which is all the admin would otherwise get.
-    global.fetch = jest.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 409,
       statusText: 'Conflict',
       json: async () => ({ status: 'Error', message: "Street 555 is 'open', not 'no_imagery'." }),
-    });
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    }));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     reopenBtn.click();
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
     expect(document.getElementById('trend-status').textContent).toMatch(/Street 555 is 'open', not 'no_imagery'\./);
     // A 409 says this row is stale, and reloading is what clears it: the server's queue read filters on status.
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
     // #trend-status is at the top of the section, several screens above these buttons.
     expect(document.querySelector('.reopen-queue-error').textContent).toMatch(/Could not reopen street 555/);
     [...document.querySelectorAll('#trend-reopen-candidates button')]
@@ -393,11 +370,11 @@ describe('the regained-imagery queue', () => {
 
   test('falls back to the status code when the failure body is not the JSON we expect', async () => {
     await render(payload({ reopen_candidates: [candidate()] }));
-    globalThis.ConfirmDialog = { confirm: jest.fn().mockResolvedValue(true) };
-    global.fetch = jest.fn().mockResolvedValue({
+    confirmDialog.confirm = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false, status: 502, statusText: 'Bad Gateway', json: async () => { throw new Error('not json'); },
-    });
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    }));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     [...document.querySelectorAll('#trend-reopen-candidates button')]
       .find((b) => b.textContent === 'Reopen').click();
@@ -412,7 +389,7 @@ describe('the awaiting-confirmation queue', () => {
     await render(payload({ min_reporters: 4 }));
     // A local default would read correctly right up until the server's threshold changed, and then silently lie.
     expect(document.getElementById('trend-corroborated-intro').textContent)
-      .toMatch(/at least 4 different labeler accounts/);
+      .toMatch(/at least 4 labelers/);
   });
 
   test('lists each street with a link to explore it', async () => {
@@ -474,7 +451,7 @@ describe('the reports-by-region table', () => {
 describe('loading and failure', () => {
   test('reports a failed fetch without touching the snapshot above it', async () => {
     document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' }));
     await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
     const status = document.getElementById('trend-status');
     expect(status.textContent).toMatch(/Could not load recent changes: 503/);
@@ -483,7 +460,7 @@ describe('loading and failure', () => {
 
   test('requests the window the selector shows', async () => {
     await render(payload(), { weeks: 26 });
-    expect(global.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend?weeks=26', expect.anything());
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend?weeks=26', expect.anything());
   });
 
   test('refetches when the window changes', async () => {
@@ -493,6 +470,105 @@ describe('loading and failure', () => {
     range.dispatchEvent(new Event('change'));
     await Promise.resolve();
     await Promise.resolve();
-    expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=13', expect.anything());
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=13', expect.anything());
+  });
+});
+
+describe('edge cases (#5840)', () => {
+  const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+
+  test('with no window given, asks the server for its default window', async () => {
+    document.body.innerHTML = MARKUP.replace(/<select[^]*?<\/select>/, '');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload() }));
+    await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend' }).init();
+    expect(window.fetch).toHaveBeenCalledWith('/adminapi/streetStatusTrend', expect.anything());
+  });
+
+  test('a window picked with no number keeps the current one', async () => {
+    await render(payload(), { weeks: 26 });
+    const range = document.getElementById('trend-range');
+    range.innerHTML += '<option value="">Pick</option>';
+    range.value = '';
+    range.dispatchEvent(new Event('change'));
+    await flush();
+    expect(window.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=26', expect.anything());
+  });
+
+  test('a window picked while one is loading is fetched once that load finishes, not dropped', async () => {
+    document.body.innerHTML = MARKUP;
+    let finishFirst;
+    vi.stubGlobal('fetch', vi.fn()
+      .mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => payload() }));
+    const done = new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 26 }).init();
+    const range = document.getElementById('trend-range');
+    range.value = '13';
+    range.dispatchEvent(new Event('change'));
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+
+    finishFirst({ ok: true, json: async () => payload() });
+    await done;
+    expect(window.fetch.mock.calls.map(([url]) => url))
+      .toEqual(['/adminapi/streetStatusTrend?weeks=26', '/adminapi/streetStatusTrend?weeks=13']);
+  });
+
+  test('renders on a page without the section wrapper or a status line', async () => {
+    document.body.innerHTML = MARKUP.replace('id="street-status-trend-section"', '')
+      .replace('<div id="trend-status"></div>', '');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => payload({ top_report_regions: [] }) }));
+    await new StreetStatusTrend({ trendUrl: '/adminapi/streetStatusTrend', weeks: 3 }).init();
+    expect(document.getElementById('trend-regions').textContent).toMatch(/No missing-imagery reports/);
+  });
+
+  test('a payload missing every series renders each panel empty instead of throwing', async () => {
+    await render({ weeks: 3, since: '2026-07-27T00:00:00-07:00', min_reporters: 2 });
+    expect(document.getElementById('trend-status-summary').textContent)
+      .toBe('No street changed status in this window.');
+    expect(document.getElementById('trend-corroborated').textContent).toMatch(/No street has been reported/);
+    expect(document.getElementById('trend-regions').textContent).toMatch(/No missing-imagery reports/);
+    expect(document.getElementById('trend-expiry-note').textContent).toBe('');
+  });
+
+  test('a week with one street and one report is described in the singular', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    await render(payload({
+      no_imagery_reports: [{ week_start: '2026-07-27', street_count: 1, report_count: 1 },
+        { week_start: '2026-08-03', street_count: 2, report_count: 5 }],
+    }));
+    const tips = [...document.querySelectorAll('#trend-reports-chart title')].map((t) => t.textContent);
+    expect(tips).toContain('1 street, 1 report');
+    expect(tips).toContain('2 streets, 5 reports');
+    expect(tips).toContain('0 streets, 0 reports');
+  });
+
+  test('one healed pano is described in the singular', async () => {
+    await render(payload({ panos_healed: 1 }));
+    expect(document.getElementById('trend-expiry-note').textContent).toMatch(/^1 pano changed on an unknown date/);
+  });
+
+  test('a queue or review row with no timestamp leaves its date cell blank', async () => {
+    await render(payload({
+      reopen_candidates: [candidate({ last_detected_at: null })],
+      corroborated_streets: [{ street_edge_id: 1, region_id: 1, region_name: 'A', reporter_count: 2, report_count: 2,
+        last_reported_at: null }],
+    }));
+    expect(document.querySelector('#trend-reopen-candidates tbody td:nth-child(5)').textContent).toBe('');
+    expect(document.querySelector('#trend-corroborated tbody td:nth-child(5)').textContent).toBe('');
+  });
+
+  test('a failed dismiss says "dismiss", and a JSON body without a message falls back to the status code', async () => {
+    await render(payload({ reopen_candidates: [candidate()] }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ status: 'Error' }) }));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    document.querySelector('[data-action="dismiss"]').click();
+    await flush();
+    expect(document.querySelector('.reopen-queue-error').textContent).toBe('Could not dismiss street 555: HTTP 500');
+  });
+
+  test('asking twice for a street the map cannot show keeps a single message', async () => {
+    await render(payload({ reopen_candidates: [candidate()] }), { onShowStreet: () => 'The map is still loading.' });
+    document.querySelector('[data-action="locate"]').click();
+    document.querySelector('[data-action="locate"]').click();
+    expect(document.querySelectorAll('.reopen-queue-error')).toHaveLength(1);
   });
 });

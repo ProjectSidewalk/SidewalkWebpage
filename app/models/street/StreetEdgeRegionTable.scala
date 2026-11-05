@@ -1,12 +1,12 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.region._
+import models.region.*
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
@@ -14,7 +14,7 @@ class StreetEdgeRegionTableDef(tag: Tag) extends Table[StreetEdgeRegion](tag, "s
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
   def regionId: Rep[Int]     = column[Int]("region_id")
 
-  def * = (streetEdgeId, regionId) <> ((StreetEdgeRegion.apply _).tupled, StreetEdgeRegion.unapply)
+  def * = (streetEdgeId, regionId).mapTo[StreetEdgeRegion]
 
   def streetEdge =
     foreignKey("street_edge_region_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(
@@ -45,12 +45,25 @@ class StreetEdgeRegionTable @Inject() (
     _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 
+  /**
+   * The region of a street Explore can hand out: open, not the tutorial's, and in a region that isn't deleted.
+   * @return The street's region, or None if there is no such street.
+   */
+  def getServedRegionFromStreetId(streetEdgeId: Int): DBIO[Option[Region]] = {
+    val servedRegion = for {
+      _ser <- streetEdgeRegionTable if _ser.streetEdgeId === streetEdgeId
+      _se  <- streetEdgeTable.streets if _ser.streetEdgeId === _se.streetEdgeId
+      _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
+    } yield _r
+    servedRegion.result.headOption
+  }
+
   def getNonDeletedRegionFromStreetId(streetEdgeId: Int): DBIO[Option[Region]] = {
     streetEdgeRegionTable
       .filter(_.streetEdgeId === streetEdgeId)
       .join(regionsWithoutDeleted)
       .on(_.regionId === _.regionId)
-      .map(_._2)
+      .map { case (_, region) => region }
       .result
       .headOption
   }

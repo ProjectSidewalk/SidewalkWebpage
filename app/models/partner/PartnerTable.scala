@@ -2,11 +2,11 @@ package models.partner
 
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /** A community-partner logo shown on the landing page (#4516). `cityId` None means global (every deployment). */
@@ -75,7 +75,7 @@ class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {
   def updatedBy: Rep[String]         = column[String]("updated_by")
 
   def * = (partnerId, cityId, name, url, altText, displayOrder, logoImage, logoMimeType, logoWidth, logoHeight,
-    createdAt, updatedAt, createdBy, updatedBy) <> ((Partner.apply _).tupled, Partner.unapply)
+    createdAt, updatedAt, createdBy, updatedBy).mapTo[Partner]
 
   def creator = foreignKey("partner_created_by_fkey", createdBy, TableQuery[SidewalkUserTableDef])(_.userId)
   def updater = foreignKey("partner_updated_by_fkey", updatedBy, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -87,7 +87,7 @@ class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {
  * while a city-id'd row renders only on that city's. `display_order` is a dense 0..n-1 sequence within each scope.
  */
 @Singleton
-class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val partners = TableQuery[PartnerTableDef]
@@ -95,9 +95,8 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   /** The metadata projection shared by every list query, so `logo_image` is never selected outside `getLogo`. */
   private def metadataOf(query: Query[PartnerTableDef, Partner, Seq]) = query.map { p =>
     (p.partnerId, p.cityId, p.name, p.url, p.altText, p.displayOrder, p.logoWidth, p.logoHeight, p.updatedAt)
+      .mapTo[PartnerMetadata]
   }
-
-  private val toMetadata = (PartnerMetadata.apply _).tupled
 
   /** The partners a city's landing page shows: global partners first, then the city's own, each in display order. */
   def getForLanding(cityId: String): DBIO[Seq[PartnerMetadata]] = {
@@ -105,16 +104,16 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       partners
         .filter(p => p.cityId.isEmpty || p.cityId === cityId)
         .sortBy(p => (p.cityId.isDefined, p.displayOrder))
-    ).result.map(_.map(toMetadata))
+    ).result
   }
 
   /** All partners in one scope (None = global), in display order. */
   def getByScope(cityId: Option[String]): DBIO[Seq[PartnerMetadata]] = {
-    metadataOf(scopeQuery(cityId).sortBy(_.displayOrder)).result.map(_.map(toMetadata))
+    metadataOf(scopeQuery(cityId).sortBy(_.displayOrder)).result
   }
 
   def get(partnerId: Int): DBIO[Option[PartnerMetadata]] = {
-    metadataOf(partners.filter(_.partnerId === partnerId)).result.headOption.map(_.map(toMetadata))
+    metadataOf(partners.filter(_.partnerId === partnerId)).result.headOption
   }
 
   def getLogo(partnerId: Int): DBIO[Option[(Array[Byte], String, OffsetDateTime)]] = {

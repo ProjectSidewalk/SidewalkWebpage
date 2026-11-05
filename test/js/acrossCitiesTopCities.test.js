@@ -6,22 +6,13 @@
  * ordering the busiest five rather than re-ranking, zero-activity cities excluded, counts read from the per-city
  * rolling windows (as are the cities-active / top-city tiles above the table), and week-over-week deltas colored by
  * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
- *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const src = fs.readFileSync(path.join(JS_DIR, 'AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${src}\nAcrossCitiesPage;`);
-}
+useUtil(metricDistanceUtil);
 
 /**
  * Builds one scorecard row plus its rolling window.
@@ -105,32 +96,11 @@ const MARKUP = `
   </table>`;
 
 describe('Across Cities — most active cities', () => {
-  let AcrossCitiesPage;
-
-  /**
-   * Renders the page against a fixture and returns the initialized instance.
-   *
-   * @param {Array} [cities] - Entries from makeCity(); defaults to the full fixture.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
-   */
   async function render(cities = FIXTURE) {
-    document.body.innerHTML = MARKUP;
-    const windowByCity = {};
-    cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: cities.map((c) => c.city),
-        summary: {},
-        over_time_all_time: [],
-        over_time_daily: [],
-        window_summary: null,
-        window_by_city: windowByCity,
-      }),
-    }));
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
-    await page.init();
-    return page;
+    const windowByCity = Object.fromEntries(cities.map((c) => [c.city.city_id, c.window]));
+    await renderAcrossCities({
+      markup: MARKUP, scorecards: { cities: cities.map((c) => c.city), window_by_city: windowByCity },
+    });
   }
 
   /** City names in the top table, in display order. */
@@ -142,10 +112,6 @@ describe('Across Cities — most active cities', () => {
   function clickHeader(tableId, key) {
     document.querySelector(`#${tableId} thead th[data-sort="${key}"]`).click();
   }
-
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
-  });
 
   it('ranks by labels + validations and shows only the top five', async () => {
     await render();
@@ -230,10 +196,10 @@ describe('Across Cities — most active cities', () => {
     await render();
     const th = document.querySelector('#ac-top-table thead th[data-sort="activity_window.contributors_7d"]');
     expect(th.getAttribute('tabindex')).toBe('0');
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(topCityOrder()[0]).toBe('charlie');
     // Space flips the same column, as a native button would.
-    th.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    th.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(topCityOrder()[0]).toBe('echo');
   });
 
@@ -258,5 +224,55 @@ describe('Across Cities — most active cities', () => {
     expect(order()[0]).toBe('ghost');
     // The top table keeps its own sort while the Activity table moves.
     expect(topCityOrder()).toEqual(['bravo', 'alpha', 'charlie', 'delta', 'echo']);
+  });
+
+  describe('sparse rows', () => {
+    it('names a top city without a display name by its id', async () => {
+      const unnamed = structuredClone(FIXTURE[0]);
+      unnamed.city.city_name = null;
+      await render([unnamed]);
+      expect(document.getElementById('now-top-city').textContent).toBe('alpha');
+      expect(document.querySelector('#ac-top-tbody [aria-label]').getAttribute('aria-label'))
+        .toBe('alpha · Activity, last 7 days: 120');
+    });
+
+    it('reads fields a rolling window left out as zero', async () => {
+      await render([
+        { city: structuredClone(FIXTURE[0].city), window: { labels_7d: 4 } },
+        { city: structuredClone(FIXTURE[1].city), window: { validations_7d: 3 } },
+      ]);
+      const cells = (i) => [...document.querySelectorAll('#ac-top-tbody tr')[i].cells]
+        .map((td) => td.textContent.trim()).slice(1, 5);
+      expect(cells(0)).toEqual(['4', '4▲ new', '0', '0']);
+      expect(cells(1)).toEqual(['3', '0', '3▲ new', '0']);
+    });
+
+    it('draws no sparkline without a weekly trend, and reads a week missing its count as zero', async () => {
+      const noTrend = structuredClone(FIXTURE[0]);
+      delete noTrend.city.weekly_trend;
+      const blankWeek = structuredClone(FIXTURE[1]);
+      blankWeek.city.weekly_trend = [{ week_start: '2026-07-27' }];
+      await render([noTrend, blankWeek]);
+      const sparks = (tbodyId, cell) => [...document.querySelectorAll(`#${tbodyId} tr`)]
+        .map((tr) => [tr.cells[0].textContent.trim(), tr.cells[cell].querySelector('svg') !== null]);
+      expect(sparks('ac-top-tbody', 6)).toEqual([['bravo', true], ['alpha', false]]);
+      expect(sparks('ac-activity-tbody', 5)).toEqual([['alpha', false], ['bravo', true]]);
+      expect(document.getElementById('ac-top-status').textContent).toBe('2 cities active in the past 7 days.');
+    });
+
+    it('flags a stalled city in the Activity table, and lists one never active last, as never', async () => {
+      const stalled = structuredClone(FIXTURE[0]);
+      stalled.city.lifecycle = 'stalled';
+      const idle = structuredClone(FIXTURE[6]);
+      idle.city.last_activity = null;
+      idle.city.days_since_activity = null;
+      const recent = structuredClone(FIXTURE[1]);
+      recent.city.days_since_activity = 3;
+      await render([idle, stalled, recent]);
+      const rows = [...document.querySelectorAll('#ac-activity-tbody tr')];
+      expect(rows.map((tr) => tr.cells[0].textContent.trim())).toEqual(['alpha', 'bravo', 'ghost']);
+      expect(rows.map((tr) => tr.classList.contains('ac-row--flagged'))).toEqual([true, false, false]);
+      expect(rows[2].cells[4].textContent.trim()).toBe('never');
+    });
   });
 });

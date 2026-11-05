@@ -1,0 +1,221 @@
+/**
+ * Label Types Preview Generator
+ *
+ * Generates a preview table of Project Sidewalk label types by fetching data directly from the Label Types API.
+ *
+ * @requires DOM element with id 'label-types-preview'
+ */
+
+import { util } from '../common/utilities.js';
+import { createApiTableWrapper } from './apiTableWrapper.js';
+
+// Configuration options - can be overridden by calling setup().
+export let config = {
+  apiBaseUrl: '/v3/api',
+  containerId: 'label-types-preview',
+  showPrimaryOnly: true,
+  maxWidth: 1000,
+  endpoint: '/labelTypes',
+};
+
+// Public API.
+export const LabelTypesPreview = {
+  /**
+   * Configure the label types preview.
+   * @param {object} options - Configuration options
+   * @param {string} [options.apiBaseUrl] - Base URL for the API
+   * @param {string} [options.containerId] - ID of the container element
+   * @param {boolean} [options.showPrimaryOnly] - Whether to show only primary label types
+   * @param {number} [options.maxWidth] - Maximum width for the preview container
+   * @param {string} [options.endpoint] - API endpoint for label types
+   */
+  setup(options) {
+    config = Object.assign(config, options);
+    return this;
+  },
+
+  /**
+   * Initialize the label types preview.
+   * @returns {Promise} A promise that resolves when the preview is rendered
+   */
+  init() {
+    const container = document.getElementById(config.containerId);
+
+    if (!container) {
+      console.error(`Container element with id '${config.containerId}' not found.`);
+      return Promise.reject(new Error('Container element not found'));
+    }
+
+    // Set max width if specified.
+    if (config.maxWidth) {
+      container.style.maxWidth = `${config.maxWidth}px`;
+      container.style.width = '100%';
+      container.style.margin = '20px 0'; // Left-align the container.
+    }
+
+    // Initialize with loading message.
+    container.innerHTML = 'Loading label types data...';
+
+    // Fetch and render the label types.
+    return this.fetchLabelTypes()
+      .then((data) => this.renderLabelTypes(data, container))
+      .catch((error) => {
+        container.innerHTML = `<div class="message message-error" role="alert">Failed to load label types: `
+          + `${util.escapeHTML(error.message)}</div>`;
+        // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
+        // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
+      });
+  },
+
+  /**
+   * Fetch label types from the API.
+   * @returns {Promise} A promise that resolves with the label types data
+   */
+  fetchLabelTypes() {
+    return fetch(`${config.apiBaseUrl}${config.endpoint}?utm_source=apiDocs`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      });
+  },
+
+  /**
+   * Render the label types table.
+   * @param {Record<string, any>} data - Label types data from the API
+   * @param {HTMLElement} container - Container element
+   * @returns {HTMLElement} The rendered table
+   */
+  renderLabelTypes(data, container) {
+    // Filter label types if showPrimaryOnly is true.
+    let labelTypes = data.label_types;
+    if (config.showPrimaryOnly) {
+      labelTypes = labelTypes.filter((type) => type.is_primary);
+    }
+
+    // Create table structure.
+    const table = document.createElement('table');
+    table.className = 'ps-table';
+
+    // Create table header.
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+
+    const headers = [
+      'Name', 'Display Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview',
+      'Color Code',
+    ];
+    headers.forEach((text) => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // Create table body.
+    const tbody = document.createElement('tbody');
+
+    labelTypes.forEach((type) => {
+      const row = document.createElement('tr');
+
+      // Name cell.
+      const nameCell = document.createElement('td');
+      nameCell.textContent = type.name;
+      nameCell.className = 'label-name';
+      row.appendChild(nameCell);
+
+      // Display name cell.
+      const displayNameCell = document.createElement('td');
+      displayNameCell.textContent = type.display_name;
+      displayNameCell.className = 'label-name';
+      row.appendChild(displayNameCell);
+
+      // Description cell.
+      const descCell = document.createElement('td');
+      descCell.textContent = type.description;
+      descCell.className = 'label-description';
+      row.appendChild(descCell);
+
+      // Standard icon cell.
+      const iconCell = document.createElement('td');
+      const icon = document.createElement('img');
+      icon.src = type.icon_url;
+      icon.alt = `${type.name} icon`;
+      icon.height = 32;
+      iconCell.appendChild(icon);
+      row.appendChild(iconCell);
+
+      // Small icon cell.
+      const smallIconCell = document.createElement('td');
+      const smallIcon = document.createElement('img');
+      smallIcon.src = type.small_icon_url;
+      smallIcon.alt = `${type.name} small icon`;
+      smallIcon.height = 24;
+      smallIconCell.appendChild(smallIcon);
+      row.appendChild(smallIconCell);
+
+      // Tiny icon cell.
+      const tinyIconCell = document.createElement('td');
+      const tinyIcon = document.createElement('img');
+      tinyIcon.src = type.tiny_icon_url;
+      tinyIcon.alt = `${type.name} tiny icon`;
+      tinyIcon.height = 16;
+      tinyIconCell.appendChild(tinyIcon);
+      row.appendChild(tinyIconCell);
+
+      // Color preview cell.
+      const colorPreviewCell = document.createElement('td');
+      colorPreviewCell.className = 'color-cell';
+      colorPreviewCell.style.backgroundColor = type.color;
+
+      // Determine if color is light or dark for text contrast.
+      const isLight = this.isLightColor(type.color);
+      if (isLight) {
+        colorPreviewCell.classList.add('light-color');
+      }
+
+      colorPreviewCell.textContent = type.name;
+      row.appendChild(colorPreviewCell);
+
+      // Color code cell.
+      const colorCodeCell = document.createElement('td');
+      const colorCode = document.createElement('code');
+      colorCode.textContent = type.color;
+      colorCodeCell.appendChild(colorCode);
+      row.appendChild(colorCodeCell);
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+
+    container.innerHTML = '';
+    container.appendChild(createApiTableWrapper(table, 'Label types'));
+
+    return table;
+  },
+
+  /**
+   * Determine if a color is light or dark.
+   * @param {string} hexColor - Hex color code
+   * @returns {boolean} True if the color is light, false otherwise
+   */
+  isLightColor(hexColor) {
+    // Remove the # if present.
+    hexColor = hexColor.replace('#', '');
+
+    // Parse the color.
+    const r = parseInt(hexColor.substring(0, 2), 16);
+    const g = parseInt(hexColor.substring(2, 4), 16);
+    const b = parseInt(hexColor.substring(4, 6), 16);
+
+    // Calculate perceived brightness (formula from W3C).
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+    // Return true if the color is light (brightness > 125).
+    return brightness > 125;
+  },
+};

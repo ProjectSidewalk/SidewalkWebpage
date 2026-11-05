@@ -1,16 +1,16 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.{Configuration, Logger}
 import models.utils.JobRunTrigger
 import play.api.libs.json.Json
 import service.{AiService, ConfigService, JobRunService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object GetAiValidationsActor {
@@ -19,7 +19,7 @@ object GetAiValidationsActor {
 }
 
 @Singleton
-class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobRunService)(implicit
+class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService,
     val config: Configuration
@@ -43,7 +43,7 @@ class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobR
           24.hours,
           self,
           GetAiValidationsActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("GetAiValidationsActor created")
     }

@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -48,12 +48,11 @@ class StreetReopenCandidateTableDef(tag: Tag) extends Table[StreetReopenCandidat
   def newestCapture: Rep[Option[LocalDate]]    = column[Option[LocalDate]]("newest_capture")
   def dismissedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("dismissed_at")
 
-  def * = (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt) <> (
-    (StreetReopenCandidate.apply _).tupled,
-    StreetReopenCandidate.unapply
-  )
+  def * =
+    (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt).mapTo[StreetReopenCandidate]
 
-  // ON DELETE CASCADE: once the street row is gone (remove_streets.sql hard delete), evidence about it is meaningless.
+  // ON DELETE CASCADE: once the street row is gone (a tools/one-off/4181-remove-streets.sql hard delete), evidence
+  // about it is meaningless.
   def streetEdge =
     foreignKey("street_reopen_candidate_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(
       _.streetEdgeId,
@@ -67,10 +66,11 @@ trait StreetReopenCandidateTableRepository {}
 /**
  * DAO over the regained-imagery review queue (#4929).
  *
- * Rows are written only by the nightly poll's no_imagery rotation and removed three ways: the admin reopens the
+ * Rows are written only by the nightly poll's no_imagery rotation and removed four ways: the admin reopens the
  * street, a later conclusive poll attributes nothing to it (stale evidence is retracted rather than left under a
- * Reopen button), or mark_streets_no_imagery re-retires the street (checker evidence outranks poll evidence). A
- * dismissal is the one judgement that keeps the row: see [[StreetReopenCandidateTable.dismiss]].
+ * Reopen button), or the imagery checker settles the street either way (mark_streets_no_imagery,
+ * reopen_streets_with_imagery: a full-street scan outranks poll evidence). A dismissal is the one judgement that
+ * keeps the row: see [[StreetReopenCandidateTable.dismiss]].
  */
 @Singleton
 class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -79,7 +79,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
 
   val reopenCandidates = TableQuery[StreetReopenCandidateTableDef]
 
-  implicit private val getCandidateForReview: GetResult[ReopenCandidateForReview] = GetResult { r =>
+  private given getCandidateForReview: GetResult[ReopenCandidateForReview] = { r =>
     ReopenCandidateForReview(
       r.nextInt(),
       r.nextInt(),
@@ -154,7 +154,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
    *
    * Every path that retracts a candidate deliberately (reopen, empty poll, mark_streets_no_imagery) covers its own
    * case, but a street can leave `no_imagery` through a script that knows nothing about this table -- hiding a whole
-   * neighborhood closes its streets, say. `candidatesForReview` filters such rows out, so they are invisible rather
+   * region closes its streets, say. `candidatesForReview` filters such rows out, so they are invisible rather
    * than harmful; they matter only if the street is retired again later, when years-old evidence would reappear
    * under a Reopen button. The nightly poll runs this to keep that from happening.
    */

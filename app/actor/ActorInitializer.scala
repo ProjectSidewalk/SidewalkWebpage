@@ -3,7 +3,7 @@ package actor
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.Future
 
 @Singleton

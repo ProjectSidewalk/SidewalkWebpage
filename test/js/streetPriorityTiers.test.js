@@ -5,23 +5,11 @@
  * tables, and the region roll-ups — so a boundary it gets wrong is wrong everywhere at once, consistently, which is
  * exactly the kind of error nothing else catches. The boundaries are pinned here rather than inferred from the
  * rendered page.
- *
- * Runs under jsdom (jest.config.js). StreetPriorityTiers is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
 
-const MAP_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/StreetPriorityMap.js');
-
-/** Load StreetPriorityMap.js and return its tier class. */
-function loadTiers() {
-  const src = fs.readFileSync(MAP_PATH, 'utf8');
-  return (0, eval)(`${src}\nStreetPriorityTiers;`);
-}
-
-const StreetPriorityTiers = loadTiers();
+const { StreetPriorityTiers } = await loadModules('frontend/js/admin-dashboard/StreetPriorityMap.js');
 
 /** A street row as /adminapi/streetPriority returns it, never audited unless overridden. */
 const street = (overrides = {}) => ({ fresh_good_count: 0, outdated_good_count: 0, bad_count: 0, ...overrides });

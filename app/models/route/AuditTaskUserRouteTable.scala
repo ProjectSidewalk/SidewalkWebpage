@@ -3,7 +3,7 @@ package models.route
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -18,10 +18,7 @@ class AuditTaskUserRouteTableDef(tag: slick.lifted.Tag)
   def auditTaskId: Rep[Int]          = column[Int]("audit_task_id")
   def routeStreetId: Rep[Int]        = column[Int]("route_street_id")
 
-  def * = (auditTaskUserRouteId, userRouteId, auditTaskId, routeStreetId) <> (
-    (AuditTaskUserRoute.apply _).tupled,
-    AuditTaskUserRoute.unapply
-  )
+  def * = (auditTaskUserRouteId, userRouteId, auditTaskId, routeStreetId).mapTo[AuditTaskUserRoute]
 
   def userRoute =
     foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTableDef])(_.userRouteId)
@@ -40,9 +37,9 @@ trait AuditTaskUserRouteTableRepository {}
 
 @Singleton
 class AuditTaskUserRouteTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends AuditTaskUserRouteTableRepository
+    protected val dbConfigProvider: DatabaseConfigProvider
+)(using ec: ExecutionContext)
+    extends AuditTaskUserRouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
@@ -71,8 +68,8 @@ class AuditTaskUserRouteTable @Inject() (
           val streetsInRoute = userRoutes
             .join(routeStreets)
             .on(_.routeId === _.routeId)
-            .filter(_._1.userRouteId === userRouteId)
-            .map(_._2)
+            .filter { case (userRoute, _) => userRoute.userRouteId === userRouteId }
+            .map { case (_, routeStreet) => routeStreet }
           // Rows this walk has already linked. Excluding them keeps the fallback from handing every traversal of
           // a repeated street the same row, which would leave the later ones unlinked and the route never
           // completing.
@@ -90,8 +87,8 @@ class AuditTaskUserRouteTable @Inject() (
                   .filter(_.auditTaskId === auditTaskId)
                   .join(streetsInRoute.filterNot(_.routeStreetId in linked))
                   .on(_.streetEdgeId === _.streetEdgeId)
-                  .sortBy(_._2.position)
-                  .map(_._2.routeStreetId)
+                  .sortBy { case (_, routeStreet) => routeStreet.position }
+                  .map { case (_, routeStreet) => routeStreet.routeStreetId }
                   .result
                   .headOption
             }

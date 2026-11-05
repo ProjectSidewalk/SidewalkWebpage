@@ -1,0 +1,357 @@
+#validation-menu-holder {
+  margin: 0;
+  position: absolute;
+  left: var(--menu-left);
+  top: var(--header-height);
+  width: var(--menu-width);
+  height: var(--pano-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: calc(20px * var(--ui-scale));
+}
+
+.validate-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.validation-menu-section {
+  display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
+}
+
+#main-validate-section {
+  display: block;
+}
+
+#validate-submit-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto; /* Pushes the section to the bottom of the validation-menu-holder. */
+}
+
+.validation-menu-section-header {
+  font: var(--text-small-bold);
+  margin-bottom: calc(10px * var(--ui-scale));
+}
+
+#validation-button-holder {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* The verdict thumbs, Back's arrow and the dock's close control are immersive mode's (svv-immersive.css); the
+   column keeps its plain text buttons. */
+.validate-page-button__icon,
+.validate-undo-button__icon,
+#validate-verdict-clear {
+  display: none;
+}
+
+/* Overriding some of our design system tokens, though we could likely bring them more in line with DST. */
+.validate-page-button {
+  display: inline-block;
+  width: calc(86px * var(--ui-scale));
+  height: calc(32px * var(--ui-scale));
+  border: 1px solid var(--color-asphalt-500);
+  text-align: center;
+
+  background-color: var(--color-neutral-white);
+  outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
+}
+
+.validate-button:hover {
+  border: none;
+}
+
+.validate-button.is-chosen {
+  border: none;
+}
+
+#validate-yes-button.is-chosen {
+  background: var(--color-pine-500);
+}
+
+#validate-no-button.is-chosen {
+  background: var(--color-orange-400);
+}
+
+/* Unsure is the pale asphalt it is in Gallery, the label card, and mobile Validate. */
+#validate-unsure-button.is-chosen {
+  background: var(--color-asphalt-200);
+}
+
+/* Only show hover states on non-touch devices. */
+@media (hover: hover) {
+  #validate-yes-button:hover {
+    background: var(--color-pine-300);
+  }
+
+  #validate-yes-button.is-chosen:hover {
+    background: var(--color-pine-500);
+  }
+
+  #validate-no-button:hover {
+    background: var(--color-orange-300);
+  }
+
+  #validate-no-button.is-chosen:hover {
+    background: var(--color-orange-400);
+  }
+
+  #validate-unsure-button:hover {
+    background: var(--color-asphalt-100);
+  }
+
+  #validate-unsure-button.is-chosen:hover {
+    background: var(--color-asphalt-200);
+  }
+}
+
+#sidewalk-ai-suggestions-block {
+  margin-top: calc(15px * var(--ui-scale));
+  margin-bottom: calc(15px * var(--ui-scale));
+}
+
+.sidewalk-ai-suggestions-header {
+  font: var(--text-tiny-semibold);
+  margin-bottom: calc(6px * var(--ui-scale));
+}
+
+.ai-icon {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+.sidewalk-ai-suggestions-list-holder {
+  display: flex;
+  gap: calc(5px * var(--ui-scale));
+  flex-wrap: wrap;
+}
+
+/* Shared pill look from tag-pills.css; these modifiers add the AI add/remove color semantics. The pill text is set
+   directly on the element (no label span), so the pill font lives here. */
+.sidewalk-ai-suggested-tag {
+  font: var(--text-tiny-semibold);
+  cursor: pointer;
+  transition: background 0.3s; /* Animating the outline too makes it flash as hover leaves. */
+}
+
+.sidewalk-ai-suggested-tag.to-add {
+  outline-color: var(--color-pine-700);
+  color: var(--color-pine-700);
+}
+
+.sidewalk-ai-suggested-tag.to-remove {
+  outline-color: var(--color-orange-500);
+  color: var(--color-orange-500);
+}
+
+.sidewalk-ai-suggested-tag.to-add:hover {
+  background: rgb(from var(--color-pine-500) r g b / 21%);
+  outline-color: var(--color-pine-600);
+}
+
+.sidewalk-ai-suggested-tag.to-remove:hover {
+  background: rgb(from var(--color-orange-500) r g b / 15%);
+  outline-color: var(--color-orange-500);
+}
+
+.validate-text-input {
+  width: 100%;
+  margin-top: calc(10px * var(--ui-scale));
+}
+
+.validate-text-input input, .ts-control {
+  display: flex;
+  width: 100%;
+  height: calc(36px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale));
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  flex-shrink: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500);
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-semibold);
+}
+
+/* Tom Select sets its own right padding from this variable, overriding the padding above. */
+.ts-wrapper {
+  --ts-pr-min: calc(18px * var(--ui-scale));
+}
+
+.ts-wrapper.dropdown-active .ts-control {
+  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0 !important;
+}
+
+.ts-dropdown {
+  margin-top: 0;
+  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale));
+}
+
+.ts-control input {
+  font: var(--text-tiny-semibold);
+}
+
+/* Tom Select gives the typing box a pointer cursor by default. */
+.ts-wrapper.single .ts-control input {
+  cursor: text;
+}
+
+#current-tags-list {
+  display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
+  flex-wrap: wrap;
+  gap: calc(5px * var(--ui-scale));
+  margin-bottom: calc(10px * var(--ui-scale));
+}
+
+/* Shared pill look (including the active green background) from tag-pills.css; this only adds the X-to-remove gap. */
+.current-tag.tag-pill {
+  cursor: default;
+}
+
+.remove-tag-x {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-neutral-black);
+  cursor: pointer;
+}
+
+/* The X is its own span because a mask hides everything it covers, which on the button would include its focus ring. */
+.remove-tag-x__icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  -webkit-mask-image: url("/images/icons/cross.svg");
+  mask-image: url("/images/icons/cross.svg");
+}
+
+.ts-dropdown-content {
+  display: flex;
+  width: calc(285px * var(--ui-scale));
+  height: fit-content;
+  max-height: calc(200px * var(--ui-scale)); /* Overrides the fixed 200px cap in Tom Select's stylesheet. */
+  padding: calc(12px * var(--ui-scale));
+  align-items: center;
+  align-content: center;
+  gap: calc(6px * var(--ui-scale));
+  flex-wrap: wrap;
+}
+
+/* The dropdown options are styled as tag pills. These selectors need to out-rank Tom Select's own stylesheet. */
+.ts-dropdown .option.tag-pill {
+  padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  font: var(--text-tiny-semibold);
+  text-align: center;
+  transition: background 0.3s; /* Animating the outline too makes it flash as hover leaves. */
+
+  /* Tom Select wraps the matched text in a <span>, so .tag-pill's flex gap would show as a space around it (#4523). */
+  gap: 0;
+}
+
+/* The arrow-key selection looks like hover. It stays on the last pill hovered, which is the one Enter picks. */
+.ts-dropdown .option.tag-pill.active,
+.ts-dropdown .option.tag-pill:hover {
+  background: var(--color-pine-200);
+  color: inherit;
+  outline: none;
+}
+
+#severity-radio-holder {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--ui-scale));
+}
+
+#optional-comment-input {
+  margin-top: 0; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
+}
+
+#no-reason-options, #unsure-reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.validation-reason-button {
+  display: flex;
+  height: calc(36px * var(--ui-scale));
+  justify-content: center;
+  align-items: center;
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-700);
+  background-color: var(--color-neutral-white);
+}
+
+/* Matching style of 'No' and 'Unsure' button for now. */
+#no-reason-options .validation-reason-button.is-chosen {
+  background: var(--color-orange-400);
+  border: none;
+  color: var(--color-neutral-white);
+}
+
+#add-disagree-comment.is-chosen {
+  border-color: var(--color-orange-400);
+}
+
+#unsure-reason-options .validation-reason-button.is-chosen {
+  background: var(--color-asphalt-200);
+  border: none;
+}
+
+#add-unsure-comment.is-chosen {
+  border-color: var(--color-asphalt-300);
+}
+
+/* Only show hover states on non-touch devices. Same CSS as for chosen state. */
+@media (hover: hover) {
+  #no-reason-options .validation-reason-button:hover {
+    background: var(--color-orange-300);
+    border: none;
+    color: var(--color-neutral-white);
+  }
+
+  #no-reason-options .validation-reason-button.is-chosen:hover {
+    background: var(--color-orange-400);
+  }
+
+  #add-disagree-comment:hover {
+    border-color: var(--color-orange-300);
+  }
+
+  #add-disagree-comment.is-chosen:hover {
+    border-color: var(--color-orange-400);
+  }
+
+  #unsure-reason-options .validation-reason-button:hover {
+    background: var(--color-asphalt-100);
+    border: none;
+  }
+
+  #unsure-reason-options .validation-reason-button.is-chosen:hover {
+    background: var(--color-asphalt-200);
+  }
+
+  #add-unsure-comment:hover {
+    border-color: var(--color-asphalt-200);
+  }
+
+  #add-unsure-comment.is-chosen:hover {
+    border-color: var(--color-asphalt-300);
+  }
+}
+
+/* One 5:4 box for every example image; the odd one out is cropped to it rather than reshaping the card. */
+.validate-tooltip-img {
+  width: calc(200px * var(--ui-scale));
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+}
+
+/* A card holding one narrows to the image plus the card's 9px side padding (main.css), so the text wraps to the
+   picture. */
+.ps-tooltip:has(.validate-tooltip-img) {
+  max-width: calc((200px + 2 * 9px) * var(--ui-scale));
+}

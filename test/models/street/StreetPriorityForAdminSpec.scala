@@ -30,21 +30,20 @@ class StreetPriorityForAdminSpec extends AnyWordSpec with Matchers {
     lastAuditDate = Some(LocalDate.parse("2021-05-04")),
     medianNewestCapture = Some(LocalDate.parse("2025-06-01")),
     imageryUpdatedAt = Some(OffsetDateTime.of(2026, 8, 15, 0, 45, 0, 0, ZoneOffset.UTC)),
+    polledAt = Some(OffsetDateTime.of(2026, 8, 15, 0, 45, 0, 0, ZoneOffset.UTC)),
     lengthMeters = 1609.34
   )
 
   private val neverTouched = fullyPopulated.copy(
-    outdated = false,
-    lastAuditDate = None,
-    medianNewestCapture = None,
-    imageryUpdatedAt = None
+    outdated = false, lastAuditDate = None, medianNewestCapture = None, imageryUpdatedAt = None, polledAt = None
   )
 
   "the street priority writer" should {
     "publish exactly the fields the page reads, in snake_case" in {
       Json.toJson(fullyPopulated).as[JsObject].keys mustBe Set(
         "street_edge_id", "region_id", "region_name", "priority", "fresh_good_count", "outdated_good_count",
-        "bad_count", "outdated", "last_audit_date", "median_newest_capture", "imagery_updated_at", "length_m"
+        "bad_count", "outdated", "last_audit_date", "median_newest_capture", "imagery_updated_at", "polled_at",
+        "length_m"
       )
     }
 
@@ -67,6 +66,7 @@ class StreetPriorityForAdminSpec extends AnyWordSpec with Matchers {
       // The page reduces over these to find the oldest record; a rendering that dropped the offset would leave two
       // timestamps that sort one way lexically and the other way in time.
       (Json.toJson(fullyPopulated) \ "imagery_updated_at").as[String] must include("Z")
+      (Json.toJson(fullyPopulated) \ "polled_at").as[String] must include("Z")
     }
 
     "null an absent date rather than omitting the field" in {
@@ -76,6 +76,7 @@ class StreetPriorityForAdminSpec extends AnyWordSpec with Matchers {
       (json \ "last_audit_date").get mustBe JsNull
       (json \ "median_newest_capture").get mustBe JsNull
       (json \ "imagery_updated_at").get mustBe JsNull
+      (json \ "polled_at").get mustBe JsNull
       json.as[JsObject].keys must contain("last_audit_date")
     }
 

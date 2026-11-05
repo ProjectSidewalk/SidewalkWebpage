@@ -7,23 +7,14 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required; MiniLineChart has to be present first, since the page draws with it.
+ * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-
-/** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
-function loadPage() {
-  const chart = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/MiniLineChart.js'), 'utf8');
-  const shell = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${chart}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nAcrossCitiesPage;`);
-}
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>
@@ -39,6 +30,10 @@ const MARKUP = `
   <div class="mini-chart" id="ac-chart-week-labels"></div>
   <div class="mini-chart" id="ac-chart-week-validations"></div>
   <div class="mini-chart" id="ac-chart-week-users"></div>
+  <div class="mini-chart" id="ac-chart-month-labels"></div>
+  <span id="ac-baseline-note">The dashed line is the average per day over the trailing year.</span>
+  <div class="mini-chart" id="ac-chart-month-validations"></div>
+  <div class="mini-chart" id="ac-chart-month-users"></div>
   <table id="ac-top-table">
     <thead>
       <tr>
@@ -110,43 +105,45 @@ function contributor(username, labels, validations, kind = 'registered') {
   };
 }
 
-/** One entry of a day's contributor list. */
-function dayContributor(username, labels, validations, kind = 'registered') {
-  return { username, kind, labels, validations };
+/** One entry of a day's contributor list, optionally with the per-city split the endpoint sends (#5495). */
+function dayContributor(username, labels, validations, kind = 'registered', cities = []) {
+  return { username, kind, labels, validations, cities };
+}
+
+/** One city of a day contributor's split. */
+function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.org`) {
+  return { city_id: id, city_name: id.toUpperCase(), url, labels, validations };
 }
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
-  let AcrossCitiesPage;
+  /** The page's own `util`, so a card is sanitized by the same code psTooltip uses. */
+  let util;
 
   /**
-   * Renders the page against a fixture and returns the initialized instance.
+   * Renders the page against a fixture.
    *
-   * @param {{cities?: Array, daily?: Array, summary?: ?object}} fixture - Any subset of the endpoint's payload.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
+   * @param {{cities?: Array, daily?: Array, summary?: ?object, baseline?: ?object}} fixture - Any subset of the
+   *   endpoint's payload; `baseline` is its `daily_baseline` block, left out of the payload when absent.
    */
-  async function render({ cities = [], daily = [], summary = null } = {}) {
-    document.body.innerHTML = MARKUP;
-    const windowByCity = {};
-    cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    global.fetch = jest.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: cities.map((c) => c.city),
-        summary: {},
-        over_time_all_time: [],
-        over_time_daily: daily,
-        window_summary: summary,
-        window_by_city: windowByCity,
-      }),
+  async function render({ cities = [], daily = [], summary = null, baseline = undefined } = {}) {
+    const windowByCity = Object.fromEntries(cities.map((c) => [c.city.city_id, c.window]));
+    ({ modules: { util } } = await renderAcrossCities({
+      markup: MARKUP,
+      scorecards: {
+        cities: cities.map((c) => c.city), over_time_daily: daily, window_summary: summary,
+        window_by_city: windowByCity, ...(baseline === undefined ? {} : { daily_baseline: baseline }),
+      },
     }));
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
-    await page.init();
-    return page;
+  }
+
+  /** The card trigger inside the nth cell of the first table row (0 = city name). */
+  function cellTrigger(index) {
+    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip-html]');
   }
 
   /** The hover-card markup on the nth cell of the first table row (0 = city name). */
   function cellCard(index) {
-    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].getAttribute('data-ps-tooltip');
+    return cellTrigger(index).getAttribute('data-ps-tooltip-html');
   }
 
   /** The hover/focus target for the bar at `index` of a per-day chart. */
@@ -156,12 +153,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
   /** The hover-card markup on the bar at `index` of the labels-per-day chart. */
   function barCard(index, chart = 'labels') {
-    return barTarget(index, chart).getAttribute('data-ps-tooltip');
+    return barTarget(index, chart).getAttribute('data-ps-tooltip-html');
   }
-
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
-  });
 
   describe('tiles', () => {
     it('counts what people did and reports AI output on its own line', async () => {
@@ -397,11 +390,146 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
           contributor_list: [dayContributor('<img src=x onerror=alert(1)>', 2, 0)],
         })],
       });
-      // Two levels of escaping: attribute parsing consumes one, psTooltip's innerHTML the other. Reading the attribute
-      // back through the DOM has already consumed the first, so rendering it as HTML models exactly what psTooltip does.
+      // Reading the attribute back already consumed one escaping level. Raw innerHTML, not the sanitizer, so this
+      // proves the escaping itself rather than leaning on the safety net.
       document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
 
       expect(document.querySelectorAll('#probe img').length).toBe(0);
+    });
+
+    describe('where each person worked, and links to their work (#5495)', () => {
+      /** Renders a card's markup into a detached element, the way psTooltip does. */
+      function parse(card) {
+        const host = document.createElement('div');
+        host.append(util.sanitizeHtml(card));
+        return host;
+      }
+
+      it('names a one-city person\'s city right after their name, on the same line', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 57, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('DW', 57, 0, 'registered', [dayCity('stl', 57, 0)])] })],
+        });
+        const row = parse(barCard(0)).querySelector('.ac-tip-where').closest('.ac-tip-row');
+
+        expect(row.firstElementChild.textContent).toBe('DW · STL');
+        expect(row.querySelector('.ac-tip-num').textContent).toBe('57 · 0');
+        // The lone city would link exactly where the name does, so only the name is a link.
+        expect([...row.querySelectorAll('a')].map((a) => a.textContent)).toEqual(['DW']);
+      });
+
+      it('names each of a multi-city person\'s cities, busiest first, with each share in its title', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 52, validations: 9, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('alice', 52, 9, 'registered',
+              [dayCity('sea', 40, 9), dayCity('chi', 12, 0)])] })],
+        });
+        const where = parse(barCard(0)).querySelector('.ac-tip-where');
+
+        expect(where.textContent).toBe(' · SEA, CHI');
+        expect(where.querySelector('a').getAttribute('title')).toBe('40 labels · 9 validations');
+      });
+
+      it('caps a long city list, which an AI account working everywhere would fill', async () => {
+        const cities = ['a', 'b', 'c', 'd', 'e'].map((id, i) => dayCity(id, 0, 10 - i));
+        await render({
+          daily: [makeDay('2026-09-24', { ai_validations: 40, ai_agents: 1, contributor_total: 1,
+            contributor_list: [dayContributor('bot', 0, 40, 'ai', cities)] })],
+        });
+
+        expect(parse(barCard(0)).querySelector('.ac-tip-where').textContent).toBe(' · A, B +3');
+      });
+
+      it('links a name to their admin page on the city where they did the most', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 52, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('alice', 52, 0, 'registered',
+              [dayCity('sea', 40, 0), dayCity('chi', 12, 0)])] })],
+        });
+        const links = [...parse(barCard(0)).querySelectorAll('a.ac-tip-link')].map((a) => a.getAttribute('href'));
+
+        expect(links).toEqual([
+          'https://sidewalk-sea.example.org/admin/user/alice',
+          'https://sidewalk-sea.example.org/admin/user/alice',
+          'https://sidewalk-chi.example.org/admin/user/alice',
+        ]);
+      });
+
+      it('links a busiest city to that city\'s admin dashboard', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 5, contributors: 1,
+            top_cities: [{ city_id: 'stl', city_name: 'St. Louis', url: 'https://stl.example.org/', labels: 5,
+              validations: 0, contributors: 1 }] })],
+        });
+        const link = parse(barCard(0)).querySelector('a.ac-tip-link');
+
+        expect(link.textContent).toBe('St. Louis');
+        expect(link.getAttribute('href')).toBe('https://stl.example.org/admin');
+      });
+
+      it('encodes a username into the path, so a slash or space still reaches its page', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('a b/c', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })],
+        });
+
+        expect(parse(barCard(0)).querySelector('a.ac-tip-link').getAttribute('href'))
+          .toBe('https://sidewalk-sea.example.org/admin/user/a%20b%2Fc');
+      });
+
+      it('opens links in a new tab, so following one keeps the page and its pinned card', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });
+        const link = parse(barCard(0)).querySelector('a.ac-tip-link');
+
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('rel')).toBe('noopener');
+      });
+
+      it('leaves a name as plain text when its city has no URL', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0, null)])] })] });
+        const card = parse(barCard(0));
+
+        expect(card.querySelector('a')).toBeNull();
+        expect(card.querySelector('.ac-tip-hint')).toBeNull();
+      });
+
+      it('leaves a name as plain text when its city\'s URL is malformed, rather than breaking the card', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0, 'not a url')])] })] });
+        const card = parse(barCard(0));
+
+        expect(card.querySelector('a')).toBeNull();
+        const row = card.querySelector('.ac-tip-where').closest('.ac-tip-row');
+        expect(row.firstElementChild.textContent).toBe('a · SEA');
+      });
+
+      it('says how to reach the links on a card that has them', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });
+
+        expect(parse(barCard(0)).querySelector('.ac-tip-hint').textContent).toContain('pin');
+      });
+
+      it('makes each bar a pinnable button that announces its dialog', async () => {
+        await render({ daily: DAILY });
+        const bar = barTarget(1);
+
+        expect(bar.hasAttribute('data-ps-tooltip-pinnable')).toBe(true);
+        expect(bar.getAttribute('role')).toBe('button');
+        expect(bar.getAttribute('aria-haspopup')).toBe('dialog');
+        expect(bar.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      it('escapes a city name, which is config rather than user text but still goes into markup', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered',
+            [{ ...dayCity('sea', 1, 0), city_name: '<img src=x onerror=alert(1)>' }])] })] });
+        document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
+
+        expect(document.querySelectorAll('#probe img').length).toBe(0);
+      });
     });
 
     it('groups a chart whose bars are individually focusable, so their names survive in the a11y tree', async () => {
@@ -526,11 +654,220 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       expect(document.querySelectorAll('#probe img').length).toBe(0);
     });
 
+    it('links each name to their admin page on this city, and pins to reach it (#5495)', async () => {
+      const cities = [makeCity('chicago', {
+        labels_7d: 2, contributors_7d: 1, contributor_total: 1, contributors: [contributor('alice', 2, 0)],
+      })];
+      cities[0].city.url = 'https://sidewalk-chicago.example.org';
+      await render({ cities });
+      const host = document.createElement('div');
+      host.innerHTML = cellCard(2);
+
+      expect(host.querySelector('a.ac-tip-link').getAttribute('href'))
+        .toBe('https://sidewalk-chicago.example.org/admin/user/alice');
+      // The city is the card's title, so a per-person "where" line would only repeat it.
+      expect(host.querySelector('.ac-tip-where')).toBeNull();
+      const trigger = cellTrigger(2);
+      expect(trigger.hasAttribute('data-ps-tooltip-pinnable')).toBe(true);
+      // A <td> can't say it opens anything; the button inside it can.
+      expect(trigger.getAttribute('role')).toBe('button');
+      expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+      expect(trigger.getAttribute('aria-label')).toBe('chicago · Labels, last 7 days: 2');
+    });
+
     it('makes the cells focusable so their cards are reachable by keyboard', async () => {
       await render({ cities: CITIES });
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
-      expect(cells.filter((td) => td.getAttribute('tabindex') === '0').length).toBe(4);
+      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip-html]')).length).toBe(4);
+    });
+  });
+
+  describe('rolling 7- and 30-day charts with the trailing-year average (#5653)', () => {
+    const GROUPS = ['week', 'month'];
+    const CHARTS = ['labels', 'validations', 'users'];
+
+    /** Ten consecutive days, each with distinct volumes so a bar can be traced back to its day. */
+    const TEN_DAYS = Array.from({ length: 10 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+      labels: (i + 1) * 10, validations: i + 1, contributors: 1, contributor_total: 1,
+      contributor_list: [dayContributor(`person${i}`, (i + 1) * 10, i + 1)],
+    }));
+
+    const BASELINE = {
+      days: 365, window_start: '2025-09-05', window_end: '2026-09-04',
+      labels_per_day: 1239.6, validations_per_day: 512.2, contributors_per_day: 2.43,
+    };
+
+    /** The bar hover targets of one chart, in day order. */
+    function bars(group, chart) {
+      return [...document.querySelectorAll(`#ac-chart-${group}-${chart} rect.mini-bar-hit`)];
+    }
+
+    it('draws the week from the last seven days of the month', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(bars('week', 'labels').length).toBe(7);
+      expect(bars('month', 'labels').length).toBe(10);
+      // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
+      bars('week', 'labels').forEach((bar, i) => {
+        const monthBar = bars('month', 'labels')[i + 3];
+        expect(bar.getAttribute('data-ps-tooltip-html')).toBe(monthBar.getAttribute('data-ps-tooltip-html'));
+      });
+    });
+
+    it('labels each week bar with its value but leaves thirty to the cards', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.querySelectorAll('#ac-chart-week-labels .mini-value').length).toBe(7);
+      expect(document.querySelectorAll('#ac-chart-month-labels .mini-value').length).toBe(0);
+    });
+
+    it('emphasizes today, the last bar, in both groups', async () => {
+      await render({ daily: TEN_DAYS });
+
+      GROUPS.forEach((group) => {
+        const drawn = [...document.querySelectorAll(`#ac-chart-${group}-labels rect.mini-bar`)];
+        expect(drawn[drawn.length - 1].classList.contains('mini-bar--emphasis')).toBe(true);
+        expect(drawn.filter((r) => r.classList.contains('mini-bar--emphasis')).length).toBe(1);
+      });
+    });
+
+    it('draws the average as a labeled reference line on all six charts', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      GROUPS.forEach((group) => CHARTS.forEach((chart) => {
+        expect(document.querySelectorAll(`#ac-chart-${group}-${chart} line.mini-ref--baseline`).length).toBe(1);
+      }));
+      expect(document.querySelector('#ac-chart-week-labels .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 1,240/day');
+      // One decimal below 10, where rounding would hide most of the signal.
+      expect(document.querySelector('#ac-chart-month-users .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 2.4/day');
+    });
+
+    it('puts the average in each chart\'s text alternative', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      expect(document.querySelector('#ac-chart-month-validations svg').getAttribute('aria-label'))
+        .toBe('Validations per day, last 10 days; 365-day avg: 512/day');
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days; 365-day avg: 1,240/day');
+    });
+
+    it('hides the on-chart label from screen readers, since the text alternative already says it', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      const labels = [...document.querySelectorAll('.mini-ref-label--baseline')];
+      expect(labels.length).toBe(6);
+      labels.forEach((label) => expect(label.getAttribute('aria-hidden')).toBe('true'));
+    });
+
+    it('names the window the server averaged over, not an assumed "ending yesterday"', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(false);
+      const note = document.getElementById('ac-baseline-note').textContent;
+      expect(note).toContain('365 days');
+      expect(note).toContain('2025');
+      expect(note).toContain('2026');
+    });
+
+    it('labels today on the month axis even when thirty days skip most labels', async () => {
+      const month = Array.from({ length: 30 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+        labels: i + 1, validations: 0, contributors: 0, contributor_total: 0, contributor_list: [],
+      }));
+      await render({ daily: month });
+
+      expect(document.querySelector('#ac-chart-month-labels .mini-axis--emphasis')).not.toBeNull();
+    });
+
+    it('draws no reference line when the payload has no baseline', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(true);
+      expect(document.querySelectorAll('.mini-ref').length).toBe(0);
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days');
+    });
+  });
+
+  describe('sparse days and windows', () => {
+    /** Renders a card's markup into a detached element, the way psTooltip does. */
+    function parse(card) {
+      const host = document.createElement('div');
+      host.append(util.sanitizeHtml(card));
+      return host;
+    }
+
+    /** @returns {Array<string>} Each line of a card as "label|value". */
+    function tipRows(card) {
+      return [...card.querySelectorAll('.ac-tip-row')]
+        .map((row) => `${row.firstElementChild.textContent}|${row.querySelector('.ac-tip-num').textContent}`);
+    }
+
+    it('words one anonymous session and several AI accounts today', async () => {
+      await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, anon_sessions: 1, ai_agents: 2 })] });
+      const anon = document.getElementById('now-contributors-today-anon');
+      expect(anon.textContent).toBe('+ 1 anonymous session');
+      expect(anon.getAttribute('data-ps-tooltip')).toContain('1 anonymous session also contributed today');
+      const agents = document.getElementById('now-contributors-today-ai');
+      expect(agents.textContent).toBe('+ 2 AI accounts');
+      expect(agents.getAttribute('data-ps-tooltip'))
+        .toBe('Contributors are people. 2 AI accounts were also active today.');
+    });
+
+    it('fills the tiles on a page without their AI, anonymous and change lines', async () => {
+      await renderAcrossCities({
+        markup: '<span id="now-labels-7d"></span><span id="now-labels-today"></span>',
+        scorecards: {
+          over_time_daily: [makeDay('2026-09-24', { labels: 2, ai_labels: 1, anon_sessions: 1, ai_agents: 1 })],
+          window_summary: { labels_7d: 5, labels_prior_7d: 1, ai_labels_7d: 1, anon_sessions_7d: 1, ai_agents_7d: 1 },
+        },
+      });
+      expect(document.getElementById('now-labels-7d').textContent).toBe('5');
+      expect(document.getElementById('now-labels-today').textContent).toBe('2');
+    });
+
+    it('reads a day whose people and cities come with names, counts and totals missing', async () => {
+      await render({ daily: [
+        makeDay('2026-09-24', {
+          labels: 3, contributors: 2, ai_labels: 2, contributor_total: undefined,
+          top_cities: [{ city_id: 'tau' }],
+          contributor_list: [
+            { kind: 'registered', cities: [{ city_id: 'x', url: 'https://x.example.org' }, { city_id: 'y' }] },
+            { username: 'solo', kind: 'registered' },
+          ],
+        }),
+        makeDay('2026-09-25', { labels: 1, top_cities: undefined, contributor_list: undefined }),
+      ] });
+      const card = parse(barCard(0));
+      expect(tipRows(card)).toEqual(expect.arrayContaining([
+        'AI labels|2', 'tau|0 · 0', 'unknown user · x, y|0 · 0', 'solo|0 · 0',
+      ]));
+      // Nobody here has a name and a city URL together, so there is nothing to link to.
+      expect(card.querySelector('a')).toBeNull();
+      expect(card.textContent).not.toContain('more');
+      const nextDay = parse(barCard(1)).textContent;
+      expect(nextDay).not.toContain('Busiest cities');
+      expect(nextDay).not.toContain('Who was active');
+    });
+
+    it('counts a city card’s people from its list when the window leaves out the total', async () => {
+      await render({ cities: [makeCity('alpha', {
+        labels_7d: 5, contributor_total: undefined, contributors: [contributor('ann', 5, 0)],
+      })] });
+      expect(cellCard(2)).toContain('ann');
+      expect(cellCard(2)).not.toContain('more');
+    });
+
+    it('shows a date it can’t read as sent, rather than Invalid Date', async () => {
+      await render({
+        daily: [makeDay('someday', { labels: 1 })],
+        baseline: { days: 365, window_start: 'soon', window_end: '2026-09-04', labels_per_day: 1 },
+      });
+      expect(parse(barCard(0)).querySelector('.ac-tip-title').textContent).toBe('someday');
+      expect(document.getElementById('ac-baseline-note').textContent).toContain('from soon to');
+      expect(document.getElementById('ac-chart-week-labels').textContent).toContain('someday');
     });
   });
 });

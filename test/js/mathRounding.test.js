@@ -1,36 +1,29 @@
 /**
- * Tests for `util.math.floorTo` and `util.math.ceilTo` in public/js/common/utilitiesMath.js.
+ * Tests for `util.math.floorTo` and `util.math.ceilTo` in frontend/js/common/utilitiesMath.js.
  *
  * Distance display rounds away from claiming a badge the user hasn't earned (#4404): progress toward a threshold is
  * truncated, and the remainder still to go is rounded up. Both directions need the same guard, because scaling by a
  * power of ten misses the intended integer for values binary floating point can't hold exactly — a naive floor turns
  * 0.29 into 0.28, and a naive ceiling turns 1.1 into 1.11.
  *
- * Runs under jsdom (jest.config.js); utilitiesMath.js is a global script assigning onto `window.util`.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules } from './loader.js';
 
-const MATH_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/utilitiesMath.js');
-
-/** Load utilitiesMath.js (a global script hanging helpers off `window.util`) and return its rounding helpers. */
-function loadMath() {
-  global.window = global;
-  global.util = {};
-  (0, eval)(fs.readFileSync(MATH_PATH, 'utf8'));
-  return global.util.math;
+async function loadMath() {
+  const { util } = await loadModules('frontend/js/common/utilitiesMath.js', 'frontend/js/common/utilities.js');
+  return util.math;
 }
 
-function loadFloorTo() {
-  return loadMath().floorTo;
+async function loadFloorTo() {
+  return (await loadMath()).floorTo;
 }
 
 describe('util.math.floorTo', () => {
   let floorTo;
 
-  beforeEach(() => {
-    floorTo = loadFloorTo();
+  beforeEach(async () => {
+    floorTo = await loadFloorTo();
   });
 
   it('truncates rather than rounding, so a total never overstates progress', () => {
@@ -65,8 +58,8 @@ describe('util.math.floorTo', () => {
 describe('util.math.ceilTo', () => {
   let ceilTo;
 
-  beforeEach(() => {
-    ceilTo = loadMath().ceilTo;
+  beforeEach(async () => {
+    ceilTo = (await loadMath()).ceilTo;
   });
 
   it('rounds a remainder up so it never reads as nothing left', () => {

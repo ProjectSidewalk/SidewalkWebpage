@@ -1,0 +1,58 @@
+/* Full-size image viewer, opened by common/ImageLightbox.js. */
+dialog.ps-lightbox {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+/* ::backdrop can't read our CSS variables in every browser, so the color is spelled out. */
+dialog.ps-lightbox::backdrop {
+  background: rgb(0 0 0 / 80%);
+}
+
+.ps-lightbox__img {
+  display: block;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 72px); /* Leaves room for the caption. */
+  border-radius: var(--border-radius);
+}
+
+.ps-lightbox__caption {
+  margin: 8px 0 0;
+  color: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  text-align: center;
+}
+
+.ps-lightbox__caption[hidden] {
+  display: none;
+}
+
+.ps-lightbox__close {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 50%);
+  color: var(--color-neutral-white);
+  font: var(--text-title-bold);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ps-lightbox__close:hover,
+.ps-lightbox__close:focus-visible {
+  background: rgb(0 0 0 / 75%);
+}
+
+.ps-lightbox__close:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}

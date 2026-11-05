@@ -4,9 +4,11 @@ import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.http.ContentTypes
-import play.api.i18n.I18nSupport
+import controllers.AssetsFinder
+import models.utils.IpAddress
+import play.api.i18n.{I18nSupport, Messages}
 import play.api.libs.json.JsObject
-import play.api.mvc._
+import play.api.mvc.*
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -18,8 +20,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   private val logger = Logger(this.getClass)
 
-  // Batch size (JDBC fetchSize) for cursor-based streaming of large query results from the db.
-  protected val DEFAULT_BATCH_SIZE: Int = 50000
+  // Batch size (JDBC fetchSize) for cursor-based streaming from the db; each batch sits in memory, so keep it modest.
+  protected val DEFAULT_BATCH_SIZE: Int = 25000
 
   // Standard components
   override protected def controllerComponents: ControllerComponents = cc
@@ -30,7 +32,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   // Adds a ipAddress method to RequestHeader for easy access to the client's IP address.
   // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/465
-  implicit class RequestHeaderExtensions(request: RequestHeader) {
+  extension (request: RequestHeader) {
 
     /**
      * The client IP as resolved by Play's forwarded-header processing (`play.http.forwarded.*` in application.conf):
@@ -38,9 +40,17 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
      * from 127.0.0.1 and appends the true client IP) and yields the first untrusted hop. Unlike taking the header's
      * first value, a client-supplied X-Forwarded-For cannot spoof this, so it is safe to key rate limits on (#1102).
      * With no proxy in front (dev/Docker), it is simply the TCP peer address.
+     *
+     * Drops an IPv6 zone suffix like `%eth0` (rare), because the database won't accept it as an IP.
      */
-    def ipAddress: String = request.remoteAddress
+    def ipAddress: IpAddress = IpAddress(request.remoteAddress.takeWhile(_ != '%'))
   }
+
+  /**
+   * A response the browser must never serve from its cache (#5650): the tool pages and the session data they fetch,
+   * so a back/forward navigation can't resurrect a mission or task the user already worked through.
+   */
+  protected def noStore(result: Result): Result = result.withHeaders(CACHE_CONTROL -> "no-store")
 
   /**
    * Attaches failure logging to a streaming response body.
@@ -52,25 +62,47 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
    * it does not (and cannot) change the status already sent to the client.
    *
-   * @param source The streaming body to monitor.
-   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
-   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
+   * Wrap the bare rows, before any header or separators are added, so a cut-off is reported in rows.
+   *
+   * @param source       The streaming body to monitor.
+   * @param label        A short identifier (e.g. the download filename) for the log line.
+   * @param warnOnCutOff False logs a cut-off at INFO instead: for in-app feeds like the Label Map, where a user
+   *                     leaving the page mid-load is routine.
+   * @return             The same source, with logging attached.
    */
-  protected def logStreamFailures(source: Source[String, _], label: String)(implicit
+  protected def logStreamFailures(source: Source[String, ?], label: String, warnOnCutOff: Boolean = true)(using
       ec: ExecutionContext
-  ): Source[String, _] =
-    source.watchTermination() { (mat, done) =>
-      done.onComplete {
-        case Failure(e) =>
-          logger.error(
-            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
-              s"after a 200 status was already sent (see #4161).",
-            e
-          )
-        case Success(_: Done) => // Stream completed normally; nothing to log.
+  ): Source[String, ?] = {
+    val startedAt  = System.nanoTime()
+    var chunks     = 0L
+    var chars      = 0L
+    var reachedEnd = false
+    // Plain vars are safe here: they are written on the stream's thread and only read after the stream has ended.
+    source
+      .map { chunk => chunks += 1; chars += chunk.length; chunk }
+      // Pekko reports a client closing early the same as finishing, so this marker, which runs only after the last
+      // row, is how the two are told apart. Plain `concat` would run it at the start.
+      .concatLazy(Source.lazySource(() => { reachedEnd = true; Source.empty[String] }))
+      .watchTermination() { (mat, done) =>
+        done.onComplete {
+          case Failure(e) =>
+            logger.error(
+              s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
+                s"after a 200 status was already sent (see #4161).",
+              e
+            )
+          case Success(_: Done) if !reachedEnd =>
+            val seconds = (System.nanoTime() - startedAt) / 1e9
+            val message =
+              f"Streamed response '$label' was cut off after $seconds%.0fs and $chunks rows ($chars chars): the " +
+                "client gave up or a proxy/idle timeout closed the connection, so it got a 200 with a partial body " +
+                "(see #4161)."
+            if (warnOnCutOff) logger.warn(message) else logger.info(message)
+          case Success(_: Done) => // Stream completed normally; nothing to log.
+        }
+        mat
       }
-      mat
-    }
+  }
 
   /**
    * Wraps a stream of serialized GeoJSON Features in the surrounding FeatureCollection document.
@@ -82,7 +114,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of serialized GeoJSON Feature objects.
    * @return         The same features framed as a `{"type":"FeatureCollection","features":[...]}` document.
    */
-  protected def geoJsonFeatureCollection(features: Source[String, _]): Source[String, _] =
+  protected def geoJsonFeatureCollection(features: Source[String, ?]): Source[String, ?] =
     features.intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
   /**
@@ -95,9 +127,26 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of GeoJSON Feature objects, e.g. a streamed db query mapped through a serializer.
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
-  protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] = geoJsonFeatureCollection(features.map(_.toString))
-    Ok.chunked(logStreamFailures(jsonSource, label)).as(ContentTypes.JSON)
+  protected def streamGeoJson(features: Source[JsObject, ?], label: String)(using ec: ExecutionContext): Result = {
+    val jsonSource: Source[String, ?] =
+      geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
+    Ok.chunked(jsonSource).as(ContentTypes.JSON)
+  }
+
+  /**
+   * The site's branded 404, for a request that routed fine but named nothing that exists -- a username, a team id.
+   *
+   * @param path The path that matched nothing, echoed back on the page.
+   */
+  protected def notFoundPage(path: String)(using messages: Messages, assets: AssetsFinder): Result = {
+    NotFound(
+      views.html.errors.errorPage(
+        NOT_FOUND,
+        Messages("error.404.heading"),
+        Messages("error.404.message"),
+        requestedPath = Some(path)
+      )
+    )
   }
 
   // Could add other common controller utilities here. Not sure if they should be here or in ControllerUtils.scala.

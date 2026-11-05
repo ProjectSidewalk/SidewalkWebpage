@@ -25,6 +25,9 @@ const PAGES = [
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
+  // Region 18 (Tyron Park) is the one region in CI's seed (fixtures/ci-seed.sql). By its slug, since the id URL
+  // redirects there and the gate checks the page landed where it asked.
+  {path: '/report/neighborhood/tyron-park'},
   {path: '/labelingGuide'},
   {path: '/labelingGuide/curbRamps'},
   {path: '/labelingGuide/surfaceProblems'},
@@ -35,15 +38,19 @@ const PAGES = [
   {path: '/v3/api-docs'},
   {path: '/v3/api-docs/labelTypes'},
   // Every api-docs page below that carries `mapbox` builds a live preview map (in its own Twirl view for
-  // /cities, in public/js/api-docs/*Preview.js for the rest), so each needs the style/tile stub.
+  // /cities, in frontend/js/api-docs/*Preview.js for the rest), so each needs the style/tile stub.
   {path: '/v3/api-docs/cities', mapbox: true},
   {path: '/v3/api-docs/labelTags'},
   {path: '/v3/api-docs/rawLabels', mapbox: true},
   {path: '/v3/api-docs/labelClusters', mapbox: true},
   {path: '/v3/api-docs/streets', mapbox: true},
   {path: '/v3/api-docs/streetTypes'},
+  {path: '/v3/api-docs/sidewalkPresence', mapbox: true},
   {path: '/v3/api-docs/regions', mapbox: true},
+  {path: '/v3/api-docs/places', mapbox: true},
   {path: '/v3/api-docs/accessScoreStreets', mapbox: true},
+  {path: '/v3/api-docs/streetGrade', mapbox: true},
+  {path: '/v3/api-docs/accessScoreIntersections', mapbox: true},
   {path: '/v3/api-docs/accessScoreRegions', mapbox: true},
   {path: '/v3/api-docs/validations'},
   {path: '/v3/api-docs/validation-result-types'},
@@ -55,6 +62,7 @@ const PAGES = [
   {path: '/v3/api-docs/aggregate-stats-by-day'},
   {path: '/gallery', loadingOverlay: true},
   {path: '/labelMap', mapbox: true, loadingOverlay: true},
+  {path: '/accessScore', mapbox: true, loadingOverlay: true},
   {path: '/routeBuilder', mapbox: true},
   {path: '/cities', mapbox: true},
   {path: '/mobileLanding'},

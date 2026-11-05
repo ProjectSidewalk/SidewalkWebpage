@@ -1,11 +1,11 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * End-to-end proof that client IPs are spoof-resistant (#1102): Play's forwarded-header processing
@@ -16,10 +16,10 @@ import play.api.test.Helpers._
  * connects from 127.0.0.1 — a trusted proxy, i.e. exactly the position of the prod Apache reverse proxy — so the
  * rightmost X-Forwarded-For entry plays the role of the address Apache appends for the true client.
  */
-class ForwardedClientIpSpec extends PlaySpec with GuiceOneServerPerSuite {
+class ForwardedClientIpSpec extends SidewalkSpec with GuiceOneServerPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                    -> true,

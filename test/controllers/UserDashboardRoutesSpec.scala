@@ -1,13 +1,13 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Route-wiring smoke test for the dashboard/leaderboard/settings/profile pages and the public-profile map endpoints.
@@ -17,12 +17,12 @@ import play.api.test.Helpers._
  * no-cookie contract. Cheap insurance against a routes regression; the auth'd behavior is covered by the service
  * specs. Also pins the pre-cutover /preview URLs to their permanent redirects (#4474).
  */
-class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
+class UserDashboardRoutesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private def redirectsToSignIn(sc: Int): Boolean = sc >= 300 && sc < 400
 
@@ -50,7 +50,10 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(route(app, FakeRequest(GET, "/leaderboard")).get) mustBe OK
     }
 
-    Seq("/dashboard/settings", "/userapi/mistakeVote", "/userapi/mistakeNote").foreach { path =>
+    Seq(
+      "/dashboard/settings", "/dashboard/settings/password", "/dashboard/settings/signOutOtherDevices",
+      "/userapi/mistakeVote", "/userapi/mistakeNote"
+    ).foreach { path =>
       // Only "not 404" here: an unauthenticated write is answered 401 rather than bounced, so the client can mint a
       // session and retry instead of having its submission swallowed by a followed redirect (ControllerUtils
       // .anonSignupRedirect). That contract belongs to those specs; this one is about the route existing.

@@ -2,17 +2,17 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
- * Cached data about an OSM way, refreshed periodically from the Overpass API (#4654).
+ * Cached data about an OSM way, refreshed periodically from the OSM API (#4654).
  *
  * @param osmWayId  OSM way identifier.
  * @param tags      The way's full OSM tag map, so future features can read name/sidewalk/surface/etc. without
@@ -20,8 +20,18 @@ import scala.concurrent.ExecutionContext
  * @param maxspeed  Raw OSM `maxspeed` tag (e.g. "25 mph", "30"); None if the way carries no maxspeed tag.
  * @param geom      Way geometry, present only on rows discovered by the on-demand point lookup (batch rows are located
  *                  via street_edge geometry instead).
- * @param source    How the row was written: "batch" (nightly refresh) or "on_demand" (point-lookup fallback).
- * @param updatedAt When the way was last fetched from Overpass; drives the staleness-based refresh.
+ * @param source       Where the tags came from: "batch" (nightly refresh from the OSM API), "on_demand" (Overpass
+ *                     point-lookup fallback), or "history" (recovered from the OSM API's way history after the way
+ *                     died in OSM, #5244 -- empty tags under this source mean the history had nothing usable,
+ *                     checked once).
+ * @param updatedAt    When the way was last fetched by the refresh; drives the staleness-based re-check.
+ * @param missingSince When the refresh first found the way absent from OSM (deleted or merged away); None while it is
+ *                     present. The tags of a missing way are its last known ones, kept because they still describe
+ *                     the street geometry we imported (#5244).
+ * @param osmVersion   The way's OSM edit version as of the last refresh; None on a row the refresh has not written.
+ * @param osmTimestamp When OSM last edited the way itself, as of the last refresh; a link positioned before this
+ *                     (`osm_way_street_edge.matched_at`) may no longer fit it (#5741). A node move edits only the
+ *                     node, so most geometry edits go unseen here.
  */
 case class OsmWay(
     osmWayId: Long,
@@ -29,19 +39,31 @@ case class OsmWay(
     maxspeed: Option[String],
     geom: Option[LineString],
     source: String,
-    updatedAt: OffsetDateTime
+    updatedAt: OffsetDateTime,
+    missingSince: Option[OffsetDateTime],
+    osmVersion: Option[Int] = None,
+    osmTimestamp: Option[OffsetDateTime] = None
 )
+
+/**
+ * What one OSM API multi-fetch says about a live way: its tags, plus edit version and time when the response has them.
+ */
+case class OsmWayFetched(tags: JsObject, version: Option[Int], timestamp: Option[OffsetDateTime])
 
 class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def osmWayId: Rep[Long]           = column[Long]("osm_way_id", O.PrimaryKey)
   def tags: Rep[JsValue]            = column[JsValue]("tags", O.Default(Json.obj()))
   def maxspeed: Rep[Option[String]] = column[Option[String]]("maxspeed")
   def geom: Rep[Option[LineString]] = column[Option[LineString]]("geom")
-  // CHECK (source IN ('batch', 'on_demand')) in the DB (no Slick DSL for CHECK constraints).
-  def source: Rep[String]            = column[String]("source")
-  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
+  // CHECK (source IN ('batch', 'on_demand', 'history')) in the DB (no Slick DSL for CHECK constraints).
+  def source: Rep[String] = column[String]("source")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
+  def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
+  def osmVersion: Rep[Option[Int]]              = column[Option[Int]]("osm_version")
+  def osmTimestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("osm_timestamp")
 
-  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt) <> ((OsmWay.apply _).tupled, OsmWay.unapply)
+  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince, osmVersion, osmTimestamp).mapTo[OsmWay]
 }
 
 @ImplementedBy(classOf[OsmWayTable])
@@ -55,30 +77,33 @@ trait OsmWayTableRepository {}
 class OsmWayTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends OsmWayTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val osmWays           = TableQuery[OsmWayTableDef]
   val osmWayStreetEdges = TableQuery[OsmWayStreetEdgeTableDef]
+  // A street's maxspeed and name come from its primary way (#5741).
+  val primaryWays = TableQuery[OsmWayStreetEdgePrimaryTableDef]
 
   /**
    * Sub query with columns (street_edge_id, maxspeed): (Int, Option[String]).
    *
-   * Left-joined over all streets (like AuditTaskTable.streetCompletedByAnyUser) so consumers can inner-join it as a
+   * Left-joined over all streets (like AuditTaskTable.streetAuditState) so consumers can inner-join it as a
    * plain generator without dropping streets that have no osm_way row yet. That guarantee is load-bearing: the
    * NewTask queries in AuditTaskTable all consume this in inner-join position, so removing the left-join wrapper
    * would silently drop every street that lacks a cached OSM way from task selection.
    */
   def streetMaxSpeeds: Query[(Rep[Int], Rep[Option[String]]), (Int, Option[String]), Seq] = {
-    val speedByStreet = osmWayStreetEdges
+    val speedByStreet = primaryWays
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
 
-    streetEdgeTable.streetsWithTutorial.joinLeft(speedByStreet).on(_.streetEdgeId === _._1).map { case (_edge, _sp) =>
-      (_edge.streetEdgeId, _sp.flatMap(_._2))
-    }
+    streetEdgeTable.streetsWithTutorial
+      .joinLeft(speedByStreet)
+      .on { case (_edge, (speedEdgeId, _)) => _edge.streetEdgeId === speedEdgeId }
+      .map { case (_edge, _sp) => (_edge.streetEdgeId, _sp.flatMap { case (_, maxspeed) => maxspeed }) }
   }
 
   /**
@@ -87,27 +112,91 @@ class OsmWayTable @Inject() (
    * @return Map from street_edge_id to raw maxspeed tag; streets with no cached way or no maxspeed tag are absent.
    */
   def getMaxSpeeds(streetEdgeIds: Seq[Int]): DBIO[Map[Int, String]] = {
-    osmWayStreetEdges
+    primaryWays
       .filter(_.streetEdgeId inSetBind streetEdgeIds)
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
       .result
       .map(_.collect { case (streetEdgeId, Some(maxspeed)) => streetEdgeId -> maxspeed }.toMap)
   }
 
   /**
+   * Gets the OSM `name` tag for each of the given streets, keyed by street_edge_id.
+   *
+   * `inSet` inlines the ids rather than binding them: the AccessScore API passes a whole city's streets, and pgjdbc
+   * caps a statement at 65,535 parameters (Chicago has ~112k) — as `StreetEdgeTable.getStreetLengths` already does.
+   *
+   * @return Map from street_edge_id to the way's name; streets with no cached way or an unnamed way are absent.
+   */
+  def getStreetNames(streetEdgeIds: Seq[Int]): DBIO[Map[Int, String]] = {
+    if (streetEdgeIds.isEmpty) DBIO.successful(Map.empty[Int, String])
+    else
+      primaryWays
+        .filter(_.streetEdgeId inSet streetEdgeIds)
+        .join(osmWays)
+        .on(_.osmWayId === _.osmWayId)
+        .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.tags.+>>("name").?) }
+        .result
+        .map(_.collect { case (streetEdgeId, Some(name)) if name.trim.nonEmpty => streetEdgeId -> name.trim }.toMap)
+  }
+
+  /**
    * Gets the distinct way ids from osm_way_street_edge whose osm_way row is missing or last fetched before `cutoff`.
+   *
+   * Ways marked `missing_since` are included once they go stale like any other: re-asking the OSM API for a few
+   * hundred dead ids a month is one extra request, and it is what clears the mark if a way comes back. The one
+   * exception is a 'history' row with empty tags: the API has never held that id, or held it with nothing on it, so
+   * there is nothing to come back, and asking again would 404 the whole chunk and force the narrowing every month.
    */
   def getWayIdsMissingOrStale(cutoff: OffsetDateTime): DBIO[Seq[Long]] = {
-    osmWayStreetEdges
-      .map(_.osmWayId)
-      .distinct
-      .joinLeft(osmWays)
-      .on(_ === _.osmWayId)
-      .filter { case (_, way) => way.map(_.updatedAt < cutoff).getOrElse(true) }
-      .map(_._1)
-      .result
+    sql"""
+      SELECT DISTINCT osm_way_street_edge.osm_way_id
+      FROM osm_way_street_edge
+      LEFT JOIN osm_way ON osm_way_street_edge.osm_way_id = osm_way.osm_way_id
+      WHERE osm_way.osm_way_id IS NULL
+         OR (osm_way.updated_at < $cutoff AND NOT (osm_way.source = 'history' AND osm_way.tags = '{}'::jsonb))
+      ORDER BY osm_way_street_edge.osm_way_id
+    """.as[Long]
+  }
+
+  /**
+   * Gets the mapped way ids that are gone from OSM and whose tags were lost before the refresh learned to keep them:
+   * marked missing, still empty, and not yet looked up in the OSM history (#5244). Each is a candidate for one
+   * history fetch; `recordHistoryTags` takes it out of this set whatever the history held.
+   */
+  def getWayIdsToBackfill: DBIO[Seq[Long]] = {
+    sql"""
+      SELECT DISTINCT osm_way.osm_way_id
+      FROM osm_way
+      INNER JOIN osm_way_street_edge ON osm_way.osm_way_id = osm_way_street_edge.osm_way_id
+      WHERE osm_way.missing_since IS NOT NULL AND osm_way.tags = '{}'::jsonb AND osm_way.source <> 'history'
+      ORDER BY osm_way.osm_way_id
+    """.as[Long]
+  }
+
+  /**
+   * Stores what the OSM history held for a way that is gone from OSM: the tags of its last visible version, or
+   * nothing. Either way the row's source becomes 'history', so the way is looked up once; with tags recovered the
+   * readers see a bridge again, with none they keep treating the way as unknown.
+   *
+   * Writes only a row that still qualifies for the lookup (gone, empty, not yet 'history'). The nightly actor and the
+   * admin hand-trigger can overlap, and if the other run's refresh found the way alive and wrote live tags in the
+   * meantime, those must win: a historical tag map landing on a present way would otherwise stand for a month.
+   *
+   * Leaves `missing_since` (the way is still gone), `geom`, and `updated_at` alone: `updated_at` is the last
+   * refresh fetch and drives the monthly re-check, which is what lets a reappearing way overwrite this with live
+   * tags.
+   *
+   * @return 1 if the row was still a lookup candidate and is now written, else 0.
+   */
+  def recordHistoryTags(wayId: Long, tags: Option[JsValue], maxspeed: Option[String]): DBIO[Int] = {
+    val storedTags = Json.stringify(tags.getOrElse(Json.obj()))
+    sqlu"""
+      UPDATE osm_way
+      SET tags = $storedTags::jsonb, maxspeed = $maxspeed, source = 'history'
+      WHERE osm_way_id = $wayId AND missing_since IS NOT NULL AND tags = '{}'::jsonb AND source <> 'history'
+    """
   }
 
   /**
@@ -117,35 +206,72 @@ class OsmWayTable @Inject() (
     osmWays
       .filter(_.geom.isDefined)
       .map(way => (way, way.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
-      .filter(_._2 < radiusM)
-      .sortBy(_._2)
-      .map(_._1)
+      .filter { case (_, distanceM) => distanceM < radiusM }
+      .sortBy { case (_, distanceM) => distanceM }
+      .map { case (way, _) => way }
       .result
       .headOption
   }
 
   /**
-   * Inserts or updates a single way, including its geometry. Used by the on-demand point-lookup path.
+   * Inserts or updates a single way, including its geometry. Used by the on-demand point-lookup path, whose Overpass
+   * query carries no edit version, so an existing row keeps the version and timestamp the nightly refresh stored.
    */
-  def upsert(way: OsmWay): DBIO[Int] = osmWays.insertOrUpdate(way)
+  def upsert(way: OsmWay): DBIO[Int] =
+    sqlu"""
+      INSERT INTO osm_way (osm_way_id, tags, maxspeed, geom, source, updated_at, missing_since, osm_version,
+                           osm_timestamp)
+      VALUES (${way.osmWayId}, ${Json.stringify(way.tags)}::jsonb, ${way.maxspeed},
+              ST_GeomFromText(${way.geom.map(_.toText)}, 4326), ${way.source}, ${way.updatedAt}, ${way.missingSince},
+              ${way.osmVersion}, ${way.osmTimestamp})
+      ON CONFLICT (osm_way_id) DO UPDATE
+      SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, geom = EXCLUDED.geom, source = EXCLUDED.source,
+          updated_at = EXCLUDED.updated_at, missing_since = EXCLUDED.missing_since,
+          osm_version = COALESCE(EXCLUDED.osm_version, osm_way.osm_version),
+          osm_timestamp = COALESCE(EXCLUDED.osm_timestamp, osm_way.osm_timestamp)
+    """
 
   /**
-   * Inserts or updates a batch of ways as (osm_way_id, tags, maxspeed) triples with source 'batch'.
+   * Records one refresh chunk: the ways the OSM API holds, as (osm_way_id, what the API said, maxspeed) triples written
+   * with source 'batch', and the requested ids it did not return, which are marked missing.
+   *
+   * A found way takes the new tags and loses any `missing_since` mark. A missing way keeps its tags, maxspeed, and
+   * source untouched -- the last known tags still describe the geometry we imported, and blanking them silently turned
+   * every bridge on a dead way id into a surface street (#5244) -- and gets `missing_since` stamped on the first miss
+   * only, so the column dates the disappearance. A missing way never seen before is inserted with empty tags so it is
+   * not re-queued nightly. Both paths bump `updated_at`, which is what drives the staleness scan.
    *
    * Raw SQL rather than Slick's insertOrUpdate so that an existing row's geom survives: the nightly batch fetches tags
    * only, and overwriting geom with NULL would throw away the geometry an earlier on-demand lookup stored.
+   *
+   * @return Number of rows written, found and missing together.
    */
-  def upsertBatch(ways: Seq[(Long, JsValue, Option[String])], timestamp: OffsetDateTime): DBIO[Int] = {
-    if (ways.isEmpty) DBIO.successful(0)
+  def upsertBatch(
+      found: Seq[(Long, OsmWayFetched, Option[String])],
+      missingWayIds: Seq[Long],
+      timestamp: OffsetDateTime
+  ): DBIO[Int] = {
+    val foundActions = found.map { case (wayId, way, maxspeed) =>
+      sqlu"""
+        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since, osm_version, osm_timestamp)
+        VALUES ($wayId, ${Json.stringify(way.tags)}::jsonb, $maxspeed, 'batch', $timestamp, NULL, ${way.version},
+                ${way.timestamp})
+        ON CONFLICT (osm_way_id) DO UPDATE
+        SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, source = 'batch', updated_at = EXCLUDED.updated_at,
+            missing_since = NULL, osm_version = EXCLUDED.osm_version, osm_timestamp = EXCLUDED.osm_timestamp
+      """
+    }
+    val missingActions = missingWayIds.map { wayId =>
+      sqlu"""
+        INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at, missing_since)
+        VALUES ($wayId, '{}'::jsonb, NULL, 'batch', $timestamp, $timestamp)
+        ON CONFLICT (osm_way_id) DO UPDATE
+        SET updated_at = EXCLUDED.updated_at, missing_since = COALESCE(osm_way.missing_since, EXCLUDED.missing_since)
+      """
+    }
+    val actions = foundActions ++ missingActions
+    if (actions.isEmpty) DBIO.successful(0)
     else {
-      val actions = ways.map { case (wayId, tags, maxspeed) =>
-        sqlu"""
-          INSERT INTO osm_way (osm_way_id, tags, maxspeed, source, updated_at)
-          VALUES ($wayId, ${Json.stringify(tags)}::jsonb, $maxspeed, 'batch', $timestamp)
-          ON CONFLICT (osm_way_id) DO UPDATE
-          SET tags = EXCLUDED.tags, maxspeed = EXCLUDED.maxspeed, source = 'batch', updated_at = EXCLUDED.updated_at
-        """
-      }
       // One transaction per chunk: a single commit instead of one per row, and a failed chunk leaves no partial rows.
       DBIO.sequence(actions).map(_.sum).transactionally
     }

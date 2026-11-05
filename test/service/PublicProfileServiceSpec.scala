@@ -1,26 +1,25 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
 /**
- * DB-backed functional test for the public-profile privacy gate and trophy queries (User Dashboard redesign). Boots
- * the real app (real Slick/PostGIS) and calls UserService directly, so it covers the actual findByUsername +
- * getPrivacySettings + TrophyTable SQL without needing Silhouette fixtures for the SecuredAction controllers.
+ * DB-backed test for the public profile's privacy gate and trophy queries. It calls UserService directly, so it covers
+ * the real SQL without needing sign-in fixtures for the controllers.
  *
  * Assertions use a username/user id that cannot exist, so they are deterministic against whatever the connected DB
  * contains: an unknown mapper must resolve to "not found" (never leak), and the trophy queries must run and return an
  * empty result rather than throwing. Requires Postgres+PostGIS (DATABASE_URL / _USER / _PASSWORD, as in dev/CI).
  */
-class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PublicProfileServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService = app.injector.instanceOf[UserService]
   private val messages    = play.api.test.Helpers.stubMessages()

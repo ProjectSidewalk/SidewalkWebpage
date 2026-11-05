@@ -1,8 +1,8 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import service.TrafficService.GaCredentials
+import util.SidewalkSpec
 
 import java.nio.charset.StandardCharsets
 import java.security.{KeyPair, KeyPairGenerator, Signature}
@@ -13,7 +13,7 @@ import java.util.Base64
  * Pure-logic tests for the GA traffic reporting (Planning#8): the weekly bucketing and anomaly rules, and the
  * service-account JWT assembly, verified against a throwaway RSA keypair — no network, no app boot, no database.
  */
-class TrafficMathSpec extends PlaySpec {
+class TrafficMathSpec extends SidewalkSpec {
 
   private def dailySessions(anchor: LocalDate, perDay: Int, days: Int): Map[LocalDate, Int] =
     0.until(days).map(d => anchor.minusDays(d.toLong) -> perDay).toMap

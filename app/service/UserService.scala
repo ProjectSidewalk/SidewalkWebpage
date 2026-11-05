@@ -2,26 +2,26 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
-import models.label.{LabelLocation, LabelTable}
+import models.label.{LabelLocation, LabelTable, LabelType}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
-import models.user._
+import models.user.*
 import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api.*
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
-import slick.dbio.DBIO
 
-import java.time.format.DateTimeFormatter
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -57,9 +57,67 @@ case class PublicProfile(
 )
 
 /**
+ * One member's row on the admin team page (#5381). Every count is all-time and city-scoped, on the definitions that
+ * member's own dashboard uses, so an admin comparing the two never sees them disagree.
+ *
+ * @param labels          Labels they've placed (deleted and tutorial labels left out).
+ * @param validations     Validations they've given, counting votes the #4842 repair later voided.
+ * @param labelsValidated How many of their own labels someone has judged agree-or-disagree.
+ * @param labelsAgreed    How many of those were agreed with; with `labelsValidated` this gives their accuracy.
+ * @param lastActive      The later of their last label and their last validation.
+ * @param excluded        Whether their work is excluded from this city's stats, which mutes every count above.
+ */
+case class TeamMemberStats(
+    userId: String,
+    username: String,
+    role: Role,
+    labels: Int,
+    validations: Int,
+    distanceMeters: Double,
+    labelsValidated: Int,
+    labelsAgreed: Int,
+    lastActive: Option[OffsetDateTime],
+    highQuality: Boolean,
+    excluded: Boolean
+)
+
+/**
+ * A team's totals for the admin team page's summary tiles (#5381). Accuracy travels as pooled `labelsValidated` /
+ * `labelsAgreed` rather than an averaged rate, so one member with three labels can't swing a class of thirty.
+ */
+case class TeamTotals(
+    members: Int,
+    labels: Int,
+    validations: Int,
+    distanceMeters: Double,
+    labelsValidated: Int,
+    labelsAgreed: Int
+)
+
+/**
+ * One account an admin can pick when adding someone to a team (#5381).
+ *
+ * @param team The team they're already on, so the admin can see that adding them would move them.
+ */
+/**
+ * Everything `/admin/team/:teamId` shows (#5381).
+ *
+ * @param members One row per member, ordered by labels placed (most first).
+ */
+case class TeamOverview(team: Team, members: Seq[TeamMemberStats], totals: TeamTotals)
+
+/**
+ * The leaderboard's "Your team" table (#5762).
+ *
+ * @param members Teammates who qualify for the leaderboard, ranked.
+ * @param viewerOptedOut True when the viewer turned off "show me on the leaderboard", which is why they aren't listed.
+ */
+case class TeamBoard(team: Team, members: Seq[LeaderboardStat], viewerOptedOut: Boolean)
+
+/**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
- * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
+ * @param labelType   LabelType name (e.g. "NoCurbRamp").
  * @param cssKey      Kebab-case key for the `--color-label-*` token (e.g. "no-curb-ramp").
  * @param displayName Human-readable name (e.g. "No Curb Ramp").
  * @param pct         Accuracy percent (correct / validated), 0–100.
@@ -227,6 +285,17 @@ case class AdminUserProfileData(
 object UserService {
 
   /**
+   * Cache key for the global board of `n` rows, shared with the spec that seeds it (#5235).
+   *
+   * The `v2-swr` suffix names the stored shape: [[SwrCache]] wraps the value in a timestamp and reads it back with an
+   * erased type, so the bare value the plain-expiry cache used to keep must never be found under this key.
+   *
+   * @param n How many rows the board holds.
+   * @return  The key the board is cached under.
+   */
+  private[service] def globalLeaderboardCacheKey(n: Int): String = s"getGlobalLeaderboardStats_$n:v2-swr"
+
+  /**
    * Minimum cohort size for showing a numeric rank/percentile in "your standing". Below this, the UI reframes to a
    * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
    */
@@ -287,8 +356,7 @@ object UserService {
   }
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
-  private val PrimaryLabelTypes: Seq[String] =
-    Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
+  private val PrimaryLabelTypes: Seq[String] = LabelType.primaryLabelTypeNames
 
   /**
    * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a
@@ -310,22 +378,26 @@ object UserService {
    * @return        True if the profile's accomplishments may be shown to this viewer.
    */
   def profileVisible(privacy: Option[(Boolean, Boolean)], isOwner: Boolean): Boolean =
-    isOwner || privacy.exists(_._2)
+    isOwner || privacy.exists { case (_, publicProfile) => publicProfile }
 
   /**
-   * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
+   * Builds the per-type accuracy rows from raw per-type tallies. Pure/testable.
    *
    * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
    * flags the lowest-accuracy type (among those with enough validations) as `weakest`, and orders canonically.
    */
-  def computeAccuracyByType(rows: Seq[(String, Int, Int)]): Seq[AccuracyByType] = {
+  def computeAccuracyByType(rows: Seq[LabelTypeTally]): Seq[AccuracyByType] = {
     val primary                       = PrimaryLabelTypes.toSet
     val pcts: Seq[(String, Int, Int)] = rows.collect {
-      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+      case LabelTypeTally(t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
         (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
     }
-    val weakest: Option[String] = pcts.filter(_._3 >= MinValidatedForWeakest).sortBy(_._2).headOption.map(_._1)
-    pcts.sortBy(p => PrimaryLabelTypes.indexOf(p._1)).map { case (t, pct, total) =>
+    val weakest: Option[String] = pcts
+      .filter { case (_, _, total) => total >= MinValidatedForWeakest }
+      .sortBy { case (_, pct, _) => pct }
+      .headOption
+      .map { case (t, _, _) => t }
+    pcts.sortBy { case (t, _, _) => PrimaryLabelTypes.indexOf(t) }.map { case (t, pct, total) =>
       AccuracyByType(t, kebabCase(t), spacedCase(t), pct, total, weakest.contains(t))
     }
   }
@@ -371,7 +443,7 @@ object UserService {
     val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
     val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
     val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
-    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
+    val fmt                            = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale)
     val cells: Seq[Option[StreakCell]] = for {
       w <- 0 until HeatmapWeeks
       d <- 0 until 7
@@ -422,9 +494,35 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+
+  /**
+   * Excludes or un-excludes a user, then recounts the labels they validated and updates those labelers' stats.
+   *
+   * Excluding also marks them manually low quality, which un-excluding leaves in place.
+   * @return The user's new high_quality value; None if no user_stat row was found
+   */
+  def setUserExcluded(userId: String, excluded: Boolean): Future[Option[Boolean]]
   def getUserStats(userId: String): Future[Option[UserStat]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
+
+  /** Turns community service hour tracking on or off, for every city. */
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int]
+
+  /** Saves the user's units for every city; None follows the site language. */
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
+
+  /** Opts the user out of project news by email, for every city (#5864); a repeat keeps the first time and reason. */
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int]
+
+  /** Records the user ticking the news box themselves, which subscribes them and is the proof of consent. */
+  def consentToNewsEmail(userId: String): Future[Int]
+
+  /** @return Where the user stands on project news by email, for every city. */
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus]
+
+  /** @return (user id, username, email) of everyone project news may be sent to, by email. */
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -437,17 +535,44 @@ trait UserService {
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+
+  /**
+   * Puts a user on a team of their own choosing. Only admins may put someone on a closed team, but a user an admin
+   * put on one can still re-save it (Settings posts the current team).
+   *
+   * @return Whether the user is on the team now; false if it's closed or doesn't exist.
+   */
+  def joinTeam(userId: String, teamId: Int): Future[Boolean]
   def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
+  def findTeamByIdOrName(idOrName: String): Future[Option[Team]]
+  def findTeam(teamId: Int): Future[Option[Team]]
+
+  /**
+   * @param teamId The team to describe.
+   * @return The team with its members and their totals, or None when no team has that id.
+   */
+  def getTeamOverview(teamId: Int): Future[Option[TeamOverview]]
+
+  /**
+   * @param query A fragment to match case-insensitively against username or email; a blank query matches nobody.
+   * @param limit The most matches to return.
+   */
+  def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]]
   def createTeam(name: String, description: String): Future[Int]
-  def getLeaderboardStats(
-      n: Int,
-      timePeriod: String = "overall",
-      byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
-  ): Future[Seq[LeaderboardStat]]
+
+  /**
+   * @param n The most rows to return.
+   * @param timePeriod Either "overall" or "weekly".
+   * @param byTeam True to rank teams against each other instead of users.
+   * @return The ranked rows, best first.
+   */
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
+
+  /** @return The viewer's team table, or None when they aren't on a team. */
+  def getTeamBoard(userId: String): Future[Option[TeamBoard]]
 
   /**
    * Gets the all-time global leaderboard: top contributors by labels summed across every included city (#3719).
@@ -516,11 +641,12 @@ class UserServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
     userUtmTable: UserUtmTable,
+    userSettingsTable: UserSettingsTable,
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
-    swrCache: SwrCache,
-    implicit val ec: ExecutionContext
-) extends UserService
+    swrCache: SwrCache
+)(using ec: ExecutionContext)
+    extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -563,6 +689,21 @@ class UserServiceImpl @Inject() (
     } yield currUserStats.map(_.highQuality))
   }
 
+  def setUserExcluded(userId: String, excluded: Boolean): Future[Option[Boolean]] = {
+    db.run((for {
+      _             <- userStatTable.updateExcluded(userId, excluded)
+      labelsChanged <- labelTable.recalculateValidationCounts(Some(userId))
+      // With no label's counts changed, no labeler's accuracy or quality can have either.
+      _ <-
+        if (labelsChanged == 0) DBIO.successful(0)
+        else
+          userStatTable.updateAccuracyForLabelersValidatedBy(userId) >>
+            userStatTable.updateUserQualityForLabelersValidatedBy(userId)
+      _         <- if (excluded) DBIO.successful(0) else userStatTable.updateUserQuality(userId)
+      userStats <- userStatTable.getStatsFromUserId(userId)
+    } yield userStats.map(_.highQuality)).transactionally)
+  }
+
   def getUserStats(userId: String): Future[Option[UserStat]] = db.run(userStatTable.getStatsFromUserId(userId))
 
   /**
@@ -595,6 +736,21 @@ class UserServiceImpl @Inject() (
 
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
     db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
+
+  def setCommunityService(userId: String, enabled: Boolean): Future[Int] =
+    db.run(userSettingsTable.setCommunityService(userId, enabled))
+
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
+    db.run(userSettingsTable.setMeasurementSystem(userId, system))
+
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int] =
+    db.run(userSettingsTable.optOutOfNewsEmail(userId, source))
+
+  def consentToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.consentToNewsEmail(userId))
+
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
+
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
 
   def getPublicProfile(
       username: String,
@@ -694,6 +850,13 @@ class UserServiceImpl @Inject() (
     db.run(updateTeamAction)
   }
 
+  def joinTeam(userId: String, teamId: Int): Future[Boolean] =
+    db.run(teamTable.find(teamId).zip(userTeamTable.getTeam(userId))).flatMap {
+      case (Some(team), current) if team.open || current.exists(_.teamId == teamId) =>
+        setUserTeam(userId, teamId).map(_ => true)
+      case _ => Future.successful(false)
+    }
+
   def leaveTeam(userId: String): Future[Int] = {
     val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {
       case Some(team) => userTeamTable.remove(userId, team.teamId)
@@ -706,31 +869,98 @@ class UserServiceImpl @Inject() (
 
   def getAllOpenTeams: Future[Seq[Team]] = db.run(teamTable.getAllOpenTeams)
 
+  def findTeamByIdOrName(idOrName: String): Future[Option[Team]] = db.run(teamTable.findByIdOrName(idOrName))
+
+  def findTeam(teamId: Int): Future[Option[Team]] = db.run(teamTable.find(teamId))
+
+  def searchUsers(query: String, limit: Int): Future[Seq[UserSearchResult]] = {
+    if (query.trim.isEmpty) Future.successful(Seq())
+    else {
+      db.run(sidewalkUserTable.searchUsers(query, limit))
+    }
+  }
+
+  def getTeamOverview(teamId: Int): Future[Option[TeamOverview]] = {
+    val overview: DBIO[Option[TeamOverview]] = teamTable.find(teamId).flatMap {
+      case None       => DBIO.successful(None): DBIO[Option[TeamOverview]]
+      case Some(team) =>
+        userTeamTable.getMembers(teamId).flatMap { members =>
+          val userIds: Seq[String] = members.map(_.userId)
+          // `inSet Nil` is a query that can only return nothing, so an empty team skips the five stat queries.
+          if (userIds.isEmpty) {
+            DBIO.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0)))): DBIO[Option[TeamOverview]]
+          } else {
+            for {
+              labelCounts      <- labelTable.countLabelsAndLatestByUsers(userIds)
+              validationCounts <- labelValidationTable.countValidationsAndLatestByUsers(userIds)
+              distances        <- auditTaskTable.getDistanceAuditedByUsers(userIds)
+              judged           <- labelValidationTable.getValidationCountsForUsers(userIds)
+              quality          <- userStatTable.getQualityAndExclusionForUsers(userIds)
+            } yield {
+              val labelsByUser      = labelCounts.map(c => c.userId -> (c.count, c.latest)).toMap
+              val validationsByUser = validationCounts.map(c => c.userId -> (c.count, c.latest)).toMap
+              val distanceByUser    = distances.toMap
+              val judgedByUser      = judged.toMap
+              val qualityByUser     = quality.map(q => q.userId -> (q.highQuality, q.excluded)).toMap
+
+              val rows: Seq[TeamMemberStats] = members
+                .map { case UserNameAndRole(userId, username, role) =>
+                  val (labels, lastLabel)       = labelsByUser.getOrElse(userId, (0, None))
+                  val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
+                  val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))
+                  // No user_stat row means they've never visited this city; read that as the default good standing.
+                  val (highQuality, excluded) = qualityByUser.getOrElse(userId, (true, false))
+                  TeamMemberStats(
+                    userId,
+                    username,
+                    role,
+                    labels,
+                    validations,
+                    distanceByUser.getOrElse(userId, 0d),
+                    labelsValidated,
+                    agreed,
+                    Seq(lastLabel, lastVal).flatten.reduceOption((a, b) => if (a.isAfter(b)) a else b),
+                    highQuality,
+                    excluded
+                  )
+                }
+                .sortBy(member => (-member.labels, member.username.toLowerCase))
+
+              val totals = TeamTotals(
+                members = rows.size,
+                labels = rows.map(_.labels).sum,
+                validations = rows.map(_.validations).sum,
+                distanceMeters = rows.map(_.distanceMeters).sum,
+                labelsValidated = rows.map(_.labelsValidated).sum,
+                labelsAgreed = rows.map(_.labelsAgreed).sum
+              )
+              Some(TeamOverview(team, rows, totals))
+            }
+          }
+        }
+    }
+    db.run(overview)
+  }
+
   def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))
 
   def getLeaderboardStats(
       n: Int,
       timePeriod: String = "overall",
-      byTeam: Boolean = false,
-      userIdForTeam: Option[String] = None
+      byTeam: Boolean = false
   ): Future[Seq[LeaderboardStat]] = {
     db.run(for {
-      // If we are only showing the leaderboard for the user's team, get the teamId.
-      teamId: Option[Int] <- userIdForTeam match {
-        case Some(userId) => userTeamTable.getTeam(userId).map(_.map(_.teamId))
-        case None         => DBIO.successful(None)
-      }
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
-      stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
+      stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, None, streetDist)
     } yield stats)
   }
 
   def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
     // SWR, not expiry: an expired entry makes the next request pay for the ~50-schema union before the page renders,
-    // on a connection Explore and Validate share (#4600/#4931). The key encodes the value shape because `T` erases.
+    // on a connection Explore and Validate share (#4600, #5235). The board is all-time, so a stale copy is nearly free.
     swrCache
       .staleWhileRevalidate[Option[Seq[GlobalLeaderboardEntry]]](
-        s"getGlobalLeaderboardStats_$n:v2-swr",
+        UserService.globalLeaderboardCacheKey(n),
         ConfigService.CrossCityFreshFor,
         ConfigService.CrossCityMaxAge
       ) {
@@ -741,16 +971,18 @@ class UserServiceImpl @Inject() (
             val cityIdBySchema: Map[String, String] = scope.cities.map { case (cityId, schema) =>
               schema -> cityId
             }.toMap
-            db.run(userStatTable.getGlobalLeaderboardStats(scope.cities.map(_._2), scope.optOutSchemas, n)).flatMap {
-              stats =>
-                // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
-                // earned entirely in another city has no profile to link to here.
-                db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
-                  Some(stats.map { stat =>
-                    GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
-                      stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
-                  })
-                }
+            db.run(
+              userStatTable
+                .getGlobalLeaderboardStats(scope.cities.map { case (_, schema) => schema }, scope.optOutSchemas, n)
+            ).flatMap { stats =>
+              // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
+              // earned entirely in another city has no profile to link to here.
+              db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
+                Some(stats.map { stat =>
+                  GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
+                    stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
+                })
+              }
             }
           }
         }
@@ -787,7 +1019,7 @@ class UserServiceImpl @Inject() (
               // matches the hero KPI exactly. Other cities keep the nightly value — recomputing geodesic lengths in a
               // 50-way union is what the cross-schema query exists to avoid.
               liveMeters <- db.run(auditTaskTable.getDistanceAudited(userId))
-              rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), userId))
+              rows <- db.run(userStatTable.getCrossCityUserStats(scope.map { case (_, schema) => schema }, userId))
             } yield CrossCityFanOut(rows, currentSchema, liveMeters)
           }
           .map { fanOut =>
@@ -841,6 +1073,20 @@ class UserServiceImpl @Inject() (
    * Computes this week's standing (with a neighbor slice) and last week's rank in one round trip, then sets `delta`
    * to `lastWeekRank - thisWeekRank` (positive = climbed). `delta` is `None` if the user wasn't ranked last week.
    */
+  def getTeamBoard(userId: String): Future[Option[TeamBoard]] = {
+    db.run(userTeamTable.getTeam(userId).flatMap {
+      case None       => DBIO.successful(None)
+      case Some(team) =>
+        for {
+          streetDist <- streetService.getTotalStreetDistanceDBIO
+          // The whole team rather than a top 10, so everyone in a class can find themselves; the page pages it.
+          members <- userStatTable
+            .getLeaderboardStats(Int.MaxValue, teamId = Some(team.teamId), streetDistance = streetDist)
+          privacy <- userStatTable.getPrivacySettings(userId)
+        } yield Some(TeamBoard(team, members, viewerOptedOut = privacy.exists(!_._1)))
+    })
+  }
+
   def getUserStanding(userId: String): Future[Option[UserStanding]] = {
     db.run(for {
       thisWeek <- userStatTable.getUserStanding(userId, "weekly", n = 2)
@@ -851,7 +1097,7 @@ class UserServiceImpl @Inject() (
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats] = {
     db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
       val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
-      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")), locale)
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("America/Los_Angeles")), locale)
     }
   }
 
@@ -859,7 +1105,7 @@ class UserServiceImpl @Inject() (
     db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
   }
 
-  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  /** Explore-this-region link for a region trophy — opens the audit tool scoped to that region. */
   private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
 
   /**
@@ -877,7 +1123,7 @@ class UserServiceImpl @Inject() (
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
     val freeExploreF    = db.run(trophyTable.getFreeExplorationTrophyFlags(userId))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
-    val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
+    val weekOfFmt       = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(messages.lang.toLocale)
     for {
       cityPioneer                            <- cityPioneerF
       regionPioneers                         <- regionPioneersF
@@ -899,23 +1145,23 @@ class UserServiceImpl @Inject() (
           link = Some(exploreRegionLink(regionId))
         )
       }
-      val championTrophies = champions.map { case (name, regionId, count) =>
+      val championTrophies = champions.map { champion =>
         Trophy(
           "👑",
-          s"$name champion",
-          messages("dashboard.trophy.sub.champion", "%,d".format(count)),
+          s"${champion.regionName} champion",
+          messages("dashboard.trophy.sub.champion", "%,d".format(champion.labelCount)),
           "region",
-          link = Some(exploreRegionLink(regionId))
+          link = Some(exploreRegionLink(champion.regionId))
         )
       }
-      val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
-        val weekLabel = LocalDate.parse(weekOf).format(weekOfFmt)
+      val weeklyTrophies = weekly.map { podium =>
+        val weekLabel = LocalDate.parse(podium.weekOf).format(weekOfFmt)
         Trophy(
-          medals.getOrElse(rank, "🏅"),
+          medals.getOrElse(podium.rank, "🏅"),
           "Top labeler",
           messages("dashboard.trophy.sub.weekly", weekLabel),
           "podium",
-          rank
+          podium.rank
         )
       }
       // Participation trophies rather than rankings, so they sit last — after everything that had to be earned
@@ -972,7 +1218,8 @@ class UserServiceImpl @Inject() (
             // unreadable schema does — and has to be counted the same way too.
             val (nameable, unnameable) = worked.partition { case (cityId, _) => cityInfoById.contains(cityId) }
             if (unnameable.nonEmpty) {
-              logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
+              val unnamedCityIds = unnameable.map { case (cityId, _) => cityId }.mkString(", ")
+              logger.warn(s"No city info for $unnamedCityIds, omitting from the hours breakdown")
             }
 
             // Sorted on full precision, so the order reflects the real amounts rather than whichever way a tie rounded.

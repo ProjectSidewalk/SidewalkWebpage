@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Pure tests for the tenth-rounding behind the Time Check page's hours breakdown (#4526).
@@ -9,7 +9,7 @@ import org.scalatestplus.play.PlaySpec
  * have to add up to the headline they hand a supervisor, while the headline stays the most accurate figure the
  * per-city numbers support.
  */
-class HoursApportionmentSpec extends PlaySpec {
+class HoursApportionmentSpec extends SidewalkSpec {
 
   private def city(id: String, hours: Double): CityHours =
     CityHours(id, id.capitalize, hours, isCurrentCity = false)
@@ -65,7 +65,7 @@ class HoursApportionmentSpec extends PlaySpec {
     "never reorder a descending list, so the table stays sorted after apportioning" in {
       apportion(Seq(5.0, 0.49, 0.46, 0.45, 0.2)).map(_.hours).sliding(2).foreach {
         case Seq(higher, lower) => higher must be >= lower
-        case _                  => ()
+        case _                  => succeed
       }
     }
 

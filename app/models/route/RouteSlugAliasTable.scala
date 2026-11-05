@@ -2,7 +2,7 @@ package models.route
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -16,7 +16,7 @@ class RouteSlugAliasTableDef(tag: slick.lifted.Tag) extends Table[RouteSlugAlias
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
-  def * = (slug, routeId, createdAt) <> ((RouteSlugAlias.apply _).tupled, RouteSlugAlias.unapply)
+  def * = (slug, routeId, createdAt).mapTo[RouteSlugAlias]
 
   def route = foreignKey("route_slug_alias_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
 }

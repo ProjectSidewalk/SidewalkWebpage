@@ -6,16 +6,16 @@ import play.api.http.DefaultHttpErrorHandler
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.typedmap.TypedMap
-import play.api.mvc.Results._
-import play.api.mvc._
+import play.api.mvc.Results.*
+import play.api.mvc.*
 import play.api.routing.Router
 import play.api.{Configuration, Environment, Logger, OptionalSourceMapper, UsefulException}
 import play.silhouette.api.services.AuthenticatorService
 import play.silhouette.api.util.ExtractableRequest
 import play.silhouette.impl.authenticators.CookieAuthenticator
 
-import javax.inject._
-import scala.concurrent._
+import javax.inject.*
+import scala.concurrent.*
 
 @Singleton
 class CustomErrorHandler @Inject() (
@@ -25,7 +25,7 @@ class CustomErrorHandler @Inject() (
     router: Provider[Router],
     authenticatorService: AuthenticatorService[CookieAuthenticator],
     messagesApi: MessagesApi
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends DefaultHttpErrorHandler(env, config, sourceMapper, router) {
 
   private val logger = Logger(this.getClass)
@@ -37,6 +37,11 @@ class CustomErrorHandler @Inject() (
    */
   private def isApiRequest(request: RequestHeader): Boolean = request.path.startsWith("/v3/api/")
 
+  /** City-specific tag images the frontend requests in case they exist, then falls back to the generic one (#5366). */
+  private def isOptionalCityAsset(path: String): Boolean =
+    path.startsWith("/assets/images/examples/tags/india/") ||
+      path.startsWith("/assets/images/examples/tags/zurich/")
+
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     // Don't log common, harmless 404s
     val shouldSkipLogging =
@@ -44,12 +49,12 @@ class CustomErrorHandler @Inject() (
         request.path.endsWith(".map") ||              // Source maps
           request.path.startsWith("/.well-known/") || // Well-known URLs
           request.path == "/favicon.ico" ||           // Common favicon requests
-          request.path.endsWith("-india.json")        // We only added the India files for en so far so we expect these.
+          isOptionalCityAsset(request.path)
       )
 
     if (!shouldSkipLogging) {
       logger.warn(s"Client error occurred: ${request.uri} - $statusCode - $message")
-      logUserInfo(request)
+      val _ = logUserInfo(request)
     }
     // API requests get the same RFC 7807 problem+json envelope the controllers use, so framework-level errors
     // (unknown route, malformed typed route param, etc.) are consistent with handler-level errors (#3931).
@@ -63,7 +68,7 @@ class CustomErrorHandler @Inject() (
     } else {
       statusCode match {
         case NOT_FOUND =>
-          implicit val messages: Messages = messagesApi.preferred(request)
+          given messages: Messages = messagesApi.preferred(request)
           Future.successful(
             NotFound(
               views.html.errors.errorPage(
@@ -103,7 +108,7 @@ class CustomErrorHandler @Inject() (
    * @return          A 500 response rendering the shared error page.
    */
   override protected def onProdServerError(request: RequestHeader, exception: UsefulException): Future[Result] = {
-    implicit val messages: Messages = messagesApi.preferred(request)
+    given messages: Messages = messagesApi.preferred(request)
     Future.successful(
       InternalServerError(
         views.html.errors.errorPage(
@@ -134,7 +139,7 @@ class CustomErrorHandler @Inject() (
     val extractableRequest = new ExtractableRequest(dummyRequest)
 
     val userInfo = authenticatorService
-      .retrieve(extractableRequest)
+      .retrieve(using extractableRequest)
       .flatMap {
         case Some(authenticator) if authenticator.isValid =>
           Future.successful(s"Email: ${authenticator.loginInfo.providerKey}, IP: ${request.remoteAddress}")

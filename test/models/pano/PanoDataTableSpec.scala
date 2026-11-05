@@ -1,8 +1,7 @@
 package models.pano
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -10,11 +9,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import service.PanoDataService.{LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 import slick.jdbc.TransactionIsolation
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract tests for the two `PanoDataTable` queries behind imagery-expiry checking: the reuse lookup that
@@ -27,10 +27,10 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI). The
  * eager scheduling actors are disabled so they don't fire background work during the test.
  */
-class PanoDataTableSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PanoDataTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
@@ -152,6 +152,40 @@ class PanoDataTableSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return nothing when asked for no panos" in {
       run(panoDataTable.getPanoIdsToCheckExpiration(0, expired = false)) mustBe empty
+    }
+  }
+
+  "PanoDataTable.captureDateSql" should {
+    // Runs the SQL on one raw capture_date value, returning the date it reads (as text) or None.
+    def parse(raw: String): Option[String] =
+      run(
+        sql"SELECT (#${PanoDataTable.captureDateSql("v")})::text FROM (SELECT $raw::text AS v) t"
+          .as[Option[String]]
+          .head
+      )
+
+    "read year, month, and day precision, filling missing parts with the 1st" in {
+      parse("2014") mustBe Some("2014-01-01")
+      parse("2014-05") mustBe Some("2014-05-01")
+      parse("2014-5") mustBe Some("2014-05-01")
+      parse("2014-05-17") mustBe Some("2014-05-17")
+    }
+
+    "treat blank and junk values as unknown instead of failing the query" in {
+      parse("") mustBe None
+      parse("Invalid date") mustBe None
+      parse("2014-13") mustBe None
+      parse("2014-00") mustBe None
+      parse("2014-05junk") mustBe None
+    }
+
+    "treat years from before street-level imagery as unknown" in {
+      parse("1970-01") mustBe None
+      parse("0000-01") mustBe None
+    }
+
+    "roll an impossible day forward rather than failing the query" in {
+      parse("2014-02-31") mustBe Some("2014-03-03")
     }
   }
 }

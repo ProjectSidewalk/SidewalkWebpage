@@ -10,46 +10,35 @@
  * The two counts the page shows *are* deliberately different — the KPI uses the site-wide re-audit flag, the map
  * tier counts only audits that carry weight in the priority formula — and that difference has its own case, because
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
- *
- * Runs under jsdom (jest.config.js). The page's classes are bare top-level declarations in a concatenated bundle, so
- * they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { FakeLngLatBounds } from './lngLatBoundsStub.js';
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+useUtil(metricDistanceUtil);
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
 
-/** Loads the page and every class it collaborates with into global scope. */
-function loadPage() {
-  const read = (file) => fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)([
-    read('AdminShell.js'), 'globalThis.AdminShell = AdminShell;',
-    read('StreetPriorityMap.js'), 'globalThis.StreetPriorityTiers = StreetPriorityTiers;',
-    'globalThis.StreetPriorityMap = StreetPriorityMap;',
-    read('StreetPriorityTable.js'), 'globalThis.StreetPriorityTable = StreetPriorityTable;',
-    read('ImageryPipelinePanel.js'), 'globalThis.ImageryPipelinePanel = ImageryPipelinePanel;',
-    read('ImageryPage.js'), 'ImageryPage;',
-  ].join('\n'));
-}
-
-const ImageryPage = loadPage();
+mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+  MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+}));
+// What the page gets as mapbox-gl: a double each test refills through stubMapbox().
+const mapboxgl = {};
+mockModule('frontend/js/common/mapboxgl.js', () => ({ default: mapboxgl }));
+const { ImageryPage } = await loadModules('frontend/js/admin-dashboard/ImageryPage.js');
 
 /** Mapbox GL cannot run under jsdom; this records what the map was told and fires 'load' immediately. */
 function stubMapbox() {
   const state = { featureStates: [], handlers: [] };
-  global.mapboxgl = {
+  Object.assign(mapboxgl, {
     accessToken: null,
+    LngLatBounds: FakeLngLatBounds,
     Map: class {
       constructor(options) {
-        // Mapbox rejects a non-finite bounds box, which is what a FeatureCollection with no features produces.
-        if (!options.bounds.flat().every(Number.isFinite)) throw new Error('Invalid LngLat object');
+        // Mapbox rejects empty bounds, which is what a FeatureCollection with no features produces.
+        if (options.bounds.isEmpty()) throw new Error('Invalid LngLat object');
         state.options = options;
       }
 
@@ -78,7 +67,7 @@ function stubMapbox() {
       remove() { return this; }
     },
     NavigationControl: class {},
-  };
+  });
   return state;
 }
 
@@ -120,6 +109,7 @@ const street = (overrides = {}) => ({
   last_audit_date: null,
   median_newest_capture: null,
   imagery_updated_at: null,
+  polled_at: null,
   length_m: 1609.34,
   ...overrides,
 });
@@ -129,12 +119,13 @@ const CITY = [
   street({ street_edge_id: 1, priority: 1 }),
   street({ street_edge_id: 2, priority: 0.667, outdated_good_count: 1, outdated: true,
     last_audit_date: '2021-05-04', median_newest_capture: '2025-06-01',
-    imagery_updated_at: '2026-08-15T00:45:00Z' }),
+    imagery_updated_at: '2026-08-15T00:45:00Z', polled_at: '2026-08-15T00:45:00Z' }),
   street({ street_edge_id: 3, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10',
-    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z' }),
+    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z',
+    polled_at: '2026-02-01T00:45:00Z' }),
   street({ street_edge_id: 4, region_id: 11, region_name: 'Downtown', priority: 0.333, fresh_good_count: 2,
     last_audit_date: '2026-07-01', median_newest_capture: '2026-07-20',
-    imagery_updated_at: '2024-03-01T00:45:00Z' }),
+    imagery_updated_at: '2024-03-01T00:45:00Z', polled_at: '2024-03-01T00:45:00Z' }),
 ];
 
 /** GeoJSON for the given street ids, in the shape /v3/api/streets serves. */
@@ -174,11 +165,13 @@ const report = (overrides = {}) => ({
 });
 
 /** Renders the page against canned responses and waits for the map's load event. */
-async function renderPage({ streets = CITY, features, pipeline = report(), failStreets = false } = {}) {
-  document.body.innerHTML = MARKUP;
+async function renderPage({
+  streets = CITY, features, pipeline = report(), failStreets = false, markup = MARKUP,
+} = {}) {
+  document.body.innerHTML = markup;
   charts.length = 0;
   const mapState = stubMapbox();
-  global.fetch = jest.fn((url) => {
+  window.fetch = vi.fn((url) => {
     if (url.startsWith('/adminapi/imageryFreshness')) {
       return Promise.resolve({ ok: true, json: async () => pipeline });
     }
@@ -205,12 +198,8 @@ const text = (id) => document.getElementById(id).textContent;
 const regionRows = () => [...document.querySelectorAll('#imagery-region-table tbody tr')];
 const streetRows = () => [...document.querySelectorAll('#imagery-street-table tbody tr')];
 
-beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
+beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
-afterEach(() => {
-  jest.restoreAllMocks();
-  delete global.mapboxgl;
-});
 
 describe('ImageryPage KPIs', () => {
   test('counts re-audits with the site-wide flag, so the number matches Overview and Coverage', async () => {
@@ -218,7 +207,7 @@ describe('ImageryPage KPIs', () => {
     // Street 2 is the only one carrying `outdated`; the tier count would agree here, and the case below is the one
     // where they diverge.
     expect(text('kpi-needs-reaudit')).toBe('1');
-    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi of audited street with newer imagery');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.6 km with newer imagery');
   });
 
   test('counts never-audited streets out of every routable street', async () => {
@@ -227,29 +216,37 @@ describe('ImageryPage KPIs', () => {
     expect(text('kpi-unaudited-note')).toBe('of 4 routable streets');
   });
 
-  test('reports how much of the audited city the rotation has actually reached', async () => {
+  test('reports how much of the city the rotation has actually reached, and how far back it goes', async () => {
     await renderPage();
-    // Three streets have been audited; all three carry a polled capture date.
-    expect(text('kpi-rotation')).toBe('100%');
-    expect(text('kpi-rotation-note')).toContain('3 of 3 audited streets');
+    // Three of the four routable streets carry a poll stamp; the oldest is 2024-03-01T00:45Z, 902 whole days before
+    // the pinned clock.
+    expect(text('kpi-rotation')).toBe('75%');
+    expect(text('kpi-rotation-note')).toContain('3 of 4 routable streets polled at least once');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 902 days ago');
   });
 
-  test('reports an unmeasured audited street as unmeasured rather than as up to date', async () => {
+  test('counts a street as polled by its poll stamp, not by whether the poll found dated imagery', async () => {
     await renderPage({
       streets: [
-        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01' }),
+        // A conclusive poll that attributed nothing dated: polled, with no median.
+        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01',
+          polled_at: '2026-08-10T00:45:00Z' }),
+        // A harvest-only record: an imagery timestamp, but never polled.
         street({ street_edge_id: 2, fresh_good_count: 1, last_audit_date: '2026-01-01',
-          median_newest_capture: '2026-02-02' }),
+          imagery_updated_at: '2026-08-19T00:45:00Z' }),
       ],
       features: geojson([1, 2]),
     });
     expect(text('kpi-rotation')).toBe('50%');
+    expect(text('kpi-rotation-note')).toContain('1 of 2 routable streets');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 10 days ago');
   });
 
-  test('renders the rotation share as an em dash rather than 0% when nothing has been audited', async () => {
+  test('says no street has been polled rather than inventing an oldest poll', async () => {
     await renderPage({ streets: [street({ street_edge_id: 1 })], features: geojson([1]) });
     expect(text('kpi-rotation')).toBe('0%');
-    expect(text('kpi-rotation-note')).toContain('0 of 0 audited streets');
+    expect(text('kpi-rotation-note'))
+      .toContain('0 of 1 routable streets polled at least once; no street has been polled yet');
   });
 
   test('reports the last poll from the pipeline report', async () => {
@@ -335,11 +332,11 @@ describe('ImageryPage legend', () => {
     expect(shares).toContainEqual(['Needs re-audit', '0%']);
   });
 
-  test('carries each tier\u2019s mileage so the work has a size, not just a count', async () => {
+  test('carries each tier\u2019s distance so the work has a size, not just a count', async () => {
     await renderPage();
-    const miles = [...document.querySelectorAll('#imagery-legend tbody tr')]
+    const distances = [...document.querySelectorAll('#imagery-legend tbody tr')]
       .map((row) => row.querySelectorAll('td')[5].textContent.trim());
-    expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
+    expect(distances).toEqual(['1.6', '1.6', '1.6', '1.6']);
   });
 
   test('gives every tier its own swatch class, so the legend reads the same palette the map does', async () => {
@@ -365,14 +362,13 @@ describe('ImageryPage legend', () => {
       ],
       features: geojson([1, 2]),
     });
-    expect(text('imagery-priority-note')).toContain('not strictly ordered by priority');
-    expect(text('imagery-priority-note')).toContain('some needs re-audit streets sit below some audited once ones');
+    expect(text('imagery-priority-note')).toContain('count a quarter');
+    expect(text('imagery-priority-note')).toContain('some needs re-audit streets rank below some audited once ones');
   });
 
   test('does not claim a crossing when the tiers are cleanly ordered', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('not strictly ordered');
-    expect(text('imagery-priority-note')).toContain('quarter weight');
+    expect(text('imagery-priority-note')).not.toContain('rank below');
   });
 
   test('reports the priority range without spreading one argument per street', async () => {
@@ -390,7 +386,7 @@ describe('ImageryPage legend', () => {
 
   test('explains the two re-audit counts only when they actually differ', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('site-wide re-audit flag');
+    expect(text('imagery-priority-note')).not.toContain('carry the flag');
 
     // A street whose only audits are low-quality carries the flag but sits in the unaudited tier: the tier counts
     // only audits with weight in the priority formula, the flag counts every completed audit.
@@ -402,7 +398,7 @@ describe('ImageryPage legend', () => {
       features: geojson([1, 2]),
     });
     const note = text('imagery-priority-note');
-    expect(note).toContain('0 streets sit in the re-audit tier while 1 carry the site-wide re-audit flag');
+    expect(note).toContain('0 streets are in the re-audit tier but 1 carry the flag');
   });
 });
 
@@ -416,30 +412,30 @@ describe('ImageryPage tables', () => {
     expect(rows[0].cells[1].textContent).toBe('0.722');
     expect(rows[0].cells[2].textContent).toBe('1');
     expect(rows[0].cells[3].textContent).toBe('1');
-    expect(rows[0].cells[4].textContent).toBe('1.0');
+    expect(rows[0].cells[4].textContent).toBe('1.6');
     expect(rows[1].cells[0].textContent).toBe('Downtown');
   });
 
   test('lists the highest-priority streets city-wide until a region is pinned', async () => {
     await renderPage();
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['1', '2', '3', '4']);
-    expect(text('imagery-street-note')).toContain('The top 4 by priority, of 4 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 4 of 4 routable streets by priority');
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
 
   test('narrows the street queue to a pinned region, and says whose queue it is', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
     expect(text('imagery-street-intro')).toContain('Downtown');
-    expect(text('imagery-street-note')).toContain('The top 1 by priority, of 1 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 1 of 1 routable streets by priority');
   });
 
   test('goes back to the city-wide ranking when the pinned region is clicked again', async () => {
     await renderPage();
-    regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    regionRows()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const pinned = regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
-    pinned.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    pinned.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
@@ -448,13 +444,12 @@ describe('ImageryPage tables', () => {
     const many = Array.from({ length: 80 }, (_, i) => street({ street_edge_id: i + 1, priority: 1 - i / 1000 }));
     await renderPage({ streets: many, features: geojson(many.map((s) => s.street_edge_id)) });
     expect(streetRows()).toHaveLength(50);
-    expect(text('imagery-street-note')).toContain('The top 50 by priority, of 80 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 50 of 80 routable streets by priority');
     // Explore picks at random among ties, so the list is a sample of the frontier rather than a running order.
-    expect(text('imagery-street-note')).toContain('sample of the frontier rather than a queue');
-    expect(text('imagery-street-note')).toContain('top-priority ties');
+    expect(text('imagery-street-note')).toContain('a sample, not a queue');
   });
 
-  test('says how many regions the scroll box holds, and that search covers all of them', async () => {
+  test('says how many regions the scroll box holds', async () => {
     await renderPage();
     const note = text('imagery-region-note');
     expect(note).toContain('2 regions');
@@ -473,31 +468,46 @@ describe('ImageryPage tables', () => {
 describe('ImageryPage brushing', () => {
   test('brushes a hovered region across the map and the region table', async () => {
     const { mapState } = await renderPage();
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
     const selected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(selected.sort()).toEqual([1, 2, 3]);
-    expect(regionRows()[0].classList.contains('highlighted')).toBe(true);
+    expect(regionRows()[0].classList.contains('is-highlighted')).toBe(true);
   });
 
   test('reverts a transient hover to the pinned region rather than to nothing', async () => {
     const { mapState } = await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     mapState.featureStates.length = 0;
 
-    regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
-    document.querySelector('#imagery-region-table tbody').dispatchEvent(new window.Event('pointerleave'));
+    regionRows()[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
+    document.querySelector('#imagery-region-table tbody').dispatchEvent(new Event('pointerleave'));
 
     const stillSelected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(stillSelected).toContain(4);
-    const highlighted = regionRows().filter((tr) => tr.classList.contains('highlighted'));
+    const highlighted = regionRows().filter((tr) => tr.classList.contains('is-highlighted'));
     expect(highlighted.map((tr) => tr.cells[0].textContent)).toEqual(['Downtown']);
+  });
+
+  test('a street hovered on the map brushes its region, and a street clicked there pins it', async () => {
+    const { mapState } = await renderPage();
+    const fire = (event, e) => mapState.handlers.find((h) => h.event === event).handler(e);
+    const downtownStreet = { id: 4, properties: { street_edge_id: 4, region_id: '11', priority: 0.333 } };
+
+    fire('mousemove', { features: [downtownStreet], lngLat: { lng: -122.3, lat: 47.6 } });
+    const downtown = () => regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
+    expect(downtown().classList.contains('is-highlighted')).toBe(true);
+    fire('mouseleave', {});
+    expect(downtown().classList.contains('is-highlighted')).toBe(false);
+
+    fire('click', { features: [downtownStreet] });
+    expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
   });
 
   test('does not narrow the street queue on hover, only on a pin', async () => {
     await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
-      .dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+      .dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(streetRows()).toHaveLength(4);
   });
 });
@@ -510,7 +520,7 @@ describe('ImageryPage rotation roll-up', () => {
     await renderPage();
     expect(rollupRow('Routable streets').cells[1].textContent).toBe('4');
     expect(rollupRow('With any imagery record').cells[1].textContent).toBe('3');
-    expect(rollupRow('With a polled capture date').cells[1].textContent).toBe('3');
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('3');
     expect(rollupRow('Audited and polled').cells[2].textContent).toContain('100% of audited streets');
   });
 
@@ -530,7 +540,7 @@ describe('ImageryPage rotation roll-up', () => {
   test('says the rotation is not advancing rather than projecting from zero', async () => {
     await renderPage({ pipeline: report({ run_days: [] }) });
     expect(rollupRow('Full pass over audited streets').cells[1].textContent).toBe('—');
-    expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('not advancing');
+    expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('rotation is stalled');
   });
 
   test('finds the oldest imagery record by instant, not by comparing timestamp strings', async () => {
@@ -543,6 +553,20 @@ describe('ImageryPage rotation roll-up', () => {
     });
     // The second instant is 2026-01-01T22:00Z — earlier — but sorts later as a string.
     expect(rollupRow('Oldest imagery record').cells[1].textContent).toBe('2026-01-02');
+  });
+
+  test('counts a conclusive poll that found nothing, and not a harvest-only record, as polled', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z',
+          imagery_updated_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01', imagery_updated_at: '2026-08-01T00:45:00Z' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('1');
+    expect(rollupRow('Audited and polled').cells[2].textContent).toContain('50% of audited streets');
+    expect(rollupRow('With any imagery record').cells[1].textContent).toBe('2');
   });
 });
 
@@ -590,8 +614,8 @@ describe('ImageryPage freshness histogram', () => {
     await renderPage();
     const note = text('imagery-freshness-note');
     expect(note).toContain('2 audited streets have imagery newer than their last audit');
-    expect(note).toContain('1 more are still current');
-    expect(note).toContain('0 have not been polled conclusively yet');
+    expect(note).toContain('1 still current');
+    expect(note).toContain('0 not yet polled');
   });
 
   test('reports the same split in the rotation table as the chart plots', async () => {
@@ -607,13 +631,13 @@ describe('ImageryPage freshness histogram', () => {
 describe('ImageryPage loading states', () => {
   test('says a city with no routable streets has no ranking, without treating it as an error', async () => {
     await renderPage({ streets: [] });
-    expect(text('imagery-status')).toContain('No routable streets in this city yet');
+    expect(text('imagery-status')).toContain('This city has no routable streets yet');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(false);
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(false);
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
-    // A bounds box built from no features is a box of infinities, which takes the whole page down on construction.
+    // Bounds built from no features are empty, which takes the whole page down on construction.
     await renderPage({ features: geojson([9999]) });
     expect(text('imagery-status')).toContain('the map is empty');
     expect(regionRows()).toHaveLength(2);
@@ -621,18 +645,18 @@ describe('ImageryPage loading states', () => {
 
   test('hides the status line once the page has loaded', async () => {
     await renderPage();
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(true);
   });
 
   test('reports a failed street fetch instead of leaving the page on "Loading"', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(text('imagery-status')).toContain('Could not load street priority data');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(true);
   });
 
   test('renders the pipeline section even when the street fetch fails, since it needs nothing from it', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await renderPage({ failStreets: true });
     expect(document.querySelectorAll('#imagery-jobs tbody tr')).toHaveLength(1);
   });
@@ -643,12 +667,81 @@ describe('ImageryPage join', () => {
     const { mapState } = await renderPage({ streets: [CITY[0]], features: geojson([1, 2, 3]) });
     // The GeoJSON carries every street including retired ones; only the priority rows say what is routable, so a
     // retired street joined in would render as "never audited, highest priority".
-    expect(mapState.options.bounds).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
+    expect(mapState.options.bounds.toArray()).toEqual([[-122.31, 47.6], [-122.3, 47.61]]);
   });
 
   test('stamps the tier onto the rows the tables and roll-ups read, not only onto the map features', async () => {
     await renderPage();
     const tierCells = streetRows().map((tr) => tr.cells[3].textContent);
     expect(tierCells).toEqual(['Not yet audited', 'Needs re-audit', 'Audited once', 'Audited 2+ times']);
+  });
+});
+
+describe('ImageryPage edge cases (#5840)', () => {
+  test('a poll with no hours or counts recorded shows a dash and says it has no counts', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: null }] }),
+    });
+    expect(text('kpi-last-poll')).toBe('—');
+    expect(text('kpi-last-poll-note')).toBe('no counts recorded for that run');
+  });
+
+  test('a poll that recorded what it polled but not what it selected counts the selection as zero', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: 3,
+        last_details: { streets_polled: 7 } }] }),
+    });
+    expect(text('kpi-last-poll-note')).toBe('7 of 0 selected streets refreshed');
+  });
+
+  test('a report with no jobs or nights reads as a poll that never ran and a stalled rotation', async () => {
+    const pipeline = report();
+    delete pipeline.jobs;
+    delete pipeline.run_days;
+    await renderPage({ pipeline });
+    expect(text('kpi-last-poll')).toBe('never');
+    expect(text('imagery-rotation')).toContain('the rotation is stalled');
+  });
+
+  test('a rotation with no batch size on the report still projects a full pass', async () => {
+    await renderPage({ pipeline: report({ poll_batch_size: null }) });
+    expect(text('imagery-rotation')).toContain('at 400 streets a night (batch size 0)');
+  });
+
+  test('a street with no length counts toward the tier and the re-audit KPI but adds no distance', async () => {
+    const streets = [street({ street_edge_id: 1, outdated_good_count: 1, outdated: true, length_m: null }),
+      street({ street_edge_id: 2, outdated_good_count: 1, outdated: true, length_m: 1000 })];
+    await renderPage({ streets, features: geojson([1, 2]) });
+    expect(text('kpi-needs-reaudit')).toBe('2');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.0 km with newer imagery');
+  });
+
+  test('the freshness chart reads its bars as streets, singular for one', async () => {
+    await renderPage();
+    const chart = charts.find((c) => c.host?.id === 'imagery-freshness-chart');
+    expect([chart.options.valueFormat(1), chart.options.valueFormat(3)]).toEqual(['1 street', '3 streets']);
+  });
+
+  test('a priority payload with no streets list, or a streets payload with no features, is not an error', async () => {
+    await renderPage({ streets: null });
+    expect(text('imagery-status')).toContain('no routable streets');
+
+    await renderPage({ features: { type: 'FeatureCollection' } });
+    expect(text('imagery-status')).toContain('No geometry matched');
+  });
+
+  test('a page missing its optional notes still loads its tables', async () => {
+    const strip = (ids) => ids.reduce((html, id) => html.replace(new RegExp(`<(\\w+)[^>]*id="${id}"[^>]*></\\1>`), ''),
+      MARKUP);
+    await renderPage({ markup: strip(['imagery-priority-note', 'imagery-region-note', 'imagery-street-intro',
+      'imagery-street-note', 'imagery-freshness-note', 'imagery-status']) });
+    expect(regionRows()).toHaveLength(2);
+    regionRows()[0].click();
+    expect(streetRows().length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('#imagery-legend tbody tr').length).toBeGreaterThan(0);
+
+    await renderPage({ markup: strip(['imagery-legend']) });
+    expect(text('imagery-priority-note')).toBe('');
+    expect(regionRows()).toHaveLength(2);
   });
 });

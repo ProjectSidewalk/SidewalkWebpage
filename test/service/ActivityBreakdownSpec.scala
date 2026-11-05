@@ -1,20 +1,20 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.LocalDate
 
 /**
  * Unit tests for the pure rollups behind the Across Cities "Today & this week" section (#4931): the rolling weekly
- * windows, the per-person merge that makes cross-city headcounts distinct, and the daily breakdown the bar hover cards
- * read.
+ * windows, the per-person merge that makes cross-city headcounts distinct, the daily breakdown the bar hover cards
+ * read, and the trailing-year average the per-day charts are read against (#5653).
  *
  * These are the rules that keep AI output from being read as community activity and cookie identities from being read
  * as people, so they are pinned against synthetic rows rather than against whatever the connected database happens to
  * hold — a dev or CI database with no AI-role accounts would pass every AI assertion without exercising one. No DB, no
  * app boot.
  */
-class ActivityBreakdownSpec extends PlaySpec {
+class ActivityBreakdownSpec extends SidewalkSpec {
 
   private val day = LocalDate.of(2026, 8, 12)
 
@@ -48,7 +48,7 @@ class ActivityBreakdownSpec extends PlaySpec {
       id: String,
       labels: Int,
       validations: Int,
-      kind: ContributorKind.Value = ContributorKind.Registered
+      kind: ContributorKind = ContributorKind.Registered
   ) = {
     val name = kind match {
       case ContributorKind.Ai        => s"ai-$id"
@@ -227,6 +227,27 @@ class ActivityBreakdownSpec extends PlaySpec {
       summary.contributors.head.validations mustBe 3
     }
 
+    "keep where a merged person worked, busiest city first, so the card can say where and link there" in {
+      // #5495: the merge above makes one line per person, and without this split the card could name DW but not say
+      // the 57 labels were in St. Louis — nor link to the only deployment that has DW's admin page for them.
+      val summary = ConfigService.summarizeDay(
+        day,
+        Seq(dayRow("seattle-wa", "a", 5, 1), dayRow("chicago-il", "a", 7, 2), dayRow("seattle-wa", "a", 0, 1))
+      )
+
+      summary.contributors.head.cities mustBe
+        Seq(ContributorCityDay("chicago-il", 7, 2), ContributorCityDay("seattle-wa", 5, 2))
+    }
+
+    "break a person's city ties on city id, so their line reads the same on every cache refresh" in {
+      val rows   = Seq(dayRow("b-city", "a", 3, 0), dayRow("a-city", "a", 3, 0))
+      val first  = ConfigService.summarizeDay(day, rows).contributors.head.cities.map(_.cityId)
+      val second = ConfigService.summarizeDay(day, rows.reverse).contributors.head.cities.map(_.cityId)
+
+      first mustBe Seq("a-city", "b-city")
+      second mustBe first
+    }
+
     "count anonymous visitors as sessions and keep their volume in the human totals" in {
       val summary = ConfigService.summarizeDay(
         day,
@@ -337,6 +358,109 @@ class ActivityBreakdownSpec extends PlaySpec {
       summary.point.aiValidations mustBe 6420
       summary.point.aiAgents mustBe 1
       summary.contributors.map(_.username) mustBe Seq("ai-bot")
+    }
+  }
+
+  "ConfigService.summarizeBaseline" should {
+    // A short window keeps the arithmetic readable; the service passes 365, and nothing here depends on the length.
+    val today = LocalDate.of(2026, 9, 10)
+    val days  = 4
+
+    def baselineRow(
+        cityId: String,
+        onDay: LocalDate,
+        id: String,
+        labels: Int,
+        validations: Int,
+        kind: ContributorKind = ContributorKind.Registered
+    ): (String, DailyBaselineRow) = cityId -> DailyBaselineRow(onDay, id, kind, labels, validations)
+
+    "cover the days before today, so today's partial bar can't drag the average down" in {
+      val baseline = ConfigService.summarizeBaseline(
+        today,
+        days,
+        Seq(
+          baselineRow("seattle-wa", today, "a", 400, 400),
+          baselineRow("seattle-wa", today.minusDays(5), "a", 400, 400), // the day before the window starts
+          baselineRow("seattle-wa", today.minusDays(1), "a", 8, 4)
+        )
+      )
+
+      baseline.windowStart mustBe today.minusDays(4)
+      baseline.windowEnd mustBe today.minusDays(1)
+      baseline.days mustBe days
+      baseline.labelsPerDay mustBe 2.0
+      baseline.validationsPerDay mustBe 1.0
+      baseline.contributorsPerDay mustBe 0.25
+    }
+
+    "count a person once per day across cities, and once for each day they were active" in {
+      val baseline = ConfigService.summarizeBaseline(
+        today,
+        days,
+        Seq(
+          baselineRow("seattle-wa", today.minusDays(1), "a", 1, 0),
+          baselineRow("chicago-il", today.minusDays(1), "a", 1, 0),
+          baselineRow("seattle-wa", today.minusDays(2), "a", 1, 0),
+          baselineRow("seattle-wa", today.minusDays(2), "b", 0, 1)
+        )
+      )
+
+      // (yesterday, a), (two days ago, a), (two days ago, b): three person-days over four days.
+      baseline.contributorsPerDay mustBe 0.75
+      baseline.labelsPerDay mustBe 0.75
+    }
+
+    "leave AI output out entirely and count anonymous work in the volumes only" in {
+      val baseline = ConfigService.summarizeBaseline(
+        today,
+        days,
+        Seq(
+          baselineRow("seattle-wa", today.minusDays(1), "", 0, 6420, ContributorKind.Ai),
+          baselineRow("seattle-wa", today.minusDays(1), "", 8, 4, ContributorKind.Anonymous)
+        )
+      )
+
+      baseline.labelsPerDay mustBe 2.0
+      baseline.validationsPerDay mustBe 1.0
+      baseline.contributorsPerDay mustBe 0.0
+    }
+
+    "count quiet days as zero rather than averaging only the active ones" in {
+      val baseline =
+        ConfigService.summarizeBaseline(today, days, Seq(baselineRow("seattle-wa", today.minusDays(3), "a", 40, 0)))
+
+      baseline.labelsPerDay mustBe 10.0
+    }
+
+    "agree with the mean of the daily bars built from the same activity" in {
+      // The reference line is only meaningful if it is the bars' own average, so derive both from one set of rows:
+      // per-person rows feed summarizeDay, and the same rows collapsed as the DAO collapses them feed the baseline.
+      val window = (1 to days).map(i => today.minusDays(i.toLong))
+      val rows   = window.zipWithIndex.flatMap { case (d, i) =>
+        Seq(
+          "seattle-wa" -> DailyContributorActivity(d, "a", "user-a", ContributorKind.Registered, i + 1, 2),
+          "chicago-il" -> DailyContributorActivity(d, "a", "user-a", ContributorKind.Registered, 3, i),
+          "chicago-il" -> DailyContributorActivity(d, "b", "user-b", ContributorKind.Registered, 0, i % 2),
+          "seattle-wa" -> DailyContributorActivity(d, "c1", "cookie-c1", ContributorKind.Anonymous, 5, 0),
+          "seattle-wa" -> DailyContributorActivity(d, "c2", "cookie-c2", ContributorKind.Anonymous, 1, 1),
+          "seattle-wa" -> DailyContributorActivity(d, "bot", "ai-bot", ContributorKind.Ai, 100, 900)
+        )
+      }
+      val collapsed = rows
+        .groupBy { case (cityId, r) =>
+          (cityId, r.day, if (r.kind == ContributorKind.Registered) r.userId else "", r.kind)
+        }
+        .toSeq
+        .map { case ((cityId, d, id, kind), group) =>
+          cityId -> DailyBaselineRow(d, id, kind, group.map(_._2.labels).sum, group.map(_._2.validations).sum)
+        }
+      val bars     = window.map(d => ConfigService.summarizeDay(d, rows.filter(_._2.day == d)).point)
+      val baseline = ConfigService.summarizeBaseline(today, days, collapsed)
+
+      baseline.labelsPerDay mustBe bars.map(_.labels).sum.toDouble / days
+      baseline.validationsPerDay mustBe bars.map(_.validations).sum.toDouble / days
+      baseline.contributorsPerDay mustBe bars.map(_.contributors).sum.toDouble / days
     }
   }
 }

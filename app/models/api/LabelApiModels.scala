@@ -6,12 +6,11 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
+import models.api.ApiModelUtils.createGeoJsonPointGeometry
 import models.label.StreetSide
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
-import models.utils.LatLngBBox
-import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
+import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
+import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
 
 import java.time.OffsetDateTime
 
@@ -21,12 +20,14 @@ import java.time.OffsetDateTime
  * The value names are the public API tokens. `Unsure` means the label has at least one validation but no consensus
  * (`correct` still NULL); `Unvalidated` means the label has zero validations.
  */
-object RawLabelValidationStatus extends Enumeration {
-  val ValidatedCorrect   = Value("validated_correct")
-  val ValidatedIncorrect = Value("validated_incorrect")
-  val Unsure             = Value("unsure")
-  val Unvalidated        = Value("unvalidated")
+enum RawLabelValidationStatus(val name: String) extends NamedEnum {
+  case ValidatedCorrect   extends RawLabelValidationStatus("validated_correct")
+  case ValidatedIncorrect extends RawLabelValidationStatus("validated_incorrect")
+  case Unsure             extends RawLabelValidationStatus("unsure")
+  case Unvalidated        extends RawLabelValidationStatus("unvalidated")
 }
+
+object RawLabelValidationStatus extends NamedEnumCompanion[RawLabelValidationStatus]
 
 /**
  * Parsed severity-set filter from the Raw Labels API's `severity` parameter.
@@ -148,7 +149,7 @@ case class RawLabelFiltersForApi(
     severity: Option[SeverityFilterForApi] = None,
     minSeverity: Option[Int] = None,
     maxSeverity: Option[Int] = None,
-    validationStatuses: Option[Set[RawLabelValidationStatus.Value]] = None,
+    validationStatuses: Option[Set[RawLabelValidationStatus]] = None,
     highQualityUserOnly: Boolean = false,
     startDate: Option[OffsetDateTime] = None,
     endDate: Option[OffsetDateTime] = None,
@@ -157,25 +158,43 @@ case class RawLabelFiltersForApi(
 )
 
 /**
- * Represents a validation entry for a sidewalk accessibility label. This is used in the API response to summarize user
- * validations (with a userId and validation type).
+ * One vote in a Raw Labels entry's `validations` array.
  *
  * @param userId The anonymized identifier of the user who provided the validation
  * @param validationType The type of validation ("Agree", "Disagree", or "Unsure")
+ * @param validatorType "Human" or "AI"
  */
-case class LabelValidationSummaryForApi(
-    userId: String,
-    validationType: String // e.g., "Agree", "Disagree", "Unsure"
-)
+case class LabelValidationSummaryForApi(userId: String, validationType: String, validatorType: String) {
+
+  def toJson: JsObject =
+    Json.obj("user_id" -> userId, "validation" -> validationType, "validator_type" -> validatorType)
+}
 
 /**
- * Companion object for LabelValidationSummaryForApi containing JSON formatters.
+ * One comment in a Raw Labels entry's `comments` array. A separate list from `validations` because a validator can
+ * comment without voting; each validator has at most one comment per label (a re-comment replaces it).
+ *
+ * @param userId The anonymized identifier of the user who left the comment
+ * @param comment The comment text
+ * @param reason The canned reason's id (`ValidationReason`) when the comment is one, `None` for free text
+ * @param validation The commenter's current vote on the label ("Agree", "Disagree", or "Unsure"), `None` without one
+ * @param timeCreated When the comment was left, in UTC
  */
-object LabelValidationSummaryForApi {
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] =
-    Json.format[LabelValidationSummaryForApi]
+case class LabelCommentForApi(
+    userId: String,
+    comment: String,
+    reason: Option[String],
+    validation: Option[String],
+    timeCreated: OffsetDateTime
+) {
+
+  def toJson: JsObject = Json.obj(
+    "user_id"      -> userId,
+    "comment"      -> comment,
+    "reason"       -> reason,
+    "validation"   -> validation,
+    "time_created" -> timeCreated
+  )
 }
 
 /**
@@ -195,8 +214,8 @@ object LabelValidationSummaryForApi {
  * @param highQualityUser Whether the labeler is flagged as a high-quality contributor (`user_stat.high_quality`)
  * @param streetEdgeId Project Sidewalk's street segment identifier
  * @param osmWayId OpenStreetMap way identifier
- * @param regionId Identifier of the region (neighborhood) the label falls within
- * @param regionName Name of the region (neighborhood) where the label is located
+ * @param regionId Identifier of the region the label falls within
+ * @param regionName Name of the region where the label is located
  * @param streetSide Side of `streetEdgeId` the label sits on, relative to the edge's digitized direction (#2886);
  *                   `None` within 1 m of the centerline or without a position
  * @param centerlineOffsetM Signed geodesic distance from the street's centerline in metres, positive on the left of
@@ -210,7 +229,8 @@ object LabelValidationSummaryForApi {
  * @param agreeCount Number of users who agreed with this label
  * @param disagreeCount Number of users who disagreed with this label
  * @param unsureCount Number of users who were unsure about this label
- * @param validations List of individual user validations for this label
+ * @param validations List of individual validations for this label
+ * @param comments Validator comments on this label, oldest first
  * @param auditTaskId Optional audit task identifier
  * @param missionId Optional mission identifier
  * @param imageCaptureDate Optional date when the image was captured
@@ -244,7 +264,7 @@ case class LabelDataForApi(
     osmWayId: Long,
     regionId: Int,
     regionName: String,
-    streetSide: Option[StreetSide.Value],
+    streetSide: Option[StreetSide],
     centerlineOffsetM: Option[Double],
     latitude: Double,
     longitude: Double,
@@ -253,6 +273,7 @@ case class LabelDataForApi(
     disagreeCount: Int,
     unsureCount: Int,
     validations: Seq[LabelValidationSummaryForApi],
+    comments: Seq[LabelCommentForApi],
     auditTaskId: Option[Int],
     missionId: Option[Int],
     imageCaptureDate: Option[String],
@@ -318,134 +339,74 @@ case class LabelDataForApi(
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
-      "properties" -> Json.obj(
-        "label_id"            -> labelId,
-        "user_id"             -> userId,
-        "pano_id"             -> panoId,
-        "pano_source"         -> panoSource.toString,
-        "label_type"          -> labelType,
-        "severity"            -> severity,
-        "tags"                -> tags,
-        "description"         -> description,
-        "time_created"        -> timeCreated,
-        "high_quality_user"   -> highQualityUser,
-        "street_edge_id"      -> streetEdgeId,
-        "osm_way_id"          -> osmWayId,
-        "region_id"           -> regionId,
-        "region_name"         -> regionName,
-        "street_side"         -> streetSide.map(_.toString),
-        "centerline_offset_m" -> centerlineOffsetM,
-        "correct"             -> correct,
-        "agree_count"         -> agreeCount,
-        "disagree_count"      -> disagreeCount,
-        "unsure_count"        -> unsureCount,
-        "validations"         -> validations.map(v =>
-          Json.obj(
-            "user_id"    -> v.userId,
-            "validation" -> v.validationType
-          )
-        ),
-        "audit_task_id"      -> auditTaskId,
-        "mission_id"         -> missionId,
-        "image_capture_date" -> imageCaptureDate,
-        "heading"            -> heading,
-        "pitch"              -> pitch,
-        "zoom"               -> zoom,
-        "canvas_x"           -> canvasX,
-        "canvas_y"           -> canvasY,
-        "canvas_width"       -> canvasWidth,
-        "canvas_height"      -> canvasHeight,
-        "pano_x"             -> panoX,
-        "pano_y"             -> panoY,
-        "pano_width"         -> panoWidth,
-        "pano_height"        -> panoHeight,
-        "camera_heading"     -> cameraHeading,
-        "camera_pitch"       -> cameraPitch,
-        "camera_roll"        -> cameraRoll,
-        "pano_url"           -> panoUrl // Provider-specific viewer link; null for providers without one (infra3d)
-      )
+      "properties" -> LabelDataForApi.toJson(this)
     )
   }
 
-  /**
-   * Converts this LabelDataForApi object to a CSV row string.
-   * The fields are ordered to match the header defined in the companion object.
-   * Complex fields like arrays and objects are serialized as JSON strings.
-   *
-   * @return A comma-separated string representing this label's data
-   */
-  override def toCsvRow: String = {
-    val fields = Seq(
-      labelId.toString,
-      userId,
-      panoId,
-      panoSource.toString,
-      labelType,
-      severity.map(_.toString).getOrElse(""),
-      escapeCsvField(tags.mkString("[", ",", "]")),
-      description.map(escapeCsvField).getOrElse(""),
-      timeCreated.toInstant.toEpochMilli.toString,
-      highQualityUser.toString,
-      streetEdgeId.toString,
-      osmWayId.toString,
-      regionId.toString,
-      escapeCsvField(regionName),
-      streetSide.map(_.toString).getOrElse(""),
-      centerlineOffsetM.map(_.toString).getOrElse(""),
-      correct.map(_.toString).getOrElse(""),
-      agreeCount.toString,
-      disagreeCount.toString,
-      unsureCount.toString,
-      escapeCsvField(
-        validations
-          .map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""")
-          .mkString("[", ",", "]")
-      ),
-      auditTaskId.map(_.toString).getOrElse(""),
-      missionId.map(_.toString).getOrElse(""),
-      imageCaptureDate.getOrElse(""),
-      heading.map(_.toString).getOrElse(""),
-      pitch.map(_.toString).getOrElse(""),
-      zoom.map(_.toString).getOrElse(""),
-      canvasX.map(_.toString).getOrElse(""),
-      canvasY.map(_.toString).getOrElse(""),
-      canvasWidth.map(_.toString).getOrElse(""),
-      canvasHeight.map(_.toString).getOrElse(""),
-      panoX.map(_.toString).getOrElse(""),
-      panoY.map(_.toString).getOrElse(""),
-      panoWidth.map(_.toString).getOrElse(""),
-      panoHeight.map(_.toString).getOrElse(""),
-      cameraHeading.map(_.toString).getOrElse(""),
-      cameraPitch.map(_.toString).getOrElse(""),
-      cameraRoll.map(_.toString).getOrElse(""),
-      escapeCsvField(panoUrl.getOrElse("")),
-      latitude.toString,
-      longitude.toString
-    )
-    fields.mkString(",")
-  }
+  override def toCsvRow: String = LabelDataForApi.toCsvRow(this)
+
+  // Used by every output format, so they all print the same array.
+  def validationsJson: JsArray = JsArray(validations.map(_.toJson))
+
+  def commentsJson: JsArray = JsArray(comments.map(_.toJson))
 }
 
-/**
- * Companion object for LabelDataForApi containing CSV header definition and JSON writers.
- */
-object LabelDataForApi {
+object LabelDataForApi extends ApiFields[LabelDataForApi] {
+  import ApiFields.field
 
-  /**
-   * CSV header string with field names in the same order as the toCsvRow output.
-   * This should be included as the first line when generating CSV output.
-   */
-  val csvHeader: String =
-    "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
-      "street_edge_id,osm_way_id,region_id,region_name,street_side,centerline_offset_m,correct,agree_count," +
-      "disagree_count,unsure_count,validations," +
-      "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
-      "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
+  override val fields: Seq[ApiField[LabelDataForApi]] = Seq(
+    field("label_id")(_.labelId),
+    field("user_id")(_.userId),
+    field("pano_id")(_.panoId),
+    field("pano_source")(_.panoSource.name),
+    field("label_type")(_.labelType),
+    field("severity")(_.severity),
+    field("tags")(_.tags),
+    field("description")(_.description),
+    field("time_created")(_.timeCreated),
+    field("high_quality_user")(_.highQualityUser),
+    field("street_edge_id")(_.streetEdgeId),
+    field("osm_way_id")(_.osmWayId),
+    field("region_id")(_.regionId),
+    field("region_name")(_.regionName),
+    field("street_side")(_.streetSide.map(_.name)),
+    field("centerline_offset_m")(_.centerlineOffsetM),
+    field("correct")(_.correct),
+    field("agree_count")(_.agreeCount),
+    field("disagree_count")(_.disagreeCount),
+    field("unsure_count")(_.unsureCount),
+    field("validations")(_.validationsJson),
+    field("comments")(_.commentsJson),
+    field("audit_task_id")(_.auditTaskId),
+    field("mission_id")(_.missionId),
+    field("image_capture_date")(_.imageCaptureDate),
+    field("heading")(_.heading),
+    field("pitch")(_.pitch),
+    field("zoom")(_.zoom),
+    field("canvas_x")(_.canvasX),
+    field("canvas_y")(_.canvasY),
+    field("canvas_width")(_.canvasWidth),
+    field("canvas_height")(_.canvasHeight),
+    field("pano_x")(_.panoX),
+    field("pano_y")(_.panoY),
+    field("pano_width")(_.panoWidth),
+    field("pano_height")(_.panoHeight),
+    field("camera_heading")(_.cameraHeading),
+    field("camera_pitch")(_.cameraPitch),
+    field("camera_roll")(_.cameraRoll),
+    // Provider-specific viewer link; null for providers without one (infra3d).
+    field("pano_url")(_.panoUrl)
+  )
+
+  override val csvOnlyFields: Seq[ApiField[LabelDataForApi]] = Seq(
+    field("latitude")(_.latitude),
+    field("longitude")(_.longitude)
+  )
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.
    */
-  implicit val labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
+  given labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
 }
 
 /**
@@ -498,34 +459,36 @@ case class LabelCVMetadata(
     cameraRoll: Option[Double]
 ) extends StreamingApiType {
 
-  /** Serializes to a JSON object with snake_case keys (#3871), via the companion's implicit Writes. */
-  override def toJson: JsValue = Json.toJson(this)
+  override def toJson: JsValue = LabelCVMetadata.toJson(this)
 
-  /**
-   * Serializes to a CSV row matching the companion object's `csvHeader`.
-   *
-   * @return A comma-separated row; `None` options render as "NA".
-   */
-  override def toCsvRow: String = {
-    s"${labelId},${panoId},${escapeCsvField(labelType)},${agreeCount},${disagreeCount},${unsureCount}," +
-      s"${formatOptionForCsv(panoWidth)},${formatOptionForCsv(panoHeight)},${panoX},${panoY}," +
-      s"${canvasWidth},${canvasHeight},${canvasX},${canvasY},${zoom},${heading},${pitch}," +
-      s"${cameraHeading},${cameraPitch},${cameraRoll.map(_.toString).getOrElse("NA")}"
-  }
-
-  /** Renders an option for CSV, using "NA" for `None` (matches the historical CV-metadata CSV format). */
-  private def formatOptionForCsv(x: Option[Any]): String = x.map(_.toString).getOrElse("NA").replace("\"", "\"\"")
+  override def toCsvRow: String = LabelCVMetadata.toCsvRow(this)
 }
 
-/**
- * Companion object for LabelCVMetadata containing the CSV header and JSON writer.
- */
-object LabelCVMetadata {
-  val csvHeader: String = "Label ID,Panorama ID,Label Type,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
-    "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
-    "Camera Heading,Camera Pitch,Camera Roll\n"
+object LabelCVMetadata extends ApiFields[LabelCVMetadata] {
+  import ApiFields.field
 
-  // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val writes: Writes[LabelCVMetadata]   = Json.writes[LabelCVMetadata]
+  override val fields: Seq[ApiField[LabelCVMetadata]] = Seq(
+    field("label_id")(_.labelId),
+    field("pano_id")(_.panoId),
+    field("label_type")(_.labelType),
+    field("agree_count")(_.agreeCount),
+    field("disagree_count")(_.disagreeCount),
+    field("unsure_count")(_.unsureCount),
+    field("pano_width")(_.panoWidth),
+    field("pano_height")(_.panoHeight),
+    field("pano_x")(_.panoX),
+    field("pano_y")(_.panoY),
+    field("canvas_width")(_.canvasWidth),
+    field("canvas_height")(_.canvasHeight),
+    field("canvas_x")(_.canvasX),
+    field("canvas_y")(_.canvasY),
+    field("zoom")(_.zoom),
+    field("heading")(_.heading),
+    field("pitch")(_.pitch),
+    field("camera_heading")(_.cameraHeading),
+    field("camera_pitch")(_.cameraPitch),
+    field("camera_roll")(_.cameraRoll)
+  )
+
+  given writes: Writes[LabelCVMetadata] = (metadata: LabelCVMetadata) => toJson(metadata)
 }
