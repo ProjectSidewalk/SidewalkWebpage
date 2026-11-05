@@ -35,8 +35,19 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 /** The ` [state]` suffix an A11Y_ALLOWLIST key may carry. EXEMPT_PAGES keys never take one; a11y.spec.js says why. */
 const STATE_SUFFIX = / \[.*\]$/;
 
+/** State keys forced by specs other than a11y-api-docs-states.spec.js, so its stale-key check knows them too. */
+const OTHER_FORCED_STATES = {
+  galleryExpandedCard: '/gallery [expanded card]', // label-card-paging.spec.js (#5135).
+};
+
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
-const A11Y_ALLOWLIST = {};
+const A11Y_ALLOWLIST = {
+  // Only an untagged first card shows this, so a tagged one just flags it stale.
+  [OTHER_FORCED_STATES.galleryExpandedCard]: [
+    {rule: 'color-contrast', selector: '.label-detail__tags', issue: '#5917',
+      note: 'read-only tags are dimmed with opacity'},
+  ],
+};
 
 /**
  * Splits a page's axe violations into what its allowlist covers and what fails the gate.
@@ -89,4 +100,4 @@ function formatViolations(violations) {
 }
 
 module.exports =
-  {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations};
+  {EXEMPT_PAGES, A11Y_ALLOWLIST, OTHER_FORCED_STATES, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations};

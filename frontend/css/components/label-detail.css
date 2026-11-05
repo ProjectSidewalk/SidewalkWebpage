@@ -1192,12 +1192,13 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__paging svg { display: block; }
 
-.label-detail__paging:hover {
+.label-detail__paging:not(:disabled, [aria-disabled="true"]):hover {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
 }
 
-.label-detail__paging:disabled {
+/* Arrows switch off with aria-disabled so the one just pressed keeps keyboard focus (#5135). */
+.label-detail__paging:is(:disabled, [aria-disabled="true"]) {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
@@ -1232,7 +1233,7 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Touch and narrow viewports ──────────────────────────────────────── */
 
 /* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible
-   ([hidden] and :disabled states still win), and the sub-44px targets grow: the paging chips outright, the
+   ([hidden] and switched-off states still win), and the sub-44px targets grow: the paging chips outright, the
    close button via padding (its svg fills the 24px content box that remains).
    The vote overlay is deliberately NOT among them: it is a full-width 56px bar pinned to the bottom of the
    pano, so revealing it permanently would cover a quarter of a phone-sized image, kill drag-to-look across
