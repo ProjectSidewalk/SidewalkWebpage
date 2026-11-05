@@ -305,30 +305,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     }
 
   /**
-   * Retrieves the distinct contributor user ids for a single city schema (#3976).
-   *
-   * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label
-   * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
-   * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
-   * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
-   * within this city; cross-city dedup (by the global `user_id`) is done by the callers, which union these id sets
-   * across schemas or count the cities each id appears in ([[service.ConfigService.contributorCounts]]). Returns ids
-   * (not a count) precisely so that caller-side cross-schema dedup is possible.
+   * One city's contributor ids ([[FilteredTables.contributorIds]]), not a count, so callers can dedupe across cities.
    *
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
   def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] =
-    sql"""
-      SELECT label.user_id
-      FROM #${FilteredTables.labels(Some(schema))}
-      UNION
-      SELECT label_validation.user_id
-      FROM #${FilteredTables.votesCast(Some(schema))}
-      UNION
-      SELECT voided_label_validation.user_id
-      FROM #${FilteredTables.voidedVotesCast(Some(schema))};
-    """.as[String]
+    sql"""SELECT contributor.user_id FROM #${FilteredTables.contributorIds(Some(schema))}""".as[String]
 
   /**
    * The `user_id`s holding the AI role, from the shared login schema (#5828).
@@ -607,23 +590,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         FROM #${FilteredTables.completedAudits(Some(schema))}
         WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
     ) AS audit_windows, (
-        -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
-        SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
-            SELECT label.user_id AS contributor_id
-            FROM #${FilteredTables.labels(Some(schema))}
-            LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-            WHERE user_role.role IS DISTINCT FROM 'AI'
-            UNION
-            SELECT label_validation.user_id AS contributor_id
-            FROM #${FilteredTables.votesCast(Some(schema))}
-            LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-            WHERE user_role.role IS DISTINCT FROM 'AI'
-            -- Voided votes (#4842) still mark their caster as a contributor. No AI-role filter here, unlike the
-            -- arms above: the archive is human-only by construction.
-            UNION
-            SELECT voided_label_validation.user_id AS contributor_id
-            FROM #${FilteredTables.voidedVotesCast(Some(schema))}
-        ) AS contributor_union
+        SELECT COUNT(*) AS cnt
+        FROM #${FilteredTables.contributorIds(Some(schema))}
+        WHERE #${FilteredTables.notAi("contributor.user_id")}
     ) AS active_contributors, (
         -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
         -- Everyone's labels, since this counts the excluded users.

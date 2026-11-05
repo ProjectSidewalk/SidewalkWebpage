@@ -146,10 +146,6 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
     check(POV(1.5, 2.5, 3.5), """{"heading":1.5,"pitch":2.5,"zoom":3.5}""")
     check(LocationXY(1, 2), """{"x":1,"y":2}""")
     check(
-      UserCount(1, "explore", "all", TimeInterval.values.head, true, false),
-      """{"count":1,"tool_used":"explore","role":"all","time_interval":"all_time","task_completed_only":true,"high_quality_only":false}"""
-    )
-    check(
       ContributionTimeStat(Some(1.5), "explore_total", TimeInterval.values.head),
       """{"time":1.5,"stat":"explore_total","time_interval":"all_time"}"""
     )

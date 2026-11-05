@@ -5,13 +5,11 @@ import models.api.UserStatForApi
 import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
-import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Writes}
-import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
@@ -56,18 +54,6 @@ case class UserStatsForAdminPage(
     highQuality: Boolean,
     highQualityManual: Option[Boolean]
 )
-case class UserCount(
-    count: Int,
-    toolUsed: String,
-    role: String,
-    timeInterval: TimeInterval,
-    taskCompletedOnly: Boolean,
-    highQualityOnly: Boolean
-) {
-  require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.name.toLowerCase()) ++ Seq("all")).contains(role))
-}
-
 case class LeaderboardStat(
     username: String,
     labelCount: Int,
@@ -1124,24 +1110,16 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Counts everyone who has explored or validated, leaving out AI and excluded users.
+   * Counts this city's contributors ([[models.utils.FilteredTables.contributorIds]]), leaving out AI accounts.
+   *
+   * @return The number of distinct non-AI contributors, all time.
    */
-  def countAllUsersContributed(): DBIO[UserCount] = {
+  def countAllUsersContributed(): DBIO[Int] = {
     sql"""
-      SELECT COUNT(DISTINCT(users.user_id))
-      FROM (
-          SELECT DISTINCT(mission.user_id)
-          FROM mission
-          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-          UNION
-          SELECT DISTINCT(user_id)
-          FROM audit_task
-      ) users
-      INNER JOIN user_stat ON users.user_id = user_stat.user_id
-      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      WHERE user_role.role <> 'AI'
-          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
+      SELECT COUNT(*)
+      FROM #${FilteredTables.contributorIds()}
+      WHERE #${FilteredTables.notAi("contributor.user_id")};
+    """.as[Int].head
   }
 
   /**
