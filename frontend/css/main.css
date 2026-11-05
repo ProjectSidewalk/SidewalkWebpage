@@ -1836,6 +1836,11 @@ kbd {
   padding: 7px;
 }
 
+/* The site-wide heading margin would push the title below where the overlay's text block starts. */
+#already-completed-region-text h2 {
+  margin-top: 0;
+}
+
 .overlay-header {
   text-align: center;
   font-size: 30px;
