@@ -457,7 +457,13 @@ Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the pl
 it, drawn on its maps and on its fix; they change no number, which is #5315's question. Every live map carries its own
 "Places" switch in a corner (`ReportPlacesToggle`, #5900) rather than one sidebar switch, since a map of the whole
 neighborhood and a map of one block needn't agree; a street section remembers its answer across its map's comings and
-goings. A fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+goings. A street map carries a second switch, off by default, that lines its labels up along the street (#5888): each
+marker moves to the foot of its position on its own edge's centerline, offset a fixed number of screen pixels to the
+side `label_point.street_side` (#2886) recorded for it, with markers that would overlap on one side pushed apart along
+it. The side is the majority among the cluster's counted labels on that edge (`ReportRules.sideOf`, so the client never
+derives it); a location with no side, or at a crossing, stays where it is. It is a way of drawing only (the geometry is
+`ReportLabelAlignment`, pure functions; nothing stored or scored changes) and its switch says so, since a line of
+markers implies more precision than the data has. A fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
 Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
