@@ -416,7 +416,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
       // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
       await showLabel();
-      nextArrow().disabled = true;
+      nextArrow().setAttribute('aria-disabled', 'true'); // How the hosts switch the arrows off (#5135).
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
@@ -678,9 +678,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
-      // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
-      // nothing else on the page can be typed at — the keys are still the card's.
+      // Any natively disabled control leaves this behind when it switches off under the reader's focus (the
+      // paging arrows avoid it with aria-disabled, #5135, but a vote button saving its validation does not),
+      // so the browser has nowhere to put focus but the body. The popup is modal, so nothing else on the page
+      // can be typed at — the keys are still the card's.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
@@ -721,7 +722,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
 
       // And the run continues: the next key still reaches the card.
       press('ArrowRight');
-      expect(nextArrow().disabled).toBe(false);
+      expect(nextArrow().getAttribute('aria-disabled')).not.toBe('true');
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {

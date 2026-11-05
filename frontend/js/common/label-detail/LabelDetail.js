@@ -18,6 +18,7 @@ import { KeyboardShortcuts } from '../KeyboardShortcuts.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';
 import { LabelVisibilityToggle } from '../LabelVisibilityToggle.js';
 import { Toast } from '../Toast.js';
+import { isPagingDisabled } from './pagingArrows.js';
 import { PopupPanoManager } from './PopupPanoManager.js';
 import { StorySection } from './StorySection.js';
 import { TagEditor } from './TagEditor.js';
@@ -697,7 +698,7 @@ export class LabelDetail {
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
     else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
-    if (!button || button.hidden || button.disabled) return;
+    if (!button || button.hidden || button.disabled || (paging && isPagingDisabled(button))) return;
 
     e.preventDefault();
     e.stopPropagation();

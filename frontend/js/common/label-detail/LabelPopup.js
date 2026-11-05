@@ -1,6 +1,7 @@
 import { LabelDetail } from './LabelDetail.js';
 import { PopupPanoManager } from './PopupPanoManager.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
+import { isPagingDisabled, setPagingDisabled } from './pagingArrows.js';
 
 /**
  * LabelPopup — thin <dialog> wrapper around LabelDetail.
@@ -95,10 +96,11 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
-  // duplicate handlers that would double-advance the navigator on a single click.
+  // duplicate handlers that would double-advance the navigator on a single click. A switched-off arrow is still
+  // clickable (it keeps focus, #5135), so the guard also covers it: no log line, no paging.
   if (prevBtn) {
     prevBtn.addEventListener('click', (e) => {
-      if (!nearbyNav) return;
+      if (!nearbyNav || isPagingDisabled(prevBtn)) return;
       window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.prev(currentLabelId);
       if (id) showLabel(id, lastSource);
@@ -106,17 +108,18 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   }
   if (nextBtn) {
     nextBtn.addEventListener('click', (e) => {
-      if (!nearbyNav) return;
+      if (!nearbyNav || isPagingDisabled(nextBtn)) return;
       window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.next(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
   }
 
+  /** Greys out whichever arrow has nowhere to go from the shown label, leaving focus on it if it has focus. */
   function updatePagingState() {
     if (!nearbyNav) return;
-    if (prevBtn) prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
-    if (nextBtn) nextBtn.disabled = !nearbyNav.hasNext(currentLabelId);
+    setPagingDisabled(prevBtn, !nearbyNav.hasPrev(currentLabelId));
+    setPagingDisabled(nextBtn, !nearbyNav.hasNext(currentLabelId));
   }
 
   /**

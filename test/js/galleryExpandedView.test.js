@@ -126,6 +126,8 @@ function renderGrid(container) {
 const root = () => document.querySelector('.gallery-expanded-view');
 const prev = () => document.querySelector('.label-detail__paging--prev');
 const next = () => document.querySelector('.label-detail__paging--next');
+/** Whether an arrow is switched off; the arrows use aria-disabled so they keep focus (#5135). */
+const isOff = (btn) => btn.getAttribute('aria-disabled') === 'true';
 const position = () => document.querySelector('.label-detail__position');
 const pano = () => document.querySelector('.label-detail__pano');
 const gridCard = (id) => document.getElementById(`gallery_card_${id}`);
@@ -183,18 +185,18 @@ describe('the Gallery expanded view', () => {
   test('the arrows page through the cards, logged as a click or, with no pointer, a keyboard shortcut', async () => {
     const view = await build(stubContainer());
     view.updateCardIndex(0);
-    expect(prev().disabled).toBe(true);
-    expect(next().disabled).toBe(false);
+    expect(isOff(prev())).toBe(true);
+    expect(isOff(next())).toBe(false);
 
     click(next());
     expect(shownId()).toBe(2);
-    expect(prev().disabled).toBe(false);
+    expect(isOff(prev())).toBe(false);
     expect(dimmed()).toEqual(['gallery_card_1', 'gallery_card_3']);
 
     click(next(), 0);
     expect(shownId()).toBe(3);
     // The last card of the last page has nothing after it, and sits at the bottom of the grid.
-    expect(next().disabled).toBe(true);
+    expect(isOff(next())).toBe(true);
     expect(gridCard(3).scrollIntoView).toHaveBeenCalledWith({ block: 'end', behavior: 'smooth' });
 
     click(prev(), 0);
@@ -205,6 +207,29 @@ describe('the Gallery expanded view', () => {
     expect(tracker.push.mock.calls.map(([name]) => name)).toEqual([
       'NextLabelClick', 'NextLabelKeyboardShortcut', 'PrevLabelKeyboardShortcut', 'PrevLabelClick',
     ]);
+  });
+
+  test('the last card\'s Next switches off with focus kept on it, and then ignores presses (#5135)', async () => {
+    const view = await build(stubContainer());
+    view.updateCardIndex(1);
+    next().focus();
+
+    click(next(), 0);
+
+    expect(shownId()).toBe(3);
+    expect(isOff(next())).toBe(true);
+    expect(next().disabled).toBe(false); // Never native `disabled`: a browser drops focus off that.
+    expect(document.activeElement).toBe(next());
+
+    tracker.push.mockClear();
+    const shownBefore = labelDetail.showLabel.mock.calls.length;
+    click(next(), 0);
+    click(next());
+    expect(labelDetail.showLabel.mock.calls.length).toBe(shownBefore);
+    expect(tracker.push).not.toHaveBeenCalled();
+
+    click(prev());
+    expect(isOff(next())).toBe(false);
   });
 
   test('paging past the last card on a page loads the next page and opens its first card there', async () => {
@@ -220,7 +245,7 @@ describe('the Gallery expanded view', () => {
     renderGrid(container);
     view.onPageCardsRendered();
     expect(shownId()).toBe(3);
-    expect(prev().disabled).toBe(false);
+    expect(isOff(prev())).toBe(false);
 
     // A render with no page change pending (a filter refetch, say) leaves the view on its card.
     view.onPageCardsRendered();
@@ -326,7 +351,7 @@ describe('a ?labelId= deep link', () => {
     expect(view.open).toBe(true);
     expect(root().style.visibility).toBe('visible');
     // No grid card behind it, so there is nothing to page back to.
-    expect(prev().disabled).toBe(true);
+    expect(isOff(prev())).toBe(true);
 
     // One shot: a later render (paging, a filter change) must not reopen it.
     view.restoreFromUrl();
