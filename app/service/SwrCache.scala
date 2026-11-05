@@ -97,7 +97,22 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * @return       Completes once the value is in the cache.
    */
   def put[T](key: String, value: T, maxAge: FiniteDuration): Future[Unit] =
-    cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => ())
+    putComputedAt(key, value, OffsetDateTime.now(), maxAge)
+
+  /**
+   * [[put]] with the compute time given rather than taken from the clock, so a spec can plant a value that is already
+   * past its fresh window instead of sleeping through one (#5235).
+   *
+   * @param computedAt When the value counts as having been computed.
+   * @return           Completes once the value is in the cache.
+   */
+  private[service] def putComputedAt[T](
+      key: String,
+      value: T,
+      computedAt: OffsetDateTime,
+      maxAge: FiniteDuration
+  ): Future[Unit] =
+    cacheApi.set(key, Timestamped(value, computedAt), maxAge).map(_ => ())
 
   /**
    * The hit half both public variants share: the cached value if there is one, with a background recompute kicked

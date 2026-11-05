@@ -285,6 +285,17 @@ case class AdminUserProfileData(
 object UserService {
 
   /**
+   * Cache key for the global board of `n` rows, shared with the spec that seeds it (#5235).
+   *
+   * The `v2-swr` suffix names the stored shape: [[SwrCache]] wraps the value in a timestamp and reads it back with an
+   * erased type, so the bare value the plain-expiry cache used to keep must never be found under this key.
+   *
+   * @param n How many rows the board holds.
+   * @return  The key the board is cached under.
+   */
+  private[service] def globalLeaderboardCacheKey(n: Int): String = s"getGlobalLeaderboardStats_$n:v2-swr"
+
+  /**
    * Minimum cohort size for showing a numeric rank/percentile in "your standing". Below this, the UI reframes to a
    * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
    */
@@ -632,7 +643,8 @@ class UserServiceImpl @Inject() (
     userUtmTable: UserUtmTable,
     userSettingsTable: UserSettingsTable,
     configService: ConfigService,
-    cacheApi: AsyncCacheApi
+    cacheApi: AsyncCacheApi,
+    swrCache: SwrCache
 )(using ec: ExecutionContext)
     extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -944,14 +956,13 @@ class UserServiceImpl @Inject() (
   }
 
   def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
-    // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
-    // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
-    // all-time, so it barely moves between refreshes. The recover sits outside the cache so a transient DB failure
-    // isn't stored as a successful "no board" for the next 10 minutes.
-    cacheApi
-      .getOrElseUpdate[Option[Seq[GlobalLeaderboardEntry]]](
-        s"getGlobalLeaderboardStats_$n",
-        Duration(10, "minutes")
+    // SWR, not expiry: an expired entry makes the next request pay for the ~50-schema union before the page renders,
+    // on a connection Explore and Validate share (#4600, #5235). The board is all-time, so a stale copy is nearly free.
+    swrCache
+      .staleWhileRevalidate[Option[Seq[GlobalLeaderboardEntry]]](
+        UserService.globalLeaderboardCacheKey(n),
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
       ) {
         configService.getGlobalLeaderboardScope.flatMap { scope =>
           if (scope.cities.isEmpty) {
@@ -977,7 +988,7 @@ class UserServiceImpl @Inject() (
         }
       }
       .recover { case e: Exception =>
-        // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+        // Outside the cache so a transient failure isn't cached as a real "no board"; the section drops, not the page.
         logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
         None
       }
