@@ -229,7 +229,7 @@
         "total_climb_meters": 0.4,
         "total_descent_meters": 5.1,
         "meters_over_5pct": 32.5,
-        "meters_over_8pct": 0,
+        "meters_over_8pct": 0.0,
         "grade_confidence": "high",
         "grade_quality": "measured",
         "dem_source": "usgs-3dep-10m"
@@ -390,7 +390,7 @@
             <td>Timestamp when the most recent accessibility label was applied to this street segment, in ISO 8601 format. May be <code>null</code> if no labels exist.</td>
           </tr>
 
-            <!-- Street Grade -->
+          <!-- Street Grade -->
           <tr>
             <td><code>properties.mean_grade</code></td>
             <td><code>number</code></td>
@@ -448,7 +448,7 @@
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
     <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point,mean_grade,max_grade,net_grade,total_climb_meters,total_descent_meters,meters_over_5pct,meters_over_8pct,grade_confidence,grade_quality,dem_source
-951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[""18b26a38-24ab-402d-a64e-158fc0bb8a8a"",""53ad4d79-9a7b-4d3c-a753-63bbfca34c9b""]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"[{""osm_way_id"":11584845,""street_from_frac"":0,""street_to_frac"":0.62,""way_from_frac"":0.4,""way_to_frac"":1,""same_direction"":true},{""osm_way_id"":11584846,""street_from_frac"":0.62,""street_to_frac"":1,""way_from_frac"":0.75,""way_to_frac"":1,""same_direction"":false}]","-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345",0.0412,0.0687,-0.0398,0.4,5.1,32.5,0,high,measured,usgs-3dep-10m
+951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[""18b26a38-24ab-402d-a64e-158fc0bb8a8a"",""53ad4d79-9a7b-4d3c-a753-63bbfca34c9b""]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"[{""osm_way_id"":11584845,""street_from_frac"":0,""street_to_frac"":0.62,""way_from_frac"":0.4,""way_to_frac"":1,""same_direction"":true},{""osm_way_id"":11584846,""street_from_frac"":0.62,""street_to_frac"":1,""way_from_frac"":0.75,""way_to_frac"":1,""same_direction"":false}]","-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345",0.0412,0.0687,-0.0398,0.4,5.1,32.5,0.0,high,measured,usgs-3dep-10m
 952,11566031,8,Teaneck Community Charter School,primary,,open,"[""8af92eb8-fb84-4aa6-9539-abc95216dcd7""]",8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"[{""osm_way_id"":11566031,""street_from_frac"":0,""street_to_frac"":1,""way_from_frac"":0.18,""way_to_frac"":0.31,""same_direction"":true}]","-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345",,,,,,,,high,structure,usgs-3dep-10m
 ...</code></pre>
 

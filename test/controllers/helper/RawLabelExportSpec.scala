@@ -382,7 +382,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
   }
 
   "the streets exports" should {
-    "carry a sampled street's grade fields, and nulls for an unsampled one, in the GeoPackage and shapefile (#5431)" in {
+    "carry a sampled street's grade fields, and nulls for an unsampled one, in both GIS formats (#5431)" in {
       val line      = wgs84.createLineString(Array(Coordinate(-74.03, 40.88), Coordinate(-74.02, 40.89)))
       val unsampled = StreetDataForApi(
         streetEdgeId = 952, osmWayId = 11584846L, osmWays = Seq.empty, regionId = 1, regionName = "Teaneck",

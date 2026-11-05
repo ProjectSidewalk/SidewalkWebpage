@@ -59,6 +59,22 @@ class StreetsApiSpec
 
   override def beforeAll(): Unit = {
     super.beforeAll()
+    // ScalaTest skips afterAll when beforeAll throws, so a half-seeded world is cleaned up here instead.
+    try seedGradeFixtures()
+    catch {
+      case e: Throwable =>
+        deleteGradeFixtures()
+        throw e
+    }
+  }
+
+  override def afterAll(): Unit = {
+    try deleteGradeFixtures()
+    finally super.afterAll()
+  }
+
+  /** A region with one sampled and one unsampled street, each on a primary OSM way. */
+  private def seedGradeFixtures(): Unit = {
     gradeRegion = run(insertRegion())
     sampledStreet = run(insertStreet(Some(gradeRegion)))
     unsampledStreet = run(insertStreet(Some(gradeRegion)))
@@ -71,22 +87,27 @@ class StreetsApiSpec
                      $unsampledStreet)""" andThen
         sqlu"""INSERT INTO street_gradient (street_edge_id, quality, confidence, net_grade, mean_grade, max_grade,
                                             meters_over_5pct_grade, meters_over_8pct_grade, climb_m, descent_m,
-                                            elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m, geom_md5)
+                                            elev_start_m, elev_end_m, profile_cm, dem_source, dem_resolution_m,
+                                            geom_md5)
                VALUES ($sampledStreet, 'measured', 'high', -0.04, 0.06, 0.09, 40, 10, 1.5, 5.5, 104.0, 100.0,
                        ARRAY[10400, 10250, 10150, 10050, 10000], 'usgs-3dep-10m', 10,
                        '0123456789abcdef0123456789abcdef')"""
     )
   }
 
-  override def afterAll(): Unit = {
-    try {
-      // The gradient rows and region links go with the streets; the way links have no cascade.
+  /**
+   * Deletes whatever [[seedGradeFixtures]] got as far as writing. An id still at 0 was never seeded, so it is skipped
+   * rather than matched. The gradient rows and region links go with the streets; the way links have no cascade.
+   */
+  private def deleteGradeFixtures(): Unit = {
+    val streets = Seq(sampledStreet, unsampledStreet).filter(_ > 0)
+    streets.foreach { id =>
       val _ = run(
-        sqlu"DELETE FROM osm_way_street_edge WHERE street_edge_id IN ($sampledStreet, $unsampledStreet)" andThen
-          sqlu"DELETE FROM street_edge WHERE street_edge_id IN ($sampledStreet, $unsampledStreet)" andThen
-          sqlu"DELETE FROM region WHERE region_id = $gradeRegion"
+        sqlu"DELETE FROM osm_way_street_edge WHERE street_edge_id = $id" andThen
+          sqlu"DELETE FROM street_edge WHERE street_edge_id = $id"
       )
-    } finally super.afterAll()
+    }
+    if (gradeRegion > 0) { val _ = run(sqlu"DELETE FROM region WHERE region_id = $gradeRegion") }
   }
 
   "GET /v3/api/streets" should {

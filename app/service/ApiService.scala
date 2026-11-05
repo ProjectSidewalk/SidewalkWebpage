@@ -299,24 +299,8 @@ class ApiServiceImpl @Inject() (
   private def planEachRun[R, S <: NoStream, E <: Effect](action: DBIOAction[R, S, E]) =
     SqlFragments.withLocalSetting("plan_cache_mode", "force_custom_plan")(action)
 
-  /**
-   * Streams the streets, each with its slope statistics (#5431).
-   *
-   * The statistics are looked up a batch at a time through `StreetGradientTable.getStats`, the same profile-free read
-   * the AccessScore API makes, rather than joined into the streets query: it keeps one definition of which columns a
-   * city-wide payload reads, at the cost of one primary-key read per chunk of [[GradeLookupChunk]] streets.
-   */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, ?] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
-      // Small chunks, so the first bytes leave after a thousand streets rather than a whole fetch batch, and each
-      // lookup's inlined id list stays short.
-      .grouped(math.min(batchSize, GradeLookupChunk))
-      .mapAsync(1) { streets =>
-        getStreetGradientStats(streets.map(_.streetEdgeId)).map { stats =>
-          streets.map(street => street.copy(gradient = stats.get(street.streetEdgeId)))
-        }
-      }
-      .mapConcat(identity)
   }
 
   def getSidewalkPresence(
@@ -392,9 +376,6 @@ class ApiServiceImpl @Inject() (
 
   def getStreetNames(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] =
     db.run(osmWayTable.getStreetNames(streetEdgeIds))
-
-  /** How many streets [[getStreets]] looks grades up for at a time. */
-  private val GradeLookupChunk: Int = 1000
 
   def getStreetGradientStats(streetEdgeIds: Seq[Int]): Future[Map[Int, StreetGradientStats]] =
     db.run(streetGradientTable.getStats(streetEdgeIds))
