@@ -4,8 +4,9 @@
  * frontend/js/validate/panorama/PanoOverlay.js.
  *
  * Hover opens the card before a click can land, so a click pins it (it then outlasts the pointer leaving) and a second
- * click unpins and closes it. Enter/Space share the same path from KeyboardManager. aria-expanded has to follow the
- * card throughout, and a press on the marker must not take the card down before its click arrives.
+ * click unpins and closes it. Enter/Space stay a plain toggle: focus already opens the card, so the keyboard needs no pin.
+ * aria-expanded has to follow the card throughout, and a press on the marker must not take the card down before its
+ * click arrives, nor leave focus on the marker, where keys would go to the card instead of the shortcuts.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
@@ -29,7 +30,7 @@ describe('pinning the Validate label card', () => {
   /** A still click on the marker: press, release, click. */
   function click() {
     marker().dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 10, clientY: 10 }));
-    window.dispatchEvent(new MouseEvent('mouseup', { clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
     marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
   }
 
@@ -109,7 +110,7 @@ describe('pinning the Validate label card', () => {
     expect(control.isCardVisible()).toBe(true); // A press alone could still be a click.
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: 80, clientY: 10 }));
     expect(control.isCardVisible()).toBe(false);
-    window.dispatchEvent(new MouseEvent('mouseup', { clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
     marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
 
     expect(control.isCardVisible()).toBe(false);
@@ -137,15 +138,26 @@ describe('pinning the Validate label card', () => {
     expect(expanded()).toBe('false');
   });
 
-  it('Enter/Space share the pin, logged as keyboard: a focus-opened card is pinned, then closed', () => {
-    control.showLabelCard({ viaKeyboard: true }); // What Tab onto the marker does.
-    control.toggleLabelCardPin({ viaKeyboard: true });
-    expect(control.isCardHeldOpen()).toBe(true);
-    expect(tracker.push).toHaveBeenLastCalledWith('KeyboardShortcut_PinLabelCard');
+  it('a click does not leave focus on the marker, so the shortcuts keep their keys', () => {
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, clientX: 10, clientY: 10 });
+    marker().dispatchEvent(down);
+    marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 10, clientY: 10 }));
 
-    control.toggleLabelCardPin({ viaKeyboard: true });
+    expect(down.defaultPrevented).toBe(true); // What keeps a real browser from focusing the tabindex=0 marker.
+    expect(document.activeElement).not.toBe(marker());
+    expect(control.isCardHeldOpen()).toBe(true);
+  });
+
+  it('Enter/Space stay a plain toggle, which also closes a pinned card, logging no pin', () => {
+    click();
+    control.toggleLabelCard({ viaKeyboard: true }); // What KeyboardManager calls on Enter/Space.
     expect(control.isCardVisible()).toBe(false);
-    expect(tracker.push).toHaveBeenLastCalledWith('KeyboardShortcut_UnpinLabelCard');
+
+    control.toggleLabelCard({ viaKeyboard: true });
+    expect(control.isCardVisible()).toBe(true);
+    expect(control.isCardHeldOpen()).toBe(false);
+    expect(tracker.push).toHaveBeenLastCalledWith('KeyboardShortcut_ShowLabelCard');
   });
 
   it('a pinned card is marked held for the immersive dock rule, like one opened on load', () => {

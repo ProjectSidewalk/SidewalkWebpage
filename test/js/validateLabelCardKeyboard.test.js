@@ -68,7 +68,7 @@ describe('KeyboardManager label-card scope', () => {
       labelVisibilityControl: {
         hideLabelCard: vi.fn(),
         isCardHeldOpen: () => false,
-        toggleLabelCardPin: vi.fn(),
+        toggleLabelCard: vi.fn(),
         // The card starts open in most tests; the Escape-against-nothing case flips this.
         isCardVisible: () => true,
         isVisible: () => true,
@@ -87,10 +87,10 @@ describe('KeyboardManager label-card scope', () => {
   const cardButton = () => document.getElementById('label-visibility-button-on-label');
 
   describe('inside the scope', () => {
-    it('Enter on the marker pins or unpins the card instead of submitting the validation', () => {
+    it('Enter on the marker toggles the card instead of submitting the validation', () => {
       const ev = key('Enter', marker());
 
-      expect(current.labelVisibilityControl.toggleLabelCardPin).toHaveBeenCalledTimes(1);
+      expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
       expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
       expect(ev.defaultPrevented).toBe(true);
     });
@@ -98,14 +98,14 @@ describe('KeyboardManager label-card scope', () => {
     it('marks the toggle as a keyboard open, so it is not logged as a pointer hover', () => {
       key('Enter', marker());
 
-      expect(current.labelVisibilityControl.toggleLabelCardPin)
+      expect(current.labelVisibilityControl.toggleLabelCard)
         .toHaveBeenCalledWith({ viaKeyboard: true });
     });
 
-    it('Space on the marker pins or unpins the card', () => {
+    it('Space on the marker toggles the card', () => {
       const ev = key('Space', marker());
 
-      expect(current.labelVisibilityControl.toggleLabelCardPin).toHaveBeenCalledTimes(1);
+      expect(current.labelVisibilityControl.toggleLabelCard).toHaveBeenCalledTimes(1);
       expect(ev.defaultPrevented).toBe(true); // Space would otherwise also scroll the page.
     });
 

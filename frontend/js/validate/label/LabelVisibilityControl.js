@@ -29,7 +29,7 @@ export class LabelVisibilityControl {
   // Infra3d cities (Zurich, Winterthur) asked for each label's tags and description to be on screen as soon as it
   // loads (#5675). Desktop only: on a phone the card would cover much of the small pano.
   #opensOnLoad;
-  // True while the card is held open: opened on load, or pinned by a click or Enter/Space on the marker (#4843).
+  // True while the card is held open: opened on load, or pinned by a click on the marker (#4843).
   // Mouse movement and keypresses leave a held card alone; only a press on the pano, another click on the marker,
   // hiding the label, Escape, or the next label closes it.
   #heldOpen = false;
@@ -203,14 +203,18 @@ export class LabelVisibilityControl {
       // reach it and an instant hide would make the button inside it unclickable.
       marker.addEventListener('mouseout', () => this.scheduleHideLabelCard());
 
-      // A click pins the card open and a second click unpins and closes it (#4843), the button's primary gesture
-      // meaning what Enter/Space mean. PanoOverlay leaves a press on the marker alone, so the hover card is still up
-      // when the click lands; a press that turns into a pan takes the card down here instead, once it moves.
+      // A click pins the card open and a second click unpins and closes it (#4843), so the button's primary gesture
+      // means something. PanoOverlay leaves a press on the marker alone, so the hover card is still up when the click
+      // lands; a press that turns into a pan takes the card down here instead, once it moves.
       // `pressing` also keeps the focus a click gives the marker from reopening a card the same press just closed.
       let pressing = false;
       let dragged = false;
       marker.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
+        // A focused marker routes keys to the card (KeyboardManager#inLabelCard), so a click that left focus here
+        // would turn Y into nothing and Enter into an unpin rather than a submit. PanoOverlay ignores defaultPrevented,
+        // so the pan this press may start is unaffected.
+        e.preventDefault();
         pressing = true;
         dragged = false;
         const startX = e.clientX;
@@ -228,7 +232,7 @@ export class LabelVisibilityControl {
           window.removeEventListener('mousemove', onMove);
           // Released off the marker, so no click will land on it to clear the flag; left set, it would swallow the
           // next click that comes with no press behind it (a screen reader's).
-          if (!marker.contains(/** @type {Node} */ (up.target))) dragged = false;
+          if (!(up.target instanceof Node && marker.contains(up.target))) dragged = false;
         }, { once: true });
       });
 
@@ -278,7 +282,10 @@ export class LabelVisibilityControl {
     return this.#cardVisible;
   }
 
-  /** @returns {boolean} True while a card opened on load is up, which ordinary keypresses shouldn't close. */
+  /**
+   * @returns {boolean} True while the card is held open (opened on load, or pinned by a click), which ordinary
+   *     keypresses shouldn't close.
+   */
   isCardHeldOpen() {
     return this.#heldOpen;
   }
@@ -362,27 +369,25 @@ export class LabelVisibilityControl {
   }
 
   /**
-   * Pins the card open, or unpins and closes a pinned one: desktop's answer to activating the marker, by a click or
-   * by Enter/Space (#4843). Hover has normally opened the card already by the time a click lands, so a plain toggle
-   * would close it on the first click; pinning instead makes the click keep it up after the pointer leaves. A card
-   * held open on load counts as pinned, so activating the marker closes it, as a press on the pano would.
-   *
-   * @param {object} [options]
-   * @param {boolean} [options.viaKeyboard] - Enter/Space rather than a click; picks the event names logged.
+   * Pins the card open, or unpins and closes a pinned one: desktop's answer to a mouse click on the marker (#4843).
+   * Hover has normally opened the card already by the time a click lands, so a plain toggle would close it on the
+   * first click; pinning instead makes the click keep it up after the pointer leaves. A card held open on load counts
+   * as pinned, so a click closes it, as a press on the pano would. The keyboard needs no pin (focus opens the card and
+   * its grace timer lets Tab travel into it), so Enter/Space stay a plain toggleLabelCard.
    */
-  toggleLabelCardPin({ viaKeyboard = false } = {}) {
-    const via = viaKeyboard ? 'KeyboardShortcut' : 'Click';
+  toggleLabelCardPin() {
     if (this.#heldOpen && this.#cardVisible) {
       this.hideLabelCard();
-      this.#tracker.push(`${via}_UnpinLabelCard`);
-    } else if (this.showLabelCard({ viaKeyboard, pin: true })) {
-      this.#tracker.push(`${via}_PinLabelCard`);
+      this.#tracker.push('Click_UnpinLabelCard');
+    } else if (this.showLabelCard({ pin: true })) {
+      this.#tracker.push('Click_PinLabelCard');
     }
   }
 
   /**
    * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
-   * press, or Enter/Space — opens and closes it. Desktop pins instead (toggleLabelCardPin).
+   * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker, while a
+   * mouse click pins instead (toggleLabelCardPin).
    *
    * @param {object} [options] - Forwarded to showLabelCard — see its viaKeyboard note.
    */

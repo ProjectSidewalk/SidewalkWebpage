@@ -270,7 +270,7 @@ describe('Validate pano marker activation', () => {
       expect(control.showLabelCard).not.toHaveBeenCalled();
 
       // Once the press is over, focus is the keyboard's again.
-      window.dispatchEvent(new MouseEvent('mouseup'));
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
       markerEl().blur();
       markerEl().focus();
       expect(control.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
@@ -287,7 +287,7 @@ describe('Validate pano marker activation', () => {
     function press(dx = 0, dy = 0) {
       markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 0, clientX: 100, clientY: 100}));
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 100 + dx, clientY: 100 + dy}));
-      window.dispatchEvent(new MouseEvent('mouseup', {clientX: 100 + dx, clientY: 100 + dy}));
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 100 + dx, clientY: 100 + dy}));
       markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: 100 + dx, clientY: 100 + dy}));
     }
 
@@ -310,7 +310,7 @@ describe('Validate pano marker activation', () => {
       markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 0, clientX: 100, clientY: 100}));
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 160, clientY: 100}));
       window.dispatchEvent(new MouseEvent('mousemove', {clientX: 101, clientY: 100}));
-      window.dispatchEvent(new MouseEvent('mouseup', {clientX: 101, clientY: 100}));
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 101, clientY: 100}));
       markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: 101, clientY: 100}));
 
       expect(control.hideLabelCard).toHaveBeenCalledTimes(1);
