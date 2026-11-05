@@ -85,4 +85,33 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     val (_, dLngPole) = bboxHalfWidths(90.0, 25.0)
     dLngPole should be <= (dLatEq / 0.01) + 1e-9
   }
+
+  test("batchSizeFor sizes a two-week pass, held between the floor and the ceiling (#5402)") {
+    // Newberg-sized: 1,544 / 14 = 111, so the floor holds and a small city finishes a pass in ~3 nights.
+    batchSizeFor(1544, None, 14, 500, 5000) shouldBe 500
+    // DC-sized: ceil(14,037 / 14) = 1,003, the first city where the floor stops mattering.
+    batchSizeFor(14037, None, 14, 500, 5000) shouldBe 1003
+    // Chicago-sized and beyond: the ceiling bounds run time and Mapillary's rate limits; the pass just runs longer.
+    batchSizeFor(100000, None, 14, 500, 5000) shouldBe 5000
+    batchSizeFor(0, None, 14, 500, 5000) shouldBe 500
+  }
+
+  test("batchSizeFor uses an explicit override verbatim, outside the bounds too") {
+    batchSizeFor(14037, Some(2000), 14, 500, 5000) shouldBe 2000
+    batchSizeFor(14037, Some(100), 14, 500, 5000) shouldBe 100
+    batchSizeFor(14037, Some(9000), 14, 500, 5000) shouldBe 9000
+  }
+
+  test("batchSizeFor survives misconfigured bounds rather than producing a nonsense batch") {
+    batchSizeFor(14037, None, 0, 500, 5000) shouldBe 5000   // A zero-night pass is read as one night.
+    batchSizeFor(14037, None, 14, 6000, 5000) shouldBe 5000 // Crossed bounds: the protective ceiling wins.
+  }
+
+  test("PollPlan.passNights rounds a partial final night up, and reads a zero batch as no pass") {
+    PollPlan(14037, 1003, overridden = false).passNights shouldBe 14
+    PollPlan(23995, 500, overridden = true).passNights shouldBe 48
+    PollPlan(1544, 500, overridden = false).passNights shouldBe 4
+    PollPlan(0, 500, overridden = false).passNights shouldBe 0
+    PollPlan(100, 0, overridden = true).passNights shouldBe 0
+  }
 }

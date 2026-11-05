@@ -56,7 +56,9 @@ case class ImageryRunDay(
  * @param since             Start of that window.
  * @param jobs              Roster state for the three jobs that make up the pipeline, including never-run ones.
  * @param runDays           Per-night counts across the window.
- * @param pollBatchSize     Streets the poll asks for per night, which sets the rotation's pace.
+ * @param pollBatchSize     Streets the next poll will ask for, sized per city (#5402); it sets the rotation's pace.
+ * @param pollPassNights    Nights one pass over every open street takes at that batch size.
+ * @param pollBatchPinned   True when an operator pinned the batch size instead of letting it scale with the city.
  * @param noImageryBatchSize Retired streets the regained-imagery re-check asks for per night, setting the pace of
  *                          its own separate rotation (#4929).
  * @param overdueAfterHours How long without a successful scheduled run before a job reads as overdue.
@@ -70,6 +72,8 @@ case class ImageryFreshnessReport(
     jobs: Seq[NightlyJobStatus],
     runDays: Seq[ImageryRunDay],
     pollBatchSize: Int,
+    pollPassNights: Int,
+    pollBatchPinned: Boolean,
     noImageryBatchSize: Int,
     overdueAfterHours: Long,
     pollJob: String,
@@ -101,6 +105,8 @@ object ImageryFreshnessReport {
         )
       }),
       "poll_batch_size"       -> report.pollBatchSize,
+      "poll_pass_nights"      -> report.pollPassNights,
+      "poll_batch_pinned"     -> report.pollBatchPinned,
       "no_imagery_batch_size" -> report.noImageryBatchSize,
       "overdue_after_hours"   -> report.overdueAfterHours,
       "poll_job"              -> report.pollJob,
@@ -212,14 +218,14 @@ class ImageryFreshnessReportServiceImpl @Inject() (
     config: Configuration,
     cacheApi: AsyncCacheApi,
     healthService: HealthService,
+    imageryFreshnessService: ImageryFreshnessService,
     backgroundJobRunTable: BackgroundJobRunTable
 )(using ec: ExecutionContext)
     extends ImageryFreshnessReportService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  // The rotation's pace, from the same config key the poller sizes its batch with, so the page can never quote a
-  // batch size the poll doesn't use.
-  private val pollBatchSize: Int      = config.get[Int]("street-imagery-poll.batch-size")
+  // The main rotation's pace comes from the poller's own sizing (pollPlan), so the page can never quote a batch size
+  // the poll doesn't use; the regained-imagery rotation is a flat config value.
   private val noImageryBatchSize: Int = config.get[Int]("street-imagery-poll.no-imagery-batch-size")
 
   /**
@@ -240,13 +246,16 @@ class ImageryFreshnessReportServiceImpl @Inject() (
     for {
       allJobs <- healthService.getNightlyJobs
       runs    <- db.run(backgroundJobRunTable.runsForJobsSince(ImageryFreshnessReportService.JobNames, since))
+      plan    <- imageryFreshnessService.pollPlan
     } yield ImageryFreshnessReport(
       days = window,
       since = since,
       jobs = ImageryFreshnessReportService.JobNames.flatMap(name => allJobs.find(_.jobName == name)),
       runDays = ImageryFreshnessReportService
         .buildRunDays(runs, ImageryFreshnessReportService.PollJob, ImageryFreshnessReportService.SyncJob),
-      pollBatchSize = pollBatchSize,
+      pollBatchSize = plan.batchSize,
+      pollPassNights = plan.passNights,
+      pollBatchPinned = plan.overridden,
       noImageryBatchSize = noImageryBatchSize,
       overdueAfterHours = ScheduledJobs.OverdueAfterHours,
       pollJob = ImageryFreshnessReportService.PollJob,

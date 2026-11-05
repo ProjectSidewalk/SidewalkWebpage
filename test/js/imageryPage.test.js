@@ -158,6 +158,8 @@ const report = (overrides = {}) => ({
   run_days: [{ day: '2026-08-19', streets_polled: 400, streets_skipped: 100, audits_flagged: 2,
     audits_unflagged: 0, streets_selected: 500, streets_refreshed: 3, poll_failures: 0, sync_failures: 0 }],
   poll_batch_size: 500,
+  poll_pass_nights: 1,
+  poll_batch_pinned: false,
   overdue_after_hours: 36,
   poll_job: POLL,
   sync_job: 'imagery-freshness-sync',
@@ -535,6 +537,21 @@ describe('ImageryPage rotation roll-up', () => {
     // Three audited streets at 400 a night is one night, and the batch size comes from the server's own config.
     expect(rollupRow('Full pass over audited streets').cells[1].textContent).toBe('~1 nights');
     expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('batch size 500');
+  });
+
+  test('quotes the server\'s full-pass length for the batch it sized, and says when the size is pinned', async () => {
+    await renderPage({ pipeline: report({ poll_batch_size: 1003, poll_pass_nights: 14 }) });
+    expect(rollupRow('Full pass over all streets').cells[1].textContent).toBe('every ~14 nights');
+    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('1,003 streets a night');
+    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('sized from this city');
+
+    await renderPage({ pipeline: report({ poll_pass_nights: 48, poll_batch_pinned: true }) });
+    expect(rollupRow('Full pass over all streets').cells[2].textContent).toContain('pinned');
+  });
+
+  test('shows no pass length when the report carries none', async () => {
+    await renderPage({ pipeline: report({ poll_pass_nights: undefined }) });
+    expect(rollupRow('Full pass over all streets').cells[1].textContent).toBe('—');
   });
 
   test('says the rotation is not advancing rather than projecting from zero', async () => {

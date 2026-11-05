@@ -57,6 +57,70 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     )(using app.injector.instanceOf[ExecutionContext])
   }
 
+  /**
+   * The real service against the app's configuration with `overrides` layered on top, minus any batch-size override
+   * the environment running the suite happens to export, so auto-sizing is what's under test unless a case pins it.
+   */
+  private def serviceWith(overrides: (String, Any)*): ImageryFreshnessService = {
+    ImageryFreshnessServiceImpl(
+      app.injector.instanceOf[DatabaseConfigProvider],
+      Configuration(overrides*).withFallback(
+        Configuration(baseConfig.underlying.withoutPath("street-imagery-poll.batch-size"))
+      ),
+      app.injector.instanceOf[WSClient],
+      configService,
+      app.injector.instanceOf[PanoDataService],
+      app.injector.instanceOf[StreetImageryTable],
+      app.injector.instanceOf[StreetReopenCandidateTable],
+      app.injector.instanceOf[AuditTaskTable]
+    )(using app.injector.instanceOf[ExecutionContext])
+  }
+
+  "pollPlan" should {
+    "size the batch from the city's own open-street count when nothing pins it (#5402)" in {
+      val plan        = await(serviceWith().pollPlan)
+      val openStreets = await(
+        app.injector
+          .instanceOf[DatabaseConfigProvider]
+          .get[models.utils.MyPostgresProfile]
+          .db
+          .run(app.injector.instanceOf[StreetImageryTable].countStreetsToPoll)
+      )
+      plan.openStreets mustBe openStreets
+      plan.overridden mustBe false
+      plan.batchSize mustBe ImageryFreshnessService.batchSizeFor(
+        openStreets,
+        None,
+        baseConfig.get[Int]("street-imagery-poll.pass-nights"),
+        baseConfig.get[Int]("street-imagery-poll.min-batch-size"),
+        baseConfig.get[Int]("street-imagery-poll.max-batch-size")
+      )
+
+      // A one-night pass with bounds out of the way polls exactly the city's open streets, which shows the count --
+      // not a bound -- drove the size, whatever the size of the seed.
+      val oneNight = await(
+        serviceWith(
+          "street-imagery-poll.pass-nights"    -> 1,
+          "street-imagery-poll.min-batch-size" -> 1,
+          "street-imagery-poll.max-batch-size" -> Int.MaxValue
+        ).pollPlan
+      )
+      oneNight.batchSize mustBe math.max(1, openStreets)
+      oneNight.passNights mustBe (if (openStreets == 0) 0 else 1)
+    }
+
+    "use a pinned batch size verbatim, and say it was pinned" in {
+      val plan = await(serviceWith("street-imagery-poll.batch-size" -> "37").pollPlan)
+      plan.batchSize mustBe 37
+      plan.overridden mustBe true
+    }
+
+    "treat an override exported empty as unset" in {
+      val plan = await(serviceWith("street-imagery-poll.batch-size" -> " ").pollPlan)
+      plan.overridden mustBe false
+    }
+  }
+
   "pollImageryAges" should {
     "fail rather than report success when its provider's credential is missing" in {
       assume(credentialKeys.nonEmpty, s"${configService.getPanoSource} has no imagery-age credential to remove")
@@ -108,6 +172,17 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (details \ "no_imagery_streets_selected").as[Int] mustBe 25
       (details \ "no_imagery_streets_polled").as[Int] mustBe 24
       (details \ "reopen_candidates_found").as[Int] mustBe 2
+    }
+
+    "record how the batch was sized, so the run history shows the pass length each night ran at (#5402)" in {
+      val plan    = ImageryFreshnessService.PollPlan(openStreets = 14037, batchSize = 1003, overridden = false)
+      val details = PollResult(Some("GSV"), 1003, 1000, 3, plan = Some(plan)).runDetails
+      (details \ "batch_size").as[Int] mustBe 1003
+      (details \ "open_streets").as[Int] mustBe 14037
+      (details \ "pass_nights").as[Int] mustBe 14
+      (details \ "batch_size_overridden").as[Boolean] mustBe false
+      PollResult(Some("GSV"), 1003, 1000, 3, plan = Some(plan)).summary must
+        endWith("Batch 1003 of 14037 open streets: a full pass every 14 nights.")
     }
 
     "carry the reason a poll covered nothing, so a skipped night isn't recorded as a zero-count one" in {

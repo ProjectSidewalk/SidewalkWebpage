@@ -151,6 +151,12 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   def count: DBIO[Int] = streetImageryRecords.length.result
 
   /**
+   * Counts the streets [[streetsToPoll]] rotates through, which is what the nightly batch is sized against (#5402).
+   */
+  def countStreetsToPoll: DBIO[Int] =
+    sql"SELECT COUNT(*) FROM #${FilteredTables.streets()};".as[Int].head
+
+  /**
    * Picks the streets most in need of an imagery-age poll (#4384).
    *
    * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the

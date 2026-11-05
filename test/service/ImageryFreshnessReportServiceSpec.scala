@@ -214,7 +214,10 @@ class ImageryFreshnessReportServiceSpec extends SidewalkSpec with BeforeAndAfter
 
     "quote the batch size the poll actually uses, and the overdue window the roster defines" in {
       val result = report()
-      result.pollBatchSize mustBe app.configuration.get[Int]("street-imagery-poll.batch-size")
+      val plan   = Await.result(app.injector.instanceOf[ImageryFreshnessService].pollPlan, 60.seconds)
+      result.pollBatchSize mustBe plan.batchSize
+      result.pollPassNights mustBe plan.passNights
+      result.pollBatchPinned mustBe plan.overridden
       result.overdueAfterHours mustBe ScheduledJobs.OverdueAfterHours
     }
 

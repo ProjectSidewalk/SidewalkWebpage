@@ -303,7 +303,11 @@ provider quotas.
 
 The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
 `street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
-`updated_at` too, so keying on it starved never-polled streets.
+`updated_at` too, so keying on it starved never-polled streets. The nightly batch is sized per city
+(`ImageryFreshnessService.batchSizeFor`, #5402) so one pass over every open street takes about two weeks:
+`ceil(open streets / pass-nights)`, clamped between a floor and a ceiling, all under `street-imagery-poll.*` in
+`conf/application.conf`. `STREET_IMAGERY_POLL_BATCH_SIZE`, when set, pins the batch instead. Each run records the batch
+and the resulting pass length in its details, and the admin Imagery page quotes the current pass length.
 
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is

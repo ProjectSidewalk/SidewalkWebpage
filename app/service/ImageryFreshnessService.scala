@@ -37,6 +37,7 @@ import scala.util.Try
 trait ImageryFreshnessService {
   def syncImageryFreshness: Future[ImageryFreshnessService.SyncResult]
   def pollImageryAges(): Future[ImageryFreshnessService.PollResult]
+  def pollPlan: Future[ImageryFreshnessService.PollPlan]
 }
 
 object ImageryFreshnessService {
@@ -67,6 +68,7 @@ object ImageryFreshnessService {
    * @param noImageryStreetsPolled   Of those, streets that answered conclusively.
    * @param reopenCandidatesFound    Of those, streets where attributable panos were found and a reopen candidate was
    *                                 recorded for admin review.
+   * @param plan                     How the main batch was sized (#5402), or None when the poll never reached one.
    */
   case class PollResult(
       provider: Option[String],
@@ -76,14 +78,18 @@ object ImageryFreshnessService {
       notPolledReason: Option[String] = None,
       noImageryStreetsSelected: Int = 0,
       noImageryStreetsPolled: Int = 0,
-      reopenCandidatesFound: Int = 0
+      reopenCandidatesFound: Int = 0,
+      plan: Option[PollPlan] = None
   ) {
 
     /** One line for the actor log. */
     def summary: String = notPolledReason.getOrElse(
       s"${provider.getOrElse("Imagery")} imagery-age poll: $streetsPolled streets updated, $streetsSkipped skipped " +
         s"(of $streetsSelected selected); $noImageryStreetsPolled of $noImageryStreetsSelected no-imagery streets " +
-        s"re-checked, $reopenCandidatesFound reopen candidate(s) found."
+        s"re-checked, $reopenCandidatesFound reopen candidate(s) found." +
+        plan.fold("")(p =>
+          s" Batch ${p.batchSize} of ${p.openStreets} open streets: a full pass every ${p.passNights} nights."
+        )
     )
 
     /**
@@ -101,9 +107,53 @@ object ImageryFreshnessService {
       "not_polled_reason"           -> notPolledReason,
       "no_imagery_streets_selected" -> noImageryStreetsSelected,
       "no_imagery_streets_polled"   -> noImageryStreetsPolled,
-      "reopen_candidates_found"     -> reopenCandidatesFound
+      "reopen_candidates_found"     -> reopenCandidatesFound,
+      "batch_size"                  -> plan.map(_.batchSize),
+      "batch_size_overridden"       -> plan.map(_.overridden),
+      "open_streets"                -> plan.map(_.openStreets),
+      "pass_nights"                 -> plan.map(_.passNights)
     )
   }
+
+  /**
+   * How tonight's main poll batch is sized for this city (#5402).
+   *
+   * @param openStreets Open, non-tutorial streets: the population the rotation cycles through.
+   * @param batchSize   Streets the poll asks for per night.
+   * @param overridden  True when `street-imagery-poll.batch-size` pinned the batch instead of the per-city sizing.
+   */
+  case class PollPlan(openStreets: Int, batchSize: Int, overridden: Boolean) {
+
+    /** Nights one rotation over every open street takes at this batch size; what an operator actually wants to know. */
+    def passNights: Int = if (batchSize <= 0) 0 else math.ceil(openStreets.toDouble / batchSize).toInt
+  }
+
+  /**
+   * Sizes the nightly batch so one pass over a city's open streets takes about `passNights` nights (#5402).
+   *
+   * A flat batch made a big city's first pass take one to two months, during which its never-polled streets have no
+   * median and can't be flagged for re-audit; GSV metadata is free, so the only reasons to cap the batch are run time
+   * and Mapillary's rate limits, which the ceiling covers. The ceiling wins if the two bounds are misconfigured to
+   * cross, since it is the bound that protects something.
+   *
+   * {{{
+   * batchSizeFor(14037, None, 14, 500, 5000)      // 1003: DC finishes a pass in 14 nights
+   * batchSizeFor(1544, None, 14, 500, 5000)       // 500: small cities keep the floor
+   * batchSizeFor(14037, Some(2000), 14, 500, 5000) // 2000: an explicit override wins verbatim
+   * }}}
+   *
+   * @param openStreets  Streets the rotation cycles through.
+   * @param overrideSize A hand-pinned batch size, used verbatim when present.
+   * @param passNights   Target length of one full pass; values below 1 are treated as 1.
+   * @param minBatch     Floor on the computed batch.
+   * @param maxBatch     Ceiling on the computed batch.
+   * @return             Streets to poll per night.
+   */
+  def batchSizeFor(openStreets: Int, overrideSize: Option[Int], passNights: Int, minBatch: Int, maxBatch: Int): Int =
+    overrideSize.getOrElse {
+      val target = math.ceil(math.max(0, openStreets).toDouble / math.max(1, passNights)).toInt
+      math.min(maxBatch, math.max(minBatch, target))
+    }
 
   object PollResult {
 
@@ -221,7 +271,13 @@ class ImageryFreshnessServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private val pollBatchSize: Int          = config.get[Int]("street-imagery-poll.batch-size")
+  private val passNights: Int   = config.get[Int]("street-imagery-poll.pass-nights")
+  private val minBatchSize: Int = config.get[Int]("street-imagery-poll.min-batch-size")
+  private val maxBatchSize: Int = config.get[Int]("street-imagery-poll.max-batch-size")
+  // Read as a string so an env var exported empty (how a stage "unsets" one) means auto-sizing rather than a parse
+  // failure at boot.
+  private val batchSizeOverride: Option[Int] =
+    config.getOptional[String]("street-imagery-poll.batch-size").map(_.trim).filter(_.nonEmpty).map(_.toInt)
   private val noImageryPollBatchSize: Int = config.get[Int]("street-imagery-poll.no-imagery-batch-size")
 
   // 25m matches check_streets_for_imagery.py's sample radius: wide enough to catch imagery on the roadway around a
@@ -307,11 +363,27 @@ class ImageryFreshnessServiceImpl @Inject() (
    * @param fetchPoint   Queries one (lat, lng) sample point: Some(panos seen) on a conclusive answer (possibly
    *                     empty = confirmed no imagery), None when inconclusive.
    */
+  /**
+   * Sizes tonight's main batch from this city's current open-street count (#5402).
+   *
+   * Public so the admin Imagery page quotes the batch and pass length the next poll will actually use, rather than
+   * re-deriving them from config.
+   */
+  def pollPlan: Future[PollPlan] =
+    db.run(streetImageryTable.countStreetsToPoll).map { openStreets =>
+      PollPlan(
+        openStreets,
+        batchSizeFor(openStreets, batchSizeOverride, passNights, minBatchSize, maxBatchSize),
+        batchSizeOverride.isDefined
+      )
+    }
+
   private def pollStreets(
       providerName: String
   )(fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]): Future[PollResult] = {
     for {
-      streets           <- db.run(streetImageryTable.streetsToPoll(pollBatchSize))
+      plan              <- pollPlan
+      streets           <- db.run(streetImageryTable.streetsToPoll(plan.batchSize))
       (polled, skipped) <- streets.foldLeft(Future.successful((0, 0))) { case (accFuture, street) =>
         accFuture.flatMap { case (polled, skipped) =>
           pollOneStreet(street, fetchPoint).map {
@@ -335,7 +407,7 @@ class ImageryFreshnessServiceImpl @Inject() (
           }
       }
     } yield PollResult(Some(providerName), streets.size, polled, skipped, None, noImageryStreets.size, noImageryPolled,
-      candidates)
+      candidates, Some(plan))
   }
 
   /**

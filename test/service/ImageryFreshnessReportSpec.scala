@@ -229,7 +229,9 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
         since = at("2026-07-20", 0),
         jobs = Seq.empty,
         runDays = buildDays(Seq(run(pollJob, "2026-08-10", 0, Map("streets_polled" -> 3)))),
-        pollBatchSize = 500,
+        pollBatchSize = 1003,
+        pollPassNights = 14,
+        pollBatchPinned = false,
         noImageryBatchSize = 25,
         overdueAfterHours = 36L,
         pollJob = pollJob,
@@ -237,7 +239,10 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
       )
       val json = Json.toJson(report)
 
-      (json \ "poll_batch_size").as[Int] mustBe 500
+      (json \ "poll_batch_size").as[Int] mustBe 1003
+      // The page says "full pass every N nights" from these rather than re-deriving the sizing on the client.
+      (json \ "poll_pass_nights").as[Int] mustBe 14
+      (json \ "poll_batch_pinned").as[Boolean] mustBe false
       // The regained-imagery rotation is sized separately, so its pace has to travel separately too.
       (json \ "no_imagery_batch_size").as[Int] mustBe 25
       (json \ "overdue_after_hours").as[Long] mustBe 36L
