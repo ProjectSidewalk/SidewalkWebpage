@@ -67,6 +67,7 @@ export class HealthPage {
       this.#renderConnections(data.connections || []);
       this.#renderPanos(data.pano_backups || null);
       this.#renderNightlyJobs(data.nightly_jobs || []);
+      this.#renderBackups(data.backups || null);
     } catch (e) {
       AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${util.escapeHTML(e.message)}`);
     } finally {
@@ -107,6 +108,11 @@ export class HealthPage {
     if (bloated > 0) {
       tone = tone === 'bad' ? 'bad' : 'warn';
       problems.push(`${bloated} bloated table${bloated === 1 ? '' : 's'}`);
+    }
+    const backupTone = HealthPage.#backupPulseTone(data.backups);
+    if (backupTone !== 'good') {
+      tone = backupTone === 'bad' || tone === 'bad' ? 'bad' : 'warn';
+      problems.push(HealthPage.#backupProblem(data.backups));
     }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
@@ -386,6 +392,143 @@ export class HealthPage {
       ? `Every job has succeeded on schedule within the last ${util.escapeHTML(t.job_overdue_hours)} hours.`
       : `${overdue} job${overdue === 1 ? ' has' : 's have'} not succeeded on schedule in the last `
         + `${util.escapeHTML(t.job_overdue_hours)} hours.`);
+  }
+
+  // ---- Panel: database backups ----------------------------------------------------------------------------------
+
+  /**
+   * The nightly dump directory's freshness (#4571), plus the "Newest DB backup" KPI.
+   *
+   * Every status and note comes from the server; this only turns its bytes and epoch-ms timestamps into words. An
+   * unconfigured directory is the normal state off production, so it renders neutral rather than as an alarm.
+   *
+   * @param {Record<string, any>|null} report - The payload's `backups` object.
+   */
+  #renderBackups(report) {
+    if (!report) {
+      this.#setKpi('kpi-backups', '—', 'ok');
+      AdminShell.setHtml('health-backups-note', '');
+      return this.#renderProblem('health-backups', 'Could not read the backup status. This panel is blind, not clear.');
+    }
+    if (report.state === 'not_configured') {
+      this.#setKpi('kpi-backups', '—', 'ok');
+      AdminShell.setHtml('health-backups', `<p class="coverage-status">
+        <span class="ac-badge ac-badge--ok">–</span> No backup directory is configured on this server
+        (<code>SIDEWALK_BACKUP_DIR</code>), so backups are not checked here.
+      </p>`);
+      AdminShell.setHtml('health-backups-note', '');
+      return undefined;
+    }
+    if (report.state === 'unavailable') {
+      this.#setKpi('kpi-backups', '!', 'bad');
+      AdminShell.setHtml('health-backups-note', '');
+      return this.#renderProblem('health-backups',
+        `${report.error || 'The backup directory could not be read.'} The backup job may have stopped, or its `
+        + 'storage is not mounted.');
+    }
+
+    const tone = HealthPage.#knownTone(report.status);
+    const newest = AdminShell.nil(report.newest_modified_ms)
+      ? 'none'
+      : AdminShell.relativeTime(report.newest_modified_ms);
+    this.#setKpi('kpi-backups', newest, tone);
+
+    const notes = {
+      fresh: 'fresh', stale: 'stale', none_found: 'none found', small: 'possibly truncated',
+      writing: 'probably still writing',
+    };
+    const body = (report.kinds || []).map((k) => {
+      const kindTone = HealthPage.#knownTone(k.status);
+      return `
+        <tr${kindTone !== 'good' ? ' class="ac-row--flagged"' : ''}>
+          <td>${util.escapeHTML(k.label)}</td>
+          <td><span class="ac-badge ac-badge--${kindTone}">${util.escapeHTML(notes[k.note] || k.note)}</span></td>
+          <td class="ac-muted">${k.newest_name ? `<code>${util.escapeHTML(k.newest_name)}</code>` : '—'}</td>
+          <td>${AdminShell.nil(k.newest_modified_ms) ? '—' : AdminShell.relativeTime(k.newest_modified_ms)}</td>
+          <td class="ac-num">${HealthPage.#bytes(k.newest_bytes)}</td>
+          <td class="ac-num">${HealthPage.#bytes(k.median_bytes)}</td>
+          <td class="ac-num">${AdminShell.num(k.count)}</td>
+        </tr>`;
+    }).join('');
+    this.#table('health-backups',
+      ['Kind', 'Status', 'Newest file', 'Modified', ['Size', true], ['Typical size', true], ['Files', true]], body);
+
+    const t = this.#thresholds;
+    const days = (ms) => `${Math.round(ms / 86400000)} days`;
+    const newestKind = (report.kinds || []).find((k) => k.kind === report.newest_kind);
+    const parts = [];
+    parts.push(newestKind
+      ? `Newest: ${util.escapeHTML(newestKind.label)}, ${util.escapeHTML(newest)}, `
+      + `${HealthPage.#bytes(newestKind.newest_bytes)}.`
+      : 'No backup files found.');
+    parts.push(`Anything older than ${days(t.backup_newest_warn_ms)} is stale and older than `
+      + `${days(t.backup_newest_bad_ms)} is an outage; each kind alternates nightly, so a kind reads stale past `
+      + `${days(t.backup_kind_warn_ms)} and red past ${days(t.backup_kind_bad_ms)}. A newest file under `
+      + `${Math.round(t.backup_small_ratio * 100)}% of its kind's typical size is flagged.`);
+    if (report.other_count > 0) {
+      const hint = (report.kinds || []).some((k) => k.note === 'none_found')
+        ? '; if those are the dumps, the job now writes a suffix this panel does not recognize'
+        : '';
+      parts.push(`${AdminShell.num(report.other_count)} other file${report.other_count === 1 ? '' : 's'} `
+        + `in the directory ignored${hint}.`);
+    }
+    AdminShell.setHtml('health-backups-note', parts.join(' '));
+    return undefined;
+  }
+
+  /**
+   * How the backups panel weighs into the page's pulse. "Not configured" is neutral, so it never raises the pulse.
+   *
+   * @param {Record<string, any>|null|undefined} report - The payload's `backups` object.
+   * @returns {'good'|'warn'|'bad'} The tone the pulse should take from it.
+   */
+  static #backupPulseTone(report) {
+    if (!report || report.state === 'not_configured') return 'good';
+    if (report.state === 'unavailable') return 'bad';
+    return HealthPage.#knownTone(report.status);
+  }
+
+  /**
+   * The pulse's words for a backups panel that is not green. A short file is a different problem from a missing one
+   * (the job ran and may have died), so the pulse says which it saw.
+   *
+   * @param {Record<string, any>} report - The payload's `backups` object, known not to be neutral or good.
+   * @returns {string} The problem, as the pulse lists it.
+   */
+  static #backupProblem(report) {
+    if (report.state === 'unavailable') return 'backup directory unreadable';
+    const notes = (report.kinds || []).map((k) => k.note);
+    if (notes.includes('stale') || notes.includes('none_found')) return 'stale or missing backups';
+    if (notes.includes('small')) return 'a backup looks truncated';
+    return 'backups need a look';
+  }
+
+  /**
+   * A server status as a badge tone; one this page has not been taught reads as a reason to look, never as healthy.
+   *
+   * @param {string} status - `good`, `warn` or `bad`.
+   * @returns {'good'|'warn'|'bad'} The tone.
+   */
+  static #knownTone(status) {
+    return status === 'good' || status === 'bad' ? status : 'warn';
+  }
+
+  /**
+   * A byte count in decimal units, matching what `ls -h --si` and the ops notes say ("343 GB").
+   *
+   * @param {number|null|undefined} n - Bytes.
+   * @returns {string} The size, or an em dash when absent.
+   */
+  static #bytes(n) {
+    if (AdminShell.nil(n)) return '—';
+    const units = ['B', 'kB', 'MB', 'GB', 'TB'];
+    let v = Number(n);
+    let i = 0;
+    while (v >= 1000 && i < units.length - 1) {
+      v /= 1000;
+      i += 1;
+    }
+    return `${i === 0 || v >= 100 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
   }
 
   // ---- Small helpers ---------------------------------------------------------------------------------------------

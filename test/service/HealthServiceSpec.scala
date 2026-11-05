@@ -90,6 +90,12 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       t.idleTxnBadSeconds must be >= t.idleTxnWarnSeconds
       t.lockWaitBadSeconds must be >= t.lockWaitWarnSeconds
       t.bloatBadRatio must be >= t.bloatWarnRatio
+      t.backupNewestBadMs must be >= t.backupNewestWarnMs
+      t.backupKindBadMs must be >= t.backupKindWarnMs
+
+      // No backups.dir in the test config, so the panel must read neutral rather than red (#4571).
+      data.backups.state mustBe "not_configured"
+      data.backups.status mustBe "neutral"
     }
 
     "survive a burst of concurrent polls without exhausting the connection pool" in {

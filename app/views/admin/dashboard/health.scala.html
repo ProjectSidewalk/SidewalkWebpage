@@ -21,6 +21,7 @@
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-bloat">—</span><span class="ps-kpi-label">Bloated tables</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB connections</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-panos">—</span><span class="ps-kpi-label">At-risk panos (this city)</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-backups">—</span><span class="ps-kpi-label">Newest DB backup</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
   </div>
@@ -73,6 +74,13 @@
     <p>How many of this city's labeled panos have a local backup, without which an expired pano can't be shown.</p>
     <div id="health-panos"></div>
     <p class="ac-note" id="health-panos-note"></p>
+  </div>
+
+  <div class="page-section" id="health-backups-section">
+    <h2 class="page-heading" id="backups">Database backups <a href="#backups" class="permalink">#</a></h2>
+    <p>The nightly dumps of the whole database, which alternate between a SQL dump and a file-level copy: whether last night's landed, and how old and large the newest of each kind is.</p>
+    <div id="health-backups"></div>
+    <p class="ac-note" id="health-backups-note"></p>
   </div>
 
   @ViteAssets.stylesheets("admin/health", alreadyLinked = "admin/shell")

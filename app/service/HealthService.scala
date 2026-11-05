@@ -9,11 +9,13 @@ import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
 
+import java.nio.file.{Path, Paths}
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject.*
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{blocking, ExecutionContext, Future}
+import service.BackupFreshness.backupFreshnessReportWrites
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
 case class BlockingSession(
@@ -105,7 +107,12 @@ case class HealthThresholds(
     connWarnActive: Int,
     connBadActive: Int,
     jobOverdueHours: Long,
-    jobWindowDays: Int
+    jobWindowDays: Int,
+    backupNewestWarnMs: Long,
+    backupNewestBadMs: Long,
+    backupKindWarnMs: Long,
+    backupKindBadMs: Long,
+    backupSmallRatio: Double
 )
 
 /**
@@ -159,7 +166,8 @@ case class DbHealthData(
     connections: Seq[ConnCount],
     panoBackups: Option[PanoBackupStats],
     nightlyJobs: Seq[NightlyJobStatus],
-    thresholds: HealthThresholds
+    thresholds: HealthThresholds,
+    backups: BackupFreshnessReport
 )
 
 /**
@@ -224,8 +232,19 @@ class HealthServiceImpl @Inject() (
     connWarnActive = math.max(1, (poolMax * 0.7).toInt),
     connBadActive = math.max(1, (poolMax * 0.9).toInt),
     jobOverdueHours = ScheduledJobs.OverdueAfterHours,
-    jobWindowDays = HealthService.JobWindowDays
+    jobWindowDays = HealthService.JobWindowDays,
+    backupNewestWarnMs = BackupFreshness.NewestWarnMs,
+    backupNewestBadMs = BackupFreshness.NewestBadMs,
+    backupKindWarnMs = BackupFreshness.KindWarnMs,
+    backupKindBadMs = BackupFreshness.KindBadMs,
+    backupSmallRatio = BackupFreshness.SmallRatio
   )
+
+  // The nightly whole-cluster dump directory (#4571). Unset everywhere but production, where it reads as "not
+  // configured" rather than as an alarm, so dev checkouts and the test stage are not scolded about backups they never
+  // had.
+  private val backupDir: Option[Path] =
+    config.getOptional[String]("backups.dir").map(_.trim).filter(_.nonEmpty).map(Paths.get(_))
 
   def getDbHealth: Future[DbHealthData] = {
     val envF = cacheApi
@@ -261,6 +280,9 @@ class HealthServiceImpl @Inject() (
     val evoF  = getStuckEvolutions
     val jobsF = getNightlyJobs.recover(logAndEmpty("nightly jobs"))
 
+    // Never fails: its own recovery turns a scan failure into the panel's red "unavailable" state.
+    val backupsF = getBackupFreshness
+
     for {
       env      <- envF
       blocking <- blockingF
@@ -271,6 +293,7 @@ class HealthServiceImpl @Inject() (
       conn     <- connF
       pano     <- panoF
       jobs     <- jobsF
+      backups  <- backupsF
     } yield DbHealthData(
       generatedAt = OffsetDateTime.now().toString,
       currentDatabase = env.database,
@@ -284,8 +307,32 @@ class HealthServiceImpl @Inject() (
       connections = conn,
       panoBackups = pano,
       nightlyJobs = jobs,
-      thresholds = thresholds
+      thresholds = thresholds,
+      backups = backups
     )
+  }
+
+  /**
+   * The backup-directory scan, cached like the slow catalog panels: dumps land once a night, so a five-minute-old
+   * reading is as good as a fresh one, and N polling tabs should not each stat a directory on a busy pool. The scan
+   * is one non-recursive `Files.list` plus a stat per file, so it runs as `blocking` on the default context rather
+   * than needing its own dispatcher. Failure is recovered outside the cache, as for every other panel, and reads as
+   * `unavailable` rather than blanking the page.
+   */
+  private def getBackupFreshness: Future[BackupFreshnessReport] = {
+    cacheApi
+      .getOrElseUpdate[BackupFreshnessReport]("health.backups", panoTtl)(
+        Future(blocking(BackupFreshness.scan(backupDir, System.currentTimeMillis()))).map { report =>
+          // Inside the cached computation so a missing mount logs once per TTL, not once per poll per tab.
+          report.error
+            .foreach(error => logger.warn(s"Health: backup directory ${backupDir.fold("")(_.toString)}: $error"))
+          report
+        }
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to scan backups: ${e.getMessage}")
+        BackupFreshness.unavailable("The backup scan failed; see the app log.", System.currentTimeMillis())
+      }
   }
 
   /**
