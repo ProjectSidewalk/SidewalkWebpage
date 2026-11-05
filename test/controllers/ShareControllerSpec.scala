@@ -239,7 +239,8 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       labelWhere(_.tags.nonEmpty) match {
         case None        => cancel("No recent tagged label in the test DB.")
         case Some(label) =>
-          val body  = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
+          val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
+          // Expected names are the current translations on purpose; a wording change in a locale file updates them.
           val names = label.tags.take(3).map(tagTranslations.translate(_, lang, countryId))
           body must include(HtmlFormat.escape(messagesApi("share.meta.description.tags", names.mkString(", "))).body)
       }
@@ -256,6 +257,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           val names: Seq[String] = label.tags.take(3).map(tagTranslations.translate(_, es, countryId))
           val expected: String   = messagesApi("share.meta.description.tags", names.mkString(", "))(using es)
           ogDescription(body) must include(HtmlFormat.escape(expected).body)
+          // Expected values are the current translations and region map on purpose; a wording change updates them.
           body must include("property=\"og:locale\" content=\"es_ES\"")
       }
     }
@@ -376,6 +378,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "ogLocale" should {
     "give a regioned language its own region and a bare one its home region" in {
+      // Expected locales are the current region map on purpose; changing a default region updates them here.
       ShareController.ogLocale(Lang("pt-BR")) mustBe "pt_BR"
       ShareController.ogLocale(Lang("en-NZ")) mustBe "en_NZ"
       ShareController.ogLocale(Lang("zh-TW")) mustBe "zh_TW"

@@ -26,6 +26,7 @@ class TagTranslationServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private lazy val service: TagTranslationService = app.injector.instanceOf[TagTranslationService]
 
   "translate" should {
+    // Expected strings are the current translations on purpose; a wording change in a locale file updates them here.
     "translate a known tag in every sampled language" in {
       service.translate("bumpy", Lang("es"), "usa") mustBe "textura irregular"
       service.translate("bumpy", Lang("de"), "usa") mustBe "holprig"

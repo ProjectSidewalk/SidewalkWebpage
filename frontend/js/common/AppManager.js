@@ -167,7 +167,8 @@ export class AppManager {
    * @private
    */
   _setupI18next(params) {
-    // Set up country-specific namespace overrides.
+    // Set up country-specific namespace overrides. TagTranslationService.overlayFor (app/service/) repeats this
+    // country -> overlay mapping for server-rendered tag names (#4445), so a new overlay goes in both places.
     let namespaces = params.namespaces;
     if (params.countryId === 'india') {
       namespaces = [...namespaces, ...namespaces.map((str) => `${str}-india`)];
@@ -213,7 +214,8 @@ export class AppManager {
       // Keep going: one file failing shouldn't leave the rest of the page untranslated.
       if (err?.length > 0) console.error(err);
 
-      // After loading, merge the country-specific override namespaces into the base ones.
+      // After loading, merge the country-specific override namespaces into the base ones. Keep the countries in step
+      // with TagTranslationService.overlayFor (app/service/), which mirrors this merge server-side (#4445).
       // Going through list of languages so that we still get the en translations when using en-US.
       for (const l of i18next.languages) {
         for (const ns of namespaces) {

@@ -65,7 +65,11 @@ class TagTranslationService @Inject() (environment: Environment, langs: Langs) {
   private[service] def languageChain(lang: Lang): Seq[String] =
     (Seq(lang.code, lang.language).filter(supportedCodes.contains) :+ "en").distinct
 
-  /** The suffix of the country overlay namespace, matching the countries `AppManager._setupI18next` overlays. */
+  /**
+   * The suffix of the country overlay namespace. Duplicates the country -> overlay mapping in
+   * `frontend/js/common/AppManager.js` (`_setupI18next`, both the namespace list and the merge): a new overlay must be
+   * added there and here, or the share page and the browser will name the same tag differently.
+   */
   private def overlayFor(countryId: String): Option[String] = countryId match {
     case "india"       => Some("india")
     case "switzerland" => Some("zurich")
