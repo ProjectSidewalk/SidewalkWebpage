@@ -6,21 +6,27 @@ This script is invoked in-band, once per region, by ``ClusterService.runMultiUse
 
   1. GETs the region's labels from ``/labelsToClusterInRegion``.
   2. Drops labels with invalid/missing coordinates.
-  3. Clusters each label type independently with complete-linkage hierarchical clustering over haversine distance,
-     using a per-type distance threshold. Labels from the same (user, pano) are never clustered together.
+  3. Clusters each label type independently with hierarchical clustering over haversine distance (complete linkage
+     unless ``--linkage`` says otherwise), using a per-type distance threshold. Labels from the same (user, pano) are
+     never clustered together.
   4. Offsets the per-type cluster ids so they are globally unique, then POSTs the labels, clusters, and thresholds
      back to ``/clusteringResults``.
 
 Run directly (matching the Scala invocation, from the repo root):
 
     INTERNAL_API_KEY=<key> python3 scripts/label_clustering.py --region_id <id> [--debug]
+        [--linkage {complete,average,single}] [--threshold LabelType=km ...]
+
+``--threshold`` overrides one type's distance threshold (repeatable). A run posts the thresholds it used and the app
+stores them in ``clustering_session.thresholds``, so any earlier session can be reproduced from that row, e.g.
+``--threshold CurbRamp=0.0075 --threshold NoCurbRamp=0.0075`` for the sessions #5887 analyzed.
 
 The internal API key is read from the ``INTERNAL_API_KEY`` environment variable and sent as an ``Authorization: Bearer``
 header (never on the command line or in the URL, so it can't leak into ``ps``/access logs). The HTTP port defaults to
 9000 and can be overridden with the ``SIDEWALK_HTTP_PORT`` environment variable.
 
 The pure functions here (``custom_dist``, ``clean_label_data``, ``cluster``, ``cluster_label_type``,
-``offset_and_combine``, ``build_output_json``) are import-safe and unit-tested in
+``offset_and_combine``, ``build_output_json``, ``parse_threshold_override``) are import-safe and unit-tested in
 ``test/python/test_label_clustering.py``; the network I/O lives in thin wrappers and ``main`` so it can be excluded
 from tests.
 """
@@ -49,10 +55,14 @@ REQUEST_TIMEOUT = 120
 POST_HEADER = {'content-type': 'application/json; charset=utf-8'}
 
 # Per-label-type clustering distance thresholds, in kilometers. Two labels closer than the threshold (and not from the
-# same user+pano) are eligible to be clustered together. CurbRamp/NoCurbRamp use a tighter radius than the rest.
+# same user+pano) are eligible to be clustered together. CurbRamp/NoCurbRamp get the same 10 m as the rest rather than
+# a tighter radius (#5887): a ramp the AI labeler sees from many panos gets positions spread over more than 7.5 m, and
+# complete linkage then cuts one ramp into several clusters. 10 m merges those while keeping two ramps on one corner
+# apart about as often as 7.5 m does; at 12.5 m the Laurens, IA analysis already saw labels from opposite sides of a
+# side street join.
 THRESHOLDS = {
-    'CurbRamp': 0.0075,
-    'NoCurbRamp': 0.0075,
+    'CurbRamp': 0.01,
+    'NoCurbRamp': 0.01,
     'SurfaceProblem': 0.01,
     'Obstacle': 0.01,
     'NoSidewalk': 0.01,
@@ -61,6 +71,18 @@ THRESHOLDS = {
     'Occlusion': 0.01,
     'Other': 0.01,
 }
+
+# Linkage criteria ``cluster`` accepts (scipy names). Complete linkage is the default because the same-(user, pano)
+# constraint in ``custom_dist`` propagates soundly under it: once two labels can't link, no cluster holding one can
+# ever absorb a cluster holding the other. Average linkage keeps that guarantee for the pair itself but not for the
+# rest of each object's labels; single linkage leaks it entirely, so both are offered for experiments (#5887), not use.
+LINKAGE_METHODS = ('complete', 'average', 'single')
+
+# The cannot-link distance for average and single linkage, in kilometers. ``sys.float_info.max`` is right for complete
+# linkage (a maximum is unaffected), but average linkage sums pairwise distances, and summing two of those overflows
+# to inf, which scipy rejects. One such pair among a cluster pair's n*m distances still averages to far more than any
+# threshold, so this merely huge value keeps the pair apart just as well.
+CANNOT_LINK_KM = 1e6
 
 # Label types to cluster.
 LABEL_TYPES = ['CurbRamp', 'NoSidewalk', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp', 'Crosswalk',
@@ -74,24 +96,66 @@ CLUSTER_COLS = ['label_type', 'cluster', 'lat', 'lng', 'severity']
 EMPTY_PAYLOAD = json.dumps({'thresholds': [], 'labels': [], 'clusters': []})
 
 
-def custom_dist(u, v):
+def custom_dist(u, v, cannot_link=sys.float_info.max):
     """
     Distance between two labels for clustering.
 
-    Returns the maximum float (so the two are never clustered) when both labels come from the same user and the same
+    Returns ``cannot_link`` (so the two are never clustered) when both labels come from the same user and the same
     pano; otherwise returns the haversine distance between their lat/lng. This keeps a single user's repeated labels on
     one pano from collapsing into a single cluster.
 
     Args:
-        u: Array-like ``[lat, lng, user_id, pano_id]`` for the first label.
-        v: Array-like ``[lat, lng, user_id, pano_id]`` for the second label.
+        u:           Array-like ``[lat, lng, user_id, pano_id]`` for the first label.
+        v:           Array-like ``[lat, lng, user_id, pano_id]`` for the second label.
+        cannot_link: Distance reported for a same-(user, pano) pair; see ``cannot_link_distance``.
 
     Returns:
-        ``sys.float_info.max`` if same user and pano, else the haversine distance in kilometers.
+        ``cannot_link`` if same user and pano, else the haversine distance in kilometers.
     """
     if u[2] == v[2] and u[3] == v[3]:  # Same user and pano id.
-        return sys.float_info.max
+        return cannot_link
     return haversine([u[0], u[1]], [v[0], v[1]])
+
+
+def cannot_link_distance(method):
+    """
+    Picks the same-(user, pano) sentinel distance a linkage method can digest.
+
+    Args:
+        method: One of ``LINKAGE_METHODS``.
+
+    Returns:
+        ``sys.float_info.max`` for complete linkage (the historical value, so its results stay bit-for-bit
+        reproducible), else ``CANNOT_LINK_KM``.
+    """
+    return sys.float_info.max if method == 'complete' else CANNOT_LINK_KM
+
+
+def parse_threshold_override(value):
+    """
+    Parses one ``--threshold`` argument of the form ``LabelType=km``.
+
+    Args:
+        value: The raw command-line string.
+
+    Returns:
+        A ``(label_type, threshold_km)`` tuple.
+
+    Raises:
+        argparse.ArgumentTypeError: If the form is wrong, the label type is not clustered, or the distance is not a
+                                    positive number.
+    """
+    label_type, sep, number = value.partition('=')
+    if not sep or label_type not in THRESHOLDS:
+        raise argparse.ArgumentTypeError(
+            f"expected LabelType=km with LabelType one of {sorted(THRESHOLDS)}, got '{value}'")
+    try:
+        threshold = float(number)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{number}' is not a number of kilometers") from None
+    if not threshold > 0:
+        raise argparse.ArgumentTypeError(f"threshold must be positive, got {threshold}")
+    return label_type, threshold
 
 
 def clean_label_data(label_data):
@@ -113,13 +177,13 @@ def clean_label_data(label_data):
     return label_data
 
 
-def cluster(labels, curr_type, thresholds, cluster_cols=CLUSTER_COLS):
+def cluster(labels, curr_type, thresholds, cluster_cols=CLUSTER_COLS, method='complete'):
     """
     Clusters the labels of a single type by haversine distance.
 
-    Builds a condensed distance matrix with ``custom_dist``, runs complete-linkage hierarchical clustering, and cuts the
-    tree at this type's distance threshold. Each resulting cluster is summarized by the mean lat/lng of its members and
-    their median severity.
+    Builds a condensed distance matrix with ``custom_dist``, runs hierarchical clustering with the given linkage, and
+    cuts the tree at this type's distance threshold. Each resulting cluster is summarized by the mean lat/lng of its
+    members and their median severity.
 
     Args:
         labels:       DataFrame of one label type, with ``lat``, ``lng``, ``user_id``, ``pano_id``, ``severity``, and a
@@ -127,13 +191,15 @@ def cluster(labels, curr_type, thresholds, cluster_cols=CLUSTER_COLS):
         curr_type:    Label type name, used to look up the threshold and to tag the cluster rows.
         thresholds:   Mapping of label type -> distance threshold in kilometers.
         cluster_cols: Column order for the returned cluster summary DataFrame.
+        method:       Linkage criterion, one of ``LINKAGE_METHODS``.
 
     Returns:
         A tuple ``(cluster_df, labeled)`` where ``cluster_df`` has one summary row per cluster (columns
         ``cluster_cols``) and ``labeled`` is a copy of ``labels`` with an added ``cluster`` column.
     """
-    dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id', 'pano_id']].values), custom_dist)
-    link = linkage(dist_matrix, method='complete')
+    metric = functools.partial(custom_dist, cannot_link=cannot_link_distance(method))
+    dist_matrix = pdist(np.array(labels[['lat', 'lng', 'user_id', 'pano_id']].values), metric)
+    link = linkage(dist_matrix, method=method)
 
     labeled = labels.copy()
     labeled.loc[:, 'cluster'] = fcluster(link, t=thresholds[curr_type], criterion='distance')
@@ -151,7 +217,8 @@ def cluster(labels, curr_type, thresholds, cluster_cols=CLUSTER_COLS):
     return cluster_df, labeled
 
 
-def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS, cluster_cols=CLUSTER_COLS):
+def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS,
+                       cluster_cols=CLUSTER_COLS, method='complete'):
     """
     Selects the rows for one label type and clusters them.
 
@@ -164,6 +231,7 @@ def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS
         thresholds:   Mapping of label type -> distance threshold in kilometers.
         label_cols:   Column order for the per-label output frame.
         cluster_cols: Column order for the per-cluster output frame.
+        method:       Linkage criterion, one of ``LINKAGE_METHODS``.
 
     Returns:
         A tuple ``(label_type, clusters_for_type, labels_for_type)``. The cluster ids start at 1 within this type and are
@@ -175,7 +243,7 @@ def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS
     type_data = label_data[label_data.label_type == label_type]
 
     if type_data.shape[0] > 1:
-        clusters_for_type, labels_for_type = cluster(type_data, label_type, thresholds, cluster_cols)
+        clusters_for_type, labels_for_type = cluster(type_data, label_type, thresholds, cluster_cols, method)
     elif type_data.shape[0] == 1:
         labels_for_type = type_data.copy()
         labels_for_type.loc[:, 'cluster'] = 1  # The single label is its own cluster.
@@ -292,7 +360,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Gets a set of labels, posts the labels grouped into clusters.')
     parser.add_argument('--region_id', type=int, help="Region id whose labels should be clustered.")
     parser.add_argument('--debug', action='store_true', help='Print per-type cluster counts and cleaning stats.')
+    parser.add_argument('--linkage', choices=LINKAGE_METHODS, default='complete',
+                        help='Linkage criterion for the hierarchical clustering (default: complete).')
+    parser.add_argument('--threshold', action='append', default=[], type=parse_threshold_override, metavar='TYPE=KM',
+                        help='Override one label type\'s distance threshold, in kilometers. Repeatable.')
     args = parser.parse_args(argv)
+    thresholds = {**THRESHOLDS, **dict(args.threshold)}
 
     port = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
     get_url = f'http://localhost:{port}/labelsToClusterInRegion?regionId={args.region_id}'
@@ -326,7 +399,7 @@ def main(argv=None):
     label_data['coords'] = label_data.apply(lambda row: (row.lat, row.lng), axis=1)
 
     # Cluster each label type in its own process. Each gets a copy of the region's labels and clusters independently.
-    worker = functools.partial(cluster_label_type, label_data=label_data, thresholds=THRESHOLDS)
+    worker = functools.partial(cluster_label_type, label_data=label_data, thresholds=thresholds, method=args.linkage)
     with ProcessPoolExecutor(max_workers=N_PROCESSORS) as executor:
         results = list(executor.map(worker, LABEL_TYPES))
 
@@ -340,7 +413,7 @@ def main(argv=None):
                   str(label_output[label_output.label_type == label_type].cluster.nunique()) +
                   " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique()))
 
-    post_results(post_url, build_output_json(THRESHOLDS, label_output, cluster_output))
+    post_results(post_url, build_output_json(thresholds, label_output, cluster_output))
     return 0
 
 

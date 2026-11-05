@@ -1,8 +1,9 @@
 """
 Unit tests for scripts/label_clustering.py.
 
-Covers the pure clustering pipeline (distance metric, cleaning, per-type clustering, cluster-id offsetting, JSON
-assembly) and the `main` orchestration / I/O wrappers (with the network mocked). See test/python/README.md.
+Covers the pure clustering pipeline (distance metric, cleaning, per-type clustering under each linkage, threshold
+overrides, cluster-id offsetting, JSON assembly) and the `main` orchestration / I/O wrappers (with the network mocked).
+See test/python/README.md.
 """
 
 import json
@@ -55,6 +56,31 @@ def test_custom_dist_different_user_same_pano_uses_haversine():
     assert lc.custom_dist(u, v) == pytest.approx(haversine([u[0], u[1]], [v[0], v[1]]))
 
 
+def test_custom_dist_cannot_link_sentinel_is_configurable():
+    point = [47.60, -122.30, 1, 'panoA']
+    assert lc.custom_dist(point, list(point), cannot_link=lc.CANNOT_LINK_KM) == lc.CANNOT_LINK_KM
+
+
+def test_cannot_link_distance_keeps_float_max_for_complete_only():
+    assert lc.cannot_link_distance('complete') == sys.float_info.max
+    assert lc.cannot_link_distance('average') == lc.CANNOT_LINK_KM
+    assert lc.cannot_link_distance('single') == lc.CANNOT_LINK_KM
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# parse_threshold_override
+# --------------------------------------------------------------------------------------------------------------------
+
+def test_parse_threshold_override_returns_type_and_km():
+    assert lc.parse_threshold_override('CurbRamp=0.0075') == ('CurbRamp', 0.0075)
+
+
+@pytest.mark.parametrize('value', ['CurbRamp', 'Ramp=0.01', 'CurbRamp=ten', 'CurbRamp=0', 'CurbRamp=-1'])
+def test_parse_threshold_override_rejects_bad_input(value):
+    with pytest.raises(lc.argparse.ArgumentTypeError):
+        lc.parse_threshold_override(value)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # clean_label_data
 # --------------------------------------------------------------------------------------------------------------------
@@ -100,6 +126,45 @@ def test_cluster_with_all_null_severity_yields_none():
     df = _label_frame(severities=(np.nan, np.nan, np.nan))
     cluster_df, _ = lc.cluster(df, 'Obstacle', lc.THRESHOLDS)
     assert cluster_df['severity'].isnull().all()
+
+
+def _spread_frame(user_ids=(10, 20, 30, 40), pano_ids=('a', 'b', 'c', 'd')):
+    """Four labels in a north-south line about 4 m apart (0, 4, 8, 12 m), so the group spans 12 m end to end."""
+    df = pd.DataFrame({
+        'label_id': [1, 2, 3, 4],
+        'label_type': ['CurbRamp'] * 4,
+        'lat': [47.6, 47.6 + 0.000036, 47.6 + 0.000072, 47.6 + 0.000108],
+        'lng': [-122.3] * 4,
+        'user_id': list(user_ids),
+        'pano_id': list(pano_ids),
+        'severity': [1.0] * 4,
+    })
+    df['coords'] = list(zip(df['lat'], df['lng']))
+    return df
+
+
+def test_cluster_average_linkage_tolerates_a_spread_group_complete_splits():
+    # Complete linkage needs every pair within 10 m, and the ends are 12 m apart, so the line is cut in two; average
+    # linkage merges it because the mean pairwise distance (8 m) is under the threshold. This is the #5887 behavior.
+    _, complete = lc.cluster(_spread_frame(), 'CurbRamp', {'CurbRamp': 0.01}, method='complete')
+    _, average = lc.cluster(_spread_frame(), 'CurbRamp', {'CurbRamp': 0.01}, method='average')
+    assert complete['cluster'].nunique() == 2
+    assert average['cluster'].nunique() == 1
+
+
+def test_cluster_average_linkage_still_separates_same_user_and_pano():
+    # The two middle labels share a user and pano, so they are two objects and must never share a cluster, even though
+    # they are 4 m apart. With sys.float_info.max this would overflow average linkage's sums to inf; CANNOT_LINK_KM
+    # must keep the pair apart without that.
+    df = _spread_frame(user_ids=(10, 20, 20, 40), pano_ids=('a', 'b', 'b', 'd'))
+    _, labeled = lc.cluster(df, 'CurbRamp', {'CurbRamp': 0.01}, method='average')
+    assert labeled.loc[labeled.label_id == 2, 'cluster'].item() != labeled.loc[labeled.label_id == 3, 'cluster'].item()
+    assert labeled['cluster'].nunique() == 2
+
+
+def test_cluster_label_type_passes_linkage_through():
+    _, clusters, _ = lc.cluster_label_type('CurbRamp', _spread_frame(), {'CurbRamp': 0.01}, method='average')
+    assert len(clusters) == 1
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -292,6 +357,26 @@ def test_main_debug_with_clean_data(monkeypatch):
     posted = _patch_io(monkeypatch, _multi_type_frame())
     assert lc.main(['--region_id', '1', '--debug']) == 0
     assert json.loads(posted['payload'])['labels']
+
+
+def test_main_linkage_and_threshold_flags_reach_the_output(monkeypatch):
+    posted = _patch_io(monkeypatch, _multi_type_frame())
+    assert lc.main(['--region_id', '1', '--linkage', 'average', '--threshold', 'CurbRamp=0.0075',
+                    '--threshold', 'NoCurbRamp=0.0075']) == 0
+    out = json.loads(posted['payload'])
+    thresholds = {t['label_type']: t['threshold'] for t in out['thresholds']}
+    # The overrides are what gets recorded with the run; every other type keeps its default.
+    assert thresholds['CurbRamp'] == 0.0075
+    assert thresholds['NoCurbRamp'] == 0.0075
+    assert thresholds['Obstacle'] == lc.THRESHOLDS['Obstacle']
+    assert len(out['clusters']) >= 1
+
+
+def test_main_rejects_a_malformed_threshold(monkeypatch):
+    posted = _patch_io(monkeypatch, _multi_type_frame())
+    with pytest.raises(SystemExit):
+        lc.main(['--region_id', '1', '--threshold', 'CurbRamp'])
+    assert posted == {}
 
 
 def test_main_returns_1_when_fetch_fails(monkeypatch):

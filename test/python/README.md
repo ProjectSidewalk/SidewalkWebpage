@@ -9,8 +9,10 @@ The scripts are written (or were refactored — issues #4340, #4341) so their de
 importable** functions, with network and file I/O isolated in thin wrappers and `main`. The tests target those pure
 functions — no network, no live Google/Mapillary/OSM or app calls.
 
-- `test_label_clustering.py` — the distance metric (`custom_dist`), coordinate cleaning (`clean_label_data`), per-type
-  clustering (`cluster`), global cluster-id offsetting (`offset_and_combine`), and JSON assembly (`build_output_json`).
+- `test_label_clustering.py` — the distance metric (`custom_dist`, and the sentinel each linkage can digest),
+  coordinate cleaning (`clean_label_data`), per-type clustering (`cluster`, under complete and average linkage, with the
+  same-(user, pano) rule holding under both), the `--threshold` parser, global cluster-id offsetting
+  (`offset_and_combine`), and JSON assembly (`build_output_json`).
 - `test_check_streets_for_imagery.py` — bounding-box math (`create_bounding_box`), vertex interpolation
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
   street-coverage verdict (`CoverageWalk`, `street_has_no_imagery`), and the CSV writer (`write_output`).
