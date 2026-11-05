@@ -261,5 +261,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
+| `validate-marker-click.spec.js` | Hovers, clicks, drags and keys Validate's label marker to open, pin and close its card (#4843) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
