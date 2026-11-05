@@ -97,13 +97,15 @@ ON CONFLICT (street_edge_id) DO NOTHING;
 
 -- Users. `sidewalk_login` is shared across every city schema, not this city's -- fine only because CI's database is
 -- thrown away with the job, and this file runs nowhere else. The Administrator is for RouteAuthPostureSpec, which
--- reads an existing admin's email and mints its own session cookie, so no password rows are needed.
+-- reads an existing admin's email and mints its own session cookie, so no password rows are needed. The Owner is for
+-- test/e2e/admin.spec.js, which signs in through /signIn like a person, so it gets the rows /signUp writes.
 INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
 VALUES
   ('00000000-5115-4000-8000-000000000001', 'ciSeedAdmin',    'ci-seed-admin@example.test'),
   ('00000000-5115-4000-8000-000000000002', 'ciSeedLabeler1', 'ci-seed-labeler-1@example.test'),
   ('00000000-5115-4000-8000-000000000003', 'ciSeedLabeler2', 'ci-seed-labeler-2@example.test'),
-  ('00000000-5115-4000-8000-000000000004', 'ciSeedLabeler3', 'ci-seed-labeler-3@example.test')
+  ('00000000-5115-4000-8000-000000000004', 'ciSeedLabeler3', 'ci-seed-labeler-3@example.test'),
+  ('00000000-5115-4000-8000-000000000005', 'ciSeedOwner',    'ci-seed-owner@example.test')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- user_role's only unique key is its own id, so this guards on the user instead of ON CONFLICT.
@@ -112,7 +114,8 @@ SELECT r.user_role_id, r.user_id, r.role::sidewalk_login.role
 FROM (VALUES (900001, '00000000-5115-4000-8000-000000000001', 'Administrator'),
              (900002, '00000000-5115-4000-8000-000000000002', 'Registered'),
              (900003, '00000000-5115-4000-8000-000000000003', 'Registered'),
-             (900004, '00000000-5115-4000-8000-000000000004', 'Registered')) AS r(user_role_id, user_id, role)
+             (900004, '00000000-5115-4000-8000-000000000004', 'Registered'),
+             (900005, '00000000-5115-4000-8000-000000000005', 'Owner')) AS r(user_role_id, user_id, role)
 WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = r.user_id);
 
 -- meters_audited / labels_per_meter / high_quality are filled in at the end, once their inputs exist.
@@ -121,8 +124,28 @@ VALUES
   (900001, '00000000-5115-4000-8000-000000000001', 0, TRUE, FALSE),
   (900002, '00000000-5115-4000-8000-000000000002', 0, TRUE, FALSE),
   (900003, '00000000-5115-4000-8000-000000000003', 0, TRUE, FALSE),
-  (900004, '00000000-5115-4000-8000-000000000004', 0, TRUE, FALSE)
+  (900004, '00000000-5115-4000-8000-000000000004', 0, TRUE, FALSE),
+  (900005, '00000000-5115-4000-8000-000000000005', 0, TRUE, FALSE)
 ON CONFLICT (user_stat_id) DO NOTHING;
+
+-- The Owner's credentials, as /signUp writes them (AuthenticationService.insertNewUser).
+INSERT INTO sidewalk_login.login_info (login_info_id, provider_id, provider_key)
+VALUES (900005, 'credentials', 'ci-seed-owner@example.test')
+ON CONFLICT (login_info_id) DO NOTHING;
+INSERT INTO sidewalk_login.user_login_info (user_login_info_id, login_info_id, user_id)
+VALUES (900005, 900005, '00000000-5115-4000-8000-000000000005')
+ON CONFLICT (user_login_info_id) DO NOTHING;
+INSERT INTO sidewalk_login.user_password_info (user_password_info_id, login_info_id, password, salt, hasher)
+VALUES (900005, 900005, '$2a$10$ZxGTZl9lN5.XZLTZNY8b3evq/2ch0AmItjSRGAZ5KOrG/NcHIVlcO', NULL, 'bcrypt')
+ON CONFLICT (user_password_info_id) DO NOTHING;
+
+-- One team, with labeler 1 (who walked the whole region) in it, so /admin/team/:teamId has a member with data to show.
+INSERT INTO sidewalk_teaneck.team (team_id, name, description)
+VALUES (900001, 'CI Seed Team', 'The CI seed team')
+ON CONFLICT (team_id) DO NOTHING;
+INSERT INTO sidewalk_teaneck.user_team (user_team_id, user_id, team_id)
+VALUES (900001, '00000000-5115-4000-8000-000000000002', 900001)
+ON CONFLICT (user_team_id) DO NOTHING;
 
 -- Panoramas, as prod recorded them. Expired with a backup on disk is the combination `imageryViewable` admits and
 -- the one that makes LabelService.checkImageryBatch answer from the file system instead of a provider -- and a real

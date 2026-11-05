@@ -66,7 +66,11 @@ ordered.insert(next(i for i, l in enumerate(ordered) if l['label_type'] == mlbl[
 id_map = {l['label_id']: 900002 + i for i, l in enumerate(ordered)}
 MAP_ID = id_map[mlbl['label_id']]
 
-U = {i: f"00000000-5115-4000-8000-00000000000{i}" for i in range(1, 5)}
+U = {i: f"00000000-5115-4000-8000-00000000000{i}" for i in range(1, 6)}
+ROLE = {1: 'Administrator', 5: 'Owner'}  # Everyone else is Registered.
+# BCrypt hash, in the `$2a$10$` form /signUp stores, of the Owner password test/e2e/auth.setup.js signs in with. A
+# dummy: the account exists only in CI's throwaway database.
+OWNER_PASSWORD_HASH = '$2a$10$ZxGTZl9lN5.XZLTZNY8b3evq/2ch0AmItjSRGAZ5KOrG/NcHIVlcO'
 AI_USER = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
 STREETS = {s['street_edge_id']: s for s in tn['streets']}
 # Labeler 2 walks the whole region (so one user has it finished) and owns the labels on two of its streets;
@@ -188,26 +192,48 @@ w("INSERT INTO sidewalk_teaneck.street_edge_priority (street_edge_id, priority)\
 
 w("""-- Users. `sidewalk_login` is shared across every city schema, not this city's -- fine only because CI's database is
 -- thrown away with the job, and this file runs nowhere else. The Administrator is for RouteAuthPostureSpec, which
--- reads an existing admin's email and mints its own session cookie, so no password rows are needed.""")
+-- reads an existing admin's email and mints its own session cookie, so no password rows are needed. The Owner is for
+-- test/e2e/admin.spec.js, which signs in through /signIn like a person, so it gets the rows /signUp writes.""")
 w("INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)\nVALUES\n" + rows_sql([
     f"  ({q(U[1])}, 'ciSeedAdmin',    'ci-seed-admin@example.test')",
     f"  ({q(U[2])}, 'ciSeedLabeler1', 'ci-seed-labeler-1@example.test')",
     f"  ({q(U[3])}, 'ciSeedLabeler2', 'ci-seed-labeler-2@example.test')",
     f"  ({q(U[4])}, 'ciSeedLabeler3', 'ci-seed-labeler-3@example.test')",
+    f"  ({q(U[5])}, 'ciSeedOwner',    'ci-seed-owner@example.test')",
 ], "ON CONFLICT (user_id) DO NOTHING;"))
 
 w("\n-- user_role's only unique key is its own id, so this guards on the user instead of ON CONFLICT.")
 w("INSERT INTO sidewalk_login.user_role (user_role_id, user_id, role)\n"
   "SELECT r.user_role_id, r.user_id, r.role::sidewalk_login.role\nFROM (VALUES "
-  + ",\n             ".join(f"(90000{i}, {q(U[i])}, {q('Administrator' if i == 1 else 'Registered')})"
-                            for i in range(1, 5))
+  + ",\n             ".join(f"(90000{i}, {q(U[i])}, {q(ROLE.get(i, 'Registered'))})"
+                            for i in range(1, 6))
   + ") AS r(user_role_id, user_id, role)\n"
   "WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = r.user_id);\n")
 
 w("-- meters_audited / labels_per_meter / high_quality are filled in at the end, once their inputs exist.")
 w("INSERT INTO sidewalk_teaneck.user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)\nVALUES\n"
-  + rows_sql([f"  (90000{i}, {q(U[i])}, 0, TRUE, FALSE)" for i in range(1, 5)],
+  + rows_sql([f"  (90000{i}, {q(U[i])}, 0, TRUE, FALSE)" for i in range(1, 6)],
              "ON CONFLICT (user_stat_id) DO NOTHING;"))
+
+w(f"""
+-- The Owner's credentials, as /signUp writes them (AuthenticationService.insertNewUser).
+INSERT INTO sidewalk_login.login_info (login_info_id, provider_id, provider_key)
+VALUES (900005, 'credentials', 'ci-seed-owner@example.test')
+ON CONFLICT (login_info_id) DO NOTHING;
+INSERT INTO sidewalk_login.user_login_info (user_login_info_id, login_info_id, user_id)
+VALUES (900005, 900005, {q(U[5])})
+ON CONFLICT (user_login_info_id) DO NOTHING;
+INSERT INTO sidewalk_login.user_password_info (user_password_info_id, login_info_id, password, salt, hasher)
+VALUES (900005, 900005, {q(OWNER_PASSWORD_HASH)}, NULL, 'bcrypt')
+ON CONFLICT (user_password_info_id) DO NOTHING;
+
+-- One team, with labeler 1 (who walked the whole region) in it, so /admin/team/:teamId has a member with data to show.
+INSERT INTO sidewalk_teaneck.team (team_id, name, description)
+VALUES (900001, 'CI Seed Team', 'The CI seed team')
+ON CONFLICT (team_id) DO NOTHING;
+INSERT INTO sidewalk_teaneck.user_team (user_team_id, user_id, team_id)
+VALUES (900001, {q(U[2])}, 900001)
+ON CONFLICT (user_team_id) DO NOTHING;""")
 
 w("""
 -- Panoramas, as prod recorded them. Expired with a backup on disk is the combination `imageryViewable` admits and

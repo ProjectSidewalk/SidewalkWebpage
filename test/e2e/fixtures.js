@@ -11,6 +11,8 @@ const path = require('path');
 
 // Where auth.setup.js saves the registered user's session for the specs that need one (dashboard.spec.js).
 const STORAGE_STATE = 'test-results/.auth/registered.json';
+// And the seeded Owner's, for admin.spec.js. Absent when the database has no seeded Owner (see auth.setup.js).
+const ADMIN_STORAGE_STATE = 'test-results/.auth/owner.json';
 
 // The phone profile the viewport specs measure at. defaultBrowserType is dropped because the suite's chromium
 // project already fixes the browser; shared so the page walk and the checks that pin its rules can't drift apart.
@@ -393,4 +395,5 @@ module.exports = {
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
+  ADMIN_STORAGE_STATE,
 };

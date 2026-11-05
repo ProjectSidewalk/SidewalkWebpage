@@ -112,6 +112,14 @@ behavior, so serving none of it makes them behave identically against a seeded s
 and in how long they take. The smoke and a11y specs deliberately do **not** stub it — they are there to load the
 real page.
 
+### Admin pages
+
+`admin.spec.js` loads every `GET /admin…` page in `conf/routes` as the seed's `ciSeedOwner` (Owner, so the Owner-only
+pages are included), whose session `auth.setup.js` saves by signing in for real. A new admin page is covered without
+editing the spec, unless its route has a dynamic segment the spec's `PARAMS` has no value for, which fails the test and
+names the segment. A dev database has no `ciSeedOwner`, so locally the setup step and these tests skip; on CI a failed
+sign-in fails the run. Who may see each page is `RouteAuthPostureSpec`'s job, not this spec's.
+
 ### Accessibility gate
 
 `a11y.spec.js` runs axe-core (`@axe-core/playwright`) over every page in `pages.js`, tagged `wcag2a` +
@@ -233,8 +241,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
-  ✅ `validate-interactions.spec.js`, #4948); admin pages (promote the setup user via a superuser `UPDATE user_role`
-  in CI).
+  ✅ `validate-interactions.spec.js`, #4948); admin pages load cleanly: ✅ `admin.spec.js`, #4276.
 
 ## File map
 
@@ -248,7 +255,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
 | `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
-| `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
+| `auth.setup.js` | Registers a throwaway user and signs in the seeded Owner, saving storageState for each |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
@@ -258,6 +265,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
+| `admin.spec.js` | Every admin page, discovered from `conf/routes` (#4276) |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |

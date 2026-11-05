@@ -111,7 +111,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   requires a signed-in user; `serveCropImage` enforces `labelTypeNames` + HMAC + Referer. `PublicApiSpec` — v3
   bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
   every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
-  plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish. Every `/admin`
+  page gets the same anonymous check, a 403 for a Registered user, and a 403 naming Owner on the Owner-only pages for
+  an Administrator; `test/e2e/admin.spec.js` loads each one in a browser as the seeded Owner (#4276).
   **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
   `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
   tampered, or expired session cookie counting as logged out.

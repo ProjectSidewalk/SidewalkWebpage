@@ -83,6 +83,14 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     case (method, pattern, _) if pattern.startsWith("/adminapi/") => (method, concreteRequestPath(pattern))
   }
 
+  /** Requestable path of every declared admin page: GET /admin and GET /admin/..., not the /adminapi/ data routes. */
+  private val declaredAdminPages: Seq[String] = router.documentation.collect {
+    case (GET, pattern, _) if pattern == "/admin" || pattern.startsWith("/admin/") => concreteRequestPath(pattern)
+  }
+
+  /** The admin pages that need `WithOwner()`, because they show data from every deployment, not just this city. */
+  private val OwnerOnlyAdminPages: Set[String] = Set("/admin/health", "/admin/across-cities")
+
   /**
    * Status of an unauthenticated request to a declared route, or None if nothing routes there.
    *
@@ -354,6 +362,43 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/adminapi/labelTags").withCookies(sessionCookieFor(email.get))).get
       status(resp) mustBe FORBIDDEN
       contentAsString(resp) must include("Administrator")
+    }
+  }
+
+  // A page's guard decides who sees it, so these sign in for real; test/e2e/admin.spec.js covers the page loading for an
+  // Owner. Paths carry `1` for each dynamic segment, which the guard rejects before anything looks it up.
+  "the /admin pages" should {
+    "refuse every anonymous request at the auth guard" in {
+      declaredAdminPages must contain("/admin/overview") // Vacuity guard, as for /adminapi/ above.
+      val leaks = declaredAdminPages.map(path => path -> anonymousStatus(GET, path)).filterNot { case (_, code) =>
+        code.exists(AuthRejections.contains)
+      }
+      withClue(s"not refused by the auth guard: $leaks. ") { leaks mustBe empty }
+    }
+
+    "forbid every page to a signed-in non-admin" in {
+      val email = emailOfUserWithRole(Role.Registered)
+      assume(email.isDefined, "no Registered user in this schema; authenticated checks need a seeded DB")
+      val cookie  = sessionCookieFor(email.get)
+      val allowed = declaredAdminPages
+        .map(path => path -> status(route(app, FakeRequest(GET, path).withCookies(cookie)).get))
+        .filterNot { case (_, code) => code == FORBIDDEN }
+      withClue(s"not forbidden: $allowed. ") { allowed mustBe empty }
+    }
+
+    "forbid the Owner-only pages to an Administrator, naming the Owner role" in {
+      OwnerOnlyAdminPages.diff(declaredAdminPages.toSet) mustBe empty // A renamed page would otherwise go unchecked.
+      val email = emailOfUserWithRole(Role.Administrator)
+      assume(email.isDefined, "no Administrator in this schema; authenticated checks need a seeded DB")
+      val cookie = sessionCookieFor(email.get)
+      OwnerOnlyAdminPages.foreach { path =>
+        val resp = route(app, FakeRequest(GET, path).withCookies(cookie)).get
+        withClue(s"$path: ") {
+          status(resp) mustBe FORBIDDEN
+          contentAsString(resp) must include("Owner")
+        }
+      }
+      succeed
     }
   }
 
