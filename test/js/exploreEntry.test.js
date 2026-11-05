@@ -39,7 +39,7 @@ const MARKUP = `
     <button id="continue-current"></button><button id="redirect-new"></button>
   </div>
   <div id="already-completed-region-overlay" style="display: none">
-    <a id="already-completed-region-validate"></a><a id="already-completed-region-cities"></a>
+    <a id="already-completed-region-new"></a><a id="already-completed-region-validate"></a><a id="already-completed-region-cities"></a>
   </div>
   <dialog id="all-regions-finished">
     <a id="all-regions-finished-validate"></a><a id="all-regions-finished-cities"></a>
@@ -114,10 +114,12 @@ describe('starting a visit', () => {
     expect(document.querySelector('.tool-ui').classList.contains('ps-invisible')).toBe(false);
     expect(el('already-completed-region-overlay').style.display).toBe('block');
 
+    el('already-completed-region-new').click();
     el('already-completed-region-validate').click();
     el('already-completed-region-cities').click();
     expect(window.logWebpageActivity.mock.calls).toEqual([
-      ['Click_AlreadyCompletedRegion_Validate'], ['Click_AlreadyCompletedRegion_OtherCities'],
+      ['Click_AlreadyCompletedRegion_NewRegion'], ['Click_AlreadyCompletedRegion_Validate'],
+      ['Click_AlreadyCompletedRegion_OtherCities'],
     ]);
   });
 

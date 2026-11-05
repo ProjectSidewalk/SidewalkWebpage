@@ -125,7 +125,10 @@
         <div id="already-completed-region-text">
           <p><span class="overlay-header">@Messages("audit.region.already.complete.title")</span></p>
           <p>@Messages("audit.region.already.complete.body")</p>
-          @* Leaves Explore rather than reloading it: a reload can be handed the same taskless session again. *@
+          @* Never a bare reload of Explore, which can be handed the same taskless session again. A new region with
+             resumeRoute=false skips a live route walk (its finished walk is what leaves no task) and, once no region
+             has streets left, gets the all-regions-finished end state instead. *@
+          <a class="overlay-option" id="already-completed-region-new" href="@{routes.ExploreController.explore.url}?newRegion=true&amp;resumeRoute=false">@Messages("audit.region.already.complete.new.region")</a>
           <a class="overlay-option" id="already-completed-region-validate" href="@routes.ValidateController.validate()">@Messages("audit.all.regions.finished.validate")</a>
           <a class="overlay-option" id="already-completed-region-cities" href="@routes.ApplicationController.cities">@Messages("audit.all.regions.finished.other.cities")</a>
         </div>
