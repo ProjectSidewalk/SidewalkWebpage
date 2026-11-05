@@ -19,13 +19,18 @@ export class LabelVisibilityControl {
   // beside the icon, so without a delay the gap between the two is a dead zone that dismisses the card on the way
   // over — and the card has a button in it that has to be reachable. Matches Explore's hover card (Canvas.js).
   static #CARD_HIDE_DELAY_MS = 200;
+  // How far the mouse may travel between press and release on the marker and still count as a click (#4843). The
+  // marker sits on the pano's drag surface, so anything further is a pan that happened to start on it. In the
+  // pointer's own CSS px, which --ui-scale doesn't change, so it isn't scaled.
+  static #CLICK_SLOP_PX = 5;
 
   #cardVisible = false;
   #hideCardTimer = null;
   // Infra3d cities (Zurich, Winterthur) asked for each label's tags and description to be on screen as soon as it
   // loads (#5675). Desktop only: on a phone the card would cover much of the small pano.
   #opensOnLoad;
-  // True while a card opened on load is up. Mouse movement and keypresses leave it alone; only a press on the pano,
+  // True while the card is held open: opened on load, or pinned by a click or Enter/Space on the marker (#4843).
+  // Mouse movement and keypresses leave a held card alone; only a press on the pano, another click on the marker,
   // hiding the label, Escape, or the next label closes it.
   #heldOpen = false;
   #card;
@@ -198,14 +203,40 @@ export class LabelVisibilityControl {
       // reach it and an instant hide would make the button inside it unclickable.
       marker.addEventListener('mouseout', () => this.scheduleHideLabelCard());
 
-      // A click focuses the marker too, and that focus must not reopen the card the same press just closed.
+      // A click pins the card open and a second click unpins and closes it (#4843), the button's primary gesture
+      // meaning what Enter/Space mean. PanoOverlay leaves a press on the marker alone, so the hover card is still up
+      // when the click lands; a press that turns into a pan takes the card down here instead, once it moves.
+      // `pressing` also keeps the focus a click gives the marker from reopening a card the same press just closed.
       let pressing = false;
-      marker.addEventListener('mousedown', () => {
+      let dragged = false;
+      marker.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
         pressing = true;
+        dragged = false;
+        const startX = e.clientX;
+        const startY = e.clientY;
         // On the window, since a drag that starts here can end anywhere.
+        const onMove = (/** @type {MouseEvent} */ move) => {
+          if (dragged) return;
+          if (Math.hypot(move.clientX - startX, move.clientY - startY) <= LabelVisibilityControl.#CLICK_SLOP_PX) return;
+          dragged = true;
+          this.hideLabelCard();
+        };
+        window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', () => {
           pressing = false;
+          window.removeEventListener('mousemove', onMove);
         }, { once: true });
+      });
+
+      // Also the activation a screen reader sends, which may come with no mousedown before it; dragged is then false.
+      marker.addEventListener('click', () => {
+        // The pan has already closed the card; a release that happens to land back on the marker isn't a click on it.
+        if (dragged) {
+          dragged = false;
+          return;
+        }
+        this.toggleLabelCardPin();
       });
 
       // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
@@ -263,18 +294,22 @@ export class LabelVisibilityControl {
    *     see docs/logged-events.md.
    * @param {boolean} [options.holdOpen] - Opened on load rather than by the user, so it stays up until something
    *     deliberate closes it (see openCardOnLoad).
+   * @param {boolean} [options.pin] - Hold the card open the way holdOpen does, but at the user's request (see
+   *     toggleLabelCardPin), so the opening is logged as an ordinary one rather than as an open on load.
+   * @returns {boolean} False if there was no marker on screen to show it beside, so the card stayed shut.
    */
-  showLabelCard({ viaKeyboard = false, holdOpen = false } = {}) {
+  showLabelCard({ viaKeyboard = false, holdOpen = false, pin = false } = {}) {
     this.cancelScheduledCardHide();
-    if (!this.#anchorCard()) return;
+    if (!this.#anchorCard()) return false;
     if (holdOpen) this.#tracker.push('LabelCard_OpenedOnLoad');
     else if (!this.#cardVisible) this.#tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
-    if (holdOpen) this.#heldOpen = true;
+    if (holdOpen || pin) this.#heldOpen = true;
     // In immersive mode a held card would otherwise sit over the voting dock (svv-immersive.css).
     this.#card.classList.toggle('label-card--held', this.#heldOpen);
     this.#cardVisible = true;
     this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
+    return true;
   }
 
   /**
@@ -324,8 +359,27 @@ export class LabelVisibilityControl {
   }
 
   /**
+   * Pins the card open, or unpins and closes a pinned one: desktop's answer to activating the marker, by a click or
+   * by Enter/Space (#4843). Hover has normally opened the card already by the time a click lands, so a plain toggle
+   * would close it on the first click; pinning instead makes the click keep it up after the pointer leaves. A card
+   * held open on load counts as pinned, so activating the marker closes it, as a press on the pano would.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.viaKeyboard] - Enter/Space rather than a click; picks the event names logged.
+   */
+  toggleLabelCardPin({ viaKeyboard = false } = {}) {
+    const via = viaKeyboard ? 'KeyboardShortcut' : 'Click';
+    if (this.#heldOpen && this.#cardVisible) {
+      this.hideLabelCard();
+      this.#tracker.push(`${via}_UnpinLabelCard`);
+    } else if (this.showLabelCard({ viaKeyboard, pin: true })) {
+      this.#tracker.push(`${via}_PinLabelCard`);
+    }
+  }
+
+  /**
    * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
-   * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker.
+   * press, or Enter/Space — opens and closes it. Desktop pins instead (toggleLabelCardPin).
    *
    * @param {object} [options] - Forwarded to showLabelCard — see its viaKeyboard note.
    */

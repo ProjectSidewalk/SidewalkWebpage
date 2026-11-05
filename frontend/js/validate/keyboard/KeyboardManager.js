@@ -357,11 +357,12 @@ export class KeyboardManager {
   }
 
   /**
+   * Enter/Space on the marker pins the card or unpins it, the same as a click on it (#4843).
    * @param {KeyboardEvent} e
    */
   #toggleCard(e) {
     e.preventDefault(); // Space would otherwise also scroll the page.
-    this.#labelVisibilityControl.toggleLabelCard({ viaKeyboard: true });
+    this.#labelVisibilityControl.toggleLabelCardPin({ viaKeyboard: true });
   }
 
   /**

@@ -220,9 +220,8 @@ non-semantic `div`s from the pre-2024 codebase. Bringing them to AA is a sequenc
 keyboard path to "place a label at this point in the image" even looks like — tracked as
 [#4227](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4227),
 [#4233](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4233),
-[#4234](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4234),
-[#4235](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4235), and
-[#4843](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4843).
+[#4234](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4234), and
+[#4235](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4235).
 
 So they are **not in the automated gate yet**: a page whose allowlist would be longer than its violation list
 teaches nobody anything, and a gate that is red by design gets muted. They join once the backlog above has closed

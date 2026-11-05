@@ -65,8 +65,11 @@ export class PanoOverlay {
     this.#mouseStatus.isLeftDown = true;
     this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
 
-    // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
-    this.#labelVisibilityControl.hideLabelCard();
+    // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano. Not for a press
+    // on the marker, which may be a click that pins the card (#4843): LabelVisibilityControl hides it there only once
+    // the press moves far enough to be a pan.
+    const onMarker = /** @type {Element} */ (e.target).closest('#validate-pano-marker');
+    if (!onMarker) this.#labelVisibilityControl.hideLabelCard();
 
     // This is necessary for supporting touch devices, because there is no mouse hover.
     this.#mouseStatus.prevX = mousePosition(e, e.currentTarget).x;
