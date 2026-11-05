@@ -64,6 +64,16 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > Most user-facing text in the apps is in the **frontend** system. Reach for the backend message files only for
 > server-rendered Twirl pages.
 
+### Tag names in server-rendered text
+
+Label tags are stored in English, and their translations live only in the `tag` object of
+`public/locales/<lang>/common.json`. When the server itself has to print a tag (the share page's `og:description`,
+which crawlers read without running JS, or a future email), call **`TagTranslationService.translate(tag, lang,
+countryId)`** rather than copying tags into `conf/messages`. It reads those same files and resolves a tag the way
+i18next does: the `common:tag.<name>` key with `:` turned into `-`, the language chain (`en-US` → `en`; `pt-BR`
+skips plain `pt`), the country overlay (`common-india.json`, `common-zurich.json`), and `$t(common:tag.…)` nesting.
+A tag with no translation prints as its English name, as it does in the browser. The files are read once per process.
+
 ### Interpolated values and HTML
 
 `AppManager._setupI18next` sets **`interpolation.escapeValue: false`**, so `i18next.t('key', { name })` interpolates

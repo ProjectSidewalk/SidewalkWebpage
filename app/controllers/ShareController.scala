@@ -8,7 +8,7 @@ import models.pano.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
 import models.utils.ImageUtils
-import play.api.i18n.Messages
+import play.api.i18n.{Lang, Messages}
 import play.api.libs.ws.WSClient
 import play.api.mvc.*
 import play.api.{Configuration, Environment, Logger}
@@ -21,7 +21,8 @@ import service.{
   LabelService,
   PanoDataService,
   ShareImageCache,
-  StoryService
+  StoryService,
+  TagTranslationService
 }
 
 import java.awt.RenderingHints
@@ -58,7 +59,8 @@ class ShareController @Inject() (
     cropService: CropService,
     authenticationService: AuthenticationService,
     shareImageCache: ShareImageCache,
-    storyService: StoryService
+    storyService: StoryService,
+    tagTranslationService: TagTranslationService
 )(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   given Configuration = config
@@ -212,9 +214,9 @@ class ShareController @Inject() (
     val cityName: String = cityNameOf(commonData)
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
     // (address, severity, tags) included only when present. The address is Google's street-level string for the
-    // label's pano, captured during Explore (#4489); it stays untranslated like tag names. Severity is stated only
-    // for access-issue types — on positive features the same column encodes quality, not badness. Tag names are
-    // stored untranslated; server-side tag localization is #4445.
+    // label's pano, captured during Explore (#4489); it stays untranslated. Severity is stated only for access-issue
+    // types — on positive features the same column encodes quality, not badness. Tags are stored in English, so they
+    // go through the client's own tag translations (#4445) rather than print English inside a localized sentence.
     // A story-anchored share instead leads with the story excerpt; severity/tags would bury the person's words.
     val description: String = linkedStory match {
       case Some(story) =>
@@ -232,13 +234,18 @@ class ShareController @Inject() (
             .map(s => Messages("share.meta.description.severity", s)),
           Option(meta.tags)
             .filter(_.nonEmpty)
-            .map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
+            .map { t =>
+              val country: String    = commonData.currentCity.countryId
+              val names: Seq[String] = t.take(3).map(tagTranslationService.translate(_, messages.lang, country))
+              Messages("share.meta.description.tags", names.mkString(", "))
+            },
           Some(Messages("share.meta.description.cta"))
         ).flatten.mkString(" ")
     }
     val imageAlt: String = Messages("share.meta.image.alt", typeName)
     views.html.common.shareMeta(
-      shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
+      shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt,
+      ShareController.ogLocale(messages.lang)
     )
   }
 
@@ -462,5 +469,24 @@ class ShareController @Inject() (
       cached.getParentFile.mkdirs()
       writeJpeg(out, cached)
     }
+  }
+}
+
+object ShareController {
+
+  // A region for each offered language that has none, since og:locale wants `ll_CC`. Each is the language's home
+  // region; Open Graph uses og:locale only as a hint, so a near miss (Mexico City's Spanish as es_ES) costs nothing.
+  private val DefaultRegion: Map[String, String] =
+    Map("en" -> "US", "es" -> "ES", "nl" -> "NL", "de" -> "DE", "fr" -> "FR", "pt" -> "BR", "zh" -> "TW")
+
+  /**
+   * The Open Graph locale (`ll_CC`, e.g. `es_ES`, `pt_BR`) for a page rendered in `lang` (#4445).
+   *
+   * @param lang The request's language.
+   * @return `language_REGION`, or the bare language when it has neither its own region nor a default one.
+   */
+  def ogLocale(lang: Lang): String = {
+    val region: Option[String] = Option(lang.country).filter(_.nonEmpty).orElse(DefaultRegion.get(lang.language))
+    region.map(r => s"${lang.language}_${r.toUpperCase}").getOrElse(lang.language)
   }
 }

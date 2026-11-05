@@ -13,7 +13,17 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.{ApiService, AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import play.twirl.api.HtmlFormat
+import service.{
+  ApiService,
+  AuthenticationService,
+  ConfigService,
+  LabelService,
+  PanoDataService,
+  ShareImageCache,
+  StoryService,
+  TagTranslationService
+}
 import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
@@ -51,6 +61,9 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private val apiService: ApiService     = app.injector.instanceOf[ApiService]
   private val messagesApi: MessagesApi   = app.injector.instanceOf[MessagesApi]
   private given lang: Lang               = Lang("en") // Requests below send no Accept-Language, so Play serves English.
+  private val tagTranslations: TagTranslationService = app.injector.instanceOf[TagTranslationService]
+  private lazy val countryId: String                 =
+    Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(lang), 30.seconds).currentCity.countryId
 
   /**
    * Recent labels from the connected test DB, providing real ids to exercise. Sourcing ids from the app keeps the
@@ -63,6 +76,13 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** A recent label whose type matches the predicate, or `None`; lets tests target the title-copy fork. */
   private def labelWhere(pred: LabelMetadata => Boolean): Option[LabelMetadata] = recentLabels.find(pred)
+
+  /** The og:description meta tag's content, or a test failure when the page carries none. */
+  private def ogDescription(body: String): String =
+    "property=\"og:description\" content=\"([^\"]*)\"".r
+      .findFirstMatchIn(body)
+      .map(_.group(1))
+      .getOrElse(fail("No og:description meta tag in the page"))
 
   /** The og:url meta tag's content, or a test failure when the page carries none. */
   private def ogUrl(body: String): String =
@@ -219,8 +239,24 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       labelWhere(_.tags.nonEmpty) match {
         case None        => cancel("No recent tagged label in the test DB.")
         case Some(label) =>
-          val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
-          body must include(messagesApi("share.meta.description.tags", label.tags.take(3).mkString(", ")))
+          val body  = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
+          val names = label.tags.take(3).map(tagTranslations.translate(_, lang, countryId))
+          body must include(HtmlFormat.escape(messagesApi("share.meta.description.tags", names.mkString(", "))).body)
+      }
+    }
+
+    "translate the tags in a Spanish page's og:description and say og:locale es_ES (#4445)" in {
+      // A tag whose Spanish name differs from its English one, so an untranslated tag can't pass by coincidence.
+      val es: Lang = Lang("es")
+      labelWhere(_.tags.exists(t => tagTranslations.translate(t, es, countryId) != t)) match {
+        case None        => cancel("No recent label with a tag that has a distinct Spanish name in the test DB.")
+        case Some(label) =>
+          val req                = FakeRequest(GET, s"/label/${label.labelId}").withHeaders(ACCEPT_LANGUAGE -> "es")
+          val body               = contentAsString(route(app, req).get)
+          val names: Seq[String] = label.tags.take(3).map(tagTranslations.translate(_, es, countryId))
+          val expected: String   = messagesApi("share.meta.description.tags", names.mkString(", "))(using es)
+          ogDescription(body) must include(HtmlFormat.escape(expected).body)
+          body must include("property=\"og:locale\" content=\"es_ES\"")
       }
     }
 
@@ -335,6 +371,17 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/label/tags")).get
       status(resp) mustBe OK // A 400 would mean /label/:labelId captured "tags" and failed to bind it as an Int.
       contentType(resp) mustBe Some("application/json")
+    }
+  }
+
+  "ogLocale" should {
+    "give a regioned language its own region and a bare one its home region" in {
+      ShareController.ogLocale(Lang("pt-BR")) mustBe "pt_BR"
+      ShareController.ogLocale(Lang("en-NZ")) mustBe "en_NZ"
+      ShareController.ogLocale(Lang("zh-TW")) mustBe "zh_TW"
+      ShareController.ogLocale(Lang("es")) mustBe "es_ES"
+      ShareController.ogLocale(Lang("en")) mustBe "en_US"
+      ShareController.ogLocale(Lang("ja")) mustBe "ja"
     }
   }
 

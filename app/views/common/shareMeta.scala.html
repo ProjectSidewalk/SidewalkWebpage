@@ -10,11 +10,13 @@
  * @param imageWidth  Preview image width in pixels.
  * @param imageHeight Preview image height in pixels.
  * @param imageAlt    Localized alt text describing the preview image, for screen readers on platforms that honor it.
+ * @param ogLocale    The page's language as Open Graph's `ll_CC` (e.g. `es_ES`), so platforms know what it is written in.
  *@
-@(title: String, description: String, pageUrl: String, imageUrl: String, imageWidth: Int, imageHeight: Int, imageAlt: String)
+@(title: String, description: String, pageUrl: String, imageUrl: String, imageWidth: Int, imageHeight: Int, imageAlt: String, ogLocale: String)
 <meta name="description" content="@description">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Project Sidewalk">
+<meta property="og:locale" content="@ogLocale">
 <meta property="og:title" content="@title">
 <meta property="og:description" content="@description">
 <meta property="og:url" content="@pageUrl">
