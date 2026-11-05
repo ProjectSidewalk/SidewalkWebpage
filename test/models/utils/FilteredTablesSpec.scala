@@ -11,8 +11,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
- * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back,
- * and are skipped on a database with no labels to borrow ids from (CI's).
+ * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back.
+ * They borrow a mission and pano from an existing label, so they need a schema with labels (CI's comes from
+ * `test/e2e/fixtures/ci-seed.sql`) and are skipped on one without.
  */
 class FilteredTablesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
