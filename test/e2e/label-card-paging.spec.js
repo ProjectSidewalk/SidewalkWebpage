@@ -9,9 +9,8 @@
  *
  * Gallery's expanded view hosts the card rather than LabelMap's popup: it opens from a plain card click on CI's
  * seed and a dev database alike, while a LabelMap marker is a feature on a Mapbox canvas the stub draws no map on,
- * which leaves nothing to click. Both hosts switch their
- * arrows through the same pagingArrows.js. Prev at the first card is the end used, since every gallery has a first
- * card and only a short one has its last card on the first page.
+ * which leaves nothing to click. Both hosts switch their arrows through the same pagingArrows.js. Prev at the first
+ * card is the end used, since every gallery has a first card and only a short one has its last card on the first page.
  */
 const {test, expect, serveAnyPano, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
