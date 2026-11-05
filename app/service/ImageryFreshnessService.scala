@@ -353,17 +353,6 @@ class ImageryFreshnessServiceImpl @Inject() (
   }
 
   /**
-   * Runs the poll loop for one batch of streets against a provider-specific point fetcher.
-   *
-   * The main (open-street) batch runs first, then the regained-imagery re-check of no_imagery streets (#4929) --
-   * in that order so a provider failing mid-run degrades the side quest, not the rotation that feeds the re-audit
-   * flags.
-   *
-   * @param providerName Names the provider in the run's summary and recorded counts.
-   * @param fetchPoint   Queries one (lat, lng) sample point: Some(panos seen) on a conclusive answer (possibly
-   *                     empty = confirmed no imagery), None when inconclusive.
-   */
-  /**
    * Sizes tonight's main batch from this city's current open-street count (#5402).
    *
    * Public so the admin Imagery page quotes the batch and pass length the next poll will actually use, rather than
@@ -378,6 +367,17 @@ class ImageryFreshnessServiceImpl @Inject() (
       )
     }
 
+  /**
+   * Runs the poll loop for one batch of streets against a provider-specific point fetcher.
+   *
+   * The main (open-street) batch runs first, then the regained-imagery re-check of no_imagery streets (#4929) --
+   * in that order so a provider failing mid-run degrades the side quest, not the rotation that feeds the re-audit
+   * flags.
+   *
+   * @param providerName Names the provider in the run's summary and recorded counts.
+   * @param fetchPoint   Queries one (lat, lng) sample point: Some(panos seen) on a conclusive answer (possibly
+   *                     empty = confirmed no imagery), None when inconclusive.
+   */
   private def pollStreets(
       providerName: String
   )(fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]): Future[PollResult] = {
