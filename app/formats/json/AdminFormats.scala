@@ -2,7 +2,6 @@ package formats.json
 
 import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
-import models.user.UserCount
 import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
 import play.api.libs.functional.syntax.*
@@ -49,8 +48,6 @@ object AdminFormats {
     Json.reads[AdminUserSettingsSubmission].map(s => s.copy(username = s.username.trim))
 
   given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = Json.reads[TaskFlagSubmission]
-
-  given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 
   given contributionTimeStatWrites: Writes[ContributionTimeStat] = Json.writes[ContributionTimeStat]
 

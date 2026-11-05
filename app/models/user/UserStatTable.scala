@@ -5,13 +5,11 @@ import models.api.UserStatForApi
 import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
-import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Writes}
-import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
@@ -56,18 +54,6 @@ case class UserStatsForAdminPage(
     highQuality: Boolean,
     highQualityManual: Option[Boolean]
 )
-case class UserCount(
-    count: Int,
-    toolUsed: String,
-    role: String,
-    timeInterval: TimeInterval,
-    taskCompletedOnly: Boolean,
-    highQualityOnly: Boolean
-) {
-  require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.name.toLowerCase()) ++ Seq("all")).contains(role))
-}
-
 case class LeaderboardStat(
     username: String,
     labelCount: Int,
@@ -1124,10 +1110,7 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Counts this city's contributors for the admin Overview: the #3976 definition `/v3/api/aggregateStats` uses for
-   * `total_users` (a non-tutorial label or a vote, excluded users left out), read from the same
-   * [[models.utils.FilteredTables.contributorIds]] fragment so the two can't drift (#4344). AI accounts are dropped,
-   * as on the admin Across Cities page, because the admin card counts people.
+   * Counts this city's contributors ([[models.utils.FilteredTables.contributorIds]]), leaving out AI accounts.
    *
    * @return The number of distinct non-AI contributors, all time.
    */
@@ -1135,12 +1118,7 @@ class UserStatTable @Inject() (
     sql"""
       SELECT COUNT(*)
       FROM #${FilteredTables.contributorIds()}
-      WHERE NOT EXISTS (
-          SELECT 1
-          FROM user_role
-          WHERE user_role.user_id = contributor.user_id
-              AND user_role.role = 'AI'
-      );
+      WHERE #${FilteredTables.notAi("contributor.user_id")};
     """.as[Int].head
   }
 

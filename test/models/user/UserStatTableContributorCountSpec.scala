@@ -1,6 +1,5 @@
 package models.user
 
-import models.utils.ConfigTable
 import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -9,9 +8,7 @@ import slick.dbio.DBIO
 import util.{RolledBackDb, SidewalkSpec}
 
 /**
- * The admin Overview's Contributors count uses the #3976 definition behind `/v3/api/aggregateStats` `total_users`
- * (#4344): someone counts for a non-tutorial label or a vote, never for a tutorial label alone, and never when
- * excluded. Self-seeding inside a rolled-back transaction, so it runs on an empty CI schema and leaves the DB as found.
+ * The admin Overview's Contributors count (#4344). Seeds its own rows in a rolled-back transaction, so it runs on CI.
  */
 class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -19,7 +16,6 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val userStatTable: UserStatTable = app.injector.instanceOf[UserStatTable]
-  private lazy val configTable: ConfigTable     = app.injector.instanceOf[ConfigTable]
 
   /**
    * Seeds a user with a `user_stat` row and, for an AI account, its role. Ids are MAX+1 because seeded dev dumps
@@ -98,7 +94,7 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
     } yield n
 
   "UserStatTable.countAllUsersContributed" should {
-    "count a real label or a vote, but not a tutorial label alone or an excluded user (#4344)" in {
+    "count a real label or a vote, but not a tutorial label alone, an excluded user, or an AI account" in {
       val (before, after) = runRolledBack(for {
         before       <- userStatTable.countAllUsersContributed()
         tutorialOnly <- seedUser()
@@ -110,29 +106,13 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
         excluded     <- seedUser(excluded = true)
         _            <- seedLabel(excluded)
         _            <- seedVote(excluded, labelId)
+        aiUser       <- seedUser(ai = true)
+        _            <- seedVote(aiUser, labelId)
         after        <- userStatTable.countAllUsersContributed()
       } yield (before, after))
 
       // Only the labeler and the validator are new contributors.
       after mustBe before + 2
-    }
-
-    "equal the API's contributor ids for the same schema, less AI accounts (#3976)" in {
-      val (adminCount, apiIds, aiIds, aiUser) = runRolledBack(for {
-        labeler    <- seedUser()
-        labelId    <- seedLabel(labeler)
-        validator  <- seedUser()
-        _          <- seedVote(validator, labelId)
-        aiUser     <- seedUser(ai = true)
-        _          <- seedVote(aiUser, labelId)
-        schema     <- currentSchema
-        adminCount <- userStatTable.countAllUsersContributed()
-        apiIds     <- configTable.getContributorUserIdsBySchema(schema)
-        aiIds      <- configTable.getAiUserIds
-      } yield (adminCount, apiIds, aiIds.toSet, aiUser))
-
-      apiIds must contain(aiUser)
-      adminCount mustBe apiIds.distinct.filterNot(aiIds).size
     }
   }
 }

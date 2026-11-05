@@ -89,6 +89,16 @@ object FilteredTables {
     }
 
   /**
+   * Whether a user isn't an AI account, for admin numbers that count people.
+   *
+   * @param userIdColumn The column holding the user's id, e.g. `contributor.user_id`.
+   * @return             A boolean SQL expression.
+   */
+  def notAi(userIdColumn: String): String =
+    s"NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = $userIdColumn " +
+      "AND user_role.role = 'AI')"
+
+  /**
    * Labels that count: not deleted, not tutorial, not by an excluded user, not on the tutorial street. Twin of
    * `LabelTable.labels`. Also checks the audit's street, since a tutorial label can land on a real street.
    *
@@ -207,10 +217,7 @@ object FilteredTables {
        ) AS voided_label_validation"""
 
   /**
-   * Who counts as a contributor (#3976): a non-excluded user with at least one counted label or at least one vote,
-   * voided votes included because the participation happened. The public `total_users` and the admin Overview's
-   * Contributors card share this one definition (#4344). The admin count additionally drops AI-role accounts, which
-   * the public `total_users` does not (yet), so the two differ by the AI accounts that contributed.
+   * Users with a counted label or a vote, voided votes included since the work still happened (#3976).
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause, one row per distinct `user_id` (a `text` column).

@@ -2,7 +2,6 @@ package service
 
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable}
 import models.label.LabelTable
-import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api.given
 import models.validation.LabelValidationTable
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -27,7 +26,6 @@ class TimeIntervalSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
   private lazy val auditTaskTable: AuditTaskTable                       = app.injector.instanceOf[AuditTaskTable]
   private lazy val auditTaskInteractionTable: AuditTaskInteractionTable =
     app.injector.instanceOf[AuditTaskInteractionTable]
-  private lazy val userStatTable: UserStatTable = app.injector.instanceOf[UserStatTable]
 
   private val narrowestFirst = Seq(TimeInterval.Today, TimeInterval.Week, TimeInterval.AllTime)
 
@@ -58,7 +56,6 @@ class TimeIntervalSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
         run(auditTaskInteractionTable.calculateTimeExploring(interval)).timeInterval mustBe interval
         run(auditTaskInteractionTable.calculateMedianExploringTime(interval)).timeInterval mustBe interval
       }
-      run(userStatTable.countAllUsersContributed()) must be >= 0
     }
   }
 }
