@@ -10,7 +10,9 @@ community stat bands across widths and fails when one stat runs into the next (#
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
 (#5060). Deep canvas/imagery testing stays manual, except `explore-tutorial-labeling.spec.js`, which labels in
 Explore's tutorial and reads the label back (#4777), and `validate-interactions.spec.js`, which votes on labels in
-Validate and reads the votes back (#4948).
+Validate and reads the votes back (#4948). One spec checks content rather than errors:
+`api-docs-streets-grade.spec.js` requires the Streets API docs' field table to list exactly the properties
+`/v3/api/streets` serves, its street-grade rows included (#5431).
 
 ## Running locally
 
