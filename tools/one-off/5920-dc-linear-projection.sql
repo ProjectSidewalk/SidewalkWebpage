@@ -2,7 +2,8 @@
 --
 -- Written against evolution 429 (v11.20). ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
 -- default: prints every count, then rolls back), apply with apply=1. A rerun is a no-op: the backup table is the
--- population guard. Not for run-query-in-every-city.sh (read-only runner). Undo: 5920-undo-dc-linear-projection.sql.
+-- population guard. Not for run-query-in-every-city.sh (read-only runner). Undo: 5920-undo-dc-linear-projection.sql
+-- (positions and records only; the voided votes stay archived).
 -- Run after 5667-dc-label-positions.sql, at a quiet hour: the transaction holds row locks on ~61k label_point rows.
 --
 --   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
@@ -68,27 +69,28 @@ WHERE NOT label.tutorial AND label.time_created >= '2017-02-15 17:00:00+00'
 -- ---------------------------------------------------------------------------------------------------------------
 -- The target heading is wrapped because the client only wrapped negative frame x, never x past the frame width.
 CREATE TEMP TABLE pov_inputs ON COMMIT DROP AS
-SELECT label_point.label_point_id, label.label_id,
-       old_label_metadata.old_pano_x * 360.0 / 13312
-         - 360.0 * FLOOR(old_label_metadata.old_pano_x * 360.0 / 13312 / 360.0) AS target_heading,
-       old_label_metadata.old_pano_y * 90.0 / 3328 AS target_altitude,
-       CASE WHEN label_point.zoom <= 2 THEN 126.5 - 36.75 * label_point.zoom
-            ELSE 195.93 / POWER(1.92, label_point.zoom) END AS fov_deg,
-       360.0 / TAN(0.5 * RADIANS(CASE WHEN label_point.zoom <= 2 THEN 126.5 - 36.75 * label_point.zoom
-                                      ELSE 195.93 / POWER(1.92, label_point.zoom) END)) AS f,
-       (label_point.canvas_x - 360)::DOUBLE PRECISION AS du,
-       (240 - label_point.canvas_y)::DOUBLE PRECISION AS dv,
-       RADIANS(label_point.heading) AS heading_rad,
-       RADIANS(label_point.pitch) AS pitch_rad
-FROM old_label_metadata
-INNER JOIN label ON old_label_metadata.label_id = label.label_id
-INNER JOIN label_point ON label.label_id = label_point.label_id
-WHERE NOT label.tutorial
-  AND label.time_created < '2017-02-15 17:00:00+00'
-  AND label_point.heading IS NOT NULL AND label_point.pitch IS NOT NULL AND label_point.zoom IS NOT NULL
-  AND label_point.canvas_x IS NOT NULL AND label_point.canvas_y IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM old_label_point_linear
-                  WHERE old_label_point_linear.label_point_id = label_point.label_point_id);
+SELECT record.*, 360.0 / TAN(0.5 * RADIANS(fov_deg)) AS f
+FROM (
+  SELECT label_point.label_point_id, label.label_id,
+         old_label_metadata.old_pano_x * 360.0 / 13312
+           - 360.0 * FLOOR(old_label_metadata.old_pano_x * 360.0 / 13312 / 360.0) AS target_heading,
+         old_label_metadata.old_pano_y * 90.0 / 3328 AS target_altitude,
+         CASE WHEN label_point.zoom <= 2 THEN 126.5 - 36.75 * label_point.zoom
+              ELSE 195.93 / POWER(1.92, label_point.zoom) END AS fov_deg,
+         (label_point.canvas_x - 360)::DOUBLE PRECISION AS du,
+         (240 - label_point.canvas_y)::DOUBLE PRECISION AS dv,
+         RADIANS(label_point.heading) AS heading_rad,
+         RADIANS(label_point.pitch) AS pitch_rad
+  FROM old_label_metadata
+  INNER JOIN label ON old_label_metadata.label_id = label.label_id
+  INNER JOIN label_point ON label.label_id = label_point.label_id
+  WHERE NOT label.tutorial
+    AND label.time_created < '2017-02-15 17:00:00+00'
+    AND label_point.heading IS NOT NULL AND label_point.pitch IS NOT NULL AND label_point.zoom IS NOT NULL
+    AND label_point.canvas_x IS NOT NULL AND label_point.canvas_y IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM old_label_point_linear
+                    WHERE old_label_point_linear.label_point_id = label_point.label_point_id)
+) AS record;
 
 SELECT 'labels before the cut without a usable record' AS what, count(*) FROM label
 INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -171,7 +173,8 @@ WHERE label_point.label_point_id = solved.label_point_id;
 -- Part 2. pano_x/pano_y for the click direction, on every pano whose dimensions are known.
 -- ---------------------------------------------------------------------------------------------------------------
 -- 179's raster mapping (column zero is camera_heading + 180, row zero is +90 deg). A label on a pano nobody has
--- sized keeps its legacy coordinates: its record now aims right, so a later #5667 rerun converts it correctly.
+-- sized keeps its legacy coordinates: its record now aims right, so a later #5667 rerun converts its pixels and
+-- position correctly (its centerline offset then needs a recompute, as for everything that script moves).
 UPDATE label_point
 SET pano_x = (pano_data.width + ROUND(pano_data.width * (solved.target_heading::DECIMAL
                - (pano_data.camera_heading + 180)::DECIMAL % 360) / 360)) % pano_data.width,
@@ -204,7 +207,8 @@ WITH ray AS (
              * SIN(RADIANS(label_point.heading))
            - pov_inputs.dv * SIN(RADIANS(label_point.pitch)) * COS(RADIANS(label_point.heading)) AS ray_y,
          pov_inputs.f * SIN(RADIANS(label_point.pitch)) + pov_inputs.dv * COS(RADIANS(label_point.pitch)) AS ray_z,
-         label_point.pano_x, label_point.pano_y, pano_data.width, pano_data.height, pano_data.camera_heading
+         label_point.pano_x, label_point.pano_y, pano_data.width::DOUBLE PRECISION AS width,
+         pano_data.height::DOUBLE PRECISION AS height, pano_data.camera_heading
   FROM run_rows
   INNER JOIN solved ON run_rows.label_point_id = solved.label_point_id
   INNER JOIN pov_inputs ON solved.label_point_id = pov_inputs.label_point_id
@@ -308,9 +312,9 @@ SET street_edge_id = nearest_street.street_edge_id
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
 INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
-INNER JOIN street_edge AS current_street
-  ON old_label_point_linear.street_edge_id = current_street.street_edge_id
+INNER JOIN street_edge ON old_label_point_linear.street_edge_id = street_edge.street_edge_id
 CROSS JOIN LATERAL (
+  -- The street_edge inside this subquery is its own, the outer one is the label's current street.
   SELECT candidate_streets.street_edge_id, candidate_streets.geom
   FROM (
     SELECT street_edge.street_edge_id, street_edge.geom
@@ -328,7 +332,7 @@ WHERE label.label_id = old_label_point_linear.label_id
        OR old_label_point_linear.lat <> label_point.lat OR old_label_point_linear.lng <> label_point.lng)
   AND label.street_edge_id <> nearest_street.street_edge_id
   AND ST_DistanceSphere(nearest_street.geom, label_point.geom)
-    < ST_DistanceSphere(current_street.geom, label_point.geom);
+    < ST_DistanceSphere(street_edge.geom, label_point.geom);
 
 -- 377's offset must follow the position and the street (docs/evolutions.md). #5667 moved rows without doing so.
 UPDATE label_point
@@ -339,21 +343,25 @@ WHERE label.label_id = label_point.label_id
   AND label_point.geom IS NOT NULL
   AND (EXISTS (SELECT 1 FROM run_rows WHERE run_rows.label_point_id = label_point.label_point_id)
        OR EXISTS (SELECT 1 FROM old_label_point_coords_2
-                  WHERE old_label_point_coords_2.label_point_id = label_point.label_point_id));
+                  WHERE old_label_point_coords_2.label_point_id = label_point.label_point_id))
+  AND label_point.centerline_offset_m IS DISTINCT FROM label_centerline_offset_m(label_point.geom, street_edge.geom);
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Part 4. Votes cast on a marker drawn 30 px or more off (355's threshold, 4190's removal, 355's archive).
 -- ---------------------------------------------------------------------------------------------------------------
--- Human votes as 355 defines them, on any type: a vote on a type the label no longer has judged the same wrong
--- spot. Comments stay (text, not a verdict). mission.labels_validated stays, as in 4190.
+-- Human votes as 355 defines them, on the label's current type only: a vote on a type it no longer has counts
+-- for nothing, and the archive holds one row per (user, label). Comments stay (text, not a verdict).
+-- mission.labels_validated stays, as in 4190.
 CREATE TEMP TABLE voided_now (label_validation_id INT PRIMARY KEY, label_id INT NOT NULL, user_id TEXT NOT NULL)
   ON COMMIT DROP;
 INSERT INTO voided_now
 SELECT label_validation.label_validation_id, label_validation.label_id, label_validation.user_id
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
-INNER JOIN label_validation ON old_label_point_linear.label_id = label_validation.label_id
+INNER JOIN label ON old_label_point_linear.label_id = label.label_id
+INNER JOIN label_validation ON label.label_id = label_validation.label_id
 WHERE old_label_point_linear.old_render_error_px >= 30
+  AND label_validation.label_type = label.label_type
   AND label_validation.source <> 'SidewalkAI'
   AND NOT EXISTS (
     SELECT 1 FROM sidewalk_login.user_role
@@ -509,6 +517,11 @@ WHERE user_stat.user_id = affected_labeler.user_id AND NOT user_stat.excluded;
 
 SELECT 'records re-aimed this run' AS what, count(*) FROM run_rows;
 SELECT 'votes voided this run' AS what, count(*) FROM voided_now;
+SELECT 'human votes on another type of these labels, left alone' AS what, count(*) FROM run_rows
+INNER JOIN old_label_point_linear USING (label_point_id) INNER JOIN label USING (label_id)
+INNER JOIN label_validation USING (label_id)
+WHERE old_label_point_linear.old_render_error_px >= 30 AND label_validation.label_type <> label.label_type
+  AND label_validation.source <> 'SidewalkAI';
 SELECT 'edits removed with them' AS what, count(*) FROM edits_to_remove;
 SELECT 'old render error px: median, p90, share >= 30' AS what,
        percentile_cont(0.5) WITHIN GROUP (ORDER BY old_render_error_px),
