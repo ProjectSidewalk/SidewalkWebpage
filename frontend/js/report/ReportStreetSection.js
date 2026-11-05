@@ -68,6 +68,8 @@ export class ReportStreetSection {
   #entries = new Map();
   #limit = ReportStreetSection.PAGE_SIZE;
   #sidewalksVisible = false;
+  // Kept here across the map's comings and goings, so a reader's choice outlives a scroll away and back.
+  #placesVisible = true;
   /** @type {?number} */ #lit = null;
   #hoverLogged = false;
   /** @type {?ResizeObserver} */ #resize = null;
@@ -142,6 +144,11 @@ export class ReportStreetSection {
       focusEdgeIds: this.#street.edgeIds,
       locations: this.#street.cards,
       mark: { score: this.#street.score, grade: this.#steepestGrade() },
+      placesVisible: this.#placesVisible,
+      onPlacesToggle: (shown) => {
+        this.#placesVisible = shown;
+        this.#deps.log(`Report_PlacesToggle_Shown=${shown}_Map=Street`);
+      },
       onLocationHover: (id) => this.#light(id),
       onLocationClick: (id) => this.#reveal(id),
     });

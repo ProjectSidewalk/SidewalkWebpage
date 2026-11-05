@@ -33,6 +33,7 @@ describe('ReportPage', () => {
       id: i, score: 0.5, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]],
     })),
     streets: Array.from({ length: STREET_COUNT }, (_, i) => ({ id: 100 + i, score: 0.5, edgeIds: [i], cards: [] })),
+    places: [{ name: 'School', category: 'school', lat: 47.6, lng: -122.33, edgeId: 0, distance: 20 }],
     fixes: [{ labelId: 55, streetId: 100, edgeIds: [0], locations: [{ clusterId: 9, labelType: 'Obstacle', lat: 47.6, lng: -122.33 }] }],
   });
 
@@ -142,6 +143,20 @@ describe('ReportPage', () => {
     intersect(element, true);
     expect(live()).toHaveLength(1);
     expect(maps).toHaveLength(2);
+  });
+
+  test('every map gets the places and its own "Places" switch, whose flips are logged by map', () => {
+    const page = new ReportPage(data(), deps);
+    page.start();
+    intersect(document.getElementById('report-region-map'), true);
+    intersect(document.getElementById('street-100'), true);
+    const [region, street] = maps;
+    expect(region.options.places).toEqual(data().places);
+    expect(street.options.places).toEqual(data().places);
+    region.options.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Region');
+    street.options.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Street');
   });
 
   test('passes every map the city\'s basemap', () => {
@@ -423,6 +438,9 @@ describe('ReportPage', () => {
       intersect(document.getElementById('report-worst-map'), true);
       expect(worstMap().options.problems).toEqual(problems);
       expect(worstMap().options.focusEdgeIds).toBeUndefined();
+      expect(worstMap().options.places).toEqual(data().places);
+      worstMap().options.onPlacesToggle(false);
+      expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Worst');
     });
 
     test('a type\'s row lights its dots and a dot lights its row; a sweep logs each type once', () => {

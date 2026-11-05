@@ -1106,3 +1106,7 @@ report.worst.lede = {0,choice,1#1 location|1<{0} locations} rated worst, by type
 report.worst.count.label = {0,choice,1#1 location|1<{0} locations}: {1}. See the labels
 report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map. Turn on "{0}" in the sidebar to see them as dashed lines on the other maps.
 report.toc.worst = Worst problems
+report.stories.title = In residents'' words
+report.stories.rule = Stories that community members attached to labels in this neighborhood, newest first. A story is one person''s experience; it changes no number on this page.
+report.stories.street = See this street
+report.stories.all = Read all community stories

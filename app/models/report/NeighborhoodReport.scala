@@ -2,6 +2,7 @@ package models.report
 
 import models.api.{LabelClusterForApi, LabelDataForApi, PlaceForApi, StreetAccessScoreForApi}
 import models.label.{LabelType, RatingScale}
+import models.story.StoryForListing
 import models.utils.LatLngBBox
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -855,6 +856,8 @@ case class ReportMapEdge(
  *                          beside the weight sliders
  * @param places            Important places near its segments
  * @param worst             Every location rated at the worst end of its type's scale, for the worst-problems map
+ * @param stories           Community members' stories on labels here (#4054), newest first, up to
+ *                          `ReportService.StoriesListSize`; they change no number
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -873,8 +876,22 @@ case class NeighborhoodReport(
     weights: AccessScoreWeights = AccessScoreWeights.Default,
     contributions: Map[String, Double] = Map.empty,
     places: Seq[ReportPlace] = Nil,
-    worst: Seq[WorstProblem] = Nil
+    worst: Seq[WorstProblem] = Nil,
+    stories: Seq[StoryForListing] = Nil
 ) {
+
+  /**
+   * @param labelId      A label in the region
+   * @param streetEdgeId The street it was placed on
+   * @return The anchor of the section whose score counts the label, else of the one detailing its street, if either
+   *         exists. The score comes first because a corner label is pooled onto the streets meeting there, which
+   *         needn't include the one it was placed on.
+   */
+  def sectionFor(labelId: Int, streetEdgeId: Int): Option[String] =
+    detailed
+      .find(_.street.worst.locations.exists(_.labelIds.contains(labelId)))
+      .orElse(detailed.find(_.street.worst.edgeIds.contains(streetEdgeId)))
+      .map(_.anchor)
 
   /** @return The worst problems by type, in the canonical type order, leaving out types that have none. */
   def worstByType: Seq[(LabelType, Seq[WorstProblem])] = {
@@ -1105,6 +1122,12 @@ object ReportLinks {
 
   /** @return The label's own card, with its full panorama. */
   def label(labelId: Int): String = s"/label/$labelId"
+
+  /** @return The label's card scrolled to one of its stories, as a story's share link opens it (#4722). */
+  def story(labelId: Int, storyId: Int): String = s"/label/$labelId?storyId=$storyId"
+
+  /** The city's community stories page. */
+  val stories: String = "/stories"
 }
 
 /** What the page's scripts need from a report, written into it as JSON: the maps and cards are drawn in the browser. */

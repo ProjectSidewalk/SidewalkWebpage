@@ -8,7 +8,7 @@
  * the two never compete for the one meaning a line's color has.
  *
  * Given problems instead of locations, it is the worst-problems map: every street in a quiet grey under one dot per
- * location, colored by type, so the dots are the only color on it.
+ * location, colored by type, so the dots are the only color on it; its places wear a neutral disc for the same reason.
  *
  * It knows nothing of cards. A host hears which location or street the pointer is on and tells it what to light, so
  * the same map serves the overview and a street's section.
@@ -25,6 +25,7 @@ import { AccessScoreMapLegend } from '../access-score/AccessScoreMapLegend.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
 import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
+import { ReportPlacesToggle } from './ReportPlacesToggle.js';
 import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
 import { formatScore } from '../access-score/AccessScoreText.js';
 import { util } from '../common/utilities.js';
@@ -60,7 +61,9 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
- * @property {ReportMapPlace[]} [places] - Important places to show.
+ * @property {ReportMapPlace[]} [places] - Important places to show, each behind the map's own "Places" switch.
+ * @property {boolean} [placesVisible=true] - Whether the places start shown.
+ * @property {(shown: boolean) => void} [onPlacesToggle] - When the reader flips the map's "Places" switch.
  * @property {ReportMapProblem[]} [problems] - Draws the worst-problems map: these as dots, the streets unscored.
  * @property {(labelType: ?string) => void} [onProblemHover] - With the type of the dot under the pointer.
  * @property {(problem: ReportMapProblem, lngLat: [number, number]) => void} [onProblemClick]
@@ -100,8 +103,10 @@ const SPINE_LAYER = 'report-streets-spine';
 const SIDEWALK_OFFSET_PX = 6;
 // A block or so around a fix: the street it is on and the corner it is near, at a size two panes can show.
 const STILL_ZOOM = 17.5;
-const STILL_ICON_PX = 24;
-const PLACE_DISC_PX = 22;
+// Smaller than the marker on the photo beside it, so the two panes don't read as the same thing twice: the map's icon
+// says where the spot is, the photo's what it is.
+const STILL_ICON_PX = 16;
+const PLACE_DISC_PX = 18;
 // A tile that never answers must not hold a card's map forever; the sketch stays in its place.
 const STILL_TIMEOUT_MS = 10000;
 // A lit icon covers about 15px around its point, so this leaves the wedge plainly visible past it.
@@ -183,6 +188,9 @@ export class ReportMap {
   /** @type {ReportMapOptions} */ #options;
   /** @type {?Map<number, ReportMapEdge>} The edges by id, built on first need. */ #edges = null;
   /** @type {?(() => void)} Closes the place tooltip that is open, if any. */ #openPlace = null;
+  /** @type {HTMLElement[]} The place markers' buttons, which the "Places" switch shows and hides. */ #places = [];
+  #placesVisible = true;
+  /** @type {?ReportPlacesToggle} */ #placesToggle = null;
   /** @type {Map<number, {marker: maplibregl.Marker, element: HTMLElement, labelType: string}>} */ #markers = new Map();
   /** Work asked for before the style finished loading. */
   #pending = [];
@@ -201,7 +209,10 @@ export class ReportMap {
    */
   constructor(container, options) {
     this.#options = options;
-    const { basemap, edges, focusEdgeIds = null, locations = [], still = false, center = null } = options;
+    const {
+      basemap, edges, focusEdgeIds = null, locations = [], still = false, center = null, placesVisible = true,
+    } = options;
+    this.#placesVisible = placesVisible;
     if (basemap.tilesUrl) addArchiveProtocol();
     // pmtiles' protocol handler wants an absolute URL after its prefix.
     const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
@@ -253,6 +264,16 @@ export class ReportMap {
     // A still map's icons are painted into its picture instead, since a DOM marker isn't on the canvas.
     if (!still) {
       for (const place of options.places ?? []) this.#addPlace(place);
+      if (this.#places.length) {
+        this.#placesToggle = new ReportPlacesToggle({
+          checked: placesVisible,
+          onChange: (shown) => {
+            this.setPlacesVisible(shown);
+            options.onPlacesToggle?.(shown);
+          },
+        });
+        this.#map.addControl(this.#placesToggle);
+      }
       // A pinned place tooltip closes on a click anywhere else on the map; a place's own click doesn't reach here.
       this.#map.on('click', () => this.#openPlace?.());
       for (const location of locations) this.#addMarker(location);
@@ -285,7 +306,7 @@ export class ReportMap {
     const ratio = source.width / source.clientWidth;
     const size = STILL_ICON_PX * ratio;
     const disc = PLACE_DISC_PX * ratio;
-    for (const place of this.#options.places ?? []) {
+    for (const place of this.#placesVisible ? this.#options.places ?? [] : []) {
       const glyph = await loadImage(placeIconUrl(place.category));
       const colors = this.#placeColors(place);
       const { x, y } = this.#map.project([place.lng, place.lat]);
@@ -634,12 +655,14 @@ export class ReportMap {
    */
   /**
    * A place's marker colors: its nearest segment's score, binned as AccessScore bins it, so the report's markers and
-   * the tool's agree.
+   * the tool's agree. On the worst-problems map the disc is the unscored grey instead: there, color means a label
+   * type, and a score-colored disc would be a second meaning on the one map.
    * @param {ReportMapPlace} place
    * @returns {{fill: string, glyph: string, halo: string}}
    */
   #placeColors(place) {
-    return PlaceMarkerColors.forScore(this.#edgeById(place.edgeId)?.score ?? null, AccessScoreModel.HISTOGRAM_BINS);
+    const score = this.#options.problems ? null : this.#edgeById(place.edgeId)?.score ?? null;
+    return PlaceMarkerColors.forScore(score, AccessScoreModel.HISTOGRAM_BINS);
   }
 
   /**
@@ -709,7 +732,20 @@ export class ReportMap {
     element.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') close();
     });
+    element.hidden = !this.#placesVisible;
     new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
+    this.#places.push(element);
+  }
+
+  /**
+   * Shows or hides the important places, closing the tooltip of one that's open.
+   * @param {boolean} visible
+   */
+  setPlacesVisible(visible) {
+    this.#placesVisible = visible;
+    if (!visible) this.#openPlace?.();
+    for (const element of this.#places) element.hidden = !visible;
+    this.#placesToggle?.setChecked(visible);
   }
 
   /**

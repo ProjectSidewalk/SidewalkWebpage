@@ -454,8 +454,10 @@ AccessScore scores and the map colors, so a section never holds parts its number
 streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
 on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
 Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
-it, drawn on its maps and on its fix; they change no number, which is #5315's question. A
-fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. Every live map carries its own
+"Places" switch in a corner (`ReportPlacesToggle`, #5900) rather than one sidebar switch, since a map of the whole
+neighborhood and a map of one block needn't agree; a street section remembers its answer across its map's comings and
+goings. A fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
 Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
@@ -474,7 +476,14 @@ Below the segment list, a worst-problems map (#5889) puts a dot, in its type's l
 rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
 Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
 switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
-and a dot opens its label's Gallery card in a popup. It prints as the counts alone.
+and a dot opens its label's Gallery card in a popup. Its places wear the unscored grey disc, since color on that map
+means a label type. It prints as the counts alone.
+
+After the fixes, when the region has any, come the community's stories (#4054, #5900): the newest
+`ReportService.StoriesListSize` visible stories on labels in the region (`StoryTable.getVisibleForCity` scoped by
+region), each as the person chose to be named, with their photo or the label's saved crop (never a Street View still),
+leading to the label's card at that story and to the street's section when it has one. They are the human case beside
+the engineering one and change no number.
 
 A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
 (`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads

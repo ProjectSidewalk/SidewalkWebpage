@@ -1115,3 +1115,7 @@ report.worst.lede = {0,choice,1#1 lieu noté|1<{0} lieux notés} au plus mal, pa
 report.worst.count.label = {0,choice,1#1 lieu|1<{0} lieux} : {1}. Voir les étiquettes
 report.worst.nosidewalk = Les trottoirs manquants n''ont pas de note, ils ne figurent donc pas sur cette carte. Activez « {0} » dans la barre latérale pour les voir en pointillés sur les autres cartes.
 report.toc.worst = Pires problèmes
+report.stories.title = Avec les mots des habitants
+report.stories.rule = Témoignages que des membres de la communauté ont associés à des étiquettes de ce quartier, les plus récents d''abord. Un témoignage est l''expérience d''une personne ; il ne change aucun chiffre de cette page.
+report.stories.street = Voir cette rue
+report.stories.all = Lire tous les témoignages de la communauté

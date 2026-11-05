@@ -252,6 +252,7 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Region`),
         onStreetHover: (streetId) => {
           lightRow(streetId);
           this.#regionMap?.lightStreet(streetId ?? selected);
@@ -308,6 +309,8 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         problems: this.#data.worst ?? [],
+        places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Worst`),
         onProblemHover: light,
         onProblemClick: (problem) => {
           this.#log(`Report_WorstMapClick_LabelType=${problem.labelType}`);
