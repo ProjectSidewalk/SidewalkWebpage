@@ -467,27 +467,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               `coverage` is 0.0 when the city has no streets loaded.
    */
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
-    // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
-    // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
-    // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
-    // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
-    // scorecardCoreQuery) can go away -- tracked in #4705.
-    val upToDateFilterQuery = columnExists(schema, "audit_task", "outdated_imagery")
-
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
     // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
     // long-cached path (getCrossCityLabelingSpeed).
     for {
-      hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
       labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
-      core <- scorecardCoreQuery(
-        schema,
-        if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
-        labelTypeSql,
-        hasValidationLabelType
-      )
+      core        <- scorecardCoreQuery(schema, labelTypeSql, hasValidationLabelType)
       byLabelType <- labelTypeStatsBySchema(schema, labelTypeSql)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
@@ -499,15 +486,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * activity windows, and the last activity time.
    *
    * @param schema                 The city schema to query.
-   * @param upToDateFilter         SQL added to the audited-street joins to keep only current imagery, when the schema
-   *                               has that column (see the caller).
    * @param labelTypeSql           How this schema spells label types (enum or text).
    * @param hasValidationLabelType Whether the schema records a vote's label type, which the verdict counts need.
    * @return                       The one core row.
    */
   private def scorecardCoreQuery(
       schema: String,
-      upToDateFilter: String,
       labelTypeSql: LabelTypeSql,
       hasValidationLabelType: Boolean
   ): DBIO[ScorecardCore] = {
@@ -545,7 +529,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
         FROM #${FilteredTables.streets(Some(schema))}
         INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-            ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+            ON street_edge.street_edge_id = audit_task.street_edge_id AND audit_task.outdated_imagery = FALSE
     ) AS audited_streets, (
         SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
         FROM #${FilteredTables.streets(Some(schema))}
@@ -556,7 +540,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             SELECT DISTINCT street_edge.street_edge_id, geom
             FROM #${FilteredTables.streets(Some(schema))}
             INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-                ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+                ON street_edge.street_edge_id = audit_task.street_edge_id AND audit_task.outdated_imagery = FALSE
         ) AS distinct_audited
     ) AS audited_km, (
         -- Effort: every completed audit's length, repeats and outdated imagery included. The public API's km_explored
