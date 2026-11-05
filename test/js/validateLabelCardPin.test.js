@@ -1,13 +1,6 @@
 /**
- * Tests for pinning Validate's label card from its marker (#4843), in
- * frontend/js/validate/label/LabelVisibilityControl.js and the press handling in
- * frontend/js/validate/panorama/PanoOverlay.js.
- *
- * Hover opens the card before a click can land, so a click pins it (it then outlasts the pointer leaving) and a second
- * click unpins and closes it. Enter/Space, and a click with no pointer behind it, stay a plain toggle: focus already
- * opens the card, so they need no pin. aria-expanded has to follow the card throughout, and a press on the marker must
- * not take the card down before its click arrives, nor leave focus on the marker, where keys would go to the card
- * instead of the shortcuts.
+ * Tests for pinning Validate's label card with a click on its marker (#4843), in LabelVisibilityControl.js and
+ * PanoOverlay.js.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
@@ -113,7 +106,7 @@ describe('pinning the Validate label card', () => {
 
     expect(control.isCardVisible()).toBe(false);
     expect(expanded()).toBe('false');
-    // The toggle's close logs nothing, as Enter/Space's always has; above all, no pin.
+    // The toggle's close logs nothing, and nothing is pinned.
     expect(tracker.push).not.toHaveBeenCalled();
   });
 
@@ -158,8 +151,7 @@ describe('pinning the Validate label card', () => {
     marker().dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 10, clientY: 10 }));
     marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 10, clientY: 10 }));
 
-    // jsdom never focuses on mousedown, so activeElement can't show the fix; a cancelled mousedown is what keeps a
-    // real browser from focusing the tabindex=0 marker.
+    // jsdom never focuses on mousedown, so check the cancelled mousedown that stops a real browser from focusing.
     expect(down.defaultPrevented).toBe(true);
     expect(control.isCardHeldOpen()).toBe(true);
   });

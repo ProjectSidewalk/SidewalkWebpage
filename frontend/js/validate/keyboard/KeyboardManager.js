@@ -63,8 +63,7 @@ export class KeyboardManager {
     { keys: ['Digit3', 'Numpad3'], action: (e) => this.#handleNumberKeyShortcut(3, e) },
     { keys: ['Digit4', 'Numpad4'], action: (e) => this.#handleFourOrFive(4, e) },
     { keys: ['Digit5', 'Numpad5'], action: (e) => this.#handleFourOrFive(5, e) },
-    // A card held open (opened on load, #5675, or pinned by a click, #4843) must close from anywhere, not only with
-    // focus on the label (WCAG 1.4.13).
+    // A held card (opened on load or pinned) must close from anywhere, not only with focus on the label (WCAG 1.4.13).
     {
       keys: ['Escape'],
       when: () => this.#labelVisibilityControl.isCardHeldOpen(),

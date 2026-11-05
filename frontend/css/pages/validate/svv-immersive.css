@@ -120,8 +120,7 @@ body.svv-immersive #validation-menu-holder {
   z-index: 3;
 }
 
-/* A card held open (opened on load, #5675, or pinned by a click, #4843) isn't transient, so it gives way to the dock:
-   matching the card's z-index (4) puts the dock on top, since it comes later in the page. */
+/* A held card (opened on load or pinned) gives way to the dock: same z-index, but the dock comes later in the page. */
 body.svv-immersive:has(#label-card.label-card--held) #validation-menu-holder {
   z-index: 4;
 }

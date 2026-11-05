@@ -1,25 +1,17 @@
 /**
- * Validate's label marker as a pointer control (#4843). Hover opens the label card as before; a click pins it open
- * so it outlasts the pointer leaving, a second click closes it, and a press that drags is a pan rather than a click.
- * The jsdom suites (validateLabelCardPin, validateMarkerActivation) run these handlers against a stub marker; this
- * runs them against the real marker on the real pano layer, with the real event order a mouse produces, which is
- * where a press that steals focus or an overlay that eats the click would show.
- *
- * The marker is a DOM element in #view-control-layer, drawn over whichever viewer is up, so the same marker is under
- * test on both pano paths: on CI every seeded pano is expired and Pannellum shows the committed backup; on a dev
- * database `serveAnyPano` lets the Maps stub stand in. Nothing here is billed (#5129).
+ * Validate's label marker with a real mouse (#4843): hover opens the card, a click pins it, a second click closes it,
+ * and a drag is a pan. Uses the Maps stub or Pannellum backup, so nothing is billed.
  */
 const {test, expect, serveAnyPano, loadValidate} = require('./fixtures');
 
-// Comfortably past LabelVisibilityControl's 200 ms hover grace timer, for asserting that a card *stays* up (or down):
-// a polling expect would pass on its first look, before the timer had a chance to fire.
+// Past the 200 ms hover grace timer, so a check that the card stays up (or down) runs after the timer could fire.
 const PAST_HIDE_DELAY_MS = 600;
 
 test.beforeEach(async ({page, context}) => {
   await serveAnyPano(context);
   const onMission = await loadValidate(page, '/validate');
   test.skip(!onMission, 'Validate settled on the no-mission modal, so there is no label marker');
-  // The mission-start tutorial holds the keyboard until closed; clicked from the page, as its own overlay covers it.
+  // Close the mission-start tutorial, which holds the keyboard. Clicked in-page, since its overlay covers it.
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
   await expect(page.locator('#validate-pano-marker')).toBeVisible();
 });
@@ -64,7 +56,7 @@ test('a press that drags from the marker is a pan, not a click that pins', async
   await marker.hover();
   await expect(card).toBeVisible();
   const {x, y} = await centerOf(marker);
-  // Out well past the 5 px click slop and back, so the release lands on the marker and a click event does fire there.
+  // Past the 5 px click slop and back, so the release lands on the marker and fires a click there.
   await page.mouse.down();
   await page.mouse.move(x + 30, y, {steps: 6});
   await page.mouse.move(x, y, {steps: 6});
@@ -89,7 +81,7 @@ test('after a click pins the card, shortcut keys still reach Validate', async ({
 
   await marker.click();
   await expect(card).toBeVisible();
-  // A focused marker routes keys to the card, where Y means nothing and Enter toggles the card instead of submitting.
+  // A focused marker would send Y and Enter to the card instead of the page.
   await expect(marker).not.toBeFocused();
   await page.keyboard.press('y');
   await expect(page.locator('#validate-yes-button'), 'Y after a click on the marker did not choose Agree')
@@ -126,8 +118,7 @@ async function centerOf(locator) {
 }
 
 /**
- * Moves the mouse onto the pano, clear of both the marker and the card, so the marker sees a real mouseout and
- * nothing re-enters the card. Picks whichever corner of the pano layer is furthest from the marker.
+ * Moves the mouse to the pano corner furthest from the marker, clear of both the marker and the card.
  * @param {import('@playwright/test').Page} page
  */
 async function moveAway(page) {
