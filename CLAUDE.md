@@ -72,6 +72,10 @@ file, and this table says which doc to read first:
   `# shellcheck disable=SCxxxx` line that says why.
 - **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
+- **A new or changed interaction on Explore, Validate, or a label card gets a Playwright spec in `test/e2e/`.** Those
+  pages bill Google when opened by hand and jsdom can't fake focus or pointer sequences, so the browser spec is the
+  only QA that is both free and repeatable. Other UI relies on the smoke and axe gates (every page in
+  `test/e2e/pages.js`) plus unit tests; don't add a browser spec for a copy, colour, or template change.
 - **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the
   tree), though `make test-e2e` tests whatever app is on :9000. A hand-typed `docker exec … "cd /home && …"` still
   checks the main checkout, so use the targets.

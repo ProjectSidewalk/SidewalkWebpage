@@ -339,9 +339,12 @@ time they were set. Measure with `make test-js args=--coverage`.
 
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
   covers the build files) auto-formats before pushing.
-- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
-  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, except
-  labeling in Explore's tutorial (#4777) and voting on labels in Validate (#4948).
+- **E2E: thin, with one standing exception** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed
+  Mapbox and Google Maps, run on every PR (`e2e-smoke`). Browser interaction specs are written only where a jsdom
+  test cannot prove the behavior and a hand check would bill Google: **a new or changed interaction on Explore,
+  Validate, or a label card gets one** (the first were labeling in Explore's tutorial, #4777, and voting in
+  Validate, #4948). Everything else stays at the gates plus unit tests, so the suite's run time tracks the number of
+  pano-page interactions, not the number of UI changes. Deep canvas and imagery rendering stays manual.
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is
