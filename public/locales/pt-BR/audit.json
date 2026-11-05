@@ -279,7 +279,7 @@
         "sand-gravel": "lama/areia/cascalho (<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "bueiro d<tag-underline>e</tag-underline>scoberto",
         "ends-abruptly": "termina <tag-underline>a</tag-underline>brutamente",
-        "street-has-a-sidewalk": "<tag-underline>r</tag-underline>ua tem uma calçada",
+        "other-side-has-a-sidewalk": "out<tag-underline>r</tag-underline>o lado tem uma calçada",
         "street-has-no-sidewalks": "rua não tem calçadas (<tag-underline>t</tag-underline>)",
         "gravel-dirt-road": "estrada de cascalho/terra/<tag-underline>d</tag-underline>etritos",
         "shared-pedestrian-car-space": "espaço compartilhado p<tag-underline>e</tag-underline>destre/carro",

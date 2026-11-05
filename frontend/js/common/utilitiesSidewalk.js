@@ -301,9 +301,9 @@ function UtilitiesMisc(JSON) {
             keyChar: 'A',
             text: i18next.t('center-ui.context-menu.tag.ends-abruptly'),
           },
-          'street has a sidewalk': {
+          'other side has a sidewalk': {
             keyChar: 'R',
-            text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk'),
+            text: i18next.t('center-ui.context-menu.tag.other-side-has-a-sidewalk'),
           },
           'street has no sidewalks': {
             keyChar: 'T',

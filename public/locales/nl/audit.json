@@ -279,7 +279,7 @@
         "sand-gravel": "modder/zand/grind (<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "onb<tag-underline>e</tag-underline>dekt mangat",
         "ends-abruptly": "eindigt <tag-underline>a</tag-underline>brupt",
-        "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>aat heeft een trottoir",
+        "other-side-has-a-sidewalk": "ande<tag-underline>r</tag-underline>e kant heeft een trottoir",
         "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>raat heeft geen trottoir",
         "gravel-dirt-road": "gravel/zand weg (<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "g<tag-underline>e</tag-underline>deeld voetganger/auto gebied",

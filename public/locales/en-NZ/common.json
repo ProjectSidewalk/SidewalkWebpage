@@ -10,7 +10,7 @@
   "tag": {
     "trash/recycling can": "trash/recycling bin",
     "narrow sidewalk": "narrow footpath",
-    "street has a sidewalk": "street has a footpath",
+    "other side has a sidewalk": "other side has a footpath",
     "street has no sidewalks": "street has no footpaths",
     "level with sidewalk": "level with footpath",
     "missing crosswalk": "missing marked pedestrian crossing"
