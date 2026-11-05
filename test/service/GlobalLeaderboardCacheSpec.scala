@@ -151,12 +151,15 @@ class GlobalLeaderboardCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // even if empty, which the recover's `None` can't be mistaken for.
       val thisCity = realConfig.getCityId
       scope.set(Future.successful(GlobalLeaderboardScope(Seq(thisCity -> realConfig.getCitySchema(thisCity)), Nil)))
-      await(service.getGlobalLeaderboardStats(n)) mustBe defined
-      started.get() mustBe 2
+      // Polled, because the failed compute leaves the in-flight map from an `onComplete` that can run after the recover
+      // answered, so a request straight after may still join that failed future. What matters is that one recomputes.
+      pollUntil(10.seconds)(await(service.getGlobalLeaderboardStats(n)).isDefined)
+      started.get() must be >= 2
 
       // Now cached and fresh, so a further request is served without recomputing.
+      val recomputesSoFar = started.get()
       await(service.getGlobalLeaderboardStats(n)) mustBe defined
-      started.get() mustBe 2
+      started.get() mustBe recomputesSoFar
     }
   }
 }
