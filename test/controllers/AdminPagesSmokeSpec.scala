@@ -27,8 +27,9 @@ import scala.util.matching.Regex
  *
  * Motivated by the #4272 split, where `/admin` kept rendering a template that called a removed `Admin()` and nothing
  * went red until someone opened the page. Each page loads one module entry (`frontend/js/pages/admin/<page>.js`) that
- * fills elements by id, so the entry tag and those ids are the contract a server-side test can see. A view that drops the tag, names another page's entry, or renames a container renders its
- * static text fine and its data sections blank, with no console error for the Playwright smoke suite to catch.
+ * fills elements by id, so the entry tag and those ids are the contract a server-side test can see. A view that drops
+ * the tag, names another page's entry, or renames a container renders its static text fine and its data sections
+ * blank, with no console error for the Playwright smoke suite to catch.
  *
  * The id lists are a few load-bearing containers per page (status line, main charts and tables), not every id the
  * page's JS touches, so a cosmetic rename doesn't churn this spec. A last case walks the live route table, so a new
@@ -52,7 +53,8 @@ class AdminPagesSmokeSpec extends SidewalkSpec with RoleSession with GuiceOneApp
    * One admin page as the smoke test sees it.
    *
    * @param pattern The route as `conf/routes` declares it; `:teamId` and `:username` are filled in per run.
-   * @param entry   The page's module entry under `build/js/`, without the `.js` a staged build fingerprints away.
+   * @param entry   The page's module entry under `build/js/`, without `.js`. Specs run against the unstaged build,
+   *                where `build/js/<entry>.js` is the path the view emits.
    * @param shell   The layout entry every page of that family loads alongside its own.
    * @param ids     Containers the entry writes into, which must survive in the rendered body.
    * @param role    The least role the page admits.
@@ -210,10 +212,14 @@ class AdminPagesSmokeSpec extends SidewalkSpec with RoleSession with GuiceOneApp
   }
 
   /** @return The requestable path for a page, its dynamic segments filled with this run's own subjects. */
-  private def pathOf(page: AdminPage): String =
-    page.pattern
-      .replace(":teamId", teamId.toString)
-      .replace(":username", UriEncoding.encodePathSegment(subjectUsername, "UTF-8"))
+  private def pathOf(page: AdminPage): String = {
+    // Resolved only when the pattern needs them, so a failed team or subject setup fails just the pages that use it.
+    val withTeam =
+      if (page.pattern.contains(":teamId")) page.pattern.replace(":teamId", teamId.toString) else page.pattern
+    if (withTeam.contains(":username"))
+      withTeam.replace(":username", UriEncoding.encodePathSegment(subjectUsername, "UTF-8"))
+    else withTeam
+  }
 
   /** @return The session of the least role that may see the page. */
   private def cookiesFor(role: Role): Seq[Cookie] = if (role == Role.Owner) ownerCookies else adminCookies
