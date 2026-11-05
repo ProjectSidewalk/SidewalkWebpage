@@ -205,4 +205,24 @@ object FilteredTables {
          FROM ${table(schema, "voided_label_validation")} AS voided_label_validation
          WHERE ${userCounts(schema, "voided_label_validation.user_id", Contributors.NotExcluded)}
        ) AS voided_label_validation"""
+
+  /**
+   * Who counts as a contributor (#3976): a non-excluded user with at least one counted label or at least one vote,
+   * voided votes included because the participation happened. The public `total_users` and the admin Overview's
+   * Contributors card both read this one fragment (#4344), so the two can't report different people.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause, one row per distinct `user_id` (a `text` column).
+   */
+  def contributorIds(schema: Option[String] = None): String =
+    s"""(
+         SELECT label.user_id
+         FROM ${labels(schema)}
+         UNION
+         SELECT label_validation.user_id
+         FROM ${votesCast(schema)}
+         UNION
+         SELECT voided_label_validation.user_id
+         FROM ${voidedVotesCast(schema)}
+       ) AS contributor"""
 }

@@ -1124,23 +1124,23 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Counts everyone who has explored or validated, leaving out AI and excluded users.
+   * Counts this city's contributors for the admin Overview: the #3976 definition `/v3/api/aggregateStats` uses for
+   * `total_users` (a non-tutorial label or a vote, excluded users left out), read from the same
+   * [[models.utils.FilteredTables.contributorIds]] fragment so the two can't drift (#4344). AI accounts are dropped,
+   * as on the admin Across Cities page, because the admin card counts people.
+   *
+   * @return The count, as a [[UserCount]] over all roles and all time.
    */
   def countAllUsersContributed(): DBIO[UserCount] = {
     sql"""
-      SELECT COUNT(DISTINCT(users.user_id))
-      FROM (
-          SELECT DISTINCT(mission.user_id)
-          FROM mission
-          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-          UNION
-          SELECT DISTINCT(user_id)
-          FROM audit_task
-      ) users
-      INNER JOIN user_stat ON users.user_id = user_stat.user_id
-      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      WHERE user_role.role <> 'AI'
-          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
+      SELECT COUNT(*)
+      FROM #${FilteredTables.contributorIds()}
+      WHERE NOT EXISTS (
+          SELECT 1
+          FROM user_role
+          WHERE user_role.user_id = contributor.user_id
+              AND user_role.role = 'AI'
+      );
     """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
   }
 

@@ -308,7 +308,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * Retrieves the distinct contributor user ids for a single city schema (#3976).
    *
    * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label
-   * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
+   * (including votes since voided by the #4842 repair — the participation happened), as defined once in
+   * [[FilteredTables.contributorIds]], which the admin Overview's count also reads (#4344). Its arms read the same
    * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
    * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
    * within this city; cross-city dedup (by the global `user_id`) is done by the callers, which union these id sets
@@ -319,16 +320,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
   def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] =
-    sql"""
-      SELECT label.user_id
-      FROM #${FilteredTables.labels(Some(schema))}
-      UNION
-      SELECT label_validation.user_id
-      FROM #${FilteredTables.votesCast(Some(schema))}
-      UNION
-      SELECT voided_label_validation.user_id
-      FROM #${FilteredTables.voidedVotesCast(Some(schema))};
-    """.as[String]
+    sql"""SELECT contributor.user_id FROM #${FilteredTables.contributorIds(Some(schema))}""".as[String]
 
   /**
    * The `user_id`s holding the AI role, from the shared login schema (#5828).
