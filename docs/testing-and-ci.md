@@ -119,6 +119,11 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
   stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load
   off their unfingerprinted paths — so nothing else would catch one.
+  **`AdminPagesSmokeSpec` (#4276)** — every `/admin` page renders for the least role it admits (Administrator, or
+  Owner for Across Cities and Health), loads its layout and page entry, and keeps a few containers that entry writes
+  into; each refuses a logged-out caller and a signed-in one below its role. A last case walks `Router.documentation`,
+  so a new `/admin` page with no row in its table fails. When you add or rename an admin page or one of its listed
+  containers, update the table.
 
 ## Frontend testing
 
