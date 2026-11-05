@@ -1,7 +1,7 @@
 -- #5920 undo: restore every label 5920-dc-linear-projection.sql touched from the backup table it keeps. ONE schema
--- (sidewalk_dc), a write role. Not restored: the votes it voided, which stay in voided_label_validation (bringing
--- them back is a job of its own if it is ever wanted), and the centerline offsets of the rows #5667 had moved,
--- which are the correct values for those positions.
+-- (sidewalk_dc), a write role. Not restored: the votes and AI assessments it voided, which stay in
+-- voided_label_validation and voided_label_ai_assessment (bringing them back is a job of its own if it is ever
+-- wanted), and the centerline offsets of the rows #5667 had moved, which are the correct values for those positions.
 --
 --   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
 --     -f tools/one-off/5920-undo-dc-linear-projection.sql

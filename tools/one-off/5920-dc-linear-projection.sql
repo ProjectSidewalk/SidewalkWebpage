@@ -7,7 +7,7 @@
 -- Run after 5667-dc-label-positions.sql, at a quiet hour: the transaction holds row locks on ~61k label_point rows.
 --
 --   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
---     -v apply=0 -f tools/one-off/5920-dc-linear-projection.sql
+--     -v apply=0 -v crops=5920-stale-crops.txt -f tools/one-off/5920-dc-linear-projection.sql
 --
 -- WHY. Until Google retired Maps API 3.25 on 2017-02-15, the labeling client asked for the flat `html4` Street View
 -- renderer and computed its label coordinates (kept since as old_label_metadata.old_pano_x/old_pano_y) with a
@@ -24,9 +24,16 @@
 -- 352's position recompute, 366's reattach and 377's centerline offset, which also catches up the labels #5667
 -- moved without recomputing it. Tutorial labels stay as they are (#4587). Clusters are not invalidated (352/366
 -- precedent): force a re-cluster on DC afterwards (/runClustering?allRegions=true), then recompute user stats.
--- Part 4 is 355's vote treatment: a human vote on a label whose old marker drew 30 px or more off judged the wrong
--- spot, so it is archived in voided_label_validation (the table 355 made, which the app reads for work credit) and
--- the label's counts and its labeler's stats are recomputed from what survives. 56 votes on prod when written.
+-- Part 4 is 355's vote treatment: a vote on a label whose old marker drew 30 px or more off judged the wrong spot,
+-- so it is archived in voided_label_validation (the table 355 made, which the app reads for work credit) and the
+-- label's counts and its labeler's stats are recomputed from what survives. Unlike 355 this takes the AI's votes
+-- too, with their assessments: the AI is pointed at a label by its pano_x/pano_y, which 355 left true and this bug
+-- had wrong, so the nightly job re-assesses them once their assessments are gone. On prod when written: 56 human
+-- votes, 3,302 AI votes and assessments.
+-- Part 5 lists the crops the nightly job cut around the wrong pixels (34,674 on prod), as paths under the city's
+-- crop directory, to the file :crops in the current directory. The job only cuts a label with no crop file, so
+-- delete those files before its next 05:00 run and it re-cuts them and replaces their label_crop rows (thumbnails
+-- follow by age). The list is ordered by how far off the old marker was, so it can be deleted in batches.
 --
 -- THE CUT. label.time_created is naive US/Eastern before 2018-08-25 (docs/data-notes.md), compared here as stored.
 -- The last label that renders on the linear model is stamped 2017-02-15 15:54, the first on the perspective one
@@ -36,6 +43,10 @@
 \if :{?apply}
 \else
   \set apply 0
+\endif
+\if :{?crops}
+\else
+  \set crops 5920-stale-crops.txt
 \endif
 SET lock_timeout = '10s';
 
@@ -56,6 +67,12 @@ CREATE TABLE IF NOT EXISTS old_label_point_linear (
   centerline_offset_m DOUBLE PRECISION,
   -- How far the old record rendered from the click, in Validate px at the record's zoom (355's metric).
   old_render_error_px DOUBLE PRECISION NOT NULL
+);
+
+-- The AI's assessments of the wrong spot, kept whole for the record.
+CREATE TABLE IF NOT EXISTS voided_label_ai_assessment (
+  LIKE label_ai_assessment INCLUDING DEFAULTS,
+  PRIMARY KEY (label_ai_assessment_id)
 );
 
 BEGIN;
@@ -349,9 +366,9 @@ WHERE label.label_id = label_point.label_id
 -- ---------------------------------------------------------------------------------------------------------------
 -- Part 4. Votes cast on a marker drawn 30 px or more off (355's threshold, 4190's removal, 355's archive).
 -- ---------------------------------------------------------------------------------------------------------------
--- Human votes as 355 defines them, on the label's current type only: a vote on a type it no longer has counts
--- for nothing, and the archive holds one row per (user, label). Comments stay (text, not a verdict).
--- mission.labels_validated stays, as in 4190.
+-- Every vote on the label's current type, human and AI: a vote on a type it no longer has counts for nothing, and
+-- the archive holds one row per (user, label). Comments stay (text, not a verdict). mission.labels_validated
+-- stays, as in 4190.
 CREATE TEMP TABLE voided_now (label_validation_id INT PRIMARY KEY, label_id INT NOT NULL, user_id TEXT NOT NULL)
   ON COMMIT DROP;
 INSERT INTO voided_now
@@ -361,12 +378,21 @@ INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_l
 INNER JOIN label ON old_label_point_linear.label_id = label.label_id
 INNER JOIN label_validation ON label.label_id = label_validation.label_id
 WHERE old_label_point_linear.old_render_error_px >= 30
-  AND label_validation.label_type = label.label_type
-  AND label_validation.source <> 'SidewalkAI'
-  AND NOT EXISTS (
-    SELECT 1 FROM sidewalk_login.user_role
-    WHERE user_role.role = 'AI' AND user_role.user_id = label_validation.user_id
-  );
+  AND label_validation.label_type = label.label_type;
+
+-- An assessment of the current type is what stops the nightly AI job from looking at a label again
+-- (LabelTable.getLabelsToValidateWithAi), so the ones made at the wrong spot are archived and removed.
+INSERT INTO voided_label_ai_assessment
+SELECT label_ai_assessment.*
+FROM run_rows
+INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
+INNER JOIN label ON old_label_point_linear.label_id = label.label_id
+INNER JOIN label_ai_assessment ON label.label_id = label_ai_assessment.label_id
+WHERE old_label_point_linear.old_render_error_px >= 30
+  AND label_ai_assessment.label_type = label.label_type;
+
+DELETE FROM label_ai_assessment
+WHERE label_ai_assessment_id IN (SELECT label_ai_assessment_id FROM voided_label_ai_assessment);
 
 -- The archive keeps the app's work-credit totals whole (FilteredTables counts voided votes). Its shape is 355's,
 -- so the vote's edit, if any, fills old_/new_ severity and tags, else the label's own state fills both. The
@@ -385,7 +411,11 @@ SELECT label_validation.label_validation_id, label_validation.label_id, label_va
        CASE WHEN label_edit.label_edit_id IS NULL THEN label.severity ELSE label_edit.new_severity END,
        COALESCE(label_edit.old_tags, label.tags), COALESCE(label_edit.new_tags, label.tags),
        label_validation.viewer_type, old_label_point_linear.old_render_error_px,
-       label_ai_assessment.label_ai_assessment_id,
+       -- A voided assessment is archived in its own table with this vote's id, so the reference here goes.
+       CASE WHEN EXISTS (SELECT 1 FROM voided_label_ai_assessment
+                         WHERE voided_label_ai_assessment.label_ai_assessment_id
+                           = label_ai_assessment.label_ai_assessment_id)
+            THEN NULL ELSE label_ai_assessment.label_ai_assessment_id END,
        label_history.label_history_id, label_history.edit_time, label_history.tags
 FROM voided_now
 INNER JOIN label_validation ON voided_now.label_validation_id = label_validation.label_validation_id
@@ -395,7 +425,7 @@ LEFT JOIN label_edit ON label_edit.label_validation_id = label_validation.label_
 LEFT JOIN label_history ON label_history.label_edit_id = label_edit.label_edit_id
 LEFT JOIN label_ai_assessment ON label_ai_assessment.label_validation_id = label_validation.label_validation_id;
 
--- Assessments are model outputs and stay: only the reference to a deleted vote is nulled (4190, 355).
+-- Any other assessment that referenced a voided vote only loses the reference (4190, 355).
 UPDATE label_ai_assessment
 SET label_validation_id = NULL
 WHERE label_validation_id IN (SELECT label_validation_id FROM voided_now);
@@ -515,13 +545,38 @@ FROM (SELECT DISTINCT label.user_id FROM label
       INNER JOIN voided_now ON label.label_id = voided_now.label_id) AS affected_labeler
 WHERE user_stat.user_id = affected_labeler.user_id AND NOT user_stat.excluded;
 
+-- ---------------------------------------------------------------------------------------------------------------
+-- Part 5. The crops cut around the old pixels, for deletion so the nightly job re-cuts them.
+-- ---------------------------------------------------------------------------------------------------------------
+-- Only the job's own crops: an Explore snapshot is the screen the labeller saw, marker and all.
+CREATE TEMP TABLE stale_crops (path TEXT) ON COMMIT DROP;
+INSERT INTO stale_crops
+SELECT label.label_type || '/crop_' || label.label_id || '.png'
+FROM run_rows
+INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
+INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
+INNER JOIN label ON old_label_point_linear.label_id = label.label_id
+INNER JOIN label_crop ON label.label_id = label_crop.label_id
+WHERE label_crop.source = 'pano_window'
+  AND (label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y)
+ORDER BY old_label_point_linear.old_render_error_px DESC;
+\set copy_crops '\\copy stale_crops TO ' :'crops'
+:copy_crops
+
 SELECT 'records re-aimed this run' AS what, count(*) FROM run_rows;
-SELECT 'votes voided this run' AS what, count(*) FROM voided_now;
-SELECT 'human votes on another type of these labels, left alone' AS what, count(*) FROM run_rows
+SELECT 'votes voided this run: human, AI' AS what,
+       count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role
+                                          WHERE user_role.role = 'AI' AND user_role.user_id = voided_now.user_id)),
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM sidewalk_login.user_role
+                                      WHERE user_role.role = 'AI' AND user_role.user_id = voided_now.user_id))
+FROM voided_now;
+SELECT 'AI assessments voided this run' AS what, count(*) FROM voided_label_ai_assessment
+INNER JOIN old_label_point_linear USING (label_id) INNER JOIN run_rows USING (label_point_id);
+SELECT 'votes on another type of these labels, left alone' AS what, count(*) FROM run_rows
 INNER JOIN old_label_point_linear USING (label_point_id) INNER JOIN label USING (label_id)
 INNER JOIN label_validation USING (label_id)
-WHERE old_label_point_linear.old_render_error_px >= 30 AND label_validation.label_type <> label.label_type
-  AND label_validation.source <> 'SidewalkAI';
+WHERE old_label_point_linear.old_render_error_px >= 30 AND label_validation.label_type <> label.label_type;
+SELECT 'stale crop files listed' AS what, count(*) FROM stale_crops;
 SELECT 'edits removed with them' AS what, count(*) FROM edits_to_remove;
 SELECT 'old render error px: median, p90, share >= 30' AS what,
        percentile_cont(0.5) WITHIN GROUP (ORDER BY old_render_error_px),
