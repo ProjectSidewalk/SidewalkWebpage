@@ -23,7 +23,7 @@ class GoldExampleController @Inject() (
     goldExampleService.listSummaries.map(summaries => Ok(Json.obj("gold_examples" -> summaries.map(summaryJson))))
   }
 
-  /** Takes `{"label_id": <int>, "reason": "<reason id>"}`; a reason the type doesn't offer for a Disagree is refused. */
+  /** Takes `{"label_id": <int>, "reason": "<reason id>"}`; a reason the type doesn't offer for Disagree is refused. */
   def pinGoldExample = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val labelId: Option[Int]     = (request.body \ "label_id").asOpt[Int]
     val reasonId: Option[String] = (request.body \ "reason").asOpt[String]
@@ -61,7 +61,7 @@ class GoldExampleController @Inject() (
     "reason"     -> s.example.reason.name,
     "pinned_by"  -> s.pinnedByUsername,
     "pinned_at"  -> s.example.pinnedAt,
-    "unservable" -> s.unservable,
+    "problem"    -> s.problem.map(_.name),
     "answered"   -> s.answered,
     "missed"     -> s.missed,
     "crop_url"   -> panoDataService.cropUrl(s.example.labelId, s.labelType)

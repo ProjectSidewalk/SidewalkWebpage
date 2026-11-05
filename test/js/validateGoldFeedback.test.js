@@ -13,12 +13,13 @@ mockModule('i18next', () => ({
   default: {
     t: (key) => key,
     exists: (key) => !key.startsWith('validate:gold-feedback.explanation.') || key.endsWith('.driveway'),
+    // (a typed key, `driveway-curb-ramp`, doesn't exist, so the lookup falls through to the reason's own)
     language: 'en',
   },
 }));
 useUtil({ assetPath: (p) => `/assets/${p}`, isMobile: () => false, escapeHTML: (s) => s });
 
-/** The dialog's elements, as Main collects them; jsdom has no showModal, so the open flag stands in for the top layer. */
+/** The dialog's elements, as Main collects them; jsdom has no showModal, so the open flag stands in for it. */
 function panelUi() {
   document.body.innerHTML = `
     <dialog id="panel"><img id="image" alt=""><h2 id="heading"></h2><p id="text"></p><p id="advice"></p>
@@ -78,7 +79,8 @@ describe('ModalGoldFeedback', () => {
     expect(ui.image.getAttribute('src')).toBe('/cropImage/CurbRamp/42?sig=x');
     expect(ui.image.hidden).toBe(false);
     expect(document.activeElement).toBe(ui.okButton);
-    expect(tracker.push).toHaveBeenCalledWith('ModalGoldFeedback_Shown', { labelId: 42, reasonId: 'driveway', vote: 'Agree' });
+    expect(tracker.push)
+      .toHaveBeenCalledWith('ModalGoldFeedback_Shown', { labelId: 42, reasonId: 'driveway', vote: 'Agree' });
     expect(resolved).toBe(false);
 
     ui.okButton.click();
@@ -161,7 +163,11 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
 
     expect(feedback.show).toHaveBeenCalledTimes(1);
     expect(feedback.show.mock.calls[0][1]).toBe('Agree');
-    expect(container.getLabelsToSubmit()).toHaveLength(0);
+    // Filed and sent before the explanation, so a closed tab still counts, and at once, so an undo can't drop it.
+    expect(container.getLabelsToSubmit()).toHaveLength(1);
+    expect(tracker.flushSoon).toHaveBeenCalledWith(0);
+    expect(mission.updateValidationResult).toHaveBeenCalledWith('Agree', false);
+    expect(missionContainer.updateAMission).not.toHaveBeenCalled();
     expect(container.moveToNextLabel).not.toHaveBeenCalled();
     // The tool is busy meanwhile, so a second tap is dropped rather than voted.
     expect(container.dropInputWhileLoading('test')).toBe(true);
@@ -169,10 +175,7 @@ describe('LabelContainer.validateCurrentLabel on a training example', () => {
     resolveFeedback();
     await settle();
 
-    expect(container.getLabelsToSubmit()).toHaveLength(1);
-    // Sent at once, so an undo can't drop the answer before the server has it.
-    expect(tracker.flushSoon).toHaveBeenCalledWith(0);
-    expect(mission.updateValidationResult).toHaveBeenCalledWith('Agree', false);
+    expect(missionContainer.updateAMission).toHaveBeenCalledTimes(1);
     expect(container.moveToNextLabel).toHaveBeenCalledTimes(1);
     expect(container.dropInputWhileLoading('test')).toBe(false);
   });

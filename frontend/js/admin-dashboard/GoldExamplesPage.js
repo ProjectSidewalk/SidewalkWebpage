@@ -9,6 +9,11 @@ import { util } from '../common/utilities.js';
 import { validationReasons } from '../common/validationReasons.js';
 
 export class GoldExamplesPage {
+  /** Why a pin can't be served (GoldExampleProblem), as the badge says it. */
+  static #PROBLEMS = {
+    label_deleted: 'label deleted', reason_not_offered: 'reason no longer fits', imagery_gone: 'imagery gone',
+  };
+
   #statusEl;
   #listEl;
 
@@ -46,7 +51,8 @@ export class GoldExamplesPage {
       const crop = ex.crop_url
         ? `<img src="${util.escapeHTML(ex.crop_url)}" class="gold-examples-thumb" alt="">`
         : '<span class="gold-examples-thumb gold-examples-thumb--none">no crop</span>';
-      const gone = ex.unservable ? '<span class="ac-badge ac-badge--warn">imagery gone</span>' : '';
+      const problem = GoldExamplesPage.#PROBLEMS[ex.problem];
+      const gone = problem ? `<span class="ac-badge ac-badge--warn">${problem}</span>` : '';
       return `
         <tr>
           <td>${crop}</td>

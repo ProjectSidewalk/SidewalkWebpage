@@ -314,19 +314,21 @@ the queue has been live for a while and tune them against the settled-face rate.
 A validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
 example" in the code): a label an admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree
 reason that explains it. The label is a real one the crowd has already voted wrong; the pin only says it teaches.
-A validator is done with a reason once they get an example of it right, or after
-`GoldExampleTable.AnswersPerReason` (3) answers on it either way, and done with examples once every reason the city
-has a pin for is done. A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the
+A lesson is a reason on a label type (a few reasons are offered on more than one type). A validator is done with a
+lesson once they get an example of it right, or after `GoldExampleTable.AnswersPerReason` (3) answers on it either
+way (`GoldExampleTable.reasonSettled`), and done with examples once every lesson the city has a pin for is done.
+A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the
 label query and the per-type counts): it is a known-wrong label, so an ordinary vote on it is noise and a beginner's
 Agree would count toward voting it back to correct.
 
 - **Who and where.** `LabelServiceImpl.goldExampleEligible`: the plain pages only (no `regions`, no
   `unvalidatedOnly`, never Expert Validate), and never an admin, who pins the examples. Replacement labels
-  (`/validationTask/moreLabels`) are never examples. `owedGoldExample` then checks whether the city has a pin at
-  all, cheaply, before the label query runs.
+  (`/validationTask/moreLabels`) are never examples. `owedGoldExample` then checks, cheaply, that the mission's
+  example isn't already answered and that some pin teaches a lesson the user isn't done with (`anyOpen`), before
+  the label query runs.
 - **Which one.** `LabelTable.goldExampleForValidationQuery`: the pinned labels of the mission's type that pass every
   rule the mission's own labels pass (`validationCandidates`: not the validator's, not voted on by them, imagery
-  their viewer renders) and teach a reason the validator isn't done with (`goldReasonSettled`), in random order,
+  their viewer renders) and teach a lesson the validator isn't done with, in random order,
   through the same imagery check, minus one whose type changed since the pin so its reason no longer fits. A missed
   reason is so repeated with a fresh label when the city has one. The example takes one of the mission's slots, never the first, and its block
   face counts as taken for a NoSidewalk mission (#5285).
@@ -336,14 +338,16 @@ Agree would count toward voting it back to correct.
   it there instead of `label_validation`: a pinned label is in no queue the Validate endpoint serves, so any vote
   there on one is its answer (the Gallery and label page vote through another endpoint). The first answer stands: a
   validator told the answer could otherwise undo and get it "right", so the client sends it at once rather than
-  after the usual wait. A served example answered in no mission is re-served on reload, with the pin's current
-  reason; a mission that already carries an example gets no second one on reload.
+  after the usual wait, and before the explanation is shown, so a tab closed on it still counts. A reload before the
+  example is answered rebuilds the mission with one (the same or another open lesson); a reload after it gets no
+  second. A serve answered in no mission is re-pointed at the next, with the pin's current reason.
 - **What they see.** Nothing on a Disagree. On Agree or Unsure, `ModalGoldFeedback` explains the pinned reason in a
   modal dialog over the page, beside the label's own crop (`gold_crop_url`, when one is on disk), with the reason menu's text
   and tooltip (or `gold-feedback.explanation.<reason>`, for a tooltip that points at a picture the card places
   elsewhere) and a line saying to vote No on these, before the mission moves on.
-- **Afterwards.** A label the validator has answered as an example is not offered to them again
-  (`answeredAsGoldExample`). The answer counts toward the mission's ten and its end-of-mission tally
+- **Afterwards.** A label the validator has answered as an example is not offered to them again, as an example or,
+  once unpinned, as an ordinary label (`answeredAsGoldExample`): they were told the answer. An unpinned label is a
+  real label again for everyone else, and a vote on it is a validation (`servedTo` checks the pin still stands). The answer counts toward the mission's ten and its end-of-mission tally
   (`LabelServiceImpl.missionTally`), but not toward the validator's validation count or stats.
 - **Expiry.** An example whose pano the provider dropped is served through its backup like any label; one without a
   backup fails `imageryViewable` and is simply not picked, and `/admin/goldExamples` marks it "imagery gone".

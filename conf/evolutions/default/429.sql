@@ -33,7 +33,7 @@ CREATE TABLE gold_example_response (
   )
 );
 ALTER TABLE gold_example_response OWNER TO sidewalk;
--- Validate counts a user's answers on every mission request and vote, and the unique index serves the per-label lookups.
+-- Validate reads a user's answers on every mission request and vote, and the unique index serves per-label lookups.
 CREATE INDEX gold_example_response_user_id_idx ON gold_example_response (user_id);
 -- Read per mission for its tally and for the one-example-per-mission check, and walked by the cascade on delete.
 CREATE INDEX gold_example_response_mission_id_idx ON gold_example_response (mission_id);

@@ -272,12 +272,12 @@ class LabelServiceImpl @Inject() (
       !Role.ADMIN_ROLES.contains(user.role)
 
   /**
-   * Cheap checks before the label query (#1445): no example in this mission yet (a reload mid-mission builds it again)
-   * and the city has a pin at all.
+   * Cheap checks before the label query (#1445): this mission's example, if any, is unanswered (a reload rebuilds
+   * the mission with one), and some pin teaches a lesson this user isn't done with.
    */
-  private def owedGoldExample(missionId: Int): DBIO[Boolean] =
-    goldExampleTable.servedInMission(missionId).flatMap { served =>
-      if (served) DBIO.successful(false) else goldExampleTable.anyPinned
+  private def owedGoldExample(userId: String, missionId: Int): DBIO[Boolean] =
+    goldExampleTable.answeredInMission(missionId).flatMap { answered =>
+      if (answered) DBIO.successful(false) else goldExampleTable.anyOpen(userId)
     }
 
   /**
@@ -315,7 +315,7 @@ class LabelServiceImpl @Inject() (
 
     if (!goldExampleEligible(user, validateParams) || n < 2) fetch(n, Set.empty)
     else
-      db.run(owedGoldExample(missionId)).flatMap { owed =>
+      db.run(owedGoldExample(user.userId, missionId)).flatMap { owed =>
         if (!owed) fetch(n, Set.empty)
         else
           pickExample.flatMap {

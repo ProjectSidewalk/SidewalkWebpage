@@ -44,14 +44,17 @@ export class ModalGoldFeedback {
   }
 
   /**
-   * The menu's tooltip is written for someone choosing the reason; a few read better to someone who missed it.
+   * The menu's tooltip is written for someone choosing the reason; a few read better to someone who missed it. Keyed
+   * like the tooltips: per type first, since a reason can be offered on more than one.
    * @param {string} reasonId
    * @param {string} labelType
    * @returns {string}
    */
   static explanation(reasonId, labelType) {
-    const own = `validate:gold-feedback.explanation.${reasonId}`;
-    return i18next.exists(own) ? i18next.t(own) : (validationReasons.tooltip(reasonId, labelType) ?? '');
+    const own = [`${reasonId}-${util.camelToKebab(labelType)}`, reasonId]
+      .map((k) => `validate:gold-feedback.explanation.${k}`)
+      .find((k) => i18next.exists(k));
+    return own ? i18next.t(own) : (validationReasons.tooltip(reasonId, labelType) ?? '');
   }
 
   /**

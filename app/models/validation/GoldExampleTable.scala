@@ -38,11 +38,18 @@ case class GoldExampleResponse(
     answeredAt: Option[OffsetDateTime]
 )
 
+/** Why a pin can't be served: its label was deleted, its type no longer offers the reason, or its imagery is gone. */
+enum GoldExampleProblem(val name: String) {
+  case LabelDeleted     extends GoldExampleProblem("label_deleted")
+  case ReasonNotOffered extends GoldExampleProblem("reason_not_offered")
+  case ImageryGone      extends GoldExampleProblem("imagery_gone")
+}
+
 /** What the admin list shows per example. */
 case class GoldExampleSummary(
     example: GoldExample,
     labelType: LabelType,
-    unservable: Boolean,
+    problem: Option[GoldExampleProblem],
     pinnedByUsername: String,
     answered: Int,
     missed: Int
@@ -89,6 +96,19 @@ object GoldExampleTable {
    * sooner, and this keeps someone who keeps missing from being quizzed forever.
    */
   val AnswersPerReason: Int = 3
+
+  /**
+   * The user is done with this lesson: one right answer, or [[AnswersPerReason]] answers either way. A lesson is a
+   * reason on a label type, since a few reasons are offered on more than one type and teach different things there.
+   */
+  def reasonSettled(userId: String, reason: Rep[ValidationReason], labelType: Rep[LabelType]): Rep[Boolean] = {
+    val answers = for {
+      r <- TableQuery[GoldExampleResponseTableDef]
+      l <- TableQuery[LabelTableDef] if l.labelId === r.labelId
+      if r.userId === userId && r.reason === reason && l.labelType === labelType && r.validationResult.isDefined
+    } yield r
+    answers.filter(_.validationResult === ValidationOption.Disagree).exists || answers.length >= AnswersPerReason
+  }
 }
 
 @ImplementedBy(classOf[GoldExampleTable])
@@ -121,7 +141,7 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
       l <- labels if l.labelId === g.labelId
       p <- panoData if p.panoId === l.panoId
       u <- users if u.userId === g.userId
-    } yield (g, l.labelType, !PanoDataTable.imageryViewable(p), u.username)
+    } yield (g, l.labelType, l.deleted, !PanoDataTable.imageryViewable(p), u.username)
     val answers = goldExampleResponses
       .filter(_.validationResult.isDefined)
       .groupBy(_.labelId)
@@ -130,14 +150,20 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
       }
     rows
       .joinLeft(answers)
-      .on { case ((g, _, _, _), (labelId, _, _)) => g.labelId === labelId }
-      .sortBy { case ((g, _, _, _), _) => g.pinnedAt.desc }
+      .on { case ((g, _, _, _, _), (labelId, _, _)) => g.labelId === labelId }
+      .sortBy { case ((g, _, _, _, _), _) => g.pinnedAt.desc }
       .result
-      .map(_.map { case ((g, labelType, unservable, username), counts) =>
+      .map(_.map { case ((g, labelType, deleted, imageryGone, username), counts) =>
+        val problem =
+          if (deleted) Some(GoldExampleProblem.LabelDeleted)
+          else if (!ValidationReason.offered(labelType, ValidationOption.Disagree).contains(g.reason))
+            Some(GoldExampleProblem.ReasonNotOffered)
+          else if (imageryGone) Some(GoldExampleProblem.ImageryGone)
+          else None
         GoldExampleSummary(
           g,
           labelType,
-          unservable,
+          problem,
           username,
           counts.map(_._2).getOrElse(0),
           counts.flatMap(_._3).getOrElse(0)
@@ -145,8 +171,15 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
       })
   }
 
-  /** Whether this city has anything pinned at all; a cheap check before the label query, which most cities fail. */
-  def anyPinned: DBIO[Boolean] = goldExamples.exists.result
+  /** Whether any pin teaches a lesson this user isn't done with; a cheap check before the label query. */
+  def anyOpen(userId: String): DBIO[Boolean] = {
+    val open = for {
+      g <- goldExamples
+      l <- labels if l.labelId === g.labelId
+      if !GoldExampleTable.reasonSettled(userId, g.reason, l.labelType)
+    } yield g
+    open.exists.result
+  }
 
   /** The answers given in a mission, by vote, for the mission's tally. */
   def answersInMission(missionId: Int): DBIO[ValidationResultCounts] =
@@ -175,19 +208,21 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
              SET mission_id = EXCLUDED.mission_id, reason = EXCLUDED.reason, served_at = now()
              WHERE gold_example_response.validation_result IS NULL"""
 
+  /** Which of these labels are examples served to the user: still pinned, since an unpinned one is a real label again. */
   def servedTo(userId: String, labelIds: Set[Int]): DBIO[Set[Int]] = {
     if (labelIds.isEmpty) DBIO.successful(Set.empty)
     else
       goldExampleResponses
         .filter(r => r.userId === userId && (r.labelId inSetBind labelIds))
+        .filter(r => goldExamples.filter(_.labelId === r.labelId).exists)
         .map(_.labelId)
         .result
         .map(_.toSet)
   }
 
-  /** Whether the mission already carries an example, so a reload mid-mission doesn't add a second. */
-  def servedInMission(missionId: Int): DBIO[Boolean] =
-    goldExampleResponses.filter(_.missionId === missionId).exists.result
+  /** Whether the mission's example is answered; a reload after that gets no second one, one before it is rebuilt. */
+  def answeredInMission(missionId: Int): DBIO[Boolean] =
+    goldExampleResponses.filter(r => r.missionId === missionId && r.validationResult.isDefined).exists.result
 
   /** Files the user's first answer; a later vote, an undo included, leaves it alone. */
   def recordAnswer(

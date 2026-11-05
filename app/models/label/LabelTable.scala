@@ -1553,21 +1553,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     goldExamples.filter(_.labelId === l.labelId).exists
 
   /**
-   * Answered as a training example (#1445): they were told the answer, so serving it again would be a repeat. An
-   * unanswered serve doesn't count, so a mission abandoned on the example can offer it again.
+   * Answered as a training example (#1445): they were told the answer, so it is never served to them again, as an
+   * example or, once unpinned, as an ordinary label. An unanswered serve doesn't count, so a mission abandoned on the
+   * example can offer it again.
    */
   private def answeredAsGoldExample(l: LabelTableDef, userId: String): Rep[Boolean] =
     goldExampleResponses
       .filter(r => r.userId === userId && r.labelId === l.labelId && r.validationResult.isDefined)
       .exists
-
-  /** Done with this reason (#1445): one right answer, or [[GoldExampleTable.AnswersPerReason]] answers either way. */
-  private def goldReasonSettled(userId: String, reason: Rep[ValidationReason]): Rep[Boolean] = {
-    val answers =
-      goldExampleResponses.filter(r => r.userId === userId && r.reason === reason && r.validationResult.isDefined)
-    answers.filter(_.validationResult === ValidationOption.Disagree).exists ||
-    answers.length >= GoldExampleTable.AnswersPerReason
-  }
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1823,7 +1816,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       Set.empty, asGoldExample = true)
       .join(goldExamples)
       .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
-      .filter { case (_, g) => !goldReasonSettled(userId, g.reason) }
+      .filter { case ((l, _, _, _, _, _, _, _, _, _), g) => !GoldExampleTable.reasonSettled(userId, g.reason, l.labelType) }
       .sortBy(_ => random)
       .map { case (row, g) => (asValidationMetadata(row, includeAiTags), g.reason) }
   }
@@ -1889,7 +1882,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
       if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId) // Anti-join; see validatedByUser.
-      if (if (asGoldExample) !answeredAsGoldExample(_lb, userId) else !isGoldExample(_lb))
+      if !answeredAsGoldExample(_lb, userId) && (asGoldExample.asColumnOf[Boolean] || !isGoldExample(_lb))
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a

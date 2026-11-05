@@ -54,15 +54,27 @@ export class GoldExamplePin {
     this.#unpinButton.hidden = !this.#reason;
   }
 
+  /** What the server's refusal codes (GoldExampleController) mean to the admin. */
+  static #REFUSALS = {
+    no_such_label: 'No label with this id.',
+    label_unusable: 'A deleted or tutorial label can\'t be shown in Validate, so it can\'t teach.',
+    reason_not_offered: 'This label type doesn\'t offer that reason for a No.',
+  };
+
   async #pin() {
     const reason = this.#select.value;
     this.#status.textContent = '';
     try {
-      await util.fetchJson('/adminapi/goldExamples', {
+      const response = await fetch('/adminapi/goldExamples', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ label_id: this.#labelId, reason }),
       });
+      if (!response.ok) {
+        const code = (await response.json().catch(() => ({}))).error;
+        this.#status.textContent = GoldExamplePin.#REFUSALS[code] ?? 'Could not save.';
+        return;
+      }
       this.#reason = reason;
       this.#status.textContent = 'Saved. Validators will see this label.';
       this.#render();

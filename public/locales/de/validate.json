@@ -35,11 +35,12 @@
   },
   "gold-feedback": {
     "eyebrow": "Übungsbeispiel",
+    "image-alt": "Das Label, das du gerade beurteilt hast",
     "advice": "Stimme bei solchen Fällen in Zukunft mit {{- no}} ab.",
     "explanation": {
       "driveway": "Ein- bzw. Ausfahrten sind <b>keine</b> Trottoirabsenkungen. Diese wurden für Fahrzeuge entworfen und nicht für Fussgänger:innen.",
       "no-sidewalk-here": "Bei Kreuzungen <b>ohne Trottoir</b> sollte stattdessen die Beschriftung für ein fehlendes Trottoir verwendet werden.",
-      "not-pedestrian-path": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, ist keine Hinderniskennzeichnung erforderlich."
+      "not-pedestrian-path-obstacle": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, ist keine Hinderniskennzeichnung erforderlich."
     },
     "ok": "Verstanden"
   },

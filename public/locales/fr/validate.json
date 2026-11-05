@@ -35,11 +35,12 @@
   },
   "gold-feedback": {
     "eyebrow": "Exemple d'entraînement",
+    "image-alt": "L'étiquette que vous venez d'évaluer",
     "advice": "À l’avenir, votez {{- no}} dans ces cas.",
     "explanation": {
       "driveway": "Les entrées charretières ne sont <b>pas</b> des bateaux de trottoir. Elles sont conçues pour les véhicules, pas pour les piétons.",
       "no-sidewalk-here": "Pour les coins <b>sans trottoir</b>, c’est l’étiquette Absence de trottoir qu’il faut utiliser.",
-      "not-pedestrian-path": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, aucune étiquette Obstacle n'est nécessaire."
+      "not-pedestrian-path-obstacle": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, aucune étiquette Obstacle n'est nécessaire."
     },
     "ok": "Compris"
   },

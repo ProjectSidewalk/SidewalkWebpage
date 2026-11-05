@@ -563,30 +563,30 @@ export class LabelContainer {
     if (comment) this.#tracker.push('ValidationTextField_DataEntered', { validation: action, text: comment });
 
     const mission = this.#missionContainer.getCurrentMission();
-    const record = () => {
-      if (['Agree', 'Disagree', 'Unsure'].includes(action)) {
-        mission.updateValidationResult(action, false);
-        this.pushToLabelsToSubmit(
-          label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
-        );
-        // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
-        // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
-        // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST. A training
-        // example's answer goes at once: an undo inside the wait would drop it unsent, and the first answer counts.
-        if (label.getAuditProperty('goldReason')) this.#tracker.flushSoon(0);
-        else this.#tracker.flushSoon();
-        this.#missionContainer.updateAMission();
-      }
-
+    const verdict = ['Agree', 'Disagree', 'Unsure'].includes(action);
+    if (verdict) {
+      mission.updateValidationResult(action, false);
+      this.pushToLabelsToSubmit(
+        label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
+      );
+      // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST. A training
+      // example's answer goes at once: an undo inside the wait would drop it unsent, and the first answer counts.
+      if (label.getAuditProperty('goldReason')) this.#tracker.flushSoon(0);
+      else this.#tracker.flushSoon();
+    }
+    const moveOn = () => {
+      if (verdict) this.#missionContainer.updateAMission();
       // A completed mission's next label arrives with the mission-complete response (Form.js), not from here.
       if (!mission.isComplete()) {
         this.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.
       }
     };
 
-    // Explained before the mission moves on (#1445), with the pano still up behind. Held busy meanwhile, so a second
-    // tap can't vote again, and a mission this verdict completes shows "Great job!" only once the explanation is read.
-    // The vote is recorded even if the explanation can't be shown: the tool must not stay busy over a missing picture.
+    // Explained before the mission moves on (#1445), the answer already sent so a closed tab still counts. Held busy
+    // meanwhile, so a second tap can't vote, and a mission this verdict completes shows "Great job!" only once the
+    // explanation is read. A failed explanation still moves on: the tool must not stay busy over a missing picture.
     if (label.getAuditProperty('goldReason') && action !== 'Disagree') {
       this.#setUiBusy(true);
       // Not the busy wait cursor: the tool is refusing, not working.
@@ -596,10 +596,10 @@ export class LabelContainer {
         .catch((err) => console.error('Could not explain the training example.', err))
         .then(() => {
           this.#setUiBusy(false);
-          record();
+          moveOn();
         });
     } else {
-      record();
+      moveOn();
     }
   }
 

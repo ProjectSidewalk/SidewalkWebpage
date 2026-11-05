@@ -35,11 +35,12 @@
   },
   "gold-feedback": {
     "eyebrow": "Exemplo de treino",
+    "image-alt": "A etiqueta que você acabou de avaliar",
     "advice": "No futuro, você deve votar {{- no}} nesses casos.",
     "explanation": {
       "driveway": "Entradas de garagem <b>não</b> são rampas de meio-fio. Elas são projetadas para veículos e não para pedestres.",
       "no-sidewalk-here": "Para esquinas <b>sem calçadas</b>, o rótulo Sem Calçada deve ser usado.",
-      "not-pedestrian-path": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, não é necessário rotular como Obstáculo."
+      "not-pedestrian-path-obstacle": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, não é necessário rotular como Obstáculo."
     },
     "ok": "Entendi"
   },
