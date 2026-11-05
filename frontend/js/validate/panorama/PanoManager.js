@@ -13,7 +13,7 @@ import { PanoLoadTimeoutError } from '../../common/pano-viewer/PanoLoadTimeoutEr
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import '../../common/utilitiesSidewalk.js';
+import { freshBackupImage } from '../../common/utilitiesSidewalk.js';
 import '../util/throttle.js';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../../common/pano-viewer/PanoData.js').PanoData} PanoData */
@@ -699,6 +699,10 @@ export class PanoManager {
    * @returns {Promise<PanoData>}
    */
   async #showPannellumPano(backupImage) {
+    // A label fetched long enough ago can carry a URL whose signature has since expired (#5861).
+    const signed = await freshBackupImage(backupImage);
+    if (!signed) throw new Error(`Backup URL for pano ${backupImage.pano_id} expired and could not be re-signed.`);
+    backupImage = signed;
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
     const neutralPov = { heading: backupImage.camera_heading || 0, pitch: 0, zoom: 1 };
 

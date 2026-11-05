@@ -17,7 +17,9 @@ import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
-import '../utilitiesSidewalk.js';
+import {
+  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, freshCropUrl, isSignedUrl,
+} from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
   // panoViewer always points at the active viewer (primary or Pannellum). Callers should query it through this
@@ -67,6 +69,15 @@ export class PopupPanoManager {
   #logo;
   #attribution;
   #cropUrl;
+  /** Whether this load's crop has already been re-signed after a failed load, so a second failure gives it up. */
+  #cropRetried = false;
+
+  /**
+   * Called when the crop fallback, which setPano() already reported as shown, fails to load for good and gives way to
+   * the "imagery not available" panel, so the host can lock what it unlocked for an image there is no longer to see.
+   * @type {?Function}
+   */
+  onFallbackLost = null;
   #labelsHidden = false;
 
   /**
@@ -191,6 +202,7 @@ export class PopupPanoManager {
       display: 'none',
       pointerEvents: 'none',
     }, 'icon-outline label-marker');
+    this.#fallbackImage.addEventListener('error', () => this.#onFallbackImageError());
     this.#fallbackPanzoomWrap.append(this.#fallbackImage);
     this.#fallbackContainer.append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
 
@@ -306,20 +318,6 @@ export class PopupPanoManager {
   }
 
   /**
-   * Fetches backup image metadata from the backend for Pannellum fallback.
-   * @param {string} panoId
-   * @returns {Promise<object|null>} The metadata, or null if none exists.
-   */
-  async #fetchBackupImageMetadata(panoId) {
-    try {
-      const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
-      return res.ok ? await res.json() : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
    *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
    *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
@@ -342,6 +340,7 @@ export class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
+    this.#cropRetried = false;
     this.svHolder.style.visibility = 'hidden'; // Hide until we've finished rendering.
     if (this.#loadingEl) this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
@@ -360,12 +359,16 @@ export class PopupPanoManager {
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
-        if (!backupImage) backupImage = await this.#fetchBackupImageMetadata(panoId);
+        if (!backupImage) backupImage = await fetchBackupImageMetadata(panoId);
       }
     } else if (!backupImage) {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
-      backupImage = await this.#fetchBackupImageMetadata(panoId);
+      backupImage = await fetchBackupImageMetadata(panoId);
     }
+    // A label payload from page load can carry a URL whose signature has since expired (#5861).
+    backupImage = await freshBackupImage(backupImage);
+    // A newer label took over during the requests above; its own load owns the viewer now.
+    if (load !== this.#loadToken) return false;
     const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.
@@ -386,6 +389,11 @@ export class PopupPanoManager {
     // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     if (load !== this.#loadToken) return false;
+    // The crop's URL is signed like the backup's and expires with it (#5861). Held locally until the token check, so
+    // a superseded load's answer can't land in the newer label's #cropUrl.
+    const signedCropUrl = await freshCropUrl(this.#cropUrl, this.label?.label_type, this.label?.labelId);
+    if (load !== this.#loadToken) return false;
+    this.#cropUrl = signedCropUrl;
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
     this.#finishLoad(load, { showAttribution: cropShown, attribution: ownCopyAttribution });
@@ -487,6 +495,34 @@ export class PopupPanoManager {
         resolve();
       }, 250);
     });
+  }
+
+  /**
+   * Recovers a crop fallback that failed to load. A signed URL is re-signed and tried once more, since a 403 on one
+   * most likely means its signature expired, whatever the client's clock says (#5861); otherwise, or when that fails
+   * too, the "imagery not available" panel replaces the broken image.
+   * @returns {Promise<void>}
+   */
+  async #onFallbackImageError() {
+    const load = this.#loadToken;
+    const failed = this.#fallbackImage.getAttribute('src');
+    // An error for a crop this load no longer shows (a newer label's, or one already given up) is stale.
+    if (!failed || failed !== this.#cropUrl) return;
+    if (!this.#cropRetried && isSignedUrl(failed) && this.label) {
+      this.#cropRetried = true;
+      const fresh = await fetchCropImageMetadata(this.label.label_type, this.label.labelId);
+      if (load !== this.#loadToken) return;
+      if (fresh?.image_url) {
+        this.#cropUrl = fresh.image_url;
+        this.#fallbackImage.src = fresh.image_url;
+        return;
+      }
+    }
+    if (load !== this.#loadToken) return;
+    this.#cropUrl = null;
+    this.#attribution?.hide();
+    this.#panoFailureCallback();
+    this.onFallbackLost?.();
   }
 
   /**

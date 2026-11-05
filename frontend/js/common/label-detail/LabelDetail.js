@@ -286,6 +286,12 @@ export class LabelDetail {
       this.#viewerType,
       this.#viewerAccessToken,
     );
+    // A crop that fails after setPano() reported it shown leaves nothing to judge (#5861). The manager only calls this
+    // for its current load, which is the label on screen.
+    this.panoManager.onFallbackLost = () => {
+      this.#noImagery = true;
+      this.#applyInteractionLock();
+    };
 
     this.#initInfoPopover();
     this.#initHideLabelToggle();

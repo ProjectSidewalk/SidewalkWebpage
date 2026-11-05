@@ -912,3 +912,143 @@ export function buildBackupImageData(meta) {
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }
+
+/**
+ * How close to its expiry a signed media URL is treated as already expired, in seconds. Covers the time between the
+ * check and the request reaching the server (on a slow link the viewer's smaller-size retries reuse the same URL for
+ * minutes), and a client clock running behind the server's. A fresh signature always has an hour or more left
+ * (`ImageSigningService.signedUrl`), so a wide margin costs only an earlier re-sign.
+ */
+util.misc.SIGNED_URL_EXPIRY_MARGIN_SEC = 600;
+
+/**
+ * Reads a URL's query parameters, or null when the string isn't a URL.
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {?URLSearchParams}
+ */
+function queryParams(url) {
+  if (!url) return null;
+  try {
+    return new URL(url, window.location.origin).searchParams;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a URL carries a server signature (`sig`), i.e. is a `/backupImage` or `/cropImage` URL that a 403 may mean
+ * has expired, whatever the client's clock says.
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {boolean}
+ */
+export function isSignedUrl(url) {
+  return Boolean(queryParams(url)?.get('sig'));
+}
+
+/**
+ * Whether a signed `/backupImage` or `/cropImage` URL has expired, or will within `SIGNED_URL_EXPIRY_MARGIN_SEC`.
+ *
+ * The server signs these for about an hour (`ImageSigningService`), but a page goes on using the URLs it got at load
+ * time for as long as the tab stays open, after which every request for one is a 403 (#5861).
+ *
+ * @param {?string} url - A URL carrying `exp=<epoch seconds>`, absolute or path-relative.
+ * @param {number} [nowMs=Date.now()] - The current time, for tests.
+ * @returns {boolean} True when `exp` is past or within the margin. False when there is no `exp` (or no parsable URL),
+ *     so a URL that isn't signed is left alone.
+ */
+export function signedUrlIsExpired(url, nowMs = Date.now()) {
+  const exp = Number(queryParams(url)?.get('exp'));
+  if (!exp) return false;
+  return exp * 1000 <= nowMs + util.misc.SIGNED_URL_EXPIRY_MARGIN_SEC * 1000;
+}
+
+/**
+ * Backup metadata requests by pano id, kept while their URL is still good, so the prefetch and the load of one pano,
+ * or a label sent to the back of Validate's queue, re-sign it once rather than each time. A failed request is not
+ * kept, so the next caller tries again. One small object per pano a page has shown, so it is never trimmed.
+ * @type {Map<string, Promise<?BackupImage>>}
+ */
+const backupMetadataRequests = new Map();
+
+/**
+ * Fetches a pano's backup metadata, with a signed `image_url` that is not about to expire, from
+ * `/backupImage/:panoId/metadata`. Concurrent and repeat calls for one pano share a request while its URL is good.
+ * @param {string} panoId
+ * @param {object} [options]
+ * @param {boolean} [options.refresh=false] - Ask the server even when a held URL looks good. For a URL the server just
+ *     refused: the client's clock, which judged it good, may be running behind the server's.
+ * @returns {Promise<?BackupImage>} The metadata, or null if the pano has no backup or the request failed.
+ */
+export async function fetchBackupImageMetadata(panoId, { refresh = false } = {}) {
+  const held = refresh ? null : backupMetadataRequests.get(panoId);
+  if (refresh) backupMetadataRequests.delete(panoId);
+  if (held) {
+    const meta = await held;
+    if (meta && !signedUrlIsExpired(meta.image_url)) return meta;
+    if (backupMetadataRequests.get(panoId) === held) backupMetadataRequests.delete(panoId);
+  }
+  if (!backupMetadataRequests.has(panoId)) {
+    const request = fetchJsonOrNull(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
+    backupMetadataRequests.set(panoId, request);
+    request.then((meta) => {
+      if (!meta?.image_url && backupMetadataRequests.get(panoId) === request) backupMetadataRequests.delete(panoId);
+    });
+  }
+  return backupMetadataRequests.get(panoId);
+}
+
+/**
+ * Fetches a label's crop metadata, with a freshly signed `image_url`, from `/cropImage/:labelType/:labelId/metadata`.
+ * @param {string} labelType
+ * @param {number} labelId
+ * @returns {Promise<?{label_id: number, label_type: string, image_url: string, crop_marker: ?object}>} The metadata,
+ *     or null if the label has no crop or the request failed.
+ */
+export function fetchCropImageMetadata(labelType, labelId) {
+  return fetchJsonOrNull(`/cropImage/${encodeURIComponent(labelType)}/${encodeURIComponent(labelId)}/metadata`);
+}
+
+/**
+ * GETs a JSON resource.
+ * @param {string} url
+ * @returns {Promise<?any>} The parsed body, or null on a non-2xx response or a network error.
+ */
+async function fetchJsonOrNull(url) {
+  try {
+    const res = await fetch(url);
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns the backup pano with a usable signed URL, re-signing it only when the one it carries has expired.
+ *
+ * Only `image_url` is replaced: the rest came with the label and is what the caller chose to show (e.g. the label's
+ * own attribution).
+ *
+ * @template {Record<string, any>} T
+ * @param {?T} backupImage - Backup pano metadata, e.g. a {@link BackupImage}.
+ * @returns {Promise<?T>} The same object when its URL is still good, a copy with a new `image_url` when it
+ *     was re-signed, or null when it had expired and could not be re-signed (or `backupImage` was null).
+ */
+export async function freshBackupImage(backupImage) {
+  if (!backupImage || !signedUrlIsExpired(backupImage.image_url)) return backupImage;
+  const fresh = await fetchBackupImageMetadata(backupImage.pano_id);
+  return fresh?.image_url ? { ...backupImage, image_url: fresh.image_url } : null;
+}
+
+/**
+ * Returns a label's crop URL, re-signed when the one it carries has expired (#5861).
+ * @param {?string} cropUrl - The crop URL the page got with the label.
+ * @param {string} labelType
+ * @param {number} labelId
+ * @returns {Promise<?string>} `cropUrl` itself when still good (or null when there was none), a fresh URL when it was
+ *     re-signed, or null when it had expired and could not be re-signed.
+ */
+export async function freshCropUrl(cropUrl, labelType, labelId) {
+  if (!cropUrl || !signedUrlIsExpired(cropUrl)) return cropUrl ?? null;
+  const fresh = await fetchCropImageMetadata(labelType, labelId);
+  return fresh?.image_url ?? null;
+}

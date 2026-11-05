@@ -16,7 +16,9 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import './utilitiesSidewalk.js';
+import {
+  fetchBackupImageMetadata, fetchCropImageMetadata, isSignedUrl, signedUrlIsExpired,
+} from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -44,11 +46,13 @@ export class LabelMiniCard {
    * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
+   * @param {Function} [options.onImageUrlRefresh] - Called with a copy of the label after its picture's signed URL
+   *     was re-signed (#5861), so a host that caches the label JSON can keep the fresh URL for its next render.
    */
   constructor(label, { size = 'sheet', showType = false, onOpen = () => {}, onVote = () => {}, source, log = () => {},
-    className = '', tag = 'li' }) {
+    className = '', tag = 'li', onImageUrlRefresh = () => {} }) {
     this.#label = { ...label };
-    this.#opts = { size, showType, onOpen, onVote, source, log, className };
+    this.#opts = { size, showType, onOpen, onVote, source, log, className, onImageUrlRefresh };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -113,8 +117,10 @@ export class LabelMiniCard {
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;
+    // A URL already past its signature's life would only fetch a 403, so it is re-signed before it is requested.
+    const srcExpired = signedUrlIsExpired(src);
     const image = src
-      ? `<img class="lmc__image" src="${esc(src)}" alt="" loading="lazy">`
+      ? `<img class="lmc__image"${srcExpired ? '' : ` src="${esc(src)}"`} alt="" loading="lazy">`
       : LabelMiniCard.placeholder(type).outerHTML;
     // On the feature, as Gallery marks it: anywhere else it reads as a misplaced label (#5386). Only a crop has a
     // known position (#2660); the backup image is the whole pano and the placeholder already carries the icon.
@@ -172,14 +178,64 @@ export class LabelMiniCard {
       this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
     }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
-    // A failed picture falls back to the type icon, as if it never had one; its marker then has nothing to point at.
-    this.#els.image?.addEventListener('error', () => {
-      this.#els.image.replaceWith(LabelMiniCard.placeholder(type));
-      this.#els.marker?.remove();
-    }, { once: true });
+    const imageEl = this.#els.image;
+    if (imageEl) {
+      imageEl.addEventListener('error', () => this.#onImageError(imageEl));
+      if (srcExpired) {
+        this.#loadFreshImage(imageEl).then((loading) => {
+          if (!loading) this.#showPlaceholder(imageEl);
+        });
+      }
+    }
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));
     }
+  }
+
+  /**
+   * Recovers a picture that failed to load. A signed URL is re-signed and tried once more, whatever the client's
+   * clock says, since a 403 on one most likely means its signature expired while the page sat open (#5861); anything
+   * else falls back to the type icon, as if it never had a picture, and its marker then has nothing to point at.
+   * @param {HTMLImageElement} image - The picture that failed.
+   * @returns {Promise<void>}
+   */
+  async #onImageError(image) {
+    if (!image.dataset.resigned && isSignedUrl(image.src) && await this.#loadFreshImage(image, true)) return;
+    this.#showPlaceholder(image);
+  }
+
+  /**
+   * Re-signs the picture's URL (the crop's, or the backup pano's when there is no crop) and loads it. Marks the
+   * picture so a second failure goes to the placeholder rather than round again.
+   * @param {HTMLImageElement} image - The picture to reload.
+   * @param {boolean} [refused=false] - Whether the server just refused the URL, so a held backup URL that the client's
+   *     clock still thinks good must not be handed back.
+   * @returns {Promise<boolean>} False when no fresh URL could be had. True once it is loading, or when a re-render
+   *     replaced the picture meanwhile (that render's picture looks after itself).
+   */
+  async #loadFreshImage(image, refused = false) {
+    image.dataset.resigned = 'true';
+    const label = this.#label;
+    const field = label.crop_url ? 'crop_url' : 'backup_image_url';
+    const fresh = field === 'crop_url'
+      ? await fetchCropImageMetadata(label.label_type, label.label_id)
+      : await fetchBackupImageMetadata(label.pano_id, { refresh: refused });
+    if (image !== this.#els.image) return true;
+    if (!fresh?.image_url) return false;
+    label[field] = fresh.image_url;
+    this.#opts.onImageUrlRefresh({ ...label });
+    image.src = fresh.image_url;
+    return true;
+  }
+
+  /**
+   * Swaps the picture for the type icon and drops the marker that pointed into it, unless a re-render replaced it.
+   * @param {HTMLImageElement} image - The picture that failed.
+   */
+  #showPlaceholder(image) {
+    if (image !== this.#els.image) return;
+    image.replaceWith(LabelMiniCard.placeholder(this.#label.label_type));
+    this.#els.marker?.remove();
   }
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */
