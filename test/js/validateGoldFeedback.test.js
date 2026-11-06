@@ -1,8 +1,7 @@
 /**
- * The training example's explanation in Validate (#1445): ModalGoldFeedback fills the dialog with the label's crop
- * and the pinned reason and holds the keyboard until it is dismissed, and LabelContainer
- * shows it before a wrong vote on an example moves the mission on, while a right vote, or a vote on an ordinary
- * label, moves on at once.
+ * The training example's explanation in Validate (#1445): ModalGoldFeedback fills the dialog with the label's crop and
+ * the pinned reason and holds the keyboard until it is dismissed, and LabelContainer shows it before a wrong vote on an
+ * example moves the mission on, while a right vote or an ordinary label moves on at once.
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';

@@ -9,13 +9,12 @@ CREATE TABLE gold_example (
 );
 ALTER TABLE gold_example OWNER TO sidewalk;
 
--- One row per validator and example: written when the example is served, and the answer filled in when they vote.
--- A pinned label is served only as an example, never in the ordinary queue, so a Validate vote on one is its answer.
--- The answer is kept here rather than as a label_validation row because the examples are picked for being commonly
--- mistaken, so counting beginners' Agrees would vote a known-wrong label back to correct. The reason is copied from
--- the pin at serve time, so the record stays true if the pin later changes, and the row outlives the pin for the same
--- reason, hence the FK to label rather than gold_example. A deleted mission (account clean-up, a spec's teardown)
--- takes its serve record with it, as it does the mission's votes.
+-- One row per validator and example, written when the example is served and filled in when they vote. A pinned label is
+-- served only as an example, never in the ordinary queue, so a Validate vote on one is its answer. The answer is kept
+-- here rather than as a label_validation row because the examples are picked for being commonly mistaken, so counting
+-- beginners' Agrees would vote a known-wrong label back to correct. The reason is copied from the pin at serve time, so
+-- the record stays true if the pin later changes, and the row outlives the pin for the same reason, hence the FK to
+-- label rather than gold_example. A deleted mission takes its serve record with it, as it does the mission's votes.
 CREATE TABLE gold_example_response (
   gold_example_response_id SERIAL PRIMARY KEY,
   label_id INT NOT NULL REFERENCES label (label_id),

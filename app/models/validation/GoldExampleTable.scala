@@ -14,8 +14,8 @@ import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
- * A label an admin pinned as a training example of a common validation mistake (#1445). The right answer is always
- * Disagree, and `reason` is the canned reason that explains why, which is what the validator is told on a wrong answer.
+ * A label an admin pinned as a training example of a common mistake (#1445). The right answer is always Disagree, and
+ * `reason` is the canned reason the validator is told on a wrong answer.
  */
 case class GoldExample(labelId: Int, reason: ValidationReason, userId: String, pinnedAt: OffsetDateTime)
 
@@ -208,7 +208,7 @@ class GoldExampleTable @Inject() (protected val dbConfigProvider: DatabaseConfig
              SET mission_id = EXCLUDED.mission_id, reason = EXCLUDED.reason, served_at = now()
              WHERE gold_example_response.validation_result IS NULL"""
 
-  /** Which of these labels are examples served to the user: still pinned, since an unpinned one is a real label again. */
+  /** Which of these labels are examples served to the user and still pinned; an unpinned one is a real label again. */
   def servedTo(userId: String, labelIds: Set[Int]): DBIO[Set[Int]] = {
     if (labelIds.isEmpty) DBIO.successful(Set.empty)
     else

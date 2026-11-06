@@ -361,8 +361,7 @@ case class LabelValidationMetadata(
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false,
     panoMetadata: Option[PanoViewerMetadata] = None,
-    // Set when the label is in the mission as a training example (#1445): the reason explained on a miss, over the
-    // label's crop when one is on disk.
+    // Set when the label is the mission's training example (#1445): its reason, explained on a miss over its crop.
     goldReason: Option[ValidationReason] = None,
     goldCropUrl: Option[String] = None
 ) extends BasicLabelMetadata
@@ -1546,16 +1545,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
 
   /**
-   * Pinned as a training example (#1445), so never served as an ordinary label: it is known wrong and commonly
-   * mistaken, and a beginner's Agree would count toward voting it back to correct.
+   * Pinned as a training example (#1445), so never served as an ordinary label: it is known wrong, and a beginner's
+   * Agree would count toward voting it back to correct.
    */
   private def isGoldExample(l: LabelTableDef): Rep[Boolean] =
     goldExamples.filter(_.labelId === l.labelId).exists
 
   /**
-   * Answered as a training example (#1445): they were told the answer, so it is never served to them again, as an
-   * example or, once unpinned, as an ordinary label. An unanswered serve doesn't count, so a mission abandoned on the
-   * example can offer it again.
+   * Answered as a training example (#1445): they were told the answer, so it is never served to them again, even once
+   * unpinned. An unanswered serve doesn't count, so an abandoned mission can offer it again.
    */
   private def answeredAsGoldExample(l: LabelTableDef, userId: String): Rep[Boolean] =
     goldExampleResponses
@@ -1802,9 +1800,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * The pinned examples of this type the user could be shown (#1445), in random order: under every rule the mission's
-   * own labels pass, and of a reason they aren't done with. The reason is a second column because the metadata
-   * projection is the ordinary queue's.
+   * The pinned examples of this type the user could be shown (#1445), in random order: those passing every rule the
+   * mission's own labels pass and teaching a lesson they aren't done with. The reason rides as a second column, since
+   * the metadata projection is the ordinary queue's.
    */
   def goldExampleForValidationQuery(
       userId: String,

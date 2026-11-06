@@ -1,6 +1,6 @@
 /**
  * GoldExamplesPage — the /admin/goldExamples list of training examples (#1445). Pinning happens on the label's admin
- * page; this page only lists and removes. Admin-only page, English-only by convention.
+ * page; this page only lists and removes. Admin-only, so English only.
  */
 
 import { AdminShell } from './AdminShell.js';
@@ -16,8 +16,7 @@ export class GoldExamplesPage {
   };
 
   /**
-   * Label type, in the site's canonical order, leads both the Label and Reason sort keys, so either groups a type's
-   * examples together.
+   * Label type, in canonical order, leads both the Label and Reason sort keys, so either groups a type's examples.
    * @type {Array<{key: string, label: string, num?: boolean, sort?: (ex: Record<string, any>) => any}>}
    */
   static #COLUMNS = [
