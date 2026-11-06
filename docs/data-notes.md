@@ -60,8 +60,9 @@ gone. Analysts should know:
   #518), so projecting their heading/pitch/canvas records with today's perspective formula drew markers up to ~5°
   off. `tools/one-off/5920-dc-linear-projection.sql` (#5920) re-aimed those ~61k records at the click and rewrote
   their `pano_x`/`pano_y`; its backup table `old_label_point_linear` holds the previous values and, per label, how far
-  off the old record rendered. Votes and AI assessments made while the marker was 30 px or more off are archived in
-  `voided_label_validation` and `voided_label_ai_assessment`, and the crops cut around the old pixels were re-cut.
+  off the old record rendered. Human votes made while the marker was 30 px or more off are archived in
+  `voided_label_validation`; the AI's votes and assessments on every label whose pixels moved were deleted for the
+  nightly job to redo, and the crops cut around the old pixels were re-cut.
   The 13 labels between that cut and the v2.1 deploy (2017-03-21) were left alone. The flat renderer did not level
   the horizon the way the perspective viewer does, so these labels still sit vertically about half a camera tilt
   (0.58 of `pano_data.camera_pitch`, measured against later labels on the same panos) away from where a modern

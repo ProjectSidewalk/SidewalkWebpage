@@ -3,11 +3,12 @@
 -- Written against evolution 429 (v11.20). ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
 -- default: prints every count, then rolls back), apply with apply=1. A rerun is a no-op: the backup table is the
 -- population guard. Not for run-query-in-every-city.sh (read-only runner). Undo: 5920-undo-dc-linear-projection.sql
--- (positions and records only; the voided votes stay archived).
+-- (positions and records only; the voided human votes stay archived, the deleted AI votes come back on their own).
 -- Run after 5667-dc-label-positions.sql, at a quiet hour: the transaction holds row locks on ~61k label_point rows.
 --
 --   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
---     -v apply=0 -v crops=5920-stale-crops.txt -f tools/one-off/5920-dc-linear-projection.sql
+--     -v apply=0 -v crops=5920-stale-crops.txt -v shares=5920-stale-share-images.txt \
+--     -f tools/one-off/5920-dc-linear-projection.sql
 --
 -- WHY. Until Google retired Maps API 3.25 on 2017-02-15, the labeling client asked for the flat `html4` Street View
 -- renderer and computed its label coordinates (kept since as old_label_metadata.old_pano_x/old_pano_y) with a
@@ -20,20 +21,24 @@
 --
 -- WHAT. The linear coordinates give the direction the labeller clicked (heading = old_pano_x * 360 / 13312 from
 -- north, altitude = old_pano_y * 90 / 3328). Part 1 re-solves heading/pitch so the perspective projection of the
--- untouched canvas_x/canvas_y/zoom lands there (355's solver), part 2 writes pano_x/pano_y for it (179), part 3 is
--- 352's position recompute, 366's reattach and 377's centerline offset, which also catches up the labels #5667
--- moved without recomputing it. Tutorial labels stay as they are (#4587). Clusters are not invalidated (352/366
--- precedent): force a re-cluster on DC afterwards (/runClustering?allRegions=true), then recompute user stats.
--- Part 4 is 355's vote treatment: a vote on a label whose old marker drew 30 px or more off judged the wrong spot,
--- so it is archived in voided_label_validation (the table 355 made, which the app reads for work credit) and the
--- label's counts and its labeler's stats are recomputed from what survives. Unlike 355 this takes the AI's votes
--- too, with their assessments: the AI is pointed at a label by its pano_x/pano_y, which 355 left true and this bug
--- had wrong, so the nightly job re-assesses them once their assessments are gone. On prod when written: 56 human
--- votes, 3,302 AI votes and assessments.
--- Part 5 lists the crops the nightly job cut around the wrong pixels (34,674 on prod), as paths under the city's
--- crop directory, to the file :crops in the current directory. The job only cuts a label with no crop file, so
--- delete those files before its next 05:00 run and it re-cuts them and replaces their label_crop rows (thumbnails
--- follow by age). The list is ordered by how far off the old marker was, so it can be deleted in batches.
+-- untouched canvas_x/canvas_y/zoom lands there (the closed-form solver of evolution 355), part 2 writes pano_x/pano_y
+-- for it (evolution 179's pixel mapping), part 3 recomputes lat/lng the way evolution 352 did, reattaches moved
+-- labels to their nearest street as 366 did, and refreshes the centerline offset of 377, which also catches up the
+-- labels #5667 moved without recomputing it. Tutorial labels stay as they are (#4587). Clusters are not
+-- invalidated (352/366 precedent): force a re-cluster on DC afterwards (/runClustering?allRegions=true), then
+-- recompute user stats.
+-- Part 4 is the vote treatment of 355: a human vote on a label whose old marker drew 30 px or more off judged the
+-- wrong spot, so it is archived in voided_label_validation (the table 355 made, which the app reads for work
+-- credit) and the label's counts and its labeler's stats are recomputed from what survives. The AI's votes and
+-- assessments on every label whose pixels moved are simply deleted: the AI is pointed at a label by its
+-- pano_x/pano_y, which this bug had wrong, and the nightly job assesses and votes again once they are gone. On
+-- prod when written: 56 human votes; about 3,300 AI votes and assessments.
+-- Part 5 lists the files built around the old marker, for deletion before the app's next pass. The crops the
+-- nightly job cut around the wrong pixels (34,674 on prod) go to :crops as paths under the city's crop directory;
+-- the job only cuts a label with no crop file, so delete those before its next 05:00 run and it re-cuts them and
+-- replaces their label_crop rows (thumbnails follow by age). The cached share previews of every label whose marker
+-- moved 30 px or more go to :shares as file names under the city's share-image directory; most will not exist.
+-- Both lists are ordered by how far off the old marker was, so they can be deleted in batches.
 --
 -- THE CUT. label.time_created is naive US/Eastern before 2018-08-25 (docs/data-notes.md), compared here as stored.
 -- The last label that renders on the linear model is stamped 2017-02-15 15:54, the first on the perspective one
@@ -47,6 +52,10 @@
 \if :{?crops}
 \else
   \set crops 5920-stale-crops.txt
+\endif
+\if :{?shares}
+\else
+  \set shares 5920-stale-share-images.txt
 \endif
 SET lock_timeout = '10s';
 
@@ -67,12 +76,6 @@ CREATE TABLE IF NOT EXISTS old_label_point_linear (
   centerline_offset_m DOUBLE PRECISION,
   -- How far the old record rendered from the click, in Validate px at the record's zoom (355's metric).
   old_render_error_px DOUBLE PRECISION NOT NULL
-);
-
--- The AI's assessments of the wrong spot, kept whole for the record.
-CREATE TABLE IF NOT EXISTS voided_label_ai_assessment (
-  LIKE label_ai_assessment INCLUDING DEFAULTS,
-  PRIMARY KEY (label_ai_assessment_id)
 );
 
 BEGIN;
@@ -117,10 +120,10 @@ WHERE NOT label.tutorial AND label.time_created < '2017-02-15 17:00:00+00'
   AND NOT EXISTS (SELECT 1 FROM old_label_point_linear
                   WHERE old_label_point_linear.label_point_id = label_point.label_point_id);
 
--- 355's closed forms: pitch from the ray's elevation f*sin(P) + dv*cos(P) = |ray| * sin(target altitude), with
--- |ray| = sqrt(f^2+du^2+dv^2) invariant in (heading, pitch), then heading = target minus the ray's azimuth term.
--- Any solution that aims the canvas ray at the target renders identically, because every reader re-centres through
--- canvasCoordToCenteredPov.
+-- Solved in closed form, as evolution 355 did for the #4842 repair: the click's ray through the canvas has a fixed
+-- length sqrt(f^2+du^2+dv^2) whatever the view points at, so its elevation f*sin(P) + dv*cos(P) = |ray| * sin(target
+-- altitude) gives the pitch, then heading = target minus the ray's azimuth term. Any solution that aims the canvas
+-- ray at the target renders identically, because every reader re-centres through canvasCoordToCenteredPov.
 CREATE TEMP TABLE solved ON COMMIT DROP AS
 WITH ray AS (
   SELECT pov_inputs.*,
@@ -157,7 +160,9 @@ SELECT label_point_id, label_id, target_heading, target_altitude,
        new_pitch,
        SQRT(POWER(old_heading - target_heading - 360.0 * ROUND((old_heading - target_heading) / 360.0), 2)
             + POWER(old_altitude - target_altitude, 2)) / fov_deg * 720.0 AS old_render_error_px
-FROM headed;
+FROM headed
+-- A pitch past straight up or down is no POV at all (the Street View stills take the stored pitch as is).
+WHERE ABS(new_pitch) <= 90;
 
 SELECT 'labels the solver cannot aim (left alone)' AS what, count(*) FROM pov_inputs
 WHERE NOT EXISTS (SELECT 1 FROM solved WHERE solved.label_point_id = pov_inputs.label_point_id);
@@ -364,39 +369,44 @@ WHERE label.label_id = label_point.label_id
   AND label_point.centerline_offset_m IS DISTINCT FROM label_centerline_offset_m(label_point.geom, street_edge.geom);
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Part 4. Votes cast on a marker drawn 30 px or more off (355's threshold, 4190's removal, 355's archive).
+-- Part 4. Votes cast on a marker drawn off the click.
 -- ---------------------------------------------------------------------------------------------------------------
--- Every vote on the label's current type, human and AI: a vote on a type it no longer has counts for nothing, and
--- the archive holds one row per (user, label). Comments stay (text, not a verdict). mission.labels_validated
--- stays, as in 4190.
-CREATE TEMP TABLE voided_now (label_validation_id INT PRIMARY KEY, label_id INT NOT NULL, user_id TEXT NOT NULL)
-  ON COMMIT DROP;
-INSERT INTO voided_now
-SELECT label_validation.label_validation_id, label_validation.label_id, label_validation.user_id
+-- Human votes: a vote on a label whose old marker drew 30 px or more off judged the wrong spot (evolution 355's
+-- threshold for the #4842 repair), whatever type the vote named, since the marker was wrong for every type. They
+-- are archived in voided_label_validation (355's table, which the app reads for work credit) and removed the way
+-- evolution 4190 removes a vote. Comments stay (text, not a verdict). mission.labels_validated stays, as in 4190.
+-- AI votes and assessments: the nightly job points the AI at a label by its pano_x/pano_y, which this bug had wrong,
+-- so every AI vote and assessment on a label whose pixels this run changed is deleted outright. Nothing is kept:
+-- an assessment of the label's current type is what stops the job from looking at a label again
+-- (LabelTable.getLabelsToValidateWithAi), so it re-assesses and re-votes on its own, and the AI's votes are not
+-- work credit (the archive would count them as a person's).
+CREATE TEMP TABLE removed_votes (label_validation_id INT PRIMARY KEY, label_id INT NOT NULL, user_id TEXT NOT NULL,
+                                 ai BOOLEAN NOT NULL) ON COMMIT DROP;
+INSERT INTO removed_votes
+SELECT label_validation.label_validation_id, label_validation.label_id, label_validation.user_id, is_ai.ai
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
-INNER JOIN label ON old_label_point_linear.label_id = label.label_id
-INNER JOIN label_validation ON label.label_id = label_validation.label_id
-WHERE old_label_point_linear.old_render_error_px >= 30
-  AND label_validation.label_type = label.label_type;
+INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
+INNER JOIN label_validation ON old_label_point_linear.label_id = label_validation.label_id
+CROSS JOIN LATERAL (
+  SELECT EXISTS (SELECT 1 FROM sidewalk_login.user_role
+                 WHERE user_role.role = 'AI' AND user_role.user_id = label_validation.user_id) AS ai
+) AS is_ai
+WHERE (NOT is_ai.ai AND old_label_point_linear.old_render_error_px >= 30)
+   OR (is_ai.ai AND (label_point.pano_x <> old_label_point_linear.pano_x
+                     OR label_point.pano_y <> old_label_point_linear.pano_y));
 
--- An assessment of the current type is what stops the nightly AI job from looking at a label again
--- (LabelTable.getLabelsToValidateWithAi), so the ones made at the wrong spot are archived and removed.
-INSERT INTO voided_label_ai_assessment
-SELECT label_ai_assessment.*
+CREATE TEMP TABLE removed_assessments (label_ai_assessment_id INT PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO removed_assessments
+SELECT label_ai_assessment.label_ai_assessment_id
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
-INNER JOIN label ON old_label_point_linear.label_id = label.label_id
-INNER JOIN label_ai_assessment ON label.label_id = label_ai_assessment.label_id
-WHERE old_label_point_linear.old_render_error_px >= 30
-  AND label_ai_assessment.label_type = label.label_type;
+INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
+INNER JOIN label_ai_assessment ON old_label_point_linear.label_id = label_ai_assessment.label_id
+WHERE label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y;
 
-DELETE FROM label_ai_assessment
-WHERE label_ai_assessment_id IN (SELECT label_ai_assessment_id FROM voided_label_ai_assessment);
-
--- The archive keeps the app's work-credit totals whole (FilteredTables counts voided votes). Its shape is 355's,
--- so the vote's edit, if any, fills old_/new_ severity and tags, else the label's own state fills both. The
--- PRIMARY KEY is the one-to-one assert on the LEFT JOINs.
+-- The archive's shape is 355's: the vote's edit, if any, fills old_/new_ severity and tags, else the label's own
+-- state fills both. Its (user, label) uniqueness is the assert that no person voted twice on one of these labels.
 INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
                                      canvas_y, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
                                      end_timestamp, source, old_severity, new_severity, old_tags, new_tags,
@@ -411,36 +421,39 @@ SELECT label_validation.label_validation_id, label_validation.label_id, label_va
        CASE WHEN label_edit.label_edit_id IS NULL THEN label.severity ELSE label_edit.new_severity END,
        COALESCE(label_edit.old_tags, label.tags), COALESCE(label_edit.new_tags, label.tags),
        label_validation.viewer_type, old_label_point_linear.old_render_error_px,
-       -- A voided assessment is archived in its own table with this vote's id, so the reference here goes.
-       CASE WHEN EXISTS (SELECT 1 FROM voided_label_ai_assessment
-                         WHERE voided_label_ai_assessment.label_ai_assessment_id
-                           = label_ai_assessment.label_ai_assessment_id)
-            THEN NULL ELSE label_ai_assessment.label_ai_assessment_id END,
+       NULL,  -- only an AI vote carries an assessment, and those are deleted, not archived
        label_history.label_history_id, label_history.edit_time, label_history.tags
-FROM voided_now
-INNER JOIN label_validation ON voided_now.label_validation_id = label_validation.label_validation_id
+FROM removed_votes
+INNER JOIN label_validation ON removed_votes.label_validation_id = label_validation.label_validation_id
 INNER JOIN label ON label_validation.label_id = label.label_id
 INNER JOIN old_label_point_linear ON label.label_id = old_label_point_linear.label_id
 LEFT JOIN label_edit ON label_edit.label_validation_id = label_validation.label_validation_id
 LEFT JOIN label_history ON label_history.label_edit_id = label_edit.label_edit_id
-LEFT JOIN label_ai_assessment ON label_ai_assessment.label_validation_id = label_validation.label_validation_id;
+WHERE NOT removed_votes.ai;
 
--- Any other assessment that referenced a voided vote only loses the reference (4190, 355).
+-- Whatever else points at a removed vote only loses the pointer (4190, 355).
 UPDATE label_ai_assessment
 SET label_validation_id = NULL
-WHERE label_validation_id IN (SELECT label_validation_id FROM voided_now);
+WHERE label_validation_id IN (SELECT label_validation_id FROM removed_votes);
+UPDATE voided_label_history
+SET label_validation_id = NULL
+WHERE label_validation_id IN (SELECT label_validation_id FROM removed_votes);
+
+DELETE FROM label_ai_assessment
+WHERE label_ai_assessment_id IN (SELECT label_ai_assessment_id FROM removed_assessments);
 
 CREATE TEMP TABLE edits_to_remove (label_edit_id INT PRIMARY KEY, label_id INT NOT NULL) ON COMMIT DROP;
 INSERT INTO edits_to_remove
 SELECT label_edit_id, label_id FROM label_edit
-WHERE label_validation_id IN (SELECT label_validation_id FROM voided_now);
+WHERE label_validation_id IN (SELECT label_validation_id FROM removed_votes);
 
 DELETE FROM label_history WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 DELETE FROM label_edit WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
-DELETE FROM label_validation WHERE label_validation_id IN (SELECT label_validation_id FROM voided_now);
+DELETE FROM label_validation WHERE label_validation_id IN (SELECT label_validation_id FROM removed_votes);
 
--- 4190's chain repair with the type in the state, as LabelEditService.revertEdit has it: each surviving edit
--- starts from the history row before it, one that now changes nothing goes, and the label takes its latest row.
+-- Evolution 4190's repair of the edit chain, with the type in the state as LabelEditService.revertEdit has it: each
+-- surviving edit starts from the history row before it, one that now changes nothing goes, and the label takes
+-- its latest row.
 CREATE TEMP TABLE rebased_edits ON COMMIT DROP AS
 SELECT label_edit.label_edit_id, ordered.prev_label_type, ordered.prev_severity, ordered.prev_tags,
        (label_edit.new_label_type = ordered.prev_label_type
@@ -504,7 +517,7 @@ FROM (
     AND label_validation.label_type = label.label_type
     AND NOT EXISTS (SELECT 1 FROM user_stat
                     WHERE user_stat.user_id = label_validation.user_id AND user_stat.excluded)
-  WHERE EXISTS (SELECT 1 FROM voided_now WHERE voided_now.label_id = label.label_id)
+  WHERE EXISTS (SELECT 1 FROM removed_votes WHERE removed_votes.label_id = label.label_id)
   GROUP BY label.label_id
 ) AS validation_count
 WHERE label.label_id = validation_count.label_id;
@@ -520,7 +533,7 @@ FROM (
                     + SUM(CASE WHEN NOT label.correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
          COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) AS new_validated_count
   FROM (SELECT DISTINCT label.user_id FROM label
-        INNER JOIN voided_now ON label.label_id = voided_now.label_id) AS affected_labeler
+        INNER JOIN removed_votes ON label.label_id = removed_votes.label_id) AS affected_labeler
   LEFT JOIN (
     SELECT label.user_id, label.correct
     FROM label
@@ -542,41 +555,51 @@ SET high_quality =
        OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
            AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))
 FROM (SELECT DISTINCT label.user_id FROM label
-      INNER JOIN voided_now ON label.label_id = voided_now.label_id) AS affected_labeler
+      INNER JOIN removed_votes ON label.label_id = removed_votes.label_id) AS affected_labeler
 WHERE user_stat.user_id = affected_labeler.user_id AND NOT user_stat.excluded;
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Part 5. The crops cut around the old pixels, for deletion so the nightly job re-cuts them.
+-- Part 5. The files built around the old marker, for deletion so the app rebuilds them.
 -- ---------------------------------------------------------------------------------------------------------------
--- Only the job's own crops: an Explore snapshot is the screen the labeller saw, marker and all.
-CREATE TEMP TABLE stale_crops (path TEXT) ON COMMIT DROP;
+-- Crops: only the nightly job's own (an Explore snapshot is the screen the labeller saw, marker and all), and only
+-- for labels the job will cut again (it skips deleted labels, so their stale crops stay rather than vanish).
+-- Share previews (ShareImageCache): built once from the crop or a Street View still with the marker drawn from
+-- the record, kept for good. A re-cut crop clears its label's preview, but a label without a crop keeps the old
+-- one, so every label whose marker moved 30 px or more is listed; a name with no file is nothing to delete.
+CREATE TEMP TABLE stale_crops (path TEXT, old_render_error_px DOUBLE PRECISION) ON COMMIT DROP;
 INSERT INTO stale_crops
-SELECT label.label_type || '/crop_' || label.label_id || '.png'
+SELECT label.label_type || '/crop_' || label.label_id || '.png', old_label_point_linear.old_render_error_px
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
 INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
 INNER JOIN label ON old_label_point_linear.label_id = label.label_id
 INNER JOIN label_crop ON label.label_id = label_crop.label_id
 WHERE label_crop.source = 'pano_window'
-  AND (label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y)
-ORDER BY old_label_point_linear.old_render_error_px DESC;
-\set copy_crops '\\copy stale_crops TO ' :'crops'
-:copy_crops
+  AND NOT label.deleted
+  AND (label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y);
+
+CREATE TEMP TABLE stale_share_images (path TEXT, old_render_error_px DOUBLE PRECISION) ON COMMIT DROP;
+INSERT INTO stale_share_images
+SELECT 'share_' || old_label_point_linear.label_id || '_g2.jpg', old_label_point_linear.old_render_error_px
+FROM run_rows
+INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
+WHERE old_label_point_linear.old_render_error_px >= 30;
+
+-- Written only when this run moved something: a rerun or a preview after the apply must not blank the lists.
+SELECT count(*) > 0 AS run_moved_rows FROM run_rows \gset
+\if :run_moved_rows
+  \set copy_crops '\\copy (SELECT path FROM stale_crops ORDER BY old_render_error_px DESC) TO ' :'crops'
+  :copy_crops
+  \set copy_shares '\\copy (SELECT path FROM stale_share_images ORDER BY old_render_error_px DESC) TO ' :'shares'
+  :copy_shares
+\endif
 
 SELECT 'records re-aimed this run' AS what, count(*) FROM run_rows;
-SELECT 'votes voided this run: human, AI' AS what,
-       count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role
-                                          WHERE user_role.role = 'AI' AND user_role.user_id = voided_now.user_id)),
-       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM sidewalk_login.user_role
-                                      WHERE user_role.role = 'AI' AND user_role.user_id = voided_now.user_id))
-FROM voided_now;
-SELECT 'AI assessments voided this run' AS what, count(*) FROM voided_label_ai_assessment
-INNER JOIN old_label_point_linear USING (label_id) INNER JOIN run_rows USING (label_point_id);
-SELECT 'votes on another type of these labels, left alone' AS what, count(*) FROM run_rows
-INNER JOIN old_label_point_linear USING (label_point_id) INNER JOIN label USING (label_id)
-INNER JOIN label_validation USING (label_id)
-WHERE old_label_point_linear.old_render_error_px >= 30 AND label_validation.label_type <> label.label_type;
+SELECT 'human votes voided this run' AS what, count(*) FROM removed_votes WHERE NOT ai;
+SELECT 'AI votes deleted this run' AS what, count(*) FROM removed_votes WHERE ai;
+SELECT 'AI assessments deleted this run' AS what, count(*) FROM removed_assessments;
 SELECT 'stale crop files listed' AS what, count(*) FROM stale_crops;
+SELECT 'share previews listed' AS what, count(*) FROM stale_share_images;
 SELECT 'edits removed with them' AS what, count(*) FROM edits_to_remove;
 SELECT 'old render error px: median, p90, share >= 30' AS what,
        percentile_cont(0.5) WITHIN GROUP (ORDER BY old_render_error_px),
