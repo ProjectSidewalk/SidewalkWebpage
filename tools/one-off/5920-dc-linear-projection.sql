@@ -8,6 +8,7 @@
 --
 --   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
 --     -v apply=0 -v crops=5920-stale-crops.txt -v shares=5920-stale-share-images.txt \
+--     -v ai_votes=5920-deleted-ai-votes.csv -v ai_assessments=5920-deleted-ai-assessments.csv \
 --     -f tools/one-off/5920-dc-linear-projection.sql
 --
 -- WHY. Until Google retired Maps API 3.25 on 2017-02-15, the labeling client asked for the flat `html4` Street View
@@ -31,8 +32,9 @@
 -- wrong spot, so it is archived in voided_label_validation (the table 355 made, which the app reads for work
 -- credit) and the label's counts and its labeler's stats are recomputed from what survives. The AI's votes and
 -- assessments on every label whose pixels moved are simply deleted: the AI is pointed at a label by its
--- pano_x/pano_y, which this bug had wrong, and the nightly job assesses and votes again once they are gone. On
--- prod when written: 56 human votes; about 3,300 AI votes and assessments.
+-- pano_x/pano_y, which this bug had wrong, and the nightly job assesses and votes again once they are gone. The
+-- deleted rows go to the CSV files :ai_votes and :ai_assessments, the only copy of them once applied: keep those
+-- files with the backups. On prod when written: 56 human votes; about 3,300 AI votes and assessments.
 -- Part 5 lists the files built around the old marker, for deletion before the app's next pass. The crops the
 -- nightly job cut around the wrong pixels (34,674 on prod) go to :crops as paths under the city's crop directory;
 -- the job only cuts a label with no crop file, so delete those before its next 05:00 run and it re-cuts them and
@@ -56,6 +58,14 @@
 \if :{?shares}
 \else
   \set shares 5920-stale-share-images.txt
+\endif
+\if :{?ai_votes}
+\else
+  \set ai_votes 5920-deleted-ai-votes.csv
+\endif
+\if :{?ai_assessments}
+\else
+  \set ai_assessments 5920-deleted-ai-assessments.csv
 \endif
 SET lock_timeout = '10s';
 
@@ -405,6 +415,14 @@ INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.la
 INNER JOIN label_ai_assessment ON old_label_point_linear.label_id = label_ai_assessment.label_id
 WHERE label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y;
 
+-- The deleted AI rows, whole, for the dump files written at the end (they are gone from the tables by then).
+CREATE TEMP TABLE dumped_ai_votes ON COMMIT DROP AS
+SELECT label_validation.* FROM label_validation
+WHERE label_validation_id IN (SELECT label_validation_id FROM removed_votes WHERE ai);
+CREATE TEMP TABLE dumped_ai_assessments ON COMMIT DROP AS
+SELECT label_ai_assessment.* FROM label_ai_assessment
+WHERE label_ai_assessment_id IN (SELECT label_ai_assessment_id FROM removed_assessments);
+
 -- The archive's shape is 355's: the vote's edit, if any, fills old_/new_ severity and tags, else the label's own
 -- state fills both. Its (user, label) uniqueness is the assert that no person voted twice on one of these labels.
 INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
@@ -585,13 +603,20 @@ FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
 WHERE old_label_point_linear.old_render_error_px >= 30;
 
--- Written only when this run moved something: a rerun or a preview after the apply must not blank the lists.
+-- Written only when this run moved something: a rerun or a preview after the apply must not blank the lists or
+-- the dumps. The dumps are the deleted AI rows as CSV with a header row, the only copy of them once applied.
 SELECT count(*) > 0 AS run_moved_rows FROM run_rows \gset
 \if :run_moved_rows
   \set copy_crops '\\copy (SELECT path FROM stale_crops ORDER BY old_render_error_px DESC) TO ' :'crops'
   :copy_crops
   \set copy_shares '\\copy (SELECT path FROM stale_share_images ORDER BY old_render_error_px DESC) TO ' :'shares'
   :copy_shares
+  \set copy_ai_votes '\\copy (SELECT * FROM dumped_ai_votes ORDER BY label_validation_id) TO ' :'ai_votes'
+  \set copy_ai_votes :copy_ai_votes ' CSV HEADER'
+  :copy_ai_votes
+  \set copy_ai_assessments '\\copy (SELECT * FROM dumped_ai_assessments ORDER BY label_ai_assessment_id) TO '
+  \set copy_ai_assessments :copy_ai_assessments :'ai_assessments' ' CSV HEADER'
+  :copy_ai_assessments
 \endif
 
 SELECT 'records re-aimed this run' AS what, count(*) FROM run_rows;
