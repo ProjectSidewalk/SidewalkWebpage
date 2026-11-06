@@ -49,9 +49,8 @@ export class Toast {
    * @param {string} [opts.message] - Secondary message line.
    * @param {string} [opts.messageHtml] - The message as markup, for a translation that carries its own (a `<kbd>` key
    *     name), instead of `message`. Sanitized; escape any outside values interpolated into it.
-   * @param {string} [opts.icon] - Image URL shown to the left of the text.
-   * @param {string} [opts.iconAlt] - Alt text for the icon image (defaults to '').
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   * @param {string} [opts.icon] - Decorative image URL shown to the left of the text, which already says what it is.
+   * @param {{label: string, href?: string, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
    *     [opts.button] - An optional action button: a link with `href`, or a callback with `onClick`. `secondary` for
    *     one that lets the reader opt out ("Don't show again") rather than act on the message.
    * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
@@ -66,7 +65,7 @@ export class Toast {
    * @param {() => void} [opts.onClose] - Called when the user clicks the close button, and not when the toast fades
    *      out on its own: the two say different things about whether the message was read.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#reference = opts.reference || null;
     this.#top = opts.top ?? null;
     this.#duration = opts.duration ?? 5000;
@@ -83,7 +82,7 @@ export class Toast {
    * @param {object} opts - See the constructor.
    * @returns {Toast}
    */
-  static show(opts = {}) {
+  static show(opts) {
     const toast = new Toast(opts);
     toast.show();
     return toast;
@@ -104,7 +103,7 @@ export class Toast {
       const icon = document.createElement('img');
       icon.className = 'ps-toast__icon';
       icon.src = opts.icon;
-      icon.alt = opts.iconAlt || '';
+      icon.alt = '';
       el.appendChild(icon);
     }
 
@@ -168,7 +167,7 @@ export class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   * @param {{label: string, href?: string, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
    *     button - A link-style action with `href`, or a callback with `onClick`.
    * @returns {HTMLElement}
    */
@@ -177,18 +176,24 @@ export class Toast {
     if (button.href) {
       el = document.createElement('a');
       el.href = button.href;
-      if (button.newTab) {
-        el.target = '_blank';
-        el.rel = 'noopener noreferrer';
-      }
+      // A toast pops up over work in progress, so its link opens beside the page instead of leaving it.
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
     } else {
       el = document.createElement('button');
       el.type = 'button';
-      if (button.onClick) el.addEventListener('click', button.onClick);
+      el.addEventListener('click', button.onClick);
     }
     const variant = button.secondary ? 'button--secondary' : 'button--primary';
     el.className = `ps-toast__button button ${variant} button--small`;
     el.textContent = button.label;
+    if (button.href) {
+      // A new tab is a change of context the visible text doesn't announce (WCAG 3.2.5, G201).
+      const newTab = document.createElement('span');
+      newTab.className = 'sr-only';
+      newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
+      el.append(newTab);
+    }
     return el;
   }
 
@@ -229,7 +234,6 @@ export class Toast {
    */
   #releaseAnchor() {
     const anchor = this.#anchorKey();
-    if (Toast.#live.get(anchor) !== this) return;
     Toast.#live.delete(anchor);
     const waiting = Toast.#waiting.get(anchor) || [];
     const next = waiting.shift();
@@ -271,8 +275,8 @@ export class Toast {
    * @returns {HTMLElement}
    */
   #host() {
-    const dialog = this.#reference && this.#reference.closest && this.#reference.closest('dialog');
-    return dialog && dialog.matches(':modal') ? dialog : document.body;
+    const dialog = this.#reference?.closest('dialog');
+    return dialog?.matches(':modal') ? dialog : document.body;
   }
 
   /**
@@ -312,13 +316,13 @@ export class Toast {
     // Never mounted: nothing to fade, and the live toast keeps the anchor.
     if (this.#queued) {
       const anchor = this.#anchorKey();
-      const waiting = (Toast.#waiting.get(anchor) || []).filter((t) => t !== this);
+      const waiting = Toast.#waiting.get(anchor).filter((t) => t !== this);
       if (waiting.length) Toast.#waiting.set(anchor, waiting);
       else Toast.#waiting.delete(anchor);
       this.#queued = false;
       return;
     }
-    if (this.#repositionHandler) window.removeEventListener('resize', this.#repositionHandler);
+    window.removeEventListener('resize', this.#repositionHandler);
     this.#resizeObserver?.disconnect();
     this.#el.classList.remove('ps-toast--visible');
     setTimeout(() => {

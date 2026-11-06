@@ -109,6 +109,7 @@
   "bad": "Mala",
   "yes": "Sí",
   "no": "No",
+  "ai-generated-label": "Etiqueta generada por IA",
   "ai-generated-label-tooltip": "Esta etiqueta fue generada por IA. La IA puede cometer errores, así que juzgue usted mismo si es correcta.",
   "tag": {
     "narrow": "muy angosta",
@@ -209,7 +210,9 @@
     "view-in-mapillary": "Ver en Mapillary",
     "view-in-panoramax": "Ver en Panoramax",
     "city": "Ciudad",
-    "copy-to-clipboard": "Copiar al portapapeles"
+    "copy-to-clipboard": "Copiar al portapapeles",
+    "no-info": "Sin información",
+    "pano-url": "URL de la imagen"
   },
   "pano-attribution": {
     "opens-new-tab": "(se abre en una pestaña nueva)"

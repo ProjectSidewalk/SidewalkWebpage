@@ -34,12 +34,29 @@ function buildCard() {
   document.body.innerHTML = `
       <div id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
@@ -145,6 +162,7 @@ function buildCard() {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </div>`;
   return document.getElementById('card');
@@ -564,6 +582,23 @@ describe('the validator comment box (#5015)', () => {
 
       expect(document.activeElement).toBe(input());
     });
+
+    test('Delete of the only comment, with no vote behind it, keeps the section up until the next label', async () => {
+      // Comments from before a cleared vote took its comment with it can have no vote, so the box stays shut and
+      // the emptied section is the only place left for focus and the "deleted" note.
+      await showLabel({ user_validation: null, comments: [comment('orphaned', true, { validation: null })] });
+      await resolveImagery();
+      deleteBtn().click();
+      await flush();
+
+      expect(boxOpen()).toBe(false);
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
+      expect(document.activeElement).toBe(q('.label-detail__comments-title'));
+      expect(status().closest('[hidden]')).toBeNull();
+
+      await showLabel({ user_validation: null, comments: [] });
+      expect(q('.label-detail__comments-section').hidden).toBe(true);
+    });
   });
 
   describe('every outcome is announced, including the ones that close the box', () => {
@@ -597,6 +632,7 @@ describe('the validator comment box (#5015)', () => {
     });
 
     test('a save that fails says so, in the failure colour', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
       useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
       await showLabel({ user_validation: 'Agree' });
       await resolveImagery();
@@ -606,10 +642,12 @@ describe('the validator comment box (#5015)', () => {
 
       expect(status().textContent).toBe('labelmap:comment-save-failed');
       expect(status().classList.contains('is-error')).toBe(true);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('a delete that fails says so instead of looking like a no-op', async () => {
       // They confirmed a destructive action in a modal; silence is indistinguishable from it having worked.
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
       window.fetch = vi.fn(async () => ({ ok: false, status: 500 }));
       await showLabel({ comments: [comment('still here', true)] });
       await resolveImagery();
@@ -619,12 +657,14 @@ describe('the validator comment box (#5015)', () => {
       expect(q('.label-detail__validator-comments').textContent).toContain('still here');
       expect(status().textContent).toBe('labelmap:comment-delete-failed');
       expect(status().classList.contains('is-error')).toBe(true);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('a removal holds on screen longer than a save, and a failure longer still', async () => {
       // A save is a second opinion on the comment that just appeared below it; a removal reports an absence,
       // which gives the reader nothing to check it against. So the tiers have to stay ordered.
       vi.spyOn(window, 'setTimeout');
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       /** The hold the flash was scheduled with, found by running pending timers until one hides the region. */
       const holdMs = () => {
@@ -659,6 +699,7 @@ describe('the validator comment box (#5015)', () => {
       expect(saved).toBeGreaterThan(0);
       expect(removed).toBeGreaterThan(saved);
       expect(failed).toBeGreaterThan(removed);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('the message does not outlive the label it was about', async () => {

@@ -109,6 +109,7 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
+  "ai-generated-label": "Von KI erstelltes Label",
   "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, beurteilen Sie daher selbst, ob es korrekt ist.",
   "tag": {
     "narrow": "schmal",
@@ -209,7 +210,9 @@
     "view-in-mapillary": "Ansicht in Mapillary",
     "view-in-panoramax": "Ansicht in Panoramax",
     "city": "Stadt",
-    "copy-to-clipboard": "In die Zwischenablage kopieren"
+    "copy-to-clipboard": "In die Zwischenablage kopieren",
+    "no-info": "Keine Angaben",
+    "pano-url": "Pano-URL"
   },
   "pano-attribution": {
     "opens-new-tab": "(wird in einem neuen Tab geöffnet)"

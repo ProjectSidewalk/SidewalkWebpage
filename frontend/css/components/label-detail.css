@@ -1184,6 +1184,10 @@ button.label-detail__meta-cell:focus-visible {
   transition: opacity 150ms ease;
 }
 
+/* The display: flex above outranks the browser's own [hidden] rule, which would leave arrows that do nothing showing
+   on hover before the host hands over its label list. */
+.label-detail__paging[hidden] { display: none; }
+
 .label-detail__pano-wrap:hover .label-detail__paging,
 .label-detail__paging:focus-visible {
   opacity: 1;

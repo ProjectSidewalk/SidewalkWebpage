@@ -164,9 +164,9 @@ export class PanoViewer {
    * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
    * real measurement exists.
    *
-   * Measures the mount container, which every call site can treat as the render canvas because they all pass
-   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
-   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   * Measures the mount container, which stands in for the render canvas because no viewer draws its own toolbars
+   * inside it. One that did (Infra3D's topbar/toolbar/cockpit) would render into a shorter canvas than this, and
+   * would need to measure `canvasElem.querySelector('.' + canvasClass)`.
    *
    * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
    * @protected
@@ -434,7 +434,7 @@ export class PanoViewer {
    * @returns {Promise<Array<{panoId: string, heading: number, lat: number, lng: number}>>}
    */
   async getLinkedPanoPositions() {
-    const links = this.getLinkedPanos() || [];
+    const links = this.getLinkedPanos();
     const positioned = await Promise.all(links.map(async (link) => {
       if (Number.isFinite(link.lat) && Number.isFinite(link.lng)) return link;
       try {

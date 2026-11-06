@@ -71,7 +71,7 @@ export class Confetti {
     // phone screen as on a desktop one.
     const width = canvas.offsetWidth;
     const height = canvas.offsetHeight;
-    const ratio = Confetti.backingRatio(width, height, window.devicePixelRatio || 1);
+    const ratio = Confetti.backingRatio(width, height, window.devicePixelRatio);
     canvas.width = width * ratio;
     canvas.height = height * ratio;
     const ctx = canvas.getContext('2d');

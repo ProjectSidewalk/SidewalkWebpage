@@ -164,6 +164,20 @@ describe('Confetti.burst', () => {
     expect(window.requestAnimationFrame).not.toHaveBeenCalled();
   });
 
+  test('it plays out its duration frame by frame and then takes its canvas away', () => {
+    Confetti.burst({ duration: 150 });
+    const frame = (now) => window.requestAnimationFrame.mock.calls.at(-1)[0](now);
+    frame(1000); // The first frame counts as one 16 ms tick: 16 ms in.
+    // A tab left in the background comes back with a huge gap, which counts as 50 ms rather than ending the burst.
+    frame(60000);
+    expect(canvas()).not.toBeNull();
+    frame(60040); // 106 ms in.
+    expect(canvas()).not.toBeNull();
+    frame(60090); // 156 ms in: done.
+    expect(canvas()).toBeNull();
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(4);
+  });
+
   test('the canvas is inert and hidden from assistive technology while it is up', () => {
     Confetti.burst();
 

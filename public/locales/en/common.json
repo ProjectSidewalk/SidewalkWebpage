@@ -109,6 +109,7 @@
   "bad": "Bad",
   "yes": "Yes",
   "no": "No",
+  "ai-generated-label": "AI-generated label",
   "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own judgment about correctness.",
   "tag": {
     "narrow": "narrow",
@@ -209,7 +210,9 @@
     "view-in-mapillary": "View in Mapillary",
     "view-in-panoramax": "View in Panoramax",
     "city": "City",
-    "copy-to-clipboard": "Copy to clipboard"
+    "copy-to-clipboard": "Copy to clipboard",
+    "no-info": "No info",
+    "pano-url": "Pano URL"
   },
   "pano-attribution": {
     "opens-new-tab": "(opens in a new tab)"

@@ -223,7 +223,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     openPopover();
     popoverEl.querySelector('.pano-info-popover__clipboard').click();
     expect(clipboardText)
-      .toContain(`Pano URL: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
+      .toContain(`common:pano-info.pano-url: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
     closePopover();
 
     activeViewer = makePannellumViewer();
@@ -231,7 +231,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     popoverEl.querySelector('.pano-info-popover__clipboard').click();
 
     expect(clipboardText).toContain(BACKUP_PANO);
-    expect(clipboardText).not.toContain('Pano URL:');
+    expect(clipboardText).not.toContain('pano-url');
   });
 
   it('closes on pano_changed from a viewer that only appeared after construction', () => {

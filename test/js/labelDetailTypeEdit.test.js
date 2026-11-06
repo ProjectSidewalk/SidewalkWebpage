@@ -43,6 +43,7 @@ function buildCard() {
               <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </button>
           </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
           <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </div>
@@ -53,6 +54,10 @@ function buildCard() {
       </div>
       <div class="label-detail__pano-wrap">
         <div class="label-detail__pano"></div>
+        <div class="label-detail__deleted-notice" role="status" hidden>
+          <span class="label-detail__deleted-notice-text"></span>
+          <button type="button" class="label-detail__restore" hidden></button>
+        </div>
         <button type="button" class="label-detail__hide-label"></button>
         <div class="label-detail__pano-overlay" role="group">
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false"></button>
@@ -105,6 +110,7 @@ function buildCard() {
             <label class="sr-only" for="c">Why?</label>
             <input type="text" id="c" class="label-detail__comment-input">
             <button type="button" class="label-detail__comment-submit" data-action="submit-comment"></button>
+            <button type="button" class="label-detail__comment-cancel" hidden></button>
             <span class="label-detail__comment-confirmation" role="status" hidden></span>
           </div>
           <div class="label-detail__validator-comments"></div>
@@ -112,7 +118,7 @@ function buildCard() {
       </div>
       <section class="label-detail__stories" hidden></section>
       <span class="label-detail__story-status sr-only" role="status"></span>
-      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a></div>
+      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a><div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div></div>
     </div>`;
   return document.getElementById('card');
 }
@@ -372,6 +378,14 @@ describe('changing a label\'s type from the card (#3671)', () => {
     chip('CurbRamp').click();
     await flush();
     expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'CurbRamp', severity: null }));
+  });
+
+  test('an unrated label stays unrated across a type that reads ratings the same way', async () => {
+    await showLabel({ severity: null, tags: [] });
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+    expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'SurfaceProblem', severity: null }));
   });
 
   test('a rating edit also names the type shown, so the server can spot a card that fell behind', async () => {

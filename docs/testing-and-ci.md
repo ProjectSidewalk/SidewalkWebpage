@@ -314,7 +314,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 88 / 84 / 86 / 89 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 91 / 89 / 91 / 92 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)
