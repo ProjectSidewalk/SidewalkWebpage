@@ -1156,7 +1156,7 @@ SELECT (SELECT count(*) FROM label) AS labels, (SELECT count(*) FROM audit_task)
 \\if :apply
   \\echo 'COMMITTING.'
   COMMIT;
-  \\echo 'Applied. Now: PUT /adminapi/clearPlayCache (Admin > Management), then Refresh basemap there.'
+  \\echo 'Applied. Now: PUT /adminapi/clearPlayCache (Admin > Management), then run Rebuild minimap basemap there.'
 \\else
   \\echo 'DRY RUN: rolling back. Pass -v apply=1 to commit.'
   ROLLBACK;
@@ -1347,7 +1347,7 @@ SELECT (SELECT count(*) FROM street_edge) AS streets, (SELECT count(*) FROM stre
   DROP SCHEMA {backup_schema} CASCADE;
   \\echo 'COMMITTING (and dropping {backup_schema}).'
   COMMIT;
-  \\echo 'Rolled back. Now: PUT /adminapi/clearPlayCache (Admin > Management), then Refresh basemap there.'
+  \\echo 'Rolled back. Now: PUT /adminapi/clearPlayCache (Admin > Management), then run Rebuild minimap basemap there.'
 \\else
   \\echo 'DRY RUN: rolling back the rollback. Pass -v apply=1 to commit.'
   ROLLBACK;

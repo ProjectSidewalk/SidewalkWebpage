@@ -318,7 +318,7 @@ new streets unmodified and keep their files apart from the city's own.
    The same three files then go to the test stage and, after sign-off, prod, each with a `pg_dump -n` of the schema
    first; `sha256sum -c SHA256SUMS` on the server proves they are the files reviewed.
 8. **After applying, on every stage:** Admin → Management → *Clear Play cache* (map parameters, the open status
-   and the tutorial street are cached without a TTL) and *Refresh basemap* (the archive is cut from the regions'
+   and the tutorial street are cached without a TTL) and *Rebuild minimap basemap* (the archive is cut from the regions'
    extent). The next night's jobs fetch the new streets' `osm_way` rows, rebuild intersections and clustering, and
    take the AccessScore snapshot; until then those read the old footprint. Keep the backup schema until the city
    has been looked at and the auto-labeler has run on the new streets, then `DROP SCHEMA … CASCADE`.
