@@ -109,6 +109,7 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
+  "ai-generated-label": "Rótulo gerado por IA",
   "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então julgue você mesmo se ele está correto.",
   "tag": {
     "narrow": "estreito",
@@ -209,11 +210,11 @@
     "view-in-mapillary": "Ver no Mapillary",
     "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
-    "copy-to-clipboard": "Copiar para a área de transferência"
+    "copy-to-clipboard": "Copiar para a área de transferência",
+    "no-info": "Sem informação",
+    "pano-url": "URL da imagem"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(abre em uma nova aba)"
-  },
+  "opens-new-tab": "(abre em uma nova aba)",
   "image-adjustments": {
     "button": "Imagem",
     "active-sr": "(ajustada)",

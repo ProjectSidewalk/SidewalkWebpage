@@ -1,7 +1,8 @@
 /**
  * Tests for how the label card (frontend/js/common/label-detail/LabelDetail.js) draws a label and wires its controls
  * (#5840): the footer links, the share and story hand-offs, the info chip, the meta strip, the admin block, what the
- * imagery's outcome unlocks, and the comment box's keys. Votes, edits, deletes and comments each have their own suite.
+ * imagery's outcome unlocks, the comment box's keys, what a vote records, and a payload missing its optional fields.
+ * Deeper vote, edit, delete and comment flows each have their own suite.
  */
 
 import { useUtil } from './loader.js';
@@ -149,6 +150,13 @@ describe('the label card', () => {
       const clicks = logged().filter((e) => e.startsWith('Click_'));
       expect(clicks).toEqual(['Click_module=LabelDetail_action=HideLabel_labelId=42']);
     });
+
+    test('logs a click that brings the marker back', async () => {
+      const { show } = await mountCard();
+      await show();
+      collaborators.toggle.onChange(true, { viaClick: true });
+      expect(logged()).toContain('Click_module=LabelDetail_action=ShowLabel_labelId=42');
+    });
   });
 
   describe('the Details chip and its popover', () => {
@@ -265,7 +273,8 @@ describe('the label card', () => {
       await show({ pano_data: { address: '1 Main St' } });
       const address = q('.label-detail__address');
 
-      expect(address.textContent).toBe('3 Live Ave');
+      expect(address.textContent).toBe('3 Live Ave common:opens-new-tab');
+      expect(address.querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
       expect(address.getAttribute('href')).toBe('https://maps.example/pano-1');
       expect(address.target).toBe('_blank');
       expect(address.rel).toBe('noopener noreferrer');
@@ -368,9 +377,9 @@ describe('the label card', () => {
     });
   });
 
-  describe('the title, without a type picker on the page', () => {
+  describe('the title', () => {
     test('names the type in both trigger slots', async () => {
-      const { show, q } = await mountCard({ typePicker: false });
+      const { show, q } = await mountCard();
       await show({ label_type: 'CurbRamp' });
       const names = [...q('.label-detail__title').querySelectorAll('.label-type-trigger__name')];
       expect(names).toHaveLength(2);
@@ -570,6 +579,18 @@ describe('the label card', () => {
       expect(error).toHaveBeenCalled();
     });
 
+    test('a comment saved here is listed under the admin\'s username', async () => {
+      const { show, q } = await mountCard({ admin: true, routes: { 'POST /labelmap/comment': { username: 'admin a' } } });
+      await show(adminMeta({ user_validation: 'Disagree' }));
+      q('.label-detail__comment-input').value = 'checked on site';
+      q('.label-detail__comment-submit').click();
+      await flush();
+
+      const [own] = q('.label-detail__validator-comments').querySelectorAll('p');
+      expect(own.querySelector('a').getAttribute('href')).toBe('/admin/user/admin%20a');
+      expect(own.textContent).toContain('checked on site');
+    });
+
     test('comments carry the commenter\'s username, linked, with the time and their vote', async () => {
       const { show, q } = await mountCard({ admin: true });
       await show(adminMeta({
@@ -591,6 +612,159 @@ describe('the label card', () => {
       expect(noTime.textContent.trim()).toMatch(/^val b .*: no time$/);
 
       expect(bare.textContent.trim()).toBe('val c: bare');
+    });
+  });
+  describe('a payload missing its optional fields', () => {
+    test('draws no description, capture date or comments rather than "null"', async () => {
+      const { show, q } = await mountCard();
+      await show({ description: null, image_capture_date: null, comments: undefined });
+
+      expect(q('.label-detail__description').textContent).toBe('');
+      expect(q('.label-detail__image-capture-date').textContent).toBe('');
+      expect(q('.label-detail__validator-comments').textContent).toBe('labelmap:no-comments-yet');
+    });
+
+    test('reads missing vote counts as none', async () => {
+      const { show, q } = await mountCard();
+      await show({ num_agree: undefined, num_disagree: undefined, num_unsure: undefined, user_validation: 'Agree' });
+
+      const counts = [...q('.label-detail__vote-display').querySelectorAll('.label-detail__vote-count')];
+      expect(counts.map((c) => c.textContent)).toEqual(['0', '0', '0']);
+      expect(q('.label-detail__vote--agree').dataset.psTooltip).toMatch(/^labelmap:vote-tooltip-voted-agree/);
+    });
+
+    test('saves an edit to a label sent with no tags as one with none', async () => {
+      const edits = [];
+      const { show, q } = await mountCard({
+        routes: {
+          'POST /label/edit': (url, opts) => {
+            edits.push(JSON.parse(opts.body));
+            return { label_type: 'Obstacle', severity: 3 };
+          },
+        },
+      });
+      await show({ can_edit: true, from_current_user: true, tags: undefined, severity: null });
+      q('.label-detail__tags-edit').click();
+      await flush();
+      q('.label-detail__tags-edit').click();
+      q('.severity-button[data-severity="3"]').click();
+      await flush();
+
+      // The tag pick changed nothing, so only the rating went to the server; its reply named no tags at all.
+      expect(edits).toEqual([expect.objectContaining({ severity: 3, tags: [] })]);
+      expect(q('.label-detail__tags').textContent).toBe('common:none');
+    });
+  });
+
+  describe('what a vote records', () => {
+    /**
+     * Mounts a card whose votes all land, and shows a label on it.
+     * @param {object} [overrides] - Fields on the label.
+     * @param {object} [options] - LabelDetail options.
+     * @returns {Promise<object>} The mounted card, plus `votes()`: the validation bodies posted so far.
+     */
+    async function votable(overrides = {}, options = {}) {
+      const mounted = await mountCard({ routes: { 'POST /labelmap/validate': {} }, options });
+      mounted.meta = await mounted.show(overrides);
+      mounted.votes = () => mounted.fetch.mock.calls.filter(([url]) => url === '/labelmap/validate')
+        .map(([, opts]) => JSON.parse(opts.body));
+      return mounted;
+    }
+
+    test('over the crop, the view recorded is the label\'s own, not whatever the idle viewer reports', async () => {
+      const { q, panoManager, votes } = await votable();
+      panoManager.activeViewerName = 'StaticCrop';
+      panoManager.getPov = () => ({ heading: 10, pitch: 0, zoom: 1 });
+      q('.label-detail__pano-overlay-button--agree').click();
+      await flush();
+
+      expect(votes()[0]).toMatchObject({
+        heading: 250.5, pitch: -12, zoom: 2, viewer_type: 'StaticCrop',
+      });
+    });
+
+    test('a reader turned away from the label records no spot on screen for it', async () => {
+      const { q, panoManager, votes } = await votable();
+      panoManager.getPov = () => ({ heading: 70.5, pitch: -12, zoom: 2 });
+      q('.label-detail__pano-overlay-button--agree').click();
+      await flush();
+
+      expect(votes()[0]).toMatchObject({ canvas_x: null, canvas_y: null, heading: 70.5 });
+    });
+
+    test('a label with no rating or tags is voted on as one with none', async () => {
+      const { q, votes } = await votable({ severity: null, tags: undefined });
+      q('.label-detail__pano-overlay-button--agree').click();
+      await flush();
+
+      expect(votes()[0]).toMatchObject({ severity: null, tags: [] });
+    });
+
+    test('the host hears of each vote that lands, with the label it was on', async () => {
+      const onVote = vi.fn();
+      const { q } = await votable({}, { onVote });
+      q('.label-detail__pano-overlay-button--agree').click();
+      await flush();
+
+      expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({ label_id: 42, user_validation: 'Agree' }));
+    });
+  });
+
+  describe('the host\'s comment hook', () => {
+    test('hears of a saved comment, with the label\'s list as it now stands', async () => {
+      const onComments = vi.fn();
+      const { show, q } = await mountCard({
+        routes: { 'POST /labelmap/comment': { username: 'tester' } }, options: { onComments },
+      });
+      await show({ user_validation: 'Disagree' });
+      q('.label-detail__comment-input').value = 'a pole';
+      q('.label-detail__comment-submit').click();
+      await flush();
+
+      expect(onComments).toHaveBeenCalledWith(expect.objectContaining({
+        label_id: 42, comments: [expect.objectContaining({ comment: 'a pole', mine: true })],
+      }));
+    });
+
+    test('a comment of theirs with no recorded avatar keeps the first one when replaced', async () => {
+      const { show, q } = await mountCard({ routes: { 'POST /labelmap/comment': { username: 'tester' } } });
+      await show({ comments: [{ comment: 'old', mine: true }] });
+      q('.label-detail__comment-edit').click();
+      q('.label-detail__comment-input').value = 'new';
+      q('.label-detail__comment-submit').click();
+      await flush();
+
+      const [own] = q('.label-detail__validator-comments').querySelectorAll('p');
+      expect(own.querySelector('.label-detail__comment-avatar--0')).not.toBeNull();
+      // No vote on record (the payload predates the column), so the comment carries no vote chip.
+      expect(own.querySelector('[class*="label-detail__comment-vote--"]')).toBeNull();
+    });
+  });
+
+  describe('a host closing the card', () => {
+    test('with no tag pick open saves nothing', async () => {
+      const { show, detail, fetch } = await mountCard();
+      await show({ can_edit: true, from_current_user: true });
+      detail.saveOpenEdits();
+      await flush();
+      expect(fetch.mock.calls.filter(([url]) => url === '/label/edit')).toEqual([]);
+    });
+  });
+
+  describe('a redraw of the label on screen', () => {
+    test('drops a tag pick in progress rather than saving it', async () => {
+      const { show, q, fetch } = await mountCard({
+        routes: { 'GET /label/tags': [{ label_type: 'Obstacle', tag: 'cone', tag_id: 2 }] },
+      });
+      const meta = await show({ can_edit: true, from_current_user: true });
+      q('.label-detail__tags-edit').click();
+      await flush();
+      q('.label-detail__tags .tag-pill:not(.tag-pill--active)').click();
+
+      await show({ ...meta });
+      await flush();
+      expect(q('.label-detail__tags-edit').getAttribute('aria-expanded')).toBe('false');
+      expect(fetch.mock.calls.filter(([url]) => url === '/label/edit')).toEqual([]);
     });
   });
 });

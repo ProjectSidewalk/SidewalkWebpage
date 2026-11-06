@@ -107,6 +107,7 @@
   "bad": "不良",
   "yes": "是",
   "no": "否",
+  "ai-generated-label": "AI 產生的標籤",
   "ai-generated-label-tooltip": "此標籤由 AI 產生。AI 可能會犯錯，請自行判斷其是否正確。",
   "tag": {
     "narrow": "狹窄",
@@ -207,11 +208,11 @@
     "view-in-mapillary": "在Mapillary街景圖裡查看",
     "view-in-panoramax": "在Panoramax街景圖裡查看",
     "city": "城市",
-    "copy-to-clipboard": "複製到剪貼簿"
+    "copy-to-clipboard": "複製到剪貼簿",
+    "no-info": "無資訊",
+    "pano-url": "全景圖網址"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(在新分頁中開啟)"
-  },
+  "opens-new-tab": "(在新分頁中開啟)",
   "image-adjustments": {
     "button": "影像",
     "active-sr": "（已調整）",

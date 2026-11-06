@@ -135,6 +135,8 @@ test.each([
   ['the server\'s reason, like a taken username', { status: 400, body: { error: 'That username is taken.' } },
     'That username is taken.'],
   ['a generic failure when the server gives none', { status: 500, body: {} }, 'dashboard:settings-form.save-failed'],
+  ['a generic failure when the reply isn\'t JSON, like a proxy\'s error page', { status: 502 },
+    'dashboard:settings-form.save-failed'],
 ])('a refused save shows %s, and the edits still count as unsaved', async (_, reply, shown) => {
   renderSettings();
   routeFetch({ [`POST ${SAVE_URL}`]: reply });
@@ -143,6 +145,17 @@ test.each([
   expect(status()).toEqual({ text: shown, classes: ['ud-save-err'] });
   expect($('#set-save-btn').disabled).toBe(false);
   expect(guard.isDirty()).toBe(true);
+});
+
+test('a save that never reaches the server shows a generic failure and logs why', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  renderSettings();
+  const offline = new TypeError('Failed to fetch');
+  routeFetch({ [`POST ${SAVE_URL}`]: offline });
+  $('#set-username').value = 'offline';
+  await clickSave();
+  expect(status()).toEqual({ text: 'dashboard:settings-form.save-failed', classes: ['ud-save-err'] });
+  expect(error).toHaveBeenCalledWith('Failed to save settings', offline);
 });
 
 describe('the unsaved-edits guard', () => {

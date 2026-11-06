@@ -14,6 +14,7 @@ import '../common/utilitiesSidewalk.js';
 import '../common/pano-viewer/panoUtilities.js';
 import { AccessScoreElevationProfile } from '../common/AccessScoreElevationProfile.js';
 import { formatElevation } from '../access-score/AccessScoreText.js';
+import { newTabNote } from '../common/newTabNote.js';
 import { reportSketch } from './reportSketch.js';
 import { stitchProfile } from './stitchProfile.js';
 import { viewpointOf } from './viewWedge.js';
@@ -307,11 +308,7 @@ export class ReportStreetSection {
     reference.target = '_blank';
     reference.rel = 'noopener';
     reference.dataset.reportEvent = 'Report_OpenLabel';
-    reference.textContent = `${this.#deps.cityId}:${data.labelId}`;
-    const newTab = document.createElement('span');
-    newTab.className = 'sr-only';
-    newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
-    reference.append(newTab);
+    reference.append(`${this.#deps.cityId}:${data.labelId}`, newTabNote());
     strip.append(reference);
     return strip;
   }

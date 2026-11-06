@@ -109,6 +109,7 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
+  "ai-generated-label": "Door AI gemaakt label",
   "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus beoordeel zelf of het klopt.",
   "tag": {
     "narrow": "smal",
@@ -209,11 +210,11 @@
     "view-in-mapillary": "Bekijken in Mapillary",
     "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
-    "copy-to-clipboard": "Kopiëren naar klembord"
+    "copy-to-clipboard": "Kopiëren naar klembord",
+    "no-info": "Geen informatie",
+    "pano-url": "Pano-URL"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(opent in een nieuw tabblad)"
-  },
+  "opens-new-tab": "(opent in een nieuw tabblad)",
   "image-adjustments": {
     "button": "Beeld",
     "active-sr": "(aangepast)",

@@ -184,10 +184,9 @@ export class PannellumViewer extends PanoViewer {
 
   /**
    * @param {HTMLElement} canvasElem - Container element to mount the viewer into.
-   * @param {object} [panoOptions]
+   * @param {object} panoOptions
    * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.pano_id.
-   * @param {Record<string, any>} [panoOptions.panoMetadata] - Metadata for the pano (see PanoData fields). Required:
-   *     initialize() throws without it.
+   * @param {Record<string, any>} panoOptions.panoMetadata - Metadata for the pano (see PanoData fields).
    * @param {number} [panoOptions.startHeading] - Initial heading wrt true north; defaults to camera_heading.
    * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
    * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
@@ -195,14 +194,12 @@ export class PannellumViewer extends PanoViewer {
    * @param {PanoImageCache} [panoOptions.imageCache] - Prefetched pano bytes to load from before the network (#5562).
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     await PannellumViewer.preloadLibrary();
     const metadata = panoOptions.panoMetadata;
-    if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
     this.#imageCache = panoOptions.imageCache ?? null;
 
     const panoId = panoOptions.startPanoId || metadata.pano_id;
-    if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.pano_id');
 
     this.#cameraHeading = metadata.camera_heading || 0;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
@@ -485,7 +482,6 @@ export class PannellumViewer extends PanoViewer {
    */
   #startPovTracking = () => {
     const tick = async () => {
-      if (!this.#viewer) return;
       if (!this.#loading) {
         const yaw = this.#viewer.getYaw();
         const pitch = this.#viewer.getPitch();
@@ -565,6 +561,6 @@ export class PannellumViewer extends PanoViewer {
   showNavigationArrows = () => {};
 
   resize = () => {
-    if (this.#viewer) this.#viewer.resize();
+    this.#viewer.resize();
   };
 }

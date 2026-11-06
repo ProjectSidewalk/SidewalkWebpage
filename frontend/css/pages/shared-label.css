@@ -400,11 +400,6 @@
   margin-top: 12px;
 }
 
-/* `.button`'s display would otherwise beat the browser's hidden rule. */
-.spotlight__gold-actions .button[hidden] {
-  display: none;
-}
-
 .spotlight__gold-status {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);

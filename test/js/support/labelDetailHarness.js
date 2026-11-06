@@ -8,6 +8,9 @@
  */
 
 import { loadModules, mockModule, useUtil } from '../loader.js';
+import { flush } from './routeFetch.js';
+
+export { flush };
 
 /** What the stand-ins were handed; reset by each mountCard(). */
 export const collaborators = {
@@ -78,11 +81,9 @@ afterEach(() => {
  * @param {object} [opts]
  * @param {boolean} [opts.admin=false] - Include the admin details block.
  * @param {boolean} [opts.withPaging=false] - Include the prev/next arrows.
- * @param {boolean} [opts.typePicker=true] - Include the type picker's popover, which a page that doesn't load the
- *   picker leaves out.
  * @returns {string}
  */
-export function cardMarkup({ admin = false, withPaging = false, typePicker = true } = {}) {
+export function cardMarkup({ admin = false, withPaging = false } = {}) {
   const votes = ['agree', 'disagree', 'unsure'];
   return `
     <header class="label-detail__header">
@@ -100,10 +101,10 @@ export function cardMarkup({ admin = false, withPaging = false, typePicker = tru
         <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
       </div>
     </header>
-    ${typePicker ? `<div class="label-type-popover" popover hidden>
+    <div class="label-type-popover" popover hidden>
       <p class="label-type-popover__hint" hidden></p>
       <div class="label-type-popover__chips"></div>
-    </div>` : ''}
+    </div>
     <div class="label-detail__pano-wrap">
       ${withPaging ? '<button type="button" class="label-detail__paging label-detail__paging--prev"></button>' : ''}
       <div class="label-detail__pano"></div>
@@ -279,16 +280,13 @@ function routedFetch(routes) {
  * @param {object} [opts]
  * @param {boolean} [opts.admin=false]
  * @param {boolean} [opts.withPaging=false]
- * @param {boolean} [opts.typePicker=true]
  * @param {Record<string, Route>} [opts.routes] - What each request answers; `routes` on the result may be changed
  *   later. The tag list is answered empty unless named.
  * @param {object} [opts.options] - LabelDetail constructor options on top of the defaults.
  * @returns {Promise<object>} `{card, detail, LabelDetail, panoManager, fetch, routes, q, show}`, where
  *   show(overrides, shown = true) shows a label and settles its imagery.
  */
-export async function mountCard({
-  admin = false, withPaging = false, typePicker = true, routes = {}, options = {},
-} = {}) {
+export async function mountCard({ admin = false, withPaging = false, routes = {}, options = {} } = {}) {
   unexpected = [];
   Object.assign(collaborators, { toggle: null, infoPopover: null, share: null, story: null });
   collaborators.toast.mockReset();
@@ -296,7 +294,7 @@ export async function mountCard({
   collaborators.recordValidation.mockReset();
   window.logWebpageActivity = vi.fn();
 
-  const markup = cardMarkup({ admin, withPaging, typePicker });
+  const markup = cardMarkup({ admin, withPaging });
   document.body.innerHTML = `<div id="card" class="label-detail">${markup}</div>`;
   const card = document.getElementById('card');
   panoManager = fakePanoManager();
@@ -327,9 +325,6 @@ export async function mountCard({
     q: (sel) => card.querySelector(sel),
   };
 }
-
-/** Lets pending promise callbacks and zero-delay timers run. */
-export const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
 /** @returns {string[]} The events logged so far. */
 export const logged = () => window.logWebpageActivity.mock.calls.map(([event]) => event);

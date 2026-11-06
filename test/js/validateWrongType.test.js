@@ -299,6 +299,50 @@ describe('LabelTypePicker', () => {
     expect(root.querySelector('[aria-checked="true"]').dataset.labelType).toBe('Signal');
   });
 
+  it('a host with no toggle listener can still fold the group and open it again', () => {
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    picker.render({ current: 'Obstacle', selected: 'Signal' });
+    picker.collapse();
+    root.querySelector('[data-label-type="Signal"]').click();
+
+    expect(root.querySelectorAll('[hidden]')).toHaveLength(0);
+  });
+
+  it('a click on the group between chips picks nothing', () => {
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    picker.render({ current: 'Obstacle' });
+    root.click();
+
+    expect(picks).toEqual([]);
+    expect(picker.getSelected()).toBeNull();
+  });
+
+  it('arrows from the current type\'s chip, which a click still focuses, move nothing and stay the page\'s', () => {
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    picker.render({ current: 'Obstacle', selected: 'Signal' });
+    const current = root.querySelector('[data-label-type="Obstacle"]');
+    current.focus();
+    const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    current.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(current);
+    expect(picks).toEqual([]);
+  });
+
+  it('ArrowLeft and ArrowUp step back, wrapping from the first chip round to the last', () => {
+    const picker = new LabelTypePicker(root, { onPick: (t) => picks.push(t) });
+    const [first, second] = util.misc.VALID_LABEL_TYPES;
+    picker.render({ current: 'Obstacle', selected: second });
+    const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
+    chip(second).focus();
+
+    chip(second).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+
+    expect(picks).toEqual([first, util.misc.VALID_LABEL_TYPES.at(-1)]);
+  });
+
   describe('where a pick takes effect at once (commitsOnPick, #5409)', () => {
     const chip = (t) => root.querySelector(`[data-label-type="${t}"]`);
 
@@ -465,6 +509,17 @@ describe('LabelTypeDropdown', () => {
     const hint = document.querySelector('.label-type-popover__hint');
     expect(hint.hidden).toBe(false);
     expect(hint.textContent).toBe('Tags may be removed.');
+  });
+
+  it('a pick made with focus outside the list (Safari never focuses a clicked button) leaves focus alone', () => {
+    const dropdown = build();
+    dropdown.setEditable(true);
+    button().click();
+    /** @type {HTMLElement} */ (document.activeElement).blur();
+
+    chip('Signal').click();
+    expect(picks).toEqual(['Signal']);
+    expect(document.activeElement).not.toBe(button());
   });
 });
 

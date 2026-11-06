@@ -471,6 +471,10 @@ curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
 curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
+A page that needs a registered account or an admin (the admin pages, role checks) needs a real sign-up instead. Make
+one through `/signUp`, then raise its role on the dev DB; `.claude/skills/create-registered-user-account/SKILL.md`
+has the commands. Test accounts on the local dev DB are always fine to make.
+
 ### Inspecting the database
 
 Each city lives in its own schema (`sidewalk_<city>`); authentication lives in `sidewalk_login`. For ad-hoc

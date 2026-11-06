@@ -100,8 +100,7 @@
     "hint-shapefile": "適用於 ArcGIS、QGIS",
     "hint-geopackage": "開放 GIS 格式",
     "caveat": "此頁面連結中的部分篩選條件（多個區域、路線或 AI 檢核）無法套用於下載，因此檔案中的標記可能會多於上方顯示的數量。",
-    "api-docs-link": "原始標記 API 文件",
-    "opens-new-tab": "（在新分頁中開啟）"
+    "api-docs-link": "原始標記 API 文件"
   },
   "story": {
     "heading": "社群故事",
