@@ -279,7 +279,7 @@
         "sand-gravel": "barro/arena/gra<tag-underline>v</tag-underline>a",
         "uncovered-manhole": "r<tag-underline>e</tag-underline>gistro sin tapa",
         "ends-abruptly": "termina <tag-underline>a</tag-underline>bruptamente",
-        "street-has-a-sidewalk": "la calle tiene una banqueta (<tag-underline>r</tag-underline>)",
+        "other-side-has-a-sidewalk": "el ot<tag-underline>r</tag-underline>o lado tiene una banqueta",
         "street-has-no-sidewalks": "la calle no <tag-underline>t</tag-underline>iene banquetas",
         "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
         "shared-pedestrian-car-space": "plataforma única (<tag-underline>e</tag-underline>)",

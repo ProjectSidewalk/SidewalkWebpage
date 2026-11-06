@@ -87,7 +87,7 @@ export class OverviewPage {
     this.#setCard('quality', this.#compact(s.total_labels),
       `labels · ${this.#compact(s.total_validations)} validations`, this.#num(s.total_labels));
 
-    // Contributors: distinct accounts that have produced any data.
+    // Contributors: people with a non-tutorial label or a vote.
     this.#setCard('contributors', this.#compact(s.contributors), 'contributing accounts', this.#num(s.contributors));
 
     // Activity: last-7-days pulse; the headline is labels, the sub adds validations and streets.

@@ -1,43 +1,63 @@
 # --- !Ups
--- Training examples of common validation mistakes, shown to new validators (#1445): an admin pins a label the crowd
--- has already voted wrong, with the canned reason. The label stays a real label, and the row only says it teaches.
-CREATE TABLE gold_example (
-  label_id INT PRIMARY KEY REFERENCES label (label_id),
-  reason validation_reason NOT NULL,
-  user_id TEXT NOT NULL REFERENCES sidewalk_login.sidewalk_user (user_id),
-  pinned_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-ALTER TABLE gold_example OWNER TO sidewalk;
+-- Rename the NoSidewalk tag so it reads clearly apart from "street has no sidewalks" (#5919). Tags are stored by name,
+-- so every column that keeps a copy of the name gets the new one too. The WHERE clauses keep untouched rows unwritten.
+UPDATE tag SET tag = 'other side has a sidewalk' WHERE tag = 'street has a sidewalk';
+UPDATE tag SET mutually_exclusive_with = 'other side has a sidewalk'
+WHERE mutually_exclusive_with = 'street has a sidewalk';
 
--- One row per validator and example: written when the example is served, and the answer filled in when they vote.
--- A pinned label is served only as an example, never in the ordinary queue, so a Validate vote on one is its answer.
--- The answer is kept here rather than as a label_validation row because the examples are picked for being commonly
--- mistaken, so counting beginners' Agrees would vote a known-wrong label back to correct. The reason is copied from
--- the pin at serve time, so the record stays true if the pin later changes, and the row outlives the pin for the same
--- reason, hence the FK to label rather than gold_example. A deleted mission (account clean-up, a spec's teardown)
--- takes its serve record with it, as it does the mission's votes.
-CREATE TABLE gold_example_response (
-  gold_example_response_id SERIAL PRIMARY KEY,
-  label_id INT NOT NULL REFERENCES label (label_id),
-  user_id TEXT NOT NULL REFERENCES sidewalk_login.sidewalk_user (user_id),
-  mission_id INT NOT NULL REFERENCES mission (mission_id) ON DELETE CASCADE,
-  reason validation_reason NOT NULL,
-  served_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  validation_result validation_option,
-  answer_reason validation_reason,
-  answered_at TIMESTAMPTZ,
-  CONSTRAINT gold_example_response_label_id_user_id_key UNIQUE (label_id, user_id),
-  CONSTRAINT gold_example_response_answer_complete_check CHECK (
-    (validation_result IS NULL AND answered_at IS NULL AND answer_reason IS NULL)
-    OR (validation_result IS NOT NULL AND answered_at IS NOT NULL)
-  )
-);
-ALTER TABLE gold_example_response OWNER TO sidewalk;
--- Validate reads a user's answers on every mission request and vote, and the unique index serves per-label lookups.
-CREATE INDEX gold_example_response_user_id_idx ON gold_example_response (user_id);
--- Read per mission for its tally and for the one-example-per-mission check, and walked by the cascade on delete.
-CREATE INDEX gold_example_response_mission_id_idx ON gold_example_response (mission_id);
+UPDATE label SET tags = ARRAY_REPLACE(tags, 'street has a sidewalk', 'other side has a sidewalk')
+WHERE 'street has a sidewalk' = ANY(tags);
+
+UPDATE label_history SET tags = ARRAY_REPLACE(tags, 'street has a sidewalk', 'other side has a sidewalk')
+WHERE 'street has a sidewalk' = ANY(tags);
+
+UPDATE label_edit
+SET old_tags = ARRAY_REPLACE(old_tags, 'street has a sidewalk', 'other side has a sidewalk'),
+    new_tags = ARRAY_REPLACE(new_tags, 'street has a sidewalk', 'other side has a sidewalk')
+WHERE 'street has a sidewalk' = ANY(old_tags) OR 'street has a sidewalk' = ANY(new_tags);
+
+UPDATE voided_label_history SET tags = ARRAY_REPLACE(tags, 'street has a sidewalk', 'other side has a sidewalk')
+WHERE 'street has a sidewalk' = ANY(tags);
+
+UPDATE voided_label_validation
+SET old_history_tags = ARRAY_REPLACE(old_history_tags, 'street has a sidewalk', 'other side has a sidewalk'),
+    old_tags = ARRAY_REPLACE(old_tags, 'street has a sidewalk', 'other side has a sidewalk'),
+    new_tags = ARRAY_REPLACE(new_tags, 'street has a sidewalk', 'other side has a sidewalk')
+WHERE 'street has a sidewalk' = ANY(old_history_tags)
+  OR 'street has a sidewalk' = ANY(old_tags)
+  OR 'street has a sidewalk' = ANY(new_tags);
+
+UPDATE config
+SET excluded_tags = REPLACE(excluded_tags::text, '"street has a sidewalk"', '"other side has a sidewalk"')::jsonb
+WHERE excluded_tags @> '[{"tag": "street has a sidewalk"}]';
 
 # --- !Downs
-DROP TABLE gold_example_response;
-DROP TABLE gold_example;
+UPDATE config
+SET excluded_tags = REPLACE(excluded_tags::text, '"other side has a sidewalk"', '"street has a sidewalk"')::jsonb
+WHERE excluded_tags @> '[{"tag": "other side has a sidewalk"}]';
+
+UPDATE voided_label_validation
+SET old_history_tags = ARRAY_REPLACE(old_history_tags, 'other side has a sidewalk', 'street has a sidewalk'),
+    old_tags = ARRAY_REPLACE(old_tags, 'other side has a sidewalk', 'street has a sidewalk'),
+    new_tags = ARRAY_REPLACE(new_tags, 'other side has a sidewalk', 'street has a sidewalk')
+WHERE 'other side has a sidewalk' = ANY(old_history_tags)
+  OR 'other side has a sidewalk' = ANY(old_tags)
+  OR 'other side has a sidewalk' = ANY(new_tags);
+
+UPDATE voided_label_history SET tags = ARRAY_REPLACE(tags, 'other side has a sidewalk', 'street has a sidewalk')
+WHERE 'other side has a sidewalk' = ANY(tags);
+
+UPDATE label_edit
+SET old_tags = ARRAY_REPLACE(old_tags, 'other side has a sidewalk', 'street has a sidewalk'),
+    new_tags = ARRAY_REPLACE(new_tags, 'other side has a sidewalk', 'street has a sidewalk')
+WHERE 'other side has a sidewalk' = ANY(old_tags) OR 'other side has a sidewalk' = ANY(new_tags);
+
+UPDATE label_history SET tags = ARRAY_REPLACE(tags, 'other side has a sidewalk', 'street has a sidewalk')
+WHERE 'other side has a sidewalk' = ANY(tags);
+
+UPDATE label SET tags = ARRAY_REPLACE(tags, 'other side has a sidewalk', 'street has a sidewalk')
+WHERE 'other side has a sidewalk' = ANY(tags);
+
+UPDATE tag SET mutually_exclusive_with = 'street has a sidewalk'
+WHERE mutually_exclusive_with = 'other side has a sidewalk';
+UPDATE tag SET tag = 'street has a sidewalk' WHERE tag = 'other side has a sidewalk';
