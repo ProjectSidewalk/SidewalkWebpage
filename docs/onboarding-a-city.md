@@ -265,17 +265,73 @@ its default either way.
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
 - **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches
-  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-regions` later). The retired runbook's
-  hand recipe for it is in the wiki page history linked above, but it predates `street_edge.status`.
+  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-regions` later). Draw the boundary that
+  small instead, and grow it later with the expansion flow below.
+
+## Changing a live city's boundary or regions
+
+A city build numbers its streets 1..N on every run, so **a build is never loaded over a live city**: every label,
+task and mission hangs off a `street_edge_id`. `tools/city/expand_city.py` (#5924) instead reads a fresh build of
+the *new* footprint beside an export of the *live* streets and writes the smallest change that gets from one to the
+other, as one gated SQL transaction with a matching rollback. Live streets keep their ids and geometry and are
+assigned to the new region holding most of their length (never cut at a border: `street_edge_region` is an
+assignment, not geometry, see [`architecture.md`](architecture.md#streets-regions-and-routes)); new streets are
+the stretches of the build no live street covers, numbered after the live city's highest id; regions you name keep
+their ids and take the build's new name and polygon, the rest are inserted. Juneau's 2026-11 split into four regions
+plus the extension to the cruise docks was the first run.
+
+Everything lives in a **workspace**, a `db/onboarding/<name>/` directory named like a city id
+(`juneau-ak-expansion-2026-11`): the imagery scan and the gradient sampler take it as a city, so they run on the
+new streets unmodified and keep their files apart from the city's own.
+
+1. **Inputs.** The new boundary, and a regions file with the final names (the whole footprint, not just the new
+   part). Keep the scripts that drew them beside the city's other inputs, as Juneau does
+   (`db/onboarding/juneau-ak/inputs/make_boundary.py`, `make_regions.py`).
+2. **Build the new footprint** into the workspace, never into the city's own directory:
+   `make build-city-data id=<city> args="--boundary-file … --regions-file … --regions-source '…' --out-dir
+   db/onboarding/<workspace>/build"`. With Overpass down, add `--osm-xml <file>` and point it at an extract from
+   `https://api.openstreetmap.org/api/0.6/map?bbox=W,S,E,N` for a box around the boundary (plus 50 m); the build
+   then reads the file instead. QA the GeoPackage as for a new city.
+3. **Export the live city** from the local copy you rehearse on (`pull-city-to-localhost.sh` in
+   sidewalk-server-tools): `make export-live-city schema=sidewalk_<city> ws=<workspace>`.
+4. **Plan:** `make expand-city args="plan --city-id <city> --workspace <workspace> --build
+   db/onboarding/<workspace>/build/<city>_qa.gpkg --keep-region 1='Downtown & Waterfront' --data-source '…'"`.
+   Every live region must be kept by a `--keep-region` (the tool never deletes one; hide a region with
+   `make reveal-or-hide-regions`). Read `expansion_report.md` and look at `expansion_plan.gpkg` in QGIS: a street
+   on a border goes to whichever region has more of it, a flagged street needs a look, and a new street that
+   *continues* a live one has its end snapped onto it.
+5. **Scan and sample the new streets** with the workspace as the city id: `make check-imagery id=<workspace>
+   args="--mapillary"` (or `--gsv`), then `make street-gradient id=<workspace> args="--source usgs-3dep-10m"` (or
+   the city's DEM; the workspace has no `cityparams` entry, so name the source).
+6. **Emit:** `make expand-city args="emit --workspace <workspace> --schema sidewalk_<city>
+   [--expect-label-count N]"` writes `expansion.sql`, `rollback.sql` and `SHA256SUMS`. A bare `psql -f` run is a
+   dry run that prints every step and rolls back; `-v apply=1` commits. The script first asserts the live state the
+   plan was made against (street count and ids, a fingerprint of every geometry, the region names) and copies every
+   table it changes into `sidewalk_<city>_bak_<year>_<month>`; streets the scan found no imagery on are inserted
+   and hidden as `no_imagery` the way the onboarding scan hides them (the nightly poll files them as reopen
+   candidates once imagery appears). Missions and users' current regions follow the streets they worked on;
+   `region_completion` is truncated (it re-initialises itself only when empty); the map centre, bounds and zoom
+   are recomputed as `fill-new-schema.sh` sets them.
+7. **Rehearse on localhost** with the app running: dry run, apply, check the landing page, LabelMap and an Explore
+   session on a new street (`/explore/session?regionId=…&streetEdgeId=…`), the public API (`/v3/api/regions`,
+   `/v3/api/streets`, `/v3/api/rawLabels` count unchanged), then `rollback.sql` dry run and apply, and apply again.
+   The same three files then go to the test stage and, after sign-off, prod, each with a `pg_dump -n` of the schema
+   first; `sha256sum -c SHA256SUMS` on the server proves they are the files reviewed.
+8. **After applying, on every stage:** Admin → Management → *Clear Play cache* (map parameters, the open status
+   and the tutorial street are cached without a TTL) and *Refresh basemap* (the archive is cut from the regions'
+   extent). The next night's jobs fetch the new streets' `osm_way` rows, rebuild intersections and clustering, and
+   take the AccessScore snapshot; until then those read the old footprint. Keep the backup schema until the city
+   has been looked at and the auto-labeler has run on the new streets, then `DROP SCHEMA … CASCADE`.
+
+`rollback.sql` restores from the backup schema and refuses once anything references a new street (a label, task,
+route, issue or comment): past that point undoing the change is a decision, not a rollback.
 
 ## Re-running, and doing it by hand
 
 Every step is idempotent: `make onboard-city` skips a registered city, an existing schema (unless you say drop, or
 pass `--recreate`), applied evolutions, a filled schema, and an imported scan. `args="--dump-only"` goes straight
 to the dump step, so a city that was QA'd after its first dump never has to pass the "drop and recreate?" question
-again. To redo the
-streets after launch, the wiki's "Adding new road geometries" flow still applies — this tooling is for the first
-import.
+again. This tooling is for the first import; growing or re-dividing a live city is the next section.
 
 The equivalent manual sequence, for a hand-made QGIS export or a partial rerun:
 

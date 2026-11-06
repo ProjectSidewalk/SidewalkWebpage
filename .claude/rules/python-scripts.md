@@ -30,3 +30,5 @@ and `test/python/README.md`.
   retries, exit 75 for "stop and resume later"). Stdlib + `requests` on purpose, so it has no geo dependency; anything
   needing shapely stays in the scripts that already import it (the tiling is in `backfill_osm_lineage.py`).
 - `street_gradient.py` fills the `street_gradient` table from a bare-earth elevation model (`docs/street-gradient.md`).
+- `expand_city.py` changes a live city's footprint in place (#5924): never load a build over a live city, since a
+  build renumbers its streets. Runbook: `docs/onboarding-a-city.md` → "Changing a live city's boundary or regions".

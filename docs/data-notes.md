@@ -9,6 +9,15 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ## Data caveats by release
 
+### Juneau (`juneau-ak`), 2026-11 — one region became four, and the city grew south (#5924)
+
+Juneau launched in October 2026 as a single region ("Juneau", `region_id` 1, streets 1–240 plus the tutorial
+street 2173). In November the boundary was extended south to the cruise-ship docks and the city divided into
+*Downtown & Waterfront* (still `region_id` 1), *Highlands & Evergreen Bowl*, *Starr Hill & Chicken Ridge* and *The
+Flats*. Streets kept their ids and geometry and were reassigned by the region holding most of their length, so a
+label's `region_id` in the API can differ from the one it was collected under; missions were refiled the same way.
+Streets from 2174 are the extension, added by `tools/city/expand_city.py`; they have no labels before November 2026.
+
 ### Visit-only anonymous accounts were deleted (#5612)
 
 Until v11.8.0, opening any page made an anonymous account. The roughly 5.3 million that never did anything and never

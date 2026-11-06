@@ -106,6 +106,7 @@ import logging
 import re
 import sys
 import time
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict, namedtuple
 from math import cos, radians
 from datetime import datetime, timezone
@@ -222,6 +223,52 @@ def build_osm_filters(include_alleys=False):
     if include_alleys:
         filters.append('["highway"="service"]["service"="alley"]')
     return filters
+
+
+def way_matches_filter(tags, include_alleys=False):
+    """
+    Whether an OSM way's tags pass :func:`build_osm_filters`, for a build that reads an XML extract instead of
+    asking Overpass (``--osm-xml``). The two must agree, so a test holds them to the same way types.
+
+    Args:
+        tags:           ``{key: value}`` of the way.
+        include_alleys: As for :func:`build_osm_filters`.
+    """
+    highway = tags.get('highway')
+    if highway in DEFAULT_WAY_TYPES and tags.get('area') != 'yes':
+        return True
+    return include_alleys and highway == 'service' and tags.get('service') == 'alley'
+
+
+def filter_osm_xml(source, target, include_alleys=False):
+    """
+    Writes the ways of an OSM XML extract that pass :func:`way_matches_filter`, with the nodes they use, to
+    ``target``: what Overpass would have answered the street-graph query with. osmnx's XML reader takes a file and
+    builds a graph of *every* way in it, so the filter has to run on the file first.
+
+    Args:
+        source:         An OSM 0.6 XML file (``api.openstreetmap.org/api/0.6/map?bbox=…`` writes one).
+        target:         Where the trimmed file goes.
+        include_alleys: As for :func:`build_osm_filters`.
+
+    Returns:
+        The number of ways kept.
+    """
+    tree = ET.parse(source)
+    root = tree.getroot()
+    kept_nodes, kept = set(), 0
+    for way in list(root.findall('way')):
+        tags = {tag.get('k'): tag.get('v') for tag in way.findall('tag')}
+        if way_matches_filter(tags, include_alleys):
+            kept += 1
+            kept_nodes.update(nd.get('ref') for nd in way.findall('nd'))
+        else:
+            root.remove(way)
+    for element in list(root):
+        if element.tag == 'relation' or (element.tag == 'node' and element.get('id') not in kept_nodes):
+            root.remove(element)
+    tree.write(target, encoding='utf-8', xml_declaration=True)
+    return kept
 
 
 def as_id_list(value):
@@ -1279,6 +1326,11 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m, policy=RetryPol
     graph = call_with_retry(attempt, 'street graph', policy, **retry_kwargs)
     if watch.cut_short:
         raise RuntimeError(f'Overpass cut the street fetch short ({watch.remark}); run the build again later.')
+    return edges_from_graph(ox, graph)
+
+
+def edges_from_graph(ox, graph):
+    """The street-edge frame :func:`fetch_streets` returns, from a simplified osmnx graph."""
     graph = ox.convert.to_undirected(graph)
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
@@ -1287,6 +1339,42 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m, policy=RetryPol
     tags = [edges[tag] if tag in edges.columns else [None] * len(edges) for tag in STRUCTURE_TAGS]
     edges['is_structure'] = [is_structure_tag(*values) for values in zip(*tags)]
     return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
+
+
+def streets_from_xml(xml_path, boundary_poly, include_alleys, fetch_buffer_m, work_dir):
+    """
+    :func:`fetch_streets` from a local OSM XML extract instead of Overpass (``--osm-xml``), for when Overpass is
+    down or the build must be reproducible from a file. The steps are osmnx's own ``graph_from_polygon`` in the
+    same order: build the graph from the filtered ways, simplify, then cut to the fetch area keeping the edges that
+    cross it. The extract has to cover the fetch area (the boundary plus ``fetch_buffer_m``); the OSM API's
+    ``map?bbox=`` call returns every way touching the box whole, so a box around that area does.
+
+    Args:
+        xml_path:       The extract.
+        boundary_poly:  Shapely (Multi)Polygon of the city, in lon/lat.
+        include_alleys: As for :func:`fetch_streets`.
+        fetch_buffer_m: As for :func:`fetch_streets`.
+        work_dir:       Where the filtered copy of the extract is written (``osm_streets.xml``).
+
+    Raises:
+        ValueError: when the extract's bounds do not cover the fetch area.
+    """
+    ox = _osmnx()
+    area = fetch_area(boundary_poly, fetch_buffer_m)
+    bounds = ET.parse(xml_path).getroot().find('bounds')
+    if bounds is not None:
+        covered = shapely.box(float(bounds.get('minlon')), float(bounds.get('minlat')), float(bounds.get('maxlon')),
+                              float(bounds.get('maxlat')))
+        if not covered.covers(area):
+            raise ValueError(f'{xml_path} covers {covered.bounds}, not the whole fetch area {area.bounds}; fetch a '
+                             'larger extract.')
+    filtered = Path(work_dir) / 'osm_streets.xml'
+    kept = filter_osm_xml(xml_path, filtered, include_alleys)
+    logger.info('Kept %d street ways of %s in %s', kept, xml_path, filtered)
+    graph = ox.graph_from_xml(filtered, bidirectional=False, simplify=False, retain_all=True)
+    graph = ox.simplify_graph(graph)
+    graph = ox.truncate.truncate_graph_polygon(graph, area, truncate_by_edge=True)
+    return edges_from_graph(ox, graph)
 
 
 def drop_unreadable_cache(folder, since):
@@ -1339,12 +1427,9 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
                       area with streets in it with no way at all (an instance without this region).
         ValueError: when ``way_types`` is none of those three.
     """
-    if way_types not in ('streets', 'alleys', 'any'):
-        raise ValueError(f'way_types must be streets, alleys or any, not {way_types!r}')
+    highways = way_type_tags(way_types)
     ox = _osmnx(request_timeout_s, memory_mb, overpass_url)
     watch = remark_watch(ox)
-    highways = list(ALL_WAY_TYPES) if way_types == 'any' else \
-        list(DEFAULT_WAY_TYPES) + (['service'] if way_types == 'alleys' else [])
     limits = [request_timeout_s, memory_mb]
 
     def cached():
@@ -1395,8 +1480,21 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
         raise RuntimeError(f'Overpass gave no whole answer in three tries ({reason}): run again with a larger '
                            f'--request-timeout-s and --request-memory-mb, or a smaller --tile-km2.')
 
+    return ways_frame(fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs), way_types)
+
+
+def way_type_tags(way_types):
+    """The ``highway`` values asked for, as :func:`fetch_ways` reads ``way_types``."""
+    if way_types not in ('streets', 'alleys', 'any'):
+        raise ValueError(f'way_types must be streets, alleys or any, not {way_types!r}')
+    return list(ALL_WAY_TYPES) if way_types == 'any' else \
+        list(DEFAULT_WAY_TYPES) + (['service'] if way_types == 'alleys' else [])
+
+
+def ways_frame(feature_frames, way_types):
+    """The way frame :func:`fetch_ways` returns, from the osmnx feature frames of each area asked."""
     ways, highway = {}, {}
-    for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
+    for features in feature_frames:
         if way_types == 'alleys' and 'highway' in features.columns:
             # Without the service column no way in the tile says what kind of service road it is, so none is an alley.
             is_alley = features['service'] == 'alley' if 'service' in features.columns else False
@@ -1406,6 +1504,13 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
     return gpd.GeoDataFrame({'osm_way_id': list(ways),
                              'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways]},
                             geometry=list(ways.values()), crs='EPSG:4326')
+
+
+def ways_from_xml(xml_path, polygon, way_types):
+    """:func:`fetch_ways` from a local OSM XML extract (``--osm-xml``): the ways of the asked types touching ``polygon``."""
+    ox = _osmnx()
+    features = ox.features_from_xml(xml_path, polygon=polygon, tags={'highway': way_type_tags(way_types)})
+    return ways_frame([features], way_types)
 
 
 LineageStats = namedtuple('LineageStats', 'matched partial unmatched flagged')
@@ -2070,7 +2175,8 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         f'# City onboarding report — {args.city_id}',
         '',
         f'- Generated: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")} by `tools/city/onboard_city.py`',
-        f'- Source: {args.place or args.boundary_file or args.from_gpkg}',
+        f'- Source: {args.place or args.boundary_file or args.from_gpkg}'
+        + (f' (streets from the OSM XML extract `{args.osm_xml}`, not Overpass)' if getattr(args, 'osm_xml', None) else ''),
         f'- Region source: {region_source}',
         f'- Streets: **{len(roads)}** segments, **{total_km:.1f} km** total (geodesic), median '
         f'**{street_stats.median_m:.0f} m** per street',
@@ -2216,6 +2322,10 @@ def parse_args(argv=None):
                              '(default: 10000 m² = 1 ha).')
     parser.add_argument('--max-region-street-km', type=float, default=60,
                         help='Flag regions with more street-km than this as oversized (default: 60).')
+    parser.add_argument('--osm-xml', help='Build from this OSM XML extract instead of asking Overpass (for when '
+                                          'Overpass is down, or a build that must be reproducible from a file): the '
+                                          'answer to api.openstreetmap.org/api/0.6/map?bbox=W,S,E,N for a box around '
+                                          'the boundary plus --fetch-buffer-m. Fetch runs only.')
     parser.add_argument('--out-dir', help='Output directory (default: db/onboarding/<city-id>/, so the SQL file is '
                                           'visible inside the db container under /opt; with --from-gpkg, the '
                                           'GeoPackage\'s own directory).')
@@ -2236,6 +2346,8 @@ def parse_args(argv=None):
         args.single_region_name = args.single_region_name.strip()
         if not args.single_region_name:
             parser.error('--single-region-name needs an actual name.')
+    if args.from_gpkg and args.osm_xml:
+        parser.error('--osm-xml needs a fetch run (--place/--boundary-file): a re-export fetches nothing.')
     if args.from_gpkg and args.merge_regions:
         parser.error('--merge-regions needs a fetch run (--place/--boundary-file): streets must be re-assigned and '
                      're-healed against the merged boundaries, which a re-export cannot do.')
@@ -2415,9 +2527,14 @@ def main(argv=None):
     # Provenance rides in the staging data itself, so fill-new-schema.sh needs no data-source input.
     regions['data_source'] = region_source
 
-    streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
+    way_types = 'alleys' if args.include_alleys else 'streets'
+    if args.osm_xml:
+        streets = streets_from_xml(args.osm_xml, boundary_poly, args.include_alleys, args.fetch_buffer_m, out_dir)
+        ways = ways_from_xml(args.osm_xml, fetch_area(boundary_poly, args.fetch_buffer_m), way_types)
+    else:
+        streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
+        ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], way_types)
     logger.info('OSM street edges fetched: %d', len(streets))
-    ways = fetch_ways([fetch_area(boundary_poly, args.fetch_buffer_m)], 'alleys' if args.include_alleys else 'streets')
     logger.info('OSM ways fetched: %d', len(ways))
     streets, n_tier1_merged = merge_tiny_same_way(streets, args.merge_tiny_m)
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',

@@ -112,6 +112,11 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   constraint (evolution 422, #5691) keeps every street that isn't `disabled` at least 1 m long. Disabled streets can
   still be shorter, and queries that read every status (the intersection rebuild, route distances) can meet one, so a
   route must include at least one street that isn't disabled.
+- **A live city's footprint changes in place, never by reloading a build.** A build renumbers its streets, so
+  growing a city or redrawing its regions goes through `tools/city/expand_city.py` (#5924): live streets keep
+  their ids and are reassigned to the region holding most of their length, new streets get ids after the highest
+  live one, kept regions keep their ids under a new name and polygon. The runbook is in
+  [`docs/onboarding-a-city.md`](onboarding-a-city.md#changing-a-live-citys-boundary-or-regions).
 - **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
   pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
   direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our

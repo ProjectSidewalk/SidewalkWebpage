@@ -2002,3 +2002,128 @@ def test_prepare_regions_keeps_same_named_source_polygons_apart(caplog):
     assert list(regions['region_id']) == [1, 2]
     assert any('appears 2 times' in record.message for record in caplog.records)
     assert oc.disambiguate_names(['a', 'b', 'a', 'a']) == ['a', 'b', 'a (2)', 'a (3)']
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# --osm-xml: a build from a local OSM extract instead of Overpass
+# --------------------------------------------------------------------------------------------------------------------
+
+_OSM_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+ <bounds minlat="-0.01" minlon="-0.01" maxlat="0.02" maxlon="0.03"/>
+ <node id="1" lat="0.005" lon="0.000" version="1"/>
+ <node id="2" lat="0.005" lon="0.010" version="1"/>
+ <node id="3" lat="0.005" lon="0.020" version="1"/>
+ <node id="4" lat="0.000" lon="0.010" version="1"/>
+ <node id="5" lat="0.009" lon="0.010" version="1"/>
+ <node id="6" lat="0.009" lon="0.012" version="1"/>
+ <node id="7" lat="0.009" lon="0.014" version="1"/>
+ <way id="100" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><tag k="highway" v="residential"/>
+  <tag k="bridge" v="viaduct"/><tag k="name" v="Main"/></way>
+ <way id="101" version="1"><nd ref="2"/><nd ref="4"/><tag k="highway" v="footway"/></way>
+ <way id="102" version="1"><nd ref="5"/><nd ref="6"/><nd ref="7"/><nd ref="5"/><tag k="highway" v="pedestrian"/>
+  <tag k="area" v="yes"/></way>
+ <way id="103" version="1"><nd ref="2"/><nd ref="5"/><tag k="highway" v="service"/><tag k="service" v="alley"/></way>
+ <relation id="9" version="1"><member type="way" ref="100" role=""/><tag k="type" v="route"/></relation>
+</osm>
+"""
+
+
+def test_way_matches_filter_agrees_with_the_overpass_filter():
+    for way_type in oc.DEFAULT_WAY_TYPES:
+        assert oc.way_matches_filter({'highway': way_type})
+        assert way_type in oc.build_osm_filters()[0]
+    assert not oc.way_matches_filter({'highway': 'residential', 'area': 'yes'})
+    assert not oc.way_matches_filter({'highway': 'footway'}) and not oc.way_matches_filter({'building': 'yes'})
+    assert not oc.way_matches_filter({'highway': 'service', 'service': 'alley'})
+    assert oc.way_matches_filter({'highway': 'service', 'service': 'alley'}, include_alleys=True)
+    assert not oc.way_matches_filter({'highway': 'service', 'service': 'parking_aisle'}, include_alleys=True)
+
+
+def test_filter_osm_xml_keeps_the_street_ways_and_their_nodes(tmp_path):
+    source = tmp_path / 'map.xml'
+    source.write_text(_OSM_XML)
+    assert oc.filter_osm_xml(source, tmp_path / 'streets.xml') == 1
+    import xml.etree.ElementTree as ET
+    root = ET.parse(tmp_path / 'streets.xml').getroot()
+    assert [way.get('id') for way in root.findall('way')] == ['100']
+    assert sorted(node.get('id') for node in root.findall('node')) == ['1', '2', '3']
+    assert root.findall('relation') == [] and root.find('bounds') is not None
+    assert oc.filter_osm_xml(source, tmp_path / 'alleys.xml', include_alleys=True) == 2
+
+
+def _real_osmnx(monkeypatch, tmp_path):
+    """
+    Points the lazily imported osmnx at the real module with its cache under tmp_path, and puts every osmnx setting
+    (and the relation-geometry patch) back afterwards: test_overpass.py reads the module's defaults.
+    """
+    import osmnx  # The real one, which the fake-installing tests leave untouched.
+    for name in dir(osmnx.settings):
+        if not name.startswith('_'):
+            monkeypatch.setattr(osmnx.settings, name, getattr(osmnx.settings, name))
+    monkeypatch.setattr(osmnx.features, '_build_relation_geometry', osmnx.features._build_relation_geometry)
+    monkeypatch.setattr(oc, 'REPO_ROOT', tmp_path)
+
+
+def test_streets_from_xml_builds_the_simplified_street_graph(tmp_path, monkeypatch):
+    _real_osmnx(monkeypatch, tmp_path)
+    source = tmp_path / 'map.xml'
+    source.write_text(_OSM_XML)
+    boundary = Polygon([(-0.001, -0.001), (0.021, -0.001), (0.021, 0.015), (-0.001, 0.015)])
+    streets = oc.streets_from_xml(source, boundary, False, 50, tmp_path)
+    assert list(streets.columns) == ['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']
+    assert len(streets) == 1 and list(streets['osm_ids']) == [[100]] and list(streets['highway']) == ['residential']
+    assert list(streets['is_structure']) == [True]
+    assert len(streets.geometry.iloc[0].coords) == 3  # The mid node is no junction, so simplification kept it inline.
+    assert (tmp_path / 'osm_streets.xml').exists()
+    # The alley joins the street at node 2, which then is a junction and splits it.
+    streets = oc.streets_from_xml(source, boundary, True, 50, tmp_path)
+    assert sorted(len(ids) for ids in streets['osm_ids']) == [1, 1, 1]
+    far_away = Polygon([(0.5, 0.5), (0.6, 0.5), (0.6, 0.6), (0.5, 0.6)])
+    with pytest.raises(ValueError, match='not the whole fetch area'):
+        oc.streets_from_xml(source, far_away, False, 50, tmp_path)
+    # Without a <bounds> element the extent is taken on trust.
+    source.write_text(_OSM_XML.replace('<bounds minlat="-0.01" minlon="-0.01" maxlat="0.02" maxlon="0.03"/>', ''))
+    assert len(oc.streets_from_xml(source, boundary, False, 50, tmp_path)) == 1
+
+
+def test_ways_from_xml_returns_the_asked_way_types_in_the_area(tmp_path, monkeypatch):
+    _real_osmnx(monkeypatch, tmp_path)
+    source = tmp_path / 'map.xml'
+    source.write_text(_OSM_XML)
+    area = Polygon([(-0.001, -0.001), (0.021, -0.001), (0.021, 0.015), (-0.001, 0.015)])
+    ways = oc.ways_from_xml(source, area, 'streets')
+    assert list(ways['osm_way_id']) == [100] and list(ways['highway']) == ['residential']
+    assert len(ways.geometry.iloc[0].coords) == 3
+    ways = oc.ways_from_xml(source, area, 'alleys')
+    assert sorted(ways['osm_way_id']) == [100, 103]
+    with pytest.raises(ValueError, match='streets, alleys or any'):
+        oc.way_type_tags('driveways')
+
+
+def test_parse_args_osm_xml_needs_a_fetch_run():
+    assert oc.parse_args(['--city-id', 'x', '--place', 'a', '--osm-xml', 'map.xml']).osm_xml == 'map.xml'
+    with pytest.raises(SystemExit):
+        oc.parse_args(['--city-id', 'x', '--from-gpkg', 'b.gpkg', '--osm-xml', 'map.xml'])
+
+
+def test_main_builds_from_an_extract_when_asked(tmp_path, monkeypatch):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    seen = {}
+
+    def streets_from_xml(xml_path, poly, alleys, buffer_m, work_dir):
+        seen['xml'], seen['work_dir'] = xml_path, work_dir
+        return _streets_gdf([[(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]])
+
+    def ways_from_xml(xml_path, polygon, way_types):
+        seen['way_types'] = way_types
+        return _ways_gdf([[(0.002, 0.005), (0.008, 0.005)], [(0.005, 0.002), (0.015, 0.002)]])
+
+    monkeypatch.setattr(oc, 'streets_from_xml', streets_from_xml)
+    monkeypatch.setattr(oc, 'ways_from_xml', ways_from_xml)
+    monkeypatch.setattr(oc, 'fetch_streets', lambda *args: pytest.fail('Overpass was asked'))
+    monkeypatch.setattr(oc, 'fetch_ways', lambda *args: pytest.fail('Overpass was asked'))
+    oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path), '--osm-xml',
+             'map.xml', '--include-alleys'])
+    assert seen == {'xml': 'map.xml', 'work_dir': tmp_path, 'way_types': 'alleys'}
+    assert 'streets from the OSM XML extract `map.xml`, not Overpass' in (tmp_path / 'report.md').read_text()

@@ -5,6 +5,7 @@
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
+        export-live-city expand-city \
         export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
@@ -301,6 +302,22 @@ import-street-gradient:
 
 # A live city's OSM way positions (#5741), in the gradient's three steps: export the streets, match them against today's
 # OSM (tools/city/backfill_osm_lineage.py, in the web container), import. Main checkout only, like the gradient.
+# Change a live city's boundary or regions in place (#5924, docs/onboarding-a-city.md → "Changing a live city's
+# boundary or regions"). `export-live-city` writes the live streets and regions of schema= into
+# db/onboarding/<ws>/ (the workspace: a kebab-case name like a city id, e.g. juneau-ak-expansion-2026-11, so the
+# imagery scan and the gradient sampler can run on it as if it were a city). `expand-city` runs
+# tools/city/expand_city.py in the web container: `args="plan ..."` works out the delta against a fresh
+# `make build-city-data` of the new footprint, `args="emit ..."` writes the gated expansion.sql and rollback.sql.
+# Main checkout only, like build-city-data.
+export-live-city:
+	@test -n "$(schema)" -a -n "$(ws)" || { echo "usage: make export-live-city schema=sidewalk_<city> ws=<workspace>"; exit 1; }
+	@mkdir -p db/onboarding/$(ws)
+	@docker exec $(db-container) psql -X -v ON_ERROR_STOP=1 -U $(schema) -d sidewalk -c "\\copy (SELECT street_edge_id, status, way_type, region_id, street_edge_id = (SELECT tutorial_street_edge_id FROM config) AS is_tutorial, md5(ST_AsBinary(geom)) AS geom_md5, encode(ST_AsEWKB(geom), 'hex') AS geom FROM street_edge JOIN street_edge_region USING (street_edge_id) ORDER BY street_edge_id) TO '/opt/onboarding/$(ws)/live_streets.csv' WITH (FORMAT csv, HEADER true)" -c "\\copy (SELECT region_id, name, deleted FROM region ORDER BY region_id) TO '/opt/onboarding/$(ws)/live_regions.csv' WITH (FORMAT csv, HEADER true)"
+	@echo "Wrote db/onboarding/$(ws)/live_streets.csv and live_regions.csv"
+
+expand-city:
+	@docker exec $(web-container) sh -c "cd /home && python3 tools/city/expand_city.py $(args)"
+
 export-osm-lineage-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-osm-lineage-input.sh $(args)"
 
