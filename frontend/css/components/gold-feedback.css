@@ -40,9 +40,6 @@
 }
 
 /* No crop on disk: the text takes the whole dialog rather than leaving an empty column. */
-.gold-feedback__image[hidden] {
-  display: none;
-}
 
 .gold-feedback[open]:has(.gold-feedback__image[hidden]) {
   grid-template-columns: minmax(0, 1fr);

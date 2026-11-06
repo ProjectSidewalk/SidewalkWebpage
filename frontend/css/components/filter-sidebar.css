@@ -649,10 +649,6 @@ body.filter-sidebar-resizing {
   padding: 4px 0 8px 27px; /* Left inset lines pills up under the row's name (18px icon + 9px gap). */
 }
 
-.filter-sidebar__tag-pills[hidden] {
-  display: none;
-}
-
 .filter-sidebar__tag-pills:not([hidden]) {
   display: flex;
 }

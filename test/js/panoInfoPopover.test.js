@@ -315,7 +315,7 @@ describe('PanoInfoPopover', () => {
       build();
       button().click();
 
-      expect(viewLink().style.display).toBe('none');
+      expect(viewLink().hidden).toBe(true);
       expect(copy()).not.toContain('pano-url');
     });
   });

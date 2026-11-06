@@ -10,10 +10,6 @@
  * Scoped under `.label-detail` so nothing here leaks into the pages that host the card.
  */
 
-/* Many of the card's elements carry their own display: flex/inline-flex, which would beat the UA stylesheet's
-   `[hidden] { display: none }` regardless of specificity. One guard so every hidden-toggled element actually hides. */
-.label-detail [hidden] { display: none !important; }
-
 .label-detail {
   box-sizing: border-box;
   width: 650px;
@@ -123,7 +119,7 @@ dialog.label-detail[open]::backdrop {
   height: 14px;
 }
 
-/* Delete (#3591): grey at rest, a muted red only on hover. The [hidden] rule beats display: inline-flex. */
+/* Delete (#3591): grey at rest, a muted red only on hover. */
 .label-detail__delete {
   display: inline-flex;
   align-items: center;
@@ -138,10 +134,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-700);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.label-detail__delete[hidden] {
-  display: none;
 }
 
 .label-detail__delete:not([aria-disabled="true"]):hover {
@@ -188,10 +180,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-white);
   font: var(--text-caption-medium);
   white-space: nowrap;
-}
-
-.label-detail__deleted-notice[hidden] {
-  display: none;
 }
 
 .label-detail__restore {
@@ -465,10 +453,6 @@ dialog.label-detail[open]::backdrop {
   transition: opacity 120ms ease;
 }
 
-/* display: inline-flex above outranks the UA's [hidden] rule, and this panel is not always a .label-detail
-   descendant, so it can't lean on the !important guard at the top of this file. */
-.pano-not-avail__cta[hidden] { display: none; }
-
 .pano-not-avail__cta:hover { opacity: 0.9; }
 
 .pano-not-avail__cta:focus-visible {
@@ -477,8 +461,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 /* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons.
-   Hidden outright on the viewer's own label (#5047); the card-wide `.label-detail [hidden]` guard at the top of
-   this file is what makes that stick against the display: flex below. */
+   Hidden outright on the viewer's own label (#5047). */
 .label-detail__pano-overlay {
   position: absolute;
   left: 0;
@@ -655,7 +638,6 @@ button.label-detail__meta-cell:focus-visible {
 /* The lone action at the row's right edge, apart from the fact cluster. */
 .label-detail__meta-cell--details { margin-left: auto; }
 
-
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. The (i) is the "value" of
    the Details: control; the size hook main.css's `#pano-info-button` rule exposes fits it to the text line. */
 .label-detail__info-button-host {
@@ -696,7 +678,6 @@ button.label-detail__meta-cell:focus-visible {
   flex: 1 1 0;
   min-width: 120px;
 }
-
 
 /* Vote counts, display only (Figma "LabelMap-Redesign" frame 537:17); voting lives on the pano's hover overlay. */
 .label-detail__vote-display {
@@ -941,17 +922,13 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: -2px;
 }
 
-/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save.
-   The explicit [hidden] rule is required: a `display` here would otherwise beat the UA stylesheet's `[hidden]` and
-   leave an empty line holding space whenever there is nothing to announce. */
+/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save. */
 .label-detail__comment-confirmation {
   display: block;
   margin-bottom: 6px;
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
 }
-
-.label-detail__comment-confirmation[hidden] { display: none; }
 
 /* A failed save or delete is the one outcome the reader has to act on, so it doesn't wear the success green. */
 .label-detail__comment-confirmation.is-error { color: var(--color-orange-700); }
@@ -1184,10 +1161,6 @@ button.label-detail__meta-cell:focus-visible {
   transition: opacity 150ms ease;
 }
 
-/* The display: flex above outranks the browser's own [hidden] rule, which would leave arrows that do nothing showing
-   on hover before the host hands over its label list. */
-.label-detail__paging[hidden] { display: none; }
-
 .label-detail__pano-wrap:hover .label-detail__paging,
 .label-detail__paging:focus-visible {
   opacity: 1;
@@ -1261,7 +1234,6 @@ button.label-detail__meta-cell:focus-visible {
   }
 }
 
-
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
 .label-detail__footer {
@@ -1325,10 +1297,8 @@ button.label-detail__meta-cell:focus-visible {
   }
 }
 
-
 /* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
-   the share pill. Hidden until LabelDetail fills the href (hosts opt in) — explicit so the attribute beats
-   display: inline-flex. */
+   the share pill. Hidden until LabelDetail fills the href (hosts opt in). */
 .label-detail__labelmap-link,
 .label-detail__explore-link {
   display: inline-flex;
@@ -1413,8 +1383,6 @@ button.label-detail__meta-cell:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.label-detail__stories-count[hidden] { display: none; }
-
 /* Outline CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green already
    means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. Rounded rect
    rather than a round pill, so it reads as a button and not as one of the tags a few rows up — see share-widget.css
@@ -1440,8 +1408,6 @@ button.label-detail__meta-cell:focus-visible {
   height: 15px;
   display: block;
 }
-
-.label-detail__story-share[hidden] { display: none; }
 
 .label-detail__story-share:hover { background: var(--color-neutral-100); }
 
@@ -1748,8 +1714,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   color: var(--color-asphalt-400);
 }
 
-.story-composer__photo-attach[hidden] { display: none; }
-
 .story-composer__photo-icon {
   width: 16px;
   height: 16px;
@@ -1771,8 +1735,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   gap: 12px;
   align-items: flex-start;
 }
-
-.story-composer__photo-preview[hidden] { display: none; }
 
 .story-composer__photo-thumb {
   width: 120px;
@@ -1808,8 +1770,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   font-weight: 400;
   font-size: 13px;
 }
-
-.story-composer__check-row[hidden] { display: none; }
 
 .story-composer__check-row input { margin-top: 2px; }
 

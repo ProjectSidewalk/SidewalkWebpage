@@ -246,9 +246,7 @@ export class PanoInfoPopover {
       pitch: currPov.pitch,
       center: /** @type {MapillaryViewer} */ (viewer).currCenter, // Only Mapillary tracks one; undefined elsewhere.
     });
-    // Inline style, not the hidden attribute: the .pano-info-popover__view-link rule sets display: block, which
-    // outranks the browser's own [hidden] rule.
-    viewLink.style.display = link ? '' : 'none';
+    viewLink.hidden = !link;
     if (link) {
       viewLink.onclick = this.#viewPanoLogging;
       viewLink.href = link.url;

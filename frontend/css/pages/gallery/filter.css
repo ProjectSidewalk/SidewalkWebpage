@@ -86,12 +86,6 @@
   gap: 4px;
 }
 
-/* .button sets `display: inline-flex`, which outranks the browser's `[hidden] { display: none }`, so the button
-   would stay on screen while no filter is applied without this. */
-#clear-filters[hidden] {
-  display: none;
-}
-
 /* Mobile disclosure toggle standing in for the "Filter By" heading; shown only under the shell breakpoint. */
 .gallery-filter-toggle {
   display: none;

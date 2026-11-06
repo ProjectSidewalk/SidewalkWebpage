@@ -128,7 +128,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
     expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv');
   });
@@ -140,7 +140,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
   });
 
@@ -154,7 +154,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     activeViewer = makePannellumViewer();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
   });
 
@@ -162,13 +162,13 @@ describe('PanoInfoPopover view-in-pano link', () => {
     activeViewer = makePannellumViewer();
     buildPopover();
     openPopover();
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     closePopover();
 
     activeViewer = makeGsvViewer();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
   });
 
@@ -181,7 +181,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
     expect(activeViewer.publicViewerLink).not.toHaveBeenCalled();
   });
@@ -191,7 +191,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
   });
 

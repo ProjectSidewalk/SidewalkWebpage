@@ -63,11 +63,6 @@
   display: none;
 }
 
-/* Its display would otherwise override the hidden attribute it starts with, covering a working map. */
-#minimap-unavailable-message[hidden] {
-  display: none;
-}
-
 #minimap-unavailable-message {
   position: absolute;
   inset: 0;
@@ -573,7 +568,6 @@
   box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
 }
 
-
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. The marker
    centers it on the location and it rotates about that center, so the dot stays planted while the triangle swings to
    --peg-heading (#4639). */
@@ -765,10 +759,6 @@
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
   border-radius: calc(7px * var(--ui-scale, 1));
-}
-
-#minimap-recenter[hidden] {
-  display: none;
 }
 
 #minimap-recenter .ps-icon-button-icon {
