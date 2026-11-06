@@ -299,10 +299,10 @@ export class PanoViewer {
    * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
    * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
    * @param {{lat: number, lng: number}} _latLng - The location the next move is expected to target.
-   * @param {Set<PanoData>} [_excludedPanos] - Panos the next move is expected to exclude.
+   * @param {Set<PanoData>} _excludedPanos - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
-  async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+  async preloadPanoNear(_latLng, _excludedPanos) {}
 
   /**
    * Starts downloading a pano the page expects to show soon, without moving to it, so the later setPano() finds it

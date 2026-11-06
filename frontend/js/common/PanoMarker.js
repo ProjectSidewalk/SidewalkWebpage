@@ -137,6 +137,8 @@ export class PanoMarker {
    * Draws the marker on the canvas.
    */
   draw = function () {
+    // A viewer loops over a copy of its pov listeners, awaiting each, so one removed partway through still gets called.
+    if (!this.marker_) return;
     // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
     // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
     const pov = this.panoViewer_.getPov();

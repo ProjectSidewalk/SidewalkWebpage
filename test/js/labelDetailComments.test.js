@@ -572,6 +572,39 @@ describe('the validator comment box (#5015)', () => {
       expect(q('.label-detail__validator-comments').textContent).toContain('kept');
     });
 
+    test('paging away while the delete is being confirmed deletes nothing', async () => {
+      // The label is read before the confirm, so a confirm answered on the next card can't delete that one's comment.
+      const answer = deferred();
+      confirmDialog.confirm = vi.fn(() => answer.promise);
+      await showLabel({ comments: [comment('first card', true)] });
+      await resolveImagery();
+      deleteBtn().click();
+      await showLabel({ label_id: 43, comments: [comment('next card', true)] });
+      panoManager.label = { labelId: 43, label_type: 'Obstacle' };
+      answer.resolve(true);
+      await flush();
+
+      expect(window.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/labelmap/comment/'), expect.anything());
+      expect(q('.label-detail__validator-comments').textContent).toContain('next card');
+    });
+
+    test('paging away while the delete is in flight leaves the next card alone', async () => {
+      const reply = deferred();
+      window.fetch = vi.fn((url) => (String(url).includes('/labelmap/comment/') ? reply.promise
+        : Promise.resolve({ ok: true, json: async () => [] })));
+      await showLabel({ comments: [comment('first card', true)] });
+      await resolveImagery();
+      deleteBtn().click();
+      await flush();
+      await showLabel({ label_id: 43, comments: [comment('next card', true)] });
+      reply.resolve({ ok: true, status: 200, json: async () => ({ deleted: 1 }) });
+      await flush();
+
+      expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
+      expect(q('.label-detail__validator-comments').textContent).toContain('next card');
+      expect(status().textContent).toBe('');
+    });
+
     test('Delete moves focus into the reopened box rather than dropping it', async () => {
       // The button that had focus is destroyed by the re-render, so without this focus falls to the document
       // and a keyboard or screen-reader user loses their place mid-card.

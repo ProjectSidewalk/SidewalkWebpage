@@ -1582,6 +1582,10 @@ export class LabelDetail {
    * along with the text — the two are worth separating (#5015).
    */
   async #deleteOwnComment() {
+    // Paging isn't blocked by the confirm or the request, so pin the label whose comment this is: a newer card must
+    // neither lose its own comment to the request nor be told this one was deleted.
+    const meta = this.#currentLabelMeta;
+    const { labelId, label_type: labelType } = this.panoManager.label;
     const confirmed = await ConfirmDialog.confirm({
       message: i18next.t('labelmap:comment-delete-confirm'),
       confirmText: i18next.t('labelmap:comment-delete'),
@@ -1589,14 +1593,14 @@ export class LabelDetail {
       danger: true,
       confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
-    if (!confirmed) return;
-    const { labelId, label_type: labelType } = this.panoManager.label;
+    if (!confirmed || this.#currentLabelMeta !== meta) return;
     try {
       // The type the card shows, so a card behind a type change deletes the comment the user is looking at.
       const url = `/labelmap/comment/${labelId}?labelType=${encodeURIComponent(labelType)}`;
       const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#commentWrites++;
+      if (this.#currentLabelMeta !== meta) return;
       this.#editingComment = false;
       this.#deletedComment = true;
       this.#dropOwnComment();
@@ -1612,6 +1616,7 @@ export class LabelDetail {
       else this.#q('.label-detail__comments-title').focus();
     } catch (err) {
       console.error(err);
+      if (this.#currentLabelMeta !== meta) return;
       // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
       this.#flashCommentStatus('labelmap:comment-delete-failed', 'failed');
     }

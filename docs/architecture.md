@@ -910,8 +910,8 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
 
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
-`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
-stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. The stamp is
+required: `utilitiesSidewalk.js` reads it when it loads, so a page without it fails at once.
 
 The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
 enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for

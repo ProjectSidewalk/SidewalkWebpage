@@ -16,6 +16,7 @@
 
 import i18next from 'i18next';
 import { util } from './utilities.js';
+import { newTabNote } from './newTabNote.js';
 import '../../css/components/toast.css';
 
 export class Toast {
@@ -179,21 +180,15 @@ export class Toast {
       // A toast pops up over work in progress, so its link opens beside the page instead of leaving it.
       el.target = '_blank';
       el.rel = 'noopener noreferrer';
+      el.append(button.label, newTabNote());
     } else {
       el = document.createElement('button');
       el.type = 'button';
       el.addEventListener('click', button.onClick);
+      el.textContent = button.label;
     }
     const variant = button.secondary ? 'button--secondary' : 'button--primary';
     el.className = `ps-toast__button button ${variant} button--small`;
-    el.textContent = button.label;
-    if (button.href) {
-      // A new tab is a change of context the visible text doesn't announce (WCAG 3.2.5, G201).
-      const newTab = document.createElement('span');
-      newTab.className = 'sr-only';
-      newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
-      el.append(newTab);
-    }
     return el;
   }
 

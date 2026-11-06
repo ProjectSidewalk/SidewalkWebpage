@@ -95,7 +95,7 @@ describe('a toast\'s action button', () => {
     Toast.show({ title: 'Badge earned', button: { label: 'My dashboard', href: '/dashboard' } });
 
     const link = toastEl().querySelector('a.ps-toast__button');
-    expect(textOf(link)).toBe('My dashboard t(common:pano-attribution.opens-new-tab)');
+    expect(textOf(link)).toBe('My dashboard t(common:opens-new-tab)');
     expect(link.getAttribute('href')).toBe('/dashboard');
     expect(link.target).toBe('_blank');
     expect(link.rel).toBe('noopener noreferrer');

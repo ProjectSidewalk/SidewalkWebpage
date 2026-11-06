@@ -205,19 +205,23 @@ export class PanoInfoPopover {
       : null;
 
     /**
-     * Sets the text content of a value span identified by [data-field].
-     * @param {string} field - The data-field attribute value
-     * @param {string|number|boolean|null} val - The value to display
+     * How a value reads, on screen and in the copied text alike.
+     * @param {string} field - The pano-info field the value belongs to.
+     * @param {string|number|null|undefined} val - The value, or nothing when unknown.
+     * @returns {string} The text to show.
+     */
+    const shown = (field, val) => {
+      if (val === null || val === undefined) return i18next.t('common:pano-info.no-info');
+      if (field === 'latitude' || field === 'longitude') return `${Number(val).toFixed(8)}°`;
+      return String(val);
+    };
+    /**
+     * Fills the value span for a field.
+     * @param {string} field - The span's data-field.
+     * @param {string|number|null|undefined} val - The value, or nothing when unknown.
      */
     const setVal = (field, val) => {
-      const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);
-      if (val === null || val === undefined || val === false) {
-        span.textContent = i18next.t('common:pano-info.no-info');
-      } else if (field === 'latitude' || field === 'longitude') {
-        span.textContent = `${Number(val).toFixed(8)}°`;
-      } else {
-        span.textContent = String(val);
-      }
+      this.#popoverEl.querySelector(`[data-field="${field}"]`).textContent = shown(field, val);
     };
 
     setVal('image-id', currPanoId);
@@ -258,17 +262,12 @@ export class PanoInfoPopover {
     clipboardBtn.onclick = () => {
       this.#clipboardLogging();
 
-      const noInfo = i18next.t('common:pano-info.no-info');
-      // An unknown value copies as the same "no info" the popover shows, never as "null".
-      const line = (key, val, unit = '') => {
-        const shown = val === null || val === undefined ? noInfo : `${val}${unit}`;
-        return `${i18next.t(`common:pano-info.${key}`)}: ${shown}`;
-      };
+      const line = (field, val) => `${i18next.t(`common:pano-info.${field}`)}: ${shown(field, val)}`;
       const lines = [
         ...(currPanoAddress ? [line('pano-address', currPanoAddress)] : []),
         line('city', window.cityName),
-        line('latitude', currCoords ? currCoords.lat : null, '°'),
-        line('longitude', currCoords ? currCoords.lng : null, '°'),
+        line('latitude', currCoords ? currCoords.lat : null),
+        line('longitude', currCoords ? currCoords.lng : null),
         line('image-id', currPanoId),
         line('street-id', currStreetEdgeId),
         line('region-id', currRegionId),

@@ -259,8 +259,8 @@ describe('PanoInfoPopover', () => {
       expect(text).toBe([
         'common:pano-info.pano-address: 400 Broad St',
         'common:pano-info.city: Seattle',
-        'common:pano-info.latitude: 47.6062095°',
-        'common:pano-info.longitude: -122.3320708°',
+        'common:pano-info.latitude: 47.60620950°',
+        'common:pano-info.longitude: -122.33207080°',
         'common:pano-info.image-id: pano1',
         'common:pano-info.street-id: 1234',
         'common:pano-info.region-id: 56',

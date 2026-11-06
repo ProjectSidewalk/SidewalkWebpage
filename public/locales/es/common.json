@@ -214,9 +214,7 @@
     "no-info": "Sin información",
     "pano-url": "URL de la imagen"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(se abre en una pestaña nueva)"
-  },
+  "opens-new-tab": "(se abre en una pestaña nueva)",
   "image-adjustments": {
     "button": "Imagen",
     "active-sr": "(ajustada)",

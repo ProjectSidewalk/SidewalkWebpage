@@ -212,9 +212,7 @@
     "no-info": "無資訊",
     "pano-url": "全景圖網址"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(在新分頁中開啟)"
-  },
+  "opens-new-tab": "(在新分頁中開啟)",
   "image-adjustments": {
     "button": "影像",
     "active-sr": "（已調整）",

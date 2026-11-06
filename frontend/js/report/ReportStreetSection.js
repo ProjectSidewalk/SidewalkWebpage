@@ -310,7 +310,7 @@ export class ReportStreetSection {
     reference.textContent = `${this.#deps.cityId}:${data.labelId}`;
     const newTab = document.createElement('span');
     newTab.className = 'sr-only';
-    newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
+    newTab.textContent = ` ${i18next.t('common:opens-new-tab')}`;
     reference.append(newTab);
     strip.append(reference);
     return strip;

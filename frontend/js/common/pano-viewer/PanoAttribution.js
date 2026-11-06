@@ -1,4 +1,4 @@
-import i18next from 'i18next';
+import { newTabNote } from '../newTabNote.js';
 import '../../../css/components/pano-attribution.css';
 
 /**
@@ -41,12 +41,7 @@ export function createPanoAttribution(container, options = {}) {
       link.href = attribution.license_url;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = attribution.license;
-      // A new tab is a change of context the visible text doesn't announce (WCAG 3.2.5, G201).
-      const newTab = document.createElement('span');
-      newTab.className = 'sr-only';
-      newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
-      link.appendChild(newTab);
+      link.append(attribution.license, newTabNote());
       parts.push(link);
     } else {
       parts.push(document.createTextNode(attribution.license));

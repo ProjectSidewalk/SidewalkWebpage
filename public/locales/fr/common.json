@@ -214,9 +214,7 @@
     "no-info": "Aucune information",
     "pano-url": "URL du panorama"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
-  },
+  "opens-new-tab": "(s'ouvre dans un nouvel onglet)",
   "image-adjustments": {
     "button": "Image",
     "active-sr": "(ajustée)",

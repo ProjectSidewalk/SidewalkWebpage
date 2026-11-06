@@ -214,9 +214,7 @@
     "no-info": "Keine Angaben",
     "pano-url": "Pano-URL"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
-  },
+  "opens-new-tab": "(wird in einem neuen Tab geöffnet)",
   "image-adjustments": {
     "button": "Bild",
     "active-sr": "(angepasst)",

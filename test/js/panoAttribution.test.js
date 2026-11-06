@@ -9,7 +9,7 @@
 import { loadModules, mockModule } from './loader.js';
 
 mockModule('i18next', () => ({ default: {
-  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+  t: (key) => (key === 'common:opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
 } }));
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */

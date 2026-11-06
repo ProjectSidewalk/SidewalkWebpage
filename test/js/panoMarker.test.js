@@ -152,6 +152,14 @@ describe('PanoMarker', () => {
     expect(marker.marker_.style.display).toBe('block');
   });
 
+  test('removed by an earlier listener in the same pan, it skips the draw it was already queued for', () => {
+    // The real viewers loop over the listener list they started with, so removing a marker mid-loop doesn't spare it.
+    const marker = build();
+    const queued = viewer.addListener.mock.calls[0][1];
+    marker.removeMarker();
+    expect(() => queued()).not.toThrow();
+  });
+
   test('when removed, leaves the page and stops listening for pans and resizes', () => {
     const marker = build();
     const el = marker.marker_;
