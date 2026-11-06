@@ -8,6 +8,7 @@
 import i18next from 'i18next';
 import { util } from '../utilities.js';
 import { copyToClipboard } from '../copyToClipboard.js';
+import { newTabNote } from '../newTabNote.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
 
@@ -250,7 +251,7 @@ export class PanoInfoPopover {
     if (link) {
       viewLink.onclick = this.#viewPanoLogging;
       viewLink.href = link.url;
-      viewLink.textContent = i18next.t(link.i18nKey);
+      viewLink.replaceChildren(i18next.t(link.i18nKey), newTabNote());
     } else {
       viewLink.removeAttribute('href');
     }

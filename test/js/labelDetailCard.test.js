@@ -273,7 +273,8 @@ describe('the label card', () => {
       await show({ pano_data: { address: '1 Main St' } });
       const address = q('.label-detail__address');
 
-      expect(address.textContent).toBe('3 Live Ave');
+      expect(address.textContent).toBe('3 Live Ave common:opens-new-tab');
+      expect(address.querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
       expect(address.getAttribute('href')).toBe('https://maps.example/pano-1');
       expect(address.target).toBe('_blank');
       expect(address.rel).toBe('noopener noreferrer');

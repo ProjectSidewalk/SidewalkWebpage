@@ -345,6 +345,32 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(q('.label-detail__vote--agree').disabled).toBe(false);
   });
 
+  test('a Disagree still out when the type changes asks why from its own button once it lands', async () => {
+    await showLabel({ user_validation: null, num_disagree: 0 });
+    // A vote records where the viewer was looking.
+    Object.assign(panoManager, {
+      getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }), getOriginalPosition: () => ({ heading: 0, pitch: 0 }),
+      panoViewer: {
+        currPanoData: null, getViewerType: () => 'gsv', getPanoId: () => 'pano-1',
+        getPosition: () => ({ lat: 47.61, lng: -122.33 }),
+      },
+      label: { labelId: 42, label_type: 'Obstacle' },
+    });
+    let landVote;
+    saveRequest.mockImplementationOnce(() => new Promise((res) => { landVote = res; }));
+    q('.label-detail__vote--disagree').click();
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    landVote({ ok: true, status: 200, json: async () => ({}) });
+    await flush();
+
+    const popover = document.querySelector('.reason-popover');
+    expect(popover && !popover.hidden).toBe(true);
+  });
+
   test('a 409 redraws the card from the reply and says the label was changed elsewhere', async () => {
     await showLabel({ severity: 2, tags: ['pole'] });
     typeButton().click();

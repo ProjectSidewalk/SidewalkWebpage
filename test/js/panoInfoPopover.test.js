@@ -305,7 +305,7 @@ describe('PanoInfoPopover', () => {
 
       expect(viewer.publicViewerLink).toHaveBeenCalledWith('pano1', { heading: 90, pitch: -10, center: [0.25, 0.5] });
       expect(viewLink().getAttribute('href')).toBe(MAPILLARY_LINK.url);
-      expect(viewLink().textContent).toBe('view-in-mapillary');
+      expect(viewLink().textContent).toBe('view-in-mapillary common:opens-new-tab');
       viewLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
       expect(logs.viewPano).toHaveBeenCalledTimes(1);
     });

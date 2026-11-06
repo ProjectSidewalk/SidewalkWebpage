@@ -750,7 +750,7 @@
 }
 
 /* Recenter: a lone button 6px above the zoom column (3 x 18px buttons, 2px gaps, 10px up), so it reads as its own
-   control and rounds on all corners. .ps-icon-button's display: flex would override its hidden attribute. */
+   control and rounds on all corners. */
 #minimap-recenter {
   position: absolute;
   right: calc(4px * var(--ui-scale));

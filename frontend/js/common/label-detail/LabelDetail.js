@@ -31,6 +31,7 @@ import { buildBackupImageData } from '../utilitiesSidewalk.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../urlQuery.js';
 import '../pano-viewer/panoUtilities.js';
+import { newTabNote } from '../newTabNote.js';
 import '../../../css/components/label-detail.css';
 
 export class LabelDetail {
@@ -382,15 +383,13 @@ export class LabelDetail {
     // light-dismiss from seeing the original event and instantly re-closing the popover it just opened.
     const chip = this.#q('.label-detail__meta-cell--details');
     const infoImg = host.querySelector('img');
-    if (chip && infoImg) {
-      infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
-      chip.addEventListener('click', (e) => {
-        if (e.target !== infoImg) {
-          e.stopPropagation();
-          infoImg.click();
-        }
-      });
-    }
+    infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
+    chip.addEventListener('click', (e) => {
+      if (e.target !== infoImg) {
+        e.stopPropagation();
+        infoImg.click();
+      }
+    });
   }
 
   /**
@@ -1063,7 +1062,7 @@ export class LabelDetail {
     // Withheld for the two types whose names aren't a thing you can have a story "about" — "…about this Other" and
     // "…about this Can't See the Sidewalk" don't read as English — leaving those on the generic title.
     const NO_STORY_SUBJECT = ['Other', 'Occlusion'];
-    this.#storySection?.setLabel(
+    this.#storySection.setLabel(
       meta.label_id, NO_STORY_SUBJECT.includes(meta.label_type) ? null : labelTypeName);
 
     // Fill in some admin-only fields at the bottom if applicable.
@@ -1313,7 +1312,9 @@ export class LabelDetail {
       this.#setVoteButtonsDisabled(false);
       // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
       // archives a canned reason it doesn't offer, so a pick racing the vote could be archived by it.
-      const anchor = this.#voteAnchor;
+      // An admin's type change while the vote was out reloads the comments, which drops the anchor; the vote's own
+      // button stands in for it.
+      const anchor = this.#voteAnchor ?? this.#els.voteButtons[action];
       this.#voteAnchor = null;
       if (this.#awaitingReason && !this.#openReasonPopover(anchor, viaKeyboard)) this.#releaseReasonHold();
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
@@ -1600,7 +1601,12 @@ export class LabelDetail {
       const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#commentWrites++;
-      if (this.#currentLabelMeta !== meta) return;
+      if (this.#currentLabelMeta !== meta) {
+        // The card has moved on, but its host still holds this label's comments, which lose the deleted one too.
+        meta.comments = meta.comments.filter((c) => !this.#isOwnComment(c));
+        if (typeof this.#onComments === 'function') this.#onComments(meta);
+        return;
+      }
       this.#editingComment = false;
       this.#deletedComment = true;
       this.#dropOwnComment();
@@ -2131,6 +2137,7 @@ export class LabelDetail {
       els.address.href = link.url;
       els.address.target = '_blank';
       els.address.rel = 'noopener noreferrer';
+      els.address.append(newTabNote());
       // Full address (the strip may ellipsize it) plus where the link goes.
       els.address.title = `${address} — ${link.tooltip}`;
     } else {

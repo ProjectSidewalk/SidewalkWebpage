@@ -27,11 +27,13 @@ means the form was refused; the reason is in the `PLAY_FLASH` cookie in the jar 
 
 ## Admin account
 
-Sign up as above, then raise the role on the dev DB. Roles live in the shared `sidewalk_login` schema, so this covers
-every city, and the session in the jar picks it up on the next request:
+Sign up as above, then raise the role on the dev DB as the city's own role (the one the app writes with). Roles live
+in the shared `sidewalk_login` schema, so this covers every city, and the session in the jar picks it up on the next
+request:
 
 ```bash
-docker exec projectsidewalk-db psql -U sidewalk -d sidewalk -c "UPDATE sidewalk_login.user_role SET role = 'Administrator'
+ROLE=$(docker exec projectsidewalk-web printenv DATABASE_USER)
+docker exec projectsidewalk-db psql -U "$ROLE" -d sidewalk -c "UPDATE sidewalk_login.user_role SET role = 'Administrator'
   WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '${U}') RETURNING role;"
 ```
 

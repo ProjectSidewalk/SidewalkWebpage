@@ -977,8 +977,6 @@
 
 .ud-see-all:hover { text-decoration: underline; }
 
-/* Beat the inline-block display so the `hidden` attribute actually hides the "See all" link until cards load. */
-
 /* ---- Contribution map ------------------------------------------------------------------------------------------ */
 
 /* Override choropleth.css's very tall fixed heights so the map is width-responsive and fits without page scroll.

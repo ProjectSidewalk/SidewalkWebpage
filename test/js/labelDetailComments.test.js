@@ -229,6 +229,7 @@ describe('the validator comment box (#5015)', () => {
   let setPano;
   let confirmResult;
   let lazyIdentityFetch;
+  let onComments;
 
   /** Drains the microtask queue that the card's promise chains spread work across. */
   const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -261,6 +262,7 @@ describe('the validator comment box (#5015)', () => {
 
   beforeEach(async () => {
     card = buildCard();
+    onComments = vi.fn();
 
     window.logWebpageActivity = vi.fn();
     // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
@@ -306,6 +308,7 @@ describe('the validator comment box (#5015)', () => {
       currUsername: 'tester',
       panoOverlaySource: 'test',
       voteColumnSource: 'test',
+      onComments,
     });
   });
 
@@ -603,6 +606,8 @@ describe('the validator comment box (#5015)', () => {
       expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
       expect(q('.label-detail__validator-comments').textContent).toContain('next card');
       expect(status().textContent).toBe('');
+      // Gallery's small card for the first label still learns its comment is gone.
+      expect(onComments).toHaveBeenLastCalledWith(expect.objectContaining({ label_id: 42, comments: [] }));
     });
 
     test('Delete moves focus into the reopened box rather than dropping it', async () => {

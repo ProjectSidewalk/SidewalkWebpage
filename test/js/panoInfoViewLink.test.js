@@ -130,7 +130,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
 
     expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-    expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv');
+    expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv common:opens-new-tab');
   });
 
   it('hides the link, rather than leaving href="#", when the first pano opened is a Pannellum one', () => {
