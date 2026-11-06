@@ -536,6 +536,9 @@ loaded by the corresponding Twirl view:
   it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  A validator's first missions each carry a training example an admin pinned (#1445), explained by
+  `ModalGoldFeedback` when their vote on it isn't Disagree; the queue doc's "Training examples" has the rules,
+  and the answer is filed in `gold_example_response`, never as a vote.
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager

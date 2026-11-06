@@ -252,7 +252,7 @@
       },
       "slide-2": {
         "title": "Gehwege für Wohnhäuser",
-        "description": "Auf Gehwegen in Wohngebieten sollten <b>keine</b> fehlenden Trottoirabsenkungen beschriftet werden."
+        "description": "Gehwege zu Wohnhäusern sind privat und brauchen keine Trottoirabsenkungen."
       },
       "slide-3": {
         "title": "Nicht auf dem Gehweg",
@@ -288,7 +288,7 @@
       },
       "slide-2": {
         "title": "Normale Gehwegplatten",
-        "description": "Normale Gehwegplatten (ohne Spalten, Risse oder Unebenheiten) sind kein Oberflächenproblem."
+        "description": "Normale kleine Fugen zwischen Gehwegplatten sind kein Oberflächenproblem, solange es keine grossen Spalten, Risse oder Höhenunterschiede gibt."
       },
       "slide-3": {
         "title": "Nicht auf dem Gehweg",
@@ -426,11 +426,11 @@
     "dismiss": "Schließen",
     "wrong-type": {
       "text": "Das ist der falsche Etikettentyp",
-      "tooltip": "Hier ist etwas, aber es sollte mit einem anderen Etikettentyp gekennzeichnet werden",
+      "tooltip": "Hier ist etwas, aber es sollte mit einem anderen Etikettentyp gekennzeichnet werden.",
       "tooltip-curb-ramp": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet.",
       "tooltip-no-curb-ramp": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
       "tooltip-obstacle": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden.",
-      "tooltip-surface-problem": "Schotter oder Gras gelten nicht als Gehweg und sollten mit einem „kein Trottoir“-Schild gekennzeichnet werden.",
+      "tooltip-surface-problem": "Schotter oder Gras gelten nicht als Trottoir und sollten stattdessen mit „kein Trottoir“ gekennzeichnet werden.",
       "tooltip-no-sidewalk": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden."
     },
     "driveway": {
@@ -439,7 +439,7 @@
     },
     "driveway-transition": {
       "text": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
-      "tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt"
+      "tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt."
     },
     "residential-walkway": {
       "text": "Dies ist ein Gehweg in einem Wohngebiet.",
@@ -456,7 +456,7 @@
     "not-pedestrian-path": {
       "text": "Dies ist kein Weg für Fussgänger:innen.",
       "tooltip-obstacle": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
-      "tooltip-surface-problem": "Wenn sich ein Oberflächenproblem nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, sollte es <b>nicht</b>  als Oberflächenproblem gekennzeichnet werden."
+      "tooltip-surface-problem": "Wenn kein Trottoir vorhanden ist oder sich das Problem nicht auf dem für Fussgänger:innen vorgesehenen Teil des Trottoirs befindet, ist keine Oberflächenproblem-Kennzeichnung erforderlich."
     },
     "ample-space": {
       "text": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",

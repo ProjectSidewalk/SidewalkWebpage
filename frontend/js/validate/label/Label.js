@@ -43,6 +43,9 @@ export class Label {
     aiGenerated: false,
     expired: false,
     backupImage: null,
+    // Set when the label is in the mission as a training example (#1445): the reason the tool explains on a miss.
+    goldReason: null,
+    goldCropUrl: null,
   };
 
   // These properties are set through validating labels. In this object, canvas properties and
@@ -132,6 +135,8 @@ export class Label {
       // The nightly imagery sweep's verdict: true means the provider has dropped this pano, so the backup is the
       // imagery to show and asking the provider first is a wasted round trip (#5561).
       if ('expired' in params) this.setAuditProperty('expired', params.expired === true);
+      if ('gold_reason' in params) this.setAuditProperty('goldReason', params.gold_reason ?? null);
+      if ('gold_crop_url' in params) this.setAuditProperty('goldCropUrl', params.gold_crop_url ?? null);
       this.setAuditProperty('backupImage', buildBackupImageData(params));
       // Properties only used on the Admin version of Validate.
       if ('admin_data' in params && params.admin_data !== null) {

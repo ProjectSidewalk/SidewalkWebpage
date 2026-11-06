@@ -252,7 +252,7 @@
       },
       "slide-2": {
         "title": "Pasarelas residenciales",
-        "description": "Los pasillos residenciales <b>no</b> deben estar etiquetados como Rampas peatonales ausentes."
+        "description": "Los pasillos residenciales son privados y no requieren rampas peatonales."
       },
       "slide-3": {
         "title": "No en camino peatonal",
@@ -288,7 +288,7 @@
       },
       "slide-2": {
         "title": "Azulejos de banqueta normales",
-        "description": "Las baldosas de las banquetas normales (sin huecos, grietas o protuberancias) no son problemas en superficie."
+        "description": "Los pequeños huecos normales entre las baldosas de la banqueta no son problemas en superficie, siempre que no haya huecos grandes, grietas o desniveles."
       },
       "slide-3": {
         "title": "No en camino peatonal",
@@ -426,12 +426,12 @@
     "dismiss": "Cerrar",
     "wrong-type": {
       "text": "Este tipo de etiqueta es incorrecto",
-      "tooltip": "Hay algo aquí, pero debería estar marcado con un tipo de etiqueta diferente",
+      "tooltip": "Hay algo aquí, pero debería estar marcado con un tipo de etiqueta diferente.",
       "tooltip-curb-ramp": "A veces, una rampa peatonal ausente se etiqueta incorrectamente por accidente como rampa peatonal.",
       "tooltip-no-curb-ramp": "A veces, una rampa peatonal está mal etiquetada como una rampa faltante, a menudo porque le falta una advertencia táctil.",
       "tooltip-obstacle": "El césped y los residuos como las hojas deben marcarse con una etiqueta de problema de superficie.",
-      "tooltip-surface-problem": "La grava o el césped no se consideran banquetas y deben marcarse con una etiqueta de \"No Sidewalk\"",
-      "tooltip-no-sidewalk": "Los problemas u obstáculos en la superficie pueden etiquetarse erróneamente como Sin Banqueta"
+      "tooltip-surface-problem": "La grava o el césped no se consideran banquetas y deben marcarse en su lugar con una etiqueta de No hay banqueta.",
+      "tooltip-no-sidewalk": "Los problemas u obstáculos en la superficie pueden etiquetarse erróneamente como Sin Banqueta."
     },
     "driveway": {
       "text": "Este es un camino de entrada",
@@ -439,7 +439,7 @@
     },
     "driveway-transition": {
       "text": "Esta es una transición de banqueta a camino de entrada.",
-      "tooltip": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales a menos que se haya agregado una rampa dedicada"
+      "tooltip": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales a menos que se haya agregado una rampa dedicada."
     },
     "residential-walkway": {
       "text": "Esta es una pasarela residencial.",
@@ -455,8 +455,8 @@
     },
     "not-pedestrian-path": {
       "text": "Esto no está en un camino peatonal.",
-      "tooltip-obstacle": "Si no hay banqueta o el objeto no está en la parte de la banqueta destinada a los peatones, como en la imagen de abajo, no se necesita una etiqueta de Obstáculo",
-      "tooltip-surface-problem": "Si un problema de superficie no se encuentra en un camino destinado a peatones, no debe etiquetarse como un problema de superficie."
+      "tooltip-obstacle": "Si no hay banqueta o el objeto no está en la parte de la banqueta destinada a los peatones, como en la imagen de abajo, no se necesita una etiqueta de Obstáculo.",
+      "tooltip-surface-problem": "Si no hay banqueta o el problema no está en la parte de la banqueta destinada a los peatones, no se necesita una etiqueta de Problema de superficie."
     },
     "ample-space": {
       "text": "Hay suficiente espacio para evitar este objeto.",
