@@ -2984,11 +2984,21 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin: var(--space-sm) 0;
 }
 
+/* Eight columns in the content width: only the reason may wrap. */
+.gold-examples-table td {
+  white-space: nowrap;
+}
+
+.gold-examples-table .gold-examples-reason {
+  white-space: normal;
+  min-width: 150px;
+}
+
 /* The crop is 3:2; the neutral backing shows where a crop is missing. */
 .gold-examples-thumb {
   display: block;
-  width: 120px;
-  height: 80px;
+  width: 96px;
+  height: 64px;
   object-fit: cover;
   background: var(--color-neutral-100);
   border-radius: var(--border-radius);
@@ -3002,12 +3012,9 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-neutral-600);
 }
 
-.gold-examples-label {
-  white-space: nowrap;
-}
-
+/* Under the id, to keep the row in the content width. */
 .gold-examples-type {
+  display: block;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
-  margin-left: var(--space-xs);
 }
