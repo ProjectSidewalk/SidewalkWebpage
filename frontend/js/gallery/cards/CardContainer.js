@@ -74,10 +74,11 @@ export class CardContainer {
   // Keep track of labels we have loaded already as to not grab the same label from the backend.
   #loadedLabelIds = new Set();
 
-  // The position each loaded label arrived at, across fetches, for sorted mode (#2705). Fetch order is the server's
-  // order (every fetch returns the next ranked labels, and the cache is emptied whenever that stops being true), and
-  // it is what the cards are paged by rather than their own severity or votes: those change under the admin as they
-  // vote or edit in the expanded view, and re-deriving the order from them moved cards between pages mid-review.
+  // The position each loaded label arrived at, across fetches; cards are paged in this order. In a sorted order
+  // (#2705) it is the server's ranking (every fetch returns the next ranked labels, and the cache is emptied whenever
+  // that stops being true), used rather than the cards' own severity or votes because those change under the admin as
+  // they vote or edit, which moved cards between pages mid-review. In the random order, whose cache survives filter
+  // changes, it only keeps pages stable as more cards load.
   /** @type {Map<string, number>} Keyed as Card.getLabelId() types its answer. */
   #fetchOrder = new Map();
 
@@ -414,7 +415,7 @@ export class CardContainer {
    * of a common type would push the rarer types' cards onto later pages.
    *
    * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: Record<string, string[]>, sort: string}} filters - The filters from #currentFilters().
+   *      tagsByType: Record<string, string[]>}} filters - The filters from #currentFilters().
    * @returns {CardBucket} The cards to page through.
    */
   #collectCurrentCards({ types, valOptions, severities, tagsByType }) {
