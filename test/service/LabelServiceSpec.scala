@@ -98,6 +98,31 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
     }
   }
 
+  "LabelServiceImpl.spreadAcrossTypes" should {
+    import LabelType.*
+    val nine: Seq[LabelType] =
+      Seq(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, NoSidewalk, Crosswalk, Signal, Occlusion, Other)
+
+    "ask for exactly n, the remainder going to the first types" in {
+      val quotas = LabelServiceImpl.spreadAcrossTypes(nine, 30)
+      quotas.map(_._2).sum mustBe 30
+      quotas.map(_._2) mustBe Seq(4, 4, 4, 3, 3, 3, 3, 3, 3)
+    }
+
+    "give the whole request to a single remaining type" in {
+      LabelServiceImpl.spreadAcrossTypes(Seq(CurbRamp), 23) mustBe Seq(CurbRamp -> 23)
+    }
+
+    "ask only the first n types when n is smaller than the type count" in {
+      LabelServiceImpl.spreadAcrossTypes(nine, 2) mustBe Seq(CurbRamp -> 1, NoCurbRamp -> 1)
+    }
+
+    "ask nothing for no types or no labels" in {
+      LabelServiceImpl.spreadAcrossTypes(Seq.empty, 30) mustBe empty
+      LabelServiceImpl.spreadAcrossTypes(nine, 0) mustBe empty
+    }
+  }
+
   "LabelService.selectTagsByLabelType" should {
     "return exactly the tags belonging to the requested label type" in {
       val allTags = await(labelService.selectAllTagsFuture)

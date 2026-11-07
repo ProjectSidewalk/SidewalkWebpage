@@ -156,6 +156,23 @@ object LabelServiceImpl {
     batch.filter(l => kept.contains(l.labelId))
   }
 
+  /**
+   * Splits `n` labels across `types` as evenly as possible, summing to exactly `n`; the remainder goes to the first
+   * types, so callers shuffle `types` to keep it fair.
+   *
+   * @return Each type's share, omitting types whose share would be 0.
+   */
+  def spreadAcrossTypes(types: Seq[LabelType], n: Int): Seq[(LabelType, Int)] = {
+    if (types.isEmpty || n <= 0) Seq.empty
+    else {
+      val base: Int      = n / types.size
+      val remainder: Int = n % types.size
+      types.zipWithIndex
+        .map { case (labelType, i) => labelType -> (base + (if (i < remainder) 1 else 0)) }
+        .filter(_._2 > 0)
+    }
+  }
+
   /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
   def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
 
@@ -526,30 +543,53 @@ class LabelServiceImpl @Inject() (
             walkPastEmpty = true
           ).map(_.sorted(using sort.ordering))
         case GalleryOrder.Random | GalleryOrder.RecentPool =>
-          // Split the request across the types so no one type crowds out the rest of a mixed selection.
-          val nPerType: Int = math.max(1, n / typesToSpread.size)
-          Future
-            .sequence(typesToSpread.map { labelType =>
-              findValidLabelsForType(
-                (_: Seq[LabelValidationMetadata]) =>
-                  labelTable.getGalleryLabelsQuery(
-                    viewer,
-                    Set(labelType),
-                    loadedLabelIds,
-                    valOptions,
-                    regionIds,
-                    severity,
-                    tagsByLabelType.view.filterKeys(_ == labelType).toMap,
-                    aiValOptions,
-                    userId,
-                    order
-                  ),
-                randomize = true,
-                useCrops = true,
-                nPerType
-              )
-            })
-            .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+          // Split across types so no one type crowds out a mixed selection. A type that comes back short has run dry,
+          // so its unused share is re-spread over the rest; otherwise a city of mostly one type (Juneau) gets a short
+          // page, which the client reads as the last one.
+          def fetchType(labelType: LabelType, count: Int, excluded: Set[Int]): Future[Seq[LabelValidationMetadata]] =
+            findValidLabelsForType(
+              (_: Seq[LabelValidationMetadata]) =>
+                labelTable.getGalleryLabelsQuery(
+                  viewer,
+                  Set(labelType),
+                  excluded,
+                  valOptions,
+                  regionIds,
+                  severity,
+                  tagsByLabelType.view.filterKeys(_ == labelType).toMap,
+                  aiValOptions,
+                  userId,
+                  order
+                ),
+              randomize = true,
+              useCrops = true,
+              count
+            )
+
+          // Each round fills the request or drops a dry type, so it ends within typesToSpread.size + 1 rounds.
+          def fill(
+              types: Set[LabelType],
+              excluded: Set[Int],
+              found: Seq[LabelValidationMetadata]
+          ): Future[Seq[LabelValidationMetadata]] = {
+            val quotas: Seq[(LabelType, Int)] =
+              LabelServiceImpl.spreadAcrossTypes(scala.util.Random.shuffle(types.toSeq), n - found.size)
+            if (quotas.isEmpty) Future.successful(found)
+            else {
+              Future
+                .sequence(quotas.map { case (labelType, quota) =>
+                  fetchType(labelType, quota, excluded).map(labels => (labelType, quota, labels))
+                })
+                .flatMap { results =>
+                  val newLabels: Seq[LabelValidationMetadata] = results.flatMap(_._3)
+                  val ranDry: Set[LabelType] = results.collect { case (t, quota, ls) if ls.size < quota => t }.toSet
+                  if (ranDry.isEmpty) Future.successful(found ++ newLabels)
+                  else fill(types -- ranDry, excluded ++ newLabels.map(_.labelId), found ++ newLabels)
+                }
+            }
+          }
+
+          fill(typesToSpread, loadedLabelIds, Seq.empty).map(labels => scala.util.Random.shuffle(labels))
       }
     }
   }
