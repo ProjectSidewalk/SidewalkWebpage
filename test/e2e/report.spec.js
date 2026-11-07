@@ -9,9 +9,11 @@
  * request is ever made, and the specs read the page's own embedded `#report-data` JSON to learn what the server put
  * on it. The region under test is discovered from `/v3/api/regions` rather than hardcoded, so the same spec runs
  * against a dev database holding any city and against CI's one-region seed, skipping (with a reason) whatever that
- * seed does not carry: places, worst-rated locations, fixes, stories.
+ * seed does not carry. CI's seed has no label clusters, places or stories, so there the worst-problems key, the street
+ * cards, the fixes, the places half of the map test and the score-change check all skip; what CI holds the page to is
+ * its load, its maps and the weights round trip. The `googleMapsLeaks` fixture fails any test whose page asks Google.
  */
-const {test, expect, waitForAppReady, GOOGLE_MAPS_HOSTS} = require('./fixtures');
+const {test, expect, waitForAppReady} = require('./fixtures');
 
 /** The report address, found once per worker: the region with the most labels, by id (the server redirects to its slug). */
 let reportPath = null;
@@ -36,22 +38,17 @@ async function discoverReportPath(request) {
 /**
  * Loads the report and reads what the server drew it from.
  *
- * A city whose AccessScores are being computed for the first time since a deploy answers 503 with a Retry-After; two
- * short retries cover the small cities a test database or CI holds, where the computation takes seconds.
+ * A city whose AccessScores are being computed for the first time since a deploy answers 503 with a Retry-After, after
+ * holding the request up to 45 s; two short retries cover it, so the test gets triple the usual time.
  * @param {import('@playwright/test').Page} page - The test's page.
  * @param {import('@playwright/test').APIRequestContext} request - The test's API context, for region discovery.
  * @param {string} [query=''] - A query string to open the report with, `?w=…` for custom weights.
- * @returns {Promise<{data: Record<string, any>, googleRequests: string[]}>} The page's `#report-data` JSON and
- *   every request the page made to a Google Maps host (which must stay empty: the report builds no billable map). The
- *   `googleMapsLeaks` fixture refuses and records those too; this list is the spec's own, stated beside what it drew.
+ * @returns {Promise<{data: Record<string, any>}>} The page's `#report-data` JSON.
  */
 async function openReport(page, request, query = '') {
+  test.slow();
   const path = await discoverReportPath(request);
   test.skip(path === null, 'this database has no region to report on');
-  const googleRequests = [];
-  page.on('request', (r) => {
-    if (GOOGLE_MAPS_HOSTS.test(r.url())) googleRequests.push(r.url());
-  });
   let response = await page.goto(path + query);
   for (let attempt = 0; attempt < 2 && response.status() === 503; attempt++) {
     await page.waitForTimeout(10_000);
@@ -62,7 +59,7 @@ async function openReport(page, request, query = '') {
   expect(page.url()).toMatch(/\/report\/neighborhood\/(?!\d+(?:[?#]|$))[a-z0-9-]+(?:[?#]|$)/);
   await waitForAppReady(page);
   const data = await readReportData(page);
-  return {data, googleRequests};
+  return {data};
 }
 
 /**
@@ -102,8 +99,7 @@ test.describe('/report/neighborhood', () => {
   test.use({viewport: {width: 1440, height: 900}});
 
   test('loads clean, its contents link to real sections, and its columns are sticky', async ({page, request, consoleErrors}) => {
-    const {googleRequests} = await openReport(page, request);
-    expect(await page.evaluate(() => window.appManager.isReady)).toBe(true);
+    await openReport(page, request);
     // Settle window for late async work: the config fetch that reveals the weights, the first maps.
     await page.waitForTimeout(1000);
 
@@ -124,13 +120,13 @@ test.describe('/report/neighborhood', () => {
     await expect(page.locator('#report-actions')).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
-    expect(googleRequests).toEqual([]);
   });
 
   test('each live map draws a MapLibre canvas, and the Places switch hides only its own map\'s places',
     async ({page, request, consoleErrors}) => {
-      const {data, googleRequests} = await openReport(page, request);
-      test.skip(data.edges.length === 0, 'the region has no streets, so the report draws no map');
+      const {data} = await openReport(page, request);
+      // The region map comes with its ranked streets, the worst map with its worst locations.
+      test.skip(data.streets.length === 0 && data.worst.length === 0, 'the region has nothing to map');
 
       const maps = [];
       if (await page.locator('#report-region-map').count()) maps.push(page.locator('#report-region-map'));
@@ -139,7 +135,6 @@ test.describe('/report/neighborhood', () => {
       expect(maps.length, 'a region with streets has at least one map').toBeGreaterThan(0);
       for (const host of maps) await expectLiveMap(host);
       expect(consoleErrors).toEqual([]);
-      expect(googleRequests).toEqual([]);
 
       test.skip(data.places.length === 0, 'the region has no important places, so no map carries the switch');
       // Every live map got every place and its own switch (#5900).
@@ -151,19 +146,19 @@ test.describe('/report/neighborhood', () => {
       test.skip(maps.length < 2, 'one map only: nothing to show the switch is per map');
 
       const [first, second] = maps;
-      await first.locator('.report-map-toggle__input').uncheck({force: true});
+      await first.locator('.report-map-toggle__input').uncheck();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(data.places.length);
       // The other map's places stay, so a reader's choice on one map is not made for them on the rest.
       await expect(second.locator('button.report-map-place[hidden]')).toHaveCount(0);
       await expect(second.locator('.report-map-toggle__input')).toBeChecked();
 
-      await first.locator('.report-map-toggle__input').check({force: true});
+      await first.locator('.report-map-toggle__input').check();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(0);
       expect(consoleErrors).toEqual([]);
     });
 
   test('the worst-problems key counts what the map dots, and a key row lights up', async ({page, request}) => {
-    const {data, googleRequests} = await openReport(page, request);
+    const {data} = await openReport(page, request);
     test.skip(data.worst.length === 0, 'the region has no location rated worst, so the section is an empty note');
 
     const rows = page.locator('.report-worst__type');
@@ -186,7 +181,6 @@ test.describe('/report/neighborhood', () => {
     await expect(rows.first()).toHaveClass(/is-highlighted/);
     await rows.first().dispatchEvent('mouseleave');
     await expect(rows.first()).not.toHaveClass(/is-highlighted/);
-    expect(googleRequests).toEqual([]);
   });
 
   test('letting go of a weight slider reopens the report under those weights, scored on the server',
@@ -210,9 +204,8 @@ test.describe('/report/neighborhood', () => {
       page.on('request', (r) => {
         if (r.url().includes('/v3/api/accessScoreStreets')) scoreFeedRequests.push(r.url());
       });
+      // fill() fires the range's input and change itself; another change would reopen the report a second time.
       await slider.fill('0');
-      await slider.dispatchEvent('input');
-      await slider.dispatchEvent('change');
       await page.waitForURL(/[?&]w=[^&]*CurbRamp:0/);
       await waitForAppReady(page);
       const after = await readReportData(page);
@@ -242,7 +235,7 @@ test.describe('/report/neighborhood', () => {
     });
 
   test('a street\'s cards and its map markers light each other', async ({page, request}) => {
-    const {data, googleRequests} = await openReport(page, request);
+    const {data} = await openReport(page, request);
     test.skip(data.streets.length === 0, 'the region has no ranked street, so there is no street section');
     const [street] = data.streets;
     const section = page.locator(`.report-street[data-street="${street.id}"]`);
@@ -253,9 +246,12 @@ test.describe('/report/neighborhood', () => {
     // The cards arrive as the section nears the viewport, from Gallery's own endpoint; one marker per shown card.
     const cards = section.locator('.report-card:not([hidden])');
     await expect(cards.first()).toBeVisible();
-    const shown = Math.min(street.cards.length, 12);
-    await expect(cards).toHaveCount(shown);
     await expect(section.locator('.report-map-marker')).toHaveCount(street.cards.length);
+    // Gallery drops a label whose imagery it can't confirm, so a card may be missing, never one the street lacks.
+    const clusterIds = new Set(street.cards.map((c) => String(c.clusterId)));
+    const rendered = await cards.evaluateAll((els) => els.map((el) => el.dataset.clusterId));
+    expect(rendered.length).toBeLessThanOrEqual(Math.min(street.cards.length, 12));
+    expect(rendered.filter((id) => !clusterIds.has(id)), 'cards for locations the street lacks').toEqual([]);
 
     const card = cards.first();
     const clusterId = await card.getAttribute('data-cluster-id');
@@ -277,7 +273,6 @@ test.describe('/report/neighborhood', () => {
     await expect(card).toHaveClass(/is-lit/);
     await marker.dispatchEvent('mouseleave');
     await expect(card).not.toHaveClass(/is-lit/);
-    expect(googleRequests).toEqual([]);
   });
 
   test('the fixes get their photos and map stills', async ({page, request}) => {
@@ -289,9 +284,9 @@ test.describe('/report/neighborhood', () => {
       await expect(page.locator(`.report-fix[data-label-id="${fix.labelId}"]`)).toHaveCount(1);
     }
     await fixes.first().scrollIntoViewIfNeeded();
-    // The photo pane fills with the crop, or Gallery's placeholder where the label has none; never a Street View still.
+    // The photo pane fills with the crop, or the mini card's placeholder where the label has none; never Street View.
     const photo = fixes.first().locator('[data-fix-photo]');
-    await expect(photo.locator('img, .gallery-image-placeholder').first()).toBeAttached();
+    await expect(photo.locator(':scope > img, .lmc__placeholder').first()).toBeAttached();
     await expect(photo.locator('img[src*="streetview"]')).toHaveCount(0);
     // The map pane shows the spot: as a still once the map has drawn, and as the sketch until then and if it never does.
     await expect(fixes.first().locator('[data-fix-map] .report-fix__still, [data-fix-map] .report-map__sketch').first())
@@ -303,9 +298,13 @@ test.describe('/report/neighborhood', () => {
       await openReport(page, request);
       const stories = page.locator('.report-story');
       const count = await stories.count();
-      await expect(page.locator('#report-stories')).toHaveCount(count > 0 ? 1 : 0);
-      await expect(page.locator('#report-toc a[href="#report-stories"]')).toHaveCount(count > 0 ? 1 : 0);
-      test.skip(count === 0, 'the region has no story on one of its labels');
+      if (count === 0) {
+        // No story: no empty section, and no contents link to one.
+        await expect(page.locator('#report-stories')).toHaveCount(0);
+        await expect(page.locator('#report-toc a[href="#report-stories"]')).toHaveCount(0);
+        test.skip(true, 'the region has no story on one of its labels');
+      }
+      await expect(page.locator('#report-toc a[href="#report-stories"]')).toHaveCount(1);
 
       for (const story of await stories.all()) {
         const storyId = await story.getAttribute('data-story-id');

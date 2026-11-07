@@ -262,6 +262,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
+| `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
+| `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
 | `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |
 | `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason against CI's seed |
