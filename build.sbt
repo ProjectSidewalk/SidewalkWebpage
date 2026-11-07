@@ -55,7 +55,7 @@ libraryDependencies ++= Seq(
   "com.drewnoakes" % "metadata-extractor" % "2.21.0",
 
   // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
-  "org.geotools" % "gt-shapefile" % "35.1",
+  "org.geotools" % "gt-shapefile" % "35.2",
   "org.geotools" % "gt-epsg-hsql" % "35.1",
   "org.geotools" % "gt-geopkg"    % "35.1",
 
