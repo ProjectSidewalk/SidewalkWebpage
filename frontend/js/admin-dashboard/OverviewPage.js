@@ -146,8 +146,7 @@ export class OverviewPage {
     const today = this.#startOfDay(new Date());
     for (const sp of specs) {
       const buckets = this.#weeklyBuckets(byDate, today, sp.get);
-      const host = document.getElementById(`ov-${sp.key}-spark`);
-      if (host) host.innerHTML = this.#sparkline(buckets.values);
+      document.getElementById(`ov-${sp.key}-spark`).innerHTML = this.#sparkline(buckets.values);
       this.#renderTrend(sp.key, buckets.thisWeek, buckets.priorWeek, sp.unit);
     }
   }
@@ -178,7 +177,6 @@ export class OverviewPage {
   /** Sets a card's trend line: a direction arrow, this-week total, and unit, colored by direction vs last week. */
   #renderTrend(key, thisWeek, priorWeek, unit) {
     const el = document.getElementById(`ov-${key}-trend`);
-    if (!el) return;
     const delta = thisWeek - priorWeek;
     const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '→';
@@ -221,7 +219,6 @@ export class OverviewPage {
    */
   #renderAttention(s) {
     const el = document.getElementById('ov-attention');
-    if (!el) return;
     const items = [];
 
     if (s.labels_awaiting_validation > 0) {
@@ -277,7 +274,6 @@ export class OverviewPage {
    */
   #renderRecent(items) {
     const el = document.getElementById('ov-recent');
-    if (!el) return;
     if (!items.length) {
       el.innerHTML = '<p class="dq-empty">No recent activity.</p>';
       return;
@@ -323,7 +319,6 @@ export class OverviewPage {
    */
   #renderPulse(item) {
     const el = document.getElementById('ov-pulse');
-    if (!el) return;
     if (!item) {
       el.textContent = 'No recent activity.';
       return;
@@ -364,17 +359,13 @@ export class OverviewPage {
    */
   #setCard(key, value, sub, titleFull) {
     const valEl = document.getElementById(`ov-${key}-value`);
-    const subEl = document.getElementById(`ov-${key}-sub`);
-    if (valEl) {
-      valEl.textContent = value;
-      if (titleFull) valEl.title = titleFull;
-    }
-    if (subEl) subEl.textContent = sub;
+    valEl.textContent = value;
+    if (titleFull) valEl.title = titleFull;
+    document.getElementById(`ov-${key}-sub`).textContent = sub;
   }
 
   #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    document.getElementById(id).textContent = text;
   }
 
   /** Full number with thousands separators ("1,234,567"). */

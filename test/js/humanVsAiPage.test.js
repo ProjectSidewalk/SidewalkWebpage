@@ -112,6 +112,12 @@ describe('Humans vs AI — KPIs and summary', () => {
     expect(text('kpi-ai-assessed-note')).toBe('no assessments yet');
   });
 
+  test('gives a 0% share when only humans have contributed', async () => {
+    await render({ ...QUIET, labelers: [BUSY.labelers[0], labeler('ai', 0)], validators: [BUSY.validators[0]] });
+    expect(text('kpi-ai-labels-note')).toBe('0% of 900 labels');
+    expect(text('kpi-ai-validations-note')).toBe('0% of 400 validations');
+  });
+
   test('names every job the AI does here in one sentence', async () => {
     await render(BUSY);
     expect(text('hva-summary')).toBe('Here, the AI places labels, validates labels, and tags labels.');
@@ -241,6 +247,14 @@ describe('Humans vs AI — labeler lens', () => {
     expect(text('hva-severity')).toBe('No severity ratings yet.');
     // A type stat with no count still gets a row, at zero.
     expect(groups('hva-type-mix')).toMatchObject([{ label: 'Curb Ramp', human: '5', ai: '0' }]);
+  });
+
+  test('reads a group sent without its type breakdown as having none', async () => {
+    await render({ ...BUSY, labelers: [BUSY.labelers[0], { group: 'ai', total: 5 }] });
+    expect(groups('hva-type-mix')).toMatchObject([
+      { label: 'Curb Ramp', human: '600', ai: '0' },
+      { label: 'Obstacle', human: '300', ai: '0' },
+    ]);
   });
 
   test('draws a legend above each comparison', async () => {

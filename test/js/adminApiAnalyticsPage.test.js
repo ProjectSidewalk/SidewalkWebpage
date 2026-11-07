@@ -303,9 +303,23 @@ describe('the endpoint and format bars', () => {
   });
 
   test('say so when nothing was called in the range', async () => {
-    await load(payload({ endpoints: [{ endpoint: '/v3/api/streets', external: 0, api_docs: 0 }], formats: [] }));
+    await load(payload({ endpoints: [{ endpoint: '/v3/api/streets', external: 0, api_docs: 0 }],
+      formats: [{ format: 'csv', external: 0, api_docs: 0 }] }));
     expect(text('api-endpoints')).toBe('No API calls recorded for this range.');
     expect(text('api-formats')).toBe('No format data for this range.');
+  });
+
+  test('read a payload without day or format lists as having none', async () => {
+    const answer = payload();
+    delete answer.daily;
+    delete answer.formats;
+    await load({ 30: answer, 0: answer });
+    expect(text('api-formats')).toBe('No format data for this range.');
+    const [, , series] = MiniLineChart.renderInto.mock.calls.at(-1);
+    expect(series.every(({ values }) => values.every((v) => v === 0))).toBe(true);
+    range(0).click();
+    await flush();
+    expect(text('api-trend-range')).toBe('Date range: all time (no API activity yet)');
   });
 
   test('a switch flipped before the data arrives takes effect once it does', async () => {

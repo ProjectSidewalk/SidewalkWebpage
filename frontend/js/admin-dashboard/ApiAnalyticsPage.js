@@ -321,7 +321,7 @@ export class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
+        legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
         else this.#renderFormats(this.#data);
@@ -334,13 +334,11 @@ export class ApiAnalyticsPage {
   }
 
   #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    document.getElementById(id).textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('api-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

@@ -31,6 +31,8 @@ export class DesktopValidationMenu {
   #config;
   /** @type {Record<string, Record<string, ReasonButton>>} */
   #reasonButtonInfo;
+  /** How many times the reason buttons have been drawn, so a late example image can tell it is out of date. */
+  #reasonButtonDrawings = 0;
   /** @type {LabelContainer} */
   #labelContainer;
   /** @type {LabelCard} */
@@ -90,7 +92,7 @@ export class DesktopValidationMenu {
       this.#labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
     // Immersive mode's close control on the open dock (#5560); the boxed column never shows it.
-    menuUI.verdictClearButton?.addEventListener('click', () => this.clearVerdict());
+    menuUI.verdictClearButton.addEventListener('click', () => this.clearVerdict());
 
     // Tag and severity sections only available with Expert Validate.
     if (this.#config.adminVersion) {
@@ -168,9 +170,9 @@ export class DesktopValidationMenu {
     }
 
     // Add onclick for disagree and unsure reason buttons.
-    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
-    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
-    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
+    // Both loops guard ahead of their tracker push: the push would otherwise record the reason as chosen and the
+    // drop would be logged right after it, so the one interaction the load guard exists to refuse is the one that
+    // reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
         if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
@@ -281,7 +283,7 @@ export class DesktopValidationMenu {
       if (prevValResult === 'Agree' && this.#typeChanged(label)) this.#setWrongTypeView();
       else if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
-      else if (prevValResult === 'Unsure') this.#setUnsureView();
+      else this.#setUnsureView();
     }
   }
 
@@ -318,6 +320,7 @@ export class DesktopValidationMenu {
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+    const drawing = ++this.#reasonButtonDrawings;
     for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
       const buttonInfo = this.#reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
@@ -325,7 +328,10 @@ export class DesktopValidationMenu {
 
         reasonButton.removeAttribute('data-ps-tooltip-html');
         if (buttonInfo.tooltipImage) {
-          util.getImage(buttonInfo.tooltipImage).then((img) => {
+          // An example image that fails to load still leaves the text. One that arrives after the next label has
+          // redrawn the buttons is dropped, or it would describe a reason the new label's type may not even have.
+          util.getImage(buttonInfo.tooltipImage).catch(() => null).then((img) => {
+            if (drawing !== this.#reasonButtonDrawings) return;
             this.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
           });
         } else {
@@ -361,7 +367,7 @@ export class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     this.#wrongTypeView = sections.includes('labelTypeMenu');
     // The dock's close control (immersive mode) shows only while there is a verdict to take back.
-    menuUI.holder?.classList.toggle('has-verdict', chosenButton !== null);
+    menuUI.holder.classList.toggle('has-verdict', chosenButton !== null);
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
       button.classList.toggle('is-chosen', button === chosenButton);
     }
@@ -447,7 +453,7 @@ export class DesktopValidationMenu {
     menuUI.disagreeReasonTextBox.value = '';
     menuUI.unsureReasonTextBox.value = '';
     menuUI.submitButton.disabled = true;
-    if (refocus) (chosenButton ?? menuUI.yesButton).focus();
+    if (refocus) chosenButton.focus();
   }
 
   #setUnsureView() {
@@ -525,14 +531,19 @@ export class DesktopValidationMenu {
   }
 
   // TAG SECTION.
-  #addTag(tagName, fromAiSuggestion = false) {
+  /**
+   * Puts a tag on the current label, dropping any tag it can't coexist with.
+   * @param {string} tagName - A tag the label's type offers.
+   * @param {boolean} fromAiSuggestion - Whether it came from accepting an AI suggestion, which the log tells apart.
+   */
+  #addTag(tagName, fromAiSuggestion) {
     // Guarded at the write rather than at its two entry points (the tag picker and the AI suggestions), so a third
     // can't reach the current label mid-load just by not knowing to guard itself (#5211).
     if (this.#labelContainer.dropInputWhileLoading('TagAdd')) return;
     const currLabel = this.#labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-    const allTags = this.#config.tagsByLabelType[currLabel.getProperty('newLabelType')] ?? [];
+    const allTags = this.#config.tagsByLabelType[currLabel.getProperty('newLabelType')];
     const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
     const currTags = currLabel.getProperty('newTags');
     if (currTags.some((t) => t === mutuallyExclusiveWith)) {
@@ -548,7 +559,13 @@ export class DesktopValidationMenu {
     this.#labelCard.render(currLabel);
   }
 
-  #removeTag(tagName, label, fromAiSuggestion = false) {
+  /**
+   * Takes a tag off a label.
+   * @param {string} tagName - A tag on the label.
+   * @param {Label} label - The label the tag was drawn for.
+   * @param {boolean} fromAiSuggestion - Whether it came from accepting an AI suggestion, which the log tells apart.
+   */
+  #removeTag(tagName, label, fromAiSuggestion) {
     // Mid-load `label` is the one that just left the screen and was already submitted, so this write goes nowhere —
     // while #renderTags below reads getCurrentLabel() instead, drawing the tags of a label nobody can see yet (#5211).
     if (this.#labelContainer.dropInputWhileLoading('TagRemove')) return;
@@ -682,36 +699,26 @@ export class DesktopValidationMenu {
     const levelKeys = util.misc.getRatingLevelKeys(labelType);
 
     // Swap the header text and per-level labels between severity and quality wording based on label type.
-    const headerEl = document.getElementById('validate-severity-header');
-    if (headerEl) headerEl.textContent = i18next.t(`common:${headerKey}`);
+    document.getElementById('validate-severity-header').textContent = i18next.t(`common:${headerKey}`);
 
-    // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
+    // Redo the example image tooltips, level names and smileys every time, in case the label type changed.
     for (const severityButton of menuUI.severityMenu.querySelectorAll('.severity-button')) {
-      const sev = severityButton.dataset.severity;
+      const sev = Number(severityButton.dataset.severity);
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
       const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
       this.#addTooltip(severityButton, tooltipText, tooltipImage);
+      severityButton.querySelector('.severity-button__label').textContent = i18next.t(`common:${levelKeys[sev]}`);
 
-      const labelSpan = severityButton.querySelector('.severity-button__label');
-      if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[Number(sev)]}`);
-    }
-
-    // Swap the smiley <img> src for each severity level based on label type + selection.
-    const holder = document.getElementById('severity-radio-holder');
-    if (holder) {
-      holder.querySelectorAll('.severity-button').forEach((button) => {
-        const sev = Number(button.dataset.severity);
-        const img = /** @type {HTMLImageElement} */ (button.querySelector('.severity-button__icon'));
-        if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
-        // The radio is the only thing carrying the selection into the accessibility tree — the smiley above is an
-        // <img> swap, which announces nothing — and the holder is a `radiogroup`, so the checked radio is what a
-        // screen reader reads back as the current rating. Nothing else writes it: a native click on the wrapping
-        // label checks it, and it then stays checked across labels, so an unrated label would announce the previous
-        // one's rating and an undo would announce whatever was clicked last rather than what it stored. NaN when
-        // there is no rating, which no `sev` equals, so the whole group goes unchecked.
-        const radio = /** @type {HTMLInputElement} */ (button.querySelector('.severity-button__radio'));
-        if (radio) radio.checked = sev === Number(severity);
-      });
+      const img = /** @type {HTMLImageElement} */ (severityButton.querySelector('.severity-button__icon'));
+      img.src = util.misc.getSmileyIconPath(sev, labelType, sev === Number(severity));
+      // The radio is the only thing carrying the selection into the accessibility tree — the smiley above is an
+      // <img> swap, which announces nothing — and the holder is a `radiogroup`, so the checked radio is what a
+      // screen reader reads back as the current rating. Nothing else writes it: a native click on the wrapping
+      // label checks it, and it then stays checked across labels, so an unrated label would announce the previous
+      // one's rating and an undo would announce whatever was clicked last rather than what it stored. NaN when
+      // there is no rating, which no `sev` equals, so the whole group goes unchecked.
+      const radio = /** @type {HTMLInputElement} */ (severityButton.querySelector('.severity-button__radio'));
+      radio.checked = sev === Number(severity);
     }
   }
 
@@ -719,19 +726,15 @@ export class DesktopValidationMenu {
   /**
    * Records the reason chosen for a disagree verdict.
    *
-   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
-   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
-   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
-   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
-   * picked for the label it lands on.
+   * Every caller refuses a pick made while the next label loads: a focused reason button still answers Enter, and a
+   * reason written then would ride along unseen onto the next label and be submitted for it (#5211).
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
-    if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     const currLabel = this.#labelContainer.getCurrentLabel();
-    const reasonInfo = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
+    const reasonInfo = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))][id];
     // Where the type can be changed, it opens the picker instead of becoming a comment nobody acts on (#5409).
     if (this.#config.adminVersion && reasonInfo?.wrongType) {
       this.#startWrongType();
@@ -745,7 +748,7 @@ export class DesktopValidationMenu {
       menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      this.#reasonButton(id)?.classList.add('is-chosen');
+      this.#reasonButton(id).classList.add('is-chosen');
     }
   }
 
@@ -753,16 +756,11 @@ export class DesktopValidationMenu {
   /**
    * Records the reason chosen for an unsure verdict.
    *
-   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
-   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
-   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
-   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
-   * picked for the label it lands on.
+   * Callers refuse a pick while the next label loads, for the reason given on `#setDisagreeReason`.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
-    if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
@@ -772,7 +770,7 @@ export class DesktopValidationMenu {
       menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
       this.#labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      this.#reasonButton(id)?.classList.add('is-chosen');
+      this.#reasonButton(id).classList.add('is-chosen');
     }
   }
 
@@ -806,7 +804,7 @@ export class DesktopValidationMenu {
     // reason also travels as its id (#5475), so it is stored as one rather than only as the text shown.
     let comment = '';
     let reasonId = null;
-    const reasons = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))] ?? {};
+    const reasons = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))];
     if (action === 'Agree') {
       comment = currLabel.getProperty('agreeComment');
     } else if (action === 'Disagree') {
@@ -815,15 +813,15 @@ export class DesktopValidationMenu {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
         comment = this.#reasonButton(disagreeReason).innerHTML.replace('<br>', ' ');
-        reasonId = reasons[disagreeReason]?.reasonId ?? null;
+        reasonId = reasons[disagreeReason].reasonId;
       }
-    } else if (action === 'Unsure') {
+    } else {
       const unsureReason = currLabel.getProperty('unsureOption');
       if (unsureReason === 'other') {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
         comment = this.#reasonButton(unsureReason).innerHTML.replace('<br>', ' ');
-        reasonId = reasons[unsureReason]?.reasonId ?? null;
+        reasonId = reasons[unsureReason].reasonId;
       }
     }
     currLabel.setProperty('comment', comment);

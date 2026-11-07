@@ -175,10 +175,10 @@ export class LabelContainer {
   /**
    * Gets a specific property from the LabelContainer.
    * @param {string} key - Property name.
-   * @returns {*} Value associated with this property or null.
+   * @returns {*} Value associated with this property.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
+    return this.#properties[key];
   }
 
   /**
@@ -563,21 +563,18 @@ export class LabelContainer {
     if (comment) this.#tracker.push('ValidationTextField_DataEntered', { validation: action, text: comment });
 
     const mission = this.#missionContainer.getCurrentMission();
-    const verdict = ['Agree', 'Disagree', 'Unsure'].includes(action);
-    if (verdict) {
-      mission.updateValidationResult(action, false);
-      this.pushToLabelsToSubmit(
-        label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
-      );
-      // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
-      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
-      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST. A training
-      // example's answer goes at once: an undo inside the wait would drop it unsent, and the first answer counts.
-      if (label.getAuditProperty('goldReason')) this.#tracker.flushSoon(0);
-      else this.#tracker.flushSoon();
-    }
+    mission.updateValidationResult(action, false);
+    this.pushToLabelsToSubmit(
+      label.getAuditProperty('labelId'), label.getProperties(), label.commentData(mission.getProperty('missionId')),
+    );
+    // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+    // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+    // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST. A training
+    // example's answer goes at once: an undo inside the wait would drop it unsent, and the first answer counts.
+    if (label.getAuditProperty('goldReason')) this.#tracker.flushSoon(0);
+    else this.#tracker.flushSoon();
     const moveOn = () => {
-      if (verdict) this.#missionContainer.updateAMission();
+      this.#missionContainer.updateAMission();
       // A completed mission's next label arrives with the mission-complete response (Form.js), not from here.
       if (!mission.isComplete()) {
         this.moveToNextLabel(); // NOTE That this returns a Promise that we're ignoring right now.

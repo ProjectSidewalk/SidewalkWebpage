@@ -295,17 +295,13 @@ describe('every menu path that writes onto the current label refuses one that is
 
   // [layout, what it is, the line that opens the handler, the source it drops under].
   test.each([
-    ['desktop', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
-    ['desktop', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
     ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
       'DisagreeReason'],
     ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",
       'UnsureReason'],
-    ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion = false) {', 'TagAdd'],
+    ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion) {', 'TagAdd'],
     ['desktop', 'the tag picker', 'onItemAdd: (tagName) => {', 'TagAdd'],
-    ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion = false) {', 'TagRemove'],
-    ['mobile', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
-    ['mobile', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
+    ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion) {', 'TagRemove'],
     ['mobile', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
       'DisagreeReason'],
     ['mobile', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",

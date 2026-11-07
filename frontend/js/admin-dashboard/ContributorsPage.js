@@ -392,13 +392,11 @@ export class ContributorsPage {
   }
 
   #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    document.getElementById(id).textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('contrib-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

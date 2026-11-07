@@ -82,23 +82,19 @@ export class FunnelsSection {
   /** Wires the window selector (refetches) and the breakdown toggle (re-renders from cached data). */
   #wireControls() {
     const win = document.getElementById(this.#windowToggleId);
-    if (win) {
-      win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (this.#window === btn.dataset.window) return;
-        this.#window = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
-        this.#load();
-      }));
-    }
+    win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+      if (this.#window === btn.dataset.window) return;
+      this.#window = btn.dataset.window;
+      win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      this.#load();
+    }));
     const dim = document.getElementById(this.#dimToggleId);
-    if (dim) {
-      dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (this.#dim === btn.dataset.dim) return;
-        this.#dim = btn.dataset.dim;
-        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
-        this.#render();
-      }));
-    }
+    dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+      if (this.#dim === btn.dataset.dim) return;
+      this.#dim = btn.dataset.dim;
+      dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      this.#render();
+    }));
   }
 
   /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
@@ -118,7 +114,6 @@ export class FunnelsSection {
   /** Renders each available funnel (mapping, contribution) for the active breakdown dimension. */
   #render() {
     const host = document.getElementById(this.#hostId);
-    if (!host) return;
     const segs = FunnelsSection.#DIMS[this.#dim];
     const types = FunnelsSection.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     if (!types.length) {
@@ -186,8 +181,7 @@ export class FunnelsSection {
   }
 
   #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    document.getElementById(id).textContent = text;
   }
 
   /** Full count with thousands separators, for tooltips. */

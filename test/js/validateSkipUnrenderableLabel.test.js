@@ -425,6 +425,37 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(deps.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
   });
 
+  test('a status that comes into view after every label was dropped logs nothing against a missing label', async () => {
+    let onShown;
+    deps.panoLoadingStatus.begin = vi.fn((callback) => { onShown = callback; });
+    unrenderablePanoIds.add('panoA');
+
+    await buildContainer([{labelId: 1, panoId: 'panoA'}]);
+    onShown();
+
+    expect(deps.tracker.push).not.toHaveBeenCalledWith('PanoLoadingStatus_Shown', expect.anything());
+  });
+
+  test('a render that fails with something other than an Error still says what failed', async () => {
+    // A viewer SDK can reject with a bare string; reading `.message` off it would lose the event.
+    deps.panoManager.renderPanoMarker = vi.fn(() => Promise.reject('viewer gave up'));
+
+    await expect(buildContainer()).rejects.toBe('viewer gave up');
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'viewer gave up'});
+  });
+
+  test('a replacement request the server refuses falls back to the modal and logs the HTTP status', async () => {
+    unrenderablePanoIds.add('panoA');
+    window.fetch = vi.fn(() => Promise.resolve({ok: false, status: 503}));
+
+    await buildContainer([{labelId: 1, panoId: 'panoA'}]);
+
+    expect(deps.tracker.push).toHaveBeenCalledWith('LabelTopUpFailed',
+      {error: 'Replacement labels request failed with HTTP 503'});
+    expect(deps.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+  });
+
   test('no loading status starts while the mission-complete modal covers the pano', async () => {
     deps.modalMissionComplete.isShowing = () => true;
     await buildContainer();

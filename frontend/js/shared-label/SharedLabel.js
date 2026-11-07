@@ -53,11 +53,11 @@ export class SharedLabelPage {
   /** The public page has no panel to mount on (#1445). */
   #initGoldExamplePin() {
     const root = document.getElementById('spotlight-gold');
-    if (!root || !this.#data.admin) return;
+    if (!root) return;
     new GoldExamplePin(root, {
       labelId: this.#data.labelId,
       labelType: this.#data.labelType,
-      goldReason: this.#data.goldReason ?? null,
+      goldReason: this.#data.goldReason,
     });
   }
 

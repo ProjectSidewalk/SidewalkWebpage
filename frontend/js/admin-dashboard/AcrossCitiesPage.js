@@ -956,7 +956,7 @@ export class AcrossCitiesPage {
   #sortedCities(key, dirStr, list) {
     const dir = dirStr === 'asc' ? 1 : -1;
     const val = (c) => {
-      if (key === 'city_name') return (c.city_name || c.city_id || '').toLowerCase();
+      if (key === 'city_name') return (c.city_name || c.city_id).toLowerCase();
       if (key === 'lifecycle') {
         const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
         return lc ? lc.rank : 99;

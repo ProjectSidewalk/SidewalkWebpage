@@ -119,7 +119,6 @@ export class ActivityPage {
    */
   #renderBanner() {
     const el = document.getElementById('activity-latest');
-    if (!el) return;
     const top = this.#recent[0];
     if (!top && !this.#series.length) {
       el.innerHTML = 'No activity yet.';
@@ -149,8 +148,8 @@ export class ActivityPage {
     const showAll = el.querySelector('.act-show-all');
     if (showAll) {
       showAll.addEventListener('click', () => {
-        const allBtn = document.querySelector('.act-range-btn[data-range="all"]');
-        if (allBtn) allBtn.click(); // reuse the range toggle's wiring (updates state + re-renders)
+        // Reuses the range toggle's wiring (updates state + re-renders).
+        /** @type {HTMLElement} */ (document.querySelector('.act-range-btn[data-range="all"]')).click();
       });
     }
   }
@@ -459,7 +458,6 @@ export class ActivityPage {
    */
   #wireFeedClicks() {
     const feed = document.getElementById('activity-feed');
-    if (!feed) return;
     feed.addEventListener('click', (e) => {
       const link = /** @type {Element} */ (e.target).closest('.activity-label-link');
       if (!link || !this.#labelPopup) return; // no popup yet → let the href navigate
@@ -559,13 +557,11 @@ export class ActivityPage {
   }
 
   #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    document.getElementById(id).textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('activity-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

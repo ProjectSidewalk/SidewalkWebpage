@@ -1,7 +1,7 @@
 /**
  * Tests for the number-key shortcuts in Validate's KeyboardManager (frontend/js/validate/keyboard/
- * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo
- * that shares the manager's key handling.
+ * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo,
+ * the H, Z and C letter keys, and Escape in a comment box, which share the manager's key handling.
  *
  * The reason buttons are one fixed set of elements reused across label types, and `defaultOption` is the flag saying
  * "this type offers this reason" — so the same keypress has to mean different things depending on the label on screen.
@@ -52,6 +52,9 @@ describe('KeyboardManager number-key shortcuts', () => {
   let current = {};
   const live = (name) => new Proxy({}, { get: (_, key) => current[name][key] });
   const config = { adminVersion: false };
+  // What pauses the shortcuts, and the label container's loading listener, which the manager registers once.
+  const keyboardLock = fakeGate();
+  let onLoadingChange;
 
   beforeAll(() => {
     Object.assign(validationMenuUi, {
@@ -69,8 +72,8 @@ describe('KeyboardManager number-key shortcuts', () => {
 
     new KeyboardManager(
       { validationMenu: validationMenuUi, undoValidation: { undoButton: live('undoButton') } }, config,
-      fakeGate(),
-      { onLoadingChange: () => {} }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
+      keyboardLock,
+      { onLoadingChange: (listener) => { onLoadingChange = listener; } }, live('labelVisibilityControl'), live('labelCard'), live('validationMenu'),
       live('zoomControl'), live('undoValidation'), live('immersiveMode'), live('imageAdjustmentsPopover'),
       live('tracker'),
     );
@@ -312,5 +315,156 @@ describe('KeyboardManager number-key shortcuts', () => {
       expect(clicks).toEqual([]);
       expect(validationMenuUi.unsureReasonTextBox.click).toHaveBeenCalledTimes(2);
     });
+  });
+
+  describe('the verdicts\' own number keys', () => {
+    /** The severity radios and the Unsure reasons, as the menu leaves the DOM on a type with three of each. */
+    function renderSeverityAndUnsureReasons() {
+      document.body.innerHTML = [1, 2, 3].map((n) => `
+        <input type="radio" id="validate-severity-radio-${n}">
+        <button id="unsure-button-${n}" class="defaultOption"></button>`).join('');
+    }
+
+    beforeEach(() => {
+      renderSeverityAndUnsureReasons();
+    });
+
+    it('on Agree in Expert Validate, 1-3 rate the label by clicking the severity radio', () => {
+      config.adminVersion = true;
+      choose('yes');
+
+      pressDigit(1);
+      pressDigit(3);
+
+      expect(clicks).toEqual(['validate-severity-radio-1', 'validate-severity-radio-3']);
+    });
+
+    it('on Agree in regular Validate, which has no rating, 1-3 do nothing', () => {
+      choose('yes');
+
+      pressDigit(2);
+
+      expect(clicks).toEqual([]);
+    });
+
+    it('on Unsure, 1-3 pick the Unsure reasons', () => {
+      choose('unsure');
+
+      pressDigit(1);
+      pressDigit(2);
+
+      expect(clicks).toEqual(['unsure-button-1', 'unsure-button-2']);
+    });
+
+    it('before any verdict is chosen, number keys do nothing', () => {
+      choose(null);
+
+      pressDigit(1);
+      pressDigit(4);
+
+      expect(clicks).toEqual([]);
+      for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
+        expect(validationMenuUi[box].click).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('letter shortcuts', () => {
+    /**
+     * Presses a letter key on the page.
+     * @param {string} code - The key's code, e.g. 'KeyH'.
+     * @param {boolean} [shiftKey] - Whether Shift is held.
+     */
+    function pressKey(code, shiftKey = false) {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code, shiftKey, bubbles: true, cancelable: true }));
+    }
+
+    let visible;
+
+    beforeEach(() => {
+      document.body.innerHTML = '';
+      visible = true;
+      current.labelVisibilityControl = {
+        ...current.labelVisibilityControl,
+        isVisible: () => visible,
+        hideLabel: vi.fn(() => { visible = false; }),
+        unhideLabel: vi.fn(() => { visible = true; }),
+      };
+      current.zoomControl = { zoomIn: vi.fn(), zoomOut: vi.fn() };
+    });
+
+    it('H hides the label, and a second H brings it back, each logged as a keyboard toggle', () => {
+      pressKey('KeyH');
+      pressKey('KeyH');
+
+      expect(current.labelVisibilityControl.hideLabel).toHaveBeenCalledTimes(1);
+      expect(current.labelVisibilityControl.unhideLabel).toHaveBeenCalledTimes(1);
+      expect(current.tracker.push.mock.calls).toEqual([
+        ['KeyboardShortcut_HideLabel', { code: 'KeyH' }],
+        ['KeyboardShortcut_UnhideLabel', { code: 'KeyH' }],
+      ]);
+    });
+
+    it('Z zooms in and Shift+Z zooms out', () => {
+      pressKey('KeyZ');
+      pressKey('KeyZ', true);
+
+      expect(current.zoomControl.zoomIn).toHaveBeenCalledTimes(1);
+      expect(current.zoomControl.zoomOut).toHaveBeenCalledTimes(1);
+      expect(current.tracker.push.mock.calls).toEqual([
+        ['KeyboardShortcut_ZoomIn', { code: 'KeyZ' }],
+        ['KeyboardShortcut_ZoomOut', { code: 'KeyZ' }],
+      ]);
+    });
+
+    it('C on Disagree goes to the disagree reason box', () => {
+      choose('no');
+
+      pressKey('KeyC');
+
+      expect(validationMenuUi.disagreeReasonTextBox.click).toHaveBeenCalledTimes(1);
+    });
+
+    it('C before any verdict is chosen goes nowhere', () => {
+      choose(null);
+
+      pressKey('KeyC');
+
+      for (const box of ['optionalCommentTextBox', 'disagreeReasonTextBox', 'unsureReasonTextBox']) {
+        expect(validationMenuUi[box].click).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  it('a label starting to load pauses the shortcuts, and they come back once it is on screen', () => {
+    onLoadingChange(true);
+    expect(keyboardLock.hold).toHaveBeenCalledWith('loading');
+
+    onLoadingChange(false);
+    expect(keyboardLock.release).toHaveBeenCalledWith('loading');
+  });
+
+  it('Escape in a comment box takes focus out of it, so the shortcuts work again', () => {
+    const commentBox = validationMenuUi.optionalCommentTextBox;
+    document.body.appendChild(commentBox);
+    commentBox.focus();
+
+    commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+
+    expect(document.activeElement).not.toBe(commentBox);
+    expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusComment', { code: 'Escape' });
+    commentBox.remove();
+  });
+
+  it('other keys in a comment box are left to the box', () => {
+    const commentBox = validationMenuUi.optionalCommentTextBox;
+    document.body.appendChild(commentBox);
+    commentBox.focus();
+
+    commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyY', key: 'y', bubbles: true }));
+
+    expect(document.activeElement).toBe(commentBox);
+    expect(current.tracker.push).not.toHaveBeenCalled();
+    commentBox.remove();
   });
 });
