@@ -21,7 +21,7 @@
     @Messages("report.stories.title")
     @reportViews.info(Messages("report.stories.rule"))
   </h2>
-  <ol class="report-stories">
+  <ol class="report-stories" data-read-more="@Messages("stories.page.read.more")" data-read-less="@Messages("stories.page.read.less")">
     @for(story <- report.stories) {
       <li class="report-story" data-story-id="@story.storyId">
         @story.media.map { m =>
@@ -50,7 +50,7 @@
             @report.sectionFor(story.labelId, story.streetEdgeId).map { anchor =>
               <a class="report-story__street" href="#@anchor" data-report-event="Report_OpenStreet">@Messages("report.stories.street")</a>
             }
-            <a class="report-story__label" href="@ReportLinks.story(story.labelId, story.storyId)" target="_blank" rel="noopener" data-report-event="Report_OpenStory">@Messages("stories.page.view.label")<span class="sr-only" data-i18n="common:pano-attribution.opens-new-tab">(opens in a new tab)</span></a>
+            <a class="report-story__label" href="@ReportLinks.story(story.labelId, story.storyId)" target="_blank" rel="noopener" data-report-event="Report_OpenStory">@Messages("stories.page.view.label")<span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span></a>
           </p>
         </div>
       </li>

@@ -566,6 +566,36 @@
   border-left: 3px solid var(--color-neutral-300);
   white-space: pre-line;
   overflow-wrap: anywhere;
+
+  /* Six lines of --text-body-regular (22px): a 5,000-character story would otherwise set its whole row's height. */
+  max-height: 132px;
+  overflow: hidden;
+}
+
+.report-story__text.is-expanded {
+  max-height: none;
+}
+
+.report-story__read-more {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  font: var(--text-small-medium);
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+@media print {
+  .report-story__text {
+    max-height: none;
+  }
+
+  .report-story__read-more {
+    display: none;
+  }
 }
 
 .report-story__byline {
@@ -694,6 +724,7 @@ button.report-map-place[hidden] {
 
 .report-map-toggle__label {
   display: flex;
+  min-height: 24px;
   gap: var(--space-xxs);
   align-items: center;
   margin: 0;
@@ -725,8 +756,17 @@ button.report-map-place[hidden] {
 }
 
 button.report-map-place--small {
+  position: relative;
   width: 16px;
   height: 16px;
+}
+
+/* Painted at the worst map's 16px scale, but the target stays at WCAG 2.2's 24px minimum (SC 2.5.8). */
+button.report-map-place--small::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
 }
 
 button.report-map-place--small .report-map-place__glyph {
