@@ -81,6 +81,7 @@ city.name.validation-study = Étude de validation
 city.name.la-piedad-old = La Piedad (ancien)
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.goiania-br = Goiânia
 
 state.name.pennsylvania = Pennsylvanie
 state.name.california = Californie

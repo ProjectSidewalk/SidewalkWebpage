@@ -82,6 +82,7 @@ city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.goiania-br = Goiânia
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
