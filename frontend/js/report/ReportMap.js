@@ -763,7 +763,8 @@ export class ReportMap {
     const colors = this.#placeColors(place);
     const element = document.createElement('button');
     element.type = 'button';
-    element.className = 'report-map-place';
+    // Beside the worst map's small dots a full-size disc reads as the bigger thing, so there it shrinks to their scale.
+    element.className = this.#options.problems ? 'report-map-place report-map-place--small' : 'report-map-place';
     element.style.background = colors.fill;
     element.style.boxShadow = `0 0 0 2px ${colors.halo}`;
     const glyph = document.createElement('span');

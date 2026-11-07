@@ -7,7 +7,6 @@ import { mousePosition, util } from '../../common/utilities.js';
  */
 export class PanoOverlay {
   #viewControlLayer;
-  #panningDisabled = false;
   /** @type {LabelVisibilityControl} */
   #labelVisibilityControl;
   /** @type {PanoManager} */
@@ -36,20 +35,6 @@ export class PanoOverlay {
     this.#viewControlLayer.addEventListener('mousedown', this.#handlerViewControlLayerMouseDown);
     this.#viewControlLayer.addEventListener('mouseup', this.#handlerViewControlLayerMouseUp);
     this.#viewControlLayer.addEventListener('mouseleave', this.#handlerViewControlLayerMouseLeave);
-  }
-
-  /**
-   * Disables panning on the pano canvas.
-   */
-  disablePanning() {
-    this.#panningDisabled = true;
-  }
-
-  /**
-   * Enables panning on the pano canvas.
-   */
-  enablePanning() {
-    this.#panningDisabled = false;
   }
 
   /**
@@ -97,8 +82,7 @@ export class PanoOverlay {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;
     this.#mouseStatus.currY = mousePosition(e, e.currentTarget).y;
 
-    const panning = this.#mouseStatus.isLeftDown && this.#panningDisabled === false;
-    if (panning && this.#panoManager.getProperty('panoLoaded')) {
+    if (this.#mouseStatus.isLeftDown && this.#panoManager.getProperty('panoLoaded')) {
       // If a mouse is being dragged on the control layer, move the pano.
       let dx = this.#mouseStatus.currX - this.#mouseStatus.prevX;
       let dy = this.#mouseStatus.currY - this.#mouseStatus.prevY;

@@ -81,11 +81,6 @@
   cursor: not-allowed;
 }
 
-/* display: flex would otherwise beat the user-agent's [hidden] rule when the row is the streets-only toggle. */
-.acs-check-row[hidden] {
-  display: none;
-}
-
 /* ---- Places (#5311): one row per category, the icon doubling as the map legend ---- */
 
 .acs-place-categories {
@@ -148,10 +143,6 @@
   font: var(--text-caption-regular);
   color: var(--color-neutral-600);
   margin: var(--space-xs) 0 0;
-}
-
-.acs-places-note[hidden] {
-  display: none;
 }
 
 /* Streets | Regions: two radios styled as one segmented control. */
@@ -374,11 +365,6 @@
   gap: var(--space-xs);
 }
 
-/* display: flex would otherwise beat the user-agent's [hidden] rule, and the fold would never close. */
-.acs-slope[hidden] {
-  display: none;
-}
-
 .acs-field label {
   font: var(--text-caption-regular);
 }
@@ -451,10 +437,6 @@
   border-top: 1px solid var(--color-neutral-200);
 }
 
-.acs-panel__credits[hidden] {
-  display: none;
-}
-
 .acs-panel__credit {
   margin: var(--space-xxs) 0 0;
   font: var(--text-caption-regular);
@@ -500,7 +482,6 @@
 .filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-dock {
   left: var(--filter-sidebar-width, 350px);
 }
-
 
 /* The band covers the map's bottom edge, where Mapbox keeps its attribution and logo; the dock publishes its
    height on the holder and the controls ride up by it. */
@@ -589,10 +570,6 @@
   transition: left var(--transition-fast);
 }
 
-.acs-dock__strip-caret[hidden] {
-  display: none;
-}
-
 .acs-dock__kpis {
   display: flex;
   flex-wrap: wrap; /* The folded bar beside the street panel can be narrower than one row of tiles. */
@@ -633,10 +610,6 @@
   font: var(--text-caption-medium);
 }
 
-.acs-dock__brush[hidden] {
-  display: none;
-}
-
 .acs-dock__body {
   display: grid;
 
@@ -646,10 +619,6 @@
   gap: var(--space-md);
   padding: 0 var(--space-md) var(--space-sm);
   border-top: 1px solid var(--color-neutral-200);
-}
-
-.acs-dock__body[hidden] {
-  display: none;
 }
 
 /* A city mapped as one neighborhood has no neighborhoods to rank, so the panel steps out while that unit is in
@@ -667,10 +636,6 @@
   height: calc(176px * var(--ui-scale, 1));
   min-width: 0;
   overflow: hidden;
-}
-
-.acs-dock__panel[hidden] {
-  display: none;
 }
 
 .acs-dock__panel-head {
@@ -859,11 +824,6 @@
   border-bottom-color: var(--color-link-200);
 }
 
-.acs-histogram__needle[hidden],
-.acs-histogram__caret[hidden] {
-  display: none;
-}
-
 .acs-histogram__axis,
 .acs-histogram__poles {
   display: flex;
@@ -930,10 +890,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.acs-whats-here__rows[hidden] {
-  display: none;
 }
 
 .acs-whats-here__row {
@@ -1011,10 +967,6 @@
   background: var(--acs-segment, var(--color-neutral-400));
 }
 
-.acs-whats-here__segment[hidden] {
-  display: none;
-}
-
 .acs-whats-here__segment--unrated {
   flex: 1;
   background: var(--color-neutral-500);
@@ -1051,10 +1003,6 @@
   margin: var(--space-xxs) 0 0;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
-}
-
-.acs-whats-here__empty[hidden] {
-  display: none;
 }
 
 /* ---- Photo strip: label crops from the scope's region ---- */
@@ -1265,10 +1213,6 @@
   cursor: pointer;
 }
 
-.acs-sheet__paging[hidden] {
-  display: none;
-}
-
 .acs-sheet__paging:hover:not(:disabled) {
   background: var(--color-neutral-100);
   color: var(--color-neutral-black);
@@ -1340,7 +1284,6 @@
   list-style: none;
 }
 
-
 /* ---- The street panel (#5748): why a street scores what it does, with the pictures behind it ---- */
 
 /* A drawer on the map's right, the mirror of the controls drawer on the left. Over the dock (12) and under the
@@ -1362,11 +1305,6 @@
   /* Named so the header can re-flow on the panel's own width, which is a fraction of the window's. */
   container: acs-panel / inline-size;
 }
-
-.acs-panel[hidden] {
-  display: none;
-}
-
 
 /* Title and meta, then the one call to action, then the close: the hop sits in the header so it is never below
    the fold of a long evidence list. */
@@ -1582,11 +1520,6 @@ button.acs-panel__end:focus-visible {
   display: contents;
 }
 
-/* display: contents would otherwise beat the user-agent's [hidden] rule. */
-.acs-panel__profile[hidden] {
-  display: none;
-}
-
 .acs-panel__components .elevation-profile__chart {
   grid-column: 2;
   grid-row: 1;
@@ -1683,10 +1616,6 @@ button.acs-panel__end:focus-visible {
   border-radius: var(--border-radius-lg);
   background: var(--color-neutral-white);
   box-shadow: var(--box-shadow);
-}
-
-.acs-crossing-card[hidden] {
-  display: none;
 }
 
 .acs-crossing-card::before {
@@ -1872,10 +1801,6 @@ button.acs-row {
   margin-left: auto;
 }
 
-.acs-panel__filter[hidden] {
-  display: none;
-}
-
 .acs-row:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 1px;
@@ -2019,11 +1944,6 @@ button.acs-row {
   margin-top: var(--space-xs);
 }
 
-/* .button's display: inline-flex would otherwise beat the user-agent's [hidden] rule. */
-.acs-group__more[hidden] {
-  display: none;
-}
-
 .acs-tile {
   position: relative;
   transition: opacity var(--transition-fast);
@@ -2062,10 +1982,6 @@ button.acs-row {
   line-height: calc(18px * var(--ui-scale, 1));
   font-variant-numeric: tabular-nums;
   pointer-events: none;
-}
-
-.acs-tile__effect[hidden] {
-  display: none;
 }
 
 /* "6 labels": the way to the whole cluster, on the picture's top-right corner. */

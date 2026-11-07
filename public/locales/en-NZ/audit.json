@@ -59,7 +59,7 @@
     "context-menu": {
       "tag": {
         "trash-recycling-can": "tras<tag-underline>h</tag-underline>/recycling bin",
-        "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a footpath",
+        "other-side-has-a-sidewalk": "othe<tag-underline>r</tag-underline> side has a footpath",
         "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no footpaths",
         "level-with-sidewalk": "level with footpath (<tag-underline>d</tag-underline>)",
         "missing-crosswalk": "m<tag-underline>i</tag-underline>ssing marked pedestrian crossing"

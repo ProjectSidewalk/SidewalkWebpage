@@ -551,6 +551,9 @@ loaded by the corresponding Twirl view:
   it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  A validator's first missions each carry a training example an admin pinned (#1445), explained by
+  `ModalGoldFeedback` when their vote on it isn't Disagree; the queue doc's "Training examples" has the rules,
+  and the answer is filed in `gold_example_response`, never as a vote.
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
@@ -922,8 +925,8 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
 
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
-`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
-stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. The stamp is
+required: `utilitiesSidewalk.js` reads it when it loads, so a page without it fails at once.
 
 The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
 enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for

@@ -1,5 +1,5 @@
 /**
- * Tests for util.escapeHTML and util.htmlToText.
+ * Tests for util.escapeHTML, util.htmlToText and util.sanitizeHtml.
  */
 
 import { loadModules } from './loader.js';
@@ -34,5 +34,27 @@ describe('util.htmlToText', () => {
 
   test('treats null as empty', () => {
     expect(util.htmlToText(null)).toBe('');
+  });
+});
+
+describe('util.sanitizeHtml', () => {
+  /**
+   * @param {DocumentFragment} fragment - What sanitizeHtml returned.
+   * @returns {string} The fragment's markup, to compare against.
+   */
+  const markup = (fragment) => {
+    const holder = document.createElement('div');
+    holder.append(fragment);
+    return holder.innerHTML;
+  };
+
+  test('treats null as nothing to show', () => {
+    expect(markup(util.sanitizeHtml(null))).toBe('');
+  });
+
+  test('keeps a new-tab link but cuts its handle back to this page, and drops a form', () => {
+    const html = '<a href="https://example.org" target="_blank">read</a><form><input name="password"></form>';
+    expect(markup(util.sanitizeHtml(html)))
+      .toBe('<a href="https://example.org" target="_blank" rel="noopener">read</a>');
   });
 });

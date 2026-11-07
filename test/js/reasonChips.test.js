@@ -14,10 +14,13 @@ import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 
 const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
 
+/** Keys a test pretends the locale file lacks, to see what a gap in a translation does. */
+const withheld = new Set();
+
 /** @returns {string|undefined} What the real English common.json holds at a `common:` key. */
 function lookup(key) {
   const [ns, rest] = key.split(':');
-  if (ns !== 'common') return undefined;
+  if (ns !== 'common' || withheld.has(key)) return undefined;
   return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), EN_COMMON);
 }
 
@@ -52,6 +55,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   window.validationReasons = stamp; // A test may edit or drop the stamp; the next one gets the fixture back.
+  withheld.clear();
 });
 
 describe('validationReasons', () => {
@@ -298,5 +302,47 @@ describe('ReasonChips', () => {
     expect(document.activeElement).toBe(chipEls()[1]);
     chips.render({ labelType: 'Crosswalk', vote: 'Disagree', selected: 'stop-line' });
     expect(document.activeElement).toBe(chipEls()[2]);
+  });
+
+  test('"Other…" stays a button while a pick is saving, by click or by number key', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    chips.setBusy(true);
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(chips.pickByNumber(chipEls().length + 1)).toBe(true);
+
+    expect(onOther).not.toHaveBeenCalled();
+    expect(root.querySelector('.reason-chips__other-form')).toBeNull();
+  });
+
+  test('once "Other…" is a field, arrows wrap among the chips alone', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    const last = chipEls().at(-1);
+    last.focus();
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+    expect(document.activeElement).toBe(chipEls()[0]);
+  });
+
+  test('a reason the locale files give no tooltip is still offered, just without one', () => {
+    withheld.add('common:validation-reason.driveway.tooltip');
+    withheld.add('common:validation-reason.driveway.tooltip-curb-ramp');
+    chips.render({ labelType: 'CurbRamp', vote: 'Disagree' });
+    const driveway = chipEls().find((c) => c.dataset.reasonId === 'driveway');
+
+    expect(driveway.hasAttribute('data-ps-tooltip-html')).toBe(false);
+    expect(chipEls()[0].hasAttribute('data-ps-tooltip-html')).toBe(true);
+  });
+
+  test('ArrowLeft from the first chip wraps round to "Other…", and other keys are left to the page', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    chipEls()[0].focus();
+    const letter = new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
+    chipEls()[0].dispatchEvent(letter);
+    expect(letter.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(chipEls()[0]);
+
+    chipEls()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(other());
   });
 });

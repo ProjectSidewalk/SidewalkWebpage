@@ -38,11 +38,15 @@ import models.utils.{
   SqlFragments
 }
 import models.validation.{
+  GoldExampleResponseTableDef,
+  GoldExampleTable,
+  GoldExampleTableDef,
   LabelValidation,
   LabelValidationTableDef,
   ValidationLabelFilter,
   ValidationOption,
   ValidationQueuePolicy,
+  ValidationReason,
   ValidationTaskCommentTableDef
 }
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -356,7 +360,10 @@ case class LabelValidationMetadata(
     aiGenerated: Boolean,
     comments: Seq[LabelComment] = Seq.empty,
     fromCurrentUser: Boolean = false,
-    panoMetadata: Option[PanoViewerMetadata] = None
+    panoMetadata: Option[PanoViewerMetadata] = None,
+    // Set when the label is the mission's training example (#1445): its reason, explained on a miss over its crop.
+    goldReason: Option[ValidationReason] = None,
+    goldCropUrl: Option[String] = None
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
@@ -920,6 +927,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
   val mistakeResponses       = TableQuery[MistakeResponseTableDef]
+  val goldExamples           = TableQuery[GoldExampleTableDef]
+  val goldExampleResponses   = TableQuery[GoldExampleResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1481,20 +1490,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .as[LabelMetadata]
   }
 
-  /**
-   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
-   *
-   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
-   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
-   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
-   * `PanoDataTable.hasBackupViewerFields`; see the note there before changing it.
-   *
-   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
-   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
-   */
-  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
-    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && PanoDataTable.hasBackupViewerFields(pd))
-  }
+  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = PanoDataTable.imageryViewable(pd)
 
   /**
    * Labels this user could be served: not their own, not already validated by them, with imagery their viewer can
@@ -1517,7 +1513,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId)
+      if !validatedByUser(_lb, userId) && !isGoldExample(_lb)
     } yield _lb
   }
 
@@ -1547,6 +1543,22 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   private def validatedByUser(l: LabelTableDef, userId: String): Rep[Boolean] =
     labelValidations.filter(v => v.userId === userId && v.labelId === l.labelId && v.isCurrent(l)).exists
+
+  /**
+   * Pinned as a training example (#1445), so never served as an ordinary label: it is known wrong, and a beginner's
+   * Agree would count toward voting it back to correct.
+   */
+  private def isGoldExample(l: LabelTableDef): Rep[Boolean] =
+    goldExamples.filter(_.labelId === l.labelId).exists
+
+  /**
+   * Answered as a training example (#1445): they were told the answer, so it is never served to them again, even once
+   * unpinned. An unanswered serve doesn't count, so an abandoned mission can offer it again.
+   */
+  private def answeredAsGoldExample(l: LabelTableDef, userId: String): Rep[Boolean] =
+    goldExampleResponses
+      .filter(r => r.userId === userId && r.labelId === l.labelId && r.validationResult.isDefined)
+      .exists
 
   /**
    * Whether the AI placed the label, as an `EXISTS` rather than a join on `user_role`, so it reads as the predicate it
@@ -1787,6 +1799,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .map { case (row, _) => asValidationMetadata(row, includeAiTags) }
   }
 
+  /**
+   * The pinned examples of this type the user could be shown (#1445), in random order: those passing every rule the
+   * mission's own labels pass and teaching a lesson they aren't done with. The reason rides as a second column, since
+   * the metadata projection is the ordinary queue's.
+   */
+  def goldExampleForValidationQuery(
+      userId: String,
+      viewer: PanoSource,
+      labelType: LabelType,
+      includeAiTags: Boolean
+  ): Query[(LabelValidationMetadataRep, Rep[ValidationReason]), (LabelValidationMetadata, ValidationReason), Seq] = {
+    validationCandidates(userId, viewer, labelType, ValidationLabelFilter(), unvalidatedOnly = false, Set.empty,
+      Set.empty, asGoldExample = true)
+      .join(goldExamples)
+      .on { case ((l, _, _, _, _, _, _, _, _, _), g) => g.labelId === l.labelId }
+      .filter { case ((l, _, _, _, _, _, _, _, _, _), g) =>
+        !GoldExampleTable.reasonSettled(userId, g.reason, l.labelType)
+      }
+      .sortBy(_ => random)
+      .map { case (row, g) => (asValidationMetadata(row, includeAiTags), g.reason) }
+  }
+
   // The row the Validate queue's stages pass along, lifted and plain: the label, its point, pano, labeler's stats and
   // audit task, then the type name, region, whether an AI placed it, and the AI's assessment and vote if any.
   private type ValidationCandidateRep = (
@@ -1818,6 +1852,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * The labels a user could be asked to validate, with the AI's current assessment, before any queue is applied.
    * Parameters are those of `retrieveLabelListForValidationQuery`, documented there.
    *
+   * @param asGoldExample Keep the pinned training examples (#1445), minus those this user has answered, instead of
+   *                      leaving every pinned label out as the ordinary queue does; see [[isGoldExample]].
    * @return One row per candidate; see [[ValidationCandidateRep]].
    */
   private def validationCandidates(
@@ -1827,7 +1863,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean,
       excludedLabelIds: Set[Int],
-      excludedFaces: Set[(Int, StreetSide)]
+      excludedFaces: Set[(Int, StreetSide)],
+      asGoldExample: Boolean = false
   ): Query[ValidationCandidateRep, ValidationCandidate, Seq] = {
     // Join all necessary tables and filter potential labels according to the given parameters.
     val labelInfo = for {
@@ -1844,7 +1881,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if !onExcludedFace(_lb, _lp, StreetSide.Left, excludedFaces) &&
         !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
       if matchesFilter(_lb, filter)
-      if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
+      if !validatedByUser(_lb, userId) // Anti-join; see validatedByUser.
+      if !answeredAsGoldExample(_lb, userId) && (asGoldExample.asColumnOf[Boolean] || !isGoldExample(_lb))
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a

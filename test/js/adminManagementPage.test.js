@@ -85,11 +85,10 @@ const TEAMS = [
  * Builds the view and starts the page with the given stats reply.
  * @param {any} stats - What /adminapi/getUserStats answers.
  * @param {Record<string, any>} [routes] - Answers for the save endpoints.
- * @param {string} [markup] - The page's DOM, when a test needs less of it.
  * @returns {Promise<{sent: Function}>} The log of requests made.
  */
-async function load(stats, routes = {}, markup = MARKUP) {
-  document.body.innerHTML = markup;
+async function load(stats, routes = {}) {
+  document.body.innerHTML = MARKUP;
   const stub = routeFetch({ [URLS.userStatsUrl]: stats, ...routes });
   const sent = () => sentRequests(stub);
   await new ManagementPage(URLS, ROLES).init();
@@ -137,13 +136,6 @@ describe('loading', () => {
     expect(document.getElementById('mgmt-user-count').textContent).toBe('0 users');
     expect(pager().innerHTML).toBe('');
   });
-
-  test('still draws the tables on a page missing its search box, pagers and status lines', async () => {
-    const bare = '<div id="mgmt-users"></div><div id="mgmt-teams"></div>';
-    await load({ user_stats: [user('ada')], teams: TEAMS }, {}, bare);
-    expect(names()).toEqual(['ada']);
-    expect(document.querySelectorAll('#mgmt-teams tbody tr')).toHaveLength(2);
-  });
 });
 
 describe('the users table', () => {
@@ -160,6 +152,12 @@ describe('the users table', () => {
     // The endpoint sends a 0–1 share, shown as a percent of how many were judged.
     expect(accuracy).toBe('90% of 10');
     expect(signIns).toBe((1234).toLocaleString());
+  });
+
+  test('names a row with neither a username nor a user id "Unknown"', async () => {
+    await load({ user_stats: [user(null, { username: null })], teams: [] });
+    expect(names()).toEqual(['Unknown']);
+    expect(userRows()[0].querySelector('a').getAttribute('href')).toBe('/admin/user/Unknown');
   });
 
   test('fills the gaps a sparse row leaves with dashes, zeros and the user id', async () => {

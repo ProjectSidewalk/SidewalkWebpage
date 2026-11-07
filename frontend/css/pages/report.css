@@ -163,11 +163,6 @@
   mask-image: url("/images/icons/link-feather.svg");
 }
 
-/* The display: flex above beats the UA stylesheet's [hidden] rule. */
-.report-actions[hidden] {
-  display: none;
-}
-
 /* ---- Sections ------------------------------------------------------------------------------------------------- */
 
 .report-section {
@@ -500,10 +495,6 @@
   transition: transform var(--transition-fast);
 }
 
-.report-map-marker[hidden] {
-  display: none;
-}
-
 .report-map-marker:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
@@ -633,7 +624,6 @@
   vertical-align: middle;
 }
 
-
 .report-places--compact {
   display: inline-flex;
   gap: 2px;
@@ -728,9 +718,20 @@ button.report-map-place[hidden] {
   display: none;
 }
 
+/* Whole pixels: the stroke icons go soft at a fractional size, and 12px maps their 24-unit grid 2:1. */
 .report-map-place__glyph {
-  width: 60%;
-  height: 60%;
+  width: 14px;
+  height: 14px;
+}
+
+button.report-map-place--small {
+  width: 16px;
+  height: 16px;
+}
+
+button.report-map-place--small .report-map-place__glyph {
+  width: 12px;
+  height: 12px;
 }
 
 .report-place-popup .maplibregl-popup-content {
@@ -757,10 +758,6 @@ button.report-map-place[hidden] {
 
 /* ---- Sidebar controls ----------------------------------------------------------------------------------------- */
 
-.report-control[hidden] {
-  display: none;
-}
-
 .report-toggle {
   display: flex;
   gap: var(--space-xxs);
@@ -785,10 +782,6 @@ button.report-map-place[hidden] {
   margin: var(--space-xs) 0 0;
   font: var(--text-caption-regular);
   list-style: none;
-}
-
-.report-legend[hidden] {
-  display: none;
 }
 
 .report-legend li {
@@ -820,10 +813,6 @@ button.report-map-place[hidden] {
   padding: 0;
   margin: 0 0 var(--space-xs);
   border: 0;
-}
-
-.report-color-by[hidden] {
-  display: none;
 }
 
 .report-color-by__title {
@@ -993,10 +982,6 @@ button.report-map-place[hidden] {
   margin-top: var(--space-sm);
 }
 
-.report-street__profile[hidden] {
-  display: none;
-}
-
 .report-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -1010,6 +995,13 @@ button.report-map-place[hidden] {
   min-width: 0;
   border-radius: var(--border-radius);
   transition: box-shadow var(--transition-fast);
+}
+
+/* The imagery credit is owed, not read: on these small stills it steps below the type scale so it stays one line. */
+.report-cards .pano-attribution--compact {
+  padding: 1px 5px;
+  font-size: 9px;
+  line-height: 11px;
 }
 
 /*
@@ -1040,10 +1032,6 @@ button.report-map-place[hidden] {
 
 .report-cards .label-tags-header,
 .report-cards .card-tags:not(:has(.gallery-tag)) {
-  display: none;
-}
-
-.report-card[hidden] {
   display: none;
 }
 
@@ -1078,10 +1066,6 @@ button.report-map-place[hidden] {
 
 .report-cards__more {
   margin-top: var(--space-sm);
-}
-
-.report-cards__more[hidden] {
-  display: none;
 }
 
 /* ---- Fixes ---------------------------------------------------------------------------------------------------- */

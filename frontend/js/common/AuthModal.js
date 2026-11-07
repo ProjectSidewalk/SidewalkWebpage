@@ -29,13 +29,12 @@ const auIcon = () => {
 function wireEyeToggle(btn) {
   btn.addEventListener('click', () => {
     const input = /** @type {HTMLInputElement} */ (document.getElementById(btn.dataset.eye));
-    if (!input) return;
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
     btn.setAttribute('aria-pressed', String(show));
     btn.setAttribute('aria-label', show ? btn.dataset.labelHide : btn.dataset.labelShow);
-    btn.querySelector('.au-eye-on')?.classList.toggle('ps-hidden', show);
-    btn.querySelector('.au-eye-off')?.classList.toggle('ps-hidden', !show);
+    btn.querySelector('.au-eye-on').classList.toggle('ps-hidden', show);
+    btn.querySelector('.au-eye-off').classList.toggle('ps-hidden', !show);
   });
 }
 
@@ -107,7 +106,6 @@ async function isBreachedPassword(password, rangeUrl) {
 function wirePasswordGroup(group) {
   const pw = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw'));
   const pw2 = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw-confirm'));
-  if (!pw) return;
 
   const rules = [...group.querySelectorAll('.au-checklist li[data-rule-regex]')]
     .map((li) => ({ li, regex: new RegExp(li.dataset.ruleRegex) }));
@@ -144,7 +142,7 @@ function wirePasswordGroup(group) {
     breachWarning.className = 'au-warning';
     breachWarning.setAttribute('role', 'status');
     breachWarning.append(auIcon(), ` ${breachMessage}`);
-    (group.querySelector('.au-strength') || pw).insertAdjacentElement('afterend', breachWarning);
+    group.querySelector('.au-strength').insertAdjacentElement('afterend', breachWarning);
   };
 
   /** @returns {number} How many composition rules the current password meets. */
@@ -160,15 +158,11 @@ function wirePasswordGroup(group) {
     const shown = breached ? Math.min(met, 1) : met;
     renderBreachWarning(breached);
     slabs.forEach((slab, i) => slab.classList.toggle('paved', i < shown));
-    if (strengthWord) {
-      strengthWord.textContent = pw.value ? strengthWord.dataset[`word${shown}`] || '' : '';
-    }
-    if (match && matchText && pw2) {
-      const same = pw.value.length > 0 && pw.value === pw2.value;
-      match.classList.toggle('met', same);
-      match.classList.toggle('unmet', pw2.value.length > 0 && !same);
-      matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
-    }
+    strengthWord.textContent = pw.value ? strengthWord.dataset[`word${shown}`] || '' : '';
+    const same = pw.value.length > 0 && pw.value === pw2.value;
+    match.classList.toggle('met', same);
+    match.classList.toggle('unmet', pw2.value.length > 0 && !same);
+    matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
     return met;
   };
 
@@ -180,7 +174,7 @@ function wirePasswordGroup(group) {
   const scheduleBreachCheck = (allRulesMet) => {
     clearTimeout(breachTimer);
     const value = pw.value;
-    if (!breachUrl || !breachMessage || !window.crypto?.subtle || !allRulesMet) return;
+    if (!window.crypto?.subtle || !allRulesMet) return;
     if (verdicts.has(value)) return;
     breachTimer = setTimeout(async () => {
       const breached = await isBreachedPassword(value, breachUrl);
@@ -193,7 +187,7 @@ function wirePasswordGroup(group) {
     const met = update();
     scheduleBreachCheck(rules.length > 0 && met === rules.length);
   });
-  pw2?.addEventListener('input', update);
+  pw2.addEventListener('input', update);
 }
 
 /**
@@ -204,13 +198,13 @@ function wireLiveValidation() {
   document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
 
   const username = /** @type {HTMLInputElement} */ (document.getElementById('sign-up-username'));
-  if (username?.dataset.ruleRegex) {
+  if (username) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
     const rule = document.getElementById('sign-up-username-rule');
     username.addEventListener('input', () => {
       const ok = usernameRegex.test(username.value);
-      rule?.classList.toggle('met', ok);
-      rule?.classList.toggle('unmet', username.value.length > 0 && !ok);
+      rule.classList.toggle('met', ok);
+      rule.classList.toggle('unmet', username.value.length > 0 && !ok);
     });
   }
 }
@@ -283,8 +277,8 @@ export function wireAsyncSubmit(form, { onSuccess } = {}) {
     e.preventDefault();
     clearAuthErrors(form);
     const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn?.setAttribute('disabled', 'disabled');
-    submitBtn?.classList.add('is-loading');
+    submitBtn.setAttribute('disabled', 'disabled');
+    submitBtn.classList.add('is-loading');
     try {
       const res = await fetch(form.action, {
         method: 'POST',
@@ -309,8 +303,8 @@ export function wireAsyncSubmit(form, { onSuccess } = {}) {
     } catch {
       renderAuthErrors(form, { _summary: form.dataset.errorGeneric });
     }
-    submitBtn?.removeAttribute('disabled');
-    submitBtn?.classList.remove('is-loading');
+    submitBtn.removeAttribute('disabled');
+    submitBtn.classList.remove('is-loading');
   });
 }
 
@@ -407,14 +401,14 @@ export class AuthModal {
    */
   #showPanel(panelId) {
     ['sign-in-modal', 'sign-up-modal'].forEach((id) => {
-      document.getElementById(id)?.classList.toggle('ps-hidden', id !== panelId);
+      document.getElementById(id).classList.toggle('ps-hidden', id !== panelId);
     });
     this.#dialog.setAttribute('aria-labelledby', panelId === 'sign-up-modal' ? 'sign-up-label' : 'sign-in-label');
   }
 
   /** Moves focus to the first text input of the visible panel (what showModal would do for a single panel). */
   #focusFirstField() {
-    this.#dialog.querySelector('.au-panel:not(.ps-hidden) .au-input')?.focus();
+    this.#dialog.querySelector('.au-panel:not(.ps-hidden) .au-input').focus();
   }
 }
 
