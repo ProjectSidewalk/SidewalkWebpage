@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
 
   // Slick and Postgres stuff.
-  "org.postgresql"     % "postgresql"            % "42.7.13",
+  "org.postgresql"     % "postgresql"            % "42.7.14",
   "org.playframework" %% "play-slick"            % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
