@@ -528,4 +528,39 @@ describe('ReportPage', () => {
     });
 
   });
+
+  describe('story read-more', () => {
+    /** @param {number} scrollHeight - The story's full height; its clamped box is 132px. */
+    const addStory = (scrollHeight) => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <ol class="report-stories" data-read-more="Read more" data-read-less="Read less">
+          <li><blockquote class="report-story__text">A story</blockquote></li>
+        </ol>`);
+      const text = document.querySelector('.report-story__text');
+      Object.defineProperty(text, 'scrollHeight', { value: scrollHeight });
+      Object.defineProperty(text, 'clientHeight', { value: 132 });
+      return text;
+    };
+
+    test('a story that fits its card gets no toggle', () => {
+      addStory(100);
+      new ReportPage(data(), deps).start();
+      expect(document.querySelector('.report-story__read-more')).toBeNull();
+    });
+
+    test('a clamped story toggles open and shut, announcing its state and logging each change', () => {
+      const text = addStory(400);
+      new ReportPage(data(), deps).start();
+      const toggle = document.querySelector('.report-story__read-more');
+      expect(toggle.textContent).toBe('Read more');
+      toggle.click();
+      expect(text.classList.contains('is-expanded')).toBe(true);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(toggle.textContent).toBe('Read less');
+      expect(deps.log).toHaveBeenCalledWith('Report_StoryReadMore_Expanded=true');
+      toggle.click();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(deps.log).toHaveBeenCalledWith('Report_StoryReadMore_Expanded=false');
+    });
+  });
 });

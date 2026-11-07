@@ -23,7 +23,7 @@ class StoryTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerS
   private lazy val storyTable = app.injector.instanceOf[StoryTable]
 
   /** A live label in a region, with its street and region, and a region it is not in; None when the DB has none. */
-  private val labelInRegion: DBIO[Option[(Int, Int, Int, Int)]] =
+  private val labelInRegion: DBIO[Option[(Int, Int, Int, Option[Int])]] =
     sql"""
       SELECT label.label_id, label.street_edge_id, street_edge_region.region_id,
              (SELECT MIN(region_id) FROM region WHERE region_id <> street_edge_region.region_id AND deleted = FALSE)
@@ -33,7 +33,7 @@ class StoryTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerS
       WHERE label.deleted = FALSE
       ORDER BY label.label_id
       LIMIT 1
-    """.as[(Int, Int, Int, Int)].headOption
+    """.as[(Int, Int, Int, Option[Int])].headOption
 
   // Two authors, since a user may tell one story per label.
   private val twoUserIds: DBIO[Seq[String]] =
@@ -44,11 +44,12 @@ class StoryTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerS
 
   "getVisibleForCity" must {
     "give a region only the visible stories on its streets, each with its street" in {
-      runRolledBack(labelInRegion.flatMap {
-        case None => DBIO.successful(cancel("The connected database has no label in a region."))
-        case Some((labelId, streetEdgeId, regionId, otherRegion)) =>
+      runRolledBack(labelInRegion.zip(twoUserIds).flatMap {
+        case (None, _)                    => DBIO.successful(cancel("The connected database has no label in a region."))
+        case (Some((_, _, _, None)), _)   => DBIO.successful(cancel("The connected database has only one region."))
+        case (_, users) if users.size < 2 => DBIO.successful(cancel("The connected database has fewer than two users."))
+        case (Some((labelId, streetEdgeId, regionId, Some(otherRegion))), users) =>
           for {
-            users     <- twoUserIds
             shownId   <- storyTable.insert(story(labelId, users.head, "A story the report shows", visible = true))
             _         <- storyTable.insert(story(labelId, users(1), "A story moderators hid", visible = false))
             inRegion  <- storyTable.getVisibleForCity(100, Some(regionId))

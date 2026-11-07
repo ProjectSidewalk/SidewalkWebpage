@@ -56,7 +56,9 @@ export class ReportPlacesToggle {
     this.#input = null;
   }
 
-  /** @returns {import('maplibre-gl').ControlPosition} Where the map puts it: away from the zoom buttons and the legend. */
+  /**
+   * @returns {import('maplibre-gl').ControlPosition} Where the map puts it: away from the zoom buttons and the legend.
+   */
   getDefaultPosition() {
     return 'top-left';
   }
