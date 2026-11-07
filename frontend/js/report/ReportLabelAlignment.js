@@ -11,6 +11,10 @@
  * along the line. Only the along-line part depends on the zoom, so a map recomputes offsets as it zooms and the
  * projection once.
  *
+ * Markers collide only with others on the same edge and side. A street section spans several edges, so two markers
+ * either side of a join can still overlap, and a run spread near an edge's end can reach past it; both are left for
+ * QA to show they matter before stitching edges into one line.
+ *
  * Pure functions, so the geometry can be tested without a map.
  */
 
@@ -21,8 +25,8 @@
  * @property {number} clusterId
  * @property {number} lat
  * @property {number} lng
- * @property {?string} [side] - `left` or `right` of its edge's digitized direction; null or absent keeps it in place.
- * @property {boolean} [atCrossing] - Attributed to an intersection: curb ramps, crosswalks and signals stay at it.
+ * @property {?string} [side] - `left` or `right` of its edge's digitized direction; null or absent keeps it in place,
+ *   as the server sends it for a location at a crossing (`ReportRules.sideOf`).
  * @property {?number} [edgeId] - The edge whose line it is drawn beside.
  *
  * @typedef {object} AlignedLocation
@@ -139,8 +143,8 @@ export function alignLocations(locations, edges) {
   /** @type {AlignedLocation[]} */
   const aligned = [];
   for (const location of locations) {
-    const { clusterId, lat, lng, side, atCrossing = false, edgeId } = location;
-    if (atCrossing || (side !== 'left' && side !== 'right') || edgeId === null || edgeId === undefined) continue;
+    const { clusterId, lat, lng, side, edgeId } = location;
+    if ((side !== 'left' && side !== 'right') || edgeId === null || edgeId === undefined) continue;
     const coordinates = edges.get(edgeId);
     if (!coordinates || coordinates.length < 2) continue;
     const frame = localFrame(/** @type {Vec} */ (coordinates[0]));

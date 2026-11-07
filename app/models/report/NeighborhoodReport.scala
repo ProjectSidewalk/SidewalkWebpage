@@ -385,7 +385,8 @@ object ReportRules {
    * edge's digitized direction and says nothing against another street.
    *
    * @param labels Counted labels by id
-   * @return The majority side, or None on a tie or with no sided label, which draws the location where it is.
+   * @return The majority side, or None at a crossing, on a tie or with no sided label, which draws the location where
+   *         it is.
    */
   def sideOf(location: ReportLocation, labels: Map[Int, ReportLabel]): Option[StreetSide] = {
     val sides = location.labelIds
@@ -394,7 +395,10 @@ object ReportRules {
       .flatMap(_.streetSide)
     val left  = sides.count(_ == StreetSide.Left)
     val right = sides.count(_ == StreetSide.Right)
-    if (left > right) Some(StreetSide.Left) else if (right > left) Some(StreetSide.Right) else None
+    if (location.intersectionId.isDefined) None
+    else if (left > right) Some(StreetSide.Left)
+    else if (right > left) Some(StreetSide.Right)
+    else None
   }
 
   /** How many points an item must cost its street to be listed as a fix. */

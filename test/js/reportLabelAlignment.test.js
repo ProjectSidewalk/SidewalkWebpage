@@ -25,7 +25,7 @@ const EDGES = new Map([
  * @returns {object} A location 20 m north of the eastbound street, a quarter of the way along, on its left.
  */
 const northOfEast = (clusterId, overrides = {}) => ({
-  clusterId, lng: -122.326675, lat: 47.60018, side: 'left', atCrossing: false, edgeId: 1, ...overrides,
+  clusterId, lng: -122.326675, lat: 47.60018, side: 'left', edgeId: 1, ...overrides,
 });
 
 describe('localFrame', () => {
@@ -108,9 +108,8 @@ describe('spreadAlong', () => {
 });
 
 describe('alignLocations', () => {
-  test('drops a label at a crossing, without a side, or without a known edge, and keeps the rest in order', () => {
+  test('drops a label without a side or without a known edge, and keeps the rest in order', () => {
     const aligned = alignLocations([
-      northOfEast(1, { atCrossing: true }),
       northOfEast(2, { side: null }),
       northOfEast(3, { side: undefined }),
       northOfEast(4, { edgeId: null }),
@@ -148,6 +147,31 @@ describe('alignLocations', () => {
     expect(a.lngLat[0]).toBeCloseTo(-122.3167, 9);
     expect(a.lngLat[1]).toBeCloseTo(47.6, 9);
     expect(a.tangent[0]).toBeCloseTo(1, 9);
+  });
+});
+
+describe('on a street that bends', () => {
+  // East 1 km, then north 1 km, as one edge.
+  const BENT = new Map([[3, [[-122.33, 47.6], [-122.3167, 47.6], [-122.3167, 47.609]]]]);
+
+  test('a label past the edge\'s end lands on its last vertex, facing the last segment\'s way', () => {
+    const [a] = alignLocations([{ clusterId: 1, lng: -122.3167, lat: 47.6095, side: 'left', edgeId: 3 }], BENT);
+    expect(a.lngLat[0]).toBeCloseTo(-122.3167, 9);
+    expect(a.lngLat[1]).toBeCloseTo(47.609, 9);
+    expect(a.tangent[1]).toBeCloseTo(1, 9);
+    // Left of northbound is west.
+    expect(a.normal[0]).toBeCloseTo(-1, 9);
+  });
+
+  test('offsets each marker by its own segment\'s direction, either side of the bend', () => {
+    const aligned = alignLocations([
+      { clusterId: 1, lng: -122.3175, lat: 47.60018, side: 'left', edgeId: 3 },
+      { clusterId: 2, lng: -122.3166, lat: 47.6002, side: 'left', edgeId: 3 },
+    ], BENT);
+    const offsets = markerOffsets(aligned, { offsetPx: 16, markerPx: 24, metersPerPixel: 0.01 });
+    // Before the bend the street runs east, so left is up the screen; after it runs north, so left is to the left.
+    expect(offsets.get(1)[1]).toBeCloseTo(-16, 6);
+    expect(offsets.get(2)[0]).toBeCloseTo(-16, 6);
   });
 });
 

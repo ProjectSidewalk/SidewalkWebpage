@@ -114,7 +114,7 @@ const SIDEWALK_LAYER = 'report-sidewalks';
 const NO_SIDEWALK_LAYER = 'report-sidewalks-absent';
 const SPINE_LAYER = 'report-streets-spine';
 const SIDEWALK_OFFSET_PX = 6;
-// `.report-map-marker`'s box in report.css: how far apart two aligned markers on one side must sit.
+// `.report-map-marker`'s box in report.css, for before a marker has been laid out to measure.
 const MARKER_PX = 24;
 // The aligned view's side line. The marker's 20px icon then starts at the drawn sidewalk line and ends 26px out, so
 // the two sides' markers are 32px apart and neither covers the street's own line.
@@ -254,8 +254,11 @@ export class ReportMap {
       maxZoom: 19,
       // A map mid-page must not take the page's scroll: wheel zooming needs a modifier and touch panning two fingers.
       cooperativeGestures: true,
+      // North stays up: the aligned view's side offsets are drawn in screen axes.
       dragRotate: false,
       touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
       attributionControl: false,
       locale: {
         'CooperativeGesturesHandler.WindowsHelpText': i18next.t('report:map.gesture-windows'),
@@ -265,6 +268,8 @@ export class ReportMap {
       },
     });
     if (!still) {
+      this.#map.touchZoomRotate.disableRotation();
+      this.#map.keyboard.disableRotation();
       this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
       this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
       // The worst map's only color is its dots', whose key is the type list beside it.
@@ -351,8 +356,11 @@ export class ReportMap {
 
   /** Moves each alignable marker to the foot of its position on the street, offset to its side at this zoom. */
   #placeAligned() {
+    const [first] = this.#markers.values();
     const offsets = markerOffsets(this.#aligned, {
-      offsetPx: ALIGNED_OFFSET_PX, markerPx: MARKER_PX, metersPerPixel: this.#metersPerPixel(),
+      offsetPx: ALIGNED_OFFSET_PX,
+      markerPx: first?.element.offsetWidth || MARKER_PX,
+      metersPerPixel: this.#metersPerPixel(),
     });
     for (const a of this.#aligned) {
       this.#markers.get(a.clusterId)?.marker.setLngLat(a.lngLat).setOffset(offsets.get(a.clusterId));
@@ -891,7 +899,10 @@ export class ReportMap {
     const lit = clusterId === null ? null : this.#markers.get(clusterId);
     if (!lit) return;
     const lngLat = lit.marker.getLngLat();
-    if (!this.#map.getBounds().contains(lngLat)) {
+    // Where the icon is drawn, which the aligned view's offset puts away from its anchor.
+    const { x, y } = this.#map.project(lngLat).add(lit.marker.getOffset());
+    const { clientWidth, clientHeight } = this.#map.getContainer();
+    if (x < 0 || y < 0 || x > clientWidth || y > clientHeight) {
       this.#map.easeTo({ center: lngLat, duration: this.#prefersReducedMotion ? 0 : 300 });
     }
   }

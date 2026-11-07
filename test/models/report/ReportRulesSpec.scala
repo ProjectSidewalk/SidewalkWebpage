@@ -811,5 +811,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     ReportRules.sideOf(loc(1, labelIds = Some(Seq(4))), labels) shouldBe None
     ReportRules.sideOf(loc(1, labelIds = Some(Seq(3, 99))), labels) shouldBe Some(StreetSide.Right)
     ReportRules.sideOf(loc(1, labelIds = Some(Seq(5, 6))), labels) shouldBe None
+    // A crossing's location stays at the intersection, so it has no side to be drawn on.
+    ReportRules.sideOf(loc(1, crossing = Some(7), labelIds = Some(Seq(1, 2))), labels) shouldBe None
   }
 }
