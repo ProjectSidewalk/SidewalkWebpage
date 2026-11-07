@@ -156,6 +156,57 @@ object LabelServiceImpl {
     batch.filter(l => kept.contains(l.labelId))
   }
 
+  /**
+   * Splits `n` labels across `types` as evenly as possible, summing to exactly `n`; the remainder goes to the first
+   * types, so callers shuffle `types` to keep it fair.
+   *
+   * @return Each type's share, omitting types whose share would be 0.
+   */
+  def spreadAcrossTypes(types: Seq[LabelType], n: Int): Seq[(LabelType, Int)] = {
+    if (types.isEmpty || n <= 0) Seq.empty
+    else {
+      val base: Int      = n / types.size
+      val remainder: Int = n % types.size
+      types.zipWithIndex
+        .map { case (labelType, i) => labelType -> (base + (if (i < remainder) 1 else 0)) }
+        .filter(_._2 > 0)
+    }
+  }
+
+  /**
+   * Fetches `n` labels spread across `types`, re-spreading the share of any type that comes back short over the
+   * types that filled theirs, round by round, until `n` are found or every type is spent.
+   *
+   * A short type is only treated as dry for this request: `findValidLabelsForType` ends a random walk at the first
+   * batch that adds nothing viewable, so a cluster of dead imagery can cut a live type short. It is asked again on the
+   * next page. Each round either fills the request or drops a type, so there are at most `types.size + 1` rounds.
+   *
+   * @param excluded Label ids no round may return (the client's loaded labels); each round adds what it found.
+   * @param fetch    Fetches up to `count` labels of one type, none of them in the excluded set.
+   * @return         The labels found, at most `n`, grouped by round (callers shuffle).
+   */
+  def fillAcrossTypes[A <: BasicLabelMetadata](types: Set[LabelType], n: Int, excluded: Set[Int])(
+      fetch: (LabelType, Int, Set[Int]) => Future[Seq[A]]
+  )(using ExecutionContext): Future[Seq[A]] = {
+    def round(types: Set[LabelType], excluded: Set[Int], found: Seq[A]): Future[Seq[A]] = {
+      val quotas: Seq[(LabelType, Int)] = spreadAcrossTypes(Random.shuffle(types.toSeq), n - found.size)
+      if (quotas.isEmpty) Future.successful(found)
+      else {
+        Future
+          .sequence(quotas.map { case (labelType, quota) =>
+            fetch(labelType, quota, excluded).map(labels => (labelType, quota, labels.take(quota)))
+          })
+          .flatMap { results =>
+            val newLabels: Seq[A]      = results.flatMap(_._3)
+            val ranDry: Set[LabelType] = results.collect { case (t, quota, ls) if ls.size < quota => t }.toSet
+            if (ranDry.isEmpty) Future.successful(found ++ newLabels)
+            else round(types -- ranDry, excluded ++ newLabels.map(_.labelId), found ++ newLabels)
+          }
+      }
+    }
+    round(types, excluded, Seq.empty)
+  }
+
   /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
   def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
 
@@ -526,16 +577,16 @@ class LabelServiceImpl @Inject() (
             walkPastEmpty = true
           ).map(_.sorted(using sort.ordering))
         case GalleryOrder.Random | GalleryOrder.RecentPool =>
-          // Split the request across the types so no one type crowds out the rest of a mixed selection.
-          val nPerType: Int = math.max(1, n / typesToSpread.size)
-          Future
-            .sequence(typesToSpread.map { labelType =>
+          // Split across types so no one type crowds out a mixed selection, re-spreading a dry type's share over the
+          // rest; otherwise a city of mostly one type (Juneau) gets a short page, which the client reads as the last.
+          LabelServiceImpl
+            .fillAcrossTypes(typesToSpread, n, loadedLabelIds) { (labelType, count, excluded) =>
               findValidLabelsForType(
                 (_: Seq[LabelValidationMetadata]) =>
                   labelTable.getGalleryLabelsQuery(
                     viewer,
                     Set(labelType),
-                    loadedLabelIds,
+                    excluded,
                     valOptions,
                     regionIds,
                     severity,
@@ -546,10 +597,10 @@ class LabelServiceImpl @Inject() (
                   ),
                 randomize = true,
                 useCrops = true,
-                nPerType
+                count
               )
-            })
-            .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+            }
+            .map(labels => scala.util.Random.shuffle(labels))
       }
     }
   }
