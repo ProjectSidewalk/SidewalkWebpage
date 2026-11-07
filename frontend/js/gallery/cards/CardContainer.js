@@ -158,8 +158,8 @@ export class CardContainer {
     // Grab first batch of labels to show.
     if (this.#listMode) {
       // The server already applied the only selection there is (the id list) and returned it in order, so the cards
-      // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters and regroup by type,
-      // which is exactly the ordering the list exists to avoid.
+      // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters, which a review list
+      // doesn't have.
       this.fetchLabels(
         [], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined, this.#listLabelIds,
         undefined,
