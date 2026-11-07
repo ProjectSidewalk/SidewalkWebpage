@@ -426,6 +426,16 @@ describe('the Sidewalks page', () => {
     expect(ballard().classList.contains('is-highlighted')).toBe(false);
   });
 
+  test('a region whose streets only report their right side is still chosen, leaving the map where it is', async () => {
+    const rightOnly = { ...street(7, face('left'), face('right')), faces: [face('right')], region_id: 12,
+      region_name: 'Fremont' };
+    const map = await renderPage({ streets: [...CITY, rightOnly], ids: [1, 2, 3, 4, 5, 6, 7] });
+    const fremont = () => regionRows().find((tr) => tr.textContent.includes('Fremont'));
+    fremont().querySelector('button').click();
+    expect(fremont().classList.contains('is-highlighted')).toBe(true);
+    expect(map.fits).toEqual([]);
+  });
+
   test('a region button says whether it is pressed, and choosing a street lets go of the region', async () => {
     await renderPage();
     const ballardButton = () => regionRows().find((tr) => tr.textContent.includes('Ballard')).querySelector('button');

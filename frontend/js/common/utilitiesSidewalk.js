@@ -8,8 +8,8 @@ function UtilitiesMisc(JSON) {
   // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,
   // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
   // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
-  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
-  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  /** @type {Array<Record<string, any>>} */
+  const labelTypes = window.labelTypes;
   const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
   self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
@@ -55,6 +55,12 @@ function UtilitiesMisc(JSON) {
   }
 
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
+  /**
+   * A mode's keyboard shortcut and, for a label type, its tags' shortcuts and translated names.
+   * @param {string} category - A label type name, or 'Walk'.
+   * @returns {{id: string, keyChar: string, tagInfo?: Record<string, {keyChar: string, text: string}>}|undefined}
+   *   The entry, or undefined for a mode with none.
+   */
   function getLabelDescriptions(category) {
     const descriptions = {
       Walk: {
@@ -301,9 +307,9 @@ function UtilitiesMisc(JSON) {
             keyChar: 'A',
             text: i18next.t('center-ui.context-menu.tag.ends-abruptly'),
           },
-          'street has a sidewalk': {
+          'other side has a sidewalk': {
             keyChar: 'R',
-            text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk'),
+            text: i18next.t('center-ui.context-menu.tag.other-side-has-a-sidewalk'),
           },
           'street has no sidewalks': {
             keyChar: 'T',
@@ -453,7 +459,7 @@ function UtilitiesMisc(JSON) {
         keyChar: 'B',
       },
     };
-    return category ? descriptions[category] : descriptions;
+    return descriptions[category];
   }
 
   /**

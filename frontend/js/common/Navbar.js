@@ -145,7 +145,8 @@ export class NavbarController {
   #close(li, btn, focusBtn = false) {
     li.classList.remove('is-open');
     btn.setAttribute('aria-expanded', 'false');
-    if (this.#current && this.#current.li === li) this.#current = null;
+    // Only one dropdown is ever open, and it is the current one.
+    this.#current = null;
     if (focusBtn) btn.focus();
   }
 
@@ -159,7 +160,7 @@ export class NavbarController {
   #closeAll({ except = null, within = null } = {}) {
     for (const btn of this.#toggles) {
       const li = btn.closest('.navbar-item');
-      if (!li || li === except || !li.classList.contains('is-open')) continue;
+      if (li === except || !li.classList.contains('is-open')) continue;
       if (within && !within.contains(li)) continue;
       this.#close(li, btn);
     }
@@ -171,7 +172,6 @@ export class NavbarController {
     for (const btn of this.#toggles) {
       const li = btn.closest('.navbar-item');
       const panel = document.getElementById(btn.getAttribute('aria-controls'));
-      if (!li || !panel) continue;
 
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -219,7 +219,7 @@ export class NavbarController {
     if (e.target === search) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (items[0]) items[0].focus();
+        items[0].focus();
       }
       return;
     }
@@ -235,10 +235,10 @@ export class NavbarController {
       else btn.focus();
     } else if (e.key === 'Home') {
       e.preventDefault();
-      if (items[0]) items[0].focus();
+      items[0].focus();
     } else if (e.key === 'End') {
       e.preventDefault();
-      if (items.length) items[items.length - 1].focus();
+      items[items.length - 1].focus();
     }
   }
 
@@ -246,7 +246,6 @@ export class NavbarController {
   #wireHamburger() {
     this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
     this.#menu = document.getElementById('navbar');
-    if (!this.#hamburger || !this.#menu) return;
     this.#hamburger.addEventListener('click', () => {
       this.#setMenuOpen(!this.#menu.classList.contains('is-open'));
     });
@@ -264,10 +263,9 @@ export class NavbarController {
    * @param {boolean} open - Whether the panel should be open.
    */
   #setMenuOpen(open) {
-    if (!this.#menu) return;
     this.#closeAll(open ? {} : { within: this.#menu });
     this.#menu.classList.toggle('is-open', open);
-    this.#hamburger?.setAttribute('aria-expanded', String(open));
+    this.#hamburger.setAttribute('aria-expanded', String(open));
   }
 
   /**
@@ -275,7 +273,6 @@ export class NavbarController {
    * can have changed.
    */
   #wireResponsiveNav() {
-    if (!this.#menu) return;
     this.#navGroups = Array.from(this.#menu.querySelectorAll('#navbar > .navbar-list'));
 
     this.#quickStrip = document.getElementById('navbar-quick');
@@ -293,7 +290,7 @@ export class NavbarController {
       .map((li) => (on) => li.classList.toggle('is-shed', on));
 
     const lang = document.getElementById('language-dropdown');
-    if (lang) this.#shedSteps.push((on) => lang.classList.toggle('is-compact', on));
+    this.#shedSteps.push((on) => lang.classList.toggle('is-compact', on));
 
     let queued = false;
     const update = () => {
@@ -317,7 +314,7 @@ export class NavbarController {
    */
   #fitNav() {
     // In the stacked hamburger panel each item has its own row, so everything is shown.
-    const stacked = Boolean(this.#hamburger && this.#hamburger.offsetParent !== null);
+    const stacked = this.#hamburger.offsetParent !== null;
 
     // Crossing the collapse boundary restyles every disclosure in the bar: the panel is the inline bar on the far
     // side, and a dropdown is an anchored popover on one side and a flattened row on the other. Anything open at that
@@ -349,8 +346,6 @@ export class NavbarController {
    * @param {boolean} stacked - Whether the nav is collapsed behind the hamburger.
    */
   #applyQuickStrip(stacked) {
-    if (!this.#quickStrip) return;
-
     if (!stacked) {
       for (const item of this.#quickItems) this.#sendHome(item);
       return;
@@ -380,7 +375,7 @@ export class NavbarController {
     li.classList.remove('is-quick');
     if (li.parentElement === parent) return;
     this.#closeOpenDropdown(li);
-    const order = this.#quickHomes.get(parent) || [];
+    const order = this.#quickHomes.get(parent);
     const anchor = order.slice(order.indexOf(li) + 1).find((el) => el.parentElement === parent) || null;
     parent.insertBefore(li, anchor);
   }
@@ -396,8 +391,7 @@ export class NavbarController {
    */
   #closeOpenDropdown(li) {
     if (!li.classList.contains('is-open')) return;
-    const btn = /** @type {HTMLButtonElement} */ (li.querySelector('[data-nav-dropdown]'));
-    if (btn) this.#close(li, btn);
+    this.#close(li, /** @type {HTMLButtonElement} */ (li.querySelector('[data-nav-dropdown]')));
   }
 
   /**
@@ -444,20 +438,19 @@ export class NavbarController {
   #wireCitySearch() {
     const input = /** @type {HTMLInputElement} */ (document.getElementById('nav-city-search'));
     const menu = document.getElementById('nav-city-menu');
-    if (!input || !menu) return;
     const empty = menu.querySelector('.nav-city-empty');
     input.addEventListener('input', () => {
       const query = input.value.trim().toLowerCase();
       let anyVisible = false;
       for (const item of menu.querySelectorAll('.nav-city-item')) {
-        const match = !query || (item.dataset.search || '').includes(query);
+        const match = !query || item.dataset.search.includes(query);
         item.hidden = !match;
         if (match) anyVisible = true;
       }
       for (const group of menu.querySelectorAll('.nav-city-group')) {
         group.hidden = !group.querySelector('.nav-city-item:not([hidden])');
       }
-      if (empty) empty.hidden = anyVisible;
+      empty.hidden = anyVisible;
     });
   }
 
@@ -476,9 +469,9 @@ export class NavbarController {
     // click, that ancestor looks like an outside tap and would close the panel the user is still using. The hamburger
     // is excluded — its own handler has already toggled, and closing here would undo an open just asked for.
     document.addEventListener('pointerdown', (e) => {
-      if (!this.#menu?.classList.contains('is-open')) return;
+      if (!this.#menu.classList.contains('is-open')) return;
       const target = /** @type {Node} */ (e.target);
-      if (this.#menu.contains(target) || this.#hamburger?.contains(target)) return;
+      if (this.#menu.contains(target) || this.#hamburger.contains(target)) return;
       this.#setMenuOpen(false);
     });
 
@@ -493,9 +486,9 @@ export class NavbarController {
     // preventDefault), so the first Escape closes that dropdown and only the next one closes the panel.
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
-      if (!this.#menu?.classList.contains('is-open')) return;
+      if (!this.#menu.classList.contains('is-open')) return;
       this.#setMenuOpen(false);
-      this.#hamburger?.focus();
+      this.#hamburger.focus();
     });
   }
 
@@ -503,14 +496,14 @@ export class NavbarController {
   #wireLogging() {
     const knownSelector = Object.keys(this.#logMap).map((id) => `#${id}`).join(',');
     this.#nav.addEventListener('click', (e) => {
-      if (!(e.target instanceof Element)) return;
-      const cityLink = e.target.closest('#nav-city-menu a[href]');
-      if (cityLink && !cityLink.closest('.nav-city-current')) {
+      const target = /** @type {Element} */ (e.target);
+      const cityLink = target.closest('#nav-city-menu a[href]');
+      if (cityLink) {
         this.#log(`Click_module=NavbarCityDropdown_city=${cityLink.id}`);
         return;
       }
-      const known = e.target.closest(knownSelector);
-      if (known && this.#logMap[known.id]) this.#log(this.#logMap[known.id]);
+      const known = target.closest(knownSelector);
+      if (known) this.#log(this.#logMap[known.id]);
     });
   }
 
@@ -524,8 +517,5 @@ export class NavbarController {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => new NavbarController());
-} else {
-  new NavbarController();
-}
+// main.js loads this as a module, and a module runs only once the page is parsed, so the navbar is already there.
+new NavbarController();

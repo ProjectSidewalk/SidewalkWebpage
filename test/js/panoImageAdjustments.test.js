@@ -286,4 +286,23 @@ describe('persistence', () => {
     model.set('shadows', 5);
     expect(model.currentFilter()).toBe('url(#ps-pano-tone-curve)');
   });
+
+  test('remembers in the browser\'s localStorage when the page names no storage, as Explore and Validate do', () => {
+    window.localStorage.removeItem(PanoImageAdjustments.STORAGE_KEY);
+    try {
+      new PanoImageAdjustments(target).set('brightness', 120);
+      expect(new PanoImageAdjustments(target).get('brightness')).toBe(120);
+    } finally {
+      window.localStorage.removeItem(PanoImageAdjustments.STORAGE_KEY);
+    }
+  });
+
+  test('a browser that refuses localStorage outright (some private modes) just doesn\'t remember', () => {
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    const model = new PanoImageAdjustments(target);
+    model.set('brightness', 120);
+    expect(target.style.filter).toBe('brightness(1.2)');
+  });
 });

@@ -76,6 +76,12 @@ describe('panoramaUrlCandidates', () => {
     expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
   });
 
+  it('keeps a signed URL\'s own query and adds the width to it', async () => {
+    const signed = `${IMAGE_URL}?sig=abc`;
+    expect(await candidatesFor(4096, { image_url: signed, width: 16384 }))
+      .toEqual([`${signed}&maxWidth=8192`, `${signed}&maxWidth=4096`, `${signed}&maxWidth=2048`]);
+  });
+
   it('offers only the native file when neither the cap nor the width is known', async () => {
     const urls = await candidatesFor(null, { image_url: IMAGE_URL });
     expect(urls).toEqual([IMAGE_URL]);

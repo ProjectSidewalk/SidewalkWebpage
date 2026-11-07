@@ -273,7 +273,7 @@ export class LabelTypeDropdown {
   /** @param {boolean} editable - True shows the button, false the plain title. */
   setEditable(editable) {
     this.#button.hidden = !editable;
-    if (this.#static) this.#static.hidden = editable;
+    this.#static.hidden = editable;
     if (!editable) this.setOpen(false);
   }
 

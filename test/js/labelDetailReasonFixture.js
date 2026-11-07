@@ -14,12 +14,29 @@ export function buildCard() {
   document.body.innerHTML = `
       <div id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
@@ -125,6 +142,7 @@ export function buildCard() {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </div>`;
   return document.getElementById('card');
