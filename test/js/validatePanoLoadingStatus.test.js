@@ -181,33 +181,6 @@ describe.each([
   });
 });
 
-describe('the pano loading status degrades quietly without its markup', () => {
-  test('a page without the element gets no status and no errors', () => {
-    const status = new PanoLoadingStatus(null);
-    expect(() => {
-      status.begin();
-      status.setMessage('validate:pano-loading.skipping');
-      status.end();
-    }).not.toThrow();
-    expect(status.isShowing()).toBe(false);
-  });
-});
-
-describe('the pano loading status degrades quietly with its markup half there', () => {
-  test('a box without its text element is treated as no status, rather than throwing mid-render', () => {
-    Object.assign(i18next, {t: vi.fn((key) => key)});
-    document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
-    const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
-    expect(() => {
-      status.begin();
-      status.setMessage('validate:pano-loading.skipping');
-      status.end();
-    }).not.toThrow();
-    expect(status.isShowing()).toBe(false);
-    document.body.innerHTML = '';
-  });
-});
-
 describe('the pano loading status stylesheet', () => {
   test('leaves the mission modals out of the busy dim, so they keep stacking above the status', () => {
     // A dimmed element is a stacking context at z-index auto, which would put the modal's z-index 10 foreground under

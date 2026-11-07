@@ -13,6 +13,7 @@ import path from 'path';
 
 import { loadModules, mockModule, useUtil, REPO_ROOT } from './loader.js';
 import { fakeTracker } from './fakes.js';
+import { renderDesktopMenu } from './support/desktopValidationMenuHarness.js';
 
 const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
 
@@ -44,20 +45,22 @@ let LabelContainer;
 let LabelTypePicker;
 let LabelTypeDropdown;
 let buildReasonButtonInfo;
+let validationReasons;
 let DesktopValidationMenu;
 let util;
 
 beforeAll(async () => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util } =
-    await loadModules(
-      'frontend/js/common/LabelTypePicker.js',
-      'frontend/js/validate/label/Label.js',
-      'frontend/js/validate/label/LabelContainer.js',
-      'frontend/js/validate/util/ConstantsValidate.js',
-      'frontend/js/validate/menu/DesktopValidationMenu.js',
-      'frontend/js/common/utilities.js',
-    ));
+  ({ Label, LabelContainer, LabelTypePicker, LabelTypeDropdown, buildReasonButtonInfo, DesktopValidationMenu, util,
+    validationReasons } = await loadModules(
+    'frontend/js/common/LabelTypePicker.js',
+    'frontend/js/validate/label/Label.js',
+    'frontend/js/validate/label/LabelContainer.js',
+    'frontend/js/validate/util/ConstantsValidate.js',
+    'frontend/js/validate/menu/DesktopValidationMenu.js',
+    'frontend/js/common/utilities.js',
+    'frontend/js/common/validationReasons.js',
+  ));
 });
 
 /** The page facts the label, the container and the menu read; adminVersion is flipped per describe. */
@@ -565,6 +568,14 @@ describe('the disagree reasons (#5409)', () => {
     );
   });
 
+  it('a reason with no tooltip in the locale files shows its own text as the tooltip', () => {
+    // Every reason in today's English file has a tooltip, so the catalog's answer is stood in for.
+    vi.spyOn(validationReasons, 'forLabel').mockReturnValue([{ id: 'plain', text: 'Plain', tooltip: null }]);
+
+    expect(buildReasonButtonInfo()['curb-ramp']['no-button-1'])
+      .toMatchObject({ reasonId: 'plain', buttonText: 'Plain', tooltipText: 'Plain (1)' });
+  });
+
   it('there are never more disagree reasons than the four buttons the menu has', () => {
     for (const reasons of Object.values(reasonButtonInfo)) {
       const ids = Object.keys(reasons).filter((id) => id.startsWith('no-button-'));
@@ -586,36 +597,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   });
 
   beforeEach(() => {
-    document.body.innerHTML = `
-      <button id="validate-yes-button"></button>
-      <button id="validate-no-button"></button>
-      <button id="validate-unsure-button"></button>
-      <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
-      <template id="current-tag-template"><div class="current-tag"><div class="tag-name"></div><button class="remove-tag-x"></button></div></template>
-      <div id="validate-tags-section">
-        <div id="current-tags-list"></div>
-        <div id="sidewalk-ai-suggestions-block"><template id="sidewalk-ai-suggested-tag-template"><div class="sidewalk-ai-suggested-tag"></div></template></div>
-        <select id="select-tag"></select>
-      </div>
-      <div id="validate-severity-section"><div id="validate-severity-header"></div>
-        <div id="severity-radio-holder">${[1, 2, 3].map((n) => `
-          <label class="severity-button" id="severity-button-${n}" data-severity="${n}">
-            <input type="radio" name="label-severity" id="validate-severity-radio-${n}" class="severity-button__radio">
-            <img class="severity-button__icon" alt=""><span class="severity-button__label"></span>
-          </label>`).join('')}
-        </div>
-      </div>
-      <div id="validate-optional-comment-section"><input id="add-optional-comment"></div>
-      <div id="validate-why-no-section"><div id="no-reason-options">
-        ${[1, 2, 3, 4].map((n) => `<button id="no-button-${n}" class="validation-reason-button"></button>`).join('')}
-        <input id="add-disagree-comment">
-      </div></div>
-      <div id="validate-why-unsure-section"><div id="unsure-reason-options">
-        ${[1, 2, 3].map((n) => `<button id="unsure-button-${n}" class="validation-reason-button"></button>`).join('')}
-        <input id="add-unsure-comment">
-      </div></div>
-      <button id="validate-submit-button" disabled></button>`;
-
+    const ui = renderDesktopMenu({ adminVersion: true });
     label = makeLabel({ ai_tags: null, ai_tags_not_present: null });
     config.adminVersion = true;
     const labelContainer = {
@@ -624,29 +606,9 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     panoManager = { styleMarkerForLabel: vi.fn() };
     labelCard = { render: vi.fn(), onTypePicked: vi.fn() };
 
-    const byId = (id) => document.getElementById(id);
-    menu = new DesktopValidationMenu({
-      yesButton: byId('validate-yes-button'),
-      noButton: byId('validate-no-button'),
-      unsureButton: byId('validate-unsure-button'),
-      labelTypeMenu: byId('validate-label-type-section'),
-      labelTypePicker: byId('label-type-picker'),
-      tagsMenu: byId('validate-tags-section'),
-      severityMenu: byId('validate-severity-section'),
-      optionalCommentSection: byId('validate-optional-comment-section'),
-      optionalCommentTextBox: byId('add-optional-comment'),
-      noMenu: byId('validate-why-no-section'),
-      disagreeReasonOptions: byId('no-reason-options'),
-      disagreeReasonTextBox: byId('add-disagree-comment'),
-      unsureMenu: byId('validate-why-unsure-section'),
-      unsureReasonOptions: byId('unsure-reason-options'),
-      unsureReasonTextBox: byId('add-unsure-comment'),
-      submitButton: byId('validate-submit-button'),
-      currentTags: byId('current-tags-list'),
-      aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      currentTagTemplate: document.getElementById('current-tag-template'),
-      aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
-    }, config, buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker);
+    menu = new DesktopValidationMenu(
+      ui, config, buildReasonButtonInfo(), labelContainer, labelCard, panoManager, tracker,
+    );
     menu.resetMenu(label);
   });
 

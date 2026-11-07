@@ -11,8 +11,10 @@ import { fakeGate, fakeTracker } from './fakes.js';
 mockModule('i18next', () => ({
   default: {
     t: (key) => key,
-    exists: (key) => !key.startsWith('validate:gold-feedback.explanation.') || key.endsWith('.driveway'),
-    // (a typed key, `driveway-curb-ramp`, doesn't exist, so the lookup falls through to the reason's own)
+    // A typed key, `driveway-curb-ramp`, doesn't exist, so the lookup falls through to the reason's own. The locale
+    // files know nothing at all of `newer-reason`, as for an id from a vocabulary newer than this page's.
+    exists: (key) => !key.includes('.newer-reason') &&
+      (!key.startsWith('validate:gold-feedback.explanation.') || key.endsWith('.driveway')),
     language: 'en',
   },
 }));
@@ -100,6 +102,16 @@ describe('ModalGoldFeedback', () => {
     expect(ui.text.innerHTML).toBe('common:validation-reason.wrong-type.tooltip-curb-ramp');
     expect(ui.image.hidden).toBe(true);
     expect(ui.image.hasAttribute('src')).toBe(false);
+  });
+
+  test('a reason the locale files don\'t know yet is still named, by its id, with no explanation under it', () => {
+    const ui = panelUi();
+    const modal = new ModalGoldFeedback(ui, fakeGate(), fakeTracker());
+
+    modal.show(new Label(labelParams('newer-reason'), {}), 'Agree');
+
+    expect(ui.heading.innerHTML).toBe('newer-reason');
+    expect(ui.text.innerHTML).toBe('');
   });
 
   test('a held Enter, the vote\'s own key still down, does not press the button; a fresh press does', async () => {

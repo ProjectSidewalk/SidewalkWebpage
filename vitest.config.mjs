@@ -41,10 +41,10 @@ export default defineConfig({
       // figure off CI, or `make test-js args=--coverage`, before raising one.
       // Applies to any `--coverage` run, so add `--coverage.thresholds=false` to measure a single file.
       thresholds: {
-        statements: 91,
-        branches: 89,
-        functions: 91,
-        lines: 92,
+        statements: 94,
+        branches: 93,
+        functions: 93,
+        lines: 94,
       },
     },
   },

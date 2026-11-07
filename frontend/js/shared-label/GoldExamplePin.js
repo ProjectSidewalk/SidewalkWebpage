@@ -21,7 +21,7 @@ export class GoldExamplePin {
    */
   constructor(root, { labelId, labelType, goldReason }) {
     this.#labelId = labelId;
-    this.#reason = goldReason ?? null;
+    this.#reason = goldReason;
     this.#select = root.querySelector('#spotlight-gold-reason');
     this.#pinButton = root.querySelector('#spotlight-gold-pin');
     this.#unpinButton = root.querySelector('#spotlight-gold-unpin');

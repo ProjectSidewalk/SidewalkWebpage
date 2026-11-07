@@ -23,9 +23,16 @@ let mapResult;
 let addLabelsCalls;
 /** The layer tracker the fake addLabelsToMap answers with. */
 let layerNames;
+/** Every training-example panel built, as [root, config]. */
+let goldPins;
 
 mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
   LabelDetail: { create: (...args) => createDetail(...args) },
+}));
+mockModule('frontend/js/shared-label/GoldExamplePin.js', () => ({
+  GoldExamplePin: class {
+    constructor(...args) { goldPins.push(args); }
+  },
 }));
 mockModule('frontend/js/common/pano-viewer/viewerClassFor.js', () => ({
   viewerClassFor: (source) => `${source}Viewer`,
@@ -107,6 +114,7 @@ const config = (overrides = {}) => ({
   labelId: 42,
   labelType: 'CurbRamp',
   admin: false,
+  goldReason: null,
   lat: 47.6,
   lng: -122.3,
   imagerySource: 'gsv',
@@ -158,6 +166,7 @@ beforeEach(async () => {
   markers = [];
   popups = [];
   addLabelsCalls = [];
+  goldPins = [];
   layerNames = { CurbRamp: 'labels-CurbRamp', Obstacle: 'labels-Obstacle', Signal: 'labels-Signal' };
   mapResult = fakeMap();
   createDetail = async (root, options) => {
@@ -240,6 +249,20 @@ describe('the label card', () => {
     document.querySelector('.spotlight__detail').remove();
     await buildPage();
     expect(detailCreates).toEqual([]);
+  });
+});
+
+describe('the training-example panel', () => {
+  test('the admin\'s page hands the panel this label and its current pin', async () => {
+    document.body.insertAdjacentHTML('beforeend', '<section id="spotlight-gold"></section>');
+    await buildPage(config({ admin: true, goldReason: 'driveway' }));
+    expect(goldPins).toEqual([[document.getElementById('spotlight-gold'),
+      { labelId: 42, labelType: 'CurbRamp', goldReason: 'driveway' }]]);
+  });
+
+  test('the public page, which has no panel, builds none', async () => {
+    await buildPage();
+    expect(goldPins).toEqual([]);
   });
 });
 
