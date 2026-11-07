@@ -13,6 +13,7 @@
  */
 
 import { util } from '../common/utilities.js';
+import { AdminShell } from './AdminShell.js';
 
 export class FunnelsSection {
   /**
@@ -99,7 +100,7 @@ export class FunnelsSection {
 
   /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
   async #load() {
-    this.#setText(this.#statusId, 'Loading funnels…');
+    AdminShell.setText(this.#statusId, 'Loading funnels…');
     try {
       const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
       this.#funnels = (data && data.funnels) || {};
@@ -107,7 +108,7 @@ export class FunnelsSection {
       this.#render();
     } catch (err) {
       console.error('Funnel load failed:', err);
-      this.#setText(this.#statusId, 'Could not load funnel data.');
+      AdminShell.setText(this.#statusId, 'Could not load funnel data.');
     }
   }
 
@@ -119,11 +120,11 @@ export class FunnelsSection {
     if (!types.length) {
       host.innerHTML = '';
       // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
-      this.#setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
+      AdminShell.setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
       return;
     }
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
-    this.#setText(this.#statusId, this.#computedAt
+    AdminShell.setText(this.#statusId, this.#computedAt
       ? `Data as of ${this.#formatDate(this.#computedAt)}.`
       : '');
   }
@@ -178,10 +179,6 @@ export class FunnelsSection {
         <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
         <div class="ac-funnel-panel">${legend}${stepRows}</div>
       </div>`;
-  }
-
-  #setText(id, text) {
-    document.getElementById(id).textContent = text;
   }
 
   /** Full count with thousands separators, for tooltips. */

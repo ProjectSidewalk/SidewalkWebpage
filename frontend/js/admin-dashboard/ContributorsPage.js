@@ -7,6 +7,7 @@
 
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class ContributorsPage {
   /** Accuracy buckets (upper bounds, percent) for the contributor-accuracy distribution. */
@@ -73,11 +74,11 @@ export class ContributorsPage {
     const totalLabels = labelers.reduce((s, u) => s + u.labels, 0);
     const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? u.labels : 0), 0);
 
-    this.#setText('kpi-contributors', labelers.length.toLocaleString());
-    this.#setText('kpi-high-quality', highQ.toLocaleString());
-    this.#setText('kpi-low-quality', (labelers.length - highQ).toLocaleString());
-    this.#setText('kpi-labels-high-quality', totalLabels ? ContributorsPage.#pct(labelsHighQ / totalLabels) : '—');
-    this.#setText(
+    AdminShell.setText('kpi-contributors', labelers.length.toLocaleString());
+    AdminShell.setText('kpi-high-quality', highQ.toLocaleString());
+    AdminShell.setText('kpi-low-quality', (labelers.length - highQ).toLocaleString());
+    AdminShell.setText('kpi-labels-high-quality', totalLabels ? ContributorsPage.#pct(labelsHighQ / totalLabels) : '—');
+    AdminShell.setText(
       'kpi-labels-high-quality-note', `${labelsHighQ.toLocaleString()} of ${totalLabels.toLocaleString()} labels`,
     );
   }
@@ -389,10 +390,6 @@ export class ContributorsPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  #setText(id, text) {
-    document.getElementById(id).textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

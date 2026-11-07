@@ -6,7 +6,7 @@
  * is refused while the next label is still loading (#5211), so both are checked as they come up (#5840).
  */
 
-import { loadModules, mockModule, useUtil } from './loader.js';
+import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
 import { flush } from './support/routeFetch.js';
 import { renderDesktopMenu, trustedClick } from './support/desktopValidationMenuHarness.js';
@@ -58,8 +58,6 @@ let menu;
 
 beforeEach(() => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
-  // No image ever loads in jsdom; the menu only waits for the promise.
-  useUtil({ getImage: (src) => Promise.resolve(src) });
   loading = false;
   renderedAt = Date.now() - 5000; // Long enough ago that a verdict counts.
   tracker = fakeTracker();
@@ -170,24 +168,6 @@ describe('the reason buttons follow the label type', () => {
     const tooltip = byId('no-button-1').getAttribute('data-ps-tooltip-html');
     expect(tooltip).toBe('common:validation-reason.wrong-type.tooltip-crosswalk (1)');
     expect(byId('unsure-button-3').style.display).toBe('none'); // Crosswalk has two unsure reasons.
-  });
-
-  test('an example image that arrives after the next label is drawn is dropped, not put on its buttons', async () => {
-    setUp(); // Obstacle's "wrong label type" has an example image; Crosswalk's has none.
-
-    menu.resetMenu(makeLabel({ label_type: 'Crosswalk' }));
-    await flush();
-
-    expect(byId('no-button-1').getAttribute('data-ps-tooltip-html')).not.toContain('<img');
-  });
-
-  test('an example image that fails to load still leaves the tooltip text', async () => {
-    useUtil({ getImage: () => Promise.reject(new Error('Image not found')) });
-    setUp();
-    await flush();
-
-    expect(byId('no-button-2').getAttribute('data-ps-tooltip-html'))
-      .toBe('common:validation-reason.not-pedestrian-path.tooltip-obstacle (2)');
   });
 
   test('a touch device gets no tooltips, which a tap would pin open', async () => {

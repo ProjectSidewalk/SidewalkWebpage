@@ -31,8 +31,6 @@ export class DesktopValidationMenu {
   #config;
   /** @type {Record<string, Record<string, ReasonButton>>} */
   #reasonButtonInfo;
-  /** How many times the reason buttons have been drawn, so a late example image can tell it is out of date. */
-  #reasonButtonDrawings = 0;
   /** @type {LabelContainer} */
   #labelContainer;
   /** @type {LabelCard} */
@@ -170,9 +168,9 @@ export class DesktopValidationMenu {
     }
 
     // Add onclick for disagree and unsure reason buttons.
-    // Both loops guard ahead of their tracker push: the push would otherwise record the reason as chosen and the
-    // drop would be logged right after it, so the one interaction the load guard exists to refuse is the one that
-    // reads in the logs as having landed (#5211).
+    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
+    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
+    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.addEventListener('click', (e) => {
         if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
@@ -234,6 +232,11 @@ export class DesktopValidationMenu {
     });
   }
 
+  /**
+   * Shows the menu as it should be for a label coming on screen: blank for a new one, or as the validator left it
+   * for one they came back to with Undo.
+   * @param {Label} label - The label now current.
+   */
   resetMenu(label) {
     const menuUI = this.#menuUI;
     this.#tagsAddedByUser = [];
@@ -320,23 +323,13 @@ export class DesktopValidationMenu {
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-    const drawing = ++this.#reasonButtonDrawings;
     for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
       const buttonInfo = this.#reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
         reasonButton.removeAttribute('data-ps-tooltip-html');
-        if (buttonInfo.tooltipImage) {
-          // An example image that fails to load still leaves the text. One that arrives after the next label has
-          // redrawn the buttons is dropped, or it would describe a reason the new label's type may not even have.
-          util.getImage(buttonInfo.tooltipImage).catch(() => null).then((img) => {
-            if (drawing !== this.#reasonButtonDrawings) return;
-            this.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
-          });
-        } else {
-          this.#addTooltip(reasonButton, buttonInfo.tooltipText);
-        }
+        this.#addTooltip(reasonButton, buttonInfo.tooltipText, buttonInfo.tooltipImage);
 
         reasonButton.classList.add('defaultOption');
         reasonButton.style.display = 'flex';
@@ -688,6 +681,7 @@ export class DesktopValidationMenu {
   }
 
   // SEVERITY SECTION.
+  /** Draws the rating buttons for the current label's type and checks the one its rating matches. */
   #renderSeverity() {
     const menuUI = this.#menuUI;
     const label = this.#labelContainer.getCurrentLabel();
@@ -726,12 +720,16 @@ export class DesktopValidationMenu {
   /**
    * Records the reason chosen for a disagree verdict.
    *
-   * Every caller refuses a pick made while the next label loads: a focused reason button still answers Enter, and a
-   * reason written then would ride along unseen onto the next label and be submitted for it (#5211).
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
+    if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     const currLabel = this.#labelContainer.getCurrentLabel();
     const reasonInfo = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))][id];
@@ -756,11 +754,12 @@ export class DesktopValidationMenu {
   /**
    * Records the reason chosen for an unsure verdict.
    *
-   * Callers refuse a pick while the next label loads, for the reason given on `#setDisagreeReason`.
+   * Guarded for the reason given on `#setDisagreeReason`.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
+    if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {

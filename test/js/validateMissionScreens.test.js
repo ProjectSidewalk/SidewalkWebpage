@@ -733,6 +733,11 @@ describe('mobile Validate mission screens', () => {
   describe('the mission-complete celebration', () => {
     const celebration = () => document.getElementById('mission-complete-celebration');
 
+    // jsdom has no vibrate; one test adds it, and a failure must not leave it for the rest.
+    afterEach(() => {
+      delete navigator.vibrate;
+    });
+
     test('plays the fireworks and confetti, and buzzes where the phone can', () => {
       const vibrate = vi.fn();
       Object.defineProperty(navigator, 'vibrate', {value: vibrate, configurable: true});
@@ -742,7 +747,6 @@ describe('mobile Validate mission screens', () => {
       expect(celebration().classList.contains('mv-celebrate--play')).toBe(true);
       expect(vibrate).toHaveBeenCalled();
       expect(confettiBurst).toHaveBeenCalled();
-      delete navigator.vibrate;
     });
 
     test('a visitor who asked for less motion gets none of it', () => {

@@ -15,8 +15,6 @@ export class MobileValidationMenu {
   #unsureReasonButtons;
   /** @type {Record<string, Record<string, ReasonButton>>} */
   #reasonButtonInfo;
-  /** How many times the reason buttons have been drawn, so a late example image can tell it is out of date. */
-  #reasonButtonDrawings = 0;
   /** @type {LabelContainer} */
   #labelContainer;
   /** @type {Tracker} */
@@ -240,23 +238,13 @@ export class MobileValidationMenu {
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-    const drawing = ++this.#reasonButtonDrawings;
     for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
       const buttonInfo = this.#reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
         reasonButton.removeAttribute('data-ps-tooltip-html');
-        if (buttonInfo.tooltipImage) {
-          // An example image that fails to load still leaves the text. One that arrives after the next label has
-          // redrawn the buttons is dropped, or it would describe a reason the new label's type may not even have.
-          util.getImage(buttonInfo.tooltipImage).catch(() => null).then((img) => {
-            if (drawing !== this.#reasonButtonDrawings) return;
-            MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
-          });
-        } else {
-          MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText);
-        }
+        MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText, buttonInfo.tooltipImage);
 
         reasonButton.classList.add('defaultOption');
         reasonButton.style.display = 'flex';
@@ -317,12 +305,16 @@ export class MobileValidationMenu {
   /**
    * Records the reason chosen for a disagree verdict.
    *
-   * Every caller refuses a pick made while the next label loads: a focused reason button still answers Enter, and a
-   * reason written then would ride along unseen onto the next label and be submitted for it (#5211).
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setDisagreeReason(id) {
+    if (this.#labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
@@ -340,11 +332,12 @@ export class MobileValidationMenu {
   /**
    * Records the reason chosen for an unsure verdict.
    *
-   * Callers refuse a pick while the next label loads, for the reason given on `#setDisagreeReason`.
+   * Guarded for the reason given on `#setDisagreeReason`.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
   #setUnsureReason(id) {
+    if (this.#labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {

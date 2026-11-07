@@ -161,15 +161,15 @@ export class ActivityPage {
     const sum = (field) => recs.reduce((a, r) => a + (r[field] || 0), 0);
     const note = this.#rangePhrase();
     const set = (id, field) => {
-      this.#setText(`kpi-${id}`, sum(field).toLocaleString());
-      this.#setText(`kpi-${id}-note`, note);
+      AdminShell.setText(`kpi-${id}`, sum(field).toLocaleString());
+      AdminShell.setText(`kpi-${id}-note`, note);
     };
     set('labels', 'labels');
     set('validations', 'validations');
     set('missions', 'missions');
     set('newusers', 'new_users');
-    this.#setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
-    this.#setText('kpi-distance-note', note);
+    AdminShell.setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
+    AdminShell.setText('kpi-distance-note', note);
   }
 
   /**
@@ -192,9 +192,9 @@ export class ActivityPage {
     };
     // explore_per_100m is median minutes/100 m.
     const fmtMinutes = (m) => (m === null || m === undefined ? 'N/A' : `${m.toFixed(1)} min`);
-    this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
-    this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
-    this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
+    AdminShell.setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
+    AdminShell.setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
+    AdminShell.setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
   }
 
   // --- Volume small-multiples ---------------------------------------------------------------------------------
@@ -554,10 +554,6 @@ export class ActivityPage {
     return isNaN(d.getTime())
       ? String(ts)
       : d.toLocaleString(undefined, util.SHORT_DATE_TIME);
-  }
-
-  #setText(id, text) {
-    document.getElementById(id).textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

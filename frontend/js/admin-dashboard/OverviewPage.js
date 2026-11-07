@@ -51,8 +51,8 @@ export class OverviewPage {
       this.#renderPulse(summary.last_activity);
     } catch (err) {
       console.error('Overview page failed to load:', err);
-      this.#setText('ov-pulse', 'Could not load the snapshot. Please try again.');
-      this.#setText('ov-status', 'Could not load the snapshot. Please try again.');
+      AdminShell.setText('ov-pulse', 'Could not load the snapshot. Please try again.');
+      AdminShell.setText('ov-status', 'Could not load the snapshot. Please try again.');
     }
   }
 
@@ -362,10 +362,6 @@ export class OverviewPage {
     valEl.textContent = value;
     if (titleFull) valEl.title = titleFull;
     document.getElementById(`ov-${key}-sub`).textContent = sub;
-  }
-
-  #setText(id, text) {
-    document.getElementById(id).textContent = text;
   }
 
   /** Full number with thousands separators ("1,234,567"). */

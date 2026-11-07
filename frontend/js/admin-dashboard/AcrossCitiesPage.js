@@ -189,9 +189,9 @@ export class AcrossCitiesPage {
       }
     } catch (err) {
       console.error('Across Cities page failed to load:', err);
-      this.#setText('ac-pulse', 'Could not load city data. Please try again.');
-      this.#setText('ac-status', 'Could not load city data. Please try again.');
-      this.#setText('ac-stories-summary', 'Could not load story counts.');
+      AdminShell.setText('ac-pulse', 'Could not load city data. Please try again.');
+      AdminShell.setText('ac-status', 'Could not load city data. Please try again.');
+      AdminShell.setText('ac-stories-summary', 'Could not load story counts.');
     }
   }
 
@@ -214,19 +214,19 @@ export class AcrossCitiesPage {
   /** Fills the project-wide "hero" stat band from the summary block. */
   #renderHero() {
     const s = this.#summary;
-    this.#setText('hero-cities', this.#num(s.num_cities));
-    this.#setText('hero-countries', this.#num(s.num_countries));
-    this.#setText('hero-languages', this.#num(s.num_languages));
-    this.#setText('hero-users', typeof s.total_users === 'number' ? this.#num(s.total_users) : '—');
-    this.#setText('hero-multi-city', typeof s.multi_city_users === 'number' ? this.#num(s.multi_city_users) : '—');
-    this.#setText('hero-walked', util.longDistanceToString(s.total_walked_km));
-    this.#setText('hero-mapped', util.longDistanceToString(s.total_mapped_km));
-    this.#setText('hero-current', util.longDistanceToString(s.total_current_km));
-    this.#setText('hero-reaudit', util.longDistanceToString(s.total_reaudit_km));
-    this.#setText('hero-labels', this.#num(s.total_labels));
-    this.#setText('hero-validations', this.#num(s.total_validations));
-    this.#setText('hero-datapoints', this.#num(s.total_datapoints));
-    this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
+    AdminShell.setText('hero-cities', this.#num(s.num_cities));
+    AdminShell.setText('hero-countries', this.#num(s.num_countries));
+    AdminShell.setText('hero-languages', this.#num(s.num_languages));
+    AdminShell.setText('hero-users', typeof s.total_users === 'number' ? this.#num(s.total_users) : '—');
+    AdminShell.setText('hero-multi-city', typeof s.multi_city_users === 'number' ? this.#num(s.multi_city_users) : '—');
+    AdminShell.setText('hero-walked', util.longDistanceToString(s.total_walked_km));
+    AdminShell.setText('hero-mapped', util.longDistanceToString(s.total_mapped_km));
+    AdminShell.setText('hero-current', util.longDistanceToString(s.total_current_km));
+    AdminShell.setText('hero-reaudit', util.longDistanceToString(s.total_reaudit_km));
+    AdminShell.setText('hero-labels', this.#num(s.total_labels));
+    AdminShell.setText('hero-validations', this.#num(s.total_validations));
+    AdminShell.setText('hero-datapoints', this.#num(s.total_datapoints));
+    AdminShell.setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
   }
 
   /**
@@ -265,9 +265,9 @@ export class AcrossCitiesPage {
     // comparing a partial today against a full yesterday would nearly always read as a drop.
     const today = this.#dailyTrend.length ? this.#dailyTrend[this.#dailyTrend.length - 1] : null;
     if (today) {
-      this.#setText('now-labels-today', this.#num(today.labels));
-      this.#setText('now-validations-today', this.#num(today.validations));
-      this.#setText('now-contributors-today', this.#num(today.contributors));
+      AdminShell.setText('now-labels-today', this.#num(today.labels));
+      AdminShell.setText('now-validations-today', this.#num(today.validations));
+      AdminShell.setText('now-contributors-today', this.#num(today.contributors));
       this.#renderAiNote('now-labels-today-ai', today.ai_labels, today.labels, 'labels', 'today');
       this.#renderAiNote('now-validations-today-ai', today.ai_validations, today.validations, 'validations', 'today');
       this.#renderAnonNote('now-contributors-today-anon', today.anon_sessions, 'today');
@@ -278,9 +278,9 @@ export class AcrossCitiesPage {
     // the calendar-day series would disagree with the delta, and per-day distinct users can't be summed).
     const ws = this.#windowSummary;
     if (ws) {
-      this.#setText('now-labels-7d', this.#num(ws.labels_7d));
-      this.#setText('now-validations-7d', this.#num(ws.validations_7d));
-      this.#setText('now-contributors-7d', this.#num(ws.contributors_7d));
+      AdminShell.setText('now-labels-7d', this.#num(ws.labels_7d));
+      AdminShell.setText('now-validations-7d', this.#num(ws.validations_7d));
+      AdminShell.setText('now-contributors-7d', this.#num(ws.contributors_7d));
       this.#renderDelta('now-labels-7d-delta', ws.labels_7d, ws.labels_prior_7d);
       this.#renderDelta('now-validations-7d-delta', ws.validations_7d, ws.validations_prior_7d);
       this.#renderDelta('now-contributors-7d-delta', ws.contributors_7d, ws.contributors_prior_7d);
@@ -295,18 +295,18 @@ export class AcrossCitiesPage {
     // these tiles can never disagree with the table's rows or its row-count status line (the scorecard's own 7d
     // fields sit on a slightly different basis — see #joinActivityWindows).
     const activeCount = this.#cities.filter((c) => c.activity_7d > 0).length;
-    this.#setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
+    AdminShell.setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
     const top = this.#cities.reduce((best, c) =>
       ((c.activity_window?.labels_7d ?? 0) > (best?.activity_window?.labels_7d ?? 0) ? c : best), null);
     if ((top?.activity_window?.labels_7d ?? 0) > 0) {
-      this.#setText('now-top-city', top.city_name || top.city_id);
-      this.#setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
+      AdminShell.setText('now-top-city', top.city_name || top.city_id);
+      AdminShell.setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
     }
 
     // New contributors: the all-time weekly series' last point is the current (partial) Pacific calendar week — the
     // only series that knows each person's true first-activity week, hence the calendar-week (not rolling) basis.
     const week = this.#allTimeTrend.length ? this.#allTimeTrend[this.#allTimeTrend.length - 1] : null;
-    if (week) this.#setText('now-new-contributors', this.#num(week.new_users));
+    if (week) AdminShell.setText('now-new-contributors', this.#num(week.new_users));
   }
 
   /**
@@ -495,7 +495,7 @@ export class AcrossCitiesPage {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
     if (!this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
-      this.#setText('ac-map-status', 'Map unavailable.');
+      AdminShell.setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;
     }
@@ -524,7 +524,7 @@ export class AcrossCitiesPage {
       });
     }
     if (!features.length) {
-      this.#setText('ac-map-status', 'No city locations available.');
+      AdminShell.setText('ac-map-status', 'No city locations available.');
       host.style.display = 'none';
       return;
     }
@@ -547,7 +547,7 @@ export class AcrossCitiesPage {
     } catch (err) {
       // Mapbox throws when the browser has no WebGL; left to init's catch, that would blank every section after this.
       console.warn('Across Cities map failed to start:', err);
-      this.#setText('ac-map-status', 'Map unavailable.');
+      AdminShell.setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;
     }
@@ -912,7 +912,7 @@ export class AcrossCitiesPage {
     if (!tbody) return;
     if (!this.#cities.length) {
       tbody.innerHTML = '<tr><td colspan="8" class="dq-empty">No cities to show.</td></tr>';
-      this.#setText('ac-status', '');
+      AdminShell.setText('ac-status', '');
       return;
     }
     const state = this.#sortState['ac-table'];
@@ -941,7 +941,7 @@ export class AcrossCitiesPage {
         </tr>`;
     }).join('');
     this.#markSortedHeader('ac-table');
-    this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
+    AdminShell.setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
   }
 
   /**
@@ -1041,7 +1041,7 @@ export class AcrossCitiesPage {
     const active = this.#cities.filter((c) => c.activity_7d > 0);
     if (!active.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="dq-empty">No city recorded activity in the past 7 days.</td></tr>';
-      this.#setText('ac-top-status', '');
+      AdminShell.setText('ac-top-status', '');
       return;
     }
     const state = this.#sortState['ac-top-table'];
@@ -1062,7 +1062,7 @@ export class AcrossCitiesPage {
           <td class="ac-spark-cell">${this.#sparkline((c.weekly_trend || []).map((wk) => wk.labels || 0))}</td>
         </tr>`).join('');
     this.#markSortedHeader('ac-top-table');
-    this.#setText('ac-top-status', active.length > rows.length
+    AdminShell.setText('ac-top-status', active.length > rows.length
       ? `Top ${rows.length} of ${this.#num(active.length)} cities active in the past 7 days.`
       : `${this.#num(active.length)} ${active.length === 1 ? 'city' : 'cities'} active in the past 7 days.`);
   }
@@ -1101,7 +1101,7 @@ export class AcrossCitiesPage {
    * to an "unavailable" note; the rest of the page is already rendered and untouched.
    */
   async #loadTraffic() {
-    this.#setText('ac-traffic-status', 'Loading traffic…');
+    AdminShell.setText('ac-traffic-status', 'Loading traffic…');
     try {
       const data = await util.fetchJson(this.#trafficUrl);
       if (!data || data.available === false) {
@@ -1124,7 +1124,7 @@ export class AcrossCitiesPage {
   #setTrafficUnavailable() {
     const wrap = document.getElementById('ac-traffic-wrap');
     if (wrap) wrap.style.display = 'none';
-    this.#setText('ac-traffic-status', 'Traffic data unavailable.');
+    AdminShell.setText('ac-traffic-status', 'Traffic data unavailable.');
   }
 
   /** Fills the traffic table: one row per city with GA data, sessions-first, anomaly-flagged rows highlighted. */
@@ -1136,7 +1136,7 @@ export class AcrossCitiesPage {
     const withTraffic = this.#cities.filter((c) => c.traffic);
     if (!withTraffic.length) {
       tbody.innerHTML = '<tr><td colspan="9" class="dq-empty">No traffic data to show.</td></tr>';
-      this.#setText('ac-traffic-status', '');
+      AdminShell.setText('ac-traffic-status', '');
       return;
     }
     const state = this.#sortState['ac-traffic-table'];
@@ -1180,7 +1180,7 @@ export class AcrossCitiesPage {
       : `${this.#num(withTraffic.length)} ${withTraffic.length === 1 ? 'city' : 'cities'}.`];
     // A city with no GA property is steady state; one the fetch couldn't reach is worth saying out loud.
     if (failed) parts.push(`${this.#num(failed)} could not be fetched this round.`);
-    this.#setText('ac-traffic-status', parts.join(' '));
+    AdminShell.setText('ac-traffic-status', parts.join(' '));
   }
 
   /**
@@ -1441,7 +1441,7 @@ export class AcrossCitiesPage {
    */
   async #loadFunnels() {
     const timeWindow = this.#funnelWindow;
-    this.#setText('ac-funnel-status', 'Loading funnels…');
+    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
     try {
       const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
       if (timeWindow !== this.#funnelWindow) return;
@@ -1453,7 +1453,7 @@ export class AcrossCitiesPage {
       console.error('Funnel load failed:', err);
       this.#funnelWindow = this.#shownFunnelWindow;
       this.#markFunnelWindow(this.#shownFunnelWindow);
-      this.#setText('ac-funnel-status', 'Could not load funnel data.');
+      AdminShell.setText('ac-funnel-status', 'Could not load funnel data.');
     }
   }
 
@@ -1465,7 +1465,7 @@ export class AcrossCitiesPage {
     const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
     const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
-    this.#setText(
+    AdminShell.setText(
       'ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.',
     );
   }
@@ -1889,11 +1889,6 @@ export class AcrossCitiesPage {
   }
 
   // --- Helpers ----------------------------------------------------------------------------------------------------
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
 
   #setHtml(id, html) {
     const el = document.getElementById(id);

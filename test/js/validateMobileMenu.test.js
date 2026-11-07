@@ -4,7 +4,7 @@
  * how it puts itself back after an Undo, and that nothing lands while the next label is still loading (#5840).
  */
 
-import { loadModules, useUtil } from './loader.js';
+import { loadModules } from './loader.js';
 import { fakeTracker } from './fakes.js';
 import { flush } from './support/routeFetch.js';
 import { FakeLabel } from './support/labelContainerHarness.js';
@@ -44,9 +44,6 @@ const REASONS = {
     },
   },
 };
-
-/** What the stubbed image fetch hands back for an example image, as `util.getImage` does: a data URL. */
-const IMAGE_DATA = 'data:image/png;base64,AAAA';
 
 /** The fixed "now" every verdict is cast at. */
 const NOW = new Date('2026-08-15T12:00:00Z');
@@ -107,7 +104,6 @@ describe('mobile Validate verdict menu', () => {
   let loading;
   let hoverDevice;
   let reducedMotion;
-  let getImage;
   /**
    * Every listener the menu added, so `tap` can call them with an event jsdom would mark untrusted.
    * @type {Array<{target: EventTarget, type: string, listener: Function}>}
@@ -188,8 +184,6 @@ describe('mobile Validate verdict menu', () => {
       matches: (query === '(hover: hover)' && hoverDevice)
         || (query === '(prefers-reduced-motion: reduce)' && reducedMotion),
     }));
-    getImage = vi.fn(async () => IMAGE_DATA);
-    useUtil({ getImage });
     listeners = [];
     const add = EventTarget.prototype.addEventListener;
     vi.spyOn(EventTarget.prototype, 'addEventListener').mockImplementation(function (type, listener, options) {
@@ -247,17 +241,13 @@ describe('mobile Validate verdict menu', () => {
       expect($('no-button-2').hasAttribute('data-ps-tooltip-html')).toBe(false);
     });
 
-    test('a device with a pointer gets a tooltip card, with the example image where the reason has one', async () => {
+    test('a device with a pointer gets a tooltip card, with the example image where the reason has one', () => {
       hoverDevice = true;
       buildMenu();
 
       expect($('no-button-1').getAttribute('data-ps-tooltip-html')).toBe('It is not a curb ramp (1)');
-      // The example image arrives once fetched.
-      expect($('no-button-2').hasAttribute('data-ps-tooltip-html')).toBe(false);
-      await flush();
-      expect(getImage).toHaveBeenCalledWith('images/examples/driveway.png');
       expect($('no-button-2').getAttribute('data-ps-tooltip-html'))
-        .toBe(`Driveways are not ramps (2)<br/><img src="${IMAGE_DATA}" height="140"/>`);
+        .toBe('Driveways are not ramps (2)<br/><img src="images/examples/driveway.png" height="140"/>');
     });
 
     test('a reason the next type words differently loses the old tooltip', () => {
@@ -269,24 +259,6 @@ describe('mobile Validate verdict menu', () => {
       expect($('no-button-2').getAttribute('data-ps-tooltip-html')).toBe('Nothing painted (2)');
     });
 
-    test('an example image that arrives after the next label is drawn is dropped, not put on its buttons', async () => {
-      hoverDevice = true;
-      buildMenu();
-
-      showLabel(newLabel('Crosswalk'));
-      await flush();
-
-      expect($('no-button-2').getAttribute('data-ps-tooltip-html')).toBe('Nothing painted (2)');
-    });
-
-    test('an example image that fails to load still leaves the tooltip text', async () => {
-      hoverDevice = true;
-      getImage.mockRejectedValue(new Error('Image not found'));
-      buildMenu();
-      await flush();
-
-      expect($('no-button-2').getAttribute('data-ps-tooltip-html')).toBe('Driveways are not ramps (2)');
-    });
   });
 
   describe('Yes', () => {
