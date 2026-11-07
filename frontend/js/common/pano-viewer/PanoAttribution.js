@@ -1,4 +1,4 @@
-import i18next from 'i18next';
+import { newTabNote } from '../newTabNote.js';
 import '../../../css/components/pano-attribution.css';
 
 /**
@@ -28,30 +28,23 @@ export function createPanoAttribution(container, options = {}) {
   container.appendChild(holder);
 
   /**
-   * Fills the overlay from a structured attribution.
-   * @param {{holder: string, provider: ?string, license: ?string, license_url: ?string}} attribution
+   * Fills the overlay from a structured attribution; show() only calls it once there is a licence to name.
+   * @param {{holder: string, provider: ?string, license: string, license_url: ?string}} attribution
    */
   function render(attribution) {
     /** @type {Node[]} */
     const parts = [document.createTextNode(attribution.holder)];
     if (attribution.provider && !compact) parts.push(document.createTextNode(attribution.provider));
-    if (attribution.license) {
-      if (attribution.license_url) {
-        // Only the licence token links out, so the line's other names don't read as links to the provider.
-        const link = document.createElement('a');
-        link.href = attribution.license_url;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        link.textContent = attribution.license;
-        // A new tab is a change of context the visible text doesn't announce (WCAG 3.2.5, G201).
-        const newTab = document.createElement('span');
-        newTab.className = 'sr-only';
-        newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
-        link.appendChild(newTab);
-        parts.push(link);
-      } else {
-        parts.push(document.createTextNode(attribution.license));
-      }
+    if (attribution.license_url) {
+      // Only the licence token links out, so the line's other names don't read as links to the provider.
+      const link = document.createElement('a');
+      link.href = attribution.license_url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.append(attribution.license, newTabNote());
+      parts.push(link);
+    } else {
+      parts.push(document.createTextNode(attribution.license));
     }
     holder.replaceChildren();
     parts.forEach((part, i) => {

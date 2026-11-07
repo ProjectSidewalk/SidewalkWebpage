@@ -56,9 +56,9 @@ file, and this table says which doc to read first:
   dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
   versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
 - Never cause a billable Google pano or map: Google bills every `StreetViewPanorama` and `Map` created, local tiles
-  or not. `test/e2e/` runs on a Maps stub that fails any request reaching Google, so pano interaction there is fine.
-  Outside it, never browser-test a page that builds a pano (Explore and its tutorial, Validate, label cards); hand the
-  developer a checklist or console snippet instead.
+  or not. Never browser-test a page that builds a pano (Explore and its tutorial, Validate, the `label-detail` card)
+  outside `test/e2e/`, which stubs Google Maps. A new or changed interaction on one gets a spec there; hand the
+  developer a checklist only for what a spec can't reach (`test/e2e/README.md` → "Pano pages").
 
 ## Before a change is done
 
@@ -131,8 +131,10 @@ share images and the API's `icon_url` fields only.
   at http://localhost:9000; `WebFetch` can't reach it, so use `curl`.
 - Public pages and the public API work without a session. Explore, Validate, dashboards and most saves need one:
   `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"` once (it makes an account), then
-  pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
-  (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
+  pass `-b /tmp/sidewalk_cookies.txt`. Running a worktree's branch (`make qa-worktree wt=<name>`):
+  `docs/dev-environment.md`.
+- On the local dev DB you may always make test accounts, admins included, whenever testing needs one; no need to ask.
+  Recipe: the `create-registered-user-account` skill.
 - Other sessions share :9000 and the test DB. If a command says another checkout holds :9000, rerun with `wait=1` or
   message the holder it names; never `force=1` without the developer's OK.
 - Inspect the DB read-only: `docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "…"` (never

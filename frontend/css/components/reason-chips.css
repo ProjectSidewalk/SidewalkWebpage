@@ -7,10 +7,6 @@
   gap: calc(6px * var(--ui-scale, 1));
 }
 
-.reason-chips[hidden] {
-  display: none; /* The display rule above would otherwise beat the hidden attribute. */
-}
-
 /* Same quiet eyebrow as the card's section titles, so the question reads as part of the card, not a dialog. */
 .reason-chips__prompt {
   font: var(--text-caption-semibold);

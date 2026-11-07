@@ -21,6 +21,7 @@ function fakeViewer() {
     setPano: vi.fn(function setPano(panoId) { this.panos.push(panoId); return Promise.resolve(); }),
     addListener: vi.fn(),
     getPanoId: () => 'pano-1',
+    getViewerType: () => 'gsv',
     resize: vi.fn(),
     setPov: vi.fn(),
     getPov: () => ({ ...POV }),
@@ -42,7 +43,12 @@ describe('PopupPanoManager builds its viewer lazily', () => {
   let buttonHolder;
 
   beforeEach(async () => {
-    document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
+    document.body.innerHTML = `
+      <div class="label-detail__pano-wrap">
+        <div id="sv-holder"></div>
+        <div class="label-detail__pano-loading" hidden></div>
+      </div>
+      <div id="button-holder"></div>`;
     svHolder = document.getElementById('sv-holder');
     buttonHolder = document.getElementById('button-holder');
     idleCallbacks = [];
@@ -67,8 +73,18 @@ describe('PopupPanoManager builds its viewer lazily', () => {
   });
 
 
-  /** Builds a manager the way LabelDetail does. */
-  const createManager = () => PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');
+  /**
+   * Builds a manager the way LabelDetail does, which hands over the label before any imagery is asked for.
+   * @returns {Promise<object>} The manager.
+   */
+  async function createManager() {
+    const manager = await PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');
+    manager.setLabel({
+      labelId: 1, label_type: 'CurbRamp', canvasX: 360, canvasY: 240, originalCanvasWidth: 720,
+      originalCanvasHeight: 480, pov: POV, streetEdgeId: 5, aiGenerated: false, cropMarker: null,
+    });
+    return manager;
+  }
 
   test('create() builds the DOM but no viewer, and schedules only the free library preload', async () => {
     const manager = await createManager();
@@ -203,16 +219,17 @@ describe('PopupPanoManager builds its viewer lazily', () => {
 
     await Promise.all([manager.warmUp(), manager.setPano('pano-1', POV, null)]);
     await manager.setPano('pano-2', POV, null);
-    expect(manager.panoViewer.addListener).toHaveBeenCalledTimes(1);
-    expect(manager.panoViewer.addListener.mock.calls[0][0]).toBe('pano_changed');
+    // Each marker drawn adds its own pov_changed listener; the manager's own is the one pano_changed.
+    const events = manager.panoViewer.addListener.mock.calls.map(([event]) => event);
+    expect(events.filter((event) => event === 'pano_changed')).toHaveLength(1);
   });
 
   test('getPov() is null for a viewer with no pano loaded, not a crash', async () => {
-    viewerType.create.mockImplementation(() => Promise.resolve({ ...fakeViewer(), getPov: () => null }));
     const manager = await createManager();
 
     expect(manager.getPov()).toBeNull();
     await manager.setPano('pano-1', POV, null);
+    manager.panoViewer.getPov = () => null;
     expect(manager.getPov()).toBeNull();
   });
 

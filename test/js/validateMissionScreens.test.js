@@ -7,10 +7,13 @@
  * shown over and over. The desktop tool runs the same code against a `display: none` copy of the markup, where a
  * measurement reads zero and a fetched tutorial photo is never seen. And the title is fitted to one line by
  * measuring it, which is only meaningful once the face it is set in has loaded.
+ *
+ * Also the buttons on those screens and on the dead end (ModalNoNewMission) that takes the briefing's markup over, on
+ * both layouts, since where each one leads differs between them (#5840).
  */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
-import { fakeGate, fakeTracker } from './fakes.js';
+import { fakeGate, fakeTracker, navigationAttempts } from './fakes.js';
 
 mockModule('i18next', () => ({ default: {
   // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
@@ -37,7 +40,8 @@ class FakeMissionStartTutorial {
 }
 mockModule('frontend/js/common/MissionStartTutorial.js', () => ({MissionStartTutorial: FakeMissionStartTutorial}));
 // jsdom has no canvas to burst confetti on.
-mockModule('frontend/js/common/Confetti.js', () => ({Confetti: {burst: vi.fn()}}));
+const confettiBurst = vi.fn();
+mockModule('frontend/js/common/Confetti.js', () => ({Confetti: {burst: confettiBurst}}));
 
 const {ModalMission, ModalMissionComplete, ModalNoNewMission, BadgeAchievements, Gate} = await loadModules(
   'frontend/js/validate/modal/ModalMission.js', 'frontend/js/validate/modal/ModalMissionComplete.js',
@@ -203,6 +207,16 @@ describe('mobile Validate mission screens', () => {
       expect(document.querySelectorAll('#modal-mission-instruction img')).toHaveLength(0);
     });
 
+    test('titles the screen without the phone’s eyebrow, which desktop’s markup lacks', () => {
+      isMobile = false;
+      const ui = {...missionUI(), eyebrow: null};
+
+      new ModalMission(ui, modalNoNewMission, tracker).setMissionMessage(makeMission());
+
+      expect(ui.missionTitle.innerHTML).toContain('mst-instruction-2');
+      expect(document.getElementById('modal-mission-eyebrow').innerHTML).toBe('');
+    });
+
     test('leaves no shrunk-to-one-line sizing on a heading it never measured', () => {
       isMobile = false;
 
@@ -281,6 +295,15 @@ describe('mobile Validate mission screens', () => {
       // Seeded from the token's 30px it lands on 26. Seeded from a size copied into the source it would
       // start below what already fits and stamp that instead, silently ignoring the token.
       expect(parseFloat(title.style.fontSize)).toBe(26);
+    });
+
+    test('a title that fits only at the floor stays on one line there', () => {
+      measureAs(20, 320); // 320px of text at 16px, in a 320px box.
+
+      briefing().setMissionMessage(makeMission());
+
+      expect(parseFloat(title.style.fontSize)).toBe(16);
+      expect(title.style.whiteSpace).toBe('nowrap');
     });
 
     test('a title too long even at the floor wraps rather than shrinking into the unreadable', () => {
@@ -496,6 +519,258 @@ describe('mobile Validate mission screens', () => {
       ui.closeButtonSecondary.click();
 
       expect(lock.isHeld()).toBe(false);
+    });
+  });
+
+  describe('the briefing’s start button', () => {
+    test('a fresh mission logs its start, and the briefing goes away', () => {
+      briefing().setMissionMessage(makeMission({missionId: 9, labelsValidated: 10, labelsProgress: 0}));
+
+      document.getElementById('modal-mission-close-button').click();
+
+      expect(tracker.push).toHaveBeenCalledWith('MissionStart', {
+        missionId: 9, missionType: 'validation', labelType: 'CurbRamp', labelsValidated: 10,
+      });
+      expect(document.getElementById('modal-mission-holder').style.visibility).toBe('hidden');
+    });
+
+    test('a mission resumed partway through does not log a second start', () => {
+      briefing().setMissionMessage(makeMission({labelsProgress: 4}));
+
+      document.getElementById('modal-mission-close-button').click();
+
+      expect(tracker.push).not.toHaveBeenCalledWith('MissionStart', expect.anything());
+      expect(document.getElementById('modal-mission-holder').style.visibility).toBe('hidden');
+    });
+
+    test('heads the screen with the mission type’s own marker', () => {
+      briefing().setMissionMessage(makeMission());
+
+      expect(document.querySelector('#modal-mission-eyebrow img').getAttribute('src'))
+        .toContain('label_type_icons/CurbRamp_small.svg');
+    });
+
+    test('never paints over a dead end that already took the screen', () => {
+      deadEndShowing = true;
+      const instruction = document.getElementById('modal-mission-instruction');
+      instruction.textContent = 'no more labels';
+
+      briefing().setMissionMessage(makeMission());
+
+      expect(instruction.textContent).toBe('no more labels');
+      expect(document.getElementById('modal-mission-close-button').onclick).toBeNull();
+    });
+  });
+
+  describe('swiping the examples', () => {
+    let strip;
+
+    /**
+     * Scrolls the strip to a position, as a swipe would; jsdom lays nothing out, so the strip's size is stated.
+     * @param {number} scrollLeft - How far along the strip has been scrolled, in px.
+     * @param {number} [width] - The strip's width, one example's worth.
+     */
+    function swipeTo(scrollLeft, width = 300) {
+      Object.defineProperty(strip, 'scrollLeft', {value: scrollLeft, configurable: true});
+      Object.defineProperty(strip, 'clientWidth', {value: width, configurable: true});
+      strip.dispatchEvent(new Event('scroll'));
+    }
+
+    /** @returns {number} Which dot is marked current. */
+    const currentDot = () => [...document.querySelectorAll('.mv-dot')]
+      .findIndex((dot) => dot.classList.contains('mv-dot--current'));
+
+    beforeEach(() => {
+      briefing().setMissionMessage(makeMission());
+      strip = document.querySelector('.mv-examples');
+    });
+
+    test('moves the current dot to the example swiped to, and logs that it was reached', () => {
+      swipeTo(310);
+
+      expect(currentDot()).toBe(1);
+      expect(tracker.push).toHaveBeenCalledWith('MSTSlide_Swipe', {currentSlideIdx: 1});
+    });
+
+    test('a scroll that settles on the same example logs nothing more', () => {
+      swipeTo(310);
+      tracker.push.mockClear();
+
+      swipeTo(290);
+
+      expect(tracker.push).not.toHaveBeenCalled();
+      expect(currentDot()).toBe(1);
+    });
+
+    test('a strip with no width yet, so no example to point at, leaves the dots alone', () => {
+      swipeTo(0, 0);
+
+      expect(tracker.push).not.toHaveBeenCalled();
+      expect(currentDot()).toBe(0);
+    });
+  });
+
+  describe('the dead end', () => {
+    /** @returns {ModalNoNewMission} The dead end, wired the way Main.js wires it. */
+    const deadEnd = () => new ModalNoNewMission(missionUI(), keyboardLock, tracker);
+    const button = () => document.getElementById('modal-mission-close-button');
+
+    test('on desktop, says there is nothing left here and sends the validator to Explore', () => {
+      isMobile = false;
+      const navigations = navigationAttempts();
+      const modal = deadEnd();
+
+      modal.show();
+
+      expect(modal.isShowing()).toBe(true);
+      expect(keyboardLock.hold).toHaveBeenCalledWith('no-mission');
+      expect(document.getElementById('modal-mission-header').innerHTML).toBe('mission-complete.no-new-mission-title');
+      expect(document.getElementById('modal-mission-instruction').textContent)
+        .toContain('mission-complete.no-new-mission-body');
+      expect(button().innerHTML).toBe('mission-complete.no-new-mission-button');
+      expect(button().style.width).toBe('fit-content');
+
+      button().click();
+
+      expect(tracker.push).toHaveBeenCalledWith('Click_NoMoreMissionModal_Audit');
+      expect(navigations).toHaveBeenCalledTimes(1);
+    });
+
+    test('on the phone, sends the validator to Seattle’s Validate, on a button already full width', () => {
+      const navigations = navigationAttempts();
+      deadEnd().show();
+
+      expect(document.getElementById('modal-mission-instruction').textContent).toContain('mobile.no-new-mission-body');
+      expect(button().innerHTML).toBe('mobile.no-new-mission-button Seattle, WA');
+      expect(button().style.width).toBe('');
+      // The briefing's eyebrow would sit over a sentence that has no mission to introduce.
+      expect(document.getElementById('modal-mission-eyebrow').childNodes).toHaveLength(0);
+
+      button().click();
+
+      expect(tracker.push).toHaveBeenCalledWith('Click_NoMoreMissionModal_ValidateSeattle');
+      expect(navigations).toHaveBeenCalledTimes(1);
+    });
+
+    test('when the imagery would not load, offers a retry that reloads the page', () => {
+      const navigations = navigationAttempts();
+      deadEnd().show({imageryUnavailable: true});
+
+      expect(document.getElementById('modal-mission-header').innerHTML).toBe('imagery-unavailable.title');
+      expect(document.getElementById('modal-mission-instruction').textContent).toContain('imagery-unavailable.body');
+      expect(button().innerHTML).toBe('imagery-unavailable.retry');
+
+      button().click();
+
+      expect(tracker.push).toHaveBeenCalledWith('Click_ImageryUnavailableModal_Retry');
+      expect(navigations).toHaveBeenCalledTimes(1);
+    });
+
+    test('is not showing until it is shown', () => {
+      expect(deadEnd().isShowing()).toBe(false);
+    });
+  });
+
+  describe('the mission-complete buttons', () => {
+    const primary = () => document.getElementById('modal-mission-complete-close-button-primary');
+    const secondary = () => document.getElementById('modal-mission-complete-close-button-secondary');
+
+    /**
+     * Puts the screen up for the nth mission this page finished, with the next mission behind it.
+     * @param {number} missionsCompleted - Missions finished on this page, this one included.
+     * @returns {ModalMissionComplete} The screen.
+     */
+    function finish(missionsCompleted) {
+      const modal = completion();
+      modal.show(makeMission(), missionsCompleted);
+      modal.nextMissionLoaded(makeMission());
+      return modal;
+    }
+
+    test('every third mission on desktop offers Explore beside carrying on, and Explore leaves the page', () => {
+      isMobile = false;
+      const navigations = navigationAttempts();
+      const modal = finish(3);
+
+      expect(primary().innerHTML).toBe('mission-complete.explore');
+      expect(secondary().innerHTML).toBe('mission-complete.continue');
+      expect(secondary().classList.contains('ps-hidden')).toBe(false);
+
+      primary().click();
+
+      expect(navigations).toHaveBeenCalledTimes(1);
+      expect(modal.isShowing()).toBe(true);
+    });
+
+    test('other missions on desktop offer one button, to validate more, which closes the screen', () => {
+      isMobile = false;
+      const navigations = navigationAttempts();
+      const modal = finish(2);
+
+      expect(primary().innerHTML).toBe('mission-complete.validate-more');
+      expect(secondary().classList.contains('ps-hidden')).toBe(true);
+
+      primary().click();
+
+      expect(navigations).not.toHaveBeenCalled();
+      expect(modal.isShowing()).toBe(false);
+      expect(panoManager.replayMarkerPulse).toHaveBeenCalled();
+    });
+
+    test('the phone never sends the validator off to Explore, even on a third mission', () => {
+      const navigations = navigationAttempts();
+      const modal = finish(3);
+
+      expect(primary().innerHTML).toBe('mission-complete.validate-more');
+
+      primary().click();
+
+      expect(navigations).not.toHaveBeenCalled();
+      expect(modal.isShowing()).toBe(false);
+    });
+  });
+
+  describe('the mission-complete celebration', () => {
+    const celebration = () => document.getElementById('mission-complete-celebration');
+
+    // jsdom has no vibrate; one test adds it, and a failure must not leave it for the rest.
+    afterEach(() => {
+      delete navigator.vibrate;
+    });
+
+    test('plays the fireworks and confetti, and buzzes where the phone can', () => {
+      const vibrate = vi.fn();
+      Object.defineProperty(navigator, 'vibrate', {value: vibrate, configurable: true});
+
+      completion().show(makeMission(), 1);
+
+      expect(celebration().classList.contains('mv-celebrate--play')).toBe(true);
+      expect(vibrate).toHaveBeenCalled();
+      expect(confettiBurst).toHaveBeenCalled();
+    });
+
+    test('a visitor who asked for less motion gets none of it', () => {
+      window.matchMedia = vi.fn((query) => ({matches: query === '(prefers-reduced-motion: reduce)'}));
+
+      completion().show(makeMission(), 1);
+
+      expect(celebration().classList.contains('mv-celebrate--play')).toBe(false);
+      expect(confettiBurst).not.toHaveBeenCalled();
+    });
+
+    test('desktop’s screen, with no fireworks, label icon or badge, still shows the tally', () => {
+      isMobile = false;
+      celebration().remove();
+      const ui = {...completeUI(), labelIcon: null, badgeIcon: null};
+      statusField.getCompletedValidations = () => 42;
+
+      completion(ui).show(makeMission(), 1);
+
+      expect(confettiBurst).not.toHaveBeenCalled();
+      expect(document.getElementById('modal-mission-complete-agree-count').textContent).toBe('6');
+      expect(document.getElementById('mission-complete-label-icon').style.backgroundImage).toBe('');
+      expect(document.getElementById('modal-mission-complete-your-overall-total-count').textContent).toBe('42');
+      expect(document.getElementById('mission-complete-badge-name').textContent).toBe('');
     });
   });
 });

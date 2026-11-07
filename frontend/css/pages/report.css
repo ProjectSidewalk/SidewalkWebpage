@@ -163,11 +163,6 @@
   mask-image: url("/images/icons/link-feather.svg");
 }
 
-/* The display: flex above beats the UA stylesheet's [hidden] rule. */
-.report-actions[hidden] {
-  display: none;
-}
-
 /* ---- Sections ------------------------------------------------------------------------------------------------- */
 
 .report-section {
@@ -500,10 +495,6 @@
   transition: transform var(--transition-fast);
 }
 
-.report-map-marker[hidden] {
-  display: none;
-}
-
 .report-map-marker:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
@@ -633,7 +624,6 @@
   vertical-align: middle;
 }
 
-
 .report-places--compact {
   display: inline-flex;
   gap: 2px;
@@ -755,10 +745,6 @@ button.report-map-place--small .report-map-place__glyph {
 
 /* ---- Sidebar controls ----------------------------------------------------------------------------------------- */
 
-.report-control[hidden] {
-  display: none;
-}
-
 .report-toggle {
   display: flex;
   gap: var(--space-xxs);
@@ -783,10 +769,6 @@ button.report-map-place--small .report-map-place__glyph {
   margin: var(--space-xs) 0 0;
   font: var(--text-caption-regular);
   list-style: none;
-}
-
-.report-legend[hidden] {
-  display: none;
 }
 
 .report-legend li {
@@ -818,10 +800,6 @@ button.report-map-place--small .report-map-place__glyph {
   padding: 0;
   margin: 0 0 var(--space-xs);
   border: 0;
-}
-
-.report-color-by[hidden] {
-  display: none;
 }
 
 .report-color-by__title {
@@ -991,10 +969,6 @@ button.report-map-place--small .report-map-place__glyph {
   margin-top: var(--space-sm);
 }
 
-.report-street__profile[hidden] {
-  display: none;
-}
-
 .report-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -1048,10 +1022,6 @@ button.report-map-place--small .report-map-place__glyph {
   display: none;
 }
 
-.report-card[hidden] {
-  display: none;
-}
-
 .report-card.is-lit {
   box-shadow: 0 0 0 2px var(--color-neutral-900);
 }
@@ -1083,10 +1053,6 @@ button.report-map-place--small .report-map-place__glyph {
 
 .report-cards__more {
   margin-top: var(--space-sm);
-}
-
-.report-cards__more[hidden] {
-  display: none;
 }
 
 /* ---- Fixes ---------------------------------------------------------------------------------------------------- */
