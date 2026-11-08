@@ -198,8 +198,9 @@ export function installFakeGoogleMaps(panos = {}) {
  * @param {object} [opts]
  * @param {?string} [opts.errorMessage='load failed'] - What a failed load hands its `error` handlers.
  * @param {boolean} [opts.renderCanvas=false] - Whether a viewer draws Pannellum's render canvas into its mount.
- * @returns {{attempted: string[], loaded: string[], viewers: object[]}} Every URL a load was tried for, the ones
- *   that succeeded, and every viewer built.
+ * @returns {{attempted: string[], loaded: string[], viewers: object[], webgl: {lost: boolean}}} Every URL a load was
+ *   tried for, the ones that succeeded, every viewer built, and the WebGL context every viewer reports holding, which
+ *   a test flips to `lost` to stand in for a GPU reset.
  */
 export function installFakePannellum(
   failingUrls = new Set(), { errorMessage = 'load failed', renderCanvas = false } = {},
@@ -207,6 +208,7 @@ export function installFakePannellum(
   const attempted = [];
   const loaded = [];
   const viewers = [];
+  const webgl = { lost: false };
   mockModule('frontend/js/common/pano-viewer/sdk/pannellum.js', () => ({ pannellum: {
     viewer: vi.fn((container, config) => {
       const handlers = { load: new Set(), error: new Set() };
@@ -236,8 +238,10 @@ export function installFakePannellum(
           settle(scenes[id].panorama);
         }),
         removeScene: vi.fn(() => true),
-        destroy: vi.fn(),
+        destroy: vi.fn(() => { container.innerHTML = ''; }),
         resize: vi.fn(),
+        // The viewer reads its WebGL context's state off Pannellum's own canvas: renderer, canvas, context.
+        getRenderer: () => ({ getCanvas: () => ({ getContext: () => ({ isContextLost: () => webgl.lost }) }) }),
         getYaw: () => view.yaw,
         getPitch: () => view.pitch,
         getHfov: () => view.hfov,
@@ -249,7 +253,7 @@ export function installFakePannellum(
       return viewer;
     }),
   } }));
-  return { attempted, loaded, viewers };
+  return { attempted, loaded, viewers, webgl };
 }
 
 // ---- Panoramax ----------------------------------------------------------------------------------------------------

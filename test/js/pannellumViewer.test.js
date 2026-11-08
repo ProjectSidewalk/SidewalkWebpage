@@ -91,6 +91,22 @@ describe('opening a pano', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     await expect(create()).rejects.toThrow('Pannellum failed to load image');
   });
+
+  test('a lost WebGL context ends the ladder at its first rung: no smaller copy is asked for (#5939)', async () => {
+    // Pannellum reports a lost context as a size limit of 0px. Walking the ladder on it would have the server cut
+    // two copies that cannot render either.
+    const pannellum = installFakePannellum(new Set(['/backupImage/p1']));
+    pannellum.webgl.lost = true;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(create()).rejects.toThrow('WebGL context lost while loading pano p1');
+
+    expect(pannellum.attempted).toEqual(['/backupImage/p1']);
+    expect(pannellum.viewers).toHaveLength(1);
+    expect(pannellum.viewers[0].destroy).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/context is lost/);
+  });
 });
 
 describe('keys', () => {
@@ -184,18 +200,69 @@ describe('switching panos', () => {
     expect(viewer.getPov().heading).toBe(50);
   });
 
-  test('after a pano fails at every size, the next one loads without trying to drop it', async () => {
-    const urls = ['/backupImage/p2', '/backupImage/p2?maxWidth=8192', '/backupImage/p2?maxWidth=4096'];
-    const pannellum = installFakePannellum(new Set(urls), { errorMessage: null });
+  test('a pano that fails at every size takes Pannellum down with it, and the next one opens a fresh instance',
+    async () => {
+      // The failed instance is in Pannellum's error state, whose resize handler throws (#5939); the next pano
+      // cannot reuse it, so it gets a new instance in the same mount, which the first one's destroy() has emptied.
+      const urls = ['/backupImage/p2', '/backupImage/p2?maxWidth=8192', '/backupImage/p2?maxWidth=4096'];
+      const pannellum = installFakePannellum(new Set(urls), { errorMessage: null, renderCanvas: true });
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const viewer = await create();
+
+      await expect(viewer.loadPano('p2', metadata('p2'), { heading: 0, pitch: 0, zoom: 1 }))
+        .rejects.toThrow('Pannellum failed to load scene');
+      expect(pannellum.viewers[0].destroy).toHaveBeenCalledTimes(1);
+
+      await viewer.loadPano('p3', metadata('p3', { camera_heading: 50 }), { heading: 70, pitch: 0, zoom: 1 });
+
+      expect(pannellum.viewers).toHaveLength(2);
+      expect(pannellum.viewers[1].config.scenes.p3).toMatchObject({ panorama: '/backupImage/p3', yaw: 20 });
+      expect(pannellum.viewers[0].removeScene).not.toHaveBeenCalled();
+      expect(mount.querySelectorAll('canvas')).toHaveLength(1);
+      expect(mount.querySelector('canvas').classList.contains('pannellum-canvas')).toBe(true);
+      expect(viewer.getPanoId()).toBe('p3');
+      expect(viewer.getPov().heading).toBe(70);
+    });
+
+  test('a context lost mid-session fails the pano at once, and the next pano gets a new context (#5939)', async () => {
+    const pannellum = installFakePannellum(new Set(['/backupImage/p2']));
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const viewer = await create();
 
+    pannellum.webgl.lost = true;
     await expect(viewer.loadPano('p2', metadata('p2'), { heading: 0, pitch: 0, zoom: 1 }))
-      .rejects.toThrow('Pannellum failed to load scene');
-    await viewer.loadPano('p3', metadata('p3'), { heading: 0, pitch: 0, zoom: 1 });
+      .rejects.toThrow('WebGL context lost while loading pano p2');
+    expect(pannellum.attempted).toEqual(['/backupImage/p1', '/backupImage/p2']);
+    expect(pannellum.viewers[0].destroy).toHaveBeenCalledTimes(1);
 
-    expect(pannellum.viewers[0].removeScene).not.toHaveBeenCalled();
+    // The browser's next context works again, as it does once the GPU process is back.
+    pannellum.webgl.lost = false;
+    await viewer.loadPano('p3', metadata('p3'), { heading: 0, pitch: 0, zoom: 1 });
+    expect(pannellum.viewers).toHaveLength(2);
     expect(viewer.getPanoId()).toBe('p3');
+  });
+
+  test('between a failed load and the next, the viewer still answers for its view and takes a resize', async () => {
+    // Validate keeps the viewer active while it decides what to show instead, and the POV loop keeps ticking.
+    const frames = [];
+    vi.stubGlobal('requestAnimationFrame', (cb) => frames.push(cb));
+    const urls = ['/backupImage/p2', '/backupImage/p2?maxWidth=8192', '/backupImage/p2?maxWidth=4096'];
+    installFakePannellum(new Set(urls));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const viewer = await create({ startHeading: 130 });
+    const heard = vi.fn();
+    viewer.addListener('pov_changed', heard);
+    await Promise.all(frames.splice(0).map((frame) => frame()));
+    expect(heard).toHaveBeenCalledTimes(1);
+
+    await expect(viewer.loadPano('p2', metadata('p2'), { heading: 0, pitch: 0, zoom: 1 })).rejects.toThrow();
+
+    await Promise.all(frames.splice(0).map((frame) => frame()));
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect(viewer.getPov()).toEqual({ heading: 130, pitch: 0, zoom: 1 });
+    viewer.setPov({ heading: 90, pitch: -5, zoom: 2 });
+    expect(viewer.getPov()).toEqual({ heading: 90, pitch: -5, zoom: 2 });
+    expect(() => viewer.resize()).not.toThrow();
   });
 
   test('setPano only accepts the pano already shown, since it carries no metadata to load another', async () => {
