@@ -17,6 +17,9 @@
     @item("report-overview", Messages("report.toc.streets"))
     @item("report-worst", Messages("report.toc.worst"))
     @item("report-punch-title", Messages("report.punch.title"))
+    @if(report.stories.nonEmpty) {
+      @item("report-stories", Messages("report.stories.title"))
+    }
     @item("report-inventory-title", Messages("report.inventory.title"))
     @if(report.streets.nonEmpty) {
       @item("report-streets-title", Messages("report.toc.details"))

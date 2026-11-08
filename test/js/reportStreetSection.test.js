@@ -204,6 +204,16 @@ describe('ReportStreetSection', () => {
     expect(second.setSidewalksVisible).toHaveBeenCalledWith(false);
   });
 
+  test('a rebuilt map starts with the places as the reader last left them, and the flip is logged', () => {
+    const section = build([cardData(1)]);
+    expect(mapOptions.placesVisible).toBe(true);
+    mapOptions.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Street');
+    section.unmountMap();
+    section.mountMap();
+    expect(mapOptions.placesVisible).toBe(false);
+  });
+
   test('sidewalks arriving after the map came down go nowhere', async () => {
     let answer;
     deps.sidewalks.mockReturnValue(new Promise((resolve) => { answer = resolve; }));

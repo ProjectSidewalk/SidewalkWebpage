@@ -63,6 +63,9 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
         report.streets.map(_.rank) mustBe report.streets.indices.map(_ + 1)
         report.streets.map(_.street.worst.score) mustBe report.streets.map(_.street.worst.score).sorted
 
+        report.stories.size must be <= ReportService.StoriesListSize
+        report.stories.foreach(_.regionId mustBe region.regionId)
+
         report.fixes.size must be <= ReportService.FixListSize
         report.fixes.map(_.street.worst.osmWayId).distinct.size mustBe report.fixes.size
         report.fixes.foreach { fix =>

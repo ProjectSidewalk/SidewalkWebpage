@@ -73,7 +73,9 @@ A neighborhood report (#3889) records `Visit_Report_Neighborhood_Region=<id>_Cus
 printing, not just the button), `Report_TocClick`, `Report_OpenStreet`, `Report_SidebarToggle_Open=<bool>`,
 `Report_RegionMapClick`, `Report_MapLocationClick`, `Report_LinkedHover` (at most once per card or icon),
 `Report_ShowMoreCards`, `Report_Card_<action>` (the Gallery card's own actions),
-`Report_SidewalksToggle_Shown=<bool>`, `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
+`Report_SidewalksToggle_Shown=<bool>`, `Report_PlacesToggle_Shown=<bool>_Map=<Region|Worst|Street>` (a map's own
+"Places" switch, #5900), `Report_OpenStory` and `Report_OpenStories` (a community story's label, and the link to every
+story, #5900), `Report_StoryReadMore_Expanded=<bool>` (a long story's "Read more" toggle), `Report_ColorBy_<Score|Slope>`, `Report_ProfileScrub`,
 `Report_WorstMapClick_LabelType=<type>` (a dot on the worst-problems map, #5889), `Report_WorstTypeHover_LabelType=<type>`
 (that map's type list, at most once per type per page load), `Report_WorstCardClose` (a dot's card closed, by its button,
 Escape, a click off the dots, or opening another),
