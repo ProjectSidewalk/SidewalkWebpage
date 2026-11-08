@@ -333,14 +333,16 @@ export class ReportMap {
       }
       // Added after the places, so they sit above them in the marker pane: a place never covers a dot.
       if (options.problems) this.#addProblems(options.problems);
-      // A click off every point closes what a point opened. A point's own click reaches here too, since markers sit
-      // inside the map's canvas container, so it is told apart by its target.
+      // Markers sit inside the canvas container, so a point's own click reaches here too and is told apart by its
+      // target: a place's pins its tooltip and leaves the card, a dot's opens its own card, any other closes both.
       this.#map.on('click', (e) => {
-        if (/** @type {Element} */ (e.originalEvent.target).closest?.('.maplibregl-marker')) return;
-        this.#openPlace?.();
-        this.#popup?.remove();
+        const point = /** @type {Element} */ (e.originalEvent.target).closest?.('.maplibregl-marker');
+        if (!point?.classList.contains('report-map-place')) this.#openPlace?.();
+        if (!point) this.#popup?.remove();
       });
       for (const location of locations) this.#addMarker(location);
+      // Joined last, so the map's one Tab stop and Home land on what the map is about, not on its context.
+      for (const element of this.#places) this.#points?.add(element);
       this.#addAlignment(locations, focusEdgeIds);
     }
   }
@@ -640,6 +642,7 @@ export class ReportMap {
       element.style.setProperty('--report-dot-color', util.misc.getLabelColors(problem.labelType));
       element.setAttribute('aria-label',
         i18next.t('report:map.problem', { type: util.misc.labelTypeName(problem.labelType) }));
+      element.setAttribute('aria-expanded', 'false');
       element.addEventListener('mouseenter', () => onProblemHover?.(problem.labelType));
       element.addEventListener('mouseleave', () => onProblemHover?.(null));
       element.addEventListener('focus', () => onProblemHover?.(problem.labelType));
@@ -654,12 +657,13 @@ export class ReportMap {
    * Puts a point's button on the map and in its one Tab stop.
    * @param {HTMLElement} element
    * @param {[number, number]} lngLat
+   * @param {boolean} [join=true] - Whether it joins the Tab stop now; places join after the map's subject.
    * @returns {maplibregl.Marker}
    */
-  #addPoint(element, lngLat) {
+  #addPoint(element, lngLat, join = true) {
     const marker = new maplibregl.Marker({ element }).setLngLat(lngLat).addTo(this.#map);
     this.#markerOf.set(element, marker);
-    this.#points?.add(element);
+    if (join) this.#points?.add(element);
     return marker;
   }
 
@@ -707,6 +711,7 @@ export class ReportMap {
     this.#popup = popup;
     const dot = this.#problemDots.get(problem.clusterId);
     dot?.classList.add('is-open');
+    dot?.setAttribute('aria-expanded', 'true');
     const onKey = (e) => {
       if (e.key === 'Escape') popup.remove();
     };
@@ -715,6 +720,7 @@ export class ReportMap {
       if (this.#popup !== popup) return;
       this.#popup = null;
       dot?.classList.remove('is-open');
+      dot?.setAttribute('aria-expanded', 'false');
       // Back to the dot it came from, so the reader's place in the map's points survives the card.
       const focus = document.activeElement;
       if (!focus || focus === document.body || popup.getElement().contains(focus)) {
@@ -823,6 +829,8 @@ export class ReportMap {
     element.addEventListener('mouseleave', hide);
     element.addEventListener('blur', close);
     element.addEventListener('click', () => {
+      // MapLibre's Marker stops a mousedown from focusing it, so a click does here, for Escape to reach the button.
+      element.focus({ preventScroll: true });
       if (pinned) {
         close();
       } else {
@@ -834,7 +842,7 @@ export class ReportMap {
       if (e.key === 'Escape') close();
     });
     element.hidden = !this.#placesVisible;
-    this.#addPoint(element, [place.lng, place.lat]);
+    this.#addPoint(element, [place.lng, place.lat], false);
     this.#places.push(element);
   }
 

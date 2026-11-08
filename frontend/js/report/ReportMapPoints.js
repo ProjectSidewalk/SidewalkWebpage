@@ -72,7 +72,7 @@ export class ReportMapPoints {
   add(element) {
     this.#points.push(element);
     element.tabIndex = -1;
-    // Focus by click or by script moves the Tab stop too, so Tab back into the map returns to where the reader was.
+    // Focus by any means moves the Tab stop, so Tab back into the map returns to where the reader was.
     element.addEventListener('focus', () => {
       this.#setCurrent(element);
       this.#onFocus(element);

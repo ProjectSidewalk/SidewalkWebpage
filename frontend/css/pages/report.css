@@ -436,6 +436,12 @@
   color: var(--color-neutral-800);
 }
 
+/* A map's popups over every marker, lit and open ones included, which carry a z-index of their own. */
+.maplibregl-popup.report-problem-popup,
+.maplibregl-popup.report-place-popup {
+  z-index: 3;
+}
+
 /* A dot's Gallery card, over the map: one card's width, as in a street's section. */
 .report-problem-popup .maplibregl-popup-content {
   padding: var(--space-xs);
@@ -516,15 +522,16 @@
   }
 }
 
-/* A worst-problems dot (#5937). The button is the 24px target (WCAG 2.2 SC 2.5.8) and the dot is drawn inside it at
-   the zoom's size, which ReportMap sets in --report-dot-px. Above the places (z-index), so a place never covers a dot.
-   No position here: MapLibre's .maplibregl-marker already makes it absolute. */
+/* A worst-problems dot (#5937), drawn at the zoom's size (ReportMap sets --report-dot-px). The box is 24px for the focus
+   ring, but only the drawn dot takes the pointer: at a neighborhood's zoom dots sit closer than 24px, and a padded
+   target there would let a neighbor's box take a click aimed at this one. Above the places by DOM order, and no
+   z-index, which would lift it over the open card too. No position: .maplibregl-marker makes it absolute. */
 .report-map-problem {
-  z-index: 1;
   box-sizing: border-box;
   width: max(24px, var(--report-dot-px, 10px));
   height: max(24px, var(--report-dot-px, 10px));
   padding: 0;
+  pointer-events: none;
   cursor: pointer;
   background: none;
   border: 0;
@@ -540,6 +547,7 @@
   margin: auto;
   content: "";
   background: var(--report-dot-color);
+  pointer-events: auto;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--color-neutral-900);
   transition: opacity var(--transition-fast);

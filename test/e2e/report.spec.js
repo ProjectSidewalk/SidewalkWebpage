@@ -200,17 +200,17 @@ test.describe('/report/neighborhood', () => {
       const dots = host.locator('button.report-map-problem');
       await expect(dots).toHaveCount(data.worst.length);
 
-      // Whatever is drawn at a dot's center is a dot (this one, or one beside it), never a place over it (#5937).
+      // No place is drawn over a dot's center (#5937). A control in the map's corner may be, which is no regression.
       const covered = await host.evaluate((map) => {
         const box = map.getBoundingClientRect();
         return [...map.querySelectorAll('button.report-map-problem')].filter((dot) => {
           const r = dot.getBoundingClientRect();
           const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
           if (x < box.left || y < box.top || x > box.right || y > box.bottom) return false;
-          return !document.elementFromPoint(x, y)?.closest('.report-map-problem');
+          return !!document.elementFromPoint(x, y)?.closest('.report-map-place');
         }).length;
       });
-      expect(covered, 'dots covered by something other than a dot').toBe(0);
+      expect(covered, 'dots covered by a place').toBe(0);
 
       // A click opens the dot's card; Escape closes it and gives focus back to the dot.
       const topmost = await host.evaluate((map) => [...map.querySelectorAll('button.report-map-problem')]
@@ -227,6 +227,12 @@ test.describe('/report/neighborhood', () => {
       const popup = page.locator('.report-problem-popup');
       await expect(popup).toBeVisible();
       await expect(dot).toHaveClass(/is-open/);
+      await expect(dot).toHaveAttribute('aria-expanded', 'true');
+      // The card is on top of every dot, so its own buttons take their clicks.
+      expect(await popup.evaluate((card) => {
+        const r = card.querySelector('.maplibregl-popup-content').getBoundingClientRect();
+        return card.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      }), 'something is drawn over the open card').toBe(true);
       await page.keyboard.press('Escape');
       await expect(popup).toHaveCount(0);
       await expect(dot).toBeFocused();
@@ -234,8 +240,9 @@ test.describe('/report/neighborhood', () => {
 
       const tabStops = host.locator('.maplibregl-marker[tabindex="0"]');
       await expect(tabStops).toHaveCount(1);
-      let moved = false;
-      for (const key of ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp']) {
+      const pointCount = await host.locator('.maplibregl-marker:not([hidden])').count();
+      let moved = pointCount < 2;
+      for (const key of moved ? [] : ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp']) {
         await dot.focus();
         await page.keyboard.press(key);
         moved = await host.evaluate((map, from) => {
@@ -245,7 +252,7 @@ test.describe('/report/neighborhood', () => {
         }, topmost);
         if (moved) break;
       }
-      expect(moved, 'no arrow key moved focus to another point').toBe(true);
+      expect(moved, `no arrow key moved focus to another of the map's ${pointCount} points`).toBe(true);
       await expect(tabStops).toHaveCount(1);
 
       await dot.focus();
