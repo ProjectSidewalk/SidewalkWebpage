@@ -1,15 +1,17 @@
 -- #5920: aim Washington DC's pre-2017 label records at the spot the labeller actually clicked.
 --
--- Written against evolution 429 (v11.20). ONE schema (sidewalk_dc), a write role. Preview with apply=0 (the
--- default: prints every count, then rolls back), apply with apply=1. A rerun is a no-op: the backup table is the
--- population guard. Not for run-query-in-every-city.sh (read-only runner). Undo: 5920-undo-dc-linear-projection.sql
--- (positions and records only; the voided human votes stay archived, the deleted AI votes come back on their own).
--- Run after 5667-dc-label-positions.sql, at a quiet hour: the transaction holds row locks on ~61k label_point rows.
+-- Written against evolution 429 (v11.20). ONE schema (sidewalk_dc): run it through sidewalk-server-tools'
+-- run-query-in-every-city.sh with -c "dc" (its connections open read-only, which the SET below switches off), on
+-- test first, then prod. PREVIEW BY DEFAULT: prints every count and writes the four files below, then rolls back.
+-- To write, send the runner a copy with `\set apply 1` in place of `\set apply 0`. A rerun is a no-op: the backup
+-- table is the population guard. Undo: 5920-undo-dc-linear-projection.sql (positions and records only; the voided
+-- human votes stay archived, the deleted AI votes come back on their own). Run after 5667-dc-label-positions.sql,
+-- at a quiet hour: the transaction holds row locks on ~61k label_point rows.
 --
---   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
---     -v apply=0 -v crops=5920-stale-crops.txt -v shares=5920-stale-share-images.txt \
---     -v ai_votes=5920-deleted-ai-votes.csv -v ai_assessments=5920-deleted-ai-assessments.csv \
---     -f tools/one-off/5920-dc-linear-projection.sql
+--   scp tools/one-off/5920-dc-linear-projection.sql <server>:sidewalk-server-tools/current-query.sql
+--   ./run-query-in-every-city.sh -t -m -c "dc" -o "5920-dc-preview-test"
+--
+-- The four files (:crops, :shares, :ai_votes, :ai_assessments) land in the runner's directory.
 --
 -- WHY. Until Google retired Maps API 3.25 on 2017-02-15, the labeling client asked for the flat `html4` Street View
 -- renderer and computed its label coordinates (kept since as old_label_metadata.old_pano_x/old_pano_y) with a
@@ -35,12 +37,13 @@
 -- pano_x/pano_y, which this bug had wrong, and the nightly job assesses and votes again once they are gone. The
 -- deleted rows go to the CSV files :ai_votes and :ai_assessments, the only copy of them once applied: keep those
 -- files with the backups. On prod when written: 56 human votes; about 3,300 AI votes and assessments.
--- Part 5 lists the files built around the old marker, for deletion before the app's next pass. The crops the
--- nightly job cut around the wrong pixels (34,674 on prod) go to :crops as paths under the city's crop directory;
--- the job only cuts a label with no crop file, so delete those before its next 05:00 run and it re-cuts them and
--- replaces their label_crop rows (thumbnails follow by age). The cached share previews of every label whose marker
--- moved 30 px or more go to :shares as file names under the city's share-image directory; most will not exist.
--- Both lists are ordered by how far off the old marker was, so they can be deleted in batches.
+-- Part 5 lists the files built around the old marker, for deletion before the app's next pass. The crop of every
+-- live label whose pixels moved (58,910 on test) goes to :crops as a path under the city's crop directory, whether
+-- or not a file is there (a path with no file is nothing to delete), and its label_crop row is deleted: the job
+-- only cuts a label with no crop file, so delete the files before its next 05:00 run (or press "generate crops"
+-- on the admin Management page) and it re-cuts them and records fresh rows (thumbnails follow by age). The cached
+-- share previews of every label whose marker moved 30 px or more go to :shares as file names under the city's
+-- share-image directory; most will not exist. Both lists are ordered by how far off the old marker was.
 --
 -- THE CUT. label.time_created is naive US/Eastern before 2018-08-25 (docs/data-notes.md), compared here as stored.
 -- The last label that renders on the linear model is stamped 2017-02-15 15:54, the first on the perspective one
@@ -67,6 +70,7 @@
 \else
   \set ai_assessments 5920-deleted-ai-assessments.csv
 \endif
+SET default_transaction_read_only = off;
 SET lock_timeout = '10s';
 
 -- The backup table outlives the run: it is the undo record and the rerun guard. Own transaction, as in #5667 (its
@@ -579,22 +583,31 @@ WHERE user_stat.user_id = affected_labeler.user_id AND NOT user_stat.excluded;
 -- ---------------------------------------------------------------------------------------------------------------
 -- Part 5. The files built around the old marker, for deletion so the app rebuilds them.
 -- ---------------------------------------------------------------------------------------------------------------
--- Crops: only the nightly job's own (an Explore snapshot is the screen the labeller saw, marker and all), and only
--- for labels the job will cut again (it skips deleted labels, so their stale crops stay rather than vanish).
+-- Crops: every live label the job will cut again (it skips deleted labels, so their stale crops stay rather than
+-- vanish), not just those with a label_crop row: a run the app's restart interrupted leaves its crops rowless (on
+-- test, 17,883 of these labels), and the job's own catch-up would record such a crop as if it were cut at the new
+-- pixels. An Explore snapshot is the screen the labeller saw, marker and all, so those stay. The rows go too, so a
+-- re-cut that is interrupted before the job writes its rows is caught up from the new file rather than kept under
+-- the old row's marker.
 -- Share previews (ShareImageCache): built once from the crop or a Street View still with the marker drawn from
 -- the record, kept for good. A re-cut crop clears its label's preview, but a label without a crop keeps the old
 -- one, so every label whose marker moved 30 px or more is listed; a name with no file is nothing to delete.
-CREATE TEMP TABLE stale_crops (path TEXT, old_render_error_px DOUBLE PRECISION) ON COMMIT DROP;
+CREATE TEMP TABLE stale_crops (label_id INT, path TEXT, old_render_error_px DOUBLE PRECISION) ON COMMIT DROP;
 INSERT INTO stale_crops
-SELECT label.label_type || '/crop_' || label.label_id || '.png', old_label_point_linear.old_render_error_px
+SELECT label.label_id, label.label_type || '/crop_' || label.label_id || '.png',
+       old_label_point_linear.old_render_error_px
 FROM run_rows
 INNER JOIN old_label_point_linear ON run_rows.label_point_id = old_label_point_linear.label_point_id
 INNER JOIN label_point ON old_label_point_linear.label_point_id = label_point.label_point_id
 INNER JOIN label ON old_label_point_linear.label_id = label.label_id
-INNER JOIN label_crop ON label.label_id = label_crop.label_id
-WHERE label_crop.source = 'pano_window'
-  AND NOT label.deleted
-  AND (label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y);
+WHERE NOT label.deleted
+  AND (label_point.pano_x <> old_label_point_linear.pano_x OR label_point.pano_y <> old_label_point_linear.pano_y)
+  AND NOT EXISTS (SELECT 1 FROM label_crop
+                  WHERE label_crop.label_id = label.label_id AND label_crop.source = 'explore_frame');
+
+CREATE TEMP TABLE deleted_crop_rows ON COMMIT DROP AS
+SELECT label_crop.label_id FROM label_crop INNER JOIN stale_crops ON label_crop.label_id = stale_crops.label_id;
+DELETE FROM label_crop USING deleted_crop_rows WHERE label_crop.label_id = deleted_crop_rows.label_id;
 
 CREATE TEMP TABLE stale_share_images (path TEXT, old_render_error_px DOUBLE PRECISION) ON COMMIT DROP;
 INSERT INTO stale_share_images
@@ -623,7 +636,8 @@ SELECT 'records re-aimed this run' AS what, count(*) FROM run_rows;
 SELECT 'human votes voided this run' AS what, count(*) FROM removed_votes WHERE NOT ai;
 SELECT 'AI votes deleted this run' AS what, count(*) FROM removed_votes WHERE ai;
 SELECT 'AI assessments deleted this run' AS what, count(*) FROM removed_assessments;
-SELECT 'stale crop files listed' AS what, count(*) FROM stale_crops;
+SELECT 'stale crop paths listed (file may not exist)' AS what, count(*) FROM stale_crops;
+SELECT 'label_crop rows deleted' AS what, count(*) FROM deleted_crop_rows;
 SELECT 'share previews listed' AS what, count(*) FROM stale_share_images;
 SELECT 'edits removed with them' AS what, count(*) FROM edits_to_remove;
 SELECT 'old render error px: median, p90, share >= 30' AS what,

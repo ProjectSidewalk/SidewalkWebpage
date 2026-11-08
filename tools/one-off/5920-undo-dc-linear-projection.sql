@@ -3,10 +3,11 @@
 -- (bringing them back is a job of its own if it is ever wanted); the AI votes and assessments it deleted, which the
 -- nightly job makes again at the restored pixels; and the centerline offsets of the rows #5667 had moved, which are
 -- the correct values for those positions. A reapply after this undo voids only votes cast since; a person who
--- re-voted on one of these labels in between would collide with their archived vote and abort it.
+-- re-voted on one of these labels in between would collide with their archived vote and abort it. Crops cut since
+-- the apply are framed on the repaired pixels, so after an undo they are stale the same way: list and delete them.
 --
---   psql "dbname=sidewalk options=--search_path=sidewalk_dc,public" -U sidewalk_dc -v ON_ERROR_STOP=1 \
---     -f tools/one-off/5920-undo-dc-linear-projection.sql
+-- Run it like the apply: through sidewalk-server-tools' run-query-in-every-city.sh with -c "dc".
+SET default_transaction_read_only = off;
 BEGIN;
 -- label.street_edge_id is insert-only in the app, so restoring the backed-up value cannot overwrite anything that
 -- happened in between. The inequality only skips no-op rows.
