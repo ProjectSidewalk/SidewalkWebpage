@@ -258,6 +258,23 @@ test.describe('/report/neighborhood', () => {
       await dot.focus();
       await page.keyboard.press('Enter');
       await expect(popup).toBeVisible();
+
+      // A click on bare map closes the card cleanly: MapLibre has already dropped the card's element when it says so.
+      const pageErrors = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      const bare = await host.evaluate((map) => {
+        const box = map.getBoundingClientRect();
+        for (let y = box.top + 8; y < box.bottom; y += 8) {
+          for (let x = box.left + 8; x < box.right; x += 8) {
+            if (document.elementFromPoint(x, y)?.matches('canvas.maplibregl-canvas')) return {x, y};
+          }
+        }
+        return null;
+      });
+      expect(bare, 'no bare map to click').not.toBeNull();
+      await page.mouse.click(bare.x, bare.y);
+      await expect(popup).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
     });
 
   test('letting go of a weight slider reopens the report under those weights, scored on the server',

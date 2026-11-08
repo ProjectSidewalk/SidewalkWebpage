@@ -715,7 +715,9 @@ export class ReportMap {
     const onKey = (e) => {
       if (e.key === 'Escape') popup.remove();
     };
-    popup.getElement().addEventListener('keydown', onKey);
+    // Kept, since MapLibre has already dropped the popup's element by the time it fires `close`.
+    const card = popup.getElement();
+    card.addEventListener('keydown', onKey);
     popup.on('close', () => {
       if (this.#popup !== popup) return;
       this.#popup = null;
@@ -723,7 +725,7 @@ export class ReportMap {
       dot?.setAttribute('aria-expanded', 'false');
       // Back to the dot it came from, so the reader's place in the map's points survives the card.
       const focus = document.activeElement;
-      if (!focus || focus === document.body || popup.getElement().contains(focus)) {
+      if (!focus || focus === document.body || card.contains(focus)) {
         (dot ?? this.#map.getCanvas()).focus({ preventScroll: true });
       }
       this.#options.onProblemClose?.();

@@ -522,10 +522,10 @@
   }
 }
 
-/* A worst-problems dot (#5937), drawn at the zoom's size (ReportMap sets --report-dot-px). The box is 24px for the focus
-   ring, but only the drawn dot takes the pointer: at a neighborhood's zoom dots sit closer than 24px, and a padded
-   target there would let a neighbor's box take a click aimed at this one. Above the places by DOM order, and no
-   z-index, which would lift it over the open card too. No position: .maplibregl-marker makes it absolute. */
+/* A worst-problems dot (#5937), drawn at the zoom's size (ReportMap sets --report-dot-px). The box is 24px for the
+   focus ring, but only the drawn dot takes the pointer: at a neighborhood's zoom dots sit closer than 24px, and a
+   padded target there would let a neighbor's box take a click aimed at this one. Above the places by DOM order, and
+   no z-index, which would lift it over the open card too. No position: .maplibregl-marker makes it absolute. */
 .report-map-problem {
   box-sizing: border-box;
   width: max(24px, var(--report-dot-px, 10px));
