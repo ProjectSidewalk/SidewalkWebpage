@@ -57,7 +57,6 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {number} lng
  * @property {?string} [side] - `left` or `right` of its edge's digitized direction, for the aligned view; null keeps it
  *   where it is.
- * @property {boolean} [atCrossing] - At an intersection, where the aligned view leaves it.
  * @property {?number} [edgeId] - The edge the aligned view draws it beside.
  *
  * @typedef {object} ReportMapOptions
