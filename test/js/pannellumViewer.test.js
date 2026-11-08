@@ -281,6 +281,54 @@ describe('switching panos', () => {
       expect(viewer.getPanoId()).toBe('p3');
     });
 
+  test('a rung Pannellum never reports on is given up after the watchdog, taking the instance with it', async () => {
+    // An equirect image that downloads and then fails to decode fires neither event. Loads run one at a time, so
+    // left alone it would hold every later pano; and its download may yet finish, so the instance it would be drawn
+    // into has to go.
+    vi.useFakeTimers();
+    try {
+      const pannellum = installFakePannellum(new Set(), { hangingUrls: new Set(['/backupImage/p2']) });
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const viewer = await create();
+
+      const hung = viewer.loadPano('p2', metadata('p2'), { heading: 0, pitch: 0, zoom: 1 });
+      await vi.advanceTimersByTimeAsync(PannellumViewer.LOAD_TIMEOUT_MS - 1);
+      expect(pannellum.viewers[0].destroy).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(hung).rejects.toThrow('Timed out');
+      expect(pannellum.attempted).toEqual(['/backupImage/p1', '/backupImage/p2']);
+      expect(pannellum.viewers[0].destroy).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toMatch(/gave no sign of loading/);
+
+      await viewer.loadPano('p3', metadata('p3'), { heading: 0, pitch: 0, zoom: 1 });
+      expect(pannellum.viewers).toHaveLength(2);
+      expect(viewer.getPanoId()).toBe('p3');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('the POV loop resumes once the pano after a failed one has loaded', async () => {
+    const frames = [];
+    vi.stubGlobal('requestAnimationFrame', (cb) => frames.push(cb));
+    const urls = ['/backupImage/p2', '/backupImage/p2?maxWidth=8192', '/backupImage/p2?maxWidth=4096'];
+    const pannellum = installFakePannellum(new Set(urls));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const viewer = await create();
+    const heard = vi.fn();
+    viewer.addListener('pov_changed', heard);
+    const tick = () => Promise.all(frames.splice(0).map((frame) => frame()));
+
+    await expect(viewer.loadPano('p2', metadata('p2'), { heading: 0, pitch: 0, zoom: 1 })).rejects.toThrow();
+    await viewer.loadPano('p3', metadata('p3'), { heading: 0, pitch: 0, zoom: 1 });
+    await tick();
+    expect(heard).toHaveBeenCalledTimes(1);
+    pannellum.viewers[1].view.yaw = 15;
+    await tick();
+    expect(heard).toHaveBeenCalledTimes(2);
+  });
+
   test('loads run one at a time: a second loadPano waits for the first, even one that tears Pannellum down',
     async () => {
       // Both callers can start a load while one is in flight. Were the two to share the instance, the first one's
@@ -321,6 +369,8 @@ describe('switching panos', () => {
     expect(viewer.getPov()).toEqual({ heading: 130, pitch: 0, zoom: 1 });
     viewer.setPov({ heading: 90, pitch: -5, zoom: 2 });
     expect(viewer.getPov()).toEqual({ heading: 90, pitch: -5, zoom: 2 });
+    viewer.setPov({ heading: 45, pitch: 0, zoom: undefined });
+    expect(viewer.getPov()).toEqual({ heading: 45, pitch: 0, zoom: 2 });
     expect(() => viewer.resize()).not.toThrow();
   });
 

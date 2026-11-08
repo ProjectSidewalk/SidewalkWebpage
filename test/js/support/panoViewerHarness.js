@@ -202,6 +202,8 @@ export function installFakeGoogleMaps(panos = {}) {
  *   has decoded.
  * @param {boolean} [opts.noWebgl=false] - Whether the canvas answers every context request with null, as a browser
  *   that has blocked WebGL does.
+ * @param {Set<string>} [opts.hangingUrls] - Panorama URLs whose load never fires either event, as Pannellum does for
+ *   an equirect image that downloaded but failed to decode.
  * @returns {{attempted: string[], loaded: string[], viewers: object[], webgl: {lost: boolean}}} Every URL a load was
  *   tried for, the ones that succeeded, every viewer built, and the WebGL state the browser is in: `lost` stands
  *   for a GPU reset, after which every viewer's context reads as lost and every load fails. A single viewer's own
@@ -209,7 +211,9 @@ export function installFakeGoogleMaps(panos = {}) {
  */
 export function installFakePannellum(
   failingUrls = new Set(),
-  { errorMessage = 'load failed', renderCanvas = false, noRenderer = false, noWebgl = false } = {},
+  {
+    errorMessage = 'load failed', renderCanvas = false, noRenderer = false, noWebgl = false, hangingUrls = new Set(),
+  } = {},
 ) {
   const attempted = [];
   const loaded = [];
@@ -223,6 +227,7 @@ export function installFakePannellum(
       const view = { yaw: first.yaw, pitch: first.pitch, hfov: first.hfov };
       const settle = (url) => Promise.resolve().then(() => {
         attempted.push(url);
+        if (hangingUrls.has(url)) return;
         if (failingUrls.has(url) || webgl.lost || viewer.webgl.lost || noWebgl) {
           [...handlers.error].forEach((h) => h(errorMessage));
         } else {

@@ -376,10 +376,14 @@ export class PopupPanoManager {
         this.#finishLoad(load, { showAttribution: true, attribution: ownCopyAttribution });
         return true;
       } catch (err) {
+        // The pano area belongs to the newest load. Loads on the viewer run one at a time, so this one's failure
+        // can arrive after its successor has put the Pannellum canvas up and begun loading into it; hiding the
+        // canvas now would leave that label with a marker over an empty pano area.
+        if (load !== this.#loadToken) return false;
         console.error('PannellumViewer failed to load; falling back to crop:', err);
         this.#teardownPannellum();
       }
-    } else {
+    } else if (load === this.#loadToken) {
       this.#teardownPannellum();
     }
 

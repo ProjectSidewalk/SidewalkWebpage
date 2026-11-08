@@ -161,6 +161,15 @@ export class PannellumViewer extends PanoViewer {
    */
   static PREFETCH_WAIT_MS = 10000;
 
+  /**
+   * How long one rung of the ladder may go without Pannellum reporting either way, in milliseconds. Pannellum reports
+   * an HTTP failure, but an equirect image that downloads and then fails to decode (truncated bytes, a bad held copy,
+   * a decode refused under memory pressure) fires neither `load` nor `error`, and loads run one at a time, so without
+   * a bound one such pano would hold every later one. Generous, because a slow download is still a download: the
+   * native file is about 105 MB.
+   */
+  static LOAD_TIMEOUT_MS = 90000;
+
   /** @type {any} The underlying pannellum viewer instance; null between a failed load and the next one. */
   #viewer = undefined;
 
@@ -266,8 +275,8 @@ export class PannellumViewer extends PanoViewer {
    * Loads run one at a time. Both callers can start a second load while one is in flight (a validator paging fast
    * through the label card, Validate's overlapping loads), and since a failed load tears the instance down, a load
    * sharing it would trip over that: a rung on a null instance, handlers on an instance destroy() will never fire
-   * for, or two instances built in one mount. Waiting costs the later load the earlier one's remaining rungs at
-   * most, and the earlier one ran anyway.
+   * for, or two instances built in one mount. Waiting costs the later load the rest of the earlier one, which ran
+   * anyway and which the per-rung watchdog (LOAD_TIMEOUT_MS) bounds.
    *
    * @param {string} panoId
    * @param {Record<string, any>} metadata - Metadata for the new pano, shaped like panoOptions.panoMetadata.
@@ -324,8 +333,9 @@ export class PannellumViewer extends PanoViewer {
       } catch (e) {
         if (!(e instanceof PanoContextLostError)) throw e;
         // The instance's context died under it, and the browser may be handing out working ones again. The same
-        // pano gets one try in a fresh instance before it is given up; the ladder begins at the same URL, so no
-        // server cut is involved, and on a context that is also dead it ends at its first rung like this one did.
+        // pano gets one try in a fresh instance before it is given up. Its ladder starts over from whatever the
+        // device cap now reads, so it asks the server for a copy only if a working GPU would have anyway, and on a
+        // context that is also dead it ends at its first rung like this one did.
         console.warn(`Pano ${panoId}: rebuilding Pannellum on a new WebGL context.`);
         await this.#openViewer(panoId, metadata, view);
       }
@@ -370,8 +380,8 @@ export class PannellumViewer extends PanoViewer {
   }
 
   /**
-   * Builds a Pannellum instance in the mount, open on `panoId`: for the first pano, and again for the pano after a
-   * load that failed, since that tears the instance down.
+   * Builds a Pannellum instance in the mount, open on `panoId`: for the first pano, for a pano whose context died
+   * under the previous instance, and for the pano after a load that failed, since that tears the instance down.
    *
    * Tour-mode config (default + scenes) throughout. It is what addScene()/loadScene() need: Pannellum only keeps the
    * scenes map in tour mode, so a pano can't be swapped in without it. Every rung of the ladder builds its own
@@ -457,16 +467,26 @@ export class PannellumViewer extends PanoViewer {
    */
   #settleOn(resolve, reject, fallbackMessage) {
     const viewer = this.#viewer;
-    const onLoad = () => {
+    const done = () => {
+      clearTimeout(watchdog);
       viewer.off('load', onLoad);
       viewer.off('error', onError);
+    };
+    const onLoad = () => {
+      done();
       resolve();
     };
     const onError = (err) => {
-      viewer.off('load', onLoad);
-      viewer.off('error', onError);
+      done();
       reject(new Error(err || fallbackMessage));
     };
+    // Named as PanoViewer._withTimeout names its rejection, so the ladder can tell giving up from a report.
+    const watchdog = setTimeout(() => {
+      done();
+      const timeout = new Error(`Timed out: Pannellum reported nothing for ${PannellumViewer.LOAD_TIMEOUT_MS} ms`);
+      timeout.name = 'TimeoutError';
+      reject(timeout);
+    }, PannellumViewer.LOAD_TIMEOUT_MS);
     viewer.on('load', onLoad);
     viewer.on('error', onError);
   }
@@ -481,6 +501,9 @@ export class PannellumViewer extends PanoViewer {
    * resize handler throws because the failed init deleted the shader program, and nothing can be shown in it again
    * without a load anyway. The next load builds a fresh instance, and with it a fresh context, which after a GPU
    * reset is the only thing that renders.
+   *
+   * A rung the watchdog gave up on is terminal too, and takes the instance with it: the download it was waiting on may
+   * still finish, and Pannellum would draw that image into the instance over whatever a later rung had loaded.
    *
    * @param {string} panoId - For the console.
    * @param {Record<string, any>} metadata - Pano metadata; uses `image_url` and `width`.
@@ -503,13 +526,15 @@ export class PannellumViewer extends PanoViewer {
           return;
         } catch (e) {
           const contextGone = this.#contextGone();
+          const timedOut = e.name === 'TimeoutError';
           const last = attempt === urls.length - 1;
-          if (contextGone || last || instancePerRung) this.#discardViewer();
+          if (contextGone || timedOut || last || instancePerRung) this.#discardViewer();
           if (contextGone) {
             console.warn(`Pano ${panoId} failed to load: the WebGL context is lost, so no size would render.`, e);
             throw new PanoContextLostError(panoId, e);
           }
-          if (last) throw e;
+          if (timedOut) console.warn(`Pano ${panoId} gave no sign of loading; giving it up.`, e);
+          if (last || timedOut) throw e;
           console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
         }
       }
@@ -526,8 +551,11 @@ export class PannellumViewer extends PanoViewer {
    * Read from Pannellum's own canvas, not a throwaway one: after a GPU reset the browser may be handing out live
    * contexts again while the one Pannellum holds stays dead, and that is the one the next rung would render on.
    * Pannellum builds its renderer only once an image has decoded, and asks the canvas for a context in the same
-   * breath, with the id used here, so this never creates one. No renderer means the image itself never decoded (a
-   * 404, a 503 refusal), which says nothing about WebGL and leaves the ladder to step down.
+   * breath, with the id used here, so where Pannellum got one this returns it rather than creating another. Where
+   * Pannellum got none, a browser that has blocked WebGL answers null again; one that merely failed once may hand
+   * this read a context, which then reads as working and the ladder steps down, as it would have before. No renderer
+   * means the image itself never decoded (a 404, a 503 refusal), which says nothing about WebGL and leaves the
+   * ladder to step down.
    *
    * @returns {boolean}
    */
@@ -715,7 +743,9 @@ export class PannellumViewer extends PanoViewer {
 
   setPov = (pov) => {
     if (!this.#viewer) {
-      this.#parkedPov = { ...this.getPov(), ...pov };
+      // A part left out, or passed as undefined, keeps its value, as it does on the live path below.
+      const given = Object.fromEntries(Object.entries(pov).filter(([, v]) => v !== undefined && v !== null));
+      this.#parkedPov = { ...this.getPov(), ...given };
       return;
     }
     // Second arg `false` disables Pannellum's animation; we want the change to apply immediately.
