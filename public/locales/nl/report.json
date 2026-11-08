@@ -11,7 +11,9 @@
     "location": "{{type}}: foto tonen",
     "gesture-windows": "Gebruik Ctrl + scrollen om op de kaart te zoomen",
     "gesture-mac": "Gebruik ⌘ + scrollen om op de kaart te zoomen",
-    "gesture-touch": "Gebruik twee vingers om de kaart te verplaatsen"
+    "gesture-touch": "Gebruik twee vingers om de kaart te verplaatsen",
+    "aligned": "Uitgelijnde labels",
+    "aligned-note": "Elk label aan zijn kant van de straat, ongeveer op zijn plek langs de straat: niet de exacte plek."
   },
   "place": {
     "score": "Score {{score}}",

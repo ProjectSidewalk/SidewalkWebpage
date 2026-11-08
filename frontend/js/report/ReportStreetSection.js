@@ -30,6 +30,8 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number[]} labelIds
  * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first few up to Gallery's cap.
  * @property {boolean} atCrossing
+ * @property {number} edgeId - The edge it scores, whose line the aligned view draws it beside (#5888).
+ * @property {?string} side - `left` or `right` of that edge's digitized direction (`street_side`); null when unknown.
  * @property {number} costPoints
  * @property {number} poolSize
  *
@@ -71,6 +73,7 @@ export class ReportStreetSection {
   #sidewalksVisible = false;
   // Kept here across the map's comings and goings, so a reader's choice outlives a scroll away and back.
   #placesVisible = true;
+  #alignedVisible = false;
   /** @type {?number} */ #lit = null;
   #hoverLogged = false;
   /** @type {?ResizeObserver} */ #resize = null;
@@ -149,6 +152,11 @@ export class ReportStreetSection {
       onPlacesToggle: (shown) => {
         this.#placesVisible = shown;
         this.#deps.log(`Report_PlacesToggle_Shown=${shown}_Map=Street`);
+      },
+      alignedVisible: this.#alignedVisible,
+      onAlignedToggle: (shown) => {
+        this.#alignedVisible = shown;
+        this.#deps.log(`Report_AlignedToggle_Shown=${shown}_Map=Street`);
       },
       onLocationHover: (id) => this.#light(id),
       onLocationClick: (id) => this.#reveal(id),

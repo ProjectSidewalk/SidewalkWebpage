@@ -11,7 +11,9 @@
     "location": "{{type}}: mostrar su foto",
     "gesture-windows": "Usa Ctrl + desplazamiento para acercar el mapa",
     "gesture-mac": "Usa ⌘ + desplazamiento para acercar el mapa",
-    "gesture-touch": "Usa dos dedos para mover el mapa"
+    "gesture-touch": "Usa dos dedos para mover el mapa",
+    "aligned": "Etiquetas alineadas",
+    "aligned-note": "Cada etiqueta en su lado de la calle, aproximadamente en su punto a lo largo de ella: no en su lugar exacto."
   },
   "place": {
     "score": "Puntuación {{score}}",
