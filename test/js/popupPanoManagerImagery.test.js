@@ -148,6 +148,29 @@ describe('PopupPanoManager imagery and markers', () => {
     expect(pannellum.loadPano).toHaveBeenCalledWith('pano-b', { pano_id: 'pano-b' }, POV);
   });
 
+  test('a load that fails after its successor has put the Pannellum canvas up leaves the canvas to it (#5939)',
+    async () => {
+      // Loads on the viewer run one at a time, so the earlier label's failure lands after the later label's load
+      // has started, and the later one succeeds into a canvas the earlier one must not hide.
+      const manager = await createManager();
+      await manager.setPano('pano-0', POV, null, true, { pano_id: 'pano-0' });
+      let failFirst;
+      pannellum.loadPano
+        .mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }))
+        .mockImplementationOnce(() => Promise.resolve());
+
+      const first = manager.setPano('pano-a', POV, null, true, { pano_id: 'pano-a' });
+      await flush();
+      const second = manager.setPano('pano-b', POV, null, true, { pano_id: 'pano-b' });
+      await expect(second).resolves.toBe(true);
+      failFirst(new Error('load failed'));
+
+      await expect(first).resolves.toBe(false);
+      expect(byId('pano-pannellum').style.display).toBe('block');
+      expect(manager.panoViewer).toBe(pannellum);
+      expect(manager.activeViewerName).toBe('Pannellum');
+    });
+
   test('a load overtaken while it looked for a backup leaves the panel to the label that replaced it', async () => {
     let answerFirst;
     routeFetch({
