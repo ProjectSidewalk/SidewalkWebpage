@@ -55,10 +55,13 @@ async function openReport(page, request, query = '') {
     response = await page.goto(path + query);
   }
   expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
-  // The id redirects to the slug: a slug is lowercase letters, digits and hyphens, never digits alone.
-  expect(page.url()).toMatch(/\/report\/neighborhood\/(?!\d+(?:[?#]|$))[a-z0-9-]+(?:[?#]|$)/);
+  // The id redirects to the slug, never digits alone. A slug keeps any letter (ReportSlug.of), so a Taipei or Kyiv one
+  // arrives percent-encoded; only the path separators are ruled out.
+  expect(page.url()).toMatch(/\/report\/neighborhood\/(?!\d+(?:[?#]|$))[^/?#]+(?:[?#]|$)/);
   await waitForAppReady(page);
   const data = await readReportData(page);
+  // CI's seed has streets, so the map and weights tests must not quietly skip there.
+  if (process.env.CI) expect(data.streets.length, 'CI\'s seed region reported no streets').toBeGreaterThan(0);
   return {data};
 }
 
@@ -148,10 +151,14 @@ test.describe('/report/neighborhood', () => {
       const [first, second] = maps;
       await first.locator('.report-map-toggle__input').uncheck();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(data.places.length);
+      // Unchecking scrolled the first map into view, which can unmount a street section's map further down; bring the
+      // second back so its toggle exists before asserting on it.
+      await expectLiveMap(second);
       // The other map's places stay, so a reader's choice on one map is not made for them on the rest.
       await expect(second.locator('button.report-map-place[hidden]')).toHaveCount(0);
       await expect(second.locator('.report-map-toggle__input')).toBeChecked();
 
+      await expectLiveMap(first);
       await first.locator('.report-map-toggle__input').check();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(0);
       expect(consoleErrors).toEqual([]);
