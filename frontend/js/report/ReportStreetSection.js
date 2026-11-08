@@ -158,6 +158,7 @@ export class ReportStreetSection {
         this.#alignedVisible = shown;
         this.#deps.log(`Report_AlignedToggle_Shown=${shown}_Map=Street`);
       },
+      onKeyNav: () => this.#deps.log('Report_MapKeyNav_Map=Street'),
       onLocationHover: (id) => this.#light(id),
       onLocationClick: (id) => this.#reveal(id),
     });

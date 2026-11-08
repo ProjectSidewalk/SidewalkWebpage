@@ -19,6 +19,7 @@ describe('ReportPlacesToggle', () => {
 
   test('renders a labeled checkbox in the state it was given, in a MapLibre control', () => {
     const root = new ReportPlacesToggle({ checked: false, onChange }).onAdd();
+    expect(root.dataset.toggle).toBe('places');
     expect(root.className).toContain('maplibregl-ctrl');
     const input = root.querySelector('input[type="checkbox"]');
     expect(input.checked).toBe(false);

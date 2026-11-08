@@ -516,6 +516,59 @@
   }
 }
 
+/* A worst-problems dot (#5937). The button is the 24px target (WCAG 2.2 SC 2.5.8) and the dot is drawn inside it at
+   the zoom's size, which ReportMap sets in --report-dot-px. Above the places (z-index), so a place never covers a dot.
+   No position here: MapLibre's .maplibregl-marker already makes it absolute. */
+.report-map-problem {
+  z-index: 1;
+  box-sizing: border-box;
+  width: max(24px, var(--report-dot-px, 10px));
+  height: max(24px, var(--report-dot-px, 10px));
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+}
+
+/* Dark, not white, edge: the palest type color (Other's grey) needs it to stand off the grey streets (WCAG 1.4.11). */
+.report-map-problem::before {
+  position: absolute;
+  inset: 0;
+  width: var(--report-dot-px, 10px);
+  height: var(--report-dot-px, 10px);
+  margin: auto;
+  content: "";
+  background: var(--report-dot-color);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-neutral-900);
+  transition: opacity var(--transition-fast);
+}
+
+/* Another type is lit: still there, so the reader keeps their bearings. */
+.report-map-problem.is-unlit::before {
+  opacity: 0.15;
+}
+
+.report-map-problem.is-open {
+  z-index: 2;
+}
+
+.report-map-problem.is-open::before {
+  box-shadow: 0 0 0 2px var(--color-neutral-white), 0 0 0 4px var(--color-neutral-900);
+}
+
+.report-map-problem:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-map-problem::before {
+    transition: none;
+  }
+}
+
 /* ---- Community stories (#5900) ------------------------------------------------------------------------------- */
 
 /* Cards in the fixes' grid, so the two lists read as one family: the engineering case, then the human one. */

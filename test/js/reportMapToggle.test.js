@@ -16,7 +16,8 @@ describe('ReportMapToggle', () => {
   });
 
   test('wears the text it is given and no note unless given one', () => {
-    const root = new ReportMapToggle({ text: 'Aligned', onChange }).onAdd();
+    const root = new ReportMapToggle({ name: 'aligned', text: 'Aligned', onChange }).onAdd();
+    expect(root.dataset.toggle).toBe('aligned');
     expect(root.querySelector('label').textContent).toBe('Aligned');
     expect(root.querySelector('.report-map-toggle__note')).toBeNull();
     expect(root.querySelector('input').hasAttribute('aria-describedby')).toBe(false);

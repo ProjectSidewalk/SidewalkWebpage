@@ -13,6 +13,6 @@ export class ReportPlacesToggle extends ReportMapToggle {
    * @param {(shown: boolean) => void} options.onChange - Called with the new state when the reader flips it.
    */
   constructor({ checked = true, onChange }) {
-    super({ text: i18next.t('accessscore:places'), checked, onChange });
+    super({ name: 'places', text: i18next.t('accessscore:places'), checked, onChange });
   }
 }
