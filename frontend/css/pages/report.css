@@ -742,8 +742,9 @@ button.report-map-place[hidden] {
   height: 14px;
 }
 
+/* No position here: MapLibre's own absolute .maplibregl-marker already holds the ring, and relative would pull
+   each marker into flow. */
 button.report-map-place--small {
-  position: relative;
   width: 16px;
   height: 16px;
 }
