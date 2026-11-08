@@ -26,6 +26,21 @@ import './panoUtilities.js';
 let sdk;
 
 /**
+ * A load that failed because the WebGL context under Pannellum is lost or could not be had (#5939), as opposed to
+ * a pano that would not load at that size. Nothing renders in the instance that raised it.
+ */
+class PanoContextLostError extends Error {
+  /**
+   * @param {string} panoId - The pano that was loading.
+   * @param {Error} cause - What Pannellum reported.
+   */
+  constructor(panoId, cause) {
+    super(`WebGL context lost or unavailable while loading pano ${panoId}`, { cause });
+    this.name = 'PanoContextLostError';
+  }
+}
+
+/**
  * The widest equirectangular panorama this device can actually render, or null if that can't be determined.
  *
  * Pannellum uploads an equirect as two halves, so its own refusal test is `max(width / 2, height) > MAX_TEXTURE_SIZE`
@@ -88,10 +103,11 @@ const effectiveMaxPanoWidth = () => {
  * the stored one (#5256), or is a phone that shouldn't hold it (#5561). Every other device gets it untouched.
  *
  * @param {Record<string, any>} metadata - Pano metadata; uses `image_url` and `width`.
+ * @param {?number} [cap] - The device's cap, when the caller has read it already. While the GPU is down every
+ *     reading costs a WebGL context the browser may count against its per-page budget, so a load reads it once.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
-export const panoramaUrlFor = (metadata) => {
-  const cap = effectiveMaxPanoWidth();
+export const panoramaUrlFor = (metadata, cap = effectiveMaxPanoWidth()) => {
   if (!cap || !metadata.width || metadata.width <= cap) return metadata.image_url;
   return panoUrlWithMaxWidth(metadata.image_url, cap);
 };
@@ -120,8 +136,8 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  * @returns {string[]} Candidate URLs, in the order they should be tried.
  */
 export const panoramaUrlCandidates = (metadata) => {
-  const urls = [panoramaUrlFor(metadata)];
   const cap = effectiveMaxPanoWidth();
+  const urls = [panoramaUrlFor(metadata, cap)];
   const start = Math.min(cap || Infinity, metadata.width || Infinity);
   // With neither a cap nor a width there is nothing to step down from, and a guess would ask for a width the
   // allowlist would only snap back up.
@@ -157,6 +173,9 @@ export class PannellumViewer extends PanoViewer {
   /** @type {?{heading: number, pitch: number, zoom: number}} What getPov() answers while there is no instance. */
   #parkedPov = null;
 
+  /** @type {Promise<unknown>} The load in progress, settled, which the next load waits for; see loadPano(). */
+  #loads = Promise.resolve();
+
   /** @type {number} Cached cameraHeading for the current pano (degrees, wrt true north). */
   #cameraHeading = 0;
 
@@ -164,11 +183,12 @@ export class PannellumViewer extends PanoViewer {
   #currentSceneId = undefined;
 
   /**
-   * True while a scene transition is in progress. The rAF POV-tracking loop skips ticks while loading to avoid
-   * firing pov_changed with mid-transition values under the wrong camera calibration.
-   * @type {boolean}
+   * How many loads are queued or in progress. The rAF POV-tracking loop skips ticks while any is, to avoid firing
+   * pov_changed with mid-transition values under the wrong camera calibration; counted from the call rather than
+   * from the load's turn in the queue, so the pause covers the wait as well.
+   * @type {number}
    */
-  #loading = false;
+  #loadsInFlight = 0;
 
   #lastYaw = NaN;
   #lastPitch = NaN;
@@ -243,12 +263,37 @@ export class PannellumViewer extends PanoViewer {
   /**
    * Loads a new panorama, into the existing Pannellum instance when there is one and otherwise into a fresh one.
    *
+   * Loads run one at a time. Both callers can start a second load while one is in flight (a validator paging fast
+   * through the label card, Validate's overlapping loads), and since a failed load tears the instance down, a load
+   * sharing it would trip over that: a rung on a null instance, handlers on an instance destroy() will never fire
+   * for, or two instances built in one mount. Waiting costs the later load the earlier one's remaining rungs at
+   * most, and the earlier one ran anyway.
+   *
    * @param {string} panoId
    * @param {Record<string, any>} metadata - Metadata for the new pano, shaped like panoOptions.panoMetadata.
    * @param {{heading: number, pitch: number, zoom: number}} pov - Initial POV for the new pano.
    * @returns {Promise<PanoData>}
    */
-  loadPano = async (panoId, metadata, pov) => {
+  loadPano = (panoId, metadata, pov) => {
+    this.#loadsInFlight += 1;
+    const load = this.#loads
+      .then(() => this.#loadPanoNow(panoId, metadata, pov))
+      .finally(() => {
+        this.#loadsInFlight -= 1;
+      });
+    this.#loads = load.catch(() => {});
+    return load;
+  };
+
+  /**
+   * The load itself; see loadPano(), which runs these one at a time.
+   *
+   * @param {string} panoId
+   * @param {Record<string, any>} metadata - Metadata for the new pano, shaped like panoOptions.panoMetadata.
+   * @param {{heading: number, pitch: number, zoom: number}} pov - Initial POV for the new pano.
+   * @returns {Promise<PanoData>}
+   */
+  async #loadPanoNow(panoId, metadata, pov) {
     if (panoId === this.#currentSceneId) {
       // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition. Nothing is fetched or
       // decoded, so there is no prefetch outcome to report: without this the previous load's verdict would be
@@ -269,22 +314,21 @@ export class PannellumViewer extends PanoViewer {
     const newCameraHeading = metadata.camera_heading || 0;
     const view = this.#viewFor(pov, newCameraHeading);
 
-    // Should this load fail, the instance goes with it (#attemptEach), and getPov() answers for the view from before
-    // it until the next load: Pannellum has already turned the dying instance to the new pano's view by then.
-    this.#parkedPov = this.#viewer
-      ? this.getPov()
-      : { heading: pov.heading ?? newCameraHeading, pitch: pov.pitch ?? 0, zoom: pov.zoom ?? 1 };
-
-    // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
-    // with values that mix the old scene's calibration with the new scene's yaw/pitch.
-    this.#loading = true;
-    try {
-      // A failed load leaves no instance behind (#attemptEach), so the pano after it opens a fresh one, and with it
-      // a fresh WebGL context.
-      if (this.#viewer) await this.#loadScene(panoId, metadata, view, newCameraHeading);
-      else await this.#openViewer(panoId, metadata, view);
-    } finally {
-      this.#loading = false;
+    // A failed load leaves no instance behind (#attemptEach), so the pano after it opens a fresh one, and with it
+    // a fresh WebGL context.
+    if (!this.#viewer) {
+      await this.#openViewer(panoId, metadata, view);
+    } else {
+      try {
+        await this.#loadScene(panoId, metadata, view, newCameraHeading);
+      } catch (e) {
+        if (!(e instanceof PanoContextLostError)) throw e;
+        // The instance's context died under it, and the browser may be handing out working ones again. The same
+        // pano gets one try in a fresh instance before it is given up; the ladder begins at the same URL, so no
+        // server cut is involved, and on a context that is also dead it ends at its first rung like this one did.
+        console.warn(`Pano ${panoId}: rebuilding Pannellum on a new WebGL context.`);
+        await this.#openViewer(panoId, metadata, view);
+      }
     }
 
     // Update instance calibration only after the new scene is fully loaded so getPov()/setPov() are consistent.
@@ -296,7 +340,7 @@ export class PannellumViewer extends PanoViewer {
 
     for (const listener of this.panoChangedListeners) await listener();
     return this.currPanoData;
-  };
+  }
 
   /**
    * A POV in Pannellum's terms, against a pano's camera heading. A part the caller left out opens the pano level, at
@@ -448,6 +492,9 @@ export class PannellumViewer extends PanoViewer {
    */
   async #attemptEach(panoId, metadata, load, { instancePerRung = false } = {}) {
     const { urls, cacheKey, held } = await this.#attemptUrls(metadata);
+    // Should the ladder fail, the instance goes with it, and getPov() answers for the view as it stands here, after
+    // the wait for a prefetch (the user may have panned during it) and before the first rung turns it to the new pano.
+    this.#parkedPov = this.getPov();
     try {
       for (let attempt = 0; attempt < urls.length; attempt++) {
         try {
@@ -455,12 +502,12 @@ export class PannellumViewer extends PanoViewer {
           this.#recordPrefetchOutcome(held, attempt);
           return;
         } catch (e) {
-          const contextLost = this.#contextLost();
+          const contextGone = this.#contextGone();
           const last = attempt === urls.length - 1;
-          if (contextLost || last || instancePerRung) this.#discardViewer();
-          if (contextLost) {
+          if (contextGone || last || instancePerRung) this.#discardViewer();
+          if (contextGone) {
             console.warn(`Pano ${panoId} failed to load: the WebGL context is lost, so no size would render.`, e);
-            throw new Error(`WebGL context lost while loading pano ${panoId}`, { cause: e });
+            throw new PanoContextLostError(panoId, e);
           }
           if (last) throw e;
           console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
@@ -472,18 +519,23 @@ export class PannellumViewer extends PanoViewer {
   }
 
   /**
-   * Whether the WebGL context under the current Pannellum instance is lost.
+   * Whether the current Pannellum instance is without a working WebGL context: the one it holds is lost, or the
+   * browser refused it one (which it does after enough GPU crashes). Pannellum reports the first as a size limit of
+   * 0px and the second as missing WebGL support; neither is about the pano, and no width renders in either case.
    *
    * Read from Pannellum's own canvas, not a throwaway one: after a GPU reset the browser may be handing out live
    * contexts again while the one Pannellum holds stays dead, and that is the one the next rung would render on.
    * Pannellum builds its renderer only once an image has decoded, and asks the canvas for a context in the same
-   * breath, so this never creates one; `webgl` and `experimental-webgl` name the same context on a canvas.
+   * breath, with the id used here, so this never creates one. No renderer means the image itself never decoded (a
+   * 404, a 503 refusal), which says nothing about WebGL and leaves the ladder to step down.
    *
    * @returns {boolean}
    */
-  #contextLost() {
-    const gl = this.#viewer?.getRenderer()?.getCanvas()?.getContext('webgl');
-    return gl ? gl.isContextLost() : false;
+  #contextGone() {
+    const canvas = this.#viewer?.getRenderer()?.getCanvas();
+    if (!canvas) return false;
+    const gl = canvas.getContext('experimental-webgl');
+    return !gl || gl.isContextLost();
   }
 
   /**
@@ -593,7 +645,7 @@ export class PannellumViewer extends PanoViewer {
   #startPovTracking = () => {
     const tick = async () => {
       // No instance between a failed load and the next: nothing to read, and nothing has moved.
-      if (!this.#loading && this.#viewer) {
+      if (this.#loadsInFlight === 0 && this.#viewer) {
         const yaw = this.#viewer.getYaw();
         const pitch = this.#viewer.getPitch();
         const hfov = this.#viewer.getHfov();

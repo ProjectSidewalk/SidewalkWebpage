@@ -245,9 +245,10 @@ native file's decode and textures are more memory than iOS lets a tab have, and 
 For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
 pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
 steps down to a smaller width on that refusal. The ladder stops at once on a WebGL context the browser has lost, which
-a GPU driver reset leaves behind and Pannellum reports as a size limit of 0px: no width renders on it, so a smaller copy
-would only cost the server a cut. A pano that fails at its last rung, or on a lost context, takes the Pannellum instance
-down with it, and the next pano opens a fresh one with a fresh context (#5939). A pool with no room refuses every width alike, so a foreground load
+a GPU driver reset leaves behind and Pannellum reports as a size limit of 0px: no width renders on it, so a smaller
+copy would only cost the server a cut. A pano that fails at its last rung, or on a lost context, takes the Pannellum
+instance down with it; the same pano then gets one try in a fresh instance, on a fresh context, and after that the next
+pano does (#5939). A pool with no room refuses every width alike, so a foreground load
 that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
 nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of

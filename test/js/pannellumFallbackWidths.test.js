@@ -48,7 +48,7 @@ describe('panoramaUrlCandidates', () => {
     // parameter with null. Cached, that would stand for the device until the page reloads.
     useUtil({ isMobile: () => false });
     const gl = {
-      MAX_TEXTURE_SIZE: 0x0d33, lost: true, getParameter: () => 4096, getExtension: () => null,
+      MAX_TEXTURE_SIZE: 0x0d33, lost: true, getParameter: () => (gl.lost ? null : 4096), getExtension: () => null,
       isContextLost: () => gl.lost,
     };
     window.HTMLCanvasElement.prototype.getContext = () => gl;

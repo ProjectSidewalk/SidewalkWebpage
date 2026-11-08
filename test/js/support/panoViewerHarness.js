@@ -193,17 +193,23 @@ export function installFakeGoogleMaps(panos = {}) {
 
 /**
  * Installs a fake `pannellum` (sdk/pannellum.js) whose viewers settle a scene's load on the next microtask, by
- * whether its URL is on a failing list, and hold the view a test can read back or move.
+ * whether its URL is on a failing list or its WebGL context is lost, and hold the view a test can read back or move.
  * @param {Set<string>} [failingUrls] - Panorama URLs whose load fires `error` instead of `load`.
  * @param {object} [opts]
  * @param {?string} [opts.errorMessage='load failed'] - What a failed load hands its `error` handlers.
  * @param {boolean} [opts.renderCanvas=false] - Whether a viewer draws Pannellum's render canvas into its mount.
+ * @param {boolean} [opts.noRenderer=false] - Whether viewers report no renderer, as Pannellum does while no image
+ *   has decoded.
+ * @param {boolean} [opts.noWebgl=false] - Whether the canvas answers every context request with null, as a browser
+ *   that has blocked WebGL does.
  * @returns {{attempted: string[], loaded: string[], viewers: object[], webgl: {lost: boolean}}} Every URL a load was
- *   tried for, the ones that succeeded, every viewer built, and the WebGL context every viewer reports holding, which
- *   a test flips to `lost` to stand in for a GPU reset.
+ *   tried for, the ones that succeeded, every viewer built, and the WebGL state the browser is in: `lost` stands
+ *   for a GPU reset, after which every viewer's context reads as lost and every load fails. A single viewer's own
+ *   context is its `webgl.lost`, for a reset the browser has since recovered from.
  */
 export function installFakePannellum(
-  failingUrls = new Set(), { errorMessage = 'load failed', renderCanvas = false } = {},
+  failingUrls = new Set(),
+  { errorMessage = 'load failed', renderCanvas = false, noRenderer = false, noWebgl = false } = {},
 ) {
   const attempted = [];
   const loaded = [];
@@ -217,7 +223,7 @@ export function installFakePannellum(
       const view = { yaw: first.yaw, pitch: first.pitch, hfov: first.hfov };
       const settle = (url) => Promise.resolve().then(() => {
         attempted.push(url);
-        if (failingUrls.has(url)) {
+        if (failingUrls.has(url) || webgl.lost || viewer.webgl.lost || noWebgl) {
           [...handlers.error].forEach((h) => h(errorMessage));
         } else {
           loaded.push(url);
@@ -240,8 +246,13 @@ export function installFakePannellum(
         removeScene: vi.fn(() => true),
         destroy: vi.fn(() => { container.innerHTML = ''; }),
         resize: vi.fn(),
+        webgl: { lost: false },
         // The viewer reads its WebGL context's state off Pannellum's own canvas: renderer, canvas, context.
-        getRenderer: () => ({ getCanvas: () => ({ getContext: () => ({ isContextLost: () => webgl.lost }) }) }),
+        getRenderer: () => (noRenderer ? undefined : {
+          getCanvas: () => ({
+            getContext: () => (noWebgl ? null : { isContextLost: () => webgl.lost || viewer.webgl.lost }),
+          }),
+        }),
         getYaw: () => view.yaw,
         getPitch: () => view.pitch,
         getHfov: () => view.hfov,

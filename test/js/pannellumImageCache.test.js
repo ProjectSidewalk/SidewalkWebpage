@@ -151,6 +151,20 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
+  test('a next pano that fails on a lost WebGL context is still released (#5939)', async () => {
+    const pannellum = installFakePannellum();
+    const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
+    const viewer = await viewerWith(cache);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    pannellum.webgl.lost = true;
+    await expect(viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 }))
+      .rejects.toThrow('WebGL context lost');
+
+    expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
+    expect(cache.release.mock.calls.filter((c) => c[0] === NEXT_URL)).toHaveLength(2);
+  });
+
   test('a viewer with no cache loads from the network and reports the question as not applicable', async () => {
     const { attempted } = installFakePannellum();
 
