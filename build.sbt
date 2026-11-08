@@ -56,8 +56,8 @@ libraryDependencies ++= Seq(
 
   // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
   "org.geotools" % "gt-shapefile" % "35.2",
-  "org.geotools" % "gt-epsg-hsql" % "35.1",
-  "org.geotools" % "gt-geopkg"    % "35.1",
+  "org.geotools" % "gt-epsg-hsql" % "35.2",
+  "org.geotools" % "gt-geopkg"    % "35.2",
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
