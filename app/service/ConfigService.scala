@@ -1434,6 +1434,9 @@ trait ConfigService {
   def getExcludedTags: DBIO[Seq[ExcludedTag]]
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
+
+  /** When this JVM started, which on prod is when this city instance was last deployed or restarted. */
+  def appStartTime: OffsetDateTime
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
@@ -2564,7 +2567,7 @@ class ConfigServiceImpl @Inject() (
 
   // JVM boot time stands in for "when was this instance deployed": prod runs the staged binary as its own process, so
   // process start = deploy/restart. Under dev-mode `sbt ~run` it is the sbt JVM's start, which is close enough locally.
-  private val appStartTime: OffsetDateTime =
+  val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
   def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
