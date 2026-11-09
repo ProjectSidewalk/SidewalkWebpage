@@ -184,7 +184,7 @@ describe('the label card', () => {
       onOpen();
       onCopy();
       onView();
-      label.linkLogging();
+      label.linkLogging(42);
       expect(logged().filter((e) => e.startsWith('Click_'))).toEqual([
         'Click_module=LabelDetail_action=PanoInfoButton_labelId=42',
         'Click_module=LabelDetail_action=PanoInfoCopyToClipboard_labelId=42',

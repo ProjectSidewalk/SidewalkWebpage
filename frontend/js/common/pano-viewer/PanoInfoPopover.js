@@ -8,7 +8,7 @@
 import i18next from 'i18next';
 import { util } from '../utilities.js';
 import { copyToClipboard } from '../copyToClipboard.js';
-import { newTabNote } from '../newTabNote.js';
+import { newTabLink, newTabNote } from '../newTabNote.js';
 import { onLinkClick } from '../onLinkClick.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
@@ -48,7 +48,7 @@ export class PanoInfoPopover {
   #labelId;
   /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
-  /** @type {(() => void)|undefined} Optional — called when the Label ID link is clicked. */
+  /** @type {((labelId: number) => void)|undefined} Optional — called when the Label ID link is clicked. */
   #labelLinkLogging;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
@@ -67,10 +67,10 @@ export class PanoInfoPopover {
    * @param {() => void} infoLogging - Called when the info button is clicked
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
-   * @param {object} [label] - For pages showing a label; each part left out hides its row.
+   * @param {object} [label] - For pages showing a label; the Label ID and Labeled rows show only if given.
    * @param {() => number|undefined} [label.id] - Returns the Label ID
    * @param {() => Date} [label.date] - Returns the label's timestamp
-   * @param {() => void} [label.linkLogging] - Called when the Label ID link is clicked
+   * @param {(labelId: number) => void} [label.linkLogging] - Called with the label's id when its link is clicked
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, label = {}) {
@@ -195,12 +195,9 @@ export class PanoInfoPopover {
    * @param {number} labelId - The label shown.
    */
   #setLabelLink(labelId) {
-    const link = document.createElement('a');
-    link.href = `${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    onLinkClick(link, () => this.#labelLinkLogging?.());
-    link.append(String(labelId), newTabNote());
+    const link = newTabLink(`${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`,
+      String(labelId));
+    onLinkClick(link, () => this.#labelLinkLogging?.(labelId));
     this.#popoverEl.querySelector('[data-field="label-id"]').replaceChildren(link);
   }
 

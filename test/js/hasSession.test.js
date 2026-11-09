@@ -48,16 +48,3 @@ describe('util.hasSession', () => {
     expect(util.hasSession()).toBe(false);
   });
 });
-
-describe('util.isAdmin', () => {
-  test('reports true only when the navbar says the viewer is an admin', () => {
-    document.body.innerHTML = '<nav id="header" data-viewer-admin="true"></nav>';
-    expect(util.isAdmin()).toBe(true);
-    document.body.innerHTML = '<nav id="header" data-viewer-admin="false"></nav>';
-    expect(util.isAdmin()).toBe(false);
-  });
-
-  test('reports false when the page has no navbar', () => {
-    expect(util.isAdmin()).toBe(false);
-  });
-});

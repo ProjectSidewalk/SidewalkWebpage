@@ -202,7 +202,7 @@ describe('PanoInfoPopover', () => {
       expect(labelLink().target).toBe('_blank');
       expect(labelLink().querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
       labelLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
-      expect(logs.labelLink).toHaveBeenCalledOnce();
+      expect(logs.labelLink).toHaveBeenCalledExactlyOnceWith(789);
       labelLink().dispatchEvent(new MouseEvent('auxclick', { button: 1, cancelable: true }));
       expect(logs.labelLink).toHaveBeenCalledTimes(2);
     });
@@ -330,7 +330,7 @@ describe('PanoInfoPopover', () => {
       expect(logs.viewPano).toHaveBeenCalledTimes(1);
     });
 
-    it('logs once per open of the popover, however many times it opens', () => {
+    it('logs a click once, however many times the popover has opened', () => {
       build();
       button().click();
       button().click();

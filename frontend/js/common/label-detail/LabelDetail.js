@@ -377,7 +377,7 @@ export class LabelDetail {
       () => this.#logAction('PanoInfoViewInPano'),
       {
         id: () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
-        linkLogging: () => this.#logAction('PanoInfoLabelLink'),
+        linkLogging: (labelId) => this.#logAction('PanoInfoLabelLink', false, labelId),
       },
     );
 

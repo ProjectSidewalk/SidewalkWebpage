@@ -590,8 +590,7 @@ export class Main {
         {
           id: () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
           date: () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
-          linkLogging: () => tracker.push('PanoInfoLabelLink_Click',
-            { labelId: labelContainer.getCurrentLabel().getAuditProperty('labelId') }),
+          linkLogging: (labelId) => tracker.push('PanoInfoLabelLink_Click', { labelId }),
         },
       );
     }

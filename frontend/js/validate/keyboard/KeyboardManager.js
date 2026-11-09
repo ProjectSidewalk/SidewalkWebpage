@@ -231,16 +231,18 @@ export class KeyboardManager {
   }
 
   /**
-   * Whether Enter should open the pano's chevron menu rather than submit. Only when the chevron was reached by
-   * keyboard: a validator who Tabbed there means "open the menu", while one who clicked it and then pressed Enter
-   * means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox outside macOS focus a
-   * clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false. A browser that
-   * rejects the selector falls through to submit, the page-wide default.
+   * Whether Enter should go to the pano's chevron menu or a link (Admin Info's, the Details popover's) rather than
+   * submit. Only when reached by keyboard: a validator who Tabbed there means "open it", while one who clicked it and
+   * then pressed Enter means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox
+   * outside macOS focus a clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false.
+   * A browser that rejects the selector falls through to submit, the page-wide default.
    * @param {Element} target - The keydown's target.
    * @returns {boolean}
    */
-  static #isKeyboardFocusedChevron(target) {
-    if (target?.id !== 'validate-control-buttons-toggle') return false;
+  static #isKeyboardFocusedOpener(target) {
+    if (target?.id !== 'validate-control-buttons-toggle' && !(target instanceof HTMLAnchorElement && target.href)) {
+      return false;
+    }
     try {
       return target.matches(':focus-visible');
     } catch {
@@ -302,7 +304,7 @@ export class KeyboardManager {
     const key = KeyboardShortcuts.keyOf(e);
     if (key === 'Space' && target.closest?.('#label-visibility-control-holder')) return true;
     const enter = key === 'Enter';
-    if (enter && KeyboardManager.#isKeyboardFocusedChevron(target)) return true;
+    if (enter && KeyboardManager.#isKeyboardFocusedOpener(target)) return true;
     // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
     // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.
     return enter && Boolean(target.closest?.('#validate-verdict-clear, #immersive-toggle-button'));

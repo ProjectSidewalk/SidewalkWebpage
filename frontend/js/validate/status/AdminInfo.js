@@ -3,7 +3,7 @@
  */
 
 import i18next from 'i18next';
-import { newTabNote } from '../../common/newTabNote.js';
+import { newTabLink } from '../../common/newTabNote.js';
 import { onLinkClick } from '../../common/onLinkClick.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../label/Label.js').Label} Label */
@@ -75,11 +75,7 @@ export class AdminInfo {
    * @returns {HTMLAnchorElement} A link to that user's admin page.
    */
   #userLink(username) {
-    const link = document.createElement('a');
-    link.href = `/admin/user/${encodeURIComponent(username)}`;
-    link.target = '_blank';
-    link.textContent = username;
-    return link;
+    return newTabLink(`/admin/user/${encodeURIComponent(username)}`, username);
   }
 
   /**
@@ -87,10 +83,7 @@ export class AdminInfo {
    * @returns {HTMLAnchorElement} A link to the label's admin page, where it can be pinned as a training example.
    */
   #labelLink(labelId) {
-    const link = document.createElement('a');
-    link.href = `/admin/label/${encodeURIComponent(labelId)}`;
-    link.target = '_blank';
-    link.append(String(labelId), newTabNote());
+    const link = newTabLink(`/admin/label/${encodeURIComponent(labelId)}`, String(labelId));
     onLinkClick(link, () => this.#tracker.push('Click_AdminInfoLabelLink', { labelId }));
     return link;
   }

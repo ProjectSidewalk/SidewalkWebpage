@@ -46,7 +46,13 @@ function label(username, labelId, previousValidations) {
   };
 }
 
-const prevLines = (popover) => [...popover.querySelectorAll('.prev-val')].map((p) => p.textContent);
+/** @returns {string} An element's visible text, without the links' hidden new-tab notes. */
+const visibleText = (el) => {
+  const copy = el.cloneNode(true);
+  copy.querySelectorAll('.new-tab-note').forEach((note) => note.remove());
+  return copy.textContent;
+};
+const prevLines = (popover) => [...popover.querySelectorAll('.prev-val')].map(visibleText);
 
 beforeEach(() => {
   placePopover.mockClear();
@@ -63,12 +69,12 @@ describe('AdminInfo', () => {
     const { adminInfo, popover } = build();
     adminInfo.updateAdminInfo(label('ada lovelace', 42, []));
     const link = popover.querySelector('#curr-label-username a');
-    expect(link.textContent).toBe('ada lovelace');
+    expect(visibleText(link)).toBe('ada lovelace');
     expect(link.getAttribute('href')).toBe('/admin/user/ada%20lovelace');
     expect(link.target).toBe('_blank');
     const labelLink = popover.querySelector('#curr-label-id a');
-    expect(labelLink.firstChild.textContent).toBe('42');
-    expect(labelLink.querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
+    expect(visibleText(labelLink)).toBe('42');
+    expect(labelLink.querySelector('.new-tab-note').textContent).toBe(' common:opens-new-tab');
     expect(labelLink.getAttribute('href')).toBe('/admin/label/42');
     expect(labelLink.target).toBe('_blank');
   });
@@ -86,7 +92,7 @@ describe('AdminInfo', () => {
     const { adminInfo, popover } = build();
     adminInfo.updateAdminInfo(label('<img src=x onerror=alert(1)>', 1, []));
     expect(popover.querySelector('img')).toBeNull();
-    expect(popover.querySelector('#curr-label-username').textContent).toBe('<img src=x onerror=alert(1)>');
+    expect(visibleText(popover.querySelector('#curr-label-username'))).toBe('<img src=x onerror=alert(1)>');
   });
 
   test('says None when nobody has validated the label', () => {
