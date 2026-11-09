@@ -36,9 +36,9 @@
 -- assessments on every label whose pixels moved are simply deleted: the AI is pointed at a label by its
 -- pano_x/pano_y, which this bug had wrong, and the nightly job assesses and votes again once they are gone. The
 -- deleted rows go to the CSV files :ai_votes and :ai_assessments, the only copy of them once applied: keep those
--- files with the backups. On prod when written: 56 human votes; about 3,300 AI votes and assessments.
+-- files with the backups. On prod (2026-11-09): 56 human votes; 7,668 AI votes and assessments.
 -- Part 5 lists the files built around the old marker, for deletion before the app's next pass. The crop of every
--- live label whose pixels moved (58,910 on test) goes to :crops as a path under the city's crop directory, whether
+-- live label whose pixels moved (58,910) goes to :crops as a path under the city's crop directory, whether
 -- or not a file is there (a path with no file is nothing to delete), and its label_crop row is deleted: the job
 -- only cuts a label with no crop file, so delete the files before its next 05:00 run (or press "generate crops"
 -- on the admin Management page) and it re-cuts them and records fresh rows (thumbnails follow by age). The cached
