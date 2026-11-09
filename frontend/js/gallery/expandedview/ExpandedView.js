@@ -207,7 +207,10 @@ export class ExpandedView {
     const typeChanged = card.getLabelType() !== meta.label_type;
     card.updateLabelType(meta.label_type);
     card.updateSeverityAndTags(meta.severity, meta.tags);
-    if (typeChanged) card.setVotes(meta);
+    if (typeChanged) {
+      card.setVotes(meta);
+      card.setAiGenerated(meta.ai_generated);
+    }
   };
 
   /**

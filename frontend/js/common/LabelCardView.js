@@ -65,8 +65,9 @@ export class LabelCardView {
    * @param {?number} [data.severity] - The label's 1-3 rating, or null when unrated.
    * @param {Array<string>} [data.tagNames] - Localized, plain-text tag names.
    * @param {?string} [data.description] - The labeler's free-text description.
-   * @param {boolean} [data.aiGenerated] - Whether the label was placed by the AI user, which shows the provenance
-   *     strip with its "AI can make mistakes" disclaimer (#5359). Explore never passes it: its labels are the user's.
+   * @param {boolean} [data.aiGenerated] - Whether the label shows the AI badge (placed by the AI and still its placed
+   *     type, #5925), which shows the provenance strip with its "AI can make mistakes" disclaimer (#5359). Explore
+   *     never passes it: its labels are the user's.
    * @returns {string} The localized type name shown in the header, for callers that reuse it (share text).
    */
   render({ labelType, severity = null, tagNames = [], description = null, aiGenerated = false }) {
