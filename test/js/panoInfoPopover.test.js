@@ -203,6 +203,8 @@ describe('PanoInfoPopover', () => {
       expect(labelLink().querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
       labelLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
       expect(logs.labelLink).toHaveBeenCalledOnce();
+      labelLink().dispatchEvent(new MouseEvent('auxclick', { button: 1, cancelable: true }));
+      expect(logs.labelLink).toHaveBeenCalledTimes(2);
     });
 
     it('links the label id to its admin page for an admin', () => {
@@ -324,6 +326,15 @@ describe('PanoInfoPopover', () => {
       expect(viewer.publicViewerLink).toHaveBeenCalledWith('pano1', { heading: 90, pitch: -10, center: [0.25, 0.5] });
       expect(viewLink().getAttribute('href')).toBe(MAPILLARY_LINK.url);
       expect(viewLink().textContent).toBe('view-in-mapillary common:opens-new-tab');
+      viewLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
+      expect(logs.viewPano).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs once per open of the popover, however many times it opens', () => {
+      build();
+      button().click();
+      button().click();
+      button().click();
       viewLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
       expect(logs.viewPano).toHaveBeenCalledTimes(1);
     });

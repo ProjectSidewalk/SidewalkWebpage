@@ -78,6 +78,8 @@ describe('AdminInfo', () => {
     adminInfo.updateAdminInfo(label('ada', 42, []));
     popover.querySelector('#curr-label-id a').dispatchEvent(new MouseEvent('click', { cancelable: true }));
     expect(tracker.push).toHaveBeenCalledWith('Click_AdminInfoLabelLink', { labelId: 42 });
+    popover.querySelector('#curr-label-id a').dispatchEvent(new MouseEvent('auxclick', { button: 1 }));
+    expect(tracker.push).toHaveBeenCalledTimes(2);
   });
 
   test('puts a username in as text, so markup in one is never run', () => {

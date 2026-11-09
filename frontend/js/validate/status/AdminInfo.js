@@ -4,6 +4,7 @@
 
 import i18next from 'i18next';
 import { newTabNote } from '../../common/newTabNote.js';
+import { onLinkFollow } from '../../common/onLinkFollow.js';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
@@ -90,7 +91,7 @@ export class AdminInfo {
     link.href = `/admin/label/${encodeURIComponent(labelId)}`;
     link.target = '_blank';
     link.append(String(labelId), newTabNote());
-    link.addEventListener('click', () => this.#tracker.push('Click_AdminInfoLabelLink', { labelId }));
+    onLinkFollow(link, () => this.#tracker.push('Click_AdminInfoLabelLink', { labelId }));
     return link;
   }
 
