@@ -479,18 +479,47 @@ describe('KeyboardManager number-key shortcuts', () => {
     commentBox.remove();
   });
 
-  it('Escape in a comment box still works while the shortcuts are paused', () => {
-    const commentBox = validationMenuUi.optionalCommentTextBox;
-    document.body.appendChild(commentBox);
-    commentBox.focus();
-    const isHeld = keyboardLock.isHeld;
-    keyboardLock.isHeld = () => true;
+  describe('in a comment box, with what else is going on', () => {
+    let commentBox;
 
-    commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+    beforeEach(() => {
+      commentBox = validationMenuUi.optionalCommentTextBox;
+      document.body.appendChild(commentBox);
+      commentBox.focus();
+    });
 
-    keyboardLock.isHeld = isHeld;
-    expect(document.activeElement).not.toBe(commentBox);
-    commentBox.remove();
+    afterEach(() => {
+      commentBox.remove(); // A box left focused would mute the shortcuts in later tests.
+    });
+
+    it('Escape still leaves the box while the shortcuts are paused', () => {
+      const isHeld = keyboardLock.isHeld;
+      keyboardLock.isHeld = () => true;
+      try {
+        commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+      } finally {
+        keyboardLock.isHeld = isHeld;
+      }
+      expect(document.activeElement).not.toBe(commentBox);
+    });
+
+    it('Escape leaves the box rather than closing an open label card popover', () => {
+      current.labelCard = { isPopoverOpen: () => true, closeTypeDropdown: vi.fn(() => false) };
+      commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+
+      expect(document.activeElement).not.toBe(commentBox);
+      expect(current.labelCard.closeTypeDropdown).not.toHaveBeenCalled();
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusComment', { code: 'Escape' });
+    });
+
+    it('a key that finishes input-method text (Chinese, Japanese) is the input method\'s, not a shortcut', () => {
+      validationMenuUi.submitButton.click = vi.fn();
+      for (const key of ['Enter', 'Escape']) {
+        commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: key, key, isComposing: true, bubbles: true }));
+      }
+      expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(commentBox);
+    });
   });
 
   it('other keys in a comment box are left to the box', () => {

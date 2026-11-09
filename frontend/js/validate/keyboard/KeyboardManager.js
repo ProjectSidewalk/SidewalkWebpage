@@ -144,15 +144,18 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
+    // Keys typed into an input method (Chinese, Japanese) are the input method's until it commits the text.
+    if (e.isComposing) return;
+    // A focused text box is the narrowest scope there is. Ahead of the lock too: leaving a box acts on no label.
+    this.#checkIfTextAreaSelected();
+    if (this.#addingComment && KeyboardShortcuts.run(this.#textBoxShortcuts, e)) return;
+
     if (this.#belongsToFocusedControl(e)) return;
     if (this.#inLabelCard(e)) {
       KeyboardShortcuts.run(this.#labelCardShortcuts, e);
       return;
     }
 
-    this.#checkIfTextAreaSelected();
-    // Ahead of the lock: leaving a text box acts on no label, so it works while the shortcuts are paused.
-    if (this.#addingComment && KeyboardShortcuts.run(this.#textBoxShortcuts, e)) return;
     if (this.#keyboardLock.isHeld()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
@@ -185,12 +188,13 @@ export class KeyboardManager {
   }
 
   /**
-   * Takes focus out of the menu text box it's in, so the letter keys are shortcuts again. In the tag picker one press
-   * also closes the list, not TomSelect's close-the-list-first: the list is open whenever the box has focus (#5946).
+   * Leaves the menu text box so the letter keys are shortcuts again; no other handler sees the Escape. In the tag
+   * picker one press also closes the list: TomSelect's close-the-list-first would almost always take two (#5946).
    * @param {KeyboardEvent} e
    */
   #leaveTextBox(e) {
     e.preventDefault();
+    e.stopPropagation();
     const event = this.#inTagPicker() ? 'KeyboardShortcut_UnfocusTagSearch' : 'KeyboardShortcut_UnfocusComment';
     /** @type {HTMLElement} */ (document.activeElement).blur();
     this.#tracker.push(event, { code: e.code });

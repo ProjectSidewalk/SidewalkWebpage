@@ -6,16 +6,11 @@
  * a session + CSRF token, then POST the sign-up form. A 303 with a local-authenticator cookie means success.
  */
 const {test: setup, expect, request} = require('@playwright/test');
-const {STORAGE_STATE} = require('./fixtures');
+const {STORAGE_STATE, csrfTokenFrom} = require('./fixtures');
 
 setup('register a user account', async ({baseURL}) => {
   const ctx = await request.newContext({baseURL});
-  const signUpHtml = await (await ctx.get('/signUp')).text();
-  // Every registered-user spec depends on this setup, so fail legibly if the sign-up page's shape changes
-  // rather than with a null-index TypeError.
-  const csrfMatch = signUpHtml.match(/name="csrfToken" value="([^"]+)"/);
-  expect(csrfMatch, 'csrfToken hidden input not found in the /signUp HTML').toBeTruthy();
-  const csrfToken = csrfMatch[1];
+  const csrfToken = await csrfTokenFrom(ctx, '/signUp');
   // Unique per run so reruns against a long-lived dev DB never collide with an existing account.
   const username = `ci-smoke-${Date.now()}`;
   const response = await ctx.post('/signUp', {

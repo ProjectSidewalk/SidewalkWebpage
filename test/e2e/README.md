@@ -74,10 +74,11 @@ interactive debugging; `make test-e2e` is the normal run.
    session) and back. A page under test therefore may load with **or** without a session, which is itself
    part of what the suite covers — an init-time fetch that assumes a session `console.error`s and fails the
    spec. Registered-user pages (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js`
-   (two-step CSRF `POST /signUp`). Admin pages call `signInAsAdmin(context)` first, which signs in as the
-   account in `fixtures/admin-account.json`. `make test-e2e` and CI create that account before the run
-   (`fixtures/ensure-admin.sh`: sign up through the app, then set the role in the database); a bare
-   `npx playwright test` doesn't, so run the script once first.
+   (two-step CSRF `POST /signUp`). Admin pages call `signInAsAdmin(context)` first. It signs in as an
+   admin that `fixtures/ensure-admin.sh` makes (sign up through the app, then set the role in the database)
+   with a random name and password, kept in the git-ignored `.admin-account.json`: a dev database's logins
+   are a copy of production's, so a known admin password would expose real users. `make test-e2e` and CI
+   run the script before the suite; before a bare `npx playwright test`, run it once yourself.
 2. Wait for `window.appManager.isReady` (every page's shared init manager), plus the page's own signal
    where one exists (the `#page-loading` overlay hiding).
    **The wait is not the assertion**: AppManager catches init/ready-callback exceptions, `console.error`s
@@ -250,8 +251,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
 | `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
-| `fixtures/admin-account.json` | The admin account the admin specs sign in as. Its password is committed on purpose: the account exists only on a dev database and CI's throwaway one |
-| `fixtures/ensure-admin.sh` | Creates that account and makes it an Administrator. Run by `make test-e2e` and CI before the suite |
+| `fixtures/ensure-admin.sh` | Makes the admin the admin specs sign in as, with random credentials it keeps in the git-ignored `.admin-account.json`. Run by `make test-e2e` and CI before the suite |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |

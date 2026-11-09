@@ -11,8 +11,8 @@ const path = require('path');
 
 // Where auth.setup.js saves the registered user's session for the specs that need one (dashboard.spec.js).
 const STORAGE_STATE = 'test-results/.auth/registered.json';
-// The account the admin specs sign in as (signInAsAdmin), made by fixtures/ensure-admin.sh.
-const ADMIN_ACCOUNT = require('./fixtures/admin-account.json');
+// The admin's random name and password, which fixtures/ensure-admin.sh writes and git ignores.
+const ADMIN_ACCOUNT_FILE = path.join(__dirname, '.admin-account.json');
 
 // The phone profile the viewport specs measure at. defaultBrowserType is dropped because the suite's chromium
 // project already fixes the browser; shared so the page walk and the checks that pin its rules can't drift apart.
@@ -145,22 +145,32 @@ async function serveAnyPano(context) {
 }
 
 /**
+ * Reads the CSRF token off a form page, which also starts the session the form's POST has to carry.
+ * @param {import('@playwright/test').APIRequestContext} request - A request client with a cookie jar.
+ * @param {string} path - The form page, e.g. `/signIn`.
+ * @returns {Promise<string>}
+ */
+async function csrfTokenFrom(request, path) {
+  const token = (await (await request.get(path)).text()).match(/name="csrfToken" value="([^"]+)"/)?.[1];
+  base.expect(token, `csrfToken hidden input not found in the ${path} HTML`).toBeTruthy();
+  return token;
+}
+
+/**
  * Signs the context in as the admin fixtures/ensure-admin.sh makes. Per test, not a setup project, so a missing
  * admin fails only the admin specs.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context to sign in.
  */
 async function signInAsAdmin(context) {
-  const {username, password} = ADMIN_ACCOUNT;
-  const signInPage = await (await context.request.get('/signIn')).text();
-  const csrfToken = signInPage.match(/name="csrfToken" value="([^"]+)"/)?.[1];
-  base.expect(csrfToken, 'csrfToken hidden input not found in the /signIn HTML').toBeTruthy();
+  const missing = `no ${ADMIN_ACCOUNT_FILE}: run test/e2e/fixtures/ensure-admin.sh, which makes the admin`;
+  base.expect(fs.existsSync(ADMIN_ACCOUNT_FILE), missing).toBe(true);
+  const {username, password} = JSON.parse(fs.readFileSync(ADMIN_ACCOUNT_FILE, 'utf8'));
   const response = await context.request.post('/authenticate/credentials', {
-    form: {csrfToken, email: username, password},
+    form: {csrfToken: await csrfTokenFrom(context.request, '/signIn'), email: username, password},
     maxRedirects: 0,
   });
-  const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which also says if `
-    + 'the account has a password other than the one in admin-account.json';
+  const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which says why`;
   base.expect(response.status(), refused).toBe(303);
   base.expect(response.headers().location, refused).not.toContain('/signIn');
 }
@@ -453,6 +463,7 @@ module.exports = {
   stubMapbox,
   stubGoogleMaps,
   serveAnyPano,
+  csrfTokenFrom,
   signInAsAdmin,
   stubMakeabilityLab,
   stubMapBaseLayers,
