@@ -1,17 +1,17 @@
-/** Tests for onLinkFollow, which counts a middle click on a link as following it. */
+/** Tests for onLinkClick, a link click listener that also hears middle clicks. */
 
 import { loadModules } from './loader.js';
 
-const { onLinkFollow } = await loadModules('frontend/js/common/onLinkFollow.js');
+const { onLinkClick } = await loadModules('frontend/js/common/onLinkClick.js');
 
-describe('onLinkFollow', () => {
+describe('onLinkClick', () => {
   let link;
   let handler;
 
   beforeEach(() => {
     link = document.createElement('a');
     handler = vi.fn();
-    onLinkFollow(link, handler);
+    onLinkClick(link, handler);
   });
 
   test('runs on a click', () => {

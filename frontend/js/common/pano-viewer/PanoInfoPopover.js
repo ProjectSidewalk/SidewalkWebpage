@@ -9,7 +9,7 @@ import i18next from 'i18next';
 import { util } from '../utilities.js';
 import { copyToClipboard } from '../copyToClipboard.js';
 import { newTabNote } from '../newTabNote.js';
-import { onLinkFollow } from '../onLinkFollow.js';
+import { onLinkClick } from '../onLinkClick.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
 
@@ -123,7 +123,7 @@ export class PanoInfoPopover {
       }
     });
 
-    onLinkFollow(this.#popoverEl.querySelector('.pano-info-popover__view-link'), () => this.#viewPanoLogging());
+    onLinkClick(this.#popoverEl.querySelector('.pano-info-popover__view-link'), () => this.#viewPanoLogging());
 
     // Explicit close button in the header.
     this.#popoverEl.querySelector('.pano-info-popover__close')
@@ -199,7 +199,7 @@ export class PanoInfoPopover {
     link.href = `${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`;
     link.target = '_blank';
     link.rel = 'noopener';
-    onLinkFollow(link, () => this.#labelLinkLogging?.());
+    onLinkClick(link, () => this.#labelLinkLogging?.());
     link.append(String(labelId), newTabNote());
     this.#popoverEl.querySelector('[data-field="label-id"]').replaceChildren(link);
   }
