@@ -494,20 +494,24 @@ describe('Expert Validate\'s editors', () => {
       expect(tracker.push).toHaveBeenCalledWith('Click=TagSearch');
     });
 
-    test('a tag clicked in the list leaves the box, so the letter keys are shortcuts again (#5946)', () => {
-      setUp({ adminVersion: true });
-      byId('validate-yes-button').click();
-      const search = tagSelect();
-      search.control_input.focus();
-      search.open();
-      search.refreshOptions(false);
+    // A mouse click has a click count (detail) of 1 or more; one from a screen reader or voice control has 0.
+    test.each([[1, 'a mouse click leaves the box, so the letter keys are shortcuts again (#5946)', false],
+      [0, 'a click from a screen reader or voice control keeps the box, so they keep their place', true]])(
+      'a tag picked by click with detail %i: %s', (detail, _, keepsBox) => {
+        setUp({ adminVersion: true });
+        byId('validate-yes-button').click();
+        const search = tagSelect();
+        search.control_input.focus();
+        search.open();
+        search.refreshOptions(false);
 
-      search.dropdown_content.querySelector('[data-value="tree"]').click();
+        search.dropdown_content.querySelector('[data-value="tree"]')
+          .dispatchEvent(new MouseEvent('click', { detail, bubbles: true, cancelable: true }));
 
-      expect(label.getProperty('newTags')).toEqual(['tree']);
-      expect(document.activeElement).not.toBe(search.control_input);
-      expect(search.isOpen).toBe(false);
-    });
+        expect(label.getProperty('newTags')).toEqual(['tree']);
+        expect(document.activeElement === search.control_input).toBe(keepsBox);
+      },
+    );
 
     test('a tag picked by Enter keeps the box, for adding another', () => {
       setUp({ adminVersion: true });

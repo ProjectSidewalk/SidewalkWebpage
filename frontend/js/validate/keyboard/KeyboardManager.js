@@ -82,8 +82,11 @@ export class KeyboardManager {
    */
   #whileTypingShortcuts = [
     { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
-    // One press, not TomSelect's close-the-list-first: the list is open whenever the box has focus (#5946).
-    { keys: ['Escape'], when: () => this.#inTagPicker(), action: (e) => this.#leaveTagPicker(e) },
+  ];
+
+  /** In a menu text box: the comment boxes and the tag picker. */
+  #textBoxShortcuts = [
+    { keys: ['Escape'], action: (e) => this.#leaveTextBox(e) },
   ];
 
   /** On the label's marker or inside its card (#4729), where none of the shortcuts above fire. */
@@ -132,11 +135,6 @@ export class KeyboardManager {
       else keyboardLock.release('loading');
     });
 
-    // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
-    validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
-    validationMenuUi.disagreeReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
-    validationMenuUi.unsureReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
-
     // We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
   }
@@ -153,6 +151,8 @@ export class KeyboardManager {
     }
 
     this.#checkIfTextAreaSelected();
+    // Ahead of the lock: leaving a text box acts on no label, so it works while the shortcuts are paused.
+    if (this.#addingComment && KeyboardShortcuts.run(this.#textBoxShortcuts, e)) return;
     if (this.#keyboardLock.isHeld()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
@@ -162,15 +162,6 @@ export class KeyboardManager {
     } else if (!e.altKey) { // Alt+D is the browser's address bar, not Disagree.
       if (!this.#labelVisibilityControl.isCardHeldOpen()) this.#labelVisibilityControl.hideLabelCard();
       KeyboardShortcuts.run(this.#shortcuts, e);
-    }
-  };
-
-  #handleEscapeKey = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      e.currentTarget.blur();
-      this.#tracker.push('KeyboardShortcut_UnfocusComment', { code: e.code });
     }
   };
 
@@ -194,14 +185,15 @@ export class KeyboardManager {
   }
 
   /**
-   * Takes focus out of the tag picker's text box, which also closes its list, so the letter keys are shortcuts again
-   * (#5946).
+   * Takes focus out of the menu text box it's in, so the letter keys are shortcuts again. In the tag picker one press
+   * also closes the list, not TomSelect's close-the-list-first: the list is open whenever the box has focus (#5946).
    * @param {KeyboardEvent} e
    */
-  #leaveTagPicker(e) {
+  #leaveTextBox(e) {
     e.preventDefault();
+    const event = this.#inTagPicker() ? 'KeyboardShortcut_UnfocusTagSearch' : 'KeyboardShortcut_UnfocusComment';
     /** @type {HTMLElement} */ (document.activeElement).blur();
-    this.#tracker.push('KeyboardShortcut_UnfocusTagSearch', { code: e.code });
+    this.#tracker.push(event, { code: e.code });
   }
 
   /**

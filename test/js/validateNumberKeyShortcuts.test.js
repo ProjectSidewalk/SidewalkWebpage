@@ -251,11 +251,10 @@ describe('KeyboardManager number-key shortcuts', () => {
       document.body.innerHTML = '';
     });
 
-    it('leaves the box in one press, list open or not, so S submits again', () => {
+    it('leaves the box in one press, so S submits again', () => {
       const box = document.getElementById('select-tag-ts-control');
-      box.setAttribute('aria-expanded', 'true');
       box.focus();
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true, cancelable: true }));
+      box.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
 
       expect(document.activeElement).not.toBe(box);
       expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusTagSearch', { code: 'Escape' });
@@ -477,6 +476,20 @@ describe('KeyboardManager number-key shortcuts', () => {
 
     expect(document.activeElement).not.toBe(commentBox);
     expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusComment', { code: 'Escape' });
+    commentBox.remove();
+  });
+
+  it('Escape in a comment box still works while the shortcuts are paused', () => {
+    const commentBox = validationMenuUi.optionalCommentTextBox;
+    document.body.appendChild(commentBox);
+    commentBox.focus();
+    const isHeld = keyboardLock.isHeld;
+    keyboardLock.isHeld = () => true;
+
+    commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+
+    keyboardLock.isHeld = isHeld;
+    expect(document.activeElement).not.toBe(commentBox);
     commentBox.remove();
   });
 

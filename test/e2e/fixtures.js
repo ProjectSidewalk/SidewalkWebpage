@@ -11,6 +11,8 @@ const path = require('path');
 
 // Where auth.setup.js saves the registered user's session for the specs that need one (dashboard.spec.js).
 const STORAGE_STATE = 'test-results/.auth/registered.json';
+// The account the admin specs sign in as (signInAsAdmin), made by fixtures/ensure-admin.sh.
+const ADMIN_ACCOUNT = require('./fixtures/admin-account.json');
 
 // The phone profile the viewport specs measure at. defaultBrowserType is dropped because the suite's chromium
 // project already fixes the browser; shared so the page walk and the checks that pin its rules can't drift apart.
@@ -149,17 +151,18 @@ async function serveAnyPano(context) {
  * @param {import('@playwright/test').BrowserContext} context - The context to sign in.
  */
 async function signInAsAdmin(context) {
-  const {username, password} = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/admin-account.json'), 'utf8'));
-  const csrfToken = (await (await context.request.get('/signIn')).text()).match(/name="csrfToken" value="([^"]+)"/)?.[1];
+  const {username, password} = ADMIN_ACCOUNT;
+  const signInPage = await (await context.request.get('/signIn')).text();
+  const csrfToken = signInPage.match(/name="csrfToken" value="([^"]+)"/)?.[1];
   base.expect(csrfToken, 'csrfToken hidden input not found in the /signIn HTML').toBeTruthy();
   const response = await context.request.post('/authenticate/credentials', {
     form: {csrfToken, email: username, password},
     maxRedirects: 0,
   });
-  base.expect(response.status(), `signing in as ${username} failed; run test/e2e/fixtures/ensure-admin.sh first`)
-    .toBe(303);
-  base.expect(response.headers().location, `signing in as ${username} was refused; run test/e2e/fixtures/ensure-admin.sh`)
-    .not.toContain('/signIn');
+  const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which also says if `
+    + 'the account has a password other than the one in admin-account.json';
+  base.expect(response.status(), refused).toBe(303);
+  base.expect(response.headers().location, refused).not.toContain('/signIn');
 }
 
 /**

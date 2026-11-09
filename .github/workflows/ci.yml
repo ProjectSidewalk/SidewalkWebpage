@@ -532,12 +532,6 @@ jobs:
       - name: Install the seeded imagery
         run: bash test/e2e/fixtures/install-media.sh
 
-      # For the admin specs. Made through the app's sign-up, so it needs the app up.
-      - name: Create the e2e admin account
-        run: bash test/e2e/fixtures/ensure-admin.sh
-        env:
-          E2E_DB_ROLE: postgres
-
       # A page only enters the shared table (test/e2e/pages.js) once its violations are fixed or tracked, so a failure
       # here is a regression, never a known gap (#5060). Runs first so a red gate heads the log.
       - name: Run accessibility gate (blocking)
@@ -545,6 +539,13 @@ jobs:
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
+
+      # Only the smoke half has admin specs, so it shares that half's condition: a red gate doesn't skip it.
+      - name: Create the e2e admin account
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: bash test/e2e/fixtures/ensure-admin.sh
+        env:
+          E2E_DB_ROLE: postgres
 
       # The condition runs this half even when the gate is red, but unlike `always()` skips it when the app never came
       # up, where every spec would otherwise time out against a dead server.

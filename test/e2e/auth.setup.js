@@ -25,7 +25,6 @@ setup('register a user account', async ({baseURL}) => {
       email: `${username}@example.com`,
       password: 'TestPass123',
       passwordConfirm: 'TestPass123',
-      serviceHours: 'NO',
       terms: 'true',
       returnUrl: '/',
     },

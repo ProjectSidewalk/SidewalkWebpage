@@ -237,7 +237,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
   ✅ `validate-interactions.spec.js`, #4948); admin pages (✅ the sign-in: `signInAsAdmin`, #5946; Expert Validate
-  is the first admin spec, the admin dashboard pages are still open).
+  in `validate-interactions.spec.js` is the first, the admin dashboard pages are still open).
 
 ## File map
 
@@ -265,8 +265,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
-| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
-| `expert-validate.spec.js` | Expert Validate as the admin: the tag search box gives the keyboard back after a pick, so S submits (#5946) |
+| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948). Also Expert Validate as the admin (#5946), in the same file so its votes can't land between another test's count and its check |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
 | `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
