@@ -5,22 +5,28 @@ name: Dependency auto-merge
 # Branch protection's required checks are the only gate, so a bump they don't exercise merges unreviewed.
 # See issue #4385, workstream B.
 #
-# `pull_request_target` runs in the base-repo context (needed for the token to enable auto-merge on bot PRs),
-# so this workflow file must never checkout or execute PR-authored code.
+# No `pull_request_target`: GitHub blocks it by default in public repos (#5944).
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, labeled, ready_for_review]
+  # Scala Steward's PRs come from a fork, whose `pull_request` runs only get a read-only token.
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   dependabot:
     # Dependabot: derive the semver bump from official metadata (reliable), auto-merge patch & minor.
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    # A Dependabot run's token is read-only unless the workflow asks for more.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Fetch Dependabot metadata
         id: meta
@@ -40,18 +46,42 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   scala-steward:
-    # The hosted Steward opens PRs from a fork, so it can't apply GitHub labels; it writes them into the PR body
-    # instead. Early-semver is the Scala convention: a 0.x minor counts as breaking. A PR with more than one commit
-    # carries generated edits (e.g. a scalafmt reformat of the whole codebase), so it waits for a human.
-    if: >-
-      github.actor == 'scala-steward' &&
-      contains(github.event.pull_request.body, 'commit-count:1') &&
-      (contains(github.event.pull_request.body, 'early-semver-patch') ||
-       contains(github.event.pull_request.body, 'early-semver-minor'))
+    # The hosted Steward can't apply GitHub labels, so it writes them into the PR body instead. Early-semver is the
+    # Scala convention: a 0.x minor counts as breaking. A PR with more than one commit carries generated edits (e.g. a
+    # scalafmt reformat of the whole codebase), so it waits for a human. A PR where a person turned auto-merge off is
+    # left alone, so an hourly run never undoes a hold.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Enable auto-merge for patch & minor
-        run: gh pr merge --auto --merge "$PR_URL"
+        run: |
+          set -euo pipefail
+          prs=$(gh api graphql -F owner="${GITHUB_REPOSITORY%/*}" -F name="${GITHUB_REPOSITORY#*/}" -f query='
+            query($owner: String!, $name: String!) {
+              repository(owner: $owner, name: $name) {
+                pullRequests(states: OPEN, first: 100) {
+                  nodes {
+                    url isDraft body author { login } autoMergeRequest { enabledAt } commits { totalCount }
+                    timelineItems(itemTypes: [AUTO_MERGE_DISABLED_EVENT], first: 100) {
+                      nodes { ... on AutoMergeDisabledEvent { reasonCode } }
+                    }
+                  }
+                }
+              }
+            }' --jq '.data.repository.pullRequests.nodes[]
+              | select(.author.login == "scala-steward" and (.isDraft | not) and .autoMergeRequest == null
+                and .commits.totalCount == 1 and (.body | test("early-semver-(patch|minor)"))
+                and (any(.timelineItems.nodes[]; .reasonCode == "manually_disabled") | not))
+              | .url')
+          status=0
+          for url in $prs; do
+            echo "Enabling auto-merge on $url"
+            gh pr merge --auto --merge "$url" || status=1
+          done
+          [ -n "$prs" ] || echo "No Scala Steward PR needs auto-merge."
+          exit "$status"
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
