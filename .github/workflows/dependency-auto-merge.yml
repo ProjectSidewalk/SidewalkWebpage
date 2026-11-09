@@ -11,7 +11,7 @@ name: Dependency auto-merge
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [opened, reopened, synchronize]
   # Scala Steward's PRs come from a fork, whose `pull_request` runs only get a read-only token.
   schedule:
     - cron: '17 */6 * * *'
