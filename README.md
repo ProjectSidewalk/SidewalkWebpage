@@ -13,8 +13,7 @@ so it's easy to integrate into your own systems and research! See [https://proje
 
 Project Sidewalk is deployed in **50+ cities across 10 countries** (the US, Canada, Chile, India, Mexico, Ecuador, the
 Netherlands, Switzerland, and New Zealand), is natively translated into **six languages** (English, Spanish, German,
-Mandarin, Portuguese, and Dutch), and has collected **3.4M+ contributor-labeled data points**. See the
-[live data dashboard](https://jonfroehlich.github.io/ps-label-vis/ps-dashboard.html).
+Mandarin, Portuguese, and Dutch), and has collected **3.4M+ contributor-labeled data points**. See the live data dashboard.
 
 If you use or reference Project Sidewalk in your research, please cite:
 
