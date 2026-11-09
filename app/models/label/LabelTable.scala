@@ -929,6 +929,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val mistakeResponses       = TableQuery[MistakeResponseTableDef]
   val goldExamples           = TableQuery[GoldExampleTableDef]
   val goldExampleResponses   = TableQuery[GoldExampleResponseTableDef]
+  val labelEdits             = TableQuery[LabelEditTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1435,7 +1436,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lp.lng,
              pano_data.lat AS camera_lat,
              pano_data.lng AS camera_lng,
-             ur.role = 'AI' AS ai_generated,
+             ur.role = 'AI' AND NOT EXISTS (
+               SELECT 1 FROM label_edit
+               WHERE label_edit.label_id = lb1.label_id AND label_edit.old_label_type <> label_edit.new_label_type
+             ) AS ai_generated, -- Same rule as shownAsAi.
              pano_data.expired,
              COALESCE(u.user_id = $validatorId, FALSE) AS from_current_user,
              pano_data.width AS pano_width,
@@ -1566,6 +1570,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   private def isAiLabeler(l: LabelTableDef): Rep[Boolean] =
     userRoles.filter(r => r.userId === l.userId && r.role === Role.Ai).exists
+
+  /**
+   * Whether the label gets the AI badge (#5925): the AI placed it and no one has changed its type since. Once someone
+   * picks a new type, the label is theirs; the AI only pointed them at the spot.
+   */
+  private def shownAsAi(l: LabelTableDef): Rep[Boolean] =
+    isAiLabeler(l) && !labelEdits.filter(e => e.labelId === l.labelId && e.oldLabelType =!= e.newLabelType).exists
 
   /**
    * Returns how many labels this user has available to validate for each label type, and how many of those each
@@ -1883,14 +1894,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId) // Anti-join; see validatedByUser.
       if !answeredAsGoldExample(_lb, userId) && (asGoldExample.asColumnOf[Boolean] || !isGoldExample(_lb))
-    } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
+    } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, shownAsAi(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a
     // type change is left out along with the vote (#3671).
     labelInfo
       .joinLeft(aiData)
       .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
-      .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
+      .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, showAiBadge), _ai) =>
         (
           _lb,
           _lp,
@@ -1899,7 +1910,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           _at,
           labelType,
           regionId,
-          isAiUser,
+          showAiBadge,
           _ai.map { case (_laa, _) => _laa },
           _ai.flatMap { case (_, _aiv) => _aiv }
         )
@@ -1956,7 +1967,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @return              The lifted row for one label.
    */
   private def asValidationMetadata(row: ValidationCandidateRep, includeAiTags: Boolean): LabelValidationMetadataRep = {
-    val (l, lp, pd, _, _, labelType, regionId, isAiUser, laa, aiv) = row
+    val (l, lp, pd, _, _, labelType, regionId, showAiBadge, laa, aiv) = row
     LabelValidationMetadataRep(
       labelId = l.labelId,
       labelType = labelType,
@@ -1990,7 +2001,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         if (includeAiTags)
           laa.flatMap(_.tagsNotPresent).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
         else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-      aiGenerated = isAiUser,
+      aiGenerated = showAiBadge,
       comments = None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Not needed for validation rn.
       fromCurrentUser = false.bind,
       pano = (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
@@ -2102,7 +2113,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd  <- panoData if _lb.panoId === _pd.panoId
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
-      _ur  <- userRoles if _us.userId === _ur.userId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
       if typeAndTags(_lb)
@@ -2111,7 +2121,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if (_lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2) || waiveDisagreeGate
-    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
+    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, shownAsAi(_lb))
 
     val _galleryLabels = galleryProjection(_labelInfo, aiValOptions, userId)
 
@@ -2153,10 +2163,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd  <- panoData if _lb.panoId === _pd.panoId
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
-      _ur  <- userRoles if _us.userId === _ur.userId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
-    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
+    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, shownAsAi(_lb))
 
     galleryProjection(_labelInfo, Set.empty, userId)
   }
@@ -2188,8 +2197,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val _labelInfoWithAIValidation = labelInfo
       .joinLeft(aiValidations)
       .on { case ((lb, _, _, _, _, _), aiv) => lb.labelId === aiv.map(_.labelId) }
-      .map { case ((lb, lp, pd, labelType, regionId, isAiUser), aiv) =>
-        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatMap(v => v))
+      .map { case ((lb, lp, pd, labelType, regionId, showAiBadge), aiv) =>
+        (lb, lp, pd, labelType, regionId, showAiBadge, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2218,7 +2227,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Join with user validations and pre-aggregated comments.
     val _userValidations       = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
-      (((lb, lp, pd, labelType, regionId, isAiUser, aiv), uv), comments) <-
+      (((lb, lp, pd, labelType, regionId, showAiBadge, aiv), uv), comments) <-
         _labelsFilteredByAiValidation
           .joinLeft(_userValidations)
           // Only the vote cast on the type the label has now: votes on a type it lost don't count, and a validator
@@ -2247,7 +2256,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // Placeholder for AI tags (present and not present), since we don't show those on Gallery right now.
       aiTags = None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
       aiTagsNotPresent = None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-      aiGenerated = isAiUser,
+      aiGenerated = showAiBadge,
       comments = comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
       fromCurrentUser = lb.userId === userId.bind,
       pano = (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
@@ -2387,17 +2396,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp            <- _labelPointsInBbox if _l.labelId === _lp.labelId
       _pd            <- panoData if _l.panoId === _pd.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
-      _ur            <- userRoles if _us.userId === _ur.userId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lp.lat.isDefined && _lp.lng.isDefined // LabelForLabelMapRep's shape relies on these being NOT NULL.
-    } yield (_l, _lp, _us.highQuality, _l.labelTypeName, _pd.expired, _pd.hasBackup, _ur.role === Role.Ai)
+    } yield (_l, _lp, _us.highQuality, _l.labelTypeName, _pd.expired, _pd.hasBackup, shownAsAi(_l))
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labels
       .joinLeft(aiValidations)
       .on { case ((l, _, _, _, _, _, _), aiv) => l.labelId === aiv.map(_.labelId) }
-      .map { case ((l, lp, highQuality, labelType, expired, hasBackup, isAiUser), aiv) =>
-        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatMap(v => v))
+      .map { case ((l, lp, highQuality, labelType, expired, hasBackup, showAiBadge), aiv) =>
+        (l, lp, highQuality, labelType, expired, hasBackup, showAiBadge, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2422,7 +2430,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
 
       // Grab the columns that we need for the LabelForLabelMap case class.
-      query.map { case (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv) =>
+      query.map { case (l, lp, highQuality, labelType, expired, hasBackup, showAiBadge, aiv) =>
         LabelForLabelMapRep(
           labelId = l.labelId,
           streetEdgeId = l.streetEdgeId,
@@ -2439,7 +2447,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           highQualityUser = highQuality,
           severity = l.severity,
           tags = l.tags,
-          aiGenerated = isAiUser
+          aiGenerated = showAiBadge
         )
       }
     }
