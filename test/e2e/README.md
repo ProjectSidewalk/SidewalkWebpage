@@ -74,7 +74,10 @@ interactive debugging; `make test-e2e` is the normal run.
    session) and back. A page under test therefore may load with **or** without a session, which is itself
    part of what the suite covers — an init-time fetch that assumes a session `console.error`s and fails the
    spec. Registered-user pages (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js`
-   (two-step CSRF `POST /signUp`).
+   (two-step CSRF `POST /signUp`). Admin pages call `signInAsAdmin(context)` first, which signs in as the
+   account in `fixtures/admin-account.json`. `make test-e2e` and CI create that account before the run
+   (`fixtures/ensure-admin.sh`: sign up through the app, then set the role in the database); a bare
+   `npx playwright test` doesn't, so run the script once first.
 2. Wait for `window.appManager.isReady` (every page's shared init manager), plus the page's own signal
    where one exists (the `#page-loading` overlay hiding).
    **The wait is not the assertion**: AppManager catches init/ready-callback exceptions, `console.error`s
@@ -233,8 +236,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
-  ✅ `validate-interactions.spec.js`, #4948); admin pages (promote the setup user via a superuser `UPDATE user_role`
-  in CI).
+  ✅ `validate-interactions.spec.js`, #4948); admin pages (✅ the sign-in: `signInAsAdmin`, #5946; Expert Validate
+  is the first admin spec, the admin dashboard pages are still open).
 
 ## File map
 
@@ -242,11 +245,13 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate` and its mission helpers, `signInAsAdmin`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
 | `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/admin-account.json` | The admin account the admin specs sign in as. Its password is committed on purpose: the account exists only on a dev database and CI's throwaway one |
+| `fixtures/ensure-admin.sh` | Creates that account and makes it an Administrator. Run by `make test-e2e` and CI before the suite |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
@@ -261,6 +266,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
+| `expert-validate.spec.js` | Expert Validate as the admin: the tag search box gives the keyboard back after a pick, so S submits (#5946) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
 | `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |

@@ -165,6 +165,11 @@ export class DesktopValidationMenu {
       });
       // Gives the box a name for screen readers, using the header above it.
       this.#tagSelect.control_input.setAttribute('aria-labelledby', 'validate-tags-header');
+      // A clicked tag leaves the box so S submits (#5946); a pick by Enter keeps it, for adding another. Registered
+      // after TomSelect's own click handler, so the tag is already added.
+      this.#tagSelect.dropdown.addEventListener('click', (e) => {
+        if (/** @type {Element} */ (e.target).closest('[data-selectable]')) this.#tagSelect.blur();
+      });
     }
 
     // Add onclick for disagree and unsure reason buttons.

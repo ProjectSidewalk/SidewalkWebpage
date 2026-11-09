@@ -494,6 +494,36 @@ describe('Expert Validate\'s editors', () => {
       expect(tracker.push).toHaveBeenCalledWith('Click=TagSearch');
     });
 
+    test('a tag clicked in the list leaves the box, so the letter keys are shortcuts again (#5946)', () => {
+      setUp({ adminVersion: true });
+      byId('validate-yes-button').click();
+      const search = tagSelect();
+      search.control_input.focus();
+      search.open();
+      search.refreshOptions(false);
+
+      search.dropdown_content.querySelector('[data-value="tree"]').click();
+
+      expect(label.getProperty('newTags')).toEqual(['tree']);
+      expect(document.activeElement).not.toBe(search.control_input);
+      expect(search.isOpen).toBe(false);
+    });
+
+    test('a tag picked by Enter keeps the box, for adding another', () => {
+      setUp({ adminVersion: true });
+      byId('validate-yes-button').click();
+      const search = tagSelect();
+      search.control_input.focus();
+      search.open();
+      search.refreshOptions(false);
+      search.setActiveOption(search.getOption('tree'));
+
+      search.control_input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+
+      expect(label.getProperty('newTags')).toEqual(['tree']);
+      expect(document.activeElement).toBe(search.control_input);
+    });
+
     test('the search lists each option as a pill with an example, and says when nothing matches', () => {
       setUp({ adminVersion: true });
       byId('validate-yes-button').click();

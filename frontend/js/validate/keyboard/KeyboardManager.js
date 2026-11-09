@@ -82,6 +82,8 @@ export class KeyboardManager {
    */
   #whileTypingShortcuts = [
     { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
+    // One press, not TomSelect's close-the-list-first: the list is open whenever the box has focus (#5946).
+    { keys: ['Escape'], when: () => this.#inTagPicker(), action: (e) => this.#leaveTagPicker(e) },
   ];
 
   /** On the label's marker or inside its card (#4729), where none of the shortcuts above fire. */
@@ -189,6 +191,17 @@ export class KeyboardManager {
   /** @returns {boolean} Whether the tag picker's text box has focus. */
   #inTagPicker() {
     return document.activeElement === document.getElementById('select-tag-ts-control');
+  }
+
+  /**
+   * Takes focus out of the tag picker's text box, which also closes its list, so the letter keys are shortcuts again
+   * (#5946).
+   * @param {KeyboardEvent} e
+   */
+  #leaveTagPicker(e) {
+    e.preventDefault();
+    /** @type {HTMLElement} */ (document.activeElement).blur();
+    this.#tracker.push('KeyboardShortcut_UnfocusTagSearch', { code: e.code });
   }
 
   /**

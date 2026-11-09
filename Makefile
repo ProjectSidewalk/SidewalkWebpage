@@ -355,6 +355,7 @@ test-e2e:
 	  echo "==> building the Playwright runner image (first run for $(e2e-tag): downloads ~2GB)"; \
 	  docker build --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e; \
 	fi
+	@bash test/e2e/fixtures/ensure-admin.sh
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
 	  $(if $(filter /home,$(container-dir)),,--tmpfs $(container-dir)/node_modules) \
@@ -370,6 +371,7 @@ test-e2e-host:
 	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
 	@[ -d node_modules/@playwright/test ] \
 	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
+	@bash test/e2e/fixtures/ensure-admin.sh
 	@npx playwright test $(args)
 
 reveal-or-hide-regions:

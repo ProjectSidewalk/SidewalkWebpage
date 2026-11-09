@@ -9,7 +9,8 @@
  * Counts are compared with a reading taken just before each vote, not fixed numbers, because other users (and a CI
  * retry) vote on the same labels.
  */
-const {test, expect, serveAnyPano, loadValidate} = require('./fixtures');
+const {test, expect, serveAnyPano, loadValidate, pastDoubleTapGuard, nextLabel, currentLabelId, readLabel} =
+  require('./fixtures');
 
 const COUNT_FIELD = {Agree: 'num_agree', Disagree: 'num_disagree', Unsure: 'num_unsure'};
 
@@ -90,30 +91,6 @@ async function startVote(page) {
 }
 
 /**
- * Waits out LabelContainer.VERDICT_GRACE_MS from the label appearing, inside which a verdict is a dropped double tap.
- * @param {import('@playwright/test').Page} page
- */
-async function pastDoubleTapGuard(page) {
-  await page.waitForFunction(() => {
-    const labelContainer = window.svv.labelContainer;
-    return Date.now() - labelContainer.getProperty('renderedTimestamp') > labelContainer.constructor.VERDICT_GRACE_MS;
-  });
-}
-
-/**
- * Waits for Validate to move on from a label and finish loading the next one: the tool ignores input until then.
- * @param {import('@playwright/test').Page} page
- * @param {number} fromId The label just validated.
- */
-async function nextLabel(page, fromId) {
-  // A Pannellum load averages under 2 s but can run several times that on a slow runner.
-  const timeout = 15_000;
-  await expect.poll(() => currentLabelId(page), {message: 'the verdict did not move Validate to the next label',
-    timeout}).not.toBe(fromId);
-  await expect(page.locator('#svv-application-holder')).not.toHaveClass(/validate-disabled/, {timeout});
-}
-
-/**
  * Waits until the server has the viewer's verdict on a label, and only that one vote added to its counts.
  * @param {import('@playwright/test').Page} page
  * @param {{id: number, counts: Record<string, number>}} label From startVote.
@@ -126,26 +103,6 @@ async function expectSaved(page, label, verdict) {
     const saved = await readLabel(page, label.id);
     return {verdict: saved.user_validation, counts: countsOf(saved)};
   }, `label ${label.id} was not saved as ${verdict}`).toEqual({verdict, counts: expected});
-}
-
-/**
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<number>} The id of the label on screen.
- */
-function currentLabelId(page) {
-  return page.evaluate(() => window.svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'));
-}
-
-/**
- * Through the page's session, so `user_validation` is this user's verdict.
- * @param {import('@playwright/test').Page} page
- * @param {number} id
- * @returns {Promise<Record<string, any>>} The GET /label/id/:id response.
- */
-async function readLabel(page, id) {
-  const response = await page.request.get(`/label/id/${id}`);
-  expect(response.ok(), `GET /label/id/${id} responded ${response.status()}`).toBe(true);
-  return response.json();
 }
 
 /**

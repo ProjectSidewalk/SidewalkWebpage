@@ -1,7 +1,7 @@
 /**
  * Tests for the number-key shortcuts in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo,
- * the H, Z and C letter keys, and Escape in a comment box, which share the manager's key handling.
+ * the H, Z and C letter keys, and Escape in a comment box or the tag picker, which share the manager's key handling.
  *
  * The reason buttons are one fixed set of elements reused across label types, and `defaultOption` is the flag saying
  * "this type offers this reason" — so the same keypress has to mean different things depending on the label on screen.
@@ -239,6 +239,30 @@ describe('KeyboardManager number-key shortcuts', () => {
       pressEnter();
 
       expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Escape in the tag picker (#5946)', () => {
+    beforeEach(() => {
+      document.body.innerHTML = '<input id="select-tag-ts-control" type="text">';
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    it('leaves the box in one press, list open or not, so S submits again', () => {
+      const box = document.getElementById('select-tag-ts-control');
+      box.setAttribute('aria-expanded', 'true');
+      box.focus();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true, cancelable: true }));
+
+      expect(document.activeElement).not.toBe(box);
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusTagSearch', { code: 'Escape' });
+
+      validationMenuUi.submitButton.click = vi.fn();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', key: 's', bubbles: true, cancelable: true }));
+      expect(validationMenuUi.submitButton.click).toHaveBeenCalled();
     });
   });
 
