@@ -349,12 +349,13 @@ the roster, flagging any job that is overdue, failed, interrupted, or has never 
 subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
 
-The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
-`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
 Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
 row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
 that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
+
+The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
+`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the

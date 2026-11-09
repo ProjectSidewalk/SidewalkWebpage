@@ -5,7 +5,7 @@
  */
 
 import { loadModules } from './loader.js';
-import { routeFetch, textOf } from './support/routeFetch.js';
+import { flush, routeFetch, textOf } from './support/routeFetch.js';
 
 const { HealthPage } = await loadModules('frontend/js/admin-dashboard/HealthPage.js');
 
@@ -86,7 +86,7 @@ describe('the fleet panel', () => {
     expect(note).toContain('no instance on this stage: crowdstudy, staging');
   });
 
-  test('flags a city still on an older build, one whose database failed, and one that is down, worst first', async () => {
+  test('flags an older build, a failed database, and a down city, worst first', async () => {
     await render({
       generated_at: '2026-08-20T04:00:00Z',
       this_city_id: 'seattle',
@@ -144,8 +144,33 @@ describe('the fleet panel', () => {
       latest_git_sha: 'aaaaaaa111',
       cities: [city('seattle', 'Seattle, WA', 'aaaaaaa111')],
     });
-    const labels = [...document.querySelectorAll('#health-fleet a[target="_blank"]')].map((a) => a.getAttribute('aria-label'));
+    const links = [...document.querySelectorAll('#health-fleet a[target="_blank"]')];
+    const labels = links.map((a) => a.getAttribute('aria-label'));
     expect(labels).toEqual(['Seattle, WA (opens in new tab)', 'commit v11.20.0-gaaaaaaa (opens in new tab)']);
+  });
+
+  test('leaves the table alone when a poll brings nothing new, so a focused link keeps focus', async () => {
+    const payload = {
+      generated_at: '2026-08-20T04:00:00Z',
+      this_city_id: 'seattle',
+      latest_git_sha: 'aaaaaaa111',
+      cities: [city('seattle', 'Seattle, WA', 'aaaaaaa111')],
+    };
+    document.body.innerHTML = MARKUP;
+    routeFetch({ '/adminapi/dbHealth': DB_HEALTH, '/adminapi/fleetHealth': payload });
+    // Capture the poll timer instead of dispatching visibilitychange, which every page from earlier tests also hears.
+    const timers = [];
+    vi.spyOn(window, 'setInterval').mockImplementation((fn) => { timers.push(fn); return 0; });
+    const page = new HealthPage({ healthUrl: '/adminapi/dbHealth', fleetUrl: '/adminapi/fleetHealth' });
+    await page.init();
+    await flush(); // The fleet fetch is deliberately not awaited by init.
+    const link = document.querySelector('#health-fleet tbody a');
+    link.focus();
+    expect(document.activeElement).toBe(link);
+    timers[0]();
+    await flush();
+    await flush();
+    expect(document.activeElement).toBe(link);
   });
 
   test('a failed fleet probe marks only its own panel and leaves the database signals rendered', async () => {

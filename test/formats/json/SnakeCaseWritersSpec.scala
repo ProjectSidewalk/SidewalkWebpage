@@ -253,8 +253,8 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       """{"status":"ok","git_sha":"abc","git_describe":"v11.20.0-2-gabc","git_dirty":false,"version":"11.20.0","version_released_at":"2026-09-29T12:30:00Z","city_id":"seattle","environment":"prod","app_started_at":"2026-09-29T12:30:00Z"}"""
     )
     check(
-      HealthStatus("error", None, None, true, None, None, "seattle", "test", t),
-      """{"status":"error","git_dirty":true,"city_id":"seattle","environment":"test","app_started_at":"2026-09-29T12:30:00Z"}"""
+      HealthStatus("error", None, None, true, None, None, "seattle", "test", t, Some("TimeoutException")),
+      """{"status":"error","git_dirty":true,"city_id":"seattle","environment":"test","app_started_at":"2026-09-29T12:30:00Z","error":"TimeoutException"}"""
     )
     check(
       FleetHealth(

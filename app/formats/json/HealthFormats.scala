@@ -7,7 +7,10 @@ import java.time.OffsetDateTime
 object HealthFormats {
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  /** The `GET /health` body: git fields None if git couldn't answer at build time, version fields if the DB didn't. */
+  /**
+   * The `GET /health` body: git fields None if git couldn't answer at build time, version fields if the DB didn't.
+   * `error` names the failure class on a database error, never its message, which can carry connection details.
+   */
   case class HealthStatus(
       status: String,
       gitSha: Option[String],
@@ -17,7 +20,8 @@ object HealthFormats {
       versionReleasedAt: Option[OffsetDateTime],
       cityId: String,
       environment: String,
-      appStartedAt: OffsetDateTime
+      appStartedAt: OffsetDateTime,
+      error: Option[String] = None
   )
 
   /** One city's `/health`: the body when it parsed, else why not. */

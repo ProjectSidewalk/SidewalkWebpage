@@ -15,6 +15,7 @@ export class HealthPage {
   #fleetUrl;
   #pollMs;
   #fleetLoading = false;
+  #fleetHtml = null; // Last fleet table drawn, so a poll with nothing new leaves the focused link alone.
   #thresholds = null;
   #loading = false;
   #lastUpdatedMs = null;
@@ -53,10 +54,11 @@ export class HealthPage {
    * the same DB connection pool — the page must not compound the pressure it is meant to observe.
    */
   async #load() {
+    // Ahead of the guard and not awaited: the fleet probe waits on other servers and must neither delay this
+    // instance's DB signals nor be skipped while they are slow, which is when someone is watching it.
+    if (this.#fleetUrl) this.#loadFleet();
     if (this.#loading) return;
     this.#loading = true;
-    // Not awaited: the fleet probe waits on other servers and must never delay this one's DB signals.
-    if (this.#fleetUrl) this.#loadFleet();
     try {
       const data = await util.fetchJson(this.#healthUrl);
       // Age is measured from the client clock at response receipt, not the server's generated_at timestamp, so
@@ -89,6 +91,7 @@ export class HealthPage {
       this.#renderFleet(await util.fetchJson(this.#fleetUrl));
     } catch (e) {
       this.#renderProblem('health-fleet', `Could not probe the fleet. ${e.message}`);
+      this.#fleetHtml = null;
       // The summary line would otherwise keep describing the last good probe under an error.
       AdminShell.setHtml('health-fleet-note', '');
     } finally {
@@ -372,7 +375,11 @@ export class HealthPage {
    */
   #renderFleet(data) {
     const cities = data.cities || [];
-    if (!cities.length) return this.#renderProblem('health-fleet', 'No cities are configured for this stage.');
+    if (!cities.length) {
+      AdminShell.setHtml('health-fleet-note', '');
+      this.#fleetHtml = null;
+      return this.#renderProblem('health-fleet', 'No cities are configured for this stage.');
+    }
     const verdict = (c) => {
       if (c.error || !c.health) {
         return { rank: 0, tone: 'bad', label: c.http_status ? `HTTP ${c.http_status}` : 'unreachable' };
@@ -389,13 +396,13 @@ export class HealthPage {
     const body = rows.map(({ c, v }) => {
       const h = c.health || {};
       const self = c.city_id === data.this_city_id ? ' <span class="ac-muted">(this instance)</span>' : '';
-      // Same `*` for a dirty build as the deployment strip.
+      // Same `*` and tooltip for a dirty build as the deployment strip.
       const label = `${h.git_describe || (h.git_sha || '').slice(0, 7)}${h.git_dirty ? '*' : ''}`;
       const commitUrl = `https://github.com/ProjectSidewalk/SidewalkWebpage/commit/${h.git_sha}`;
-      const code = `<code>${util.escapeHTML(label)}</code>`;
+      const dirtyTip = h.git_dirty ? ' data-ps-tooltip="* means built with uncommitted local changes"' : '';
       const build = h.git_sha
         ? `<a href="${util.escapeHTML(commitUrl)}" target="_blank" rel="noopener" ${newTab(`commit ${label}`)}>`
-        + `${code}</a>`
+        + `<code${dirtyTip}>${util.escapeHTML(label)}</code></a>`
         : '—';
       const detail = c.error ? util.escapeHTML(c.error) : '';
       const started = h.app_started_at ? AdminShell.relativeTime(h.app_started_at) : '—';
@@ -410,7 +417,9 @@ export class HealthPage {
           <td class="ac-muted">${util.escapeHTML(started)}</td>
         </tr>`;
     }).join('');
-    this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', 'Started'], body);
+    // Redrawing would drop keyboard focus from a link in the table.
+    if (body !== this.#fleetHtml) this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', 'Started'], body);
+    this.#fleetHtml = body;
     const onBuild = rows.filter(({ v }) => v.rank === 3).length;
     const down = rows.filter(({ v }) => v.rank < 2).length;
     const noun = cities.length === 1 ? 'city is' : 'cities are';

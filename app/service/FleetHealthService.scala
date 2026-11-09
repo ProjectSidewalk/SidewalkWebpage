@@ -41,9 +41,18 @@ object FleetHealthService {
     FleetCityHealth(cityId, cityName, url, Some(httpStatus), health, error)
   }
 
-  /** The build of the most recently started instance that answered as itself, or None when nothing did. */
+  /**
+   * The build of the most recently started instance that answered as itself, or None when nothing did. Every start on
+   * a stage, deploy or crash recovery alike, runs the binary staged last, so the newest start is on the newest build;
+   * a rollback stages the older tag and the same rule follows it. A row in `error` status still reports its build.
+   */
   def latestBuild(rows: Seq[FleetCityHealth]): Option[String] =
-    rows.filter(_.error.isEmpty).flatMap(_.health).filter(_.gitSha.isDefined).maxByOption(_.appStartedAt).flatMap(_.gitSha)
+    rows
+      .filter(_.error.isEmpty)
+      .flatMap(_.health)
+      .filter(_.gitSha.isDefined)
+      .maxByOption(_.appStartedAt)
+      .flatMap(_.gitSha)
 }
 
 @Singleton
@@ -78,9 +87,9 @@ class FleetHealthServiceImpl @Inject() (
 
   /** Never fails: one unreachable city must not take the rest of the table down with it. */
   private def probe(cityId: String, cityName: String, url: String): Future[FleetCityHealth] =
-    ws.url(s"$url/health")
-      .withRequestTimeout(requestTimeout)
-      .get()
+    Future
+      .fromTry(Try(ws.url(s"$url/health"))) // A malformed URL throws here, not inside the request's Future.
+      .flatMap(_.withRequestTimeout(requestTimeout).get())
       .map(resp => FleetHealthService.parse(cityId, cityName, url, resp.status, resp.body))
       .recover { case e: Exception =>
         // Debug, not warn: during an outage this fires for every city on every poll, and the table already says so.

@@ -12,6 +12,8 @@ import models.utils.{
   JobRunTrigger,
   VersionTable
 }
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.pattern.after
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.*
@@ -21,7 +23,8 @@ import models.utils.MyPostgresProfile
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject.*
-import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeoutException
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
@@ -206,7 +209,8 @@ class HealthServiceImpl @Inject() (
     healthTable: HealthTable,
     backgroundJobRunTable: BackgroundJobRunTable,
     versionTable: VersionTable,
-    configService: ConfigService
+    configService: ConfigService,
+    actorSystem: ActorSystem
 )(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -215,15 +219,29 @@ class HealthServiceImpl @Inject() (
 
   private val envType: String = config.get[String]("environment-type")
 
-  def getHealthStatus: Future[HealthStatus] = versionTable
-    .currentVersion()
-    .map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime)))
-    // No log line: a down database already logs itself, and a probe hits this every few seconds.
-    .recover { case _: Exception => healthStatus("error", None, None) }
+  // Well under the pool's 30s connectionTimeout and the fleet probe's 5s: a database that can't answer in this long
+  // has to surface as a 503 ("error") rather than as the instance itself being unreachable.
+  private val healthDbWait: FiniteDuration = 2.seconds
 
-  private def healthStatus(status: String, version: Option[String], releasedAt: Option[OffsetDateTime]) =
+  def getHealthStatus: Future[HealthStatus] = {
+    val read: Future[HealthStatus] =
+      versionTable.currentVersion().map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime), None))
+    val deadline: Future[HealthStatus] =
+      after(healthDbWait, actorSystem.scheduler)(Future.failed(TimeoutException(s"no answer in $healthDbWait")))
+    // No log line: a down database already logs itself, and a probe hits this every few seconds.
+    Future.firstCompletedOf(Seq(read, deadline)).recover { case e: Exception =>
+      healthStatus("error", None, None, Some(e.getClass.getSimpleName))
+    }
+  }
+
+  private def healthStatus(
+      status: String,
+      version: Option[String],
+      releasedAt: Option[OffsetDateTime],
+      error: Option[String]
+  ) =
     HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
-      configService.getCityId, envType, configService.appStartTime)
+      configService.getCityId, envType, configService.appStartTime, error)
 
   // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
   private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)
