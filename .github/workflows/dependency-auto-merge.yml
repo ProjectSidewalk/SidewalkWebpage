@@ -71,9 +71,11 @@ jobs:
     # The hosted Steward can't apply GitHub labels, so it writes them into the PR body instead. Early-semver is the
     # Scala convention: a 0.x minor counts as breaking. A PR with more than one commit carries generated edits (e.g. a
     # scalafmt reformat of the whole codebase), so it waits for a human. A PR whose checks are already green merges
-    # right away, so the merge is pinned to the commit the search saw. A failure only warns, or a stuck PR would fail
-    # every run.
+    # right away, so the merge is pinned to the commit the search saw. A failed merge fails the run once the rest are
+    # tried, since that PR needs a person; drafting it stops the failures.
     if: github.event_name != 'pull_request'
+    # A manual run during a scheduled one would try the same merges twice.
+    concurrency: dependency-auto-merge-steward
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -96,12 +98,15 @@ jobs:
               | select((.isDraft | not) and .autoMergeRequest == null and .commits.totalCount == 1
                 and (.body | test("early-semver-(patch|minor)")) and (.timelineItems.nodes | length) == 0)
               | "\(.url) \(.headRefOid)"')
+          status=0
           while read -r url sha; do
             [ -n "$url" ] || continue
             echo "Enabling auto-merge on $url at $sha"
-            gh pr merge --auto --merge --match-head-commit "$sha" "$url" \
-              || echo "::warning::Could not enable auto-merge on $url"
+            # gh must not read the loop's input, or the rest of the list is lost.
+            gh pr merge --auto --merge --match-head-commit "$sha" "$url" < /dev/null \
+              || { echo "::error::Could not enable auto-merge on $url"; status=1; }
           done <<< "$prs"
           [ -n "$prs" ] || echo "No Scala Steward PR needs auto-merge."
+          exit "$status"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
