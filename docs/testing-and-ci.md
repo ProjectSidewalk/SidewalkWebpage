@@ -237,9 +237,9 @@ Parallel jobs:
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
   half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when
-  either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`)
-  rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast
-  and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  either half fails. CI installs Playwright on the runner directly (`npx playwright install chromium`; no `--with-deps`,
+  #5915) rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the
+  job is fast and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
   `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
   `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
   the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since
