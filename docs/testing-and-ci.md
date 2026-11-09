@@ -283,9 +283,10 @@ Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `
 `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another.
 [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs
 from both bots, so GitHub merges each once its required checks pass (#4395). Majors and Steward PRs with extra
-generated commits wait for a human. Steward's half runs hourly, since its PRs come from a fork (#5944). To hold a bot
-PR, turn its auto-merge off; the workflow never turns it back on. A Steward PR can also be held by marking it a draft,
-the only hold that works before the first hourly run reaches it.
+generated commits wait for a human. Steward's half runs every 6 hours, since its PRs come from a fork (#5944), and
+usually merges a green PR on the spot. To hold a bot PR, mark it a draft, or turn its auto-merge off; the workflow never
+turns it back on. A Steward PR is usually never in auto-merge, so hold one with a draft. A hold doesn't carry over when
+the bot replaces the PR with a newer one.
 
 **Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl
 page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly.
