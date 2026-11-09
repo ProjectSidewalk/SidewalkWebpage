@@ -138,6 +138,16 @@ async function startMission(page, path) {
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
 }
 
+test('the Details popover links the label id to the label\'s page', async ({page, consoleErrors}) => {
+  const id = await currentLabelId(page);
+  await page.locator('#pano-info-button').click();
+  // The suite's user isn't an admin, so the link is the public page rather than the admin view.
+  const link = page.locator('#pano-info-popover [data-field="label-id"] a');
+  await expect(link).toHaveAttribute('href', `/label/${id}`);
+  await expect(link).toHaveAttribute('target', '_blank');
+  expect(consoleErrors).toEqual([]);
+});
+
 /**
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{id: number, counts: Record<string, number>}>} The current label and its counts before the vote.

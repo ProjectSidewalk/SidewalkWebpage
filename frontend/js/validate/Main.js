@@ -445,7 +445,7 @@ export class Main {
     );
 
     if (config.adminVersion) {
-      const adminInfo = new AdminInfo(ui.status.admin);
+      const adminInfo = new AdminInfo(ui.status.admin, tracker);
       labelContainer.onLabelReady((label) => adminInfo.updateAdminInfo(label));
     }
 
@@ -587,8 +587,11 @@ export class Main {
         () => tracker.push('PanoInfoButton_Click'),
         () => tracker.push('PanoInfoCopyToClipboard_Click'),
         () => tracker.push('PanoInfoViewInPano_Click'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
+        {
+          id: () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
+          date: () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
+          linkLogging: (labelId) => tracker.push('PanoInfoLabelLink_Click', { labelId }),
+        },
       );
     }
 

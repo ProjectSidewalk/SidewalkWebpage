@@ -342,7 +342,14 @@ describe('on desktop', () => {
 
     expect(argsOf('Form')[1].source).toBe('ExpertValidate');
     expect(built.AdminInfo).toHaveLength(1);
+    expect(argsOf('AdminInfo')[1]).toBe(tracker);
     expect(argsOf('ImmersiveMode')[0].isDisabled()).toBe(true);
+  });
+
+  test('the Details popover logs a click on its label link with that link\'s label', async () => {
+    await start(DESKTOP);
+    argsOf('PanoInfoPopover')[13].linkLogging(42);
+    expect(pushed('PanoInfoLabelLink_Click')).toEqual([{ labelId: 42 }]);
   });
 
   test('the whole tool dims while a label loads', async () => {

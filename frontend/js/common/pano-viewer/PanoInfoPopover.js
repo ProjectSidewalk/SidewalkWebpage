@@ -8,7 +8,8 @@
 import i18next from 'i18next';
 import { util } from '../utilities.js';
 import { copyToClipboard } from '../copyToClipboard.js';
-import { newTabNote } from '../newTabNote.js';
+import { newTabLink, newTabNote } from '../newTabNote.js';
+import { onLinkClick } from '../onLinkClick.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
 
@@ -47,6 +48,8 @@ export class PanoInfoPopover {
   #labelId;
   /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
+  /** @type {((labelId: number) => void)|undefined} Optional — called when the Label ID link is clicked. */
+  #labelLinkLogging;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
 
@@ -64,11 +67,13 @@ export class PanoInfoPopover {
    * @param {() => void} infoLogging - Called when the info button is clicked
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
-   * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
-   * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
+   * @param {object} [label] - For pages showing a label; the Label ID and Labeled rows show only if given.
+   * @param {() => number|undefined} [label.id] - Returns the Label ID
+   * @param {() => Date} [label.date] - Returns the label's timestamp
+   * @param {(labelId: number) => void} [label.linkLogging] - Called with the label's id when its link is clicked
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
-    infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
+    infoLogging, clipboardLogging, viewPanoLogging, label = {}) {
     this.#popoverEl = document.getElementById('pano-info-popover');
     this.#panoViewer = panoViewer;
     this.#coords = coords;
@@ -82,8 +87,9 @@ export class PanoInfoPopover {
     this.#infoLogging = infoLogging;
     this.#clipboardLogging = clipboardLogging;
     this.#viewPanoLogging = viewPanoLogging;
-    this.#labelId = labelId;
-    this.#labelDate = labelDate;
+    this.#labelId = label.id;
+    this.#labelDate = label.date;
+    this.#labelLinkLogging = label.linkLogging;
 
     this.#init(container);
   }
@@ -116,6 +122,8 @@ export class PanoInfoPopover {
         this.#positionPopover();
       }
     });
+
+    onLinkClick(this.#popoverEl.querySelector('.pano-info-popover__view-link'), () => this.#viewPanoLogging());
 
     // Explicit close button in the header.
     this.#popoverEl.querySelector('.pano-info-popover__close')
@@ -183,6 +191,17 @@ export class PanoInfoPopover {
   }
 
   /**
+   * Links the Label ID to the admin view for admins, where it can be pinned as a training example; else /label.
+   * @param {number} labelId - The label shown.
+   */
+  #setLabelLink(labelId) {
+    const link = newTabLink(`${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`,
+      String(labelId));
+    onLinkClick(link, () => this.#labelLinkLogging?.(labelId));
+    this.#popoverEl.querySelector('[data-field="label-id"]').replaceChildren(link);
+  }
+
+  /**
    * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
    */
   #updateVals() {
@@ -228,7 +247,7 @@ export class PanoInfoPopover {
     setVal('image-id', currPanoId);
     setVal('latitude', currCoords ? currCoords.lat : null);
     setVal('longitude', currCoords ? currCoords.lng : null);
-    if (currLabelId) setVal('label-id', currLabelId);
+    if (currLabelId) this.#setLabelLink(currLabelId);
     setVal('street-id', currStreetEdgeId);
     setVal('region-id', currRegionId);
     if (currLabelDate) setVal('label-date', currLabelDate);
@@ -249,7 +268,6 @@ export class PanoInfoPopover {
     });
     viewLink.hidden = !link;
     if (link) {
-      viewLink.onclick = this.#viewPanoLogging;
       viewLink.href = link.url;
       viewLink.replaceChildren(i18next.t(link.i18nKey), newTabNote());
     } else {
