@@ -66,12 +66,13 @@ export class PanoInfoPopover {
    * @param {() => void} infoLogging - Called when the info button is clicked
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
-   * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
-   * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
-   * @param {() => void} [labelLinkLogging] - Optional — called when the Label ID link is clicked
+   * @param {object} [label] - For pages showing a label; each part left out hides its row.
+   * @param {() => number|undefined} [label.id] - Returns the Label ID
+   * @param {() => Date} [label.date] - Returns the label's timestamp
+   * @param {() => void} [label.linkLogging] - Called when the Label ID link is clicked
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
-    infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate, labelLinkLogging) {
+    infoLogging, clipboardLogging, viewPanoLogging, label = {}) {
     this.#popoverEl = document.getElementById('pano-info-popover');
     this.#panoViewer = panoViewer;
     this.#coords = coords;
@@ -85,9 +86,9 @@ export class PanoInfoPopover {
     this.#infoLogging = infoLogging;
     this.#clipboardLogging = clipboardLogging;
     this.#viewPanoLogging = viewPanoLogging;
-    this.#labelId = labelId;
-    this.#labelDate = labelDate;
-    this.#labelLinkLogging = labelLinkLogging;
+    this.#labelId = label.id;
+    this.#labelDate = label.date;
+    this.#labelLinkLogging = label.linkLogging;
 
     this.#init(container);
   }

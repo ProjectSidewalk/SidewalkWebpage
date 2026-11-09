@@ -90,7 +90,7 @@ describe('PanoInfoPopover', () => {
     return new PanoInfoPopover(document.getElementById('host'), () => state.viewer, () => state.coords,
       () => state.panoId, () => state.streetEdgeId, () => state.regionId, () => state.panoDate, () => state.address,
       () => state.pov, whiteIcon, logs.info, logs.clipboard, logs.viewPano,
-      withLabel ? () => state.labelId : undefined, withLabel ? () => state.labelDate : undefined, logs.labelLink);
+      withLabel ? { id: () => state.labelId, date: () => state.labelDate, linkLogging: logs.labelLink } : undefined);
   }
 
   const button = () => document.getElementById('pano-info-button');

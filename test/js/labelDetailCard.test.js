@@ -163,8 +163,9 @@ describe('the label card', () => {
     test('describes the label on screen, and nothing before one is', async () => {
       const { show, panoManager } = await mountCard();
       const [
-        , viewer, latLng, panoId, streetId, regionId, captureDate, address, pov,, onOpen, onCopy, onView, labelId,
+        , viewer, latLng, panoId, streetId, regionId, captureDate, address, pov,, onOpen, onCopy, onView, label,
       ] = collaborators.infoPopover;
+      const labelId = label.id;
 
       expect([latLng(), panoId(), streetId(), regionId(), captureDate(), pov(), labelId()]).toEqual(
         [null, null, null, null, null, null, null]);
@@ -183,10 +184,12 @@ describe('the label card', () => {
       onOpen();
       onCopy();
       onView();
+      label.linkLogging();
       expect(logged().filter((e) => e.startsWith('Click_'))).toEqual([
         'Click_module=LabelDetail_action=PanoInfoButton_labelId=42',
         'Click_module=LabelDetail_action=PanoInfoCopyToClipboard_labelId=42',
         'Click_module=LabelDetail_action=PanoInfoViewInPano_labelId=42',
+        'Click_module=LabelDetail_action=PanoInfoLabelLink_labelId=42',
       ]);
     });
 

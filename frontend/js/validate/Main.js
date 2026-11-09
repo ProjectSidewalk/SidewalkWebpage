@@ -587,9 +587,12 @@ export class Main {
         () => tracker.push('PanoInfoButton_Click'),
         () => tracker.push('PanoInfoCopyToClipboard_Click'),
         () => tracker.push('PanoInfoViewInPano_Click'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
-        () => tracker.push('PanoInfoLabelLink_Click'),
+        {
+          id: () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
+          date: () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
+          linkLogging: () => tracker.push('PanoInfoLabelLink_Click',
+            { labelId: labelContainer.getCurrentLabel().getAuditProperty('labelId') }),
+        },
       );
     }
 

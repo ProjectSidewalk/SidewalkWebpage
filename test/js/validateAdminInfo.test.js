@@ -67,7 +67,8 @@ describe('AdminInfo', () => {
     expect(link.getAttribute('href')).toBe('/admin/user/ada%20lovelace');
     expect(link.target).toBe('_blank');
     const labelLink = popover.querySelector('#curr-label-id a');
-    expect(labelLink.textContent).toBe('42');
+    expect(labelLink.firstChild.textContent).toBe('42');
+    expect(labelLink.querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
     expect(labelLink.getAttribute('href')).toBe('/admin/label/42');
     expect(labelLink.target).toBe('_blank');
   });
@@ -109,7 +110,7 @@ describe('AdminInfo', () => {
     adminInfo.updateAdminInfo(label('ada', 1, [{ username: 'bo', validation: 'Agree' }]));
     adminInfo.updateAdminInfo(label('cyd', 2, []));
     expect(popover.querySelectorAll('#admin-info-content')).toHaveLength(1);
-    expect(popover.querySelector('#curr-label-id').textContent).toBe('2');
+    expect(popover.querySelector('#curr-label-id a').getAttribute('href')).toBe('/admin/label/2');
     expect(prevLines(popover)).toEqual(['None']);
   });
 

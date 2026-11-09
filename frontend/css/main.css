@@ -493,6 +493,11 @@ button:disabled,
   border: 0;
 }
 
+/* newTabNote.js: only the visible link text belongs on the clipboard. */
+.new-tab-note {
+  user-select: none;
+}
+
 /* Centered page column. */
 .ps-container {
   width: 100%;
@@ -1282,15 +1287,6 @@ textarea.ps-input {
   font: var(--text-caption-semibold);
   color: var(--color-neutral-900);
   font-variant-numeric: tabular-nums;
-}
-
-.pano-info-popover__val a {
-  color: var(--color-link-200);
-}
-
-.pano-info-popover__val a:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: 2px;
 }
 
 .pano-info-popover__view-link {
