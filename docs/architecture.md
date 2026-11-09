@@ -345,7 +345,9 @@ the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the tabl
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
-the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
+the roster, flagging any job that is overdue, failed, interrupted, or has never run. The same page's Fleet table asks
+every city's public `/health` (#4548), which reports the build's git SHA from `BuildInfo` and whether the database
+answers, so a release can be watched landing city by city. The wrapper is strictly
 subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
 Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the

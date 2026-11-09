@@ -2,8 +2,9 @@
  * Owner-only Health dashboard page (#4561).
  *
  * Polls /adminapi/dbHealth and renders the current database & application operational-health signals — blocking
- * locks, idle-in-transaction sessions, stuck evolutions, table bloat, connection pressure, and pano-backup coverage.
- * All status colors come from server-provided thresholds (never hard-coded here). Admin-only surface, English only.
+ * locks, idle-in-transaction sessions, stuck evolutions, table bloat, connection pressure, and pano-backup coverage —
+ * and /adminapi/fleetHealth for every city instance's build and liveness (#4548). All status colors come from
+ * server-provided thresholds (never hard-coded here). Admin-only surface, English only.
  */
 
 import { util } from '../common/utilities.js';
@@ -11,6 +12,7 @@ import { AdminShell } from './AdminShell.js';
 
 export class HealthPage {
   #healthUrl;
+  #fleetUrl;
   #pollMs;
   #thresholds = null;
   #loading = false;
@@ -20,10 +22,12 @@ export class HealthPage {
   /**
    * @param {object} opts
    * @param {string} opts.healthUrl - URL of the JSON health endpoint.
+   * @param {string} [opts.fleetUrl] - URL of the fleet endpoint; the panel stays empty without one.
    * @param {number} [opts.pollSeconds=20] - Refresh interval in seconds.
    */
   constructor(opts) {
     this.#healthUrl = opts.healthUrl;
+    this.#fleetUrl = opts.fleetUrl;
     this.#pollMs = (opts.pollSeconds || 20) * 1000;
   }
 
@@ -50,6 +54,8 @@ export class HealthPage {
   async #load() {
     if (this.#loading) return;
     this.#loading = true;
+    // The fleet probe waits on other servers; it must never delay this one's DB signals.
+    const fleet = this.#fleetUrl ? this.#loadFleet() : Promise.resolve();
     try {
       const data = await util.fetchJson(this.#healthUrl);
       // Age is measured from the client clock at response receipt, not the server's generated_at timestamp, so
@@ -70,7 +76,17 @@ export class HealthPage {
     } catch (e) {
       AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${util.escapeHTML(e.message)}`);
     } finally {
+      await fleet;
       this.#loading = false;
+    }
+  }
+
+  /** A fleet failure marks its own panel, not the pulse: the DB signals may be fine. */
+  async #loadFleet() {
+    try {
+      this.#renderFleet(await util.fetchJson(this.#fleetUrl));
+    } catch (e) {
+      this.#renderProblem('health-fleet', `Could not probe the fleet. ${e.message}`);
     }
   }
 
@@ -336,6 +352,63 @@ export class HealthPage {
     this.#panosHtml = html;
     AdminShell.setHtml('health-panos-note',
       'Backup status fills in nightly, so a large "unchecked" count is normal.');
+  }
+
+  // ---- Panel: fleet ----------------------------------------------------------------------------------------------
+
+  /**
+   * One row per city, problems first (unreachable, unhealthy, other build) so a release in progress reads at a glance.
+   * The build comparison is by full SHA; `git_describe` is only the label.
+   *
+   * @param {Record<string, any>} data - The `/adminapi/fleetHealth` payload.
+   */
+  #renderFleet(data) {
+    const cities = data.cities || [];
+    if (!cities.length) return this.#renderProblem('health-fleet', 'No cities are configured for this stage.');
+    const verdict = (c) => {
+      if (!c.health) return { rank: 0, tone: 'bad', label: c.http_status ? `HTTP ${c.http_status}` : 'unreachable' };
+      if (c.health.status !== 'ok') return { rank: 1, tone: 'bad', label: c.health.status };
+      if (data.this_git_sha && c.health.git_sha !== data.this_git_sha) {
+        return { rank: 2, tone: 'warn', label: 'other build' };
+      }
+      return { rank: 3, tone: 'good', label: 'ok' };
+    };
+    const rows = cities.map((c) => ({ c, v: verdict(c) }))
+      .sort((a, b) => a.v.rank - b.v.rank || a.c.city_name.localeCompare(b.c.city_name));
+    const body = rows.map(({ c, v }) => {
+      const h = c.health || {};
+      const self = c.city_id === data.this_city_id ? ' <span class="ac-muted">(this instance)</span>' : '';
+      // Same `*` for a dirty build as the deployment strip.
+      const label = `${h.git_describe || (h.git_sha || '').slice(0, 7)}${h.git_dirty ? '*' : ''}`;
+      const commitUrl = `https://github.com/ProjectSidewalk/SidewalkWebpage/commit/${h.git_sha}`;
+      const build = h.git_sha
+        ? `<a href="${util.escapeHTML(commitUrl)}" target="_blank" rel="noopener">
+             <code>${util.escapeHTML(label)}</code></a>`
+        : '—';
+      const detail = c.error ? util.escapeHTML(c.error) : '';
+      const started = h.app_started_at ? AdminShell.relativeTime(h.app_started_at) : '—';
+      return `
+        <tr${v.tone === 'good' ? '' : ' class="ac-row--flagged"'}>
+          <td>
+            <a href="${util.escapeHTML(c.url)}" target="_blank" rel="noopener">${util.escapeHTML(c.city_name)}</a>
+            ${self}
+          </td>
+          <td><span class="ac-badge ac-badge--${v.tone}">${util.escapeHTML(v.label)}</span> ${detail}</td>
+          <td>${build}</td>
+          <td>${util.escapeHTML(h.version || '—')}</td>
+          <td class="ac-muted">${util.escapeHTML(started)}</td>
+        </tr>`;
+    }).join('');
+    this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', 'Started'], body);
+    const onBuild = rows.filter(({ v }) => v.rank === 3).length;
+    const down = rows.filter(({ v }) => v.rank < 2).length;
+    const noun = cities.length === 1 ? 'city is' : 'cities are';
+    const parts = [`${onBuild} of ${cities.length} ${noun} healthy and on this build`];
+    if (down > 0) parts.push(`${down} not answering healthily`);
+    const absent = data.not_deployed || [];
+    if (absent.length) parts.push(`no instance on this stage: ${absent.join(', ')}`);
+    const probed = AdminShell.relativeTime(data.generated_at);
+    AdminShell.setHtml('health-fleet-note', util.escapeHTML(`${parts.join(' · ')} · probed ${probed}`));
   }
 
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------

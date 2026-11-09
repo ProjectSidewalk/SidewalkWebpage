@@ -5,7 +5,8 @@
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Owner-only Health page (#4561): database health signals the app log doesn't show (blocking locks, idle
-   transactions, stuck evolutions, table bloat, connection pressure), polled from /adminapi/dbHealth. English only. *@
+   transactions, stuck evolutions, table bloat, connection pressure), polled from /adminapi/dbHealth, and every city
+   instance's build and liveness from /adminapi/fleetHealth (#4548). English only. *@
 
 @content = {
   <div class="page-section" id="health-intro-section">
@@ -23,6 +24,13 @@
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-panos">—</span><span class="ps-kpi-label">At-risk panos (this city)</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
+  </div>
+
+  <div class="page-section" id="health-fleet-section">
+    <h2 class="page-heading" id="fleet">Fleet <a href="#fleet" class="permalink">#</a></h2>
+    <p>Every city's app instance: whether it answers and which build it runs. During a release, rows not yet on this instance's build are flagged until they restart.</p>
+    <div id="health-fleet"></div>
+    <p class="ac-note" id="health-fleet-note"></p>
   </div>
 
   <div class="page-section" id="health-jobs-section">

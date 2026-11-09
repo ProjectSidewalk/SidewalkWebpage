@@ -1,0 +1,78 @@
+package service
+
+import com.google.inject.ImplementedBy
+import formats.json.HealthFormats.{FleetCityHealth, FleetHealth, HealthStatus, given}
+import models.utils.BuildInfo
+import play.api.cache.AsyncCacheApi
+import play.api.{Configuration, Logger}
+import play.api.i18n.Lang
+import play.api.libs.json.Json
+import play.api.libs.ws.WSClient
+
+import java.time.OffsetDateTime
+import javax.inject.*
+import scala.concurrent.duration.*
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+
+/**
+ * Every city instance's `/health` for the Health dashboard (#4548). Over HTTP, not the database: which binary an
+ * instance runs lives only in that JVM, and whether it is serving at all is not a database fact either.
+ */
+@ImplementedBy(classOf[FleetHealthServiceImpl])
+trait FleetHealthService {
+
+  /** Cached briefly so several open dashboards don't each probe the fleet. */
+  def getFleetHealth: Future[FleetHealth]
+}
+
+object FleetHealthService {
+
+  /** A 503 still carries a body (up, but its database isn't), so only an unparsable body is an `error`. */
+  def parse(cityId: String, cityName: String, url: String, httpStatus: Int, body: String): FleetCityHealth = {
+    val health = Try(Json.parse(body).as[HealthStatus]).toOption
+    val error  = if (health.isDefined) None else Some(s"HTTP $httpStatus with no health body")
+    FleetCityHealth(cityId, cityName, url, Some(httpStatus), health, error)
+  }
+}
+
+@Singleton
+class FleetHealthServiceImpl @Inject() (
+    ws: WSClient,
+    cacheApi: AsyncCacheApi,
+    config: Configuration,
+    configService: ConfigService
+)(using ec: ExecutionContext)
+    extends FleetHealthService {
+  private val logger = Logger(this.getClass)
+
+  // Cities with no instance on this stage (`city-params.not-deployed`), reported as absent rather than probed.
+  private val notDeployed: Set[String] = config
+    .getOptional[Seq[String]](s"city-params.not-deployed.${config.get[String]("environment-type")}")
+    .getOrElse(Seq.empty)
+    .toSet
+
+  // Under the page's 20s poll, so a second tab reuses the answer but a release still shows within one poll.
+  private val cacheTtl: Duration = 15.seconds
+  // The table is one payload, so a slow city delays every row; past this it counts as down.
+  private val requestTimeout: FiniteDuration = 5.seconds
+
+  def getFleetHealth: Future[FleetHealth] = cacheApi.getOrElseUpdate[FleetHealth]("fleetHealth", cacheTtl) {
+    // Admin-only, English-only surface, so city names need no viewer language.
+    val cities = configService.getAllCityInfo(Lang("en")).filterNot(c => notDeployed.contains(c.cityId))
+    Future.traverse(cities)(city => probe(city.cityId, city.cityNameFormatted, city.URL.stripSuffix("/"))).map { rows =>
+      FleetHealth(OffsetDateTime.now(), configService.getCityId, BuildInfo.gitSha, rows, notDeployed.toSeq.sorted)
+    }
+  }
+
+  /** Never fails: one unreachable city must not take the rest of the table down with it. */
+  private def probe(cityId: String, cityName: String, url: String): Future[FleetCityHealth] =
+    ws.url(s"$url/health")
+      .withRequestTimeout(requestTimeout)
+      .get()
+      .map(resp => FleetHealthService.parse(cityId, cityName, url, resp.status, resp.body))
+      .recover { case e: Exception =>
+        logger.info(s"Fleet health: $cityId unreachable at $url: ${e.getMessage}")
+        FleetCityHealth(cityId, cityName, url, None, None, Some(e.getClass.getSimpleName))
+      }
+}

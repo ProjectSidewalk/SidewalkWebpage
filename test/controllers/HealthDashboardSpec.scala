@@ -9,8 +9,8 @@ import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
- * Smoke tests for the Owner-only Health dashboard (#4561): GET /admin/health (the page) and GET /adminapi/dbHealth
- * (the JSON poller endpoint).
+ * Smoke tests for the Owner-only Health dashboard (#4561): GET /admin/health (the page) and its JSON poller endpoints,
+ * GET /adminapi/dbHealth and GET /adminapi/fleetHealth (#4548).
  *
  * Verifies both routes are wired (not 404) and Owner-gated — an unauthenticated request is redirected to sign-in
  * rather than served the cluster-wide health payload. Boots the full application with a real DB.
@@ -35,6 +35,13 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   "GET /adminapi/dbHealth" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {
       val resp = route(app, FakeRequest(GET, "/adminapi/dbHealth")).get
+      status(resp) must (be >= 300 and be < 400)
+    }
+  }
+
+  "GET /adminapi/fleetHealth" should {
+    "redirect unauthenticated users to the sign-in page (not 404)" in {
+      val resp = route(app, FakeRequest(GET, "/adminapi/fleetHealth")).get
       status(resp) must (be >= 300 and be < 400)
     }
   }
