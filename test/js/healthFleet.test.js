@@ -73,7 +73,7 @@ describe('the fleet panel', () => {
     await render({
       generated_at: '2026-08-20T04:00:00Z',
       this_city_id: 'seattle',
-      this_git_sha: 'aaaaaaa111',
+      latest_git_sha: 'aaaaaaa111',
       cities: [city('seattle', 'Seattle, WA', 'aaaaaaa111'), city('chicago', 'Chicago, IL', 'aaaaaaa111')],
       not_deployed: ['crowdstudy', 'staging'],
     });
@@ -81,16 +81,16 @@ describe('the fleet panel', () => {
     expect(rows()[0].slice(1, 4)).toEqual(['ok', 'v11.20.0-gaaaaaaa', '11.20.0']);
     expect(document.querySelectorAll('#health-fleet .ac-row--flagged')).toHaveLength(0);
     const note = textOf(document.getElementById('health-fleet-note'));
-    expect(note).toContain('2 of 2 cities are healthy and on this build');
+    expect(note).toContain('2 of 2 cities are healthy and on the newest build');
     // A city with no instance on this stage is absent by design, so it is named rather than shown as down.
     expect(note).toContain('no instance on this stage: crowdstudy, staging');
   });
 
-  test('flags a city still on another build, one whose database failed, and one that is down, worst first', async () => {
+  test('flags a city still on an older build, one whose database failed, and one that is down, worst first', async () => {
     await render({
       generated_at: '2026-08-20T04:00:00Z',
       this_city_id: 'seattle',
-      this_git_sha: 'aaaaaaa111',
+      latest_git_sha: 'aaaaaaa111',
       cities: [
         city('seattle', 'Seattle, WA', 'aaaaaaa111'),
         city('oslo', 'Oslo', 'bbbbbbb222'),
@@ -104,14 +104,14 @@ describe('the fleet panel', () => {
     expect(rows().map((r) => [r[0], r[1]])).toEqual([
       ['Mexico City', 'unreachable ConnectException'],
       ['Chicago, IL', 'error'],
-      ['Oslo', 'other build'],
+      ['Oslo', 'older build'],
       ['Seattle, WA (this instance)', 'ok'],
     ]);
-    // The SHA decides "other build"; the describe label is cosmetic.
+    // The SHA decides "older build"; the describe label is cosmetic.
     expect(rows()[2][2]).toBe('v11.20.0-gbbbbbbb');
     expect(document.querySelectorAll('#health-fleet .ac-row--flagged')).toHaveLength(3);
     const note = textOf(document.getElementById('health-fleet-note'));
-    expect(note).toContain('1 of 4 cities are healthy and on this build');
+    expect(note).toContain('1 of 4 cities are healthy and on the newest build');
     expect(note).toContain('2 not answering healthily');
   });
 
@@ -119,16 +119,40 @@ describe('the fleet panel', () => {
     await render({
       generated_at: '2026-08-20T04:00:00Z',
       this_city_id: 'seattle',
-      this_git_sha: 'aaaaaaa111',
-      cities: [city('oslo', 'Oslo', 'x', { health: null, error: 'HTTP 200 with no health body' })],
+      latest_git_sha: 'aaaaaaa111',
+      cities: [city('oslo', 'Oslo', 'x', { health: null, error: 'not a health response' })],
     });
-    expect(rows()[0][1]).toBe('HTTP 200 HTTP 200 with no health body');
+    expect(rows()[0][1]).toBe('HTTP 200 not a health response');
     expect(rows()[0][2]).toBe('—');
+  });
+
+  test('a healthy answer from the wrong instance is a problem row, however green its body', async () => {
+    await render({
+      generated_at: '2026-08-20T04:00:00Z',
+      this_city_id: 'seattle',
+      latest_git_sha: 'aaaaaaa111',
+      cities: [city('oslo', 'Oslo', 'aaaaaaa111', { error: 'answered as seattle' })],
+    });
+    expect(rows()[0][1]).toBe('HTTP 200 answered as seattle');
+    expect(document.querySelectorAll('#health-fleet .ac-row--flagged')).toHaveLength(1);
+  });
+
+  test('names the tab-opening links for screen readers', async () => {
+    await render({
+      generated_at: '2026-08-20T04:00:00Z',
+      this_city_id: 'seattle',
+      latest_git_sha: 'aaaaaaa111',
+      cities: [city('seattle', 'Seattle, WA', 'aaaaaaa111')],
+    });
+    const labels = [...document.querySelectorAll('#health-fleet a[target="_blank"]')].map((a) => a.getAttribute('aria-label'));
+    expect(labels).toEqual(['Seattle, WA (opens in new tab)', 'commit v11.20.0-gaaaaaaa (opens in new tab)']);
   });
 
   test('a failed fleet probe marks only its own panel and leaves the database signals rendered', async () => {
     await render({ status: 500, body: 'boom' });
     expect(textOf(document.getElementById('health-fleet'))).toContain('Could not probe the fleet.');
+    // No stale "N of M healthy" line under an error.
+    expect(textOf(document.getElementById('health-fleet-note'))).toBe('');
     expect(textOf(document.getElementById('health-pulse'))).toContain('All clear');
   });
 });

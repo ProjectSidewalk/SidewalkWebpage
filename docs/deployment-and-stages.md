@@ -219,8 +219,10 @@ Publishing this is what triggers the **prod** build and the rolling per-city res
 The build isn't instant and city instances come up one-by-one, so confirm the *new code* is live in each city, not
 just that the server responds. The **Fleet** table on any prod city's `/admin/health` (Owner-only) does this for
 the whole fleet: it asks every city's `/health` and flags each row that is unreachable, reports a database error, or
-runs a different build from the instance you're viewing. When every row is green and the build column shows the new
-tag, the release is live everywhere. Cities with no instance on a stage (`crowdstudy` on prod, `validation-study` on
+runs an older build than the most recently restarted instance. When every row is green and the build column shows
+the new tag, the new code is live everywhere. That proves the binary, not the pages: also load a page the release
+changed and check it behaves as the new code should (the #4545 hotfix would have passed every health check while
+`/leaderboard` crashed). Cities with no instance on a stage (`crowdstudy` on prod, `validation-study` on
 test, `staging` on both) are listed as absent, not down, from `city-params.not-deployed` in `cityparams.conf`;
 `sidewalk-server-tools` keeps the same list as `cities_excluded_prod` / `cities_excluded_test`.
 
@@ -229,7 +231,7 @@ The same data is available per instance from **`GET /health`** (public, no sessi
 ```bash
 curl -s https://sidewalk-sea.cs.washington.edu/health
 # {"status":"ok","git_sha":"<full sha>","git_describe":"v11.20.0","git_dirty":false,"version":"11.20.0",
-#  "version_released_at":"...","city_id":"seattle","environment":"prod","app_started_at":"..."}
+#  "version_released_at":"...","city_id":"seattle-wa","environment":"prod","app_started_at":"..."}
 ```
 
 `git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's
@@ -535,15 +537,15 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 
-The liveness probe is **`GET /health`**: 200 when the instance is up and its database answers, 503 when it is up but
-the database doesn't, and no response at all when the instance is down. It is a plain action, so a probe creates no
-user, session, or activity row, and it is never rate-limited. Instances that fail the probe are automatically
-restarted. The body also names the build (`git_sha`), which is how a deploy is verified (step 8 of the release
-runbook above).
+The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers, 503 when it is
+up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a probe
+creates no user, session, or activity row, and it is never rate-limited. The body also names the build (`git_sha`),
+which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's call, with
+one thing to get right: a 503 from every city at once is the shared database, and restarting the instances won't
+help, so restart on no answer and alert on 503.
 
-Never probe `/anonSignUp`: it mints a new anonymous account on every hit, including a `HEAD`, and it is rate-limited
-per IP, so a probe from one host gets throttled into false alarms. The ops repo's probe moves to `/health` as part of
-#5138.
+Until the ops repo switches (#5138), the probe hits `/anonSignUp`, which mints a new anonymous account on every hit,
+including a `HEAD`, and is rate-limited per IP, so a probe from one host gets throttled into false alarms.
 
 ## Logs
 

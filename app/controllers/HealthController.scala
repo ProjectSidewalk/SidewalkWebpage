@@ -1,14 +1,11 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import formats.json.HealthFormats.{HealthStatus, given}
-import models.utils.{BuildInfo, VersionTable}
-import play.api.{Configuration, Logger}
+import formats.json.HealthFormats.given
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
-import service.ConfigService
+import service.HealthService
 
-import java.time.OffsetDateTime
 import javax.inject.*
 import scala.concurrent.ExecutionContext
 
@@ -18,31 +15,14 @@ import scala.concurrent.ExecutionContext
  * every city: a SecuredAction would mint an anonymous account per hit and logging would flood `webpage_activity`.
  */
 @Singleton
-class HealthController @Inject() (
-    cc: CustomControllerComponents,
-    config: Configuration,
-    configService: ConfigService,
-    versionTable: VersionTable
-)(implicit ec: ExecutionContext)
-    extends CustomBaseController(cc) {
+class HealthController @Inject() (cc: CustomControllerComponents, healthService: HealthService)(implicit
+    ec: ExecutionContext
+) extends CustomBaseController(cc) {
 
-  private val logger = Logger(this.getClass)
-
-  private val envType: String = config.get[String]("environment-type")
-
-  /** 200 when the database answers, 503 otherwise. Uncached read and `no-store` so every probe is a real check. */
+  /** 200 when the database answers, 503 otherwise; `no-store` so a cached answer can't pass a deploy check. */
   def health: Action[AnyContent] = Action.async { _ =>
-    versionTable
-      .currentVersion()
-      .map { version => Ok(Json.toJson(report("ok", Some(version.versionId), Some(version.versionStartTime)))) }
-      .recover { case e: Exception =>
-        logger.warn(s"Health check failed to read the version table: ${e.getMessage}")
-        ServiceUnavailable(Json.toJson(report("error", None, None)))
-      }
-      .map(noStore)
+    healthService.getHealthStatus.map { status =>
+      noStore((if (status.status == "ok") Ok else ServiceUnavailable) (Json.toJson(status)))
+    }
   }
-
-  private def report(status: String, version: Option[String], releasedAt: Option[OffsetDateTime]) =
-    HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
-      configService.getCityId, envType, configService.appStartTime)
 }

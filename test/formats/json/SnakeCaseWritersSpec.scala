@@ -264,7 +264,7 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
         Seq(FleetCityHealth("chicago", "Chicago, IL", "https://c", None, None, Some("ConnectException"))),
         Seq("crowdstudy")
       ),
-      """{"generated_at":"2026-09-29T12:30:00Z","this_city_id":"seattle","this_git_sha":"abc","cities":[{"city_id":"chicago","city_name":"Chicago, IL","url":"https://c","error":"ConnectException"}],"not_deployed":["crowdstudy"]}"""
+      """{"generated_at":"2026-09-29T12:30:00Z","this_city_id":"seattle","latest_git_sha":"abc","cities":[{"city_id":"chicago","city_name":"Chicago, IL","url":"https://c","error":"ConnectException"}],"not_deployed":["crowdstudy"]}"""
     )
   }
 }

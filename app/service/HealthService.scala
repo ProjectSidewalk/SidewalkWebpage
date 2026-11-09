@@ -2,7 +2,16 @@ package service
 
 import actor.ScheduledJobs
 import com.google.inject.ImplementedBy
-import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
+import formats.json.HealthFormats.HealthStatus
+import models.utils.{
+  BackgroundJobRun,
+  BackgroundJobRunTable,
+  BuildInfo,
+  HealthTable,
+  JobRunStatus,
+  JobRunTrigger,
+  VersionTable
+}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.*
@@ -177,6 +186,12 @@ trait HealthService {
   def getDbHealth: Future[DbHealthData]
 
   /**
+   * The `GET /health` body (#4548). Reads the `version` table uncached so every probe is a real database round-trip;
+   * `status` is "error" and the version fields are empty when that read fails.
+   */
+  def getHealthStatus: Future[HealthStatus]
+
+  /**
    * The state of every nightly job, cached. Shared with panels that report on one pipeline's jobs (#4908), so that
    * "is this job overdue" has one definition rather than one per page.
    */
@@ -189,12 +204,26 @@ class HealthServiceImpl @Inject() (
     config: Configuration,
     cacheApi: AsyncCacheApi,
     healthTable: HealthTable,
-    backgroundJobRunTable: BackgroundJobRunTable
+    backgroundJobRunTable: BackgroundJobRunTable,
+    versionTable: VersionTable,
+    configService: ConfigService
 )(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+
+  private val envType: String = config.get[String]("environment-type")
+
+  def getHealthStatus: Future[HealthStatus] = versionTable
+    .currentVersion()
+    .map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime)))
+    // No log line: a down database already logs itself, and a probe hits this every few seconds.
+    .recover { case _: Exception => healthStatus("error", None, None) }
+
+  private def healthStatus(status: String, version: Option[String], releasedAt: Option[OffsetDateTime]) =
+    HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
+      configService.getCityId, envType, configService.appStartTime)
 
   // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
   private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)

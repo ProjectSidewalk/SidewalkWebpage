@@ -30,11 +30,14 @@ object HealthFormats {
       error: Option[String]
   )
 
-  /** The `/adminapi/fleetHealth` body; `thisGitSha` is what the rows are compared against. */
+  /**
+   * The `/adminapi/fleetHealth` body. `latestGitSha` is the build of the most recently started healthy instance: a
+   * restart always runs the newest staged build, so during a release this is the new build whichever city is viewed.
+   */
   case class FleetHealth(
       generatedAt: OffsetDateTime,
       thisCityId: String,
-      thisGitSha: Option[String],
+      latestGitSha: Option[String],
       cities: Seq[FleetCityHealth],
       notDeployed: Seq[String]
   )

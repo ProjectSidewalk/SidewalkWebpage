@@ -2,7 +2,6 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.HealthFormats.{FleetCityHealth, FleetHealth, HealthStatus, given}
-import models.utils.BuildInfo
 import play.api.cache.AsyncCacheApi
 import play.api.{Configuration, Logger}
 import play.api.i18n.Lang
@@ -28,12 +27,23 @@ trait FleetHealthService {
 
 object FleetHealthService {
 
-  /** A 503 still carries a body (up, but its database isn't), so only an unparsable body is an `error`. */
+  /**
+   * A 503 still carries a body (up, but its database isn't), so only an unparsable body is an `error`. So is a body
+   * from a different city: the URL then points at the wrong instance, which must not read as that city being healthy.
+   */
   def parse(cityId: String, cityName: String, url: String, httpStatus: Int, body: String): FleetCityHealth = {
     val health = Try(Json.parse(body).as[HealthStatus]).toOption
-    val error  = if (health.isDefined) None else Some(s"HTTP $httpStatus with no health body")
+    val error  = health match {
+      case None                          => Some("not a health response")
+      case Some(h) if h.cityId != cityId => Some(s"answered as ${h.cityId}")
+      case _                             => None
+    }
     FleetCityHealth(cityId, cityName, url, Some(httpStatus), health, error)
   }
+
+  /** The build of the most recently started instance that answered as itself, or None when nothing did. */
+  def latestBuild(rows: Seq[FleetCityHealth]): Option[String] =
+    rows.filter(_.error.isEmpty).flatMap(_.health).filter(_.gitSha.isDefined).maxByOption(_.appStartedAt).flatMap(_.gitSha)
 }
 
 @Singleton
@@ -61,7 +71,8 @@ class FleetHealthServiceImpl @Inject() (
     // Admin-only, English-only surface, so city names need no viewer language.
     val cities = configService.getAllCityInfo(Lang("en")).filterNot(c => notDeployed.contains(c.cityId))
     Future.traverse(cities)(city => probe(city.cityId, city.cityNameFormatted, city.URL.stripSuffix("/"))).map { rows =>
-      FleetHealth(OffsetDateTime.now(), configService.getCityId, BuildInfo.gitSha, rows, notDeployed.toSeq.sorted)
+      FleetHealth(OffsetDateTime.now(), configService.getCityId, FleetHealthService.latestBuild(rows), rows,
+        notDeployed.toSeq.sorted)
     }
   }
 
@@ -72,7 +83,8 @@ class FleetHealthServiceImpl @Inject() (
       .get()
       .map(resp => FleetHealthService.parse(cityId, cityName, url, resp.status, resp.body))
       .recover { case e: Exception =>
-        logger.info(s"Fleet health: $cityId unreachable at $url: ${e.getMessage}")
+        // Debug, not warn: during an outage this fires for every city on every poll, and the table already says so.
+        logger.debug(s"Fleet health: $cityId unreachable at $url: ${e.getMessage}")
         FleetCityHealth(cityId, cityName, url, None, None, Some(e.getClass.getSimpleName))
       }
 }
