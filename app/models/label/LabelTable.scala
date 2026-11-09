@@ -1436,8 +1436,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lp.lng,
              pano_data.lat AS camera_lat,
              pano_data.lng AS camera_lng,
-             -- The AI badge, as hasPlacedType explains. A lookup by user_id rather than an EXISTS, which can make Postgres
-             -- scan all of the shared user_role table to find the AI users.
+             -- The AI badge (see hasPlacedType). Not an EXISTS on user_role, which scans that whole shared table.
              (SELECT role FROM user_role WHERE user_role.user_id = lb1.user_id) = 'AI' AND COALESCE((
                SELECT label_edit.old_label_type FROM label_edit
                WHERE label_edit.label_id = lb1.label_id
@@ -1575,9 +1574,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     userRoles.filter(r => r.userId === l.userId && r.role === Role.Ai).exists
 
   /**
-   * Whether the label has the type it was placed with, which an AI label needs to keep its AI badge (#5925): once
-   * someone gives it another type, they decided what is there and the AI only pointed them at the spot. Changed and
-   * then changed back, it has its placed type again. The first edit's old type is the placed type, since undoing an
+   * Whether the label still has the type it was placed with, which an AI label needs to keep the AI badge (#5925): a
+   * new type means a person decided what is there. The placed type is the first edit's old type, since undoing an
    * edit moves the next edit's old state back to it.
    *
    * @return Whether the label's type is the one it was placed with.

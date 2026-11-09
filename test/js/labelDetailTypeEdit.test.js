@@ -317,7 +317,9 @@ describe('changing a label\'s type from the card (#3671)', () => {
     await flush();
 
     expect(panoManager.setAiGenerated).toHaveBeenLastCalledWith(false);
-    expect(onEdit).toHaveBeenLastCalledWith(expect.objectContaining({ label_type: 'SurfaceProblem', ai_generated: false }));
+    expect(onEdit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label_type: 'SurfaceProblem', ai_generated: false }),
+    );
   });
 
   test('a type change clears the user\'s vote from the pano when it was cast on the old type (#5853)', async () => {

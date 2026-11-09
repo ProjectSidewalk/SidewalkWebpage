@@ -10,12 +10,11 @@ import service.LabelEditService
 import util.{RolledBackDb, SidewalkSpec}
 
 /**
- * Pins when a label shows the AI badge (#5925): the AI placed it and it still has the type it was placed with. A
- * severity edit keeps the badge, a new type takes it away, and going back to the placed type brings it back, whether
- * the two type changes folded into one edit or not.
+ * Pins when a label shows the AI badge (#5925): placed by the AI and still its placed type. A new rating keeps it, a
+ * new type removes it, and changing back restores it, whether or not the two changes folded into one edit.
  *
- * The dev DB has no AI labels, so the spec hands a human's label to the AI account inside a transaction that is
- * rolled back, and edits it through `LabelEditService.applyEdit`, the path the label popup and Validate take.
+ * The dev DB has no AI labels, so the spec gives a human's label to the AI account in a rolled-back transaction and
+ * edits it through `LabelEditService.applyEdit`, as the popup and Validate do.
  */
 class AiBadgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -26,8 +25,7 @@ class AiBadgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackD
   private lazy val labelEditService = app.injector.instanceOf[LabelEditService]
 
   /**
-   * A human's label that both the label popup and Gallery's by-id query load, never edited and with no saved crop, so
-   * its type is the one it was placed with and a type change has no crop file to move.
+   * A never-edited human label that the popup and Gallery both load, with no saved crop for a type change to move.
    *
    * @return The label's id, type and pano source, and the labeler's id.
    */
@@ -52,7 +50,7 @@ class AiBadgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackD
             LIMIT 1""".as[(Int, String, String, String)].headOption
     ).getOrElse(cancel("no label in this database fits"))
 
-  /** @return The AI account, which Gallery can load labels from only if it has a user_stat row that isn't excluded. */
+  /** @return The AI account, if it has the unexcluded user_stat row Gallery needs. */
   private def aiUserId(): String =
     run(
       sql"""SELECT user_role.user_id
@@ -77,8 +75,7 @@ class AiBadgeSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackD
       } yield (popup.head.aiGenerated, gallery.head.aiGenerated)
 
       /**
-       * Edits the label as the labeler. Edits from one source within the fold window fold into one row; a different
-       * source starts a new row.
+       * Edits the label as the labeler. Same-source edits fold into one row; another source starts a new one.
        *
        * @return The badges once the edit is in.
        */

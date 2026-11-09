@@ -550,8 +550,7 @@ export class PopupPanoManager {
   }
 
   /**
-   * Adds or removes the AI badge on the pano markers, since a type change can take it away and its undo bring it back
-   * (#5925).
+   * Adds or removes the AI badge on the pano markers, as a type change or its undo can flip it (#5925).
    * @param {boolean} aiGenerated - Whether the label shows the AI badge.
    */
   setAiGenerated(aiGenerated) {

@@ -550,8 +550,7 @@ export class Card {
   }
 
   /**
-   * Adds or removes the AI badge, since a type change made in the expanded view can take it away and its undo bring
-   * it back (#5925).
+   * Adds or removes the AI badge, as a type change or its undo in the expanded view can flip it (#5925).
    * @param {boolean} aiGenerated - Whether the label shows the AI badge.
    */
   setAiGenerated(aiGenerated) {
