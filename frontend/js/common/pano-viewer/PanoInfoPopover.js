@@ -47,6 +47,8 @@ export class PanoInfoPopover {
   #labelId;
   /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
+  /** @type {(() => void)|undefined} Optional — called when the Label ID link is clicked. */
+  #labelLinkLogging;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
 
@@ -66,9 +68,10 @@ export class PanoInfoPopover {
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
    * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
    * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
+   * @param {() => void} [labelLinkLogging] - Optional — called when the Label ID link is clicked
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
-    infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
+    infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate, labelLinkLogging) {
     this.#popoverEl = document.getElementById('pano-info-popover');
     this.#panoViewer = panoViewer;
     this.#coords = coords;
@@ -84,6 +87,7 @@ export class PanoInfoPopover {
     this.#viewPanoLogging = viewPanoLogging;
     this.#labelId = labelId;
     this.#labelDate = labelDate;
+    this.#labelLinkLogging = labelLinkLogging;
 
     this.#init(container);
   }
@@ -183,6 +187,20 @@ export class PanoInfoPopover {
   }
 
   /**
+   * Links the Label ID to the admin view for admins, where it can be pinned as a training example; else /label.
+   * @param {number} labelId - The label shown.
+   */
+  #setLabelLink(labelId) {
+    const link = document.createElement('a');
+    link.href = `${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.onclick = () => this.#labelLinkLogging?.();
+    link.append(String(labelId), newTabNote());
+    this.#popoverEl.querySelector('[data-field="label-id"]').replaceChildren(link);
+  }
+
+  /**
    * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
    */
   #updateVals() {
@@ -228,7 +246,7 @@ export class PanoInfoPopover {
     setVal('image-id', currPanoId);
     setVal('latitude', currCoords ? currCoords.lat : null);
     setVal('longitude', currCoords ? currCoords.lng : null);
-    if (currLabelId) setVal('label-id', currLabelId);
+    if (currLabelId) this.#setLabelLink(currLabelId);
     setVal('street-id', currStreetEdgeId);
     setVal('region-id', currRegionId);
     if (currLabelDate) setVal('label-date', currLabelDate);

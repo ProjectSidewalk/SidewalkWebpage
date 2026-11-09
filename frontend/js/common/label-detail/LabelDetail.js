@@ -376,6 +376,8 @@ export class LabelDetail {
       () => this.#logAction('PanoInfoCopyToClipboard'),
       () => this.#logAction('PanoInfoViewInPano'),
       () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
+      undefined, // labelDate
+      () => this.#logAction('PanoInfoLabelLink'),
     );
 
     // The popover's own trigger is the (i) icon it appends into the host span; forward clicks on the rest of the

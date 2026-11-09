@@ -5,6 +5,7 @@
 import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
 /** @typedef {import('../label/Label.js').Label} Label */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class AdminInfo {
   /** @type {HTMLTemplateElement} */
@@ -16,12 +17,17 @@ export class AdminInfo {
   /** @type {HTMLButtonElement} */
   #button;
 
+  /** @type {Tracker} */
+  #tracker;
+
   /**
    * Open/close, light dismiss and stacking are the browser's, via the `popover` attribute; this fills and parks it.
    *
    * @param {import('../Main.js').AdminInfoUi} adminUi - The Admin Info UI elements.
+   * @param {Tracker} tracker - Logs clicks on the label link.
    */
-  constructor(adminUi) {
+  constructor(adminUi, tracker) {
+    this.#tracker = tracker;
     this.#template = adminUi.template;
     this.#popover = adminUi.popover;
     this.#button = adminUi.button;
@@ -44,7 +50,7 @@ export class AdminInfo {
 
     const username = currentLabel.getAdminProperty('username');
     root.querySelector('#curr-label-username').replaceChildren(this.#userLink(username));
-    root.querySelector('#curr-label-id').textContent = currentLabel.getAuditProperty('labelId');
+    root.querySelector('#curr-label-id').replaceChildren(this.#labelLink(currentLabel.getAuditProperty('labelId')));
 
     const prevVals = currentLabel.getAdminProperty('previousValidations');
     if (prevVals.length === 0) {
@@ -71,6 +77,19 @@ export class AdminInfo {
     link.href = `/admin/user/${encodeURIComponent(username)}`;
     link.target = '_blank';
     link.textContent = username;
+    return link;
+  }
+
+  /**
+   * @param {number} labelId - The label shown.
+   * @returns {HTMLAnchorElement} A link to the label's admin page, where it can be pinned as a training example.
+   */
+  #labelLink(labelId) {
+    const link = document.createElement('a');
+    link.href = `/admin/label/${encodeURIComponent(labelId)}`;
+    link.target = '_blank';
+    link.textContent = String(labelId);
+    link.addEventListener('click', () => this.#tracker.push('Click_AdminInfoLabelLink', { labelId }));
     return link;
   }
 

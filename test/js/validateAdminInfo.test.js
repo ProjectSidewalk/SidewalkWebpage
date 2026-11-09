@@ -3,6 +3,7 @@
 import { loadModules, mockModule, useUtil } from './loader.js';
 
 const placePopover = vi.fn();
+const tracker = { push: vi.fn() };
 useUtil({ placePopover });
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
@@ -34,7 +35,7 @@ function build() {
     button: document.getElementById('admin-info-button'),
     holder: document.getElementById('admin-info-section'),
   };
-  return { adminInfo: new AdminInfo(ui), ...ui };
+  return { adminInfo: new AdminInfo(ui, tracker), ...ui };
 }
 
 /** @returns {object} A Label stand-in answering the two property getters AdminInfo reads. */
@@ -47,7 +48,10 @@ function label(username, labelId, previousValidations) {
 
 const prevLines = (popover) => [...popover.querySelectorAll('.prev-val')].map((p) => p.textContent);
 
-beforeEach(() => placePopover.mockClear());
+beforeEach(() => {
+  placePopover.mockClear();
+  tracker.push.mockClear();
+});
 
 describe('AdminInfo', () => {
   test('shows the Admin Info button once built', () => {
@@ -55,14 +59,24 @@ describe('AdminInfo', () => {
     expect(holder.style.display).toBe('block');
   });
 
-  test('names the labeler as a link to their admin page, and shows the label id', () => {
+  test('names the labeler and the label as links to their admin pages', () => {
     const { adminInfo, popover } = build();
     adminInfo.updateAdminInfo(label('ada lovelace', 42, []));
     const link = popover.querySelector('#curr-label-username a');
     expect(link.textContent).toBe('ada lovelace');
     expect(link.getAttribute('href')).toBe('/admin/user/ada%20lovelace');
     expect(link.target).toBe('_blank');
-    expect(popover.querySelector('#curr-label-id').textContent).toBe('42');
+    const labelLink = popover.querySelector('#curr-label-id a');
+    expect(labelLink.textContent).toBe('42');
+    expect(labelLink.getAttribute('href')).toBe('/admin/label/42');
+    expect(labelLink.target).toBe('_blank');
+  });
+
+  test('logs a click on the label link', () => {
+    const { adminInfo, popover } = build();
+    adminInfo.updateAdminInfo(label('ada', 42, []));
+    popover.querySelector('#curr-label-id a').dispatchEvent(new MouseEvent('click', { cancelable: true }));
+    expect(tracker.push).toHaveBeenCalledWith('Click_AdminInfoLabelLink', { labelId: 42 });
   });
 
   test('puts a username in as text, so markup in one is never run', () => {

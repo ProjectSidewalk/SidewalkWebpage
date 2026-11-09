@@ -76,7 +76,7 @@ describe('PanoInfoPopover', () => {
       labelId: 789,
       labelDate: new Date(2024, 2, 1, 14, 30),
     };
-    logs = { info: vi.fn(), clipboard: vi.fn(), viewPano: vi.fn() };
+    logs = { info: vi.fn(), clipboard: vi.fn(), viewPano: vi.fn(), labelLink: vi.fn() };
     copied = null;
     window.cityName = 'Seattle';
   });
@@ -90,7 +90,7 @@ describe('PanoInfoPopover', () => {
     return new PanoInfoPopover(document.getElementById('host'), () => state.viewer, () => state.coords,
       () => state.panoId, () => state.streetEdgeId, () => state.regionId, () => state.panoDate, () => state.address,
       () => state.pov, whiteIcon, logs.info, logs.clipboard, logs.viewPano,
-      withLabel ? () => state.labelId : undefined, withLabel ? () => state.labelDate : undefined);
+      withLabel ? () => state.labelId : undefined, withLabel ? () => state.labelDate : undefined, logs.labelLink);
   }
 
   const button = () => document.getElementById('pano-info-button');
@@ -98,6 +98,7 @@ describe('PanoInfoPopover', () => {
   const row = (name) => popoverEl.querySelector(`[data-optional-row="${name}"]`);
   const isOpen = () => popoverEl.matches(':popover-open');
   const viewLink = () => popoverEl.querySelector('.pano-info-popover__view-link');
+  const labelLink = () => popoverEl.querySelector('[data-field="label-id"] a');
 
   /** Clicks the copy button and returns what it copied. */
   function copy() {
@@ -189,9 +190,26 @@ describe('PanoInfoPopover', () => {
       build();
       button().click();
       expect(row('label-id').classList).not.toContain('pano-info-popover__row--hidden');
-      expect(field('label-id')).toBe('789');
+      expect(labelLink().firstChild.textContent).toBe('789');
       const labeled = state.labelDate.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
       expect(field('label-date')).toBe(labeled);
+    });
+
+    it('links the label id to its public page, opening in a new tab', () => {
+      build();
+      button().click();
+      expect(labelLink().getAttribute('href')).toBe('/label/789');
+      expect(labelLink().target).toBe('_blank');
+      expect(labelLink().querySelector('.sr-only').textContent).toBe(' common:opens-new-tab');
+      labelLink().dispatchEvent(new MouseEvent('click', { cancelable: true }));
+      expect(logs.labelLink).toHaveBeenCalledOnce();
+    });
+
+    it('links the label id to its admin page for an admin', () => {
+      document.body.insertAdjacentHTML('afterbegin', '<nav id="header" data-viewer-admin="true"></nav>');
+      build();
+      button().click();
+      expect(labelLink().getAttribute('href')).toBe('/admin/label/789');
     });
 
     it('leaves the label rows alone for a label time it cannot read, or no label yet', () => {

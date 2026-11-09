@@ -704,6 +704,18 @@ export function hasSession() {
 util.hasSession = hasSession;
 
 /**
+ * Whether the server rendered this page for an admin. Only for picking a link's destination: the server still checks
+ * the role on every admin page and endpoint.
+ *
+ * @returns {boolean} What the navbar's data-viewer-admin says; false on the few pages rendered without a navbar.
+ */
+export function isAdmin() {
+  return document.getElementById('header')?.dataset.viewerAdmin === 'true';
+}
+
+util.isAdmin = isAdmin;
+
+/**
  * Runs fn once the page has finished loading and the main thread next goes idle.
  *
  * The "deferred but eager" pattern for below-the-fold work (#4486). Keeping something off the critical path and
