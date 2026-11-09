@@ -181,6 +181,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       clearLabels: vi.fn(),
       setLabel: vi.fn(),
       setLabelType: vi.fn(),
+      setAiGenerated: vi.fn(),
       setLabelsHidden: vi.fn(),
       setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
@@ -304,6 +305,21 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     expect(window.fetch).toHaveBeenCalledWith('/label/id/42', expect.anything());
     expect(q('.label-detail__vote--agree .label-detail__vote-count').textContent).toBe('1');
+  });
+
+  test('a type change redraws the AI badge from the re-read label, and tells the host (#5925)', async () => {
+    await showLabel({ ai_generated: true });
+    window.fetch.mockImplementation(async () => ({ ok: true, json: async () => meta({ ai_generated: false }) }));
+    typeButton().click();
+
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    expect(panoManager.setAiGenerated).toHaveBeenLastCalledWith(false);
+    expect(onEdit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label_type: 'SurfaceProblem', ai_generated: false }),
+    );
   });
 
   test('a type change clears the user\'s vote from the pano when it was cast on the old type (#5853)', async () => {

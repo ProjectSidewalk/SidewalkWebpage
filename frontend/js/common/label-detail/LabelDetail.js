@@ -2580,8 +2580,9 @@ export class LabelDetail {
   }
 
   /**
-   * Re-reads votes and comments after a change only the server can resolve: a type change (the old type's stop
-   * showing, #5510) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
+   * Re-reads votes, comments and the AI badge after a change only the server can resolve: a type change (the old
+   * type's votes stop showing, #5510, and the badge may go, #5925) or an admin's delete (which files their Disagree,
+   * #3591). A failure leaves them as they were.
    * @param {Record<string, any>} meta - The metadata of the label that changed.
    */
   async #refreshVotes(meta) {
@@ -2598,9 +2599,9 @@ export class LabelDetail {
       if (!response.ok) return;
       const fresh = await response.json();
       if (this.#currentLabelMeta !== meta) return;
-      for (const key of ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation']) {
-        meta[key] = fresh[key];
-      }
+      const refreshed = ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation', 'ai_generated'];
+      for (const key of refreshed) meta[key] = fresh[key];
+      this.panoManager.setAiGenerated?.(meta.ai_generated);
       this.#validationCounts.Agree = meta.num_agree;
       this.#validationCounts.Disagree = meta.num_disagree;
       this.#validationCounts.Unsure = meta.num_unsure;

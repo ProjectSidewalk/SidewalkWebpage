@@ -550,6 +550,18 @@ export class PopupPanoManager {
   }
 
   /**
+   * Adds or removes the AI badge on the pano markers, as a type change or its undo can flip it (#5925).
+   * @param {boolean} aiGenerated - Whether the label shows the AI badge.
+   */
+  setAiGenerated(aiGenerated) {
+    this.label.aiGenerated = aiGenerated;
+    for (const { marker } of this.#labelMarkers) {
+      marker.marker_.querySelector('.admin-ai-icon-marker')?.remove();
+      if (aiGenerated) marker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
+    }
+  }
+
+  /**
    * Resets the fallback image's zoom/pan back to the identity transform.
    */
   #resetFallbackTransform() {
