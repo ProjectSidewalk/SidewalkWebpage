@@ -454,8 +454,9 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      # No `--with-deps`: the runner has Chromium's libraries; it only adds fonts from a mirror that stalls (#5915).
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # DB bring-up + readiness + schema setup are copied verbatim from backend-tests; see the comments there
       # (especially why the readiness probe must stay on TCP via `-h 127.0.0.1`).
