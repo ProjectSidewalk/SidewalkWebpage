@@ -40,7 +40,7 @@
 --   * The survivor keeps its id and its direction; the sliver is added at one end, so its start/end points change
 --     and its street_gradient row and OSM way positions go stale. Run sidewalk-server-tools/street-gradient-backfill.sh
 --     and osm-lineage-backfill.sh afterwards: both pick up changed geometry. The survivor moves region only if most
---     of it now lies in another live one.
+--     of it now lies in another region whose state matches its status (open in a live one, closed in a deleted one).
 --   * Labels move to the survivor, and their distance from the centre line (which left/right comes from) is
 --     re-measured for every label on the survivor, since its line changed.
 --   * Audits, route stops, issues, clusters, comments and places move to the survivor. A completed audit stays
@@ -517,8 +517,8 @@ WHERE street_edge_id IN (SELECT drop_id FROM final_merge) OR street_edge_id IN (
 CREATE TEMP TABLE label_move ON COMMIT DROP AS
 SELECT label.label_id, label.street_edge_id AS from_id, final_merge.survivor_id AS to_id
 FROM label JOIN final_merge ON final_merge.drop_id = label.street_edge_id;
--- 5. A survivor whose line now lies mostly in another live region moves there, so border joins land on the right
---    side. A deleted region would hide the street, so only live ones count.
+-- 5. A survivor whose line now lies mostly in another region moves there, so border joins land on the right side.
+--    The region must match its status: reveals and hides find streets by region (#5953).
 CREATE TEMP TABLE region_move ON COMMIT DROP AS
 SELECT street_edge_region.street_edge_id, street_edge_region.region_id AS from_region_id,
        best.region_id AS to_region_id
@@ -526,7 +526,8 @@ FROM street_edge_region
 JOIN edge ON edge.id = street_edge_region.street_edge_id
 CROSS JOIN LATERAL (
   SELECT region.region_id FROM region
-  WHERE region.geom && edge.geom AND NOT region.deleted
+  WHERE ST_Intersects(region.geom, edge.geom)
+    AND (edge.status NOT IN ('open', 'closed') OR region.deleted = (edge.status = 'closed'))
   ORDER BY ST_Length(ST_Intersection(edge.geom, region.geom)::geography) DESC, region.region_id
   LIMIT 1
 ) AS best
