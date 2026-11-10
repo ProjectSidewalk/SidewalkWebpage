@@ -528,6 +528,7 @@ CROSS JOIN LATERAL (
   SELECT region.region_id FROM region
   WHERE ST_Intersects(region.geom, edge.geom)
     AND (edge.status NOT IN ('open', 'closed') OR region.deleted = (edge.status = 'closed'))
+    AND ST_Length(ST_Intersection(edge.geom, region.geom)::geography) >= 1
   ORDER BY ST_Length(ST_Intersection(edge.geom, region.geom)::geography) DESC, region.region_id
   LIMIT 1
 ) AS best
