@@ -114,12 +114,78 @@ export class StreetSweep {
    * @param {Task} task - The street the next sweep will walk.
    */
   preloadAhead(task) {
-    const excludedPanos = new Set(this.#stuckPanos);
-    const currentPano = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
-    if (currentPano) excludedPanos.add(currentPano);
-
     const { currLoc } = this.#computeMoveTarget(task);
-    this.#panoManager.panoViewer.preloadPanoNear(currLoc, excludedPanos);
+    this.#panoManager.panoViewer.preloadPanoNear(currLoc, this.#panosNextSweepSkips(task));
+  }
+
+  /**
+   * The pano the next sweep would land on, found without moving. Searches the sweep's own points the same way,
+   * since the blue arrow and its crumb point here and must agree with the move (#5918).
+   * @param {Task} task - The street the next sweep will walk.
+   * @returns {Promise<?{panoId: string, lat: number, lng: number}>} Null when no pano is ahead; rejects when the
+   *   provider didn't answer.
+   */
+  async findLanding(task) {
+    const excludedPanos = this.#panosNextSweepSkips(task);
+    const target = this.#computeMoveTarget(task);
+    const { lookingAhead } = target;
+    let { currLoc, remainder } = target;
+    for (;;) {
+      const hit = await this.#panoManager.panoViewer.findPanoNear(currLoc, excludedPanos);
+      if (hit && (!lookingAhead || task.advancesWalk(hit))) return hit;
+      if (turf.length(remainder) <= 0) return null;
+      ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
+    }
+  }
+
+  /**
+   * Records the pano the labeler is leaving. A link-arrow click is a step of the walk too: forgotten, the next step
+   * can lead straight back (#5918).
+   */
+  rememberStanding() {
+    const task = this.#taskContainer.getCurrentTask();
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    if (task && standing) this.#stuckPanosFor(task).add(standing);
+  }
+
+  /**
+   * The stuck set for a walk, emptied first if it was another walk's: carried over, it hides panos near the new
+   * street's start (#4918), or leaves a route's return leg nothing to land on (#5008).
+   * @param {Task} task - The street being walked.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #stuckPanosFor(task) {
+    const traversalKey = StreetSweep.#traversalKeyFor(task);
+    if (traversalKey !== this.#stuckPanosTraversalKey) {
+      this.#stuckPanos.clear();
+      this.#stuckPanosTraversalKey = traversalKey;
+    }
+    return this.#stuckPanos;
+  }
+
+  /**
+   * The panos the next sweep won't land on: where the labeler stands or already stood on this walk. A stuck set
+   * from another street is ignored, as the sweep clears it on arrival.
+   * @param {Task} task - The street the next sweep will walk.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #panosNextSweepSkips(task) {
+    const sameWalk = StreetSweep.#traversalKeyFor(task) === this.#stuckPanosTraversalKey;
+    const skipped = new Set(sameWalk ? this.#stuckPanos : []);
+    skipped.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
+    skipped.delete(undefined);
+    return skipped;
+  }
+
+  /**
+   * The next search point down a street: one DIST_INCREMENT on, or the street's end if less remains.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} remainder - The street from the last search point on.
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>}}
+   */
+  static #stepAlong(remainder) {
+    const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
+    const rest = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, Infinity));
+    return { currLoc: { lat: rest.geometry.coordinates[0][1], lng: rest.geometry.coordinates[0][0] }, remainder: rest };
   }
 
   /**
@@ -152,28 +218,26 @@ export class StreetSweep {
   async #searchStreet(task) {
     // TODO show loading icon. Add when resolving issue #2403.
 
-    // Start a fresh stuck set on each street. Carried over, it hides panos near the new street's start and the street
-    // gets wrongly reported as having no imagery (#4918). A route that walks a street twice gets one set per pass,
-    // or the return leg has nothing left to land on (#5008).
-    const traversalKey = StreetSweep.#traversalKeyFor(task);
-    if (traversalKey !== this.#stuckPanosTraversalKey) {
-      this.#stuckPanos.clear();
-      this.#stuckPanosTraversalKey = traversalKey;
-    }
+    const stuckPanos = this.#stuckPanosFor(task);
 
     // The full street, not the remainder, so the points match every time and repeats cost nothing.
     this.prefetchAlongStreet(task.getGeoJSON());
 
-    let { currLoc, remainder } = this.#computeMoveTarget(task);
+    const target = this.#computeMoveTarget(task);
+    const { lookingAhead } = target;
+    let { currLoc, remainder } = target;
 
-    this.#stuckPanos.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
+    stuckPanos.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
 
     // Kept to tell an empty street from a provider that stopped answering (#4918).
     const searchFailures = [];
     for (;;) {
       let found = false;
       try {
-        await this.#panoManager.setLocation(currLoc, this.#stuckPanos);
+        if (lookingAhead && await this.#wouldStall(task, currLoc, stuckPanos)) {
+          throw new NoImageryError(`The pano near ${currLoc.lat},${currLoc.lng} leads no further down the street.`);
+        }
+        await this.#panoManager.setLocation(currLoc, stuckPanos);
         found = true;
       } catch (err) {
         searchFailures.push(err);
@@ -181,7 +245,7 @@ export class StreetSweep {
 
       if (found) {
         const panoId = this.#panoManager.getPanoId();
-        this.#stuckPanos.add(this.#panoStore.getPanoData(panoId));
+        stuckPanos.add(this.#panoStore.getPanoData(panoId));
         // A landing ends any run of imagery failures (#4918).
         NoImageryFlagGuard.reset();
         return { found: true, panoId };
@@ -190,9 +254,24 @@ export class StreetSweep {
       if (turf.length(remainder) <= 0) {
         return { found: false, streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
       }
-      const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, Infinity));
-      currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+      ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
+    }
+  }
+
+  /**
+   * Whether a search point's pano gets the walk no further down the street (#5918). False when the lookup fails:
+   * the move then runs and reports the failure its own way.
+   * @param {Task} task - The street being walked.
+   * @param {{lat: number, lng: number}} currLoc - The search point.
+   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stuckPanos
+   * @returns {Promise<boolean>}
+   */
+  async #wouldStall(task, currLoc, stuckPanos) {
+    try {
+      const hit = await this.#panoManager.panoViewer.findPanoNear(currLoc, stuckPanos);
+      return Boolean(hit) && !task.advancesWalk(hit);
+    } catch {
+      return false;
     }
   }
 
@@ -301,7 +380,8 @@ export class StreetSweep {
    * Where a sweep searches first: the furthest point reached, one step further if the labeler is already there (so
    * the search looks ahead, not around them). Off route, it stays put to bring them back.
    * @param {Task} task - The task whose street is being walked.
-   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>}}
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>,
+   *   lookingAhead: boolean}} `lookingAhead`: the labeler stands at the furthest point, so a landing must get past it.
    */
   #computeMoveTarget(task) {
     const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
@@ -313,12 +393,12 @@ export class StreetSweep {
     const distFromFurthest = turf.distance(
       turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
     );
-    if (distFromFurthest <= PanoViewer.SEARCH_RADIUS_M
-      && turf.length(remainder, { units: 'kilometers' }) > StreetSweep.DIST_INCREMENT) {
+    const lookingAhead = distFromFurthest <= PanoViewer.SEARCH_RADIUS_M;
+    if (lookingAhead && turf.length(remainder, { units: 'kilometers' }) > StreetSweep.DIST_INCREMENT) {
       remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, StreetSweep.DIST_INCREMENT, Infinity));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }
-    return { currLoc, remainder };
+    return { currLoc, remainder, lookingAhead };
   }
 
   /**

@@ -397,6 +397,8 @@ export class Main {
       labelContainer, labelModes, navArrows, keyboardLock, alertController);
     const streetProgress = new StreetProgress(config, regionModel, missionModel, missionContainer, taskContainer,
       panoManager, navigationService, streetSweep, jumpAlert, tracker);
+    navigationService.onMoveStarted(() => streetSweep.rememberStanding());
+    streetProgress.onLabelBeforeJumpChanged((armed) => navArrows.setWalkEnded(armed));
     navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
     navArrows.onRouteForwardClick(() => {
       tracker.push('Click_RouteForwardArrow');
@@ -424,7 +426,7 @@ export class Main {
       routeOverview, navigationService, regionModel, tracker);
     new MinimapLegend(ui.minimap, labelContainer, tracker);
     const forwardCrumbs = new ForwardCrumbs(config, panoManager, taskContainer, compass, minimap, observedArea,
-      navigationService, navArrows, tracker);
+      navigationService, streetSweep, navArrows, tracker);
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
     const walkPlanLayer = new WalkPlanLayer(ui.minimap, taskContainer, missionContainer, minimap);

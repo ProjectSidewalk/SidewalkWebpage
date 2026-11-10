@@ -63,6 +63,16 @@ describe('Task geometry', () => {
       expect(task.getAuditedDistance()).toBeCloseTo(0.06, 3);
     });
 
+    it('counts a pano as a step on only when it sits a couple of metres past that point (#5918)', () => {
+      const task = makeTask(feature(street));
+      task.updateTheFurthestPointReached(standingAt(street, 60));
+
+      expect(task.advancesWalk(standingAt(street, 64))).toBe(true);
+      // Beside the street, barely further along: imagery that has turned off it.
+      expect(task.advancesWalk(standingAt(street, 61, 15))).toBe(false);
+      expect(task.advancesWalk(standingAt(street, 50))).toBe(false);
+    });
+
     it('ignores a pano off the street, however far along it projects', () => {
       const task = makeTask(feature(street));
 
@@ -91,10 +101,9 @@ describe('Task geometry', () => {
 
       // 15 m further along an eastward street: due east.
       expect(task.headingAlongRoute(standingAt(street, 50))).toBeCloseTo(90, 0);
-      // Standing 40 m north of that point: the goal lies south-east.
-      const back = task.headingAlongRoute(standingAt(street, 50, 40));
-      expect(back).toBeGreaterThan(90);
-      expect(back).toBeLessThan(180);
+      // 15 m north of that point the goal is a true south-east, which only holds if longitude degrees count as
+      // shorter than latitude degrees.
+      expect(task.headingAlongRoute(standingAt(street, 50, 15))).toBeCloseTo(135, 0);
     });
 
     it('aims at the street\'s end once less than 15 m of it remains', () => {

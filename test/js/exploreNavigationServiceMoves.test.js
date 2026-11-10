@@ -122,6 +122,22 @@ describe('NavigationService', () => {
       expect(settlingWhenTold).toBe(false);
     });
 
+    test('a heading that pauses mid-turn and then moves on is settled again where it stops', () => {
+      const headings = [];
+      settled.mockImplementation(() => headings.push(viewer.heading));
+      viewer.heading = 150;
+      vi.advanceTimersByTime(240);
+      expect(headings).toEqual([150]);
+
+      viewer.heading = 320;
+      vi.advanceTimersByTime(240);
+      expect(headings).toEqual([150, 320]);
+
+      // Nothing more once it stays put, or after the time limit.
+      vi.advanceTimersByTime(3000);
+      expect(headings).toEqual([150, 320]);
+    });
+
     test('a heading that never settles is let go after a second and a half', () => {
       for (let tick = 0; tick < 20; tick++) {
         viewer.heading += 5;

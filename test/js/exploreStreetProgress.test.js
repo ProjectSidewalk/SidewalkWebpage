@@ -229,6 +229,53 @@ describe('StreetProgress', () => {
     });
   });
 
+  describe('landing on the last pano the walk can reach (#5918)', () => {
+    /** Lands mid-street, a jump from the next one, with `links` leading off and `landing` as the walk's next stop. */
+    const landWith = async (links, landing) => {
+      next = makeTask(2, { startM: 300, endM: 400, connected: false });
+      current.isConnectedTo = () => false;
+      viewer.getPanoId = () => 'pano-here';
+      viewer.getLinkedPanos = () => links;
+      sweep.findLanding = typeof landing === 'function' ? landing : async () => landing;
+      listeners.landed();
+      await new Promise((resolve) => setTimeout(resolve));
+    };
+
+    it('asks the labeler to finish here straight away, with no step that goes nowhere', async () => {
+      await landWith([{ panoId: 'pano-behind', heading: 225 }], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(true);
+    });
+
+    it('waits while a pano is still ahead', async () => {
+      await landWith([], { panoId: 'pano-ahead' });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('waits while a link still leads on', async () => {
+      await landWith([{ panoId: 'pano-on', heading: 45 }], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('leaves a street not seen enough to the step that reports it', async () => {
+      current = makeTask(1, { coveredEnough: false });
+      await landWith([], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('does nothing when the lookup went unanswered', async () => {
+      await landWith([], async () => { throw new Error('provider down'); });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('does nothing once the labeler has moved on', async () => {
+      await landWith([], async () => {
+        viewer.getPanoId = () => 'pano-elsewhere';
+        return null;
+      });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+  });
+
   describe('jumping to the street the prompt was for', () => {
     it('finishes the street under the mission it was walked in, lowers the prompt, and faces forward', async () => {
       const armed = vi.fn();

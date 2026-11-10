@@ -221,12 +221,16 @@ export class NavigationService {
    * Once the heading stops changing after a move (Mapillary animates it briefly), tells the views of it (peg, fog
    * cone, compass) to redraw; until then they keep their pre-move orientation. Stops if a new move begins, which
    * runs its own; GSV's pov is final at once, so it settles after a couple of ticks.
+   *
+   * Keeps watching to the time limit and tells them again if the heading moves on: Mapillary's animation can pause
+   * mid-turn long enough to look settled, and nothing else redraws them when it resumes.
    */
   #refreshHeadingViewsAfterPovSettles() {
     if (this.#povSettlePoll) window.clearInterval(this.#povSettlePoll); // Replace any in-flight poll from a prior move.
 
     let prevHeading = this.#panoManager.getPov().heading;
     let stableTicks = 0;
+    let announcedHeading = null;
     const startTime = performance.now();
     const pollMs = 80;
     const maxSettleMs = 1500; // Stop polling even if the heading never fully stabilizes.
@@ -243,9 +247,13 @@ export class NavigationService {
       prevHeading = heading;
       stableTicks = headingDelta < 0.5 ? stableTicks + 1 : 0;
 
-      if (stableTicks >= 2 || performance.now() - startTime > maxSettleMs) {
+      const timedOut = performance.now() - startTime > maxSettleMs;
+      if (timedOut) {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
+      }
+      if ((stableTicks >= 2 || timedOut) && heading !== announcedHeading) {
+        announcedHeading = heading;
         this.#moveState = 'idle'; // Settled first, so the listeners recompute from the settled pov.
         this.#headingSettledListeners.forEach((listener) => listener());
       }

@@ -5,6 +5,7 @@
  */
 
 import { TaskContainer } from './TaskContainer.js';
+import { ForwardCrumbs } from '../navigation/ForwardCrumbs.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../alert/JumpAlert.js').JumpAlert} JumpAlert */
@@ -174,11 +175,35 @@ export class StreetProgress {
           }
         }
         this.#taskContainer.updateCurrentTask();
+        this.#endStreetIfNothingAhead(this.#taskContainer.getCurrentTask());
       }
       this.#missionModel.updateMissionProgress(currentMission, region);
     } finally {
       this.#preloadNextMove();
     }
+  }
+
+  /**
+   * Ends a walked street on arrival at its last pano, sparing a step forward that goes nowhere (#5918). Left to
+   * that step when a link still leads on, the street isn't seen enough (the step reports it), or the lookup fails.
+   * @param {?Task} task - The street being walked.
+   * @returns {Promise<void>}
+   */
+  async #endStreetIfNothingAhead(task) {
+    if (!task || this.#labelBeforeJumpArmed || !task.isCoveredEnough()) return;
+    let panoId;
+    try {
+      panoId = this.#panoManager.getPanoId();
+      const links = this.#panoManager.panoViewer.getLinkedPanos();
+      const routeHeading = task.headingAlongRoute(this.#panoManager.getPosition());
+      if (ForwardCrumbs.stepLinkIndex(links, routeHeading) !== -1) return;
+      if (await this.#streetSweep.findLanding(task)) return;
+    } catch {
+      return;
+    }
+    // The lookup takes a moment, and the labeler may have moved on.
+    if (this.#panoManager.getPanoId() !== panoId || this.#taskContainer.getCurrentTask() !== task) return;
+    this.#endStreet(task, this.#missionContainer.getCurrentMission());
   }
 
   /**

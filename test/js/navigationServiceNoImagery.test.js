@@ -300,6 +300,32 @@ describe('Explore, when the imagery search runs out along a street', () => {
     searches.filter((search) => search.streetEdgeId === streetEdgeId).map(({ latLng }) => latLng.lng),
   ).size;
 
+  describe('and the only imagery ahead gets no further down the street (#5918)', () => {
+    it('never lands on it, so the labeler is not walked off the street and back', async () => {
+      const task = makeTask(101, { seenEnough: true });
+      task.advancesWalk = () => false;
+      assignStreets(task);
+      svl.panoViewer.findPanoNear = async () => ({ panoId: 'pano-off-to-the-side', lat: FIXTURE_LAT, lng: -74.0 });
+      respondToSearch = foundImagery;
+
+      await nav.moveForward();
+
+      expect(searches).toEqual([]);
+    });
+
+    it('lands as usual on a pano further along', async () => {
+      const task = makeTask(101);
+      task.advancesWalk = () => true;
+      assignStreets(task);
+      svl.panoViewer.findPanoNear = async () => ({ panoId: 'pano-found', lat: FIXTURE_LAT, lng: -74.0 });
+      respondToSearch = foundImagery;
+
+      await nav.moveForward();
+
+      expect(searches).toHaveLength(1);
+    });
+  });
+
   describe('and every sampled point came back empty', () => {
     it('reports the street once and moves the labeler to the next one', async () => {
       const [dead, live] = [makeTask(101), makeTask(102)];
@@ -944,6 +970,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
       const move = nav.moveForward();
       switchMode('CurbRamp');
+      await vi.waitFor(() => expect(land).toBeDefined());
       land();
       await move;
 
