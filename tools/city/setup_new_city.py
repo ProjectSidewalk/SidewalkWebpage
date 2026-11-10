@@ -32,7 +32,8 @@ It chains every remaining setup step, pausing only where a human is required:
      pass --tutorial-region and --regions).
   7. Runs the tools/city/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
      holds the API keys and the geo libraries) against a freshly exported endpoints CSV, hides the no-imagery
-     streets, and imports the imagery-age summary into street_imagery.
+     streets, and imports the imagery-age summary into street_imagery. With --study-area (a partner's area that cuts
+     across regions), the open streets outside it are then disabled (db/scripts/disable-streets-outside-area.sh).
   8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
      bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
      runs tools/city/street_gradient.py in the web container, and imports the result into street_gradient. A country
@@ -596,6 +597,20 @@ def schema_exists(schema):
     """Whether the schema is in the dev database — None when the database could not be asked at all."""
     answer = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'")
     return None if answer is None else bool(answer)
+
+
+def scan_imported(schema):
+    """Whether the imagery scan's summary is in street_imagery, i.e. step 7 has run on this schema."""
+    return db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
+                                                                                                                '0')
+
+
+def db_relative(path_text):
+    """``path_text`` as a path under db/, which the db container mounts at /opt; None for a path outside it."""
+    try:
+        return str(Path(path_text).resolve().relative_to((REPO_ROOT / 'db').resolve()))
+    except ValueError:
+        return None
 
 
 def street_count(schema):
@@ -1244,6 +1259,10 @@ def main(argv=None):
                                           'two flags below (all three or none).')
     parser.add_argument('--dem-name', help='With --dem-dir: the source name to record, e.g. "inegi-mdt-5m".')
     parser.add_argument('--dem-resolution-m', help='With --dem-dir: the rasters\' resolution in meters.')
+    parser.add_argument('--study-area',
+                        help='Step 7, for a partner\'s area that cuts across regions: a GeoJSON under db/ (e.g. '
+                             'db/onboarding/<city-id>/study_area.geojson). After the scan, the open streets outside '
+                             'it are disabled, so the regions stay whole for opening more of the city later.')
     parser.add_argument('--dump-only', action='store_true',
                         help='Run only step 9 — the dump and the handoff — for a city QA\'d after its first dump.')
     parser.add_argument('--allow-running-apps', action='store_true',
@@ -1265,6 +1284,13 @@ def main(argv=None):
         parser.error('--dry-run drives no container and --dump-only does nothing else; pick one')
     if args.recreate and args.dump_only:
         parser.error('--recreate drops the schema and --dump-only dumps it; pick one')
+    study_area = None
+    if args.study_area:
+        if args.dump_only:
+            parser.error('--study-area is applied after the scan, which --dump-only skips; pick one')
+        study_area = db_relative(args.study_area)
+        if study_area is None or not (REPO_ROOT / 'db' / study_area).is_file():
+            parser.error(f'--study-area must name a file under {REPO_ROOT / "db"}, which the db container reads')
 
     if args.dump_only:
         exists = schema_exists(schema)
@@ -1470,11 +1496,21 @@ def main(argv=None):
     print('\nStep 7/9 — imagery scan (finds streets with no street-view imagery and hides them)...')
     if args.skip_scan:
         print('  Skipped (--skip-scan); a rerun without the flag picks it up.')
-    elif db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
-                                                                                                             '0'):
+    elif scan_imported(schema):
         print('  A scan was already imported into street_imagery; skipping.')
     else:
         run_imagery_scan(schema, city_id, pano_type)
+    if study_area:
+        print(f'  Disabling the open streets outside the study area ({study_area})...')
+        # Only open streets are disabled, so before the scan a no-imagery street would land on disabled, where no
+        # rescan reaches it.
+        if not scan_imported(schema):
+            print('  Not yet: it waits for the scan, so that every street it disables has imagery. A rerun picks it '
+                  'up.')
+        else:
+            run_or_exit(['/opt/scripts/disable-streets-outside-area.sh', schema, study_area],
+                        f'disable-streets-outside-area.sh failed on {schema}',
+                        'It runs in one transaction, so no street changed: fix the cause and rerun.')
 
     print('\nStep 8/9 — street gradient (samples an elevation model along every street)...')
     if args.skip_gradient:

@@ -1269,6 +1269,49 @@ def test_main_first_run_walks_every_step(repo_copy, monkeypatch, capsys):
     assert 'Server handoff for testville-wa' in out and 'mapathon_event_link` was cleared' in out
 
 
+def test_db_relative_names_a_path_as_the_db_container_mounts_it(repo_copy, tmp_path):
+    assert snc.db_relative(repo_copy / 'db' / 'onboarding' / 'x' / 'area.geojson') == 'onboarding/x/area.geojson'
+    assert snc.db_relative(tmp_path.parent / 'elsewhere.geojson') is None
+
+
+def test_main_disables_streets_outside_the_study_area_once_the_scan_is_in(repo_copy, monkeypatch):
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    area = repo_copy / 'db' / 'onboarding' / 'testville-wa' / 'study_area.geojson'
+    area.write_text('{}')
+    # The scan check reads 0 before step 7 runs the (stubbed) scan, and its rows after.
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB, street_imagery=[(0, '0\n'), (0, '167\n')]))
+    _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', '2', 'include:1 2')
+    snc.main(['testville-wa', '--study-area', str(area)])
+    assert any(cmd[-3:] == ['/opt/scripts/disable-streets-outside-area.sh', 'sidewalk_testville_wa',
+                            'onboarding/testville-wa/study_area.geojson'] for cmd in calls)
+
+
+def test_main_holds_the_study_area_until_the_scan_is_in(repo_copy, monkeypatch, capsys):
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    area = repo_copy / 'db' / 'onboarding' / 'testville-wa' / 'study_area.geojson'
+    area.write_text('{}')
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', '2', 'include:1 2')
+    snc.main(['testville-wa', '--skip-scan', '--study-area', str(area)])
+    assert 'it waits for the scan' in capsys.readouterr().out
+    assert not any('disable-streets-outside-area.sh' in cmd for cmd in calls)
+
+
+def test_main_wants_a_study_area_the_db_container_can_read(repo_copy, tmp_path, capsys):
+    outside = tmp_path.parent / 'study_area.geojson'
+    outside.write_text('{}')
+    for argv in (['--study-area', str(outside)], ['--study-area', str(repo_copy / 'db' / 'missing.geojson')]):
+        with pytest.raises(SystemExit):
+            snc.main(['testville-wa', *argv])
+        assert 'must name a file under' in capsys.readouterr().err
+    (repo_copy / 'db' / 'area.geojson').write_text('{}')
+    with pytest.raises(SystemExit):
+        snc.main(['testville-wa', '--dump-only', '--study-area', str(repo_copy / 'db' / 'area.geojson')])
+    assert 'which --dump-only skips' in capsys.readouterr().err
+
+
 def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):
     _city_artifacts(repo_copy)
     record = _stub_steps(monkeypatch, repo_copy)

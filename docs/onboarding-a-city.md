@@ -194,7 +194,11 @@ its default either way.
    comes straight back to this step.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
-   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
+   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up. A partner whose area cuts across
+   regions (Beringen, #5950) passes it as `--study-area <geojson under db/>`: build and open whole regions as usual,
+   and after the scan the open streets outside the area become `disabled` (`disable-streets-outside-area.sh`). A
+   street stays open when half of it is inside or it runs along the area's edge. Disabled streets survive rescans
+   and reveals, and all have imagery, so opening more of the city later is setting them back to `open`.
 8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
    cache, samples the elevation model registered for the city's country (`tools/city/street_gradient.py`, seconds for
    most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
@@ -264,10 +268,6 @@ its default either way.
 
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
-- **A launch limited to an arbitrary boundary** (a partner's study area that cuts across neighborhoods, say): build
-  the regions as usual, open the ones the area touches, then run `tools/one-off/5950-disable-streets-outside-study-area.sql`
-  before the dump. It sets the open streets outside the area to `disabled`, which no rescan or reveal undoes, so
-  opening more later means setting them back to `open` (and logging the change). Beringen launched this way (#5950).
 
 ## Re-running, and doing it by hand
 
@@ -286,6 +286,7 @@ docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U sidewalk_<city> -d 
 make fill-new-schema                      # schema, tutorial region, regions to open
 make check-imagery id=<city-id> args="--<provider>"
 make hide-streets-without-imagery         # schema, onboarding/<city-id>/street_imagery_summary.csv
+make disable-streets-outside-area         # only for a study area: schema, onboarding/<city-id>/<area>.geojson
 make import-street-imagery                # schema, onboarding/<city-id>/street_imagery_summary.csv
 make export-street-gradient-input args="sidewalk_<city> <city-id> --structures onboarding/<city-id>/street_structures.csv"
 make street-gradient id=<city-id>         # or args="--dem-dir ..." for a country with no registered model
