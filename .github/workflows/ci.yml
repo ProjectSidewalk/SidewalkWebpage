@@ -493,8 +493,6 @@ jobs:
       - name: Stage the app (prod-mode binary)
         run: sbt stage
 
-      # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
-      #
       # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
       # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
       # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
@@ -513,7 +511,7 @@ jobs:
         run: |
           nohup target/universal/stage/bin/sidewalk-webpage \
             -Dconfig.resource=application.ci.conf \
-            -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
+            -Dhttp.port=9000 > app.log 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.

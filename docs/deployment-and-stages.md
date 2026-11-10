@@ -396,6 +396,13 @@ that tree is destroyed by the next release — silently, because the database ro
 includes paths that merely climb out of the stage directory: `../media` lands in `target/universal/`, which
 `sbt clean` deletes just the same.
 
+**Every city on a host can run from that one staged directory** (#5138): the app writes no pidfile
+(`play.server.pidfile.path` is `/dev/null`, since the deployment's daemon tracks its children itself), its file log
+goes to `SIDEWALK_LOG_DIR`, and the only thing it writes under its working directory is `api-downloads/`, where every
+download gets a randomly named folder of its own and a folder is swept only once nothing has written to it for two
+hours, so cities sharing it can't collide. A per-city copy of the build, which existed only to hold that city's
+`RUNNING_PID` and `logs/`, cost a host reboot one full copy per city, all at once.
+
 Everything users upload or that cannot be recreated therefore lives on storage the deploy never touches. The relative
 defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a path
 outside the build tree** via its environment variable (a variable that is set but blank is rejected too):
@@ -554,11 +561,12 @@ including a `HEAD`, and is rate-limited per IP, so a probe from one host gets th
 
 Each running city instance writes a **rolling file log** (configured in [`conf/logback.xml`](../conf/logback.xml)):
 
-- **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
-  `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
-  own `logs/` subdirectory**; the app also mirrors output to stdout.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
-  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
+- **File name:** `application-<SIDEWALK_CITY_ID>.log` — e.g. `application-newberg-or.log` — in `SIDEWALK_LOG_DIR`,
+  **one directory for every city on the host**, outside the build. Unset (local dev), it falls back to `logs/` under
+  the app directory. The app also mirrors output to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. With the directory outside the
+  build these survive a deploy; a `logs/` under the app directory is deleted with it, and older lines then survive
+  only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
@@ -631,6 +639,7 @@ run without it, whether or not it fails fast. The clustering script's own enviro
 | `DATABASE_USER` | The city's database role, whose default `search_path` selects its schema | Required; falls back to the dev role |
 | `DATABASE_PASSWORD` | That role's password | Required; falls back to the dev password |
 | `SIDEWALK_CITY_ID` | Which `cityparams.conf` entry this instance is | Required; the app refuses to start |
+| `SIDEWALK_LOG_DIR` | Directory for the rolling file log, shared by every city on the host ([Logs](#logs)) | `logs/` under the app directory, which the next deploy deletes |
 | `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | Required on a deployed stage: `local` silently tells search engines not to index, sends analytics to the test property, and turns off the prod-only AI validation hand-off and SciStarter reporting |
 
 **App secrets**

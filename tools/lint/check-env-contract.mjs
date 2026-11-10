@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The deployment learns which env vars to pass only from the "Runtime configuration contract" table in
-// docs/deployment-and-stages.md (#5138), so every `${?NAME}` in conf/ must have a row there and vice versa. Exits
-// non-zero with the names each side lacks, so it can gate CI.
+// docs/deployment-and-stages.md (#5138), so every `${?NAME}` in conf/ and every env var logback.xml reads must have a
+// row there and vice versa. Exits non-zero with the names each side lacks, so it can gate CI.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -42,6 +42,24 @@ function referencedVars(files) {
 }
 
 /**
+ * Logback has no optional marker, so `${NAME}` and `${NAME:-default}` both count unless the file defines NAME itself.
+ *
+ * @param {string} file The logback config.
+ * @returns {Map<string, string>} Name → the first `file:line` that references it.
+ */
+function logbackVars(file) {
+  const xml = readFileSync(file, 'utf8');
+  const own = new Set([...xml.matchAll(/<property\s+name="([A-Z][A-Z0-9_]*)"/g)].map((m) => m[1]));
+  const found = new Map();
+  xml.split('\n').forEach((line, i) => {
+    for (const match of line.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::-|\})/g)) {
+      if (!own.has(match[1]) && !found.has(match[1])) found.set(match[1], `${relative(ROOT, file)}:${i + 1}`);
+    }
+  });
+  return found;
+}
+
+/**
  * A documented name is a backticked word in the first column of a table row in the contract section; a name that only
  * appears in another row's description doesn't count.
  *
@@ -61,7 +79,7 @@ function documentedVars(markdown) {
   return new Set(firstCells.flatMap((cell) => [...cell.matchAll(/`([A-Z][A-Z0-9_]*)`/g)].map((m) => m[1])));
 }
 
-const referenced = referencedVars(confFiles(CONF_DIR));
+const referenced = new Map([...logbackVars(join(CONF_DIR, 'logback.xml')), ...referencedVars(confFiles(CONF_DIR))]);
 const documented = documentedVars(readFileSync(DOC, 'utf8'));
 const undocumented = [...referenced].filter(([name]) => !documented.has(name));
 const unreferenced = [...documented].filter((name) => !referenced.has(name));

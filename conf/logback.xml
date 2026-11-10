@@ -12,11 +12,18 @@
     <import class="ch.qos.logback.core.rolling.RollingFileAppender"/>
     <import class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"/>
 
+    <!--
+      The deployment points every city at one log directory outside the build (SIDEWALK_LOG_DIR), so cities can share
+      one staged build and a redeploy's `sbt clean` no longer deletes the logs. Unset locally, where the app dir is
+      fine.
+    -->
+    <property name="LOG_DIR" value="${SIDEWALK_LOG_DIR:-${application.home}/logs}"/>
+
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${application.home}/logs/application-${SIDEWALK_CITY_ID}.log</file>
+        <file>${LOG_DIR}/application-${SIDEWALK_CITY_ID}.log</file>
         <immediateFlush>true</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${application.home}/logs/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_DIR}/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>90</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
