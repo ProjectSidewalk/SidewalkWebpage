@@ -319,6 +319,12 @@
   visibility: hidden !important;
 }
 
+/* The browser's own rule for the hidden attribute loses to any display a component sets, which left hidden flex
+   rows and buttons on screen. !important makes the attribute mean hidden everywhere; show an element by removing it. */
+[hidden] {
+  display: none !important;
+}
+
 /* For icons colored from CSS, since an <img> can't be recolored: paints the shape of the mask-image file in `color`.
    No autoprefixer in this build, so the -webkit- siblings are written out; without them old Safari paints a block. */
 .ps-mask-icon {
@@ -485,6 +491,12 @@ button:disabled,
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* newTabNote.js: only the visible link text belongs on the clipboard. */
+.new-tab-note {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Centered page column. */

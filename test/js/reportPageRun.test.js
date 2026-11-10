@@ -33,6 +33,7 @@ describe('ReportPage', () => {
       id: i, score: 0.5, explored: true, coordinates: [[-122.33, 47.6], [-122.32, 47.6]],
     })),
     streets: Array.from({ length: STREET_COUNT }, (_, i) => ({ id: 100 + i, score: 0.5, edgeIds: [i], cards: [] })),
+    places: [{ name: 'School', category: 'school', lat: 47.6, lng: -122.33, edgeId: 0, distance: 20 }],
     fixes: [{ labelId: 55, streetId: 100, edgeIds: [0], locations: [{ clusterId: 9, labelType: 'Obstacle', lat: 47.6, lng: -122.33 }] }],
   });
 
@@ -142,6 +143,20 @@ describe('ReportPage', () => {
     intersect(element, true);
     expect(live()).toHaveLength(1);
     expect(maps).toHaveLength(2);
+  });
+
+  test('every map gets the places and its own "Places" switch, whose flips are logged by map', () => {
+    const page = new ReportPage(data(), deps);
+    page.start();
+    intersect(document.getElementById('report-region-map'), true);
+    intersect(document.getElementById('street-100'), true);
+    const [region, street] = maps;
+    expect(region.options.places).toEqual(data().places);
+    expect(street.options.places).toEqual(data().places);
+    region.options.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Region');
+    street.options.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Street');
   });
 
   test('passes every map the city\'s basemap', () => {
@@ -423,6 +438,9 @@ describe('ReportPage', () => {
       intersect(document.getElementById('report-worst-map'), true);
       expect(worstMap().options.problems).toEqual(problems);
       expect(worstMap().options.focusEdgeIds).toBeUndefined();
+      expect(worstMap().options.places).toEqual(data().places);
+      worstMap().options.onPlacesToggle(false);
+      expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Worst');
     });
 
     test('a type\'s row lights its dots and a dot lights its row; a sweep logs each type once', () => {
@@ -509,5 +527,40 @@ describe('ReportPage', () => {
       expect(deps.buildCard.mock.calls.length).toBe(built);
     });
 
+  });
+
+  describe('story read-more', () => {
+    /** @param {number} scrollHeight - The story's full height; its clamped box is 132px. */
+    const addStory = (scrollHeight) => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <ol class="report-stories" data-read-more="Read more" data-read-less="Read less">
+          <li><blockquote class="report-story__text">A story</blockquote></li>
+        </ol>`);
+      const text = document.querySelector('.report-story__text');
+      Object.defineProperty(text, 'scrollHeight', { value: scrollHeight });
+      Object.defineProperty(text, 'clientHeight', { value: 132 });
+      return text;
+    };
+
+    test('a story that fits its card gets no toggle', () => {
+      addStory(100);
+      new ReportPage(data(), deps).start();
+      expect(document.querySelector('.report-story__read-more')).toBeNull();
+    });
+
+    test('a clamped story toggles open and shut, announcing its state and logging each change', () => {
+      const text = addStory(400);
+      new ReportPage(data(), deps).start();
+      const toggle = document.querySelector('.report-story__read-more');
+      expect(toggle.textContent).toBe('Read more');
+      toggle.click();
+      expect(text.classList.contains('is-expanded')).toBe(true);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(toggle.textContent).toBe('Read less');
+      expect(deps.log).toHaveBeenCalledWith('Report_StoryReadMore_Expanded=true');
+      toggle.click();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(deps.log).toHaveBeenCalledWith('Report_StoryReadMore_Expanded=false');
+    });
   });
 });

@@ -163,11 +163,6 @@
   mask-image: url("/images/icons/link-feather.svg");
 }
 
-/* The display: flex above beats the UA stylesheet's [hidden] rule. */
-.report-actions[hidden] {
-  display: none;
-}
-
 /* ---- Sections ------------------------------------------------------------------------------------------------- */
 
 .report-section {
@@ -500,10 +495,6 @@
   transition: transform var(--transition-fast);
 }
 
-.report-map-marker[hidden] {
-  display: none;
-}
-
 .report-map-marker:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
@@ -525,6 +516,131 @@
   }
 }
 
+/* ---- Community stories (#5900) ------------------------------------------------------------------------------- */
+
+/* Cards in the fixes' grid, so the two lists read as one family: the engineering case, then the human one. */
+.report-stories {
+  --report-fix-gap: var(--space-md);
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(260px, calc((100% - 2 * var(--report-fix-gap)) / 3)), 1fr));
+  gap: var(--report-fix-gap);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-story {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* The storyteller's own photo, or the label's crop: the labeling canvas's shape, as a Gallery card shows it. */
+.report-story__photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.report-story__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+/* Set as a quotation, since that's what it is: the one voice on the page that isn't the data's. */
+.report-story__text {
+  margin: 0;
+  padding-left: var(--space-xs);
+  font: var(--text-body-regular);
+  font-style: italic;
+  color: var(--color-neutral-900);
+  border-left: 3px solid var(--color-neutral-300);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+
+  /* Six lines of --text-body-regular (22px): a 5,000-character story would otherwise set its whole row's height. */
+  max-height: 132px;
+  overflow: hidden;
+}
+
+.report-story__text.is-expanded {
+  max-height: none;
+}
+
+.report-story__read-more {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  font: var(--text-small-medium);
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+@media print {
+  .report-story__text {
+    max-height: none;
+  }
+
+  .report-story__read-more {
+    display: none;
+  }
+}
+
+.report-story__byline {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-story__byline-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.report-story__author {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+.report-story__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: center;
+  margin: auto 0 0;
+  padding-top: var(--space-xxs);
+  font: var(--text-caption-regular);
+}
+
+.report-story__type {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-800);
+}
+
+.report-stories__all {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+}
+
 /* ---- Important places near a segment (#5311) ------------------------------------------------------------------ */
 
 /* Runs as a sentence ("Near the library, the town hall"), so a narrow card wraps it like text. */
@@ -537,7 +653,6 @@
   margin-right: var(--space-sm);
   vertical-align: middle;
 }
-
 
 .report-places--compact {
   display: inline-flex;
@@ -593,9 +708,71 @@ button.report-map-place:focus-visible {
   outline-offset: 3px;
 }
 
+button.report-map-place[hidden] {
+  display: none;
+}
+
+/* The map's own "Places" switch (ReportPlacesToggle.js), in the legend's dress so the corners read as one set. */
+.report-map-toggle {
+  padding: var(--space-xxs) var(--space-xs);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-800);
+  background: var(--color-neutral-white);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+}
+
+.report-map-toggle__label {
+  display: flex;
+  min-height: 24px;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.report-map-toggle__input {
+  margin: 0;
+}
+
+/* A switch's caveat (#5888): under it while it is on, so the warning sits with the thing it warns about. */
+.report-map-toggle__note {
+  display: block;
+  max-width: 200px;
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-map-toggle__note[hidden] {
+  display: none;
+}
+
+/* Whole pixels: the stroke icons go soft at a fractional size, and 12px maps their 24-unit grid 2:1. */
 .report-map-place__glyph {
-  width: 60%;
-  height: 60%;
+  width: 14px;
+  height: 14px;
+}
+
+/* No position here: MapLibre's own absolute .maplibregl-marker already holds the ring, and relative would pull
+   each marker into flow. */
+button.report-map-place--small {
+  width: 16px;
+  height: 16px;
+}
+
+/* Painted at the worst map's 16px scale, but the target stays at WCAG 2.2's 24px minimum (SC 2.5.8). */
+button.report-map-place--small::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+
+button.report-map-place--small .report-map-place__glyph {
+  width: 12px;
+  height: 12px;
 }
 
 .report-place-popup .maplibregl-popup-content {
@@ -622,10 +799,6 @@ button.report-map-place:focus-visible {
 
 /* ---- Sidebar controls ----------------------------------------------------------------------------------------- */
 
-.report-control[hidden] {
-  display: none;
-}
-
 .report-toggle {
   display: flex;
   gap: var(--space-xxs);
@@ -650,10 +823,6 @@ button.report-map-place:focus-visible {
   margin: var(--space-xs) 0 0;
   font: var(--text-caption-regular);
   list-style: none;
-}
-
-.report-legend[hidden] {
-  display: none;
 }
 
 .report-legend li {
@@ -685,10 +854,6 @@ button.report-map-place:focus-visible {
   padding: 0;
   margin: 0 0 var(--space-xs);
   border: 0;
-}
-
-.report-color-by[hidden] {
-  display: none;
 }
 
 .report-color-by__title {
@@ -858,10 +1023,6 @@ button.report-map-place:focus-visible {
   margin-top: var(--space-sm);
 }
 
-.report-street__profile[hidden] {
-  display: none;
-}
-
 .report-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -875,6 +1036,13 @@ button.report-map-place:focus-visible {
   min-width: 0;
   border-radius: var(--border-radius);
   transition: box-shadow var(--transition-fast);
+}
+
+/* The imagery credit is owed, not read: on these small stills it steps below the type scale so it stays one line. */
+.report-cards .pano-attribution--compact {
+  padding: 1px 5px;
+  font-size: 9px;
+  line-height: 11px;
 }
 
 /*
@@ -905,10 +1073,6 @@ button.report-map-place:focus-visible {
 
 .report-cards .label-tags-header,
 .report-cards .card-tags:not(:has(.gallery-tag)) {
-  display: none;
-}
-
-.report-card[hidden] {
   display: none;
 }
 
@@ -943,10 +1107,6 @@ button.report-map-place:focus-visible {
 
 .report-cards__more {
   margin-top: var(--space-sm);
-}
-
-.report-cards__more[hidden] {
-  display: none;
 }
 
 /* ---- Fixes ---------------------------------------------------------------------------------------------------- */
@@ -1403,13 +1563,15 @@ button.report-map-place:focus-visible {
   }
 
   .report-fix,
+  .report-story,
   .report-card,
   .report-stat,
   .report-inventory__table tr {
     break-inside: avoid;
   }
 
-  .report-fixes {
+  .report-fixes,
+  .report-stories {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 

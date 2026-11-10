@@ -14,6 +14,7 @@ import '../common/utilitiesSidewalk.js';
 import '../common/pano-viewer/panoUtilities.js';
 import { AccessScoreElevationProfile } from '../common/AccessScoreElevationProfile.js';
 import { formatElevation } from '../access-score/AccessScoreText.js';
+import { newTabNote } from '../common/newTabNote.js';
 import { reportSketch } from './reportSketch.js';
 import { stitchProfile } from './stitchProfile.js';
 import { viewpointOf } from './viewWedge.js';
@@ -29,6 +30,8 @@ import { viewpointOf } from './viewWedge.js';
  * @property {number[]} labelIds
  * @property {number[]} listIds - The ids the Gallery link lists: all of them, or the first few up to Gallery's cap.
  * @property {boolean} atCrossing
+ * @property {number} edgeId - The edge it scores, whose line the aligned view draws it beside (#5888).
+ * @property {?string} side - `left` or `right` of that edge's digitized direction (`street_side`); null when unknown.
  * @property {number} costPoints
  * @property {number} poolSize
  *
@@ -68,6 +71,9 @@ export class ReportStreetSection {
   #entries = new Map();
   #limit = ReportStreetSection.PAGE_SIZE;
   #sidewalksVisible = false;
+  // Kept here across the map's comings and goings, so a reader's choice outlives a scroll away and back.
+  #placesVisible = true;
+  #alignedVisible = false;
   /** @type {?number} */ #lit = null;
   #hoverLogged = false;
   /** @type {?ResizeObserver} */ #resize = null;
@@ -142,6 +148,16 @@ export class ReportStreetSection {
       focusEdgeIds: this.#street.edgeIds,
       locations: this.#street.cards,
       mark: { score: this.#street.score, grade: this.#steepestGrade() },
+      placesVisible: this.#placesVisible,
+      onPlacesToggle: (shown) => {
+        this.#placesVisible = shown;
+        this.#deps.log(`Report_PlacesToggle_Shown=${shown}_Map=Street`);
+      },
+      alignedVisible: this.#alignedVisible,
+      onAlignedToggle: (shown) => {
+        this.#alignedVisible = shown;
+        this.#deps.log(`Report_AlignedToggle_Shown=${shown}_Map=Street`);
+      },
       onLocationHover: (id) => this.#light(id),
       onLocationClick: (id) => this.#reveal(id),
     });
@@ -307,11 +323,7 @@ export class ReportStreetSection {
     reference.target = '_blank';
     reference.rel = 'noopener';
     reference.dataset.reportEvent = 'Report_OpenLabel';
-    reference.textContent = `${this.#deps.cityId}:${data.labelId}`;
-    const newTab = document.createElement('span');
-    newTab.className = 'sr-only';
-    newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
-    reference.append(newTab);
+    reference.append(`${this.#deps.cityId}:${data.labelId}`, newTabNote());
     strip.append(reference);
     return strip;
   }

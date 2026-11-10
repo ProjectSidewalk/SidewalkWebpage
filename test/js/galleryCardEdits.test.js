@@ -202,6 +202,18 @@ describe('a Gallery card after it is drawn', () => {
 
       expect(el.querySelector('.card-header__type').textContent).toBe('as drawn');
     });
+
+    it('drops the AI badge a type change took away, and brings it back on undo (#5925)', () => {
+      const { card, el } = renderCard({ ai_generated: true });
+      expect(el.querySelectorAll('.ai-icon-marker-card')).toHaveLength(1);
+
+      card.setAiGenerated(false);
+      expect(el.querySelector('.ai-icon-marker-card')).toBeNull();
+      expect(card.getProperty('ai_generated')).toBe(false);
+
+      card.setAiGenerated(true);
+      expect(el.querySelectorAll('.ai-icon-marker-card')).toHaveLength(1);
+    });
   });
 
   describe('when the expanded view edits its severity and tags (#2575)', () => {

@@ -46,7 +46,9 @@ These apply across every language in the repo.
   `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
   `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
   admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller); a centered page column is
-  `.ps-container`; hide with `.ps-hidden` / `.ps-invisible`, and `.sr-only` keeps text for screen readers only. A
+  `.ps-container`; hide with the `hidden` attribute or `.ps-hidden` / `.ps-invisible` (`main.css` makes `[hidden]`
+  win over any component's `display`, so no per-component `[hidden]` rule is needed), and `.sr-only` keeps text for
+  screen readers only. A
   page-scoped class on top for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring
   the font, border, padding, or hover/focus treatment is not — extend the primitive in `main.css` instead.
 - **Hint text goes in `data-ps-tooltip`, not `title`** (`data-i18n-tooltip="ns:key"` when translated; see

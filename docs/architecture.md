@@ -244,7 +244,14 @@ width on demand, caching it under the crop store (#5256). A phone asks for 8192 
 native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
 For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
 pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
-steps down to a smaller width on that refusal. A pool with no room refuses every width alike, so a foreground load
+steps down to a smaller width on that refusal. The ladder stops at once on a WebGL context the browser has lost, which
+a GPU driver reset leaves behind and Pannellum reports as a size limit of 0px: no width renders on it, so a smaller
+copy would only cost the server a cut. A pano that fails at its last rung, or on a lost context, takes the Pannellum
+instance down with it, and the next pano opens a fresh one; a pano whose context died under an instance that was
+showing gets that fresh instance itself, once, since the browser may be handing out working contexts again (#5939).
+Loads on one viewer run one at a time, and a rung Pannellum never reports on (an image that downloaded but did not
+decode) is given up after a watchdog, so one such pano cannot hold the ones behind it. A pool with no room refuses
+every width alike, so a foreground load
 that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
 nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
@@ -341,10 +348,14 @@ that found nothing to do, since the absence of a log line is not something anyon
 the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
 subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+
 Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
 row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
 that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
+
+The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
+`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -454,8 +465,16 @@ AccessScore scores and the map colors, so a section never holds parts its number
 streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
 on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
 Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
-it, drawn on its maps and on its fix; they change no number, which is #5315's question. A
-fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. Every live map carries its own
+"Places" switch in a corner (`ReportPlacesToggle`, #5900) rather than one sidebar switch, since a map of the whole
+neighborhood and a map of one block needn't agree; a street section remembers its answer across its map's comings and
+goings. A street map carries a second switch, off by default, that lines its labels up along the street (#5888): each
+marker moves to the foot of its position on its own edge's centerline, offset a fixed number of screen pixels to the
+side `label_point.street_side` (#2886) recorded for it, with markers that would overlap on one side pushed apart along
+it. The side is the majority among the cluster's counted labels on that edge (`ReportRules.sideOf`, so the client never
+derives it); a location with no side, or at a crossing, stays where it is. It is a way of drawing only (the geometry is
+`ReportLabelAlignment`, pure functions; nothing stored or scored changes) and its switch says so, since a line of
+markers implies more precision than the data has. A fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
 `ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
 labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
 Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
@@ -474,7 +493,14 @@ Below the segment list, a worst-problems map (#5889) puts a dot, in its type's l
 rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
 Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
 switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
-and a dot opens its label's Gallery card in a popup. It prints as the counts alone.
+and a dot opens its label's Gallery card in a popup. Its places wear the unscored grey disc, since color on that map
+means a label type. It prints as the counts alone.
+
+After the fixes, when the region has any, come the community's stories (#4054, #5900): the newest
+`ReportService.StoriesListSize` visible stories on labels in the region (`StoryTable.getVisibleForCity` scoped by
+region), each as the person chose to be named, with their photo or the label's saved crop (never a Street View still),
+leading to the label's card at that story and to the street's section when it has one. They are the human case beside
+the engineering one and change no number.
 
 A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
 (`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads
@@ -536,6 +562,9 @@ loaded by the corresponding Twirl view:
   it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  A validator's first missions each carry a training example an admin pinned (#1445), explained by
+  `ModalGoldFeedback` when their vote on it isn't Disagree; the queue doc's "Training examples" has the rules,
+  and the answer is filed in `gold_example_response`, never as a vote.
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
@@ -907,8 +936,8 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
 
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
-`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
-stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. The stamp is
+required: `utilitiesSidewalk.js` reads it when it loads, so a page without it fails at once.
 
 The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
 enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for

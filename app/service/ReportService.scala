@@ -10,6 +10,7 @@ import models.api.{
 import models.label.LabelType
 import models.region.NamedRegionCompletion
 import models.report.*
+import models.story.StoryForListing
 import models.utils.LatLngBBox
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
@@ -64,6 +65,9 @@ object ReportService {
   private val logger: play.api.Logger = play.api.Logger(this.getClass)
 
   val FixListSize: Int = 6
+
+  // Enough to be heard, few enough to stay a section rather than a page; the rest are on /stories.
+  val StoriesListSize: Int = 6
 
   // Well past the 25 m a corner-type cluster can be attributed to an intersection from, so that every location the
   // engine pooled on a street's far end is inside the box, including on a street that bends away at a high latitude.
@@ -211,6 +215,7 @@ object ReportService {
    * @param selection         The result of [[select]]
    * @param clustersUpdatedAt When the clusters were last rebuilt
    * @param worst             The result of [[ReportRules.worstProblems]]
+   * @param stories           The region's community stories, newest first
    * @return The report.
    */
   def assemble(
@@ -226,7 +231,8 @@ object ReportService {
       weights: AccessScoreWeights = AccessScoreWeights.Default,
       contributions: Map[String, Double] = Map.empty,
       places: Seq[ReportPlace] = Nil,
-      worst: Seq[WorstProblem] = Nil
+      worst: Seq[WorstProblem] = Nil,
+      stories: Seq[StoryForListing] = Nil
   ): NeighborhoodReport = {
     val rows = selection.cards.zipWithIndex.map { case ((street, cards), index) =>
       val byType = street.worst.locations.groupBy(_.labelType)
@@ -278,7 +284,8 @@ object ReportService {
       weights = weights,
       contributions = contributions,
       places = places,
-      worst = worst
+      worst = worst,
+      stories = stories
     )
   }
 }
@@ -290,6 +297,7 @@ class ReportServiceImpl @Inject() (
     regionService: RegionService,
     panoDataService: PanoDataService,
     placesService: PlacesService,
+    storyService: StoryService,
     swrCache: SwrCache
 )(using ec: ExecutionContext, mat: Materializer)
     extends ReportService {
@@ -406,6 +414,8 @@ class ReportServiceImpl @Inject() (
       updatedAt <- accessScoreService.clustersUpdatedAt
       // The city's places are cached on their own; a report still reads without them if they can't be had.
       cityPlaces <- placesService.getFullCityPlaces(BatchSize).recover { case _ => Seq.empty }
+      // The stories too: a report still reads without them.
+      stories <- storyService.getStoriesForRegion(regionId, StoriesListSize).recover { case _ => Seq.empty }
     } yield assemble(
       regionId,
       regionName,
@@ -419,7 +429,8 @@ class ReportServiceImpl @Inject() (
       weights,
       contributions(streets, intersections, regionId),
       ReportPlace.near(cityPlaces, streets.map(_.streetEdgeId).toSet),
-      ReportRules.worstProblems(regionWide, counted, l => cropChecked.getOrElse(l.labelId, false))
+      ReportRules.worstProblems(regionWide, counted, l => cropChecked.getOrElse(l.labelId, false)),
+      stories
     )
   }
 }

@@ -1808,7 +1808,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-size: 0.7em;
 }
 
-
 /* Scoped to .ps-table so it outranks main.css's `.ps-table td { text-align: left }`. */
 .ps-table td.ac-num {
   text-align: right;
@@ -2569,8 +2568,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-weight: 600;
 }
 
-.stories-queue-chip[hidden] { display: none; }
-
 .stories-queue-thumb {
   display: block;
   width: 120px;
@@ -2896,11 +2893,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-top: var(--space-md);
 }
 
-/* .button's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
-.partners-cancel-edit[hidden] {
-  display: none;
-}
-
 /* The sentence the landing page will show (#5462), set off from the form so it reads as output, not a label. */
 .official-contact-preview {
   font: var(--text-small-regular);
@@ -2974,4 +2966,47 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ---- Gold Examples page (#1445) --------------------------------------------------------------------------------- */
+
+.gold-examples-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-sm) 0;
+}
+
+/* Eight columns in the content width: only the reason may wrap. */
+.gold-examples-table td {
+  white-space: nowrap;
+}
+
+.gold-examples-table .gold-examples-reason {
+  white-space: normal;
+  min-width: 150px;
+}
+
+/* The crop is 3:2; the neutral backing shows where a crop is missing. */
+.gold-examples-thumb {
+  display: block;
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+}
+
+.gold-examples-thumb--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-600);
+}
+
+/* Under the id, to keep the row in the content width. */
+.gold-examples-type {
+  display: block;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }

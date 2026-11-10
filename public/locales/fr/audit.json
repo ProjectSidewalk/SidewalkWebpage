@@ -137,7 +137,6 @@
     "feedback-title": "Une idée ? Quelque chose de confus ? Un bug repéré ?<br>Envoyez-nous vos commentaires !"
   },
   "right-ui": {
-    "opens-new-tab": "(s'ouvre dans un nouvel onglet)",
     "accuracy-tooltip": "La précision se fonde sur les validations des autres utilisateurs. Si la vôtre est faible, consultez vos erreurs récentes sur <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">votre tableau de bord</a> pour vous améliorer !",
     "no-accuracy-tooltip": "Il nous faut plus de données pour calculer votre précision. Ajoutez des étiquettes et créez un compte pour suivre votre précision !",
     "current-mission": {

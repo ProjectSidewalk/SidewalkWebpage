@@ -236,10 +236,11 @@ Parallel jobs:
   uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
-  half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when
-  either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`)
-  rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast
-  and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115 —
+  on every PR; uploads the Playwright report + `app.log` as an artifact when either half fails. CI installs
+  Playwright on the runner directly (`npx playwright install chromium`; no `--with-deps`,
+  #5915) rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the
+  job is fast and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
   `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
   `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
   the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since
@@ -283,7 +284,11 @@ Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `
 `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another.
 [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs
 from both bots, so GitHub merges each once its required checks pass (#4395). Majors and Steward PRs with extra
-generated commits wait for a human.
+generated commits wait for a human. Steward's half runs every 6 hours, since its PRs come from a fork (#5944), and
+usually merges a green PR on the spot. To hold a bot PR, mark it a draft, or turn its auto-merge off; the workflow never
+turns it back on. A Steward PR is usually never in auto-merge, so hold one with a draft. A hold doesn't carry over when
+the bot replaces the PR with a newer one. A Steward PR the workflow can't merge fails each run until it's merged, closed
+or drafted.
 
 **Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl
 page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly.
@@ -314,7 +319,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 88 / 84 / 86 / 89 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 94 / 93 / 93 / 94 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)

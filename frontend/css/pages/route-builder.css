@@ -111,12 +111,6 @@
   gap: 3px;
 }
 
-/* The flex display would otherwise override the hidden attribute's UA display: none (stats stay hidden until the
-   route has at least one street). */
-#route-stats[hidden] {
-  display: none;
-}
-
 #route-stats-headline {
   display: flex;
   flex-direction: row;
@@ -345,11 +339,6 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
-}
-
-/* The flex display would otherwise override the hidden attribute's UA display: none. */
-#saved-routes-panel[hidden] {
-  display: none;
 }
 
 #saved-routes-note {
@@ -628,10 +617,6 @@ a.saved-route-explore {
   flex-direction: row;
   align-items: center;
   gap: 10px;
-}
-
-.directions-row[hidden] {
-  display: none; /* The flex display would otherwise override the hidden attribute's UA display: none. */
 }
 
 .directions-flag {

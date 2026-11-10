@@ -33,17 +33,21 @@ const ruleItems = () => RULE_REGEXES
 /**
  * A reduction of common/authPasswordFields.scala.html, not a copy: it keeps the structure the JS walks, so a
  * selector change in either file shows up here, but it does not hold the template to its markup.
+ *
+ * @param {boolean} withChecklist - Whether the group lists composition rules.
+ * @param {string} [prefix] - What the template's `idPrefix` namespaces the ids with.
+ * @returns {string} The group's markup.
  */
-const passwordGroup = (withChecklist) => `
+const passwordGroup = (withChecklist, prefix = 'sign-up') => `
   <div class="au-pw-group" data-breach-url="${RANGE_URL}" data-breach-warning="${BREACH_MESSAGE}">
     <div class="au-field">
       <div class="au-input-wrap">
-        <input class="au-input au-pw" id="sign-up-password" name="password" type="password"
-               aria-describedby="sign-up-pw-rules">
-        <button type="button" class="au-eye" data-eye="sign-up-password" data-label-show="show"
-                data-label-hide="hide"></button>
+        <input class="au-input au-pw" id="${prefix}-password" name="password" type="password"
+               aria-describedby="${prefix}-pw-rules">
+        <button type="button" class="au-eye" data-eye="${prefix}-password" data-label-show="show"
+                data-label-hide="hide"><svg class="au-eye-on"></svg><svg class="au-eye-off ps-hidden"></svg></button>
       </div>
-      <ul class="au-checklist" id="sign-up-pw-rules">
+      <ul class="au-checklist" id="${prefix}-pw-rules">
         ${withChecklist ? ruleItems() : ''}
       </ul>
       <div class="au-strength">
@@ -54,7 +58,7 @@ const passwordGroup = (withChecklist) => `
     </div>
     <div class="au-field">
       <div class="au-input-wrap">
-        <input class="au-input au-pw-confirm" id="sign-up-password-confirm" name="passwordConfirm" type="password">
+        <input class="au-input au-pw-confirm" id="${prefix}-password-confirm" name="passwordConfirm" type="password">
       </div>
       <div class="au-match au-pw-match" data-label-match="match" data-label-no-match="no match">
         <span class="au-match-text">match</span>
@@ -75,17 +79,19 @@ const AUTH_DIALOG = `
  * jsdom keeps one window for the whole file, so the DOMContentLoaded listener is intercepted rather than left to
  * accumulate: each test then runs exactly one freshly-loaded copy, with its own range cache.
  *
- * @param {{withDialog?: boolean, withChecklist?: boolean}} [options] - `withDialog` also renders the navbar
- *   sign-in dialog on the page; `withChecklist: false` renders the group with no composition rules.
+ * @param {{withDialog?: boolean, withChecklist?: boolean, withResetGroup?: boolean}} [options] - `withDialog`
+ *   also renders the navbar sign-in dialog on the page; `withChecklist: false` renders the group with no composition
+ *   rules; `withResetGroup` adds a second group, as /resetPassword has beside the dialog's.
  */
-async function renderPasswordGroup({ withDialog = false, withChecklist = true } = {}) {
+async function renderPasswordGroup({ withDialog = false, withChecklist = true, withResetGroup = false } = {}) {
   let domReady;
   vi.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
     if (type === 'DOMContentLoaded') domReady = handler;
   });
   document.body.innerHTML = `
     ${withDialog ? AUTH_DIALOG : ''}
-    <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>`;
+    <div class="au-page"><form id="sign-up-form" class="au-form">${passwordGroup(withChecklist)}</form></div>
+    ${withResetGroup ? `<form id="reset-form" class="au-form">${passwordGroup(withChecklist, 'reset')}</form>` : ''}`;
   await loadModules('frontend/js/common/AuthModal.js');
   domReady();
 }
@@ -95,9 +101,10 @@ async function renderPasswordGroup({ withDialog = false, withChecklist = true } 
  * microtask queue as it goes, so this stays correct however many awaits the lookup grows.
  *
  * @param {string} value - The password to type.
+ * @param {string} [prefix] - Which group's field to type it in.
  */
-async function typePassword(value) {
-  const pw = document.getElementById('sign-up-password');
+async function typePassword(value, prefix = 'sign-up') {
+  const pw = document.getElementById(`${prefix}-password`);
   pw.value = value;
   pw.dispatchEvent(new Event('input'));
   await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -303,5 +310,50 @@ describe('advisory breached-password check', () => {
     // The eye toggle is wired from the same pass, so it stands in for the rest of enhanceAuthForms.
     document.querySelector('.au-eye').dispatchEvent(new Event('click'));
     expect(document.getElementById('sign-up-password').type).toBe('text');
+  });
+
+  test('asks once for a password typed into both of a page\'s password groups, since the range is shared', async () => {
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:3\r\n` });
+    await renderPasswordGroup({ withResetGroup: true });
+
+    await typePassword(PASSWORD);
+    await typePassword(PASSWORD, 'reset');
+
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('.au-warning')).toHaveLength(2);
+  });
+
+  test('keeps only the most recent ranges, asking again for one it has let go', async () => {
+    window.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    await renderPasswordGroup({ withResetGroup: true });
+    // Nine passwords that each meet every rule; their hashes start differently, so each is a range of its own.
+    const passwords = Array.from({ length: 9 }, (_, i) => `${PASSWORD}${i}`);
+    for (const password of passwords) await typePassword(password);
+    expect(window.fetch).toHaveBeenCalledTimes(9);
+
+    // The other group has judged nothing, so each of these is a lookup: the newest range is still held...
+    await typePassword(passwords[8], 'reset');
+    expect(window.fetch).toHaveBeenCalledTimes(9);
+    // ...and the oldest was dropped to make room.
+    await typePassword(passwords[0], 'reset');
+    expect(window.fetch).toHaveBeenCalledTimes(10);
+  });
+
+  test('does not show a verdict that lands after the user has typed on, but keeps it for if they come back', async () => {
+    let answer;
+    window.fetch = vi.fn(() => new Promise((resolve) => { answer = resolve; }));
+    await renderPasswordGroup();
+    await typePassword(PASSWORD);
+
+    const pw = document.getElementById('sign-up-password');
+    pw.value = `${PASSWORD}x`;
+    pw.dispatchEvent(new Event('input'));
+    answer({ ok: true, text: async () => `${PASSWORD_SHA1.slice(5)}:4823\r\n` });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(warningShown()).toBe(false);
+
+    pw.value = PASSWORD;
+    pw.dispatchEvent(new Event('input'));
+    expect(warningShown()).toBe(true);
   });
 });

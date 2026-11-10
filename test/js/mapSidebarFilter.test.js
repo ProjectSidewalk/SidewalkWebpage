@@ -31,12 +31,14 @@ const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
 function buildFixture({ labelTypes = true, validations = true, admin = true } = {}) {
   const severityButtons = [0, 1, 2, 3].map((severity) => `
         <button type="button" class="severity-button" data-severity="${severity}" aria-pressed="true">
+          <img class="severity-button__icon" data-selected-src="on.svg" data-unselected-src="off.svg" alt="">
           <span class="severity-button__label">sev ${severity}</span>
         </button>`).join('');
 
   const typeRows = LABEL_TYPES.map((type) => `
         <li class="filter-sidebar__item">
           <input type="checkbox" id="${type}-checkbox" checked data-filter-type="label-type">
+          <span class="filter-sidebar__item-name">${type}</span>
           <span class="filter-sidebar__count" data-count-for="${type}"></span>
           <button type="button" class="tag-pill" data-tag="narrow" data-label-type="${type}">narrow</button>
           <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">

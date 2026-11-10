@@ -97,6 +97,21 @@ describe('setup', () => {
     expect(b.classList.contains('pano-overlay-button--active')).toBe(true);
   });
 
+  test('a page that gives no hooks can still move a slider and reset', () => {
+    document.body.innerHTML = MARKUP;
+    const m = new PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+    const p = document.getElementById('pano-image-adjustments');
+    new PanoImageAdjustmentsPopover(m, document.getElementById('explore-control-image'), p);
+    const shadows = p.querySelector('[data-adjust="shadows"]');
+    shadows.value = '40';
+    fire(shadows, 'input');
+    fire(shadows, 'change');
+    expect(m.get('shadows')).toBe(40);
+
+    p.querySelector('[data-action="reset"]').click();
+    expect(m.isDefault()).toBe(true);
+  });
+
   test('survives a missing popover element without wiring anything', () => {
     document.body.innerHTML = '<button id="explore-control-image"></button><div id="pano"></div>';
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -119,6 +134,17 @@ describe('setup', () => {
 });
 
 describe('open and close', () => {
+  test('opening an open panel, or closing a closed one, tells the hooks nothing', () => {
+    const panel = mount();
+    panel.close();
+    expect(hooks.onClose).not.toHaveBeenCalled();
+    panel.open();
+    panel.open();
+    expect(hooks.onOpen).toHaveBeenCalledTimes(1);
+    expect(popover.showPopover).toHaveBeenCalledTimes(1);
+    panel.close(); // Left open, its page-wide click listener would close it under the next test.
+  });
+
   test('the trigger toggles the popover, ARIA state and the hooks', () => {
     const panel = mount();
     button.click();

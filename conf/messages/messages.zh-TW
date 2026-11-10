@@ -1174,3 +1174,7 @@ report.worst.lede = {0} 個被評為最差的地點，依類型：
 report.worst.count.label = {0} 個地點：{1}。查看標籤
 report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。在側邊欄開啟「{0}」，即可在其他地圖上以虛線查看。
 report.toc.worst = 最嚴重的問題
+report.stories.title = 社群故事
+report.stories.rule = 社群成員附加在這個街區標籤上的故事，最新的在前。一則故事是一個人的經歷；它不會改變本頁的任何數字。
+report.stories.street = 查看這條街
+report.stories.all = 閱讀所有社群故事

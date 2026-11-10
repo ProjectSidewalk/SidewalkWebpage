@@ -1096,3 +1096,7 @@ report.worst.lede = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoor
 report.worst.count.label = {0,choice,1#1 locatie|1<{0} locaties}: {1}. Bekijk de labels
 report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart. Zet "{0}" aan in de zijbalk om ze als stippellijnen op de andere kaarten te zien.
 report.toc.worst = Ergste problemen
+report.stories.title = Verhalen uit de community
+report.stories.rule = Verhalen die communityleden aan labels in deze buurt hebben toegevoegd, nieuwste eerst. Een verhaal is de ervaring van één persoon; het verandert geen enkel getal op deze pagina.
+report.stories.street = Naar deze straat
+report.stories.all = Alle verhalen uit de community lezen

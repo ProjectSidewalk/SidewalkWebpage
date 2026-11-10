@@ -47,25 +47,16 @@ export class FilterSidebar {
   #root;
   /** @type {(change: FilterSidebarChange) => void} */
   #onChange;
-  /** @type {{selectAll: string, deselectAll: string, only: string}} */
-  #i18nKeys;
 
   /**
    * @param {HTMLElement} root - The sidebar element containing the filter controls.
-   * @param {object} [options] - Configuration options.
-   * @param {(change: FilterSidebarChange) => void} [options.onChange] - Called after every interaction. Read
+   * @param {object} options - Configuration options.
+   * @param {(change: FilterSidebarChange) => void} options.onChange - Called after every interaction. Read
    *      `getState()` inside the callback for the resulting filter state.
-   * @param {object} [options.i18nKeys] - Overrides for the i18next keys of the section actions.
    */
-  constructor(root, { onChange = () => {}, i18nKeys = {} } = {}) {
+  constructor(root, { onChange }) {
     this.#root = root;
     this.#onChange = onChange;
-    this.#i18nKeys = {
-      selectAll: 'labelmap:select-all',
-      deselectAll: 'labelmap:deselect-all',
-      only: 'common:only',
-      ...i18nKeys,
-    };
 
     this.#initSeverityToggles();
     this.#initOptionCheckboxes();
@@ -150,18 +141,6 @@ export class FilterSidebar {
   }
 
   /**
-   * Returns true when at least one control in the section is on.
-   * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
-   * @returns {boolean} Whether anything in the section is currently selected.
-   */
-  isAnyActive(section) {
-    if (section === FilterSidebar.SEVERITY) {
-      return this.#severityButtons().some((btn) => btn.getAttribute('aria-pressed') === 'true');
-    }
-    return this.#optionsIn(section).some((cb) => cb.checked);
-  }
-
-  /**
    * Returns true when every control in the section is on.
    * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
    * @returns {boolean} Whether the section is fully selected.
@@ -211,12 +190,12 @@ export class FilterSidebar {
    * @param {boolean} expanded - Whether the drawer should end up open.
    */
   #setDrawer(item, expanded) {
-    const pills = item.querySelector('.filter-sidebar__tag-pills');
+    // The template renders a type's toggle, its chevron and its drawer together, so each is there when one is.
+    const pills = /** @type {HTMLElement} */ (item.querySelector('.filter-sidebar__tag-pills'));
     const btn = item.querySelector('.filter-sidebar__tag-toggle');
-    if (!pills || !btn) return;
     btn.setAttribute('aria-expanded', String(expanded));
     const img = btn.querySelector('img');
-    if (img) img.src = expanded ? img.dataset.upSrc : img.dataset.downSrc;
+    img.src = expanded ? img.dataset.upSrc : img.dataset.downSrc;
     pills.hidden = !expanded;
   }
 
@@ -242,9 +221,9 @@ export class FilterSidebar {
       const row = btn.closest('.filter-sidebar__item-row, .filter-sidebar__item, .filter-sidebar__severity-cell');
       // Collapsed, not just trimmed: a row with a sub-label spans two elements, so its text arrives with the
       // markup's indentation between them.
-      const rowLabel = row?.querySelector('.filter-sidebar__item-name, label, .severity-button__label')
-        ?.textContent.replace(/\s+/g, ' ').trim();
-      if (rowLabel) btn.setAttribute('aria-label', `${i18next.t(this.#i18nKeys.only)}: ${rowLabel}`);
+      const rowLabel = row.querySelector('.filter-sidebar__item-name, label, .severity-button__label')
+        .textContent.replace(/\s+/g, ' ').trim();
+      btn.setAttribute('aria-label', `${i18next.t('common:only')}: ${rowLabel}`);
 
       btn.addEventListener('click', () => {
         const { section, value } = btn.dataset;
@@ -284,8 +263,7 @@ export class FilterSidebar {
   #initTagToggles() {
     this.#root.querySelectorAll('.filter-sidebar__tag-toggle').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const item = btn.closest('.filter-sidebar__item');
-        if (item) this.#setDrawer(item, btn.getAttribute('aria-expanded') !== 'true');
+        this.#setDrawer(btn.closest('.filter-sidebar__item'), btn.getAttribute('aria-expanded') !== 'true');
       });
     });
   }
@@ -334,8 +312,7 @@ export class FilterSidebar {
       if (!wanted.get(labelType)?.has(tag) || !this.#checkboxFor(labelType)?.checked) return;
       pill.classList.add('tag-pill--active');
       this.#syncPartialGlyph(labelType);
-      const item = pill.closest('.filter-sidebar__item');
-      if (item) this.#setDrawer(item, true);
+      this.#setDrawer(pill.closest('.filter-sidebar__item'), true);
     });
   }
 
@@ -368,9 +345,7 @@ export class FilterSidebar {
   #syncSectionAction(section) {
     const btn = this.#root.querySelector(`.filter-sidebar__deselect-all[data-section="${section}"]`);
     if (!btn) return;
-    btn.textContent = this.isAllActive(section)
-      ? i18next.t(this.#i18nKeys.deselectAll)
-      : i18next.t(this.#i18nKeys.selectAll);
+    btn.textContent = i18next.t(this.isAllActive(section) ? 'labelmap:deselect-all' : 'labelmap:select-all');
   }
 
   /** Shows the indeterminate glyph on a label type that active tags are narrowing. */
@@ -383,8 +358,8 @@ export class FilterSidebar {
   /** Applies a severity toggle's on/off state to both its ARIA state and its filled/outline icon. */
   #setSeverityButton(btn, on) {
     btn.setAttribute('aria-pressed', String(on));
-    const img = btn.querySelector('.severity-button__icon');
-    if (img) img.src = on ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
+    const img = /** @type {HTMLImageElement} */ (btn.querySelector('.severity-button__icon'));
+    img.src = on ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
   }
 
   /** @returns {HTMLElement[]} The severity toggle buttons. */
