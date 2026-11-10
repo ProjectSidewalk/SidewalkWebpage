@@ -24,6 +24,24 @@ function confFiles(dir) {
   }).sort();
 }
 
+/** Names logback defines on its own, which `${NAME}` in logback.xml reads without any env var. */
+const LOGBACK_BUILTINS = new Set(['HOSTNAME', 'CONTEXT_NAME']);
+
+/**
+ * @param {Map<string, string>} found Name → first `file:line`, added to in place.
+ * @param {string} file Config file to scan.
+ * @param {string} text Its contents with comments already removed, so line numbers still line up.
+ * @param {RegExp} pattern Global regex whose first group is the env var name.
+ * @param {Set<string>} skip Names that aren't env vars even though they match.
+ */
+function collectRefs(found, file, text, pattern, skip = new Set()) {
+  text.split('\n').forEach((line, i) => {
+    for (const match of line.matchAll(pattern)) {
+      if (!skip.has(match[1]) && !found.has(match[1])) found.set(match[1], `${relative(ROOT, file)}:${i + 1}`);
+    }
+  });
+}
+
 /**
  * @param {string[]} files Config files to scan for `${?NAME}` references.
  * @returns {Map<string, string>} Name → the first `file:line` that references it.
@@ -31,31 +49,25 @@ function confFiles(dir) {
 function referencedVars(files) {
   const found = new Map();
   for (const file of files) {
-    readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
-      const code = line.replace(/(^|\s)(#|\/\/).*$/, '');
-      for (const match of code.matchAll(/\$\{\?([A-Z][A-Z0-9_]*)\}/g)) {
-        if (!found.has(match[1])) found.set(match[1], `${relative(ROOT, file)}:${i + 1}`);
-      }
-    });
+    const code = readFileSync(file, 'utf8').split('\n').map((line) => line.replace(/(^|\s)(#|\/\/).*$/, ''));
+    collectRefs(found, file, code.join('\n'), /\$\{\?([A-Z][A-Z0-9_]*)\}/g);
   }
   return found;
 }
 
 /**
- * Logback has no optional marker, so `${NAME}` and `${NAME:-default}` both count unless the file defines NAME itself.
+ * Logback has no optional marker, so `${NAME}` and `${NAME:-default}` both count unless the file defines NAME itself
+ * or logback does. Lowercase names (`user.dir`, `application.home`) are JVM or Play properties, not env vars.
  *
  * @param {string} file The logback config.
  * @returns {Map<string, string>} Name → the first `file:line` that references it.
  */
 function logbackVars(file) {
-  const xml = readFileSync(file, 'utf8');
-  const own = new Set([...xml.matchAll(/<property\s+name="([A-Z][A-Z0-9_]*)"/g)].map((m) => m[1]));
+  // Comments go blank rather than away, so the line numbers in the report stay right.
+  const xml = readFileSync(file, 'utf8').replace(/<!--[^]*?-->/g, (c) => c.replace(/[^\n]/g, ''));
+  const own = new Set([...xml.matchAll(/<(?:property|variable)\s+name="([A-Z][A-Z0-9_]*)"/g)].map((m) => m[1]));
   const found = new Map();
-  xml.split('\n').forEach((line, i) => {
-    for (const match of line.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::-|\})/g)) {
-      if (!own.has(match[1]) && !found.has(match[1])) found.set(match[1], `${relative(ROOT, file)}:${i + 1}`);
-    }
-  });
+  collectRefs(found, file, xml, /\$\{([A-Z][A-Z0-9_]*)(?::-|\})/g, new Set([...own, ...LOGBACK_BUILTINS]));
   return found;
 }
 

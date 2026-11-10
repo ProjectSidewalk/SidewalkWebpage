@@ -396,12 +396,14 @@ that tree is destroyed by the next release — silently, because the database ro
 includes paths that merely climb out of the stage directory: `../media` lands in `target/universal/`, which
 `sbt clean` deletes just the same.
 
-**Every city on a host can run from that one staged directory** (#5138): the app writes no pidfile
-(`play.server.pidfile.path` is `/dev/null`, since the deployment's daemon tracks its children itself), its file log
-goes to `SIDEWALK_LOG_DIR`, and the only thing it writes under its working directory is `api-downloads/`, where every
-download gets a randomly named folder of its own and a folder is swept only once nothing has written to it for two
-hours, so cities sharing it can't collide. A per-city copy of the build, which existed only to hold that city's
-`RUNNING_PID` and `logs/`, cost a host reboot one full copy per city, all at once.
+**Every city of a stage can run from that one staged directory** (#5138): the app writes no pidfile
+(`play.server.pidfile.path` is `/dev/null`), its file log goes to `SIDEWALK_LOG_DIR`, and the only thing it writes
+under its working directory is `api-downloads/`, where every download, single CSVs included, gets a randomly named
+folder of its own and a folder is swept only once nothing has written to it for two hours, so cities sharing it can't
+collide. Keeping a city from being started twice is the deployment daemon's job, not the pidfile's: the tooling
+deleted `RUNNING_PID` before every start anyway, and a second instance of a city fails on its port. A per-city copy of
+the build, which existed only to hold that city's `RUNNING_PID` and `logs/`, cost a host reboot one full copy per
+city, all at once.
 
 Everything users upload or that cannot be recreated therefore lives on storage the deploy never touches. The relative
 defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a path
@@ -562,21 +564,27 @@ including a `HEAD`, and is rate-limited per IP, so a probe from one host gets th
 Each running city instance writes a **rolling file log** (configured in [`conf/logback.xml`](../conf/logback.xml)):
 
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` — e.g. `application-newberg-or.log` — in `SIDEWALK_LOG_DIR`,
-  **one directory for every city on the host**, outside the build. Unset (local dev), it falls back to `logs/` under
-  the app directory. The app also mirrors output to stdout. (Logback reads its config once on its own before Play
-  sets `application.home`; the fallback covers that pass too, so there is no stray `application.home_IS_UNDEFINED/`
-  folder. CI checks this.)
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. With the directory outside the
-  build these survive a deploy; a `logs/` under the app directory is deleted with it, and older lines then survive
-  only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
+  **one directory for every city of a stage**, outside the build and separate per stage (the deployment keeps it
+  next to that stage's `container-<city>.log` files). The value must be absolute and non-blank: a blank value is
+  "set" to logback, which then writes to the filesystem root, so a prod-mode start logs an error for a blank, relative
+  or in-build value (`PersistentMediaDirCheck`). Unset (local dev), it falls back to `logs/` under the app directory,
+  via `user.dir` rather than Play's `application.home`, because logback reads its config once on its own before Play
+  sets that property and an unset property leaves a stray `application.home_IS_UNDEFINED/` folder (the e2e job checks
+  this). The app also mirrors output to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap per city, so a stage's app logs
+  are bounded by 3 GB × cities, in practice far less (the busiest city writes a couple of MB a day). On each rebuild
+  the deploy tooling copies every `*.log` in that directory into `archives/` and empties it, app logs and
+  `container-<city>.log` alike, so between deploys the rolling files hold the recent history and the archives the
+  rest. A `logs/` under the app directory (dev) is deleted with the build instead.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
 Finding them on a server without hardcoding paths:
 
 ```bash
-# each instance's home dir + city id are on the running process's command line
+# the log dir is the process's SIDEWALK_LOG_DIR; the city id is on its command line
 pgrep -af 'java .*ProdServerStart'
+tr '\0' '\n' < /proc/<pid>/environ | grep SIDEWALK_LOG_DIR
 # or locate the files directly
 find / -name 'application-*.log' 2>/dev/null
 ```
@@ -626,7 +634,8 @@ part of this repo's own config files; the **values** are secrets and live only o
 override files. Every optional substitution in `conf/` (a `${?…}` reference) is a requirement on the deployment side,
 which only learns about one from this table: a new secret has to be plumbed through both this app's config *and* the
 deployment tooling, or it will be missing in production. `tools/lint/check-env-contract.mjs` (`make lint`, a blocking
-CI step) fails when the names here and the references in `conf/` differ, in either direction, so adding a variable
+CI step) fails when the names here and the references in `conf/` (every `${?…}`, plus every env var
+`conf/logback.xml` reads, since logback has no optional marker) differ, in either direction, so adding a variable
 means adding its row.
 
 "Unset" says what the app does when the deployment doesn't pass the variable. "Required" means a prod instance can't
@@ -641,7 +650,7 @@ run without it, whether or not it fails fast. The clustering script's own enviro
 | `DATABASE_USER` | The city's database role, whose default `search_path` selects its schema | Required; falls back to the dev role |
 | `DATABASE_PASSWORD` | That role's password | Required; falls back to the dev password |
 | `SIDEWALK_CITY_ID` | Which `cityparams.conf` entry this instance is | Required; the app refuses to start |
-| `SIDEWALK_LOG_DIR` | Directory for the rolling file log, shared by every city on the host ([Logs](#logs)) | `logs/` under the app directory, which the next deploy deletes |
+| `SIDEWALK_LOG_DIR` | Absolute directory for the rolling file log, shared by every city of the stage ([Logs](#logs)) | `logs/` under the app directory, which the next deploy deletes |
 | `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | Required on a deployed stage: `local` silently tells search engines not to index, sends analytics to the test property, and turns off the prod-only AI validation hand-off and SciStarter reporting |
 
 **App secrets**
