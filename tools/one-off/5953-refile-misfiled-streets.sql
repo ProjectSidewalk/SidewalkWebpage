@@ -34,29 +34,34 @@
 SET default_transaction_read_only = off;
 BEGIN;
 
+-- A function, so the output can run the same selection again and confirm nothing is left to move.
+CREATE FUNCTION pg_temp.find_misfiled()
+RETURNS TABLE (street_edge_id INT, old_status street_edge_status, from_region_id INT, from_hidden BOOLEAN,
+               to_region_id INT, to_hidden BOOLEAN, new_status street_edge_status, recently_audited BOOLEAN,
+               meters DOUBLE PRECISION)
+LANGUAGE sql STABLE AS $$
 -- Most streets lie wholly inside their region; ST_CoveredBy rules them out far cheaper than measuring each one.
-CREATE TEMP TABLE candidate ON COMMIT DROP AS
-SELECT street_edge.street_edge_id, street_edge.status, street_edge.geom,
-       street_edge_region.region_id AS filed_region_id,
-       EXISTS (SELECT 1 FROM audit_task
-               WHERE audit_task.street_edge_id = street_edge.street_edge_id
-                   AND audit_task.task_start >= now() - interval '1 day') AS recently_audited
-FROM street_edge
-JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-    AND NOT ST_CoveredBy(street_edge.geom,
-                         (SELECT region.geom FROM region WHERE region.region_id = street_edge_region.region_id));
-
-CREATE TEMP TABLE misfiled ON COMMIT DROP AS
-SELECT candidate.street_edge_id, candidate.status AS old_status, candidate.filed_region_id AS from_region_id,
-       filed.deleted AS from_hidden, best.region_id AS to_region_id, best.deleted AS to_hidden,
+WITH candidate AS (
+    SELECT street_edge.street_edge_id, street_edge.status, street_edge.geom,
+           street_edge_region.region_id AS filed_region_id,
+           EXISTS (SELECT 1 FROM audit_task
+                   WHERE audit_task.street_edge_id = street_edge.street_edge_id
+                       AND audit_task.task_start >= now() - interval '1 day') AS recently_audited
+    FROM street_edge
+    JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+    WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        AND NOT ST_CoveredBy(street_edge.geom,
+                             (SELECT region.geom FROM region WHERE region.region_id = street_edge_region.region_id))
+)
+SELECT candidate.street_edge_id, candidate.status, candidate.filed_region_id, filed.deleted, best.region_id,
+       best.deleted,
        (CASE
            WHEN candidate.status = 'closed' AND NOT best.deleted THEN 'open'
            WHEN candidate.status = 'open' AND best.deleted THEN 'closed'
            ELSE candidate.status::text
-       END)::street_edge_status AS new_status,
+       END)::street_edge_status,
        candidate.recently_audited,
-       ST_Length(candidate.geom::geography) AS meters
+       ST_Length(candidate.geom::geography)
 FROM candidate
 CROSS JOIN LATERAL (
     SELECT region.deleted, ST_Length(ST_Intersection(region.geom, candidate.geom)::geography) AS meters_inside
@@ -74,6 +79,9 @@ CROSS JOIN LATERAL (
 WHERE best.meters_inside >= 1
     AND best.meters_inside > filed.meters_inside
     AND (filed.meters_inside < 1 OR (best.deleted <> filed.deleted AND candidate.status <> 'open'));
+$$;
+
+CREATE TEMP TABLE misfiled ON COMMIT DROP AS SELECT * FROM pg_temp.find_misfiled();
 
 SELECT count(*) FILTER (WHERE recently_audited) AS skipped_recent_audit,
        (count(*) FILTER (WHERE NOT recently_audited) > 0)::int AS any_to_move
@@ -138,18 +146,18 @@ WHERE street_edge_priority.street_edge_id = misfiled.street_edge_id
          (SELECT count(*) FROM audit_task JOIN misfiled USING (street_edge_id)
           WHERE NOT misfiled.from_hidden AND misfiled.to_hidden) AS audits_hidden,
          :skipped_recent_audit AS skipped_recent_audit,
-         -- Each should be 0 afterwards.
+         -- Each should be 0 afterwards, but for status and region disagreeing where no merge was involved.
+         (SELECT count(*) FROM pg_temp.find_misfiled() WHERE NOT recently_audited) AS check_still_misfiled,
          (SELECT count(*) FROM street_edge JOIN street_edge_region USING (street_edge_id)
               JOIN region USING (region_id)
-          WHERE street_edge.status = 'closed' AND NOT region.deleted) AS check_closed_in_live_region,
+          WHERE street_edge.status = 'closed' AND NOT region.deleted
+              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config))
+           AS check_closed_in_live_region,
          (SELECT count(*) FROM street_edge JOIN street_edge_region USING (street_edge_id)
               JOIN region USING (region_id)
-          WHERE street_edge.status = 'open' AND region.deleted) AS check_open_in_hidden_region,
-         (SELECT count(*) FROM street_edge JOIN street_edge_region USING (street_edge_id)
-              JOIN region USING (region_id)
-          WHERE street_edge.status = 'no_imagery' AND NOT region.deleted
-              AND ST_Length(ST_Intersection(region.geom, street_edge.geom)::geography) < 1)
-           AS check_no_imagery_outside_live_region,
+          WHERE street_edge.status = 'open' AND region.deleted
+              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config))
+           AS check_open_in_hidden_region,
          (SELECT count(*) FROM street_edge
           WHERE status = 'open' AND NOT EXISTS (SELECT 1 FROM street_edge_priority
                                                 WHERE street_edge_priority.street_edge_id = street_edge.street_edge_id))
