@@ -36,10 +36,11 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 `4181-remove-streets.sql` and `4190-remove-validations.sql` take their inputs by edit (the id list, and 4181's
 `search_path`) and run as one transaction that commits at the end, so paste them into psql up to the preview, read
 it, and finish with `COMMIT` or `ROLLBACK` yourself. The runner passes no psql variables: to apply the merge across
-cities, send it a copy with `\set apply 1` in place of `\set apply 0`. `4717-consolidate-tiny-streets.sql` works
-the same way, and `\set list 1` makes it print one row per street it would touch (with WKT, for QGIS) instead of the
-summary row. `4717-undo-rerun.sql` takes back what a pre-fix second run of it joined, from rows of a nightly backup
-that the other `4717-undo-*` scripts cut out for it; its header says in what order.
+cities, send it a copy with `\set apply 1` in place of `\set apply 0`. `4717-consolidate-tiny-streets.sql` and
+`5953-refile-misfiled-streets.sql` work the same way, and `\set list 1` makes either print one row per street it
+would touch (4717's with WKT, for QGIS) instead of the summary row. `4717-undo-rerun.sql` takes back what a pre-fix
+second run of it joined, from rows of a nightly backup that the other `4717-undo-*` scripts cut out for it; its
+header says in what order.
 
 The runner opens connections read-only, which blocks temp tables too, so a script that needs either starts with
 `SET default_transaction_read_only = off;`. `5532-backfill-user-created-at.sql` predates that: add the line to the

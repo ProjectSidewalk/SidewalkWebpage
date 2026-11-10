@@ -104,7 +104,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
   `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
-  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
+  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all. The
+  assignment does have to agree with the street's status: reveals, hides and the imagery scan find streets by it, so
+  anything that refiles a street keeps an open one in a live region and a closed one in a hidden region (#5953).
   Historically the city build cut streets at region borders so the two coincided; the current build heals the short
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
