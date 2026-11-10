@@ -1060,9 +1060,10 @@ def test_street_lineage_draws_each_way_s_stretch_of_the_street():
 def test_fetch_area_is_a_small_outline_that_still_holds_the_city():
     # A circle traced with 4,000 points stands in for a detailed official city outline.
     city = Point(0, 0).buffer(0.05, quad_segs=1000)
-    area = oc.fetch_area(city, 50)
-    assert area.contains(city.buffer(50 / 111_320))
-    assert shapely.get_num_coordinates(area) < 500
+    for fetch_buffer_m in (50, 5):
+        area = oc.fetch_area(city, fetch_buffer_m)
+        assert area.contains(city.buffer(fetch_buffer_m / 111_320))
+        assert shapely.get_num_coordinates(area) < 500
 
 
 def test_fetch_ways_keeps_whole_linestring_ways_and_the_way_types_asked_for(monkeypatch):

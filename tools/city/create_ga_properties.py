@@ -23,6 +23,7 @@ One-time setup (fully headless afterward — no GCP roles needed, the service ac
      as ga-service-account.json in the repo root (git-ignored, and deny-listed from Claude, like
      docker-compose.override.yml).
   2. In GA (Admin → Account access management), add the service account's email as Editor on both accounts.
+  3. `pip install google-auth` (signs the service-account JWT; everything else is stdlib).
 
 `--dry-run` prints the derived names/payloads and stops before any auth, API call, or file write.
 """
@@ -88,8 +89,8 @@ def access_token():
     try:
         from google.auth import crypt, jwt
     except ImportError:
-        sys.exit('error: google-auth is not installed; it is in requirements-offline-tools.txt, so rebuild the web '
-                 'image.')
+        sys.exit('error: google-auth is not installed (`pip install google-auth`) — it signs the service-account '
+                 'JWT, which the stdlib cannot.')
     key = json.loads(KEY_FILE.read_text())
     now = int(time.time())
     assertion = jwt.encode(crypt.RSASigner.from_service_account_info(key), {

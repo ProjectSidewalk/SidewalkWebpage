@@ -19,7 +19,7 @@ import javax.inject.{Inject, Singleton}
  * of what the imagery checker found there or because someone hid or revealed the whole region.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
- * 358.sql, 368.sql, 386.sql, and 416.sql) and the script or service that emits it.
+ * 358.sql, 368.sql, 386.sql, 416.sql, and 431.sql) and the script or service that emits it.
  */
 enum StreetEdgeStatusChangeSource(val name: String) extends NamedEnum {
   case HideStreetsWithoutImagery extends StreetEdgeStatusChangeSource("hide_streets_without_imagery")
@@ -28,6 +28,7 @@ enum StreetEdgeStatusChangeSource(val name: String) extends NamedEnum {
   case RemoveStreets             extends StreetEdgeStatusChangeSource("remove_streets")
   case AdminReopen               extends StreetEdgeStatusChangeSource("admin_reopen")
   case ConsolidateTinyStreets    extends StreetEdgeStatusChangeSource("consolidate_tiny_streets")
+  case StudyArea                 extends StreetEdgeStatusChangeSource("study_area")
 }
 
 object StreetEdgeStatusChangeSource

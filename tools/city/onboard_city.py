@@ -170,17 +170,22 @@ def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
     return ox
 
 
+# How far the fetch outline may stray from the padded city outline: enough to bring a detailed official outline down to
+# a couple hundred points, whatever --fetch-buffer-m is.
+FETCH_OUTLINE_SMOOTHING_M = 12.5
+
+
 def fetch_area(boundary_poly, fetch_buffer_m):
     """
     The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for.
 
     Overpass gets the outline once per road type, so a detailed official one (Beringen's has 5,600 points) is too big
-    a request. It is smoothed by a quarter of the widening, and widened by that much extra first, since smoothing can
-    pull the outline in by up to that amount.
+    a request. It is smoothed to within FETCH_OUTLINE_SMOOTHING_M, and widened by that much extra first, since
+    smoothing can pull the outline in by up to that amount.
     """
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    smoothing_deg = buffer_deg / 4
-    return boundary_poly.buffer(buffer_deg + smoothing_deg).simplify(smoothing_deg)
+    metres_per_deg = 111_320 * cos(radians(boundary_poly.centroid.y))
+    smoothing_deg = FETCH_OUTLINE_SMOOTHING_M / metres_per_deg
+    return boundary_poly.buffer(fetch_buffer_m / metres_per_deg + smoothing_deg).simplify(smoothing_deg)
 
 
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same

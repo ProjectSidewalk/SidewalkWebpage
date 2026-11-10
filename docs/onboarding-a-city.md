@@ -196,9 +196,11 @@ its default either way.
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up. A partner whose area cuts across
    regions (Beringen, #5950) passes it as `--study-area <geojson under db/>`: build and open whole regions as usual,
-   and after the scan the open streets outside the area become `disabled` (`disable-streets-outside-area.sh`). A
-   street stays open when half of it is inside or it runs along the area's edge. Disabled streets survive rescans
-   and reveals, and all have imagery, so opening more of the city later is setting them back to `open`.
+   and after the scan the open and no-imagery streets of the open regions that lie outside the area become
+   `disabled` (`disable-streets-outside-area.sh`), logged as `study_area`. A street stays when half of it is inside
+   or it runs along the area's edge. Disabled streets survive rescans, reveals, and the admin Reopen button. To grow
+   the area later, rerun `make disable-streets-outside-area` with the larger one: it puts back what it disabled, as
+   it was (open, or no_imagery), with no rescan. Hidden regions are left alone, so revealing one opens it whole.
 8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
    cache, samples the elevation model registered for the city's country (`tools/city/street_gradient.py`, seconds for
    most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump

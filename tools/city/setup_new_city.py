@@ -33,7 +33,8 @@ It chains every remaining setup step, pausing only where a human is required:
   7. Runs the tools/city/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
      holds the API keys and the geo libraries) against a freshly exported endpoints CSV, hides the no-imagery
      streets, and imports the imagery-age summary into street_imagery. With --study-area (a partner's area that cuts
-     across regions), the open streets outside it are then disabled (db/scripts/disable-streets-outside-area.sh).
+     across regions), the open regions' streets outside it are then disabled
+     (db/scripts/disable-streets-outside-area.sh).
   8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
      bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
      runs tools/city/street_gradient.py in the web container, and imports the result into street_gradient. A country
@@ -372,11 +373,13 @@ def translation_todo(city_id, state, country, added=()):
     return lines
 
 
-def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
+def handoff_checklist(city_id, schema, prod_url, test_url, gradient, study_area_owed=None):
     """
     The steps outside this repo that stand between a finished local schema and a live city.
 
     Args:
+        study_area_owed: The --study-area path when step 7 put it off for want of a scan, since the dump then opens
+                         the whole of every open region.
         gradient: How step 8 ended — ``sampled`` (the grades ride in the dump), ``no_source`` (the country has no
                   registered elevation model), ``no_structures`` (the build wrote no street_structures.csv),
                   ``skipped`` (--skip-gradient, or a --dump-only run of a schema with no rows), or ``unknown`` (the
@@ -410,8 +413,12 @@ def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
             f'''  7. Street grades were NOT sampled: rerun `make onboard-city id={city_id}` without --skip-gradient
      (or --dump-only; either way it comes straight back to step 8) before handing the dump over, {backfill}.
      Until then the AccessScore carries no grade term.''')
+    owed = '' if study_area_owed is None else f'''
+  NOT YET: the study area ({study_area_owed}) waits for the imagery scan, so this dump opens every street of the
+  open regions. Rerun `make onboard-city id={city_id} args="--study-area db/{study_area_owed}"` once the scan can
+  run, and hand over the dump that writes instead.'''
     return f'''
-Server handoff for {city_id}:
+Server handoff for {city_id}:{owed}
   1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
      `{schema}-dump`, which is what `make import-dump` restores, and which a populated prod pull also uses):
        scp db/{schema}-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/{schema}-empty-dump
@@ -1500,13 +1507,15 @@ def main(argv=None):
         print('  A scan was already imported into street_imagery; skipping.')
     else:
         run_imagery_scan(schema, city_id, pano_type)
+    study_area_owed = None
     if study_area:
         print(f'  Disabling the open streets outside the study area ({study_area})...')
         # Only open streets are disabled, so before the scan a no-imagery street would land on disabled, where no
         # rescan reaches it.
         if not scan_imported(schema):
-            print('  Not yet: it waits for the scan, so that every street it disables has imagery. A rerun picks it '
-                  'up.')
+            print('  Not yet: it waits for the scan, so that every street it disables has a verdict. A rerun picks '
+                  'it up.')
+            study_area_owed = study_area
         else:
             run_or_exit(['/opt/scripts/disable-streets-outside-area.sh', schema, study_area],
                         f'disable-streets-outside-area.sh failed on {schema}',
@@ -1529,7 +1538,7 @@ def main(argv=None):
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
-{handoff_checklist(city_id, schema, prod_url, test_url, gradient)}
+{handoff_checklist(city_id, schema, prod_url, test_url, gradient, study_area_owed)}
 Still on a human: the translations listed under step 1; the donor's values the clone carried in the city's config row
 — `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared, as was any official contact);
 and the GA ids if step 2 was skipped. The `/onboard-city` skill walks through all of it.''')

@@ -526,7 +526,7 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
     writes = re.compile(r'(?i)(?:insert\s+into|\\copy|\bcopy)\s+(?:"?\$\{?\w+\}?"?\.)?"?(\w+)"?\s*'
                         r'(?:\(|from|values|select)')
     for name in ('fill-new-schema.sh', 'import-street-imagery.sh', 'helpers.sh', 'hide-streets-without-imagery.sh',
-                 'reveal-or-hide-regions.sh', 'import-street-gradient.sh'):
+                 'reveal-or-hide-regions.sh', 'import-street-gradient.sh', 'disable-streets-outside-area.sh'):
         text = (scripts / name).read_text()
         # A staging table the script creates for its own session is gone before the dump can see it.
         written |= set(writes.findall(text)) - set(re.findall(r'(?i)create temp(?:orary)? table (\w+)', text))
@@ -1295,7 +1295,9 @@ def test_main_holds_the_study_area_until_the_scan_is_in(repo_copy, monkeypatch, 
     calls = _fake_run(monkeypatch, dict(_FRESH_DB))
     _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', '2', 'include:1 2')
     snc.main(['testville-wa', '--skip-scan', '--study-area', str(area)])
-    assert 'it waits for the scan' in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert 'it waits for the scan' in out
+    assert 'NOT YET: the study area (onboarding/testville-wa/study_area.geojson) waits' in out
     assert not any('disable-streets-outside-area.sh' in cmd for cmd in calls)
 
 

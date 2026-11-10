@@ -21,6 +21,3 @@ pyogrio==0.13.0
 # already arrives with geopandas and is pinned here because the script imports it directly.
 rasterio==1.5.2
 pyproj==3.8.0
-
-# create_ga_properties.py signs its service-account token with it; the stdlib can't.
-google-auth==2.62.1
