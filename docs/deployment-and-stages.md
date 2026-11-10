@@ -620,7 +620,8 @@ CI step) fails when the names here and the references in `conf/` differ, in eith
 means adding its row.
 
 "Unset" says what the app does when the deployment doesn't pass the variable. "Required" means a prod instance can't
-run without it, whether or not it fails fast.
+run without it, whether or not it fails fast. The clustering script's own environment (`INTERNAL_API_KEY`,
+`SIDEWALK_HTTP_PORT`) is set by the app when it launches the script, so the deployment passes neither.
 
 **Database and identity**
 
@@ -630,7 +631,7 @@ run without it, whether or not it fails fast.
 | `DATABASE_USER` | The city's database role, whose default `search_path` selects its schema | Required; falls back to the dev role |
 | `DATABASE_PASSWORD` | That role's password | Required; falls back to the dev password |
 | `SIDEWALK_CITY_ID` | Which `cityparams.conf` entry this instance is | Required; the app refuses to start |
-| `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | `local` |
+| `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | Required on a deployed stage: `local` silently tells search engines not to index, sends analytics to the test property, and turns off the prod-only AI validation hand-off and SciStarter reporting |
 
 **App secrets**
 
@@ -657,26 +658,26 @@ run without it, whether or not it fails fast.
 | Variable | Purpose | Unset |
 |----------|---------|-------|
 | `GOOGLE_MAPS_API_KEY` | Browser-side Google Maps key | Required; the app fails when the pano service starts |
-| `GOOGLE_MAPS_SERVER_KEY` | Key for the server's own Google requests, which send no Referer (#5647) | Falls back to the browser key |
+| `GOOGLE_MAPS_SERVER_KEY` | Key for the server's own Google requests, which send no Referer (#5647) | Unset or blank falls back to the browser key |
 | `GOOGLE_MAPS_SECRET` | URL-signing secret for Street View Static requests | Required; the app fails when the pano service starts |
 | `MAPBOX_API_KEY` | Mapbox tiles and the route builder's geocoding | Required; every page fails to render (it's in the common page data) |
-| `MAPILLARY_ACCESS_TOKEN` | Mapillary Graph API token | Mapillary-imagery cities can't load panos or poll imagery age |
-| `INFRA3D_CLIENT_ID_ZURICH`, `INFRA3D_CLIENT_SECRET_ZURICH` | Zurich's Infra3d OAuth client | Zurich can't load panos |
-| `INFRA3D_CLIENT_ID_WINTERTHUR`, `INFRA3D_CLIENT_SECRET_WINTERTHUR` | Winterthur's Infra3d OAuth client | Winterthur can't load panos |
+| `MAPILLARY_ACCESS_TOKEN` | Mapillary Graph API token | On a Mapillary city every page fails to render (the common page data builds the imagery token); elsewhere imagery-age polling skips Mapillary |
+| `INFRA3D_CLIENT_ID_ZURICH`, `INFRA3D_CLIENT_SECRET_ZURICH` | Zurich's Infra3d OAuth client | Every Zurich page fails to render (the common page data builds the imagery token) |
+| `INFRA3D_CLIENT_ID_WINTERTHUR`, `INFRA3D_CLIENT_SECRET_WINTERTHUR` | Winterthur's Infra3d OAuth client | Every Winterthur page fails to render (same) |
 
 **Other integrations**
 
 | Variable | Purpose | Unset |
 |----------|---------|-------|
 | `GEMINI_API_KEY` | Gemini vision, which analyzes canvas screenshots for the AI controller | Those requests fail |
-| `SCISTARTER_API_KEY` | Reports contributions to SciStarter | SciStarter sync fails |
+| `SCISTARTER_API_KEY` | Reports contributions to SciStarter | On prod, every Validate submission by a SciStarter user fails (the key is read before the request is sent) |
 | `GA_SERVICE_ACCOUNT_KEY` | Service-account JSON for the Google Analytics reader | Disables the admin traffic reporting |
 
 **Tunables** (defaults in `conf/application.conf`; the deployment passes none of these today)
 
 | Variable | Purpose | Unset |
 |----------|---------|-------|
-| `RATE_LIMIT_ENABLED` | Per-IP auth rate limiting (`false` turns it off) | On |
+| `RATE_LIMIT_ENABLED` | `false` turns off every rate limit that lacks its own `enabled` flag (sign-in, sign-up, password, anon sign-up, speed limit, …) | On |
 | `STREET_IMAGERY_POLL_BATCH_SIZE` | Streets the nightly imagery-age poll checks | 500 |
 | `STREET_IMAGERY_POLL_NO_IMAGERY_BATCH_SIZE` | Extra `no_imagery` streets it re-checks for regained imagery | 25 |
 | `WALK_PLANNER_PRIORITY_TOLERANCE` | How far below the top priority a neighboring street may be and still be walked next | 0.15 |

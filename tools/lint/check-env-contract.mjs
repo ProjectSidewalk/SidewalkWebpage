@@ -21,7 +21,7 @@ function confFiles(dir) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return confFiles(path);
     return entry.name.endsWith('.conf') ? [path] : [];
-  });
+  }).sort();
 }
 
 /**
@@ -32,7 +32,8 @@ function referencedVars(files) {
   const found = new Map();
   for (const file of files) {
     readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
-      for (const match of line.matchAll(/\$\{\?([A-Z][A-Z0-9_]*)\}/g)) {
+      const code = line.replace(/(^|\s)(#|\/\/).*$/, '');
+      for (const match of code.matchAll(/\$\{\?([A-Z][A-Z0-9_]*)\}/g)) {
         if (!found.has(match[1])) found.set(match[1], `${relative(ROOT, file)}:${i + 1}`);
       }
     });
@@ -41,8 +42,8 @@ function referencedVars(files) {
 }
 
 /**
- * A documented name is a backticked UPPER_SNAKE word in the contract section; requiring an underscore keeps
- * placeholders like `NAME` out.
+ * A documented name is a backticked word in the first column of a table row in the contract section; a name that only
+ * appears in another row's description doesn't count.
  *
  * @param {string} markdown The whole doc.
  * @returns {Set<string>} The documented names.
@@ -56,7 +57,8 @@ function documentedVars(markdown) {
   const rest = markdown.slice(start + SECTION_HEADING.length);
   const end = rest.search(/\n## /);
   const section = end < 0 ? rest : rest.slice(0, end);
-  return new Set([...section.matchAll(/`([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)`/g)].map((m) => m[1]));
+  const firstCells = section.split('\n').filter((line) => line.startsWith('|')).map((line) => line.split('|')[1]);
+  return new Set(firstCells.flatMap((cell) => [...cell.matchAll(/`([A-Z][A-Z0-9_]*)`/g)].map((m) => m[1])));
 }
 
 const referenced = referencedVars(confFiles(CONF_DIR));

@@ -126,9 +126,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
   `test/js/README.md`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
-  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
-  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
-  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, the env var contract check, plus
+  the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the
+  in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
   **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
   Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
   `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
@@ -223,7 +223,7 @@ Parallel jobs:
   three steps are **blocking**, and the job is a required status check.
 - **frontend** — `setup-node` (Node 26, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
   the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
-  ten lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
+  nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
