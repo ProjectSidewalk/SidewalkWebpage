@@ -383,10 +383,14 @@ export class Task {
 
   /**
    * @param {{lat: number, lng: number}} latLng - Where a pano sits.
-   * @returns {boolean} Whether stepping there takes the walk on: MIN_STEP_ADVANCE_M past the furthest point reached.
+   * @returns {boolean} Whether stepping there takes the walk on: on the street, MIN_STEP_ADVANCE_M past the furthest
+   *   point reached.
    */
   advancesWalk(latLng) {
     const meters = { units: /** @type {const} */ ('meters') };
+    // Past the on-street bound a pano can't move the furthest point, so every search from it would start over.
+    const point = turf.point([latLng.lng, latLng.lat]);
+    if (turf.pointToLineDistance(point, this.#geojson, meters) >= Task.ON_STREET_MAX_DISTANCE_M) return false;
     return this.getDistanceFromStart(latLng, meters) - this.getAuditedDistance(meters) >= Task.MIN_STEP_ADVANCE_M;
   }
 

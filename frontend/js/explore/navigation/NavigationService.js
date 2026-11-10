@@ -6,9 +6,8 @@
 
 import i18next from 'i18next';
 import { Gate } from '../../common/Gate.js';
+import { ForwardCrumbs } from './ForwardCrumbs.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
-import { util } from '../../common/utilities.js';
-import '../../common/utilitiesMath.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
 /** @typedef {import('../Main.js').StreetviewUi} StreetviewUi */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
@@ -252,7 +251,9 @@ export class NavigationService {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
       }
-      if ((stableTicks >= 2 || timedOut) && heading !== announcedHeading) {
+      const movedOn = announcedHeading === null
+        || Math.abs(((heading - announcedHeading + 540) % 360) - 180) >= 0.5;
+      if ((stableTicks >= 2 || timedOut) && movedOn) {
         announcedHeading = heading;
         this.#moveState = 'idle'; // Settled first, so the listeners recompute from the settled pov.
         this.#headingSettledListeners.forEach((listener) => listener());
@@ -330,19 +331,9 @@ export class NavigationService {
   moveToLinkedPano(heading, options) {
     if (!this.canWalk()) return Promise.resolve(false);
 
-    // Figure out if there's a link close to the given heading.
-    const currHeading = this.#panoManager.getPov().heading;
     const linkedPanos = this.#panoManager.panoViewer.getLinkedPanos();
-    const cosines = linkedPanos.map((link) => {
-      const headingAngleOffset = util.math.toRadians(currHeading + heading) - util.math.toRadians(link.heading);
-      return Math.cos(headingAngleOffset);
-    });
-    const maxIndex = cosines.indexOf(Math.max.apply(null, cosines));
-    if (cosines[maxIndex] > 0.5) {
-      return this.moveToPano(linkedPanos[maxIndex].panoId, false, options);
-    } else {
-      return Promise.resolve(false);
-    }
+    const index = ForwardCrumbs.stepLinkIndex(linkedPanos, this.#panoManager.getPov().heading + heading);
+    return index === -1 ? Promise.resolve(false) : this.moveToPano(linkedPanos[index].panoId, false, options);
   }
 
   /**

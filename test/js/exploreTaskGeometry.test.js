@@ -71,6 +71,8 @@ describe('Task geometry', () => {
       // Beside the street, barely further along: imagery that has turned off it.
       expect(task.advancesWalk(standingAt(street, 61, 15))).toBe(false);
       expect(task.advancesWalk(standingAt(street, 50))).toBe(false);
+      // Well along, but too far off the street to ever move the furthest point.
+      expect(task.advancesWalk(standingAt(street, 80, 30))).toBe(false);
     });
 
     it('ignores a pano off the street, however far along it projects', () => {

@@ -124,10 +124,16 @@ describe('NavArrows', () => {
         expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
       });
 
-      test('with the street ended here it is not drawn: it could only walk nowhere (#5918)', () => {
+      test('with the street ended here and no pano ahead it is not drawn: it could only walk nowhere (#5918)', () => {
         arrows.setWalkLanding('pano-here', null);
         arrows.setWalkEnded(true);
         expect(synthesized()).toBeNull();
+      });
+
+      test('with the street ended but a pano still ahead it stays, as the minimap still marks that pano', () => {
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-unlinked', heading: 120 });
+        arrows.setWalkEnded(true);
+        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(120, 15, 30)');
       });
 
       test('off the route nothing is synthesized: the link arrows lead back one pano at a time', () => {

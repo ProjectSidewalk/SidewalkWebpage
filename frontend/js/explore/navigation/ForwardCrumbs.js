@@ -169,21 +169,28 @@ export class ForwardCrumbs {
       return;
     }
     const task = this.#taskToSample();
-    const [links, ahead, landing] = await Promise.all([
-      this.#positionedLinks(),
-      task ? this.#routeStopsAhead(task) : Promise.resolve([]),
-      task ? this.#walkLanding(task) : Promise.resolve(null),
-    ]);
-    if (generation !== this.#generation) return; // A newer refresh owns the markers now.
-
-    this.#links = links;
     const currentPanoId = this.#panoManager.getPanoId();
     const here = this.#panoManager.getPosition();
-    this.#walkNext = landing && {
-      panoId: landing.panoId,
-      heading: (turf.bearing([here.lng, here.lat], [landing.lng, landing.lat]) + 360) % 360,
-    };
-    this.#navArrows.setWalkLanding(currentPanoId, this.#walkNext);
+    // A move can land before these answer and before its own refresh starts: the answers are then for the pano left.
+    const isCurrent = () => generation === this.#generation && this.#panoManager.getPanoId() === currentPanoId;
+    // Not held back for the route stops, which sample the whole street: the blue arrow waits on this alone.
+    const walkNext = (task ? this.#walkLanding(task) : Promise.resolve(null)).then((landing) => {
+      const next = landing && {
+        panoId: landing.panoId,
+        heading: (turf.bearing([here.lng, here.lat], [landing.lng, landing.lat]) + 360) % 360,
+      };
+      if (isCurrent()) this.#navArrows.setWalkLanding(currentPanoId, next);
+      return { landing, next };
+    });
+    const [links, ahead, { landing, next }] = await Promise.all([
+      this.#positionedLinks(),
+      task ? this.#routeStopsAhead(task) : Promise.resolve([]),
+      walkNext,
+    ]);
+    if (!isCurrent()) return;
+
+    this.#links = links;
+    this.#walkNext = next;
     const crumbs = ForwardCrumbs.mergeSources(ahead, links, {
       currentPanoId,
       landing,
@@ -291,9 +298,9 @@ export class ForwardCrumbs {
   }
 
   /**
-   * Index of the link a step toward `heading` takes: NavigationService.moveToLinkedPano's own rule, the link with
-   * the largest cosine to the heading when that cosine exceeds one half (within 60°); -1 otherwise. The up key and
-   * the spacebar both step by that rule, so the filled crumb, the tinted crumb and the blue arrow follow it too.
+   * Index of the link a step toward `heading` takes: the link with the largest cosine to the heading when that
+   * cosine exceeds one half (within 60°); -1 otherwise. The up key and the spacebar step by it
+   * (NavigationService.moveToLinkedPano), so the filled crumb, the tinted crumb and the blue arrow follow it too.
    * @param {Array<{heading: number}>} links - The current pano's linked panos.
    * @param {number} heading - The heading to step toward, degrees clockwise from north.
    * @returns {number}

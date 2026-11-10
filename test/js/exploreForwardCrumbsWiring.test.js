@@ -312,6 +312,28 @@ describe('ForwardCrumbs wiring', () => {
       expect(navArrows.setWalkLanding.mock.lastCall[1].panoId).toBe('corner');
     });
 
+    it('keeps a landing worked out for a pano the user has since left to itself', async () => {
+      streetSweep.findLanding.mockImplementation(async () => {
+        viewer.getPanoId = () => 'moved-on';
+        return { panoId: 'p20', lat: LAT, lng: lngAt(20) };
+      });
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).not.toHaveBeenCalled();
+    });
+
+    it('tells the arrows as soon as the landing is known, without waiting for the route stops', async () => {
+      let stopsAnswered = false;
+      const sampled = viewer.findPanoNear;
+      viewer.findPanoNear = async (...args) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        stopsAnswered = true;
+        return sampled(...args);
+      };
+      navArrows.setWalkLanding.mockImplementation(() => expect(stopsAnswered).toBe(false));
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenCalledTimes(1);
+    });
+
     it('says there is none when the crumbs could not be worked out at all', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       viewer.getPosition = () => { throw new Error('no position yet'); };

@@ -152,11 +152,13 @@ export class NavArrows {
     // On route only: off route the walk would teleport back rather than step. Until the landing is known nothing
     // is blue, since a guess could point nowhere.
     const walk = this.#walkLanding;
-    if (routeHeading !== null && blueIndex === -1 && this.#isEnRoute() && !this.#walkEnded
+    if (routeHeading !== null && blueIndex === -1 && this.#isEnRoute()
       && walk && walk.forPanoId === this.#panoManager.getPanoId()) {
       const landing = walk.landing;
       blueIndex = landing ? links.findIndex((link) => link.panoId === landing.panoId) : -1;
-      if (blueIndex === -1) synthesizedHeading = landing ? landing.heading : routeHeading;
+      // With the street ended and no pano ahead, an arrow could only walk nowhere; the compass prompt is the way on.
+      const leadsOn = landing || !this.#walkEnded;
+      if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
     }
 
     links.forEach((link, i) => {
@@ -187,8 +189,7 @@ export class NavArrows {
   }
 
   /**
-   * Told when the street ends where the labeler stands, and when they leave. No arrow is synthesized meanwhile:
-   * it could only walk nowhere, and the compass prompt is the way on (#5918).
+   * Told when the street ends where the labeler stands, and when they leave (#5918).
    * @param {boolean} ended
    */
   setWalkEnded(ended) {

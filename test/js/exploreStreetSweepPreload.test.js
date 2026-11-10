@@ -46,8 +46,8 @@ describe('StreetSweep.preloadAhead', () => {
       findPanoNear: vi.fn(async () => null),
     };
     currentTask = null;
-    sweep = new StreetSweep({}, {}, { getCurrentTask: () => currentTask }, { getPanoData: (panoId) => panos[panoId] }, fakePanoManager(viewer), {}, {},
-      {}, fakeTracker());
+    sweep = new StreetSweep({}, {}, { getCurrentTask: () => currentTask }, { getPanoData: (panoId) => panos[panoId] },
+      fakePanoManager(viewer), {}, {}, {}, fakeTracker());
   });
 
   it('looks one step ahead of the furthest point while the labeler stands at it, skipping the pano they are on', () => {
@@ -97,7 +97,8 @@ describe('StreetSweep.preloadAhead', () => {
 
       await expect(sweep.findLanding(new Task(streetFeature(200), COVERAGE, false))).resolves.toBe(hit);
 
-      expect(viewer.findPanoNear.mock.calls.map(([latLng]) => Math.round(metersAlong(latLng)))).toEqual([10, 20, 30, 40]);
+      const searched = viewer.findPanoNear.mock.calls.map(([latLng]) => Math.round(metersAlong(latLng)));
+      expect(searched).toEqual([10, 20, 30, 40]);
     });
 
     it('passes over a pano that gets no further down the street, as an empty point (#5918)', async () => {

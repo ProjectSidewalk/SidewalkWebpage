@@ -201,9 +201,13 @@ export class StreetProgress {
     } catch {
       return;
     }
-    // The lookup takes a moment, and the labeler may have moved on.
+    // The lookup takes a moment: the labeler may have moved on, or be mid-move, which ends the street itself.
+    if (this.#navigationService.isMoving()) return;
     if (this.#panoManager.getPanoId() !== panoId || this.#taskContainer.getCurrentTask() !== task) return;
-    this.#endStreet(task, this.#missionContainer.getCurrentMission());
+    const mission = this.#missionContainer.getCurrentMission();
+    this.#endStreet(task, mission);
+    // The landing's own progress update ran before the street ended.
+    this.#missionModel.updateMissionProgress(mission, this.#regionModel.currentRegion());
   }
 
   /**

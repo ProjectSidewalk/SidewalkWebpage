@@ -88,6 +88,8 @@ describe('StreetProgress', () => {
     listeners = {};
     nav = {
       walking: fakeGate(),
+      moving: false,
+      isMoving: () => nav.moving,
       onLanded: (listener) => { listeners.landed = listener; },
       moveToNextStreet: vi.fn(async (switchStreet) => {
         switchStreet();
@@ -265,6 +267,19 @@ describe('StreetProgress', () => {
     it('does nothing when the lookup went unanswered', async () => {
       await landWith([], async () => { throw new Error('provider down'); });
       expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('leaves the street to a move already in flight, which ends it itself', async () => {
+      await landWith([], async () => {
+        nav.moving = true;
+        return null;
+      });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('brings the mission progress up to date once the street has ended', async () => {
+      await landWith([], null);
+      expect(missionModel.updateMissionProgress).toHaveBeenCalledTimes(2);
     });
 
     it('does nothing once the labeler has moved on', async () => {

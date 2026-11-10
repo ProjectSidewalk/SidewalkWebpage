@@ -138,6 +138,16 @@ describe('NavigationService', () => {
       expect(headings).toEqual([150, 320]);
     });
 
+    test('a heading that only drifts a hair after settling is not settled again', () => {
+      viewer.heading = 150;
+      vi.advanceTimersByTime(240);
+      for (let tick = 0; tick < 12; tick++) {
+        viewer.heading += 0.03;
+        vi.advanceTimersByTime(80);
+      }
+      expect(settled).toHaveBeenCalledTimes(1);
+    });
+
     test('a heading that never settles is let go after a second and a half', () => {
       for (let tick = 0; tick < 20; tick++) {
         viewer.heading += 5;
