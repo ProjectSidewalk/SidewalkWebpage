@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import formats.json.HealthFormats.fleetHealthWrites
 import formats.json.UserFormats.given
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
@@ -9,6 +10,7 @@ import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
 import service.{
   ConfigService,
+  FleetHealthService,
   HealthService,
   ImageryFreshnessReportService,
   LabelService,
@@ -32,6 +34,7 @@ class AdminDashboardController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     healthService: HealthService,
+    fleetHealthService: FleetHealthService,
     streetLifecycleService: StreetLifecycleService,
     imageryFreshnessReportService: ImageryFreshnessReportService,
     streetService: StreetService,
@@ -284,6 +287,11 @@ class AdminDashboardController @Inject() (
    */
   def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
     healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
+  }
+
+  /** Every city's `/health` for the Health dashboard's fleet table (#4548); unlogged, like [[getDbHealth]]. */
+  def getFleetHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
+    fleetHealthService.getFleetHealth.map(data => Ok(Json.toJson(data)))
   }
 
   /**

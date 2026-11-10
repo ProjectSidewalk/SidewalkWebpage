@@ -8,7 +8,7 @@
         export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
-        lint-spec-base lint-shellcheck shellcheck \
+        lint-spec-base lint-env-contract lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -153,7 +153,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
+			lint-js-types lint-spec-base lint-env-contract lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -355,6 +355,8 @@ test-e2e:
 	  echo "==> building the Playwright runner image (first run for $(e2e-tag): downloads ~2GB)"; \
 	  docker build --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e; \
 	fi
+	@WEB_CONTAINER=$(web-container) DB_CONTAINER=$(db-container) bash test/e2e/fixtures/ensure-admin.sh \
+	  || echo "warning: no e2e admin, so the admin specs will fail at sign-in; the rest of the suite still runs"
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
 	  $(if $(filter /home,$(container-dir)),,--tmpfs $(container-dir)/node_modules) \
@@ -370,6 +372,8 @@ test-e2e-host:
 	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
 	@[ -d node_modules/@playwright/test ] \
 	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
+	@WEB_CONTAINER=$(web-container) DB_CONTAINER=$(db-container) bash test/e2e/fixtures/ensure-admin.sh \
+	  || echo "warning: no e2e admin, so the admin specs will fail at sign-in; the rest of the suite still runs"
 	@npx playwright test $(args)
 
 reveal-or-hide-regions:
@@ -412,6 +416,12 @@ lint-spec-base:
 	@echo "Checking spec base classes...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
 	@echo "Finished checking spec base classes";
+
+# The env vars conf/ reads and the deployment doc's contract table name the same set (#5138). Also a blocking CI step.
+lint-env-contract:
+	@echo "Checking the env var contract...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-env-contract.mjs"
+	@echo "Finished checking the env var contract";
 
 # ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
 # docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.

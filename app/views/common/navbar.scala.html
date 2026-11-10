@@ -17,7 +17,7 @@
 @* Every switch-target city (i.e. not the current one), grouped by country and sorted within each group; the current
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy { case (countryId, _) => countryId }}
-@isAdmin = @{user.isDefined && (user.get.role == Role.Administrator || user.get.role == Role.Owner)}
+@isAdmin = @{ControllerUtils.isAdmin(user)}
 @* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Route Builder) or to /mobile
    (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else is
    worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
@@ -36,8 +36,10 @@
   <!-- Fixed navbar -->
 @* data-has-session tells the frontend whether this render has an identity at all (signed-in or anonymous account),
    which is what a SecuredAction endpoint answers 200 vs 401 on. The navbar carries it because it is the one element
-   on nearly every page that already receives `user`. Read it via util.hasSession(). *@
-<nav id="header" aria-label="Main" data-has-session="@user.isDefined"@if(isLanding) { class="header--tall"}>
+   on nearly every page that already receives `user`. Read it via util.hasSession(). data-viewer-admin rides along
+   for the same reason, so a label link can open the admin view for admins (util.isAdmin()). *@
+<nav id="header" aria-label="Main" data-has-session="@user.isDefined" data-viewer-admin="@isAdmin"
+     @if(isLanding) { class="header--tall"}>
   <div class="navbar-container">
     <div class="navbar-brand-area">
       <div class="navbar-logo">

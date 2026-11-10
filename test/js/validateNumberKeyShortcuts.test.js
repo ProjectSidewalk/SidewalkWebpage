@@ -1,7 +1,7 @@
 /**
  * Tests for the number-key shortcuts in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo,
- * the H, Z and C letter keys, and Escape in a comment box, which share the manager's key handling.
+ * the H, Z and C letter keys, and Escape in a comment box or the tag picker, which share the manager's key handling.
  *
  * The reason buttons are one fixed set of elements reused across label types, and `defaultOption` is the flag saying
  * "this type offers this reason" — so the same keypress has to mean different things depending on the label on screen.
@@ -242,6 +242,29 @@ describe('KeyboardManager number-key shortcuts', () => {
     });
   });
 
+  describe('Escape in the tag picker (#5946)', () => {
+    beforeEach(() => {
+      document.body.innerHTML = '<input id="select-tag-ts-control" type="text">';
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    it('leaves the box in one press, so S submits again', () => {
+      const box = document.getElementById('select-tag-ts-control');
+      box.focus();
+      box.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+
+      expect(document.activeElement).not.toBe(box);
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusTagSearch', { code: 'Escape' });
+
+      validationMenuUi.submitButton.click = vi.fn();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', key: 's', bubbles: true, cancelable: true }));
+      expect(validationMenuUi.submitButton.click).toHaveBeenCalled();
+    });
+  });
+
   describe('Ctrl+Z, the other way to press Back (#5409)', () => {
     let undoButton;
 
@@ -454,6 +477,49 @@ describe('KeyboardManager number-key shortcuts', () => {
     expect(document.activeElement).not.toBe(commentBox);
     expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusComment', { code: 'Escape' });
     commentBox.remove();
+  });
+
+  describe('in a comment box, with what else is going on', () => {
+    let commentBox;
+
+    beforeEach(() => {
+      commentBox = validationMenuUi.optionalCommentTextBox;
+      document.body.appendChild(commentBox);
+      commentBox.focus();
+    });
+
+    afterEach(() => {
+      commentBox.remove(); // A box left focused would mute the shortcuts in later tests.
+    });
+
+    it('Escape still leaves the box while the shortcuts are paused', () => {
+      const isHeld = keyboardLock.isHeld;
+      keyboardLock.isHeld = () => true;
+      try {
+        commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+      } finally {
+        keyboardLock.isHeld = isHeld;
+      }
+      expect(document.activeElement).not.toBe(commentBox);
+    });
+
+    it('Escape leaves the box rather than closing an open label card popover', () => {
+      current.labelCard = { isPopoverOpen: () => true, closeTypeDropdown: vi.fn(() => false) };
+      commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape', bubbles: true }));
+
+      expect(document.activeElement).not.toBe(commentBox);
+      expect(current.labelCard.closeTypeDropdown).not.toHaveBeenCalled();
+      expect(current.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_UnfocusComment', { code: 'Escape' });
+    });
+
+    it('a key that finishes input-method text (Chinese, Japanese) is the input method\'s, not a shortcut', () => {
+      validationMenuUi.submitButton.click = vi.fn();
+      for (const key of ['Enter', 'Escape']) {
+        commentBox.dispatchEvent(new KeyboardEvent('keydown', { code: key, key, isComposing: true, bubbles: true }));
+      }
+      expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(commentBox);
+    });
   });
 
   it('other keys in a comment box are left to the box', () => {

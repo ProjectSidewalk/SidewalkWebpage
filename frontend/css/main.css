@@ -493,6 +493,12 @@ button:disabled,
   border: 0;
 }
 
+/* newTabNote.js: only the visible link text belongs on the clipboard. */
+.new-tab-note {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Centered page column. */
 .ps-container {
   width: 100%;

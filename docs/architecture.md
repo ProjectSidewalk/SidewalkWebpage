@@ -104,7 +104,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
   `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
-  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
+  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all. The
+  assignment does have to agree with the street's status: reveals, hides and the imagery scan find streets by it, so
+  anything that refiles a street keeps an open one in a live region and a closed one in a hidden region (#5953).
   Historically the city build cut streets at region borders so the two coincided; the current build heals the short
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
@@ -348,10 +350,14 @@ that found nothing to do, since the absence of a log line is not something anyon
 the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
 subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+
 Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
 row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
 that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
+
+The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
+`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -396,8 +402,10 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
-- **File downloads** (shapefile, GeoPackage, zipped CSVs) are each built in their own folder under `api-downloads/`
-  and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
+- **File downloads** (shapefile, GeoPackage, zipped and single CSVs) are each built in their own folder under
+  `api-downloads/` and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a
+  later download (#4133). The folder names are random and the sweep is age-based, so every city started from one
+  staged build can share its `api-downloads/` (#5138).
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
