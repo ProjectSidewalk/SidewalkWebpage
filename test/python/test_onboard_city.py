@@ -1061,7 +1061,7 @@ def test_fetch_area_is_a_small_outline_that_still_holds_the_city():
     # A circle traced with 4,000 points stands in for a detailed official city outline.
     city = Point(0, 0).buffer(0.05, quad_segs=1000)
     area = oc.fetch_area(city, 50)
-    assert area.contains(city)
+    assert area.contains(city.buffer(50 / 111_320))
     assert shapely.get_num_coordinates(area) < 500
 
 
