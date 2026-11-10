@@ -7,6 +7,5 @@
 ALTER TYPE street_edge_status_change_source ADD VALUE IF NOT EXISTS 'study_area';
 
 # --- !Downs
--- The 'study_area' enum value stays: Postgres cannot drop an enum value without recreating the type and recasting
--- every column referencing it, and an unused extra value is harmless (331.sql precedent).
-SELECT 1;
+-- partial-downs: Postgres can't drop an enum value without rewriting every column of the type, and a stray value is
+-- harmless to the previous release, which never writes it.
