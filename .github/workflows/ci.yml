@@ -563,9 +563,8 @@ jobs:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
 
-      # The file log belongs in SIDEWALK_LOG_DIR and nowhere else. Logback reads logback.xml once on its own before
-      # Play sets application.home, so a fallback on that property leaves a stray application.home_IS_UNDEFINED/
-      # folder in the stage dir (#5138). Last, so a miss here can't skip the seeding the smoke suite needs.
+      # Proves the file log went where the deployment points it and nowhere under the build (#5138). Last, so a miss
+      # can't skip the seeding the smoke suite needs.
       - name: Check where the app log landed
         if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
         run: |

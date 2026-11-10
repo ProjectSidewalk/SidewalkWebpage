@@ -29,8 +29,8 @@ import scala.util.{Failure, Success, Try}
  * test long before it can reach prod. The rest is derived data whose loss costs rebuild time, so it logs and lets
  * the app run.
  *
- * The log directory gets the same look (non-fatal): logback reads `SIDEWALK_LOG_DIR` itself, so the app can't fix a
- * bad value, but it can say so where the operator will see it.
+ * The log directory gets the same look, non-fatal: logback reads `SIDEWALK_LOG_DIR` itself, so a bad value can only
+ * be reported where the operator will see it.
  */
 @Singleton
 class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Environment) {
@@ -116,9 +116,7 @@ object PersistentMediaDirCheck {
   }
 
   /**
-   * Why the configured log directory won't hold the file log, if it won't. Logback treats a blank value as set, so it
-   * would write to the filesystem root and lose the log; a relative path lands wherever the process was started; and
-   * the build tree is deleted by the next deploy.
+   * Why the configured log directory won't hold the file log, if it won't; each reason says what to set instead.
    *
    * @param logDir      `SIDEWALK_LOG_DIR` as the deployment passed it, if it did.
    * @param environment Play environment supplying the application root.
@@ -128,13 +126,13 @@ object PersistentMediaDirCheck {
     val file = File(value.trim)
     if (value.trim.isEmpty)
       Some(
-        "SIDEWALK_LOG_DIR is set but empty, so the file log goes to the filesystem root and " +
-          "is lost. Set it to an absolute path outside the build, or unset it to log under the application directory."
+        "SIDEWALK_LOG_DIR is set but empty, so logback writes the file log to the filesystem root and loses it. " +
+          "Set it to an absolute path outside the build, or unset it to log under the application directory."
       )
     else if (!file.isAbsolute)
       Some(
-        s"SIDEWALK_LOG_DIR is relative ($value), so where the file log lands depends on " +
-          "the directory the process was started from. Set it to an absolute path outside the build."
+        s"SIDEWALK_LOG_DIR is relative ($value), so the file log lands wherever the process was started from. " +
+          "Set it to an absolute path outside the build."
       )
     else if (canonicalize(file).startsWith(canonicalize(wipeZoneFor(environment.rootPath))))
       Some(

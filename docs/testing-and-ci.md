@@ -228,8 +228,9 @@ Parallel jobs:
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
   `node tools/lint/check-spec-base.mjs`, `node tools/lint/check-env-contract.mjs` (the env vars `conf/` and
-  `logback.xml` read match the contract table in `docs/deployment-and-stages.md`, #5138), then `npm run test:js:coverage`, which also enforces
-  the JS coverage ratchet (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  `logback.xml` read match the contract table in `docs/deployment-and-stages.md`, #5138), then `npm run
+  test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No `--max-warnings 0`: the one
+  `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
@@ -237,12 +238,12 @@ Parallel jobs:
   uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
-  half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115,
-  then checks that the file log landed in `SIDEWALK_LOG_DIR` and nowhere under the stage dir (#5138) —
-  on every PR; uploads the Playwright report + `app.log` as an artifact when either half fails. CI installs
-  Playwright on the runner directly (`npx playwright install chromium`; no `--with-deps`,
-  #5915) rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the
-  job is fast and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115 — on
+  every PR, then checks that the file log landed in `SIDEWALK_LOG_DIR` and nowhere under the stage dir (#5138); uploads
+  the Playwright report + `app.log` as an artifact when either half fails. CI installs Playwright on the runner directly
+  (`npx playwright install chromium`; no `--with-deps`, #5915) rather than using the local `docker/e2e` runner image — a
+  GitHub runner already has the toolchain, and the job is fast and stable as-is.
+  This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
   `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
   `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
   the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since

@@ -14,10 +14,9 @@
 
     <!--
       The deployment points every city at one log directory outside the build (SIDEWALK_LOG_DIR), so cities can share
-      one staged build and a redeploy's `sbt clean` leaves the logs alone. Unset locally, where the app dir is fine.
-      The fallback is user.dir rather than Play's application.home because logback reads this file once on its own,
-      before Play has set that property, and an unset property leaves a stray `application.home_IS_UNDEFINED/` folder.
-      The start script pins user.dir to the app dir, so both passes agree wherever the app is launched from.
+      one staged build and a redeploy's `sbt clean` leaves the logs alone. Unset locally, where the app dir is fine. The
+      fallback is user.dir, which the start script pins to the app dir, not Play's application.home: logback reads this
+      file once on its own before Play sets that property, which leaves a stray application.home_IS_UNDEFINED/ folder.
     -->
     <property name="LOG_DIR" value="${SIDEWALK_LOG_DIR:-${user.dir}/logs}"/>
 
