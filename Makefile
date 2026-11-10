@@ -279,8 +279,7 @@ check-imagery:
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
 
-# Limit the open regions to a partner's study area (or grow it with a larger one), after the imagery scan;
-# `make onboard-city` does it when given `args="--study-area <geojson>"`.
+# Limit the open regions to a partner's study area, or grow it; `make onboard-city` runs it for `--study-area`.
 disable-streets-outside-area:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/disable-streets-outside-area.sh"
 

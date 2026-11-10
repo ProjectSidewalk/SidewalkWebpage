@@ -2,29 +2,24 @@
 # =====================================================================================================================
 # disable-streets-outside-area.sh — limit a city's open regions to a partner's study area.
 #
-# WHY THIS EXISTS: a partner may want to start with an area that cuts across neighborhoods (Velph's in Beringen,
-# #5950). The regions stay whole so the city can grow; in the open regions, the streets outside the area become
-# disabled, which no imagery rescan, region reveal or admin Reopen undoes. Each change is logged as 'study_area' with
-# the street's status before it, so a rerun with a larger area puts back what the old one disabled: no_imagery stays
-# no_imagery, and the rest open (closed, if their region has since been hidden). Hidden regions are left alone, so
-# revealing one later opens it whole.
+# WHY THIS EXISTS: a partner may start with an area that cuts across neighborhoods (Velph's in Beringen, #5950). The
+# regions stay whole; in the open ones, streets outside the area become disabled, which no rescan, reveal or admin
+# Reopen undoes. Each change is logged as 'study_area' with the prior status, so a rerun with a larger area puts those
+# streets back as they were. Hidden regions are untouched, so revealing one opens it whole.
 #
-# A street counts as inside when at least half of it is in the area, or when 90% of it lies within 10 m of the area's
-# edge (a street the partner drew the line along). The tutorial street is never touched. It runs after the imagery
-# scan: a street disabled first would be skipped by the scan and put back later without a verdict.
+# A street is inside when half of it is in the area, or 90% of it is within 10 m of the edge (a street the partner drew
+# the line along). The tutorial street is never touched. It runs after the imagery scan, which skips disabled streets.
 #
-# HOW IT'S RUN:  make onboard-city id=<city-id> args="--study-area <path>" runs it after the imagery scan; by hand,
-#                make disable-streets-outside-area. Re-running is safe.
-# INPUT:         a GeoJSON of the area under db/ (a FeatureCollection, a Feature, or a bare geometry). A "crs" member
-#                naming an EPSG code is honored (a Belgian shapefile export is in EPSG:3812); without one it's lon/lat.
+# HOW IT'S RUN:  `make onboard-city id=<city-id> args="--study-area <path>"`, or `make disable-streets-outside-area`.
+# INPUT:         a GeoJSON under db/ (FeatureCollection, Feature or geometry), in lon/lat unless a "crs" member names
+#                an EPSG code (Velph's files are EPSG:3812).
 # =====================================================================================================================
 set -euo pipefail
 
 # shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
-# Optional positional args ($1 schema, $2 GeoJSON path relative to the db dir) so tools/city/setup_new_city.py can drive
-# the script without faking its prompts; anything omitted is prompted for.
+# Optional positional args ($1 schema, $2 GeoJSON path relative to db/) let setup_new_city.py skip the prompts.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 AREA_FILE=${2:-$(prompt_with_default \
     "Path to the study area GeoJSON (relative to db dir, e.g. onboarding/beringen-be/study_area.geojson)")}
@@ -39,8 +34,8 @@ psql -d sidewalk -U "$SCHEMA_NAME" -v ON_ERROR_STOP=1 -v area_file="$AREA_FILE" 
 \set area `cat :'area_file'`
 BEGIN;
 
--- A file-level "crs" names every geometry's system; otherwise ST_GeomFromGeoJSON reads a geometry's own, or lon/lat.
--- Features without a geometry are skipped, and an outline that crosses itself is repaired.
+-- A file-level "crs" applies to every geometry, else each geometry's own, else lon/lat. Null geometries are skipped
+-- and a self-crossing outline is repaired.
 CREATE TEMP TABLE study_area ON COMMIT DROP AS
 WITH doc AS (
     SELECT :'area'::jsonb AS geojson
@@ -63,8 +58,7 @@ WITH doc AS (
 SELECT geom, ST_Buffer(ST_Boundary(geom)::geography, 10)::geometry AS edge
 FROM area;
 
--- An area that misses every street is the wrong file, or one in a coordinate system it doesn't declare; going on would
--- disable the whole launch.
+-- An area missing every street is the wrong file or an undeclared coordinate system, and would disable the launch.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM street_edge, study_area WHERE ST_Intersects(street_edge.geom, study_area.geom)) THEN
