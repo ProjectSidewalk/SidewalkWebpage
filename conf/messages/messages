@@ -66,6 +66,7 @@ city.name.newport-ky = Newport
 city.name.bayonne-fr = Bayonne
 city.name.laurens-ia = Laurens
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.dc = DC
 state.name.oregon = Oregon
@@ -103,6 +104,7 @@ country.name.chile = Chile
 country.name.brazil = Brazil
 
 country.name.france = France
+country.name.belgium = Belgium
 
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
