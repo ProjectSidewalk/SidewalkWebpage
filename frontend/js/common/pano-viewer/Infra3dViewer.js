@@ -411,6 +411,9 @@ export class Infra3dViewer extends PanoViewer {
 
   supportsLocationSearch = () => true;
 
+  // The nearest frame is often a flat photo a metre or two from a pano, which findPanoNear() then can't see.
+  findPanoNearCanMiss = () => true;
+
   /**
    * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
    * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the

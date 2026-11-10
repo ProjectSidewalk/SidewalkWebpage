@@ -83,7 +83,7 @@ describe('StreetProgress', () => {
       recordExploreMove: vi.fn(),
       hasWalkPlan: () => false,
     };
-    viewer = { getPosition: () => at(100), clearPrefetchCache: vi.fn() };
+    viewer = { getPosition: () => at(100), clearPrefetchCache: vi.fn(), findPanoNearCanMiss: () => false };
     panoManager = fakePanoManager(viewer, { turnTo: vi.fn() });
     listeners = {};
     nav = {
@@ -280,6 +280,12 @@ describe('StreetProgress', () => {
     it('brings the mission progress up to date once the street has ended', async () => {
       await landWith([], null);
       expect(missionModel.updateMissionProgress).toHaveBeenCalledTimes(2);
+    });
+
+    it('never ends a street on a lookup that can miss panos (infra3d)', async () => {
+      viewer.findPanoNearCanMiss = () => true;
+      await landWith([], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
     });
 
     it('does nothing once the labeler has moved on', async () => {

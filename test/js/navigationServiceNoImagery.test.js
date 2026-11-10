@@ -9,8 +9,8 @@
  * whether a session's run of failures has gone on long enough to be better explained by one broken session than by
  * a run of genuinely empty streets — plus the one write-path rule above.
  *
- * The seam is `panoManager.setLocation`, the one call the sweep makes per sampled point: each test scripts what the
- * provider says at each point and asserts on what gets reported, what gets advanced, and what the labeler is left
+ * The seam is the viewer's `findPanoNear`, the one question the sweep asks per sampled point: each test scripts what
+ * the provider says at each point and asserts on what gets reported, what gets advanced, and what the labeler is left
  * able to do. Everything below it (viewer, network) is out of scope; `test/js/panoViewerSeedFallback.test.js`
  * covers the provider-side classification that decides which error type arrives here.
  *
@@ -144,6 +144,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, seenEnough = at
     getCoveredDistanceM: () => 0,
     getDistanceFromStart: () => 0,
     headingAlongRoute: () => streetEdgeId,
+    advancesWalk: () => true,
   };
 }
 
@@ -200,6 +201,23 @@ describe('Explore, when the imagery search runs out along a street', () => {
       prefetchLocation: stub(),
       preloadPanoNear: stub(),
       getLinkedPanos: () => [],
+      supportsLocationSearch: () => true,
+      findPanoNearCanMiss: () => false,
+      // What the sweep asks at each sampled point. "No imagery" is an answer (null); anything else went unanswered.
+      findPanoNear: vi.fn((latLng, excludedPanos) => {
+        searches.push({
+          latLng,
+          streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
+          excludedPanos: [...excludedPanos].map((pano) => pano.panoId),
+        });
+        return respondToSearch(latLng).then(
+          ({ panoId }) => ({ panoId, lat: latLng.lat, lng: latLng.lng }),
+          (err) => {
+            if (err instanceof NoImageryError) return null;
+            throw err;
+          },
+        );
+      }),
     };
     svl = {
       alertController: { showAlert: stub() },
@@ -225,16 +243,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
       panoManager: fakePanoManager(panoViewer, {
         turnTo: stub(),
         panning: fakeGate(),
-        // The link-graph hop, as opposed to the street sweep below: one named pano, no searching.
-        setPanorama: vi.fn(() => respondToPanoHop()),
-        setLocation: vi.fn((latLng, excludedPanos) => {
-          searches.push({
-            latLng,
-            streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId(),
-            excludedPanos: [...excludedPanos].map((pano) => pano.panoId),
-          });
-          return respondToSearch(latLng);
-        }),
+        // The move to one named pano: a link hop, or the sweep landing on the pano its search found.
+        setPanorama: vi.fn((panoId) => respondToPanoHop(panoId)),
       }),
       taskContainer: {
         // Left false so a landing skips the end-of-street check: what a landing does to task state is its own
@@ -305,24 +315,21 @@ describe('Explore, when the imagery search runs out along a street', () => {
       const task = makeTask(101, { seenEnough: true });
       task.advancesWalk = () => false;
       assignStreets(task);
-      svl.panoViewer.findPanoNear = async () => ({ panoId: 'pano-off-to-the-side', lat: FIXTURE_LAT, lng: -74.0 });
       respondToSearch = foundImagery;
 
       await nav.moveForward();
 
-      expect(searches).toEqual([]);
+      expect(svl.panoManager.setPanorama).not.toHaveBeenCalled();
     });
 
     it('lands as usual on a pano further along', async () => {
-      const task = makeTask(101);
-      task.advancesWalk = () => true;
-      assignStreets(task);
-      svl.panoViewer.findPanoNear = async () => ({ panoId: 'pano-found', lat: FIXTURE_LAT, lng: -74.0 });
+      assignStreets(makeTask(101));
       respondToSearch = foundImagery;
 
       await nav.moveForward();
 
       expect(searches).toHaveLength(1);
+      expect(svl.panoManager.setPanorama).toHaveBeenCalledWith('pano-found');
     });
   });
 
@@ -554,6 +561,42 @@ describe('Explore, when the imagery search runs out along a street', () => {
       expect(reportNoImagery).not.toHaveBeenCalled();
       expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
       expect(svl.tracker.push).toHaveBeenCalledWith('PanoSearchFailed');
+    });
+
+    it('treats a viewer that cannot search by location the same way: it has not said the street is empty', async () => {
+      assignStreets(makeTask(101), makeTask(102));
+      svl.panoViewer.supportsLocationSearch = () => false;
+
+      await nav.moveForward();
+
+      expect(reportNoImagery).not.toHaveBeenCalled();
+      expect(svl.tracker.push).toHaveBeenCalledWith('PanoSearchFailed');
+    });
+
+    it('lets the provider\'s own move decide where its lookup can miss panos (infra3d)', async () => {
+      assignStreets(makeTask(101), makeTask(102));
+      svl.panoViewer.findPanoNearCanMiss = () => true;
+      svl.panoManager.setLocation = vi.fn(() => Promise.resolve());
+      respondToSearch = emptyGround;
+
+      await nav.moveForward();
+
+      // The first point's lookup said "nothing", and the move by point landed there all the same.
+      expect(svl.panoManager.setLocation).toHaveBeenCalledTimes(1);
+      expect(searches).toHaveLength(1);
+      expect(reportNoImagery).not.toHaveBeenCalled();
+    });
+
+    it('passes over a pano that was found but would not load, and lands on the next one down the street', async () => {
+      assignStreets(makeTask(101), makeTask(102));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      respondToSearch = () => Promise.resolve({ panoId: `pano-${searches.length}` });
+      respondToPanoHop = (panoId) => (panoId === 'pano-1' ? Promise.reject(new Error('never loads')) : Promise.resolve());
+
+      await nav.moveForward();
+
+      expect(svl.panoManager.setPanorama.mock.calls.map(([panoId]) => panoId)).toEqual(['pano-1', 'pano-2']);
+      expect(reportNoImagery).not.toHaveBeenCalled();
     });
 
     it('tells the labeler and hands the controls back, rather than freezing the panorama', async () => {
@@ -1128,10 +1171,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
       // The stuck set holds what panoStore returns, and the real viewer asks each of those for its id.
       svl.panoStore.getPanoData = (panoId) => ({ panoId, getPanoId: () => panoId });
       // The sweep's one seam, now backed by the real viewer rather than a scripted answer.
-      svl.panoManager.setLocation.mockImplementation((latLng, excludedPanos) => {
+      svl.panoViewer.findPanoNear = (latLng, excludedPanos) => {
         searches.push({ latLng, streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId() });
-        return viewer.setLocation(latLng, excludedPanos);
-      });
+        return viewer.findPanoNear(latLng, excludedPanos);
+      };
+      svl.panoManager.setPanorama.mockImplementation((panoId) => viewer.setPano(panoId));
     });
 
     /** A getPanorama() reply for a pano at `[lng, lat]`, with the fields the viewer reads. */
@@ -1149,9 +1193,15 @@ describe('Explore, when the imagery search runs out along a street', () => {
     it('a far answer at one step walks on to a near pano 10 m further, not to the end of the street', async () => {
       assignStreets(makeTask(101, { lengthKm: 0.1 }), makeTask(102));
       // The #5114 answer at the first point searched; a pano 3 m off the street at every later one.
-      getPanorama.mockImplementation(async ({ location }) => (getPanorama.mock.calls.length === 1
-        ? gsvReply('SYRACUSE', [-76.1720131, 43.0917906])
-        : gsvReply(`near-${getPanorama.mock.calls.length}`, [location.lng(), location.lat() + 3 / 111320])));
+      const replies = new Map();
+      getPanorama.mockImplementation(async ({ location, pano }) => {
+        // The move to the pano a search found asks for it again, by id.
+        if (pano) return replies.get(pano);
+        if (getPanorama.mock.calls.length === 1) return gsvReply('SYRACUSE', [-76.1720131, 43.0917906]);
+        const id = `near-${getPanorama.mock.calls.length}`;
+        replies.set(id, gsvReply(id, [location.lng(), location.lat() + 3 / 111320]));
+        return replies.get(id);
+      });
 
       await nav.moveForward();
 

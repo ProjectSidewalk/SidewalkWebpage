@@ -44,6 +44,8 @@ describe('StreetSweep.preloadAhead', () => {
       getPosition: () => ({ lat: START[1], lng: START[0] }),
       preloadPanoNear: vi.fn(),
       findPanoNear: vi.fn(async () => null),
+      supportsLocationSearch: () => true,
+      findPanoNearCanMiss: () => false,
     };
     currentTask = null;
     sweep = new StreetSweep({}, {}, { getCurrentTask: () => currentTask }, { getPanoData: (panoId) => panos[panoId] },

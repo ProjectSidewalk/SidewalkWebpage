@@ -193,6 +193,8 @@ export class StreetProgress {
     if (!task || this.#labelBeforeJumpArmed || !task.isCoveredEnough()) return;
     let panoId;
     try {
+      // "No pano ahead" has to be an answer the provider can be held to.
+      if (this.#panoManager.panoViewer.findPanoNearCanMiss()) return;
       panoId = this.#panoManager.getPanoId();
       const links = this.#panoManager.panoViewer.getLinkedPanos();
       const routeHeading = task.headingAlongRoute(this.#panoManager.getPosition());
