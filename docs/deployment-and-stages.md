@@ -563,7 +563,9 @@ Each running city instance writes a **rolling file log** (configured in [`conf/l
 
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` — e.g. `application-newberg-or.log` — in `SIDEWALK_LOG_DIR`,
   **one directory for every city on the host**, outside the build. Unset (local dev), it falls back to `logs/` under
-  the app directory. The app also mirrors output to stdout.
+  the app directory. The app also mirrors output to stdout. (Logback reads its config once on its own before Play
+  sets `application.home`; the fallback covers that pass too, so there is no stray `application.home_IS_UNDEFINED/`
+  folder. CI checks this.)
 - **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. With the directory outside the
   build these survive a deploy; a `logs/` under the app directory is deleted with it, and older lines then survive
   only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.

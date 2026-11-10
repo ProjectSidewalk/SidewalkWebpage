@@ -15,9 +15,11 @@
     <!--
       The deployment points every city at one log directory outside the build (SIDEWALK_LOG_DIR), so cities can share
       one staged build and a redeploy's `sbt clean` no longer deletes the logs. Unset locally, where the app dir is
-      fine.
+      fine. Logback reads this file once on its own before Play has set application.home, so the inner fallback to
+      the working directory (the app dir in dev, the stage dir in prod) keeps that first pass out of an
+      `application.home_IS_UNDEFINED/` folder.
     -->
-    <property name="LOG_DIR" value="${SIDEWALK_LOG_DIR:-${application.home}/logs}"/>
+    <property name="LOG_DIR" value="${SIDEWALK_LOG_DIR:-${application.home:-.}/logs}"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_DIR}/application-${SIDEWALK_CITY_ID}.log</file>

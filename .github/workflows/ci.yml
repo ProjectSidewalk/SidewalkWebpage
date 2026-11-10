@@ -507,11 +507,13 @@ jobs:
       # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
       # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
       # specs build their own application and disable the module themselves.
+      # Started from inside the stage dir, as the deployment does, so the log-location check below sees what prod sees.
       - name: Start the app
         run: |
-          nohup target/universal/stage/bin/sidewalk-webpage \
+          cd target/universal/stage
+          nohup bin/sidewalk-webpage \
             -Dconfig.resource=application.ci.conf \
-            -Dhttp.port=9000 > app.log 2>&1 &
+            -Dhttp.port=9000 > "$GITHUB_WORKSPACE/app.log" 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
@@ -524,6 +526,15 @@ jobs:
             sleep 2
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
+
+      # Without SIDEWALK_LOG_DIR the file log belongs in logs/ under the app dir, and nowhere else: logback's own
+      # first pass over logback.xml runs before Play sets application.home, and used to leave a stray
+      # application.home_IS_UNDEFINED/ folder (#5138).
+      - name: Check where the app log landed
+        run: |
+          ls target/universal/stage/logs/application-*.log
+          stray=$(find . -name application.home_IS_UNDEFINED)
+          if [ -n "$stray" ]; then echo "Stray log folder: $stray"; exit 1; fi
 
       # Shared with backend-tests. Without a region /explore is a server error; without labels Gallery,
       # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the
