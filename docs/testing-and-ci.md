@@ -223,12 +223,13 @@ Parallel jobs:
   three steps are **blocking**, and the job is a required status check.
 - **frontend** — `setup-node` (Node 26, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
   the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
-  nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
+  ten lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
-  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
-  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  `node tools/lint/check-spec-base.mjs`, `node tools/lint/check-env-contract.mjs` (the env vars `conf/` reads match
+  the contract table in `docs/deployment-and-stages.md`, #5138), then `npm run test:js:coverage`, which also enforces
+  the JS coverage ratchet (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at

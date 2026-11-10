@@ -8,7 +8,7 @@
         export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-js-types \
-        lint-spec-base lint-shellcheck shellcheck \
+        lint-spec-base lint-env-contract lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -153,7 +153,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
+			lint-js-types lint-spec-base lint-env-contract lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -416,6 +416,12 @@ lint-spec-base:
 	@echo "Checking spec base classes...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
 	@echo "Finished checking spec base classes";
+
+# The env vars conf/ reads and the deployment doc's contract table name the same set (#5138). Also a blocking CI step.
+lint-env-contract:
+	@echo "Checking the env var contract...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-env-contract.mjs"
+	@echo "Finished checking the env var contract";
 
 # ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
 # docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.

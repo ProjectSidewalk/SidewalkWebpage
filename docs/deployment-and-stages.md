@@ -5,11 +5,14 @@ each one, and the runtime shape of the servers. This is the production counterpa
 [`docs/dev-environment.md`](dev-environment.md) and the app-internal tour in [`docs/architecture.md`](architecture.md).
 
 > **Source & scope.** This document was written from an analysis (2026-07-01) of the **internal server-deployment
-> tooling maintained by UW CSE IT** — a separate ops repository, not part of this codebase. That repo remains the
-> source of truth for how the servers are actually run; this is a contributor-facing summary of the parts that affect
-> how you develop and ship. **Operational specifics that could aid an attacker are deliberately omitted** — hostnames,
-> port numbers, absolute server paths, internal DNS/auth tooling, and the operator control panel. If you need those,
-> ask UW CSE IT. Treat this file as explanatory, not as runbook.
+> tooling maintained by UW CSE IT** — the private ops repo
+> [`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools) (UW CSE credentials), not part of this
+> codebase. **Last verified against that repo: 2026-11-10.** It drifted within two months of the first snapshot, so
+> re-check and re-date this line whenever you read it against the ops repo. That repo remains the source of truth for
+> how the servers are actually run; this is a contributor-facing summary of the parts that affect how you develop and
+> ship. **Operational specifics that could aid an attacker are deliberately
+> omitted** — hostnames, port numbers, absolute server paths, internal DNS/auth tooling, and the operator control
+> panel. If you need those, ask UW CSE IT. Treat this file as explanatory, not as runbook.
 
 ---
 
@@ -610,20 +613,77 @@ CSE IT.
 At runtime the app is configured almost entirely through **environment variables** (values are injected by the
 deployment tooling and, locally, by your `docker-compose.override.yml`). The variable **names** below are already
 part of this repo's own config files; the **values** are secrets and live only on the servers / in maintainer-held
-override files. This is the practical list to keep in sync when you add a new integration — a new secret has to be
-plumbed through both this app's config *and* the deployment tooling, or it will be missing in production.
+override files. Every optional substitution in `conf/` (a `${?…}` reference) is a requirement on the deployment side,
+which only learns about one from this table: a new secret has to be plumbed through both this app's config *and* the
+deployment tooling, or it will be missing in production. `tools/lint/check-env-contract.mjs` (`make lint`, a blocking
+CI step) fails when the names here and the references in `conf/` differ, in either direction, so adding a variable
+means adding its row.
 
-| Group | Variables (names only) |
-|-------|------------------------|
-| **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
-| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
-| **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
-| **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
-| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
-| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
+"Unset" says what the app does when the deployment doesn't pass the variable. "Required" means a prod instance can't
+run without it, whether or not it fails fast.
 
-> If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
-> this repo and the deployment tooling in the IT ops repo.
+**Database and identity**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `DATABASE_URL` | JDBC URL of the city's Postgres database | Required; falls back to the dev container's address |
+| `DATABASE_USER` | The city's database role, whose default `search_path` selects its schema | Required; falls back to the dev role |
+| `DATABASE_PASSWORD` | That role's password | Required; falls back to the dev password |
+| `SIDEWALK_CITY_ID` | Which `cityparams.conf` entry this instance is | Required; the app refuses to start |
+| `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | `local` |
+
+**App secrets**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `SIDEWALK_APPLICATION_SECRET` | Play's application secret (session signing, CSRF tokens) | Required; Play refuses to start in prod mode |
+| `SILHOUETTE_SIGNER_KEY` | Signs the authenticator cookie | Required; the app refuses to start |
+| `SILHOUETTE_CRYPTER_KEY` | Encrypts the authenticator cookie | Required; the app refuses to start |
+| `IMAGE_SIGNING_SECRET` | Signs time-limited image URLs (`/backupImage`, `/cropImage`) | Falls back to the application secret; set it in prod so the two can be rotated independently |
+| `INTERNAL_API_KEY` | Bearer token for server-to-server calls (clustering, the AI server's callbacks) | Required; clustering fails and every internal call is refused |
+| `SIDEWALK_AI_API_KEY` | Password the AI server checks on each request | Every AI validation and tag suggestion fails |
+
+**Media directories** (the [persistent-directories](#directories-that-must-survive-a-deploy) section says what each holds)
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `SIDEWALK_PANO_DIR` | Self-hosted pano store | Required; the app refuses to start in prod mode |
+| `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story media | Required; the app refuses to start in prod mode |
+| `SIDEWALK_IMAGES_DIR` | Label crops | Error logged at boot; crops written under the app directory |
+| `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews | Error logged at boot; previews written under the app directory |
+
+**Imagery and maps**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `GOOGLE_MAPS_API_KEY` | Browser-side Google Maps key | Required; the app fails when the pano service starts |
+| `GOOGLE_MAPS_SERVER_KEY` | Key for the server's own Google requests, which send no Referer (#5647) | Falls back to the browser key |
+| `GOOGLE_MAPS_SECRET` | URL-signing secret for Street View Static requests | Required; the app fails when the pano service starts |
+| `MAPBOX_API_KEY` | Mapbox tiles and the route builder's geocoding | Required; every page fails to render (it's in the common page data) |
+| `MAPILLARY_ACCESS_TOKEN` | Mapillary Graph API token | Mapillary-imagery cities can't load panos or poll imagery age |
+| `INFRA3D_CLIENT_ID_ZURICH`, `INFRA3D_CLIENT_SECRET_ZURICH` | Zurich's Infra3d OAuth client | Zurich can't load panos |
+| `INFRA3D_CLIENT_ID_WINTERTHUR`, `INFRA3D_CLIENT_SECRET_WINTERTHUR` | Winterthur's Infra3d OAuth client | Winterthur can't load panos |
+
+**Other integrations**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `GEMINI_API_KEY` | Gemini vision, which analyzes canvas screenshots for the AI controller | Those requests fail |
+| `SCISTARTER_API_KEY` | Reports contributions to SciStarter | SciStarter sync fails |
+| `GA_SERVICE_ACCOUNT_KEY` | Service-account JSON for the Google Analytics reader | Disables the admin traffic reporting |
+
+**Tunables** (defaults in `conf/application.conf`; the deployment passes none of these today)
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `RATE_LIMIT_ENABLED` | Per-IP auth rate limiting (`false` turns it off) | On |
+| `STREET_IMAGERY_POLL_BATCH_SIZE` | Streets the nightly imagery-age poll checks | 500 |
+| `STREET_IMAGERY_POLL_NO_IMAGERY_BATCH_SIZE` | Extra `no_imagery` streets it re-checks for regained imagery | 25 |
+| `WALK_PLANNER_PRIORITY_TOLERANCE` | How far below the top priority a neighboring street may be and still be walked next | 0.15 |
+| `WALK_PLANNER_TINY_STREET_M` | Streets shorter than this (m) are walked as soon as they're adjacent | 20 |
+
+> The authoritative sources are `conf/application.conf` (+ the stage overlays) in this repo and the deployment
+> tooling in the IT ops repo. The ops repo still exports a few names nothing here reads any more; they're harmless.
 
 ## What this document intentionally does not cover
 
@@ -634,6 +694,6 @@ Maintainers who need those should consult the ops repo or contact UW CSE IT (**s
 
 ---
 
-*Provenance: derived from a point-in-time (2026-07-01) reading of UW CSE IT's internal Project Sidewalk deployment
-tooling by a maintainer. The ops repo is the source of truth and may have changed since; update this summary if you
-notice drift.*
+*Provenance: derived from a maintainer's reading of UW CSE IT's internal Project Sidewalk deployment tooling, last
+verified on the date at the top of this document. The ops repo is the source of truth and may have changed since;
+update this summary and that date if you notice drift.*

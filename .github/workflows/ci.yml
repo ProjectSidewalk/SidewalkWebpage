@@ -142,6 +142,11 @@ jobs:
         if: always()
         run: node tools/lint/check-spec-base.mjs
 
+      # The deploy learns which env vars to pass only from the deployment doc's contract table (#5138).
+      - name: Env var contract (blocking)
+        if: always()
+        run: node tools/lint/check-env-contract.mjs
+
       # The jsdom unit suite (test/js/), ending on the coverage ratchet in vitest.config.mjs (#5112).
       - name: Vitest unit tests (blocking)
         if: always()
