@@ -87,6 +87,8 @@ export class ForwardCrumbs {
   #walkNext = null;
   #facedPanoId = null;
   #nextStepPanoId = null; // The crumb the spacebar would step to; tinted until the next refresh moves it.
+  #walkEnded = false; // The prompt to move on from a finished street is up.
+  #landingToldFor = null; // The pano whose walk landing the arrows last heard.
   #highlightedPanoId = null;
   #memo = new Map(); // sampleIndex -> Promise<?PanoHit> for the street #memoKey names.
   #memoKey = null; // Identity of the traversal the memo belongs to; see memoKeyFor().
@@ -148,9 +150,10 @@ export class ForwardCrumbs {
       await this.#refresh();
     } catch (err) {
       console.warn('Minimap crumbs could not be refreshed:', err);
-      // The arrows draw no blue one until they hear back, so they are told there is no landing.
+      // The arrows draw no blue one until they hear a landing, so they are told there is none.
       try {
-        this.#navArrows.setWalkLanding(this.#panoManager.getPanoId(), null);
+        const panoId = this.#panoManager.getPanoId();
+        if (this.#landingToldFor !== panoId) this.#navArrows.setWalkLanding(panoId, null);
       } catch {
         // A viewer that can't name its pano has no arrows to aim.
       }
@@ -179,7 +182,12 @@ export class ForwardCrumbs {
         panoId: landing.panoId,
         heading: (turf.bearing([here.lng, here.lat], [landing.lng, landing.lat]) + 360) % 360,
       };
-      if (isCurrent()) this.#navArrows.setWalkLanding(currentPanoId, next);
+      if (isCurrent()) {
+        this.#landingToldFor = currentPanoId;
+        this.#navArrows.setWalkLanding(currentPanoId, next);
+        // Not left for the route stops: hovering the blue arrow outlines this stop.
+        this.#walkNext = next;
+      }
       return { landing, next };
     });
     const [links, ahead, { landing, next }] = await Promise.all([
@@ -198,8 +206,24 @@ export class ForwardCrumbs {
       reachableCount: ForwardCrumbs.REACHABLE_COUNT,
     });
     this.#render(crumbs);
-    this.#markNextStep(ForwardCrumbs.nextStepPanoId(links, this.#targetAngle(), this.#walkNext?.panoId ?? null));
+    this.#markSpacebarStep();
     this.setFacing(this.#panoManager.getPov().heading);
+  }
+
+  /**
+   * Told when the prompt to move on from a finished street goes up, and when the labeler takes it (#5918).
+   * @param {boolean} ended
+   */
+  setWalkEnded(ended) {
+    this.#walkEnded = ended;
+    this.#markSpacebarStep();
+  }
+
+  /** Tints the crumb the spacebar would step to: on an ended street, only the walk's next stop. */
+  #markSpacebarStep() {
+    const walkNextId = this.#walkNext?.panoId ?? null;
+    const linkOrWalk = () => ForwardCrumbs.nextStepPanoId(this.#links, this.#targetAngle(), walkNextId);
+    this.#markNextStep(this.#walkEnded ? walkNextId : linkOrWalk());
   }
 
   /**

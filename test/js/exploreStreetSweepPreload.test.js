@@ -120,6 +120,27 @@ describe('StreetSweep.preloadAhead', () => {
       await expect(sweep.findLanding(new Task(streetFeature(200), COVERAGE, false))).resolves.toBe(atTheStart);
     });
 
+    it('rules out only the pano stood on when coming back: the one left is where to return (#5918)', async () => {
+      currentTask = new Task(streetFeature(200), COVERAGE, false);
+      sweep.rememberStanding();
+      const [lng, lat] = turf.destination(turf.point(START), 0.04, 0).geometry.coordinates;
+      panos['pano-off-route'] = { panoId: 'pano-off-route' };
+      viewer.getPanoId = () => 'pano-off-route';
+      viewer.getPosition = () => ({ lat, lng });
+
+      await sweep.findLanding(currentTask);
+
+      expect([...viewer.findPanoNear.mock.calls[0][1]]).toEqual([panos['pano-off-route']]);
+    });
+
+    it('answers null at a point a lookup that can miss calls empty: the sweep tries a move there', async () => {
+      viewer.findPanoNearCanMiss = () => true;
+      viewer.findPanoNear.mockResolvedValueOnce(null).mockResolvedValue({ panoId: 'pano-ahead' });
+
+      await expect(sweep.findLanding(new Task(streetFeature(200), COVERAGE, false))).resolves.toBeNull();
+      expect(viewer.findPanoNear).toHaveBeenCalledTimes(1);
+    });
+
     it('answers null once the whole street came up empty, its end included', async () => {
       await expect(sweep.findLanding(new Task(streetFeature(30), COVERAGE, false))).resolves.toBeNull();
 

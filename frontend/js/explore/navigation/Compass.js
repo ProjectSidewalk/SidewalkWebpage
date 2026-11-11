@@ -87,7 +87,11 @@ export class Compass {
       this.update();
     });
     navigationService.onMoveStarted(() => this.click.hold('move'));
-    navigationService.onMoveFinished(() => this.click.release('move'));
+    navigationService.onMoveFinished(() => {
+      this.click.release('move');
+      // A failed move has no landing to redraw the message.
+      this.update();
+    });
     navigationService.onHeadingSettled(() => this.update());
     streetProgress.onLabelBeforeJumpChanged((armed) => {
       if (armed) this.showLabelBeforeJumpMessage();

@@ -20,8 +20,10 @@ import '../../common/utilitiesSidewalk.js';
 
 /**
  * One searched point: the pano to land on there, or why there is none (`failure`: a NoImageryError when the point
- * is empty, the provider's error when it went unanswered). `nothingFound` says the lookup found no pano at all.
- * @typedef {{currLoc: {lat: number, lng: number}, hit: ?PanoHit, nothingFound: boolean, failure: ?Error}} SearchedPoint
+ * is empty, the provider's error when it went unanswered). `nothingFound` says the lookup found no pano at all;
+ * `excluded` is the panos it left out.
+ * @typedef {{currLoc: {lat: number, lng: number}, hit: ?PanoHit, nothingFound: boolean, failure: ?Error,
+ *   excluded: Set<import('../../common/pano-viewer/PanoData.js').PanoData>}} SearchedPoint
  */
 /** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
 /** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
@@ -121,8 +123,8 @@ export class StreetSweep {
    * @param {Task} task - The street the next sweep will walk.
    */
   preloadAhead(task) {
-    const { currLoc } = this.#computeMoveTarget(task);
-    this.#panoManager.panoViewer.preloadPanoNear(currLoc, this.#panosNextSweepSkips(task));
+    const target = this.#computeMoveTarget(task);
+    this.#panoManager.panoViewer.preloadPanoNear(target.currLoc, this.#panosLeftOut(target, this.#stoodAt(task)));
   }
 
   /**
@@ -131,8 +133,11 @@ export class StreetSweep {
    * @returns {Promise<?PanoHit>} Null when no pano is ahead; rejects when the provider didn't answer.
    */
   async findLanding(task) {
-    for await (const { hit, failure } of this.#searchAhead(task, this.#panosNextSweepSkips(task))) {
+    const canMiss = this.#panoManager.panoViewer.findPanoNearCanMiss();
+    for await (const { hit, nothingFound, failure } of this.#searchAhead(task, this.#stoodAt(task))) {
       if (hit) return hit;
+      // The sweep tries a move at a point the lookup may have missed, so where it lands from here is unknown.
+      if (nothingFound && canMiss) return null;
       if (!(failure instanceof NoImageryError)) throw failure;
     }
     return null;
@@ -143,29 +148,31 @@ export class StreetSweep {
    * street, a DIST_INCREMENT apart. The one walk through those points, so the sweep lands where findLanding said
    * (#5918).
    * @param {Task} task - The street being walked.
-   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} excludedPanos - Panos not to land on.
+   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
    * @returns {AsyncGenerator<SearchedPoint, void, void>}
    */
-  async* #searchAhead(task, excludedPanos) {
+  async* #searchAhead(task, stoodAt) {
     const viewer = this.#panoManager.panoViewer;
     const target = this.#computeMoveTarget(task);
+    const excluded = this.#panosLeftOut(target, stoodAt);
     let { currLoc, remainder } = target;
     for (;;) {
       const at = `${currLoc.lat},${currLoc.lng}`;
       try {
         // A viewer that can't search has not said the street is empty.
         if (!viewer.supportsLocationSearch()) throw new Error('This viewer cannot search for a pano by location.');
-        const hit = await viewer.findPanoNear(currLoc, excludedPanos);
+        const hit = await viewer.findPanoNear(currLoc, excluded);
         if (!hit) {
-          yield { currLoc, hit: null, nothingFound: true, failure: new NoImageryError(`No pano near ${at}.`) };
+          const failure = new NoImageryError(`No pano near ${at}.`);
+          yield { currLoc, hit: null, nothingFound: true, failure, excluded };
         } else if (target.lookingAhead && !task.advancesWalk(hit)) {
           const failure = new NoImageryError(`The pano near ${at} leads no further down the street.`);
-          yield { currLoc, hit: null, nothingFound: false, failure };
+          yield { currLoc, hit: null, nothingFound: false, failure, excluded };
         } else {
-          yield { currLoc, hit, nothingFound: false, failure: null };
+          yield { currLoc, hit, nothingFound: false, failure: null, excluded };
         }
       } catch (err) {
-        yield { currLoc, hit: null, nothingFound: false, failure: err };
+        yield { currLoc, hit: null, nothingFound: false, failure: err, excluded };
       }
       if (turf.length(remainder) <= 0) return;
       ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
@@ -198,17 +205,31 @@ export class StreetSweep {
   }
 
   /**
-   * The panos the next sweep won't land on: where the labeler stands or already stood on this walk. A stuck set
-   * from another street is ignored, as the sweep clears it on arrival.
+   * Where the labeler stands or already stood on this walk. Another street's stuck set is ignored, as the sweep
+   * clears it on arrival.
    * @param {Task} task - The street the next sweep will walk.
    * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
    */
-  #panosNextSweepSkips(task) {
+  #stoodAt(task) {
     const sameWalk = StreetSweep.#traversalKeyFor(task) === this.#stuckPanosTraversalKey;
-    const skipped = new Set(sameWalk ? this.#stuckPanos : []);
-    skipped.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
-    skipped.delete(undefined);
-    return skipped;
+    const stoodAt = new Set(sameWalk ? this.#stuckPanos : []);
+    stoodAt.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
+    stoodAt.delete(undefined);
+    return stoodAt;
+  }
+
+  /**
+   * The panos a search won't land on: looking ahead, everywhere stood at on this walk; coming back to the street,
+   * only where the labeler stands. The pano they left is where to return, and ruling it out makes its ground look
+   * empty to a provider that names only the nearest pano (#5918).
+   * @param {{lookingAhead: boolean}} target - The search's start, from #computeMoveTarget.
+   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #panosLeftOut(target, stoodAt) {
+    if (target.lookingAhead) return stoodAt;
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    return new Set(standing ? [standing] : []);
   }
 
   /**
@@ -261,19 +282,24 @@ export class StreetSweep {
 
     // Kept to tell an empty street from a provider that stopped answering (#4918).
     const searchFailures = [];
+    // Points in a row can name the same pano, and each try at one that won't load waits out its time limit.
+    const wontLoad = new Map();
     const viewer = this.#panoManager.panoViewer;
-    for await (const { currLoc, hit, nothingFound, failure } of this.#searchAhead(task, stuckPanos)) {
+    for await (const { currLoc, hit, nothingFound, failure, excluded } of this.#searchAhead(task, stuckPanos)) {
       try {
-        if (hit) {
+        if (hit && wontLoad.has(hit.panoId)) {
+          throw wontLoad.get(hit.panoId);
+        } else if (hit) {
           await this.#panoManager.setPanorama(hit.panoId);
         } else if (nothingFound && viewer.findPanoNearCanMiss()) {
           // The lookup can't be trusted to rule a point out, so the provider's own move decides.
-          await this.#panoManager.setLocation(currLoc, stuckPanos);
+          await this.#panoManager.setLocation(currLoc, excluded);
         } else {
           throw failure;
         }
       } catch (err) {
         // A pano that won't load is passed over like a point that didn't answer.
+        if (hit) wontLoad.set(hit.panoId, err);
         searchFailures.push(err);
         continue;
       }

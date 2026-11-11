@@ -282,6 +282,20 @@ describe('StreetProgress', () => {
       expect(missionModel.updateMissionProgress).toHaveBeenCalledTimes(2);
     });
 
+    it('preloads the street the jump goes to, now that the next move is the jump', async () => {
+      await landWith([], null);
+      expect(sweep.preloadAhead).toHaveBeenLastCalledWith(next);
+    });
+
+    it('keeps a failure while ending the street from escaping unhandled', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      missionModel.updateMissionProgress.mockImplementationOnce(() => {}).mockImplementationOnce(() => {
+        throw new Error('progress bar gone');
+      });
+      await landWith([], null);
+      expect(console.error).toHaveBeenCalledWith('Could not end the street on its last pano:', expect.any(Error));
+    });
+
     it('never ends a street on a lookup that can miss panos (infra3d)', async () => {
       viewer.findPanoNearCanMiss = () => true;
       await landWith([], null);

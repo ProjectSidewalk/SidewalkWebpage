@@ -206,10 +206,15 @@ export class StreetProgress {
     // The lookup takes a moment: the labeler may have moved on, or be mid-move, which ends the street itself.
     if (this.#navigationService.isMoving()) return;
     if (this.#panoManager.getPanoId() !== panoId || this.#taskContainer.getCurrentTask() !== task) return;
-    const mission = this.#missionContainer.getCurrentMission();
-    this.#endStreet(task, mission);
-    // The landing's own progress update ran before the street ended.
-    this.#missionModel.updateMissionProgress(mission, this.#regionModel.currentRegion());
+    try {
+      const mission = this.#missionContainer.getCurrentMission();
+      this.#endStreet(task, mission);
+      // The landing's own progress update and preload ran before the street ended.
+      this.#missionModel.updateMissionProgress(mission, this.#regionModel.currentRegion());
+      this.#preloadNextMove();
+    } catch (err) {
+      console.error('Could not end the street on its last pano:', err);
+    }
   }
 
   /**

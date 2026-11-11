@@ -137,6 +137,12 @@ describe('Compass', () => {
     });
   });
 
+  test('a move that fails redraws the message, as no landing is coming to', () => {
+    task.headingAlongRoute.mockReturnValue(180);
+    listeners.moveFinished();
+    expect(message.textContent).toContain('center-ui.compass.u-turn');
+  });
+
   describe('off the route', () => {
     beforeEach(() => {
       vi.useFakeTimers();

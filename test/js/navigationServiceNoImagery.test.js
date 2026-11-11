@@ -590,12 +590,14 @@ describe('Explore, when the imagery search runs out along a street', () => {
     it('passes over a pano that was found but would not load, and lands on the next one down the street', async () => {
       assignStreets(makeTask(101), makeTask(102));
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      respondToSearch = () => Promise.resolve({ panoId: `pano-${searches.length}` });
-      respondToPanoHop = (panoId) => (panoId === 'pano-1' ? Promise.reject(new Error('never loads')) : Promise.resolve());
+      // The first three points all name the pano that won't load.
+      respondToSearch = () => Promise.resolve({ panoId: searches.length <= 3 ? 'pano-stuck' : 'pano-loads' });
+      const neverLoads = () => Promise.reject(new Error('never loads'));
+      respondToPanoHop = (panoId) => (panoId === 'pano-stuck' ? neverLoads() : Promise.resolve());
 
       await nav.moveForward();
 
-      expect(svl.panoManager.setPanorama.mock.calls.map(([panoId]) => panoId)).toEqual(['pano-1', 'pano-2']);
+      expect(svl.panoManager.setPanorama.mock.calls.map(([panoId]) => panoId)).toEqual(['pano-stuck', 'pano-loads']);
       expect(reportNoImagery).not.toHaveBeenCalled();
     });
 

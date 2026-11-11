@@ -427,6 +427,7 @@ export class Main {
     new MinimapLegend(ui.minimap, labelContainer, tracker);
     const forwardCrumbs = new ForwardCrumbs(config, panoManager, taskContainer, compass, minimap, observedArea,
       navigationService, streetSweep, navArrows, tracker);
+    streetProgress.onLabelBeforeJumpChanged((armed) => forwardCrumbs.setWalkEnded(armed));
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
     const walkPlanLayer = new WalkPlanLayer(ui.minimap, taskContainer, missionContainer, minimap);

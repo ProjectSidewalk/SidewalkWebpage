@@ -157,13 +157,21 @@ describe('Explore KeyboardManager', () => {
       expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: true });
     });
 
-    it('does nothing once the street has ended and the prompt to move on is up (#5918)', async () => {
+    it('takes no link once the street has ended, only the walk on down it (#5918)', async () => {
       streetEnded = true;
-      const [keydown] = press(' ');
-      expect(keydown.defaultPrevented).toBe(true);
+      navigationService.moveForward.mockResolvedValueOnce('pano-further');
+      press(' ');
       await flush();
       expect(navigationService.moveToLinkedPano).not.toHaveBeenCalled();
-      expect(navigationService.moveForward).not.toHaveBeenCalled();
+      expect(navigationService.moveForward).toHaveBeenCalledTimes(1);
+      expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: true });
+    });
+
+    it('logs no move when nothing is further down an ended street', async () => {
+      streetEnded = true;
+      navigationService.moveForward.mockResolvedValueOnce(null);
+      press(' ');
+      await flush();
       expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', expect.anything());
     });
 

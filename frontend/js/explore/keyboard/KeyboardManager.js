@@ -78,7 +78,7 @@ export class KeyboardManager {
    * @param {ZoomControl} zoomControl
    * @param {PanoManager} panoManager
    * @param {Compass} compass - Says which way the route goes, for the spacebar.
-   * @param {StreetProgress} streetProgress - Says when the street has ended, which stops the spacebar.
+   * @param {StreetProgress} streetProgress - Says when the street has ended, where the spacebar stops taking links.
    * @param {ImmersiveMode} immersiveMode - Toggled by F.
    * @param {Tracker} tracker
    */
@@ -212,8 +212,6 @@ export class KeyboardManager {
     // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
     // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
     if (!this.#navigationService.canWalk()) return;
-    // With the street done, a step would only pace between its last panos (#5918).
-    if (this.#streetProgress.isLabelBeforeJumpArmed()) return;
 
     try {
       // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.
@@ -223,10 +221,13 @@ export class KeyboardManager {
       // Silent on failure: a link that won't load is not the end of this shortcut, it's the reason for the
       // moveForward() fallback below — which reports its own outcome. Alerting here would tell the labeler imagery
       // couldn't be loaded on the same keypress that walked them down the street (#4918).
-      const moved = await this.#navigationService.moveToLinkedPano(routeHeading - currHeading,
+      // With the street ended, the nearest link can pace between its last panos, so only the walk steps (#5918).
+      const streetEnded = this.#streetProgress.isLabelBeforeJumpArmed();
+      const moved = !streetEnded && await this.#navigationService.moveToLinkedPano(routeHeading - currHeading,
         { alertOnFailure: false });
       if (!moved) {
-        await this.#navigationService.moveForward();
+        const landedOn = await this.#navigationService.moveForward();
+        if (streetEnded && !landedOn) return;
       }
       this.#tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
     } catch (e) {

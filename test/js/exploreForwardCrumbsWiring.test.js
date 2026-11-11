@@ -270,6 +270,19 @@ describe('ForwardCrumbs wiring', () => {
       expect(classesAt(40)).toContain('minimap-crumb-next');
     });
 
+    it('on an ended street leaves the nearest link untinted and tints only the walk\'s next stop (#5918)', async () => {
+      links = [link('side', 80, 12)];
+      await crumbs.refresh();
+      expect(classesAt(12)).toContain('minimap-crumb-next');
+
+      crumbs.setWalkEnded(true);
+      expect(classesAt(12)).not.toContain('minimap-crumb-next');
+      expect(classesAt(20)).toContain('minimap-crumb-next');
+
+      crumbs.setWalkEnded(false);
+      expect(classesAt(12)).toContain('minimap-crumb-next');
+    });
+
     it('tints nothing when the compass cannot say which way the route goes', async () => {
       compass.getTargetAngle = () => { throw new Error('no task geometry yet'); };
 
@@ -332,6 +345,28 @@ describe('ForwardCrumbs wiring', () => {
       navArrows.setWalkLanding.mockImplementation(() => expect(stopsAnswered).toBe(false));
       await crumbs.refresh();
       expect(navArrows.setWalkLanding).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a landing the arrows already heard alone when the rest of the refresh fails', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      viewer.getPov = () => { throw new Error('no view yet'); };
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenCalledTimes(1);
+      expect(navArrows.setWalkLanding.mock.lastCall[1].panoId).toBe('p20');
+    });
+
+    it('outlines the walk\'s next stop on hover before the route stops have answered', async () => {
+      await crumbs.refresh();
+      task = makeTask(1, { furthestM: 30 });
+      let release;
+      viewer.getLinkedPanoPositions = () => new Promise((resolve) => { release = () => resolve(links); });
+      const refreshing = crumbs.refresh();
+      await new Promise((resolve) => setTimeout(resolve));
+
+      listeners.hover({}); // The synthesized route-forward arrow.
+      expect(classesAt(40)).toContain('minimap-crumb-highlight');
+      release();
+      await refreshing;
     });
 
     it('says there is none when the crumbs could not be worked out at all', async () => {

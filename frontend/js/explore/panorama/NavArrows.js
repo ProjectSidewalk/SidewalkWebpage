@@ -136,7 +136,8 @@ export class NavArrows {
    *
    * The blue arrow always points at the pano its click lands on (#4671, #5918): the link the spacebar would take,
    * else the link to the walk's landing. With no such link one is synthesized, aimed at the landing, or down the
-   * street when no pano is known ahead. Once the street has ended nothing is blue; the compass prompt is the way on.
+   * street when no pano is known ahead. Once the street has ended only a landing further down it is blue: the
+   * nearest link there can point back and forth between its last panos.
    */
   reset() {
     while (this.#group.firstChild) {
@@ -145,8 +146,8 @@ export class NavArrows {
 
     // Off route the heading points back to the route, so the blue link arrows lead back one pano at a time.
     const links = this.#panoManager.panoViewer.getLinkedPanos();
-    const routeHeading = this.#walkEnded ? null : this.#routeForwardHeading();
-    let blueIndex = routeHeading === null ? -1 : ForwardCrumbs.stepLinkIndex(links, routeHeading);
+    const routeHeading = this.#routeForwardHeading();
+    let blueIndex = routeHeading === null || this.#walkEnded ? -1 : ForwardCrumbs.stepLinkIndex(links, routeHeading);
     let synthesizedHeading = null;
 
     // On route only: off route the walk would teleport back rather than step. Until the landing is known nothing
@@ -156,7 +157,8 @@ export class NavArrows {
       && walk && walk.forPanoId === this.#panoManager.getPanoId()) {
       const landing = walk.landing;
       blueIndex = landing ? links.findIndex((link) => link.panoId === landing.panoId) : -1;
-      if (blueIndex === -1) synthesizedHeading = landing ? landing.heading : routeHeading;
+      const leadsOn = landing || !this.#walkEnded;
+      if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
     }
 
     links.forEach((link, i) => {
