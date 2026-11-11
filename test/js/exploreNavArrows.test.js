@@ -124,16 +124,10 @@ describe('NavArrows', () => {
         expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
       });
 
-      test('with the street ended here and no pano ahead it is not drawn: it could only walk nowhere (#5918)', () => {
-        arrows.setWalkLanding('pano-here', null);
-        arrows.setWalkEnded(true);
-        expect(synthesized()).toBeNull();
-      });
-
-      test('with the street ended but a pano still ahead it stays, as the minimap still marks that pano', () => {
+      test('with the street ended it is not drawn, pano ahead or not: the compass prompt is the way on (#5918)', () => {
         arrows.setWalkLanding('pano-here', { panoId: 'pano-unlinked', heading: 120 });
         arrows.setWalkEnded(true);
-        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(120, 15, 30)');
+        expect(synthesized()).toBeNull();
       });
 
       test('off the route nothing is synthesized: the link arrows lead back one pano at a time', () => {
@@ -142,6 +136,14 @@ describe('NavArrows', () => {
         expect(forwardArrows()).toEqual([]);
         expect(images()).toHaveLength(2);
       });
+    });
+
+    test('with the street ended no link is blue, so the arrow cannot flip between its last panos (#5918)', () => {
+      viewer.links = [{ panoId: 'pano-east', heading: 90 }, { panoId: 'pano-west', heading: 270 }];
+      task.headingAlongRoute.mockReturnValue(90);
+      arrows.setWalkEnded(true);
+      expect(forwardArrows()).toEqual([]);
+      expect(images()).toHaveLength(2);
     });
 
     test('off the route the blue arrow is the link that leads back toward it', () => {

@@ -530,7 +530,7 @@ export class Main {
 
     // Last, so no shortcut acts before the tool is wired.
     const keyboard = new KeyboardManager(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl,
-      panoManager, compass, immersiveMode, tracker);
+      panoManager, compass, streetProgress, immersiveMode, tracker);
 
     this.#modules = {
       tracker, keyboardLock, alertController, regionModel, missionModel, panoManager, navArrows, minimap,

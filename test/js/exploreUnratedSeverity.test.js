@@ -54,7 +54,7 @@ describe('Explore severity shortcuts', () => {
       { switching: fakeGate() }, { onMoveStarted: vi.fn() },
       { ratingClicked: vi.fn() }, { ensureLabelSaved: vi.fn() }, tracker);
     menu.labelTags = [];
-    new KeyboardManager(fakeGate({ isHeld: () => keyboardDisabled }), canvas, menu, {}, {}, {}, {}, {}, {}, tracker);
+    new KeyboardManager(fakeGate({ isHeld: () => keyboardDisabled }), canvas, menu, {}, {}, {}, {}, {}, {}, {}, tracker);
   });
 
   afterEach(() => {

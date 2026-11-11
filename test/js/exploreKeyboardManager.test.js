@@ -53,6 +53,8 @@ describe('Explore KeyboardManager', () => {
     setPov: vi.fn(),
   };
   const compass = { getTargetAngle: () => 91 };
+  let streetEnded;
+  const streetProgress = { isLabelBeforeJumpArmed: () => streetEnded };
   const immersiveMode = { toggle: vi.fn() };
 
   /** @returns {object} A label of the given type, as the shortcuts read it. */
@@ -88,11 +90,12 @@ describe('Explore KeyboardManager', () => {
     tagsDisabled = false;
     ratingDisabled = false;
     moved = true;
+    streetEnded = false;
     document.body.innerHTML = '<button data-tag-id="1"></button><button data-tag-id="2"></button>';
     const own = lock;
     const gate = fakeGate({ isHeld: () => own.held });
     new KeyboardManager(gate, canvas, contextMenu, navigationService, labelModes, zoomControl, panoManager, compass,
-      immersiveMode, tracker);
+      streetProgress, immersiveMode, tracker);
     contextMenu.textFieldFocused(false);
   });
 
@@ -152,6 +155,16 @@ describe('Explore KeyboardManager', () => {
       await flush();
       expect(navigationService.moveForward).toHaveBeenCalledTimes(1);
       expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: true });
+    });
+
+    it('does nothing once the street has ended and the prompt to move on is up (#5918)', async () => {
+      streetEnded = true;
+      const [keydown] = press(' ');
+      expect(keydown.defaultPrevented).toBe(true);
+      await flush();
+      expect(navigationService.moveToLinkedPano).not.toHaveBeenCalled();
+      expect(navigationService.moveForward).not.toHaveBeenCalled();
+      expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', expect.anything());
     });
 
     it('leaves Space to a focused radio button, which has no other key', () => {

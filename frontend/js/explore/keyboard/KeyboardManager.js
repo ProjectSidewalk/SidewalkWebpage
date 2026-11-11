@@ -17,6 +17,7 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
+/** @typedef {import('../task/StreetProgress.js').StreetProgress} StreetProgress */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 /** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
 
@@ -32,6 +33,7 @@ export class KeyboardManager {
   #zoomControl;
   #panoManager;
   #compass;
+  #streetProgress;
   #immersiveMode;
   #tracker;
 
@@ -76,11 +78,12 @@ export class KeyboardManager {
    * @param {ZoomControl} zoomControl
    * @param {PanoManager} panoManager
    * @param {Compass} compass - Says which way the route goes, for the spacebar.
+   * @param {StreetProgress} streetProgress - Says when the street has ended, which stops the spacebar.
    * @param {ImmersiveMode} immersiveMode - Toggled by F.
    * @param {Tracker} tracker
    */
   constructor(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl, panoManager, compass,
-    immersiveMode, tracker) {
+    streetProgress, immersiveMode, tracker) {
     this.#keyboardLock = keyboardLock;
     this.#canvas = canvas;
     this.#contextMenu = contextMenu;
@@ -89,6 +92,7 @@ export class KeyboardManager {
     this.#zoomControl = zoomControl;
     this.#panoManager = panoManager;
     this.#compass = compass;
+    this.#streetProgress = streetProgress;
     this.#immersiveMode = immersiveMode;
     this.#tracker = tracker;
 
@@ -208,6 +212,8 @@ export class KeyboardManager {
     // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
     // resolves false and we'd both fall through to a no-op moveForward() and log a move that never happened.
     if (!this.#navigationService.canWalk()) return;
+    // With the street done, a step would only pace between its last panos (#5918).
+    if (this.#streetProgress.isLabelBeforeJumpArmed()) return;
 
     try {
       // Bias the forward step toward the route direction rather than wherever the camera is currently pointed.

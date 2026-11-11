@@ -136,7 +136,7 @@ export class NavArrows {
    *
    * The blue arrow always points at the pano its click lands on (#4671, #5918): the link the spacebar would take,
    * else the link to the walk's landing. With no such link one is synthesized, aimed at the landing, or down the
-   * street when no pano is known ahead.
+   * street when no pano is known ahead. Once the street has ended nothing is blue; the compass prompt is the way on.
    */
   reset() {
     while (this.#group.firstChild) {
@@ -145,7 +145,7 @@ export class NavArrows {
 
     // Off route the heading points back to the route, so the blue link arrows lead back one pano at a time.
     const links = this.#panoManager.panoViewer.getLinkedPanos();
-    const routeHeading = this.#routeForwardHeading();
+    const routeHeading = this.#walkEnded ? null : this.#routeForwardHeading();
     let blueIndex = routeHeading === null ? -1 : ForwardCrumbs.stepLinkIndex(links, routeHeading);
     let synthesizedHeading = null;
 
@@ -156,9 +156,7 @@ export class NavArrows {
       && walk && walk.forPanoId === this.#panoManager.getPanoId()) {
       const landing = walk.landing;
       blueIndex = landing ? links.findIndex((link) => link.panoId === landing.panoId) : -1;
-      // With the street ended and no pano ahead, an arrow could only walk nowhere; the compass prompt is the way on.
-      const leadsOn = landing || !this.#walkEnded;
-      if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
+      if (blueIndex === -1) synthesizedHeading = landing ? landing.heading : routeHeading;
     }
 
     links.forEach((link, i) => {
@@ -189,12 +187,12 @@ export class NavArrows {
   }
 
   /**
-   * Told when the street ends where the labeler stands, and when they leave (#5918).
+   * Told when the prompt to move on from a finished street goes up, and when the labeler takes it (#5918).
    * @param {boolean} ended
    */
   setWalkEnded(ended) {
     this.#walkEnded = ended;
-    // Leaving is a move, which redraws the arrows itself.
+    // Taking the prompt is a move, which redraws the arrows itself.
     if (ended) this.reset();
   }
 
