@@ -1,0 +1,45 @@
+/* A tool's lockup (#5958, common/toolHeader.scala.html): its logo beside its name, heading that tool's left sidebar.
+   Each host's own stylesheet sets only the headroom above it. */
+.ps-tool-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.ps-tool-header__mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* The logo's own face and weight, since the name is a wordmark here. It may be an <h1> or a <p>, so the margin and
+   color are set rather than inherited from either. */
+.ps-tool-header__name {
+  min-width: 0;
+  margin: 0;
+  font: var(--text-h3-bold);
+  font-family: var(--font-accent);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-asphalt-500);
+
+  /* A translated name can be one long word; it wraps rather than widening the column. */
+  overflow-wrap: anywhere;
+}
+
+/* var(--breakpoint-sm): the sidebars stack above their page here, so the header's height costs the content below. */
+@media (width <= 768px) {
+  .ps-tool-header__mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ps-tool-header__name {
+    font: var(--text-title-bold);
+    font-family: var(--font-accent);
+    font-weight: 800;
+  }
+}

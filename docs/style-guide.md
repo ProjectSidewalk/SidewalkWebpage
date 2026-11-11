@@ -244,6 +244,22 @@ How to show one depends on where its color comes from:
   so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
   a button or link itself, since it would hide their focus ring too.
 
+**Tool logos.** AccessScore, Gallery, LabelMap and Reports each have a mark, drawn as one family from the Project
+Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/logos/tools/`
+(`access-score.svg`, `gallery.svg`, `label-map.svg`, `reports.svg`), each on a 64-unit grid.
+
+- **Show one through `@common.toolHeader("<tool>")`**, which pairs the mark with the tool's name as the header of
+  that tool's left sidebar. Don't assemble the pair by hand: the component is what keeps the size, face (Raleway
+  ExtraBold) and spacing the same on all four pages. The name is the page's `<h1>`; pass `asHeading = false` where
+  the page has one of its own, as a report does.
+- **"AccessScore" and "LabelMap" are wordmarks** and are written that way in every language. "Gallery" and "Reports"
+  are ordinary words and are translated (`gallery`, `report.tool.name`).
+- **Drawn for light surfaces.** Their white outlines keep them readable on asphalt, but Gallery's frames and the
+  other asphalt parts merge into it, and no dark variant has been drawn. Draw one before a mark goes on a dark
+  surface. The navbar's Tools menu keeps its line icons, like every other entry in it.
+- **Never recolor, redraw or crop a mark**, and don't use one below 16px, where the detail inside it closes up. A
+  mark stands for its tool; a control that merely *does* something map- or photo-like takes an icon instead.
+
 ## Scala
 
 Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run `make scalafmt-fix` before

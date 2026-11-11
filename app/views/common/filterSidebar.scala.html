@@ -18,6 +18,8 @@
  * @param checkedValidations  Which validation rows start checked.
  * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
  * @param activeTags          Tags that start applied, e.g. from Gallery's URL.
+ * @param toolHeader          The tool whose `common.toolHeader` opens the map panel; None on a dashboard's embedded
+ *                            map. Ignored without map chrome, where the host places its own header.
  *@
 @(tags: Seq[Tag] = Seq.empty,
   sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),
@@ -28,7 +30,8 @@
   checkedLabelTypes: Seq[String] = Seq.empty,
   checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
   checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
-  activeTags: Seq[String] = Seq.empty
+  activeTags: Seq[String] = Seq.empty,
+  toolHeader: Option[String] = None
 )(using messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(_.labelType.name)}
@@ -239,6 +242,7 @@
     <button type="button" id="filter-sidebar-close" class="filter-sidebar__close" aria-label="Close" data-i18n-aria-label="common:close">
       <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
+    @for(tool <- toolHeader) {@common.toolHeader(tool)}
     @filterSections
   </div>
 

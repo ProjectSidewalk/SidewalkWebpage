@@ -24,6 +24,11 @@
   padding: var(--space-lg) var(--space-md);
 }
 
+/* The column's gap already spaces the tool header from the first control. */
+.report-sidebar__body > .ps-tool-header {
+  margin-bottom: 0;
+}
+
 /* A long contents list scrolls in its own column, so an anchor needs clearing from the navbar only on the page side. */
 .report-toc {
   padding: var(--space-lg) var(--space-md);
@@ -72,6 +77,11 @@
 @media (width <= 768px) {
   .page-content.report-page {
     padding-inline: var(--space-md);
+  }
+
+  /* The folded-out body is a plain block here, with no column gap to space the header from the first control. */
+  .report-sidebar__body > .ps-tool-header {
+    margin-bottom: var(--space-md);
   }
 }
 
