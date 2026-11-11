@@ -128,6 +128,7 @@ city.name.newport-ky = 紐波特
 city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
 city.name.juneau-ak = 朱諾
+city.name.beringen-be = 貝靈恩
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -164,6 +165,7 @@ country.name.india = 印度
 country.name.chile = 智利
 country.name.brazil = 巴西
 country.name.france = 法國
+country.name.belgium = 比利時
 
 navbar.explore = 探索
 navbar.validate = 檢核

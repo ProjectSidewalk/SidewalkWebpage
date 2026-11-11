@@ -137,7 +137,7 @@
               <input type="search" id="nav-city-search" class="nav-city-search" autocomplete="off" placeholder="@Messages("navbar.city.search")" aria-label="@Messages("navbar.city.search")">
             </div>
             <ul id="nav-city-menu" class="nav-city-list">
-              <li class="nav-city-item nav-city-current" data-search="@{(currentCityInfo.cityNameFormatted + " " + Messages("country.name." + currentCityInfo.countryId)).toLowerCase}">
+              <li class="nav-city-item nav-city-current" data-search="@currentCityInfo.searchText">
                 <span class="current-city" aria-current="true">
                   <img class="nav-city-check" src='@assets.path("images/icons/check-feather.svg")' alt="" aria-hidden="true">
                   <span>@currentCityInfo.cityNameFormatted</span>
@@ -148,7 +148,7 @@
                   <span class="nav-city-group-header">@Messages("country.name." + countryId)</span>
                   <ul class="nav-city-group-list">
                     @for(city <- cities) {
-                      <li class="nav-city-item" data-search="@{(city.cityNameFormatted + " " + Messages("country.name." + countryId)).toLowerCase}">
+                      <li class="nav-city-item" data-search="@city.searchText">
                         <a id="@city.cityId" href="@city.URL">@city.cityNameFormatted</a>
                       </li>
                     }

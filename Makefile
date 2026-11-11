@@ -3,7 +3,7 @@
         test-js test-e2e test-e2e-host \
         test-python \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
-        hide-streets-without-imagery \
+        hide-streets-without-imagery disable-streets-outside-area \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         export-osm-lineage-input osm-lineage import-osm-lineage \
         reveal-or-hide-regions \
@@ -278,6 +278,10 @@ check-imagery:
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
+
+# Limit the open regions to a partner's study area, or grow it; `make onboard-city` runs it for `--study-area`.
+disable-streets-outside-area:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/disable-streets-outside-area.sh"
 
 import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"

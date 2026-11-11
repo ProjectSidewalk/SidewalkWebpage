@@ -38,7 +38,8 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
 - **City boundary.** `--place "<City, State, Country>"` geocodes the OSM admin boundary; check the report's
   "Boundary:" line names the right place. A partner file goes in with `--boundary-file`.
 - **Scope.** Whole city, or a phased launch opening some regions first (`onboard-city` asks; the imagery scan
-  covers everything either way).
+  covers everything either way). A partner's study area that cuts across neighborhoods still gets whole regions:
+  open the ones it touches and pass the area as `--study-area` (docs step 7).
 
 ## 2. Build and QA the streets
 
