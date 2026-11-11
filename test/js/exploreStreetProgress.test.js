@@ -83,11 +83,13 @@ describe('StreetProgress', () => {
       recordExploreMove: vi.fn(),
       hasWalkPlan: () => false,
     };
-    viewer = { getPosition: () => at(100), clearPrefetchCache: vi.fn() };
+    viewer = { getPosition: () => at(100), clearPrefetchCache: vi.fn(), findPanoNearCanMiss: () => false };
     panoManager = fakePanoManager(viewer, { turnTo: vi.fn() });
     listeners = {};
     nav = {
       walking: fakeGate(),
+      moving: false,
+      isMoving: () => nav.moving,
       onLanded: (listener) => { listeners.landed = listener; },
       moveToNextStreet: vi.fn(async (switchStreet) => {
         switchStreet();
@@ -226,6 +228,86 @@ describe('StreetProgress', () => {
       listeners.walkedOut(current);
 
       expect(progress.isLabelBeforeJumpArmed()).toBe(true);
+    });
+  });
+
+  describe('landing on the last pano the walk can reach (#5918)', () => {
+    /** Lands mid-street, a jump from the next one, with `links` leading off and `landing` as the walk's next stop. */
+    const landWith = async (links, landing) => {
+      next = makeTask(2, { startM: 300, endM: 400, connected: false });
+      current.isConnectedTo = () => false;
+      viewer.getPanoId = () => 'pano-here';
+      viewer.getLinkedPanos = () => links;
+      sweep.findLanding = typeof landing === 'function' ? landing : async () => landing;
+      listeners.landed();
+      await new Promise((resolve) => setTimeout(resolve));
+    };
+
+    it('asks the labeler to finish here straight away, with no step that goes nowhere', async () => {
+      await landWith([{ panoId: 'pano-behind', heading: 225 }], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(true);
+    });
+
+    it('waits while a pano is still ahead', async () => {
+      await landWith([], { panoId: 'pano-ahead' });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('waits while a link still leads on', async () => {
+      await landWith([{ panoId: 'pano-on', heading: 45 }], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('leaves a street not seen enough to the step that reports it', async () => {
+      current = makeTask(1, { coveredEnough: false });
+      await landWith([], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('does nothing when the lookup went unanswered', async () => {
+      await landWith([], async () => { throw new Error('provider down'); });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('leaves the street to a move already in flight, which ends it itself', async () => {
+      await landWith([], async () => {
+        nav.moving = true;
+        return null;
+      });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('brings the mission progress up to date once the street has ended', async () => {
+      await landWith([], null);
+      expect(missionModel.updateMissionProgress).toHaveBeenCalledTimes(2);
+    });
+
+    it('preloads the street the jump goes to, now that the next move is the jump', async () => {
+      await landWith([], null);
+      expect(sweep.preloadAhead).toHaveBeenLastCalledWith(next);
+    });
+
+    it('keeps a failure while ending the street from escaping unhandled', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      missionModel.updateMissionProgress.mockImplementationOnce(() => {}).mockImplementationOnce(() => {
+        throw new Error('progress bar gone');
+      });
+      await landWith([], null);
+      expect(console.error).toHaveBeenCalledWith('Could not end the street on its last pano:', expect.any(Error));
+    });
+
+    it('never ends a street on a lookup that can miss panos (infra3d)', async () => {
+      viewer.findPanoNearCanMiss = () => true;
+      await landWith([], null);
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
+    });
+
+    it('does nothing once the labeler has moved on', async () => {
+      await landWith([], async () => {
+        viewer.getPanoId = () => 'pano-elsewhere';
+        return null;
+      });
+      expect(progress.isLabelBeforeJumpArmed()).toBe(false);
     });
   });
 

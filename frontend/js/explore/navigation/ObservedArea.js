@@ -105,7 +105,9 @@ export class ObservedArea {
       if (!navigationService.isHeadingSettling()) this.update();
     });
     navigationService.onHeadingSettled(() => {
-      this.panoChanged();
+      // Settled can be told again on the same pano. Restarting there loses which way round the angles already
+      // counted were measured, and a view near north then counts as a full turn.
+      if (this.#currArea?.panoId !== panoManager.getPanoId()) this.panoChanged();
       this.update();
     });
   }
