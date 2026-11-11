@@ -415,7 +415,7 @@ export class TaskContainer {
   /**
    * How far the labeler has to go from the end of one street to where they enter the next. Under CONNECTED_TASK_KM
    * the streets are switched seamlessly; from further away it is a jump, which StreetProgress prompts for and the
-   * minimap draws a connector for, so both read the same gap.
+   * minimap's preview stops at, so both read the same gap.
    *
    * @param {Task} task - The street being finished.
    * @param {Task} nextTask - The street that follows it.
