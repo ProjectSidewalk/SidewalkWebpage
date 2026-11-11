@@ -80,6 +80,7 @@ city.name.niagara-falls-ny = Chutes du Niagara
 city.name.validation-study = Étude de validation
 city.name.la-piedad-old = La Piedad (ancien)
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.pennsylvania = Pennsylvanie
 state.name.california = Californie
@@ -99,6 +100,7 @@ country.name.canada = Canada
 country.name.india = Inde
 country.name.chile = Chili
 country.name.brazil = Brésil
+country.name.belgium = Belgique
 
 navbar.explore = Explorer
 navbar.validate = Valider

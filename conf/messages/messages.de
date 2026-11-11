@@ -76,6 +76,7 @@ city.name.zurich = Zürich
 city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Kalifornien
 state.name.alaska = Alaska
@@ -89,6 +90,7 @@ country.name.canada = Kanada
 country.name.india = Indien
 country.name.brazil = Brasilien
 country.name.france = Frankreich
+country.name.belgium = Belgien
 
 navbar.explore = Erkunden
 navbar.validate = Valideren

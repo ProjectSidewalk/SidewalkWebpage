@@ -81,6 +81,7 @@ city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -99,6 +100,7 @@ country.name.new-zealand = Nueva Zelanda
 country.name.canada = Canadá
 country.name.brazil = Brasil
 country.name.france = Francia
+country.name.belgium = Bélgica
 
 navbar.explore = Explorar
 navbar.validate = Validar

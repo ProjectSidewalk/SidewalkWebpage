@@ -402,8 +402,10 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
-- **File downloads** (shapefile, GeoPackage, zipped CSVs) are each built in their own folder under `api-downloads/`
-  and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
+- **File downloads** (shapefile, GeoPackage, zipped and single CSVs) are each built in their own folder under
+  `api-downloads/` and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a
+  later download (#4133). The folder names are random and the sweep is age-based, so every city started from one
+  staged build can share its `api-downloads/` (#5138).
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without

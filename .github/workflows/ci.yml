@@ -493,8 +493,6 @@ jobs:
       - name: Stage the app (prod-mode binary)
         run: sbt stage
 
-      # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
-      #
       # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
       # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
       # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
@@ -509,11 +507,15 @@ jobs:
       # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
       # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
       # specs build their own application and disable the module themselves.
+      # Started the way the deployment starts a city: from inside the stage dir, with the log dir outside the build.
       - name: Start the app
+        env:
+          SIDEWALK_LOG_DIR: ${{ github.workspace }}/ci-logs
         run: |
-          nohup target/universal/stage/bin/sidewalk-webpage \
+          cd target/universal/stage
+          nohup bin/sidewalk-webpage \
             -Dconfig.resource=application.ci.conf \
-            -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
+            -Dhttp.port=9000 > "$GITHUB_WORKSPACE/app.log" 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
@@ -561,6 +563,16 @@ jobs:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
 
+      # Proves the file log went where the deployment points it and nowhere under the build (#5138). Last, so a miss
+      # can't skip the seeding the smoke suite needs.
+      - name: Check where the app log landed
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: |
+          ls ci-logs/application-*.log
+          for stray in target/universal/stage/logs target/universal/stage/application.home_IS_UNDEFINED; do
+            if [ -e "$stray" ]; then echo "Stray log folder: $stray"; exit 1; fi
+          done
+
       - name: Upload Playwright report + app log
         if: failure()
         uses: actions/upload-artifact@v7
@@ -570,6 +582,7 @@ jobs:
             playwright-report/
             test-results/
             app.log
+            ci-logs/
           retention-days: 7
 
   python-tests:

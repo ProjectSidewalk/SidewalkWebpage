@@ -75,6 +75,7 @@ city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Californië
 state.name.alaska = Alaska
@@ -86,6 +87,7 @@ country.name.new-zealand = Nieuw-Zeeland
 country.name.chile = Chili
 country.name.brazil = Brazilië
 country.name.france = Frankrijk
+country.name.belgium = België
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen

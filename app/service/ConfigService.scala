@@ -59,6 +59,7 @@ case class CityInfo(
     countryId: String,
     cityNameShort: String,
     cityNameFormatted: String,
+    searchText: String,
     URL: String,
     visibility: String
 ) {
@@ -2476,13 +2477,16 @@ class ConfigServiceImpl @Inject() (
 
       val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
+      val countryName       = messagesApi(s"country.name.$countryId")(using lang)
+      val showsState        = currentCountryId == "usa" && stateId.isDefined && countryId == "usa"
       val cityNameFormatted =
-        if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
+        if (showsState)
           messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
-        else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
+        else messagesApi("city.state", cityName, countryName)(using lang)
+      // A name showing its state still gets the country, so searching the country finds it.
+      val searchText = (if (showsState) s"$cityNameFormatted $countryName" else cityNameFormatted).toLowerCase
 
-      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
+      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, searchText, cityURL, visibility)
     }
   }
 
