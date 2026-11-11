@@ -46,6 +46,7 @@ function makeTask(id, { lengthM = 100, start = pt(id * 1000), end = pt(id * 1000
  * Streets laid end to end eastward from ORIGIN, where the default current street ends, so none of them is a jump.
  * @param {number[]} ids - Street ids, in walk order.
  * @param {(id: number) => object} [optionsFor] - Per-street `lengthM` and `walkedM`.
+ * @returns {object[]} The streets, as makeTask builds them.
  */
 function row(ids, optionsFor = () => ({})) {
   let eastM = 0;
@@ -182,6 +183,17 @@ describe('WalkPlanLayer.refresh', () => {
 
     expect(tasks.map((task) => task.plannedAhead)).toEqual([true, true, false, false]);
     expect(layer.getPreviewedTasks()).toEqual(tasks.slice(0, 2));
+  });
+
+  it('goes by the real gap between streets, whatever the plan flagged as a jump', () => {
+    const connected = row([1, 2]);
+    const far = makeTask(3, { start: pt(200, 300), end: pt(300, 300) });
+    // The plan calls street 2 a jump and street 3 a walk-on; the map says the opposite.
+    ahead = [connected[0], connected[1], far].map((task) => ({ task, step: step(task.id, task.id === 2) }));
+
+    layer.refresh();
+
+    expect(layer.getPreviewedTasks()).toEqual(connected);
   });
 
   it('previews nothing when the very next street is a jump away', () => {

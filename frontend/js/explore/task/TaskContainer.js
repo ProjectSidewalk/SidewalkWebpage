@@ -428,6 +428,15 @@ export class TaskContainer {
   }
 
   /**
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street that follows it on a planned walk.
+   * @returns {boolean} Whether the labeler is moved to `nextTask` rather than walking onto it.
+   */
+  static isJump(task, nextTask) {
+    return TaskContainer.jumpGapKm(task, nextTask) >= TaskContainer.CONNECTED_TASK_KM;
+  }
+
+  /**
    * Find incomplete tasks (i.e., street edges) that are connected to the given task.
    *
    * @param {Task} taskIn - Task to check whether any available tasks are connected
@@ -650,8 +659,7 @@ export class TaskContainer {
     } else if (this.hasWalkPlan()) {
       // The earliest unwalked step of the plan; a street the plan left out sorts last (null would compare as 0). No
       // direction correction, unlike the greedy rule below: the plan chose each street's direction, including a jump
-      // target entered at its far end, and turning one toward the finished street would land the labeler where the
-      // minimap connector does not point.
+      // target entered at its far end, and turning one toward the finished street would undo that choice.
       const position = (t) => t.getPlannedPosition() ?? Infinity;
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return position(current) < position(min) ? current : min;

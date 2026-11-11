@@ -45,10 +45,10 @@ export class WalkPlanLayer {
   }
 
   /**
-   * How many of the planned streets ahead to preview: enough to cover the rest of the mission (and at least
-   * #MIN_HORIZON_M), never fewer than #MIN_STREETS nor more than #MAX_STREETS.
+   * How many of the streets ahead to preview: enough to cover the rest of the mission (and at least #MIN_HORIZON_M),
+   * never fewer than #MIN_STREETS nor more than #MAX_STREETS, unless fewer can be reached.
    *
-   * @param {number[]} lengthsM - Lengths of the planned streets ahead, in walk order.
+   * @param {number[]} lengthsM - Lengths of the streets ahead of the first jump, in walk order.
    * @param {number} remainingMissionM - Metres left in the mission once the current street is finished; 0 when
    *     unknown.
    * @returns {number} The number of streets from the front of `lengthsM` to preview.
@@ -82,16 +82,16 @@ export class WalkPlanLayer {
     return [...this.#previewed];
   }
 
-  /** Marks the streets within the horizon, up to the first jump, as previewed, and re-renders what changed. */
+  /** Marks the streets before the first jump, as far as the horizon, as previewed, and re-renders what changed. */
   #redraw() {
-    const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS);
-    const lengthsM = ahead.map(({ task }) => WalkPlanLayer.#remainderM(task));
+    const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS).map(({ task }) => task);
+    const reachable = ahead.slice(0, this.#streetsBeforeFirstJump(ahead));
+    const lengthsM = reachable.map((task) => WalkPlanLayer.#remainderM(task));
     // The current street's unwalked part is walked before any of these, so it comes out of what they must cover.
     const afterCurrentM = Math.max(this.#remainingMissionM() - this.#currentRemainderM(), 0);
-    const withinHorizon = ahead.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM)).map(({ task }) => task);
 
     const before = this.#previewed;
-    this.#previewed = withinHorizon.slice(0, this.#streetsBeforeFirstJump(withinHorizon));
+    this.#previewed = reachable.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM));
     for (const task of before) task.setPlannedAhead(false);
     for (const task of this.#previewed) task.setPlannedAhead(true);
     // Every previewed street is redrawn, not only the ones whose flag changed: a replan can turn a street around, and
@@ -132,7 +132,7 @@ export class WalkPlanLayer {
    * How many of the streets ahead the labeler reaches on foot before the first jump. A current street given up on for
    * lack of imagery is always left by a jump, so the count then starts from the street after it.
    *
-   * Uses the gap StreetProgress measures at a street's end, not the plan's jump flag, so the two never disagree.
+   * Asks the question StreetProgress asks at a street's end, not the plan's jump flag, so the two never disagree.
    *
    * @param {Task[]} tasks - The streets ahead, in walk order.
    * @returns {number} The number of streets from the front of `tasks` before the first jump.
@@ -142,7 +142,7 @@ export class WalkPlanLayer {
     let previous = current?.isLeftToWalk() ? current : null;
     let count = 0;
     for (const task of tasks) {
-      if (previous && TaskContainer.jumpGapKm(previous, task) >= TaskContainer.CONNECTED_TASK_KM) break;
+      if (previous && TaskContainer.isJump(previous, task)) break;
       previous = task;
       count++;
     }
