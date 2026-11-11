@@ -1,5 +1,6 @@
 /* A tool's lockup (#5958, common/toolHeader.scala.html): its logo beside its name, heading that tool's left sidebar.
-   Each host's own stylesheet sets only the headroom above it. */
+   Each host's own stylesheet places it so the mark's top is 13px below the sidebar's top edge, the line the map
+   panels' close chevron sits on, which keeps the four tools' headers at one height. */
 .ps-tool-header {
   display: flex;
   align-items: center;

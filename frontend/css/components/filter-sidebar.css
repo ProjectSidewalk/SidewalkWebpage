@@ -79,6 +79,12 @@
   margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
 }
 
+/* Lifted into the panel's 40px of headroom, which exists to clear the close button: the mark's top then sits 13px
+   down, level with the chevron's. The name starts at the left, so it never reaches the button. */
+.filter-sidebar > .ps-tool-header {
+  margin-top: -27px;
+}
+
 /* Under a tool header the search box is already clear of the close button, and the header's rule spaces it. */
 .ps-tool-header + #labelmap-search-section {
   margin-top: 0;

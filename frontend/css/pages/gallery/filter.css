@@ -9,10 +9,10 @@
   padding: 0 5px 5px;
 }
 
-/* The tool header (#5958) opens the column, so it takes the 40px of map-aligned headroom and whichever block follows
-   drops its own (below). The 5px inset lines it up with the blocks beneath it. */
+/* The tool header (#5958) opens the column 13px down, as on the map panels, and whichever block follows drops its own
+   40px of headroom (below). The 5px inset lines it up with the blocks beneath it. */
 .sidebar > .ps-tool-header {
-  padding-top: 40px;
+  padding-top: 13px;
   margin-inline: 5px;
 }
 

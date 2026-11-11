@@ -24,8 +24,10 @@
   padding: var(--space-lg) var(--space-md);
 }
 
-/* The column's gap already spaces the tool header from the first control. */
+/* Pulled up out of the column's 24px top padding to the 13px every tool's header starts at. The column's gap already
+   spaces it from the first control. */
 .report-sidebar__body > .ps-tool-header {
+  margin-top: calc(13px - var(--space-lg));
   margin-bottom: 0;
 }
 
@@ -81,6 +83,7 @@
 
   /* The folded-out body is a plain block here, with no column gap to space the header from the first control. */
   .report-sidebar__body > .ps-tool-header {
+    margin-top: 0;
     margin-bottom: var(--space-md);
   }
 }
