@@ -52,8 +52,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
     }
   }
 
-  // The source-split queries power the redesigned admin API Analytics page; every row's source must be one of the two
-  // known tags so the dashboard can pivot it into external/apiDocs columns.
+  // The admin API Analytics page splits rows into external/apiDocs columns, so no other source tag may appear.
   private val validSources = Set("external", "apiDocs")
 
   "WebpageActivityTable.getApiEndpointCountsBySource" should {

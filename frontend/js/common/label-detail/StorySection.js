@@ -9,6 +9,7 @@
  * instead. Scoped to the host root; owns the StoryComposer and the enlarge lightbox from the same partial.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../ConfirmDialog.js';
 import { StoryComposer } from './StoryComposer.js';
 import { util } from '../utilities.js';
@@ -25,8 +26,8 @@ export class StorySection {
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup.
    * @param {object} opts
-   * @param {string} [opts.currUsername] - The viewer's username, for the composer's show-username option.
-   * @param {?number} [opts.highlightStoryId] - Story a share link pointed at (/label/:id?storyId=, #4722): scrolled
+   * @param {?string} [opts.currUsername] - The viewer's username, for the composer's show-username option.
+   * @param {?number} opts.highlightStoryId - Story a share link pointed at (/label/:id?storyId=, #4722): scrolled
    *      to and highlighted once the list renders. One-shot — later refreshes and other labels render normally.
    */
   constructor(root, opts) {
@@ -45,7 +46,7 @@ export class StorySection {
       lightboxCaption: q('.story-lightbox__caption'),
       lightboxClose: q('.story-lightbox__close'),
     };
-    this.#highlightStoryId = opts.highlightStoryId || null;
+    this.#highlightStoryId = opts.highlightStoryId;
 
     this.#composer = new StoryComposer(q('.story-composer'), {
       currUsername: opts.currUsername,
@@ -68,7 +69,7 @@ export class StorySection {
     // Expand logging lives on click rather than the toggle event so the auto-expand in #render isn't counted.
     this.#els.summary.addEventListener('click', () => {
       if (!this.#els.details.open) {
-        window.logWebpageActivity?.(`Click_module=StorySectionExpand_labelId=${this.#labelId}`);
+        window.logWebpageActivity(`Click_module=StorySectionExpand_labelId=${this.#labelId}`);
       }
     });
     this.#els.lightboxClose.addEventListener('click', () => this.#els.lightbox.close());
@@ -77,10 +78,10 @@ export class StorySection {
   /**
    * Points the section at a new label: collapses the disclosure, clears the list, and fetches its stories.
    * @param {number} labelId
-   * @param {?string} [labelTypeName] - Localized label-type name, forwarded to the composer so its title can name
-   *      what the story is about. Omit (or pass null) for the generic title.
+   * @param {?string} labelTypeName - Localized label-type name, forwarded to the composer so its title can name
+   *      what the story is about; null for the generic title.
    */
-  setLabel(labelId, labelTypeName = null) {
+  setLabel(labelId, labelTypeName) {
     this.#labelId = labelId;
     this.#composer.setLabelType(labelTypeName);
     this.#els.list.replaceChildren();
@@ -112,7 +113,6 @@ export class StorySection {
 
   /** Re-fetches and re-renders the current label's stories. */
   async refresh() {
-    if (this.#labelId === null) return;
     const token = ++this.#fetchToken;
     try {
       const res = await fetch(`/label/${this.#labelId}/stories`);
@@ -241,7 +241,7 @@ export class StorySection {
       dashLink.href = '/dashboard#your-stories';
       dashLink.textContent = i18next.t('labelmap:story.see-all-stories');
       dashLink.addEventListener('click', () => {
-        window.logWebpageActivity?.(`Click_module=StoryDashboardLink_labelId=${this.#labelId}`);
+        window.logWebpageActivity(`Click_module=StoryDashboardLink_labelId=${this.#labelId}`);
       });
       byline.appendChild(dashLink);
     }
@@ -270,7 +270,7 @@ export class StorySection {
       confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
-    window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${storyId}`);
+    window.logWebpageActivity(`Click_module=StoryDeleteClient_storyId=${storyId}`);
     try {
       const res = await fetch(`/userapi/stories/${storyId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -287,7 +287,7 @@ export class StorySection {
    * @param {Record<string, any>} media - The story's media payload; alt text doubles as the visible caption.
    */
   #openLightbox(media) {
-    window.logWebpageActivity?.(`Click_module=StoryPhotoEnlarge_storyMediaId=${media.story_media_id}`);
+    window.logWebpageActivity(`Click_module=StoryPhotoEnlarge_storyMediaId=${media.story_media_id}`);
     const els = this.#els;
     els.lightboxImg.src = media.url;
     els.lightboxImg.alt = media.alt_text || '';

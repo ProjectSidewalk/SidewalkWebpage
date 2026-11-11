@@ -4,6 +4,7 @@
  */
 
 import { localizeSubtree } from './i18nDom.js';
+import '../../css/components/image-lightbox.css';
 
 export class ImageLightbox {
   /** @type {HTMLDialogElement|null} */
@@ -13,7 +14,7 @@ export class ImageLightbox {
   /** @type {HTMLElement|null} */
   #caption = null;
 
-  /** @param {string} selector - Matches the <img> elements that open in the lightbox. */
+  /** @param {string} selector - Matches the <img> elements that open in the lightbox, each in a captioned <figure>. */
   constructor(selector) {
     for (const img of /** @type {NodeListOf<HTMLImageElement>} */ (document.querySelectorAll(selector))) {
       // An <img> can't be tabbed to on its own, so make it act like a button.
@@ -61,9 +62,7 @@ export class ImageLightbox {
     const dialog = this.#ensureDialog();
     this.#image.src = img.currentSrc || img.src;
     this.#image.alt = img.alt;
-    const caption = img.closest('figure')?.querySelector('figcaption')?.textContent.trim() ?? '';
-    this.#caption.textContent = caption;
-    this.#caption.hidden = !caption;
+    this.#caption.textContent = img.closest('figure').querySelector('figcaption').textContent.trim();
     dialog.setAttribute('aria-label', img.alt);
     dialog.showModal();
   }

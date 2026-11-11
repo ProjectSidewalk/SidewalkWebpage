@@ -85,8 +85,8 @@ export class CommunityListPage {
 
   /** Reorders the cards in the DOM per the sort select. */
   #applySort() {
+    // The sort menu offers only the keys its page passed in, so every value has a spec.
     const spec = this.#sortKeys[this.#sortEl.value];
-    if (!spec) return;
     const value = (card) => (spec.numeric ? Number(card.dataset[spec.key]) : card.dataset[spec.key]);
     const sorted = [...this.#cards].sort((a, b) => {
       let cmp;

@@ -1,35 +1,23 @@
 /**
  * Tests for how the Manage user page's Excluded box drives the quality dropdown (#3956), chiefly that a stray
  * check-and-uncheck restores the admin's earlier choice.
- *
- * Runs under jsdom (jest.config.js).
  */
 
-const { installDateHelpers, loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+import { drawManageUserPage } from './support/manageUserPage.js';
 
-let AdminUser;
+mockModule('i18next', () => ({ default: { language: 'en' } }));
 
-beforeAll(() => {
-  window.i18next = { language: 'en' };
-  installDateHelpers();
-  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
-});
+const { AdminUser } = await loadModules('frontend/js/user-dashboard/AdminUser.js');
 
 /**
- * Builds the account form's quality and exclusion controls, then the page controller.
+ * Draws the page with the given quality and exclusion, then starts the page controller.
  * @param {string} quality - The dropdown's starting value: 'auto', 'true', or 'false'.
  * @param {boolean} excluded - Whether the box starts checked.
  */
 function load(quality, excluded) {
-  document.body.innerHTML = `
-    <select id="au-quality" ${excluded ? 'disabled' : ''}>
-      <option value="auto">Automatic</option>
-      <option value="true">High quality</option>
-      <option value="false">Low quality</option>
-    </select>
-    <input type="checkbox" id="au-excluded" ${excluded ? 'checked' : ''}>`;
-  document.getElementById('au-quality').value = quality;
-  global.fetch = jest.fn(() => new Promise(() => {}));
+  drawManageUserPage({ quality, excluded });
+  window.fetch = vi.fn(() => new Promise(() => {}));
   new AdminUser({
     userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags', hoursUrl: '/hours',
     pageUrlFor: (u) => `/admin/user/${u}/manage`,

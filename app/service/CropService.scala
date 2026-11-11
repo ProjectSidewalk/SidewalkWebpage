@@ -29,14 +29,21 @@ import java.io.File
 import java.nio.file.Files
 import java.time.{Duration, Instant, OffsetDateTime}
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.imageio.ImageReader
+import javax.imageio.{ImageIO, ImageReader}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.*
-import scala.util.Using
+import scala.util.{Try, Using}
 import scala.util.control.NonFatal
 
 object CropService {
+
+  /** The longest edge of a crop thumbnail: twice the width a report photo is shown at, so it stays sharp on a phone. */
+  val ThumbnailMaxEdge: Int = 720
+
+  val ThumbnailJpegQuality: Float = 0.8f
+
+  val ThumbnailDirName: String = "crop-thumbnails"
 
   /**
    * What one run did. The disjoint outcomes for a label are: cropped, skipped for a pano with no self-hosted image,
@@ -245,6 +252,15 @@ trait CropService {
 
   /** [[cropMarker]] for many labels at once, keyed by label id; a label with no row is absent. */
   def cropMarkers(labelIds: Seq[Int]): Future[Map[Int, CropMarker]]
+
+  /**
+   * A label's crop scaled down to [[CropService.ThumbnailMaxEdge]] as a JPEG, for a page showing many at once: a crop
+   * is a PNG of a few MB, so a page of them, or a PDF saved from one, runs to around a hundred MB. Built on first request
+   * and cached beside the share previews, since it can always be rebuilt; rebuilt if the crop has changed since.
+   *
+   * @return The thumbnail, or None when the label has no crop.
+   */
+  def cropThumbnail(labelId: Int, labelType: LabelType): Future[Option[File]]
 }
 
 @Singleton
@@ -327,6 +343,30 @@ class CropServiceImpl @Inject() (
 
   def cropMarkers(labelIds: Seq[Int]): Future[Map[Int, CropMarker]] =
     db.run(labelCropTable.getMany(labelIds)).map(_.view.mapValues(_.marker).toMap)
+
+  def cropThumbnail(labelId: Int, labelType: LabelType): Future[Option[File]] = {
+    val crop      = panoDataService.cropFile(labelId, labelType.name)
+    val thumbnail = File(File(shareImageCache.dir, ThumbnailDirName), s"crop_$labelId.jpg")
+    if (!crop.isFile) Future.successful(None)
+    // A missing thumbnail's lastModified is 0, so this also covers the first request.
+    else if (thumbnail.lastModified() >= crop.lastModified()) Future.successful(Some(thumbnail))
+    else
+      Future {
+        // A crop too damaged to decode (#5229) is the same to a caller as no crop: there's nothing to show.
+        Try(Option(ImageIO.read(crop)))
+          .recover { case NonFatal(e) =>
+            logger.warn(s"Couldn't decode the crop of label $labelId for a thumbnail.", e)
+            None
+          }
+          .toOption
+          .flatten
+          .map { image =>
+            val _ = thumbnail.getParentFile.mkdirs()
+            ImageUtils.writeJpeg(ImageUtils.scaleToMaxEdge(image, ThumbnailMaxEdge), thumbnail, ThumbnailJpegQuality)
+            thumbnail
+          }
+      }(using cpuEc)
+  }
 
   private val CropFileName = """crop_(\d+)\.png""".r
 
@@ -500,8 +540,8 @@ class CropServiceImpl @Inject() (
           try {
             ImageUtils.withReader(file) { (reader, width, height) =>
               counts.panosOpened += 1
-              // The label positions are in the frame pano_data recorded, so an image of another size would put
-              // every crop in the wrong place: skip loudly rather than mis-centre.
+              // A pano never changes size, so a stored image of another size was stitched at the wrong size (the old
+              // scraper upscaled small panos to 13312×6656): skip loudly rather than mis-centre.
               val recorded = labels.head
               if (recorded.panoWidth.exists(_ != width) || recorded.panoHeight.exists(_ != height)) {
                 counts.dimsMismatch += labels.size
@@ -510,10 +550,8 @@ class CropServiceImpl @Inject() (
                     s"is ${width}x$height; skipping its ${labels.size} labels rather than mis-centring their crops."
                 )
               } else {
-                // A row that records no dimensions gives that check nothing to fail on, so the crop is cut against
-                // the stored image on the assumption the label was placed on the same frame. Usually true — the
-                // scraper stores what the client saw — but nothing here confirms it, so the run says how often it
-                // had to assume rather than passing the case off as verified.
+                // With no recorded dimensions the stored image is taken as the label's frame; a mis-stitched file
+                // (above) can't be ruled out, so the run counts how often it had to assume.
                 if (recorded.panoWidth.isEmpty || recorded.panoHeight.isEmpty) {
                   counts.dimsUnverified += labels.size
                   logger.warn(

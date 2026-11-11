@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * The status over the pano that says a label's imagery is still loading (#5581).
  *
@@ -32,14 +34,14 @@ export class PanoLoadingStatus {
    */
   static LOADING_KEY = 'common:loading-imagery';
 
-  /** @type {?HTMLElement} The box shown over the pano; null when the page has no status markup. */
-  #box = null;
+  /** @type {HTMLElement} */
+  #box;
 
-  /** @type {?HTMLElement} The text inside the box. */
-  #text = null;
+  /** @type {HTMLElement} */
+  #text;
 
-  /** @type {?HTMLElement} The visually hidden span the screen reader hears; null when the markup lacks it. */
-  #announce = null;
+  /** @type {HTMLElement} The visually hidden span the screen reader hears. */
+  #announce;
 
   /** @type {?ReturnType<typeof setTimeout>} The pending DELAY_MS timer, while a load is younger than that. */
   #timer = null;
@@ -48,17 +50,12 @@ export class PanoLoadingStatus {
   #onShown = null;
 
   /**
-   * @param {?HTMLElement} holder - The `#svv-pano-loading` live region. Tolerates null, or markup missing the box or
-   *     its text, so a page without it degrades to no status rather than a broken load path.
+   * @param {HTMLElement} holder - The `#svv-pano-loading` live region, which both Validate views always render.
    */
   constructor(holder) {
-    const box = holder?.querySelector('.svv-pano-loading__box') ?? null;
-    const text = holder?.querySelector('.svv-pano-loading__text') ?? null;
-    if (box && text) {
-      this.#box = box;
-      this.#text = text;
-      this.#announce = holder.querySelector('.svv-pano-loading__announce');
-    }
+    this.#box = holder.querySelector('.svv-pano-loading__box');
+    this.#text = holder.querySelector('.svv-pano-loading__text');
+    this.#announce = holder.querySelector('.svv-pano-loading__announce');
   }
 
   /**
@@ -72,7 +69,6 @@ export class PanoLoadingStatus {
    */
   begin(onShown, { immediate = false } = {}) {
     this.end();
-    if (!this.#box) return;
     this.#onShown = onShown ?? null;
     this.#setText(PanoLoadingStatus.LOADING_KEY);
     if (immediate) this.#showBox();
@@ -89,7 +85,6 @@ export class PanoLoadingStatus {
    * @returns {void}
    */
   setMessage(key) {
-    if (!this.#box) return;
     this.#clearTimer();
     this.#setText(key);
     this.#markSlow();
@@ -103,8 +98,8 @@ export class PanoLoadingStatus {
   end() {
     this.#clearTimer();
     this.#onShown = null;
-    this.#box?.classList.add('ps-hidden');
-    if (this.#announce) this.#announce.textContent = '';
+    this.#box.classList.add('ps-hidden');
+    this.#announce.textContent = '';
   }
 
   /**
@@ -112,7 +107,7 @@ export class PanoLoadingStatus {
    * @returns {boolean}
    */
   isShowing() {
-    return Boolean(this.#box && !this.#box.classList.contains('ps-hidden'));
+    return !this.#box.classList.contains('ps-hidden');
   }
 
   /**
@@ -122,7 +117,7 @@ export class PanoLoadingStatus {
    */
   #markSlow() {
     this.#showBox();
-    if (this.#announce) this.#announce.textContent = this.#text.textContent;
+    this.#announce.textContent = this.#text.textContent;
     const onShown = this.#onShown;
     this.#onShown = null;
     onShown?.();

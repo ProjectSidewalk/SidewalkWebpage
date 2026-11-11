@@ -14,7 +14,10 @@
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
+import { newTabNote } from './newTabNote.js';
+import '../../css/components/toast.css';
 
 export class Toast {
   // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`. Public so a
@@ -26,10 +29,6 @@ export class Toast {
   static #ANCHORLESS = Symbol('anchorless');
   static #live = new Map();
   static #waiting = new Map();
-
-  // Duration for a toast that just confirms an action the user took ("Link copied"). It tells them nothing they
-  // don't already know, so it needs only long enough to register before it gets out of the way.
-  static CONFIRMATION_MS = 1000;
 
   #el;
   #reference;
@@ -49,10 +48,12 @@ export class Toast {
    * @param {object} opts
    * @param {string} [opts.title] - Bold heading line.
    * @param {string} [opts.message] - Secondary message line.
-   * @param {string} [opts.icon] - Image URL shown to the left of the text.
-   * @param {string} [opts.iconAlt] - Alt text for the icon image (defaults to '').
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} [opts.button] - An
-   *     optional action button: a link with `href`, or a callback with `onClick`.
+   * @param {string} [opts.messageHtml] - The message as markup, for a translation that carries its own (a `<kbd>` key
+   *     name), instead of `message`. Sanitized; escape any outside values interpolated into it.
+   * @param {string} [opts.icon] - Decorative image URL shown to the left of the text, which already says what it is.
+   * @param {{label: string, href?: string, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   *     [opts.button] - An optional action button: a link with `href`, or a callback with `onClick`. `secondary` for
+   *     one that lets the reader opt out ("Don't show again") rather than act on the message.
    * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
    * @param {number} [opts.top] - Distance in px from the top of the reference to the toast's top edge. Without
    *      it the toast sits 10% of the way down, which suits a passing note over a pano; a standing instruction over
@@ -65,14 +66,14 @@ export class Toast {
    * @param {() => void} [opts.onClose] - Called when the user clicks the close button, and not when the toast fades
    *      out on its own: the two say different things about whether the message was read.
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#reference = opts.reference || null;
     this.#top = opts.top ?? null;
     this.#duration = opts.duration ?? 5000;
     this.#onClose = opts.onClose || null;
-    // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
-    // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
-    // toast with an action button to reach for earns the pause.
+    // A toast anchored to a small control (a failed dashboard rename) opens under the cursor that just clicked it,
+    // so pausing on hover would strand it on screen until the user happened to move the mouse. Only a toast with an
+    // action button to reach for earns the pause.
     this.#pauseOnHover = Boolean(opts.button);
     this.#el = this.#build(opts);
   }
@@ -82,7 +83,7 @@ export class Toast {
    * @param {object} opts - See the constructor.
    * @returns {Toast}
    */
-  static show(opts = {}) {
+  static show(opts) {
     const toast = new Toast(opts);
     toast.show();
     return toast;
@@ -103,7 +104,7 @@ export class Toast {
       const icon = document.createElement('img');
       icon.className = 'ps-toast__icon';
       icon.src = opts.icon;
-      icon.alt = opts.iconAlt || '';
+      icon.alt = '';
       el.appendChild(icon);
     }
 
@@ -115,10 +116,11 @@ export class Toast {
       title.textContent = opts.title;
       text.appendChild(title);
     }
-    if (opts.message) {
+    if (opts.message || opts.messageHtml) {
       const message = document.createElement('div');
       message.className = 'ps-toast__message';
-      message.textContent = opts.message;
+      if (opts.messageHtml) message.replaceChildren(util.sanitizeHtml(opts.messageHtml));
+      else message.textContent = opts.message;
       text.appendChild(message);
     }
     el.appendChild(text);
@@ -166,8 +168,8 @@ export class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} button - A
-   *     link-style action with `href`, or a callback with `onClick`.
+   * @param {{label: string, href?: string, onClick?: (e: MouseEvent) => void, secondary?: boolean}}
+   *     button - A link-style action with `href`, or a callback with `onClick`.
    * @returns {HTMLElement}
    */
   #buildButton(button) {
@@ -175,17 +177,18 @@ export class Toast {
     if (button.href) {
       el = document.createElement('a');
       el.href = button.href;
-      if (button.newTab) {
-        el.target = '_blank';
-        el.rel = 'noopener noreferrer';
-      }
+      // A toast pops up over work in progress, so its link opens beside the page instead of leaving it.
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+      el.append(button.label, newTabNote());
     } else {
       el = document.createElement('button');
       el.type = 'button';
-      if (button.onClick) el.addEventListener('click', button.onClick);
+      el.addEventListener('click', button.onClick);
+      el.textContent = button.label;
     }
-    el.className = 'ps-toast__button button button--primary button--small';
-    el.textContent = button.label;
+    const variant = button.secondary ? 'button--secondary' : 'button--primary';
+    el.className = `ps-toast__button button ${variant} button--small`;
     return el;
   }
 
@@ -226,7 +229,6 @@ export class Toast {
    */
   #releaseAnchor() {
     const anchor = this.#anchorKey();
-    if (Toast.#live.get(anchor) !== this) return;
     Toast.#live.delete(anchor);
     const waiting = Toast.#waiting.get(anchor) || [];
     const next = waiting.shift();
@@ -268,8 +270,8 @@ export class Toast {
    * @returns {HTMLElement}
    */
   #host() {
-    const dialog = this.#reference && this.#reference.closest && this.#reference.closest('dialog');
-    return dialog && dialog.matches(':modal') ? dialog : document.body;
+    const dialog = this.#reference?.closest('dialog');
+    return dialog?.matches(':modal') ? dialog : document.body;
   }
 
   /**
@@ -309,13 +311,13 @@ export class Toast {
     // Never mounted: nothing to fade, and the live toast keeps the anchor.
     if (this.#queued) {
       const anchor = this.#anchorKey();
-      const waiting = (Toast.#waiting.get(anchor) || []).filter((t) => t !== this);
+      const waiting = Toast.#waiting.get(anchor).filter((t) => t !== this);
       if (waiting.length) Toast.#waiting.set(anchor, waiting);
       else Toast.#waiting.delete(anchor);
       this.#queued = false;
       return;
     }
-    if (this.#repositionHandler) window.removeEventListener('resize', this.#repositionHandler);
+    window.removeEventListener('resize', this.#repositionHandler);
     this.#resizeObserver?.disconnect();
     this.#el.classList.remove('ps-toast--visible');
     setTimeout(() => {

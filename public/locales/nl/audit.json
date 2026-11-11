@@ -137,7 +137,6 @@
     "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!"
   },
   "right-ui": {
-    "opens-new-tab": "(opent in een nieuw tabblad)",
     "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
@@ -158,6 +157,9 @@
     "route-unavailable": {
       "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
     },
+    "street-unavailable": {
+      "message": "Die straat is niet beschikbaar om te verkennen. Mogelijk zijn er geen beelden van, of is hij verwijderd."
+    },
     "region-finished": {
       "message": "Je hebt alle straten in die buurt al verkend, dus we hebben je naar {{regionName}} verplaatst."
     },
@@ -177,6 +179,7 @@
       "needs-reassessment-tip-others": "Een gebruiker heeft deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "minimap": {
+      "attribution-toggle": "Bronvermelding kaartgegevens",
       "coach-dismiss": "Begrepen",
       "distance-left": "Nog {{distance}}",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
@@ -188,16 +191,13 @@
       "mission-progress": "Missievoortgang",
       "legend-explored": "Verkend",
       "legend-ahead": "Resterende route",
+      "legend-jump": "Sprong naar de volgende straat",
       "legend-you": "U + kijkrichting",
-      "legend-visited": "Bezochte locatie",
+      "legend-crumbs": "Cirkels: plekken waar u met een klik heen kunt",
       "legend-unseen": "Nog niet bekeken",
-      "legend-next-stops": "Stops op uw route",
       "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
-      "legend-other-links": "Andere richtingen",
-      "legend-faced": "Gevuld: waar vooruit u heen brengt",
       "legend-earlier-labels": "Mijn eerdere labels",
       "link-crumb-title": "Ga naar dit panorama",
-      "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)",
       "route-stop-title": "Stop {{rank}} op uw route",
       "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
       "label-marker-title": "{{labelType}}-label: klik om te bekijken",
@@ -206,7 +206,10 @@
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
       "mission-start-flag": "Waar deze missie begon",
-      "mission-finish-flag": "Waar deze missie eindigt"
+      "mission-finish-flag": "Waar deze missie eindigt",
+      "map-title": "Kaart van de omgeving om je heen",
+      "unavailable": "Deze browser kan de kaart niet weergeven. Je kunt zonder kaart verder verkennen.",
+      "recenter": "Terug naar uw locatie"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"
@@ -275,7 +278,7 @@
         "sand-gravel": "modder/zand/grind (<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "onb<tag-underline>e</tag-underline>dekt mangat",
         "ends-abruptly": "eindigt <tag-underline>a</tag-underline>brupt",
-        "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>aat heeft een trottoir",
+        "other-side-has-a-sidewalk": "ande<tag-underline>r</tag-underline>e kant heeft een trottoir",
         "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>raat heeft geen trottoir",
         "gravel-dirt-road": "gravel/zand weg (<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "g<tag-underline>e</tag-underline>deeld voetganger/auto gebied",

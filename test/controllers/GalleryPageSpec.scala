@@ -1,15 +1,19 @@
 package controllers
 
+import models.gallery.GallerySort
+import models.user.Role
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import util.{SidewalkSpec, UserAgents}
+import util.{AnonSession, RoleSession, SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
+import java.time.OffsetDateTime
 
 /**
  * Locks the `tags` deep-link contract of GET /gallery: the selection a shared link carries has to come back on the
@@ -27,12 +31,23 @@ import java.net.URLEncoder
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
+      // RoleSession mints its admin through the real anonymous signup, which the limiter would refuse mid-suite.
+      .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
+
+  private lazy val adminCookies: Seq[Cookie] = sessionAs(Role.Administrator)
+
+  /** Fetches /gallery as the admin and returns its HTML. */
+  private def galleryPageAsAdmin(query: String = ""): String = {
+    val resp = route(app, FakeRequest(GET, s"/gallery$query").withCookies(adminCookies*)).get
+    status(resp) mustBe OK
+    contentAsString(resp)
+  }
 
   // Matches a whole tag-pill element so the active-class check doesn't depend on attribute order within the tag.
   // Twirl HTML-escapes ">" in attribute values, so [^>]* can't end the element early.
@@ -63,8 +78,8 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
 
   /** POSTs a card query and returns its JSON body. */
-  private def labelsFor(request: JsObject): JsValue = {
-    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request)).get
+  private def labelsFor(request: JsObject, cookies: Seq[Cookie] = Seq.empty): JsValue = {
+    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request).withCookies(cookies*)).get
     status(resp) mustBe OK
     contentAsJson(resp)
   }
@@ -197,6 +212,106 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
+    }
+
+    // The "Sort by" control (#2705) is admin tooling: everyone else keeps the random grid, whatever the URL says.
+    "render the sort control for an admin only" in {
+      galleryPageAsAdmin() must include("""id="gallery-sort"""")
+      galleryPage() must not include "gallery-sort"
+      galleryPage("?sort=newest") must not include "gallery-sort"
+    }
+
+    "offer every GallerySort as an option, from the enum rather than a list of its own" in {
+      val page = galleryPageAsAdmin()
+      GallerySort.values.foreach(s => page must include(s"""<option value="${s.name}""""))
+    }
+
+    "open in the order the URL asks for, and say so in the footer" in {
+      val page = galleryPageAsAdmin("?sort=most_severe")
+      page must include("""<option value="most_severe" selected""")
+      page must include("""Labels are sorted by &quot;Most severe first&quot; based on selected filters""")
+    }
+
+    "fall back to random for a sort the enum doesn't have" in {
+      val page = galleryPageAsAdmin("?sort=bogus")
+      page must include("""<option value="random" selected""")
+      page must include("Labels are sorted randomly based on selected filters")
+    }
+
+    "render no sort control in list mode" in {
+      galleryPageAsAdmin("?labelIds=8,3") must not include "gallery-sort"
+    }
+  }
+
+  "POST /label/labels with a sort" should {
+    // Every validation option, or the request means "none of them" and every test here passes on an empty grid.
+    val allValidations = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    def sortedRequest(sort: String, n: Int, loaded: Seq[Int] = Seq.empty): JsObject =
+      Json.obj("n" -> n, "loaded_labels" -> loaded, "sort" -> sort, "validation_options" -> allValidations)
+    // As the admin: a strict order is admin tooling, and anyone else asking for one gets the random Gallery.
+    def sortedLabels(sort: String, n: Int = 30, cookies: Seq[Cookie] = adminCookies): Seq[JsValue] =
+      (labelsFor(sortedRequest(sort, n), cookies) \ "labelsOfType" \\ "label").toSeq
+
+    /** Whether the public Gallery's disagree-ratio gate would drop this label. */
+    def pastTheGate(l: JsValue): Boolean = {
+      val agree    = (l \ "agree_count").as[Int]
+      val disagree = (l \ "disagree_count").as[Int]
+      disagree >= 3 && disagree >= agree * 2
+    }
+
+    "return the most severe labels first, unrated last" in {
+      val severities = sortedLabels("most_severe").map(l => (l \ "severity").asOpt[Int])
+      assume(severities.nonEmpty, "connected database serves no sorted labels")
+      val rated = severities.takeWhile(_.isDefined).flatten
+      rated.zip(rated.drop(1)).foreach { case (higher, lower) => higher must be >= lower }
+      severities.dropWhile(_.isDefined).forall(_.isEmpty) mustBe true
+    }
+
+    // Parsed, not compared as strings: the ISO writer drops trailing zeros, so "…:18Z" would sort after "…:18.735Z".
+    "return the newest labels first" in {
+      val timestamps = sortedLabels("newest").map(l => OffsetDateTime.parse((l \ "label_timestamp").as[String]))
+      assume(timestamps.nonEmpty, "connected database serves no sorted labels")
+      timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
+    }
+
+    // Paging is the client excluding what it holds and asking for the next ranked labels, so a second request has to
+    // pick up where the first left off: nothing repeated, and nothing that outranks what the first page showed. This
+    // is where keeping the batch's own order through the imagery check matters — a crop-backed label taken ahead of
+    // a higher-ranked one without a crop would surface on the second page, out of order.
+    "continue the order across a second request that excludes the first's labels" in {
+      val first = sortedLabels("most_severe", n = 12)
+      assume(first.size == 12, "connected database serves fewer than 12 sorted labels")
+      val firstIds = first.map(l => (l \ "label_id").as[Int])
+      val second   =
+        (labelsFor(sortedRequest("most_severe", 12, firstIds), adminCookies) \ "labelsOfType" \\ "label").toSeq
+
+      second.map(l => (l \ "label_id").as[Int]) must contain noElementsOf firstIds
+      // The lowest severity on page one bounds page two; None (unrated) sorts last, so a None on page one means page
+      // two is all None.
+      val severity    = (l: JsValue) => (l \ "severity").asOpt[Int]
+      val pageOneLast = severity(first.last)
+      second.map(severity).foreach { s =>
+        if (pageOneLast.isEmpty) s mustBe empty
+        else if (s.isDefined) s.get must be <= pageOneLast.get
+      }
+    }
+
+    // The gate keeps crowd-rejected labels out of the public Gallery; "most disputed" exists to find them, so a
+    // sorted order waives it (pinned in LabelServiceSpec) and is for admins only. What is pinned here is the second
+    // half: whatever `sort` anyone else sends, nothing past the gate comes back. The admin's own result is the
+    // precondition, since it is what shows the connected database has gated labels to leak.
+    "keep everyone but an admin from the disagree-ratio gate, whatever sort they send" in {
+      val asAdmin = sortedLabels("most_disputed", n = 60)
+      assume(asAdmin.exists(pastTheGate), "connected database serves no label the disagree-ratio gate drops")
+
+      sortedLabels("most_disputed", n = 60, cookies = Seq.empty).exists(pastTheGate) mustBe false
+      sortedLabels("most_disputed", n = 60, cookies = sessionAs(Role.Registered)).exists(pastTheGate) mustBe false
+    }
+
+    "still serve the landing grid's recent pool" in {
+      val resp =
+        labelsFor(Json.obj("n" -> 6, "loaded_labels" -> Json.arr(), "sort" -> "recent", "static_imagery_only" -> true))
+      (resp \ "labelsOfType").as[Seq[JsValue]].size must be <= 6
     }
   }
 

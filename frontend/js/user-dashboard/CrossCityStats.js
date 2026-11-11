@@ -11,6 +11,8 @@
  * plus a nudge toward the other deployments — the section is discovery for them, not a scoreboard.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesMath.js';
 
@@ -24,15 +26,15 @@ export class CrossCityStats {
    * @param {HTMLElement} section - The #ud-cities-section element.
    * @param {object} opts
    * @param {string} opts.currentCityName - Display name of the deployment being viewed.
-   * @param {string} [opts.statsUrl='/userapi/crossCityStats'] - Endpoint to fetch; the admin's view of a user's
-   *     dashboard points it at that user's breakdown instead of the viewer's own.
+   * @param {string} opts.statsUrl - Endpoint to fetch; the admin's view of a user's dashboard points it at that
+   *     user's breakdown instead of the viewer's own.
    * @param {string} [opts.mapboxApiKey] - Mapbox token; without it the map is skipped and the rest still renders.
    */
   constructor(section, opts) {
     this.#section = section;
-    this.#statsUrl = opts.statsUrl || '/userapi/crossCityStats';
-    this.#currentCityName = opts.currentCityName || '';
-    this.#mapboxToken = opts.mapboxApiKey || '';
+    this.#statsUrl = opts.statsUrl;
+    this.#currentCityName = opts.currentCityName;
+    this.#mapboxToken = opts.mapboxApiKey;
   }
 
   /** Fetches the breakdown and renders the section, leaving it hidden on any failure. */
@@ -226,7 +228,7 @@ export class CrossCityStats {
    */
   async #renderMap(cities) {
     const host = this.#section.querySelector('#ud-cities-map');
-    if (!host || typeof mapboxgl === 'undefined' || !this.#mapboxToken) return;
+    if (!host || !this.#mapboxToken) return;
 
     let geo;
     try {
@@ -245,8 +247,8 @@ export class CrossCityStats {
     for (const g of geo.cities) {
       const stat = statsByCity.get(g.city_id);
       if (!stat) continue;
-      if (g.center_lat === null || g.center_lat === undefined) continue;
-      if (g.center_lng === null || g.center_lng === undefined) continue;
+      // A city with no map parameters is sent without a center.
+      if (typeof g.center_lat !== 'number' || typeof g.center_lng !== 'number') continue;
       const n = stat.labels || 0;
       features.push({
         type: 'Feature',
@@ -397,7 +399,7 @@ export class CrossCityStats {
    * unescaped: escaping them here as well would print a city called "Coeur d'Alene" as `&amp;#39;`.
    *
    * @param {string} key - Namespaced i18next key.
-   * @param {object} [vars] - Interpolation values.
+   * @param {Record<string, any>} [vars] - Interpolation values.
    * @returns {string} The translated string with HTML metacharacters replaced by entities.
    */
   static #tEsc(key, vars) {

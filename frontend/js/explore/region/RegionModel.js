@@ -1,20 +1,26 @@
-import { svl } from '../svl.js';
 /** @typedef {import('./Region.js').Region} Region */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 // TODO generalize this whole thing so that it functions as either a region OR a route.
 /**
  * Tracks what the user is exploring (a region, or a custom route) and whether they've finished it.
- *
- * @memberof svl
  */
 export class RegionModel {
+  #userRouteId;
+  #tracker;
   #currentRegion = null;
   #regionCompleteAcrossAllUsers = false;
 
-  constructor() {
-    this.isRoute = null;
-    this.isRouteComplete = null;
-    this.isRegionComplete = null;
+  /**
+   * @param {?number} userRouteId - The route walk the user is on; null on a region audit.
+   * @param {Tracker} tracker
+   */
+  constructor(userRouteId, tracker) {
+    this.#userRouteId = userRouteId ?? null;
+    this.#tracker = tracker;
+    this.isRoute = this.#userRouteId !== null;
+    this.isRouteComplete = this.isRoute ? false : null;
+    this.isRegionComplete = this.isRoute ? null : false;
   }
 
   /**
@@ -39,27 +45,14 @@ export class RegionModel {
     this.#regionCompleteAcrossAllUsers = true;
   }
 
-  /**
-   * @param {string} routeOrRegion - 'route' for a custom route; anything else means a region.
-   */
-  setAsRouteOrRegion(routeOrRegion) {
-    if (routeOrRegion === 'route') {
-      this.isRoute = true;
-      this.isRouteComplete = false;
-    } else {
-      this.isRoute = false;
-      this.isRegionComplete = false;
-    }
-  }
-
   /** Marks the current route or region as finished by this user, and logs it. */
   setComplete() {
     if (this.isRoute) {
-      svl.tracker.push('RouteComplete', { UserRouteId: svl.userRouteId });
+      this.#tracker.push('RouteComplete', { UserRouteId: this.#userRouteId });
       this.isRouteComplete = true;
     } else {
       if (!this.#currentRegion) return;
-      svl.tracker.push('NeighborhoodComplete_ByUser', { RegionId: this.#currentRegion.getRegionId() });
+      this.#tracker.push('NeighborhoodComplete_ByUser', { RegionId: this.#currentRegion.getRegionId() });
       this.isRegionComplete = true;
     }
   }

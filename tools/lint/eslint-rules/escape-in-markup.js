@@ -3,8 +3,9 @@
  * markup (#5615).
  *
  * Safe means: wrapped in `util.escapeHTML`, a trusted helper (SAFE_CALLS), a number, or a variable, parameter or
- * helper of the same file whose every possible value is safe. Inside a `data-ps-tooltip="…"` attribute, plain text
- * needs escaping twice (`AdminShell.tooltipAttr`), since the tooltip renders the attribute as HTML.
+ * helper of the same file whose every possible value is safe. Inside a `data-ps-tooltip-html="…"` attribute, text
+ * needs escaping twice, since the tooltip renders the attribute as HTML: escape each value into the card's markup,
+ * then the whole card for the attribute.
  */
 
 'use strict';
@@ -15,7 +16,6 @@ const { createMarkupFlow } = require('./markup-flow');
 const SAFE_CALLS = new Set([
   'util.escapeHTML',
   'util.assetPath',
-  'AdminShell.tooltipAttr',
   'encodeURIComponent',
   // Our own text; what a translation fills in is checked by i18n-escape-in-markup.
   'i18next.t',
@@ -27,11 +27,8 @@ const SAFE_CALLS = new Set([
 /** Callee prefixes whose results are safe: math, and label-type data from our backend. */
 const SAFE_CALL_PREFIXES = ['Math.', 'util.misc.'];
 
-/** Escapes once: not enough for plain text inside a tooltip attribute. */
+/** Escapes once: not enough for plain text inside a markup tooltip attribute. */
 const ESCAPE_CALLS = new Set(['util.escapeHTML']);
-
-/** Escapes twice, for a tooltip attribute. */
-const TOOLTIP_ESCAPE_CALLS = new Set(['AdminShell.tooltipAttr']);
 
 /**
  * Number and date formatters. `toLocaleString` also works on strings, but here it's used on counts, and flagging
@@ -85,8 +82,8 @@ const READ_ONLY_FUNCTIONS = new Set([
 /** How many hops to follow before giving up and calling a value unsafe. */
 const MAX_DEPTH = 12;
 
-/** Matches text that ends inside a `data-ps-tooltip="…"` value. */
-const IN_TOOLTIP_ATTRIBUTE = /data-ps-tooltip\s*=\s*(?:"[^"]*|'[^']*)$/;
+/** Matches text that ends inside a `data-ps-tooltip-html="…"` value. */
+const IN_TOOLTIP_ATTRIBUTE = /data-ps-tooltip-html\s*=\s*(?:"[^"]*|'[^']*)$/;
 
 /**
  * Visits every node under `node`, optionally skipping nested functions.
@@ -138,7 +135,8 @@ module.exports = {
     messages: {
       unescaped: 'This value goes into HTML unescaped. Wrap it in util.escapeHTML(…), or if it is markup of ours '
         + 'or can never hold markup, add `// eslint-disable-next-line ps/escape-in-markup -- <why>`.',
-      tooltip: 'Text in a data-ps-tooltip attribute needs escaping twice: use AdminShell.tooltipAttr(…).',
+      tooltip: 'Text in a data-ps-tooltip-html attribute needs escaping twice: escape it into the card markup, then '
+        + 'escape the whole card. Plain text belongs in data-ps-tooltip, which needs one escape.',
     },
   },
 
@@ -790,7 +788,7 @@ module.exports = {
     }
 
     /**
-     * For each `${…}`, whether it's inside a `data-ps-tooltip="…"` value.
+     * For each `${…}`, whether it's inside a `data-ps-tooltip-html="…"` value.
      *
      * @param {object} node - The TemplateLiteral.
      * @returns {boolean[]} One flag per expression.

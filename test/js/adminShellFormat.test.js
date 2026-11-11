@@ -5,22 +5,11 @@
  * only ever render the same value the same way. That guarantee is worth exactly as much as the edges are pinned: the
  * cases here are the tier boundaries a hand-written formatter tends to get wrong, plus the escaping, which is what
  * stands between user-supplied text and innerHTML.
- *
- * Runs under jsdom (jest.config.js). AdminShell is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-window.util = realUtil();
-
-
-/** Load AdminShell.js and return the class binding. */
-function loadShell() {
-  return loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
-}
-
-const AdminShell = loadShell();
+const { AdminShell } = await loadModules('frontend/js/admin-dashboard/AdminShell.js');
 
 describe('AdminShell.nil', () => {
   test('is true only for null and undefined, not for falsy values that are real data', () => {
@@ -34,14 +23,11 @@ describe('AdminShell.nil', () => {
   });
 });
 
-describe('AdminShell.tooltipAttr', () => {
-  test('survives both the attribute parse and psTooltip\'s HTML render as plain text', () => {
-    const host = document.createElement('div');
-    host.innerHTML = `<span data-ps-tooltip="${AdminShell.tooltipAttr('<img src=x onerror="bad()"> & co')}"></span>`;
-    const card = document.createElement('div');
-    card.innerHTML = host.firstChild.getAttribute('data-ps-tooltip');
-    expect(card.querySelector('img')).toBeNull();
-    expect(card.textContent).toBe('<img src=x onerror="bad()"> & co');
+describe('AdminShell.count', () => {
+  test('uses the singular for exactly one, and the plural otherwise', () => {
+    expect(AdminShell.count(1, 'user')).toBe('1 user');
+    expect(AdminShell.count(0, 'user')).toBe('0 users');
+    expect(AdminShell.count(1234, 'story', 'stories')).toBe('1,234 stories');
   });
 });
 
@@ -82,11 +68,7 @@ describe('AdminShell.relativeTime', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockReturnValue(NOW);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
   });
 
   test('steps through the just-now / minutes / hours / days tiers', () => {
@@ -189,8 +171,7 @@ describe('AdminShell.jobStatusBadge', () => {
 describe('AdminShell.jobLastRun', () => {
   const NOW = Date.parse('2026-08-20T12:00:00Z');
 
-  beforeEach(() => { jest.spyOn(Date, 'now').mockReturnValue(NOW); });
-  afterEach(() => { jest.restoreAllMocks(); });
+  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 
   test('reports a job the schedule has never fired as never, not as its manual run', () => {
     // A hand-run job proves the code works, not that anything is firing it, so it must not read as a scheduled run.
@@ -239,5 +220,62 @@ describe('AdminShell.jobDetails', () => {
   test('keeps a zero count, which is the answer a quiet night actually gives', () => {
     expect(AdminShell.jobDetails({ last_details: { audits_flagged: 0, audits_unflagged: null } }))
       .toBe('audits flagged: 0');
+  });
+});
+
+describe('AdminShell.ts', () => {
+  test('turns a timestamp into epoch millis for sorting', () => {
+    expect(AdminShell.ts('2026-08-20T12:00:00Z')).toBe(Date.parse('2026-08-20T12:00:00Z'));
+  });
+
+  test('sorts an absent or unreadable timestamp as the oldest', () => {
+    expect(AdminShell.ts(null)).toBe(0);
+    expect(AdminShell.ts(undefined)).toBe(0);
+    expect(AdminShell.ts('soon')).toBe(0);
+  });
+});
+
+describe('AdminShell.setHtml', () => {
+  test('puts the markup into the element when it is on the page', () => {
+    document.body.innerHTML = '<p id="target"></p>';
+    AdminShell.setHtml('target', '<b>bold</b>');
+    expect(document.querySelector('#target b').textContent).toBe('bold');
+  });
+});
+
+describe('AdminShell.mutate', () => {
+  /** @returns {import('vitest').Mock} A fetch stub answering every request with `status` and body `text`. */
+  const answer = (status, text) => {
+    const stub = vi.fn(async () => ({ ok: status < 400, status, text: async () => text }));
+    vi.stubGlobal('fetch', stub);
+    return stub;
+  };
+
+  test('sends a JSON body with its content type, and returns the parsed answer', async () => {
+    const stub = answer(200, '{"updated":3}');
+    await expect(AdminShell.mutate('/adminapi/thing', 'PUT', { id: 7 })).resolves.toEqual({ updated: 3 });
+    expect(stub).toHaveBeenCalledWith('/adminapi/thing', {
+      method: 'PUT',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json; charset=utf-8' },
+      body: '{"id":7}',
+    });
+  });
+
+  test('sends no body or content type when there is nothing to send', async () => {
+    const stub = answer(200, '');
+    await expect(AdminShell.mutate('/adminapi/thing', 'DELETE')).resolves.toEqual({});
+    expect(stub).toHaveBeenCalledWith('/adminapi/thing', { method: 'DELETE', headers: { Accept: 'application/json' } });
+  });
+
+  test('reads a successful answer that is not JSON as an empty one', async () => {
+    answer(200, 'OK');
+    await expect(AdminShell.mutate('/adminapi/thing', 'POST')).resolves.toEqual({});
+  });
+
+  test('fails with the server\'s own message, or the status when it sent none', async () => {
+    answer(400, 'That username is taken.');
+    await expect(AdminShell.mutate('/adminapi/thing', 'PUT', {})).rejects.toThrow('That username is taken.');
+    answer(503, '');
+    await expect(AdminShell.mutate('/adminapi/thing', 'PUT', {})).rejects.toThrow('HTTP 503');
   });
 });

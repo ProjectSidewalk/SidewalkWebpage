@@ -13,7 +13,9 @@
  * still wired up as a convenience for the run of buttons inside.
  */
 
+import i18next from 'i18next';
 import { localizeSubtree } from '../common/i18nDom.js';
+import '../../css/components/map-download-control.css';
 
 export class MapDownloadControl {
   /** @type {HTMLElement} */
@@ -196,7 +198,7 @@ export class MapDownloadControl {
         <a class="map-download-control__docs-link" href="/v3/api-docs/rawLabels" target="_blank" rel="noopener">
           <span data-i18n="labelmap:download.api-docs-link">Raw Labels API documentation</span>
           <span class="sr-only"
-                data-i18n="labelmap:download.opens-new-tab"> (opens in a new tab)</span>
+                data-i18n="common:opens-new-tab">(opens in a new tab)</span>
         </a>
       </div>
       <p class="sr-only" role="status"></p>`;
@@ -242,12 +244,10 @@ export class MapDownloadControl {
     this.#open = true;
     this.#button.setAttribute('aria-expanded', 'true');
 
-    // Defer listener registration so the click that opened the panel doesn't immediately close it. The guard covers
-    // a close that lands before the timer fires, which would otherwise leave a listener attached to a closed panel.
+    // Defer listener registration so the click that opened the panel doesn't immediately close it. Closing cancels
+    // the timer, so a close that lands first never leaves a listener attached to a closed panel.
     clearTimeout(this.#outsideClickTimer);
-    this.#outsideClickTimer = setTimeout(() => {
-      if (this.#open) document.addEventListener('click', this.#boundOutsideClick, true);
-    }, 0);
+    this.#outsideClickTimer = setTimeout(() => document.addEventListener('click', this.#boundOutsideClick, true), 0);
 
     const items = this.#focusableItems();
     (focusLast ? items.at(-1) : items[0])?.focus();
@@ -332,11 +332,10 @@ export class MapDownloadControl {
    * @param {number} count - The current visible-label count.
    */
   #renderCount(count) {
-    const hasI18n = typeof i18next !== 'undefined';
     const pill = document.createElement('span');
     pill.className = 'map-download-control__count-pill';
-    pill.textContent = hasI18n ? i18next.t('labelmap:download.count', { count }) : `${count} labels`;
-    const suffix = hasI18n ? i18next.t('labelmap:download.count-match', { count }) : 'match your filters';
+    pill.textContent = i18next.t('labelmap:download.count', { count });
+    const suffix = i18next.t('labelmap:download.count-match', { count });
     this.#panel.querySelector('.map-download-control__count').replaceChildren(pill, suffix);
   }
 

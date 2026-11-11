@@ -8,10 +8,12 @@
  * build would.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
 
-// A bare `class` declaration, so it has to be evaluated in the page's scope to be reachable, the way its <script>
-// tag makes it reachable in the browser.
+const i18next = { t: (key) => key };
+mockModule('i18next', () => ({ default: i18next }));
+
+let ValidationInfoDisplay;
 
 /** A distinct digest per file, so a URL built by carrying one file's fingerprint onto another's name is visible. */
 const DIGESTS = {
@@ -39,7 +41,7 @@ const urlFor = (logicalPath) => {
 function makeDisplay(aiValidation = null) {
   const container = document.createElement('div');
   document.body.replaceChildren(container);
-  return new window.ValidationInfoDisplay(container, 3, 1, aiValidation, null);
+  return new ValidationInfoDisplay(container, 3, 1, aiValidation, null);
 }
 
 /**
@@ -52,16 +54,14 @@ const srcOf = (display, action) => {
   return container.querySelector('.validation-info-image').src;
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   window.assetDigests = { ...DIGESTS };
-  window.i18next = { t: (key) => key };
-  window.util = realUtil();
-  Object.assign(window, loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
+  Object.assign(i18next, { t: (key) => key });
+  ({ ValidationInfoDisplay } = await loadModules('frontend/js/gallery/displays/ValidationInfoDisplay.js'));
 });
 
 afterEach(() => {
   delete window.assetDigests;
-  delete window.i18next;
 });
 
 describe('Gallery vote icons', () => {
@@ -94,5 +94,11 @@ describe('Gallery vote icons', () => {
     // The other thumb has no AI vote on it, so it keeps the plain artwork.
     display.setVoteIconFilled('Disagree', true);
     expect(srcOf(display, 'Disagree')).toContain(urlFor('images/icons/validation/disagree-filled.svg'));
+  });
+
+  test('drop the -ai variant when a type change leaves the AI without a vote (#5853)', () => {
+    const display = makeDisplay('Agree');
+    display.setAiValidation(null);
+    expect(srcOf(display, 'Agree')).toContain(urlFor('images/icons/validation/agree-outline.svg'));
   });
 });

@@ -1,0 +1,1583 @@
+/* A neighborhood report (#5876), in the .page-* shell: controls on the left, the report in the middle, contents on the
+   right. A long, printable page rather than a tool canvas, so it doesn't use --ui-scale's tool sizing beyond what the
+   tokens already carry. */
+
+.report-shell {
+  --sidebar-width: 310px;
+  --toc-width: 220px;
+}
+
+/* `clip` rather than the shell's `hidden`: a hidden overflow makes the column a scroll container, and a sticky map
+   inside would then stick to a box that never scrolls. Doubled up because page-shell.css may load after this. */
+.page-content.report-page {
+  min-width: 0;
+  padding: var(--space-lg) var(--space-lg) var(--space-xxl);
+  overflow: clip;
+  color: var(--color-neutral-900);
+}
+
+/* Doubled up for the same reason as .page-content.report-page: the shell's .page-nav rule may load after this file. */
+.page-nav.report-sidebar__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+}
+
+/* A long contents list scrolls in its own column, so an anchor needs clearing from the navbar only on the page side. */
+.report-toc {
+  padding: var(--space-lg) var(--space-md);
+}
+
+.report-toc ul li {
+  margin-bottom: var(--space-xxs);
+}
+
+.report-toc__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--space-xxs);
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+}
+
+.report-page [id] {
+  scroll-margin-top: calc(var(--navbar-height) + var(--space-md));
+}
+
+.report-toc .toc-level-2 {
+  margin-left: var(--space-sm);
+}
+
+/* The contents are all links, stacked, so each needs the 24 px a pointer can hit. */
+.report-toc a {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* Three columns need this much room before each is usable; the contents give way first. */
+@media (width <= 1280px) {
+  .report-toc {
+    display: none;
+  }
+
+  .page-content.report-page {
+    max-width: none;
+    margin-right: 0;
+  }
+}
+
+@media (width <= 768px) {
+  .page-content.report-page {
+    padding-inline: var(--space-md);
+  }
+}
+
+/* The strip's disclosure button belongs to narrow screens only, whatever report.js reveals. */
+@media (width > 768px) {
+  .report-sidebar .page-sidebar-toggle {
+    display: none;
+  }
+}
+
+.report-page a {
+  color: var(--color-link-200);
+}
+
+/* ---- Title block ---------------------------------------------------------------------------------------------- */
+
+.report-eyebrow {
+  margin: 0;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+/* The primary font rather than the accent one: region names can hold digits, which Raleway doesn't render well. */
+.report-title {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-h3-bold);
+  font-size: 32px;
+  line-height: 38px;
+}
+
+.report-badge {
+  display: inline-block;
+  padding: 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  vertical-align: middle;
+  background: var(--color-banana-300);
+  border-radius: var(--border-radius-lg);
+}
+
+.report-beta {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-generated {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The sidebar's sections divide as the AccessScore tool's do, so the two sidebars read alike. */
+.report-control {
+  margin-bottom: 0;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* Side by side where the two labels fit; a language with longer ones puts Copy link on its own line. */
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.report-action {
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: var(--space-xxs);
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--space-xs);
+  white-space: nowrap;
+}
+
+.report-action__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.report-action__icon--print {
+  -webkit-mask-image: url("/images/icons/printer-feather.svg");
+  mask-image: url("/images/icons/printer-feather.svg");
+}
+
+.report-action__icon--link {
+  -webkit-mask-image: url("/images/icons/link-feather.svg");
+  mask-image: url("/images/icons/link-feather.svg");
+}
+
+/* ---- Sections ------------------------------------------------------------------------------------------------- */
+
+.report-section {
+  margin-top: var(--space-xl);
+}
+
+.report-section__title {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-title-bold);
+}
+
+.report-section__intro,
+.report-empty {
+  margin: 0 0 var(--space-md);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-note {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-rules {
+  margin-top: var(--space-md);
+}
+
+.report-rules summary {
+  font: var(--text-small-medium);
+  cursor: pointer;
+}
+
+/* ---- Coverage ------------------------------------------------------------------------------------------------- */
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.report-stat {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+}
+
+.report-stat__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.report-stat__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin: var(--space-xxs) 0 0;
+}
+
+.report-stat__value {
+  display: inline-block;
+  min-height: 24px;
+  font: var(--text-subtitle-bold);
+}
+
+.report-stat__detail {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* ---- Headline ------------------------------------------------------------------------------------------------- */
+
+/* The score beside its one sentence: what a reader takes away if they read nothing else. */
+.report-headline-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  align-items: center;
+}
+
+.report-score {
+  flex: none;
+}
+
+.report-headline-body {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.report-score__label {
+  margin: 0;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+.report-score__value {
+  display: block;
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-h3-bold);
+}
+
+.report-headline {
+  margin: 0;
+  font: var(--text-h3-bold);
+}
+
+.report-headline__evidence {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-body-regular);
+}
+
+/* ---- Overview: every street ---------------------------------------------------------------------------------- */
+
+.report-rank {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* The landing page's Spotlight row, so a ranked street looks the same wherever it's ranked. */
+.report-rank__row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 96px 44px;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+.report-rank__row:hover,
+.report-rank__row:focus-within,
+.report-rank__row.is-highlighted,
+.report-rank__row.is-selected {
+  background: var(--color-neutral-100);
+}
+
+/* The row a map click chose stays marked after the pointer leaves, so the reader can find it again. */
+.report-rank__row.is-selected {
+  box-shadow: inset 3px 0 0 var(--color-neutral-900);
+}
+
+.report-rank__position {
+  font: var(--text-caption-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+  text-align: right;
+}
+
+.report-rank__label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.report-rank__name {
+  overflow: hidden;
+  font: var(--text-small-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Which block of its road the row is: one road can hold several rows, and this is what tells them apart. */
+.report-rank__between {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-rank__more {
+  margin-top: var(--space-xs);
+}
+
+.report-rank__more > summary {
+  padding: var(--space-xxs) var(--space-xs);
+  font: var(--text-small-medium);
+  color: var(--color-link-200);
+  cursor: pointer;
+}
+
+.report-rank__track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: var(--color-neutral-200);
+  border-radius: 4px;
+}
+
+.report-rank__bar {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.report-rank__score {
+  font: var(--text-small-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The list scrolls past while the map stays beside it, so a row never loses the street it lights. */
+.report-overview__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.report-overview__where {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--space-sm));
+}
+
+/* ---- Worst problems ---------------------------------------------------------------------------------------- */
+
+.report-worst__body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.report-worst__types {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  gap: 0 var(--space-xs);
+  align-items: center;
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  list-style: none;
+}
+
+/*
+ * Rows are subgrids, so names, bars and counts line up across rows while each row stays one box: the pointer never
+ * leaves a row crossing its column gaps (which `display: contents` would make flicker), and it stays a list item.
+ */
+.report-worst__type {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: var(--space-xxs) var(--space-xxs);
+  border-radius: var(--border-radius-sm);
+}
+
+.report-worst__type.is-highlighted {
+  background: var(--color-neutral-100);
+}
+
+.report-worst__name {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-small-bold);
+}
+
+.report-worst__rating {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-worst__count {
+  font: var(--text-small-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.report-worst__note {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* A dot's Gallery card, over the map: one card's width, as in a street's section. */
+.report-problem-popup .maplibregl-popup-content {
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.report-problem {
+  width: 220px;
+  font: var(--text-small-regular);
+}
+
+/* ---- Maps ----------------------------------------------------------------------------------------------------- */
+
+.report-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+}
+
+/* Fills the map's place until the canvas lands on top of it, and in print. */
+.report-map__sketch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-map__sketch-street path {
+  fill: none;
+  stroke: var(--color-neutral-700);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+/* Over MapLibre's own .maplibregl-marker, whose transform this must not touch: the icon inside it scales instead. */
+.report-map-marker {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 2px;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.report-map-marker img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--transition-fast);
+}
+
+.report-map-marker:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.report-map-marker.is-lit {
+  z-index: 2;
+}
+
+.report-map-marker.is-lit img {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--color-neutral-white), 0 0 0 5px var(--color-neutral-900);
+  transform: scale(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-map-marker img {
+    transition: none;
+  }
+}
+
+/* ---- Community stories (#5900) ------------------------------------------------------------------------------- */
+
+/* Cards in the fixes' grid, so the two lists read as one family: the engineering case, then the human one. */
+.report-stories {
+  --report-fix-gap: var(--space-md);
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(260px, calc((100% - 2 * var(--report-fix-gap)) / 3)), 1fr));
+  gap: var(--report-fix-gap);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-story {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* The storyteller's own photo, or the label's crop: the labeling canvas's shape, as a Gallery card shows it. */
+.report-story__photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.report-story__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+/* Set as a quotation, since that's what it is: the one voice on the page that isn't the data's. */
+.report-story__text {
+  margin: 0;
+  padding-left: var(--space-xs);
+  font: var(--text-body-regular);
+  font-style: italic;
+  color: var(--color-neutral-900);
+  border-left: 3px solid var(--color-neutral-300);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+
+  /* Six lines of --text-body-regular (22px): a 5,000-character story would otherwise set its whole row's height. */
+  max-height: 132px;
+  overflow: hidden;
+}
+
+.report-story__text.is-expanded {
+  max-height: none;
+}
+
+.report-story__read-more {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  font: var(--text-small-medium);
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+@media print {
+  .report-story__text {
+    max-height: none;
+  }
+
+  .report-story__read-more {
+    display: none;
+  }
+}
+
+.report-story__byline {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-story__byline-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.report-story__author {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+.report-story__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: center;
+  margin: auto 0 0;
+  padding-top: var(--space-xxs);
+  font: var(--text-caption-regular);
+}
+
+.report-story__type {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-800);
+}
+
+.report-stories__all {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+}
+
+/* ---- Important places near a segment (#5311) ------------------------------------------------------------------ */
+
+/* Runs as a sentence ("Near the library, the town hall"), so a narrow card wraps it like text. */
+.report-places {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-medium);
+}
+
+.report-places .report-place {
+  margin-right: var(--space-sm);
+  vertical-align: middle;
+}
+
+.report-places--compact {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 0 0 var(--space-xxs);
+  vertical-align: middle;
+}
+
+.report-places__lead {
+  margin-right: var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-place {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+}
+
+.report-places--compact .report-place {
+  margin-right: 0;
+}
+
+/* The glyphs are white, drawn for a disc: dark here, so a place never reads as a score color or a label's icon. */
+.report-place__icon,
+.report-map-place {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-neutral-800);
+  border-radius: 50%;
+}
+
+.report-places--compact .report-place__icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* On a map, a place is a button whose disc and glyph colors report.js sets from its nearest segment's score. */
+button.report-map-place {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+}
+
+button.report-map-place:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 3px;
+}
+
+button.report-map-place[hidden] {
+  display: none;
+}
+
+/* The map's own "Places" switch (ReportPlacesToggle.js), in the legend's dress so the corners read as one set. */
+.report-map-toggle {
+  padding: var(--space-xxs) var(--space-xs);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-800);
+  background: var(--color-neutral-white);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+}
+
+.report-map-toggle__label {
+  display: flex;
+  min-height: 24px;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.report-map-toggle__input {
+  margin: 0;
+}
+
+/* A switch's caveat (#5888): under it while it is on, so the warning sits with the thing it warns about. */
+.report-map-toggle__note {
+  display: block;
+  max-width: 200px;
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-map-toggle__note[hidden] {
+  display: none;
+}
+
+/* Whole pixels: the stroke icons go soft at a fractional size, and 12px maps their 24-unit grid 2:1. */
+.report-map-place__glyph {
+  width: 14px;
+  height: 14px;
+}
+
+/* No position here: MapLibre's own absolute .maplibregl-marker already holds the ring, and relative would pull
+   each marker into flow. */
+button.report-map-place--small {
+  width: 16px;
+  height: 16px;
+}
+
+/* Painted at the worst map's 16px scale, but the target stays at WCAG 2.2's 24px minimum (SC 2.5.8). */
+button.report-map-place--small::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+
+button.report-map-place--small .report-map-place__glyph {
+  width: 12px;
+  height: 12px;
+}
+
+.report-place-popup .maplibregl-popup-content {
+  padding: var(--space-xs) var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
+}
+
+.report-place-popup__title {
+  display: block;
+  font: var(--text-small-bold);
+}
+
+.report-place-popup__meta {
+  color: var(--color-neutral-800);
+}
+
+.report-place-popup__score {
+  font: var(--text-body-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Sidebar controls ----------------------------------------------------------------------------------------- */
+
+.report-toggle {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  min-height: 24px;
+  font: var(--text-small-regular);
+}
+
+.report-toggle label,
+.report-toggle input {
+  margin: 0;
+  font: inherit;
+}
+
+.report-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.report-legend {
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  list-style: none;
+}
+
+.report-legend li {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.report-legend__line {
+  flex: none;
+  width: 24px;
+  height: 3px;
+}
+
+/* A side takes its street's color, so the key shows the whole ramp rather than one color. */
+.report-legend__line--present {
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(to right, var(--color-score-ramp-1), var(--color-score-ramp-3), var(--color-score-ramp-5));
+}
+
+.report-legend__line--absent {
+  height: 0;
+  border-top: 2px dashed var(--color-neutral-600);
+}
+
+.report-color-by {
+  padding: 0;
+  margin: 0 0 var(--space-xs);
+  border: 0;
+}
+
+.report-color-by__title {
+  margin: 0 0 var(--space-xxs);
+  font: var(--text-small-medium);
+  border: 0;
+}
+
+/* A reader's weights are a what-if, and the stamp says so, on paper too. */
+.report-custom-stamp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  background: var(--color-warning-100);
+  border-left: 4px solid var(--color-warning-200);
+  border-radius: var(--border-radius);
+}
+
+/* ---- Ranked streets ------------------------------------------------------------------------------------------- */
+
+.report-street-list,
+.report-fixes {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-street {
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-neutral-300);
+}
+
+/* The name rides down with the sticky map, so a map scrolled far into a street's cards still says which street. It
+   stops at the section's end, where the next street's takes over. */
+.report-street__head {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: baseline;
+  padding-block: var(--space-xs);
+  background: var(--color-neutral-white);
+}
+
+.report-street__rank {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-800);
+}
+
+.report-street__name {
+  margin: 0;
+  font: var(--text-subtitle-bold);
+}
+
+/* A segment entry is the street's name over which block it is: one road can have several entries. */
+.report-toc .toc-level-2 a {
+  align-items: flex-start;
+}
+
+.report-toc .toc-level-2 .report-toc__dot {
+  flex: none;
+  margin-top: 0.45em;
+}
+
+.report-toc__label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.report-toc__between {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.report-street__between {
+  margin-left: var(--space-xs);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-street__meta {
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-street__score {
+  margin-left: auto;
+  font: var(--text-body-bold);
+  white-space: nowrap;
+}
+
+.report-street__meta span:not(:last-child)::after {
+  margin: 0 var(--space-xxs);
+  content: "·";
+}
+
+.report-street__context {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-md);
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  list-style: none;
+}
+
+.report-count {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  font: var(--text-small-regular);
+}
+
+.report-count__number {
+  font: var(--text-small-bold);
+}
+
+/* ---- A street: where things are, beside what they look like ---------------------------------------------------- */
+
+/* Sized from the report's own column rather than the window, since the sidebar and contents come and go around it. */
+.report-streets {
+  container-type: inline-size;
+}
+
+/* The map stays in view beside any number of cards, because a map that scrolls away can no longer answer a hover. */
+.report-street__body {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  gap: var(--space-md);
+  align-items: start;
+  margin-top: var(--space-sm);
+}
+
+/* Below the stuck name; ReportStreetSection measures it, since a long name wraps. */
+.report-street__where {
+  position: sticky;
+  --report-street-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+
+  top: calc(var(--report-street-top) + var(--report-street-head-height, 48px) + var(--space-sm));
+}
+
+@container (width <= 720px) {
+  .report-street__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-street__where {
+    position: static;
+  }
+}
+
+.report-street__profile {
+  margin-top: var(--space-sm);
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-sm);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-card {
+  min-width: 0;
+  border-radius: var(--border-radius);
+  transition: box-shadow var(--transition-fast);
+}
+
+/* The imagery credit is owed, not read: on these small stills it steps below the type scale so it stays one line. */
+.report-cards .pano-attribution--compact {
+  padding: 1px 5px;
+  font-size: 9px;
+  line-height: 11px;
+}
+
+/*
+ * Gallery's one-line severity, votes and tags row needs about 230px, so in these smaller cards tags wrap to their
+ * own line. The children keep Gallery's height, which holds the vote icons at the 24px target size.
+ */
+.report-cards .card-data {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  height: auto;
+  row-gap: var(--space-xxs);
+}
+
+.report-cards .card-severity,
+.report-cards .card-validation-info {
+  height: max(24px, 5.6cqw);
+}
+
+.report-cards .card-validation-info {
+  flex: 0 0 auto;
+  padding-right: 7px;
+}
+
+.report-cards .card-tags {
+  flex: 1 1 100%;
+  height: auto;
+}
+
+.report-cards .label-tags-header,
+.report-cards .card-tags:not(:has(.gallery-tag)) {
+  display: none;
+}
+
+.report-card.is-lit {
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-card {
+    transition: none;
+  }
+}
+
+.report-card__host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-xs);
+  padding: var(--space-xxs) var(--space-xs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-card__host a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+.report-card__cost {
+  width: 100%;
+  font: var(--text-caption-medium);
+}
+
+.report-cards__more {
+  margin-top: var(--space-sm);
+}
+
+/* ---- Fixes ---------------------------------------------------------------------------------------------------- */
+
+.report-section__lede {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* Three to a row at most, however wide the column: a pane any wider just shows more of the block, not more of the
+   spot. Fewer once a card would drop under 260px. */
+.report-fixes {
+  --report-fix-gap: var(--space-md);
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(260px, calc((100% - 2 * var(--report-fix-gap)) / 3)), 1fr));
+  gap: var(--report-fix-gap);
+}
+
+.report-fix {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* Two squares sharing one frame, split by a hairline, so they read as two views of one place. */
+.report-fix__views {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--color-neutral-300);
+}
+
+.report-fix__pane {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.report-fix__pane:focus-visible {
+  outline: 3px solid var(--color-link-200);
+  outline-offset: -3px;
+}
+
+.report-fix__pane > img,
+.report-fix__live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-fix__pane > img {
+  object-fit: cover;
+}
+
+/* The live map only exists to be pictured; the sketch stays in view until the picture replaces both. */
+.report-fix__live {
+  visibility: hidden;
+}
+
+.report-fix__photo .gallery-image-placeholder,
+.report-fix__photo > :not(img, .report-fix__marker) {
+  position: absolute;
+  inset: 0;
+}
+
+/* The label in its photo, placed and sized as on a Gallery card, so the photo says what the card is about. */
+.report-fix__marker {
+  --report-marker-x: 0.5;
+  --report-marker-y: 0.5;
+  --report-marker-size: 24px;
+
+  position: absolute;
+  top: calc(var(--report-marker-y) * 100% - var(--report-marker-size) / 2);
+  left: calc(var(--report-marker-x) * 100% - var(--report-marker-size) / 2);
+  width: var(--report-marker-size);
+  height: var(--report-marker-size);
+  pointer-events: none;
+}
+
+.report-fix__pane > .report-fix__marker img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 50%));
+}
+
+.report-fix__rank {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-white);
+  background: var(--color-neutral-900);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-neutral-white);
+}
+
+.report-fix__credit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0 var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-800);
+  background: rgb(255 255 255 / 80%);
+}
+
+.report-fix__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding: var(--space-sm);
+}
+
+.report-fix__head {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.report-fix__street {
+  min-width: 0;
+  margin: 0;
+  font: var(--text-body-bold);
+}
+
+/* The one number the list is ordered by, so it is the one that stands out. */
+.report-fix__cost {
+  flex: none;
+  font: var(--text-subtitle-bold);
+  white-space: nowrap;
+}
+
+.report-fix__type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-xxs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-small-medium);
+}
+
+.report-fix__rating {
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The card's reason in a sentence, set apart from the facts above it as the one line written to persuade. */
+.report-fix__why {
+  margin: var(--space-xxs) 0 0;
+  padding-left: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-left: 3px solid var(--color-neutral-300);
+}
+
+.report-fix__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-sm);
+  margin: auto 0 0;
+  padding-top: var(--space-xxs);
+  font: var(--text-caption-regular);
+}
+
+.report-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  padding: 0;
+  margin: var(--space-xxs) 0 0;
+  list-style: none;
+}
+
+.report-tag {
+  padding: 2px var(--space-xs);
+  font: var(--text-caption-regular);
+  background: var(--color-neutral-100);
+  border-radius: 999px;
+}
+
+/* ---- Inventory ------------------------------------------------------------------------------------------------ */
+
+.report-inventory__group {
+  margin: var(--space-md) 0 var(--space-xs);
+  font: var(--text-h3-medium);
+}
+
+.report-inventory__type {
+  white-space: nowrap;
+}
+
+.report-inventory__type img {
+  vertical-align: text-bottom;
+}
+
+/*
+ * Fixed layout with shared column widths, so the problem, feature and neutral tables line up column for column. The
+ * floor keeps the tags column from collapsing to a word a line on a phone; the wrapper scrolls instead.
+ */
+.report-inventory__table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.report-inventory__col--type {
+  width: 22%;
+}
+
+.report-inventory__col--count {
+  width: 13%;
+}
+
+/* The count headers are phrases ("Confirmed correct"), so they wrap rather than run into the next column. */
+.report-inventory__table thead th {
+  white-space: normal;
+}
+
+.report-inventory__col--tags {
+  width: 26%;
+}
+
+.report-inventory__legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-xs) var(--space-lg);
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+}
+
+.report-inventory__legend dt {
+  font-weight: 700;
+}
+
+.report-inventory__legend dd {
+  margin: 0;
+  color: var(--color-neutral-800);
+}
+
+/* A rated type's histogram per card, as many to a row as fit. Bar colors are the rating faces' (#4724): both scales
+   run from their good end at 1 to their bad end at 3, so one ramp serves severity and quality alike. */
+.report-hists {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  margin: var(--space-sm) 0 0;
+}
+
+.report-hist {
+  padding: var(--space-xs) var(--space-sm);
+  margin: 0;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  break-inside: avoid;
+}
+
+.report-hist__title {
+  display: flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  margin-bottom: var(--space-xxs);
+  font: var(--text-small-bold);
+}
+
+.report-hist__scale {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.report-hist__bars {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2px var(--space-xs);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Rows join the parent grid so names, bars and counts line up. */
+.report-hist__row {
+  display: contents;
+}
+
+.report-hist__name {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The worst-problems bars are drawn the same way, colored by type instead of rating. */
+.report-hist__track,
+.report-worst__track {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  background: var(--color-neutral-200);
+  border-radius: 4px;
+}
+
+.report-hist__bar,
+.report-worst__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.report-hist__bar--1 {
+  background: var(--color-jade-400);
+}
+
+.report-hist__bar--2 {
+  background: var(--color-banana-600);
+}
+
+.report-hist__bar--3 {
+  background: var(--color-orange-500);
+}
+
+.report-hist__bar--none {
+  background: var(--color-neutral-500);
+}
+
+.report-hist__count {
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---- Go deeper and provenance ------------------------------------------------------------------------------- */
+
+.report-deeper__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-lg);
+  padding: 0;
+  margin: 0;
+  font: var(--text-body-regular);
+  list-style: none;
+}
+
+.report-provenance {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-neutral-300);
+}
+
+.report-provenance__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font: var(--text-small-regular);
+}
+
+.report-provenance__data {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.report-provenance__data a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+.report-provenance__list dt {
+  font: var(--text-small-bold);
+}
+
+.report-provenance__list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Small screens: var(--breakpoint-sm) ---------------------------------------------------------------------- */
+
+@media (width <= 768px) {
+  .report-overview__body,
+  .report-worst__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Print: the photos stay, small, and the page's own chrome goes ------------------------------------------- */
+
+@media print {
+  .report-sidebar,
+  .report-toc {
+    display: none;
+  }
+
+  nav,
+  footer:not(.report-provenance),
+  .test-server-banner,
+  .report-deeper {
+    display: none !important;
+  }
+
+  .report-page {
+    max-width: none;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .report-overview__where,
+  .report-street__where {
+    position: static;
+  }
+
+  /* A canvas prints blank and hundreds of dots don't sketch legibly, so paper gets the counts alone. */
+  .report-worst__where {
+    display: none;
+  }
+
+  .report-worst__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Paper has no hover, so a street's map can be small and its cards the point. */
+  .report-street__body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .report-section {
+    margin-top: var(--space-md);
+  }
+
+  .report-custom-stamp button {
+    display: none;
+  }
+
+  .report-map .maplibregl-canvas-container,
+  .report-map .maplibregl-control-container,
+  .report-map .maplibregl-marker,
+  .report-cards__more {
+    display: none !important;
+  }
+
+  .report-fix,
+  .report-story,
+  .report-card,
+  .report-stat,
+  .report-inventory__table tr {
+    break-inside: avoid;
+  }
+
+  .report-fixes,
+  .report-stories {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* A printed link can't be followed, so a reader of the paper copy gets the numbers and the provenance's URL. */
+  .report-page a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -118,7 +118,7 @@ Edit the files to apply the trims. If a comment genuinely earns its place, leave
 mandate to cut everything.
 
 When the trims are done, end with a short wrap-up of where the work stands, written for someone who reads only
-that message.
+that message. Leave this pass out of it: it runs every time, so the wrap-up covers only the work before it.
 
 Comment lines added by this diff:
 ${listing}"

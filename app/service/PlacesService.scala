@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.place.{FetchedPlace, PlaceCategory, PlaceTable}
+import models.region.RegionTable
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.given
@@ -107,6 +108,7 @@ class PlacesServiceImpl @Inject() (
     actorSystem: ActorSystem,
     apiService: ApiService,
     placeTable: PlaceTable,
+    regionTable: RegionTable,
     config: Configuration
 )(using ec: ExecutionContext, mat: Materializer)
     extends PlacesService
@@ -156,7 +158,7 @@ class PlacesServiceImpl @Inject() (
 
   private def fetchAndMerge(): Future[PlacesRefreshResult] = {
     val fetchedAt = OffsetDateTime.now
-    db.run(placeTable.regionsExtent).flatMap {
+    db.run(regionTable.regionsExtent).flatMap {
       // The merge keeps only places within 250 m of a region, so a schema with no regions yet (a city mid-onboarding)
       // has nothing to keep: fetching would only spend an Overpass slot on objects the merge drops.
       case None =>
@@ -229,15 +231,11 @@ object PlacesService {
   val RegionMarginM: Double = 250
 
   /**
-   * Widens a box by [[RegionMarginM]] on every side, in degrees at the box's own latitude.
+   * Widens a box by [[RegionMarginM]] on every side.
    * @param box The regions' extent.
    * @return    The box to ask Overpass for.
    */
-  def pad(box: LatLngBBox): LatLngBBox = {
-    val latDeg = RegionMarginM / 111320.0
-    val lngDeg = latDeg / math.max(0.1, math.cos(math.toRadians((box.minLat + box.maxLat) / 2)))
-    LatLngBBox(box.minLat - latDeg, box.minLng - lngDeg, box.maxLat + latDeg, box.maxLng + lngDeg)
-  }
+  def pad(box: LatLngBBox): LatLngBBox = box.padded(RegionMarginM)
 
   /**
    * The Overpass-side budget for the query, and ours, which must outlast it. Overpass is silent while it computes, so

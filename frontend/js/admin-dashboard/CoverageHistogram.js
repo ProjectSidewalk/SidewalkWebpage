@@ -1,5 +1,7 @@
+import vegaEmbed from 'vega-embed';
+
 /**
- * Renders the coverage *distribution* — regions binned into 10% coverage buckets — with Vega-Lite v5. This scales to
+ * Renders the coverage *distribution* — regions binned into 10% coverage buckets — with Vega-Lite. This scales to
  * any number of regions (constant height) where per-region bars don't, and answers "how is coverage distributed
  * across the city?". Hovering or clicking a bucket fires its index so the coordinator can brush every region in that
  * coverage range on the map and table at once (range brushing). Buckets are pre-binned by the coordinator so colors
@@ -10,6 +12,7 @@ export class CoverageHistogram {
   #onBinClick;
   #onBinHover;
   #onBinHoverEnd;
+  #embedResult = null;
   #view = null;
   #hoverIndex = null;
 
@@ -31,8 +34,8 @@ export class CoverageHistogram {
    * @returns {Promise<void>}
    */
   async render(buckets) {
-    const spec = {
-      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+    const spec = /** @type {import('vega-embed').VisualizationSpec} */ ({
+      $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
       width: 'container',
       height: 180,
       autosize: { type: 'fit-x', contains: 'padding' },
@@ -54,9 +57,13 @@ export class CoverageHistogram {
         view: { stroke: null },
         axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
       },
-    };
+    });
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });
+    // Release the previous chart's listeners (including its resize ones) only once the new chart has drawn, so that
+    // overlapping draws, like two quick sort clicks, each release the chart before them and none is left behind.
+    this.#embedResult?.finalize();
+    this.#embedResult = result;
     this.#view = result.view;
     this.#hoverIndex = null;
     this.#wireEvents();

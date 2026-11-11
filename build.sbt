@@ -4,7 +4,7 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.17.0"
+version := "11.20.0"
 
 scalaVersion := "3.9.0"
 
@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
 
   // Slick and Postgres stuff.
-  "org.postgresql"     % "postgresql"            % "42.7.13",
+  "org.postgresql"     % "postgresql"            % "42.7.14",
   "org.playframework" %% "play-slick"            % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
@@ -55,9 +55,9 @@ libraryDependencies ++= Seq(
   "com.drewnoakes" % "metadata-extractor" % "2.21.0",
 
   // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
-  "org.geotools" % "gt-shapefile" % "35.1",
-  "org.geotools" % "gt-epsg-hsql" % "35.1",
-  "org.geotools" % "gt-geopkg"    % "35.1",
+  "org.geotools" % "gt-shapefile" % "35.2",
+  "org.geotools" % "gt-epsg-hsql" % "35.2",
+  "org.geotools" % "gt-geopkg"    % "35.2",
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
@@ -83,6 +83,9 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // request. Scoping it to Assets therefore fingerprints during `run` as well, which buys nothing (dev serves
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
 pipelineStages := Seq(fingerprintCssAssetUrls, digest)
+
+// Every view can emit its page's stylesheet tags with `@ViteAssets.stylesheets("<entry>")` (#5651).
+TwirlKeys.templateImports += "views.ViteAssets"
 
 // Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094): a stylesheet is
 // static text out of the assets jar, so no interpolation point reaches those URLs. Must precede `digest` above — see
@@ -253,7 +256,7 @@ scalacOptions ++= Seq(
 // A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.
 Test / scalacOptions += "-Wconf:msg=discarded non-Unit value of type org.scalatest.Assertion:s"
 
-javacOptions ++= Seq("-source", "17", "-target", "17")
+javacOptions ++= Seq("-source", "21", "-target", "21")
 // Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).
 // Measured: the suite uses ~160MB, peaking near 1.3GB under scoverage. A bigger ceiling isn't free, since the JVM
 // stops bothering to collect and grows into it, and -Xms is claimed up front even to run one spec.

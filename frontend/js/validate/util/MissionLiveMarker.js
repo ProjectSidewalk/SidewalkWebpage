@@ -2,11 +2,10 @@
  * Tells the next page life whether this one ended without a `pagehide` (#5561).
  *
  * iOS takes memory back from a tab by killing its WebContent process and reloading the page when the user next
- * looks at it. No event fires on the way out, so from inside the page a kill is indistinguishable from the user
- * reloading — except that `sessionStorage` survives it, being per-tab and written through as it goes. A marker set
- * while a mission is live and cleared on `pagehide` therefore reads, on the next load, as "the last life ended
- * without saying goodbye". Everything a validator can do on purpose (reload, navigate away, close the tab) fires
- * `pagehide` first and clears it.
+ * looks at it. No event fires on the way out, so from inside the page a kill looks like the user reloading, except
+ * that `sessionStorage` survives it, being per-tab and written through as it goes. A marker set while a mission is
+ * live and cleared on `pagehide` therefore reads, on the next load, as "the last life ended without saying goodbye";
+ * everything a validator does on purpose (reload, navigate away, close the tab) fires `pagehide` first and clears it.
  *
  * Every storage access is wrapped: Safari throws on `sessionStorage` in some private-browsing configurations, and a
  * page that can't record the marker should still validate.
@@ -15,7 +14,7 @@
  *
  *     const marker = new MissionLiveMarker(window.sessionStorage);
  *     const unexpected = marker.takeUnexpectedUnload();   // {missionId, ageSec, navType} or null
- *     if (unexpected) svv.tracker.push('Validate_UnexpectedUnload', unexpected);
+ *     if (unexpected) tracker.push('Validate_UnexpectedUnload', unexpected);
  *     marker.markLive(missionId);
  */
 export class MissionLiveMarker {
@@ -40,7 +39,7 @@ export class MissionLiveMarker {
   /**
    * Reads, and removes, a marker a previous page life left behind.
    *
-   * @returns {?{missionId: ?number, ageSec: number, navType: string}} What that life recorded — the mission it was
+   * @returns {?{missionId: number, ageSec: number, navType: string}} What that life recorded — the mission it was
    *      on, how long ago it marked itself live, and how the browser says this page arrived (`reload`, `navigate`,
    *      `back_forward`; `unknown` where the Navigation Timing entry is missing) — or null when the last life ended
    *      with a pagehide, or never wrote a marker at all.
@@ -64,8 +63,8 @@ export class MissionLiveMarker {
     const [navigation] = performance.getEntriesByType?.('navigation') ?? [];
     const navType = /** @type {PerformanceNavigationTiming|undefined} */ (navigation)?.type ?? 'unknown';
     return {
-      missionId: marker.missionId ?? null,
-      ageSec: Math.max(0, Math.round((Date.now() - (marker.since ?? Date.now())) / 1000)),
+      missionId: marker.missionId,
+      ageSec: Math.max(0, Math.round((Date.now() - marker.since) / 1000)),
       navType,
     };
   }

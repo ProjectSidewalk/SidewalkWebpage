@@ -8,7 +8,8 @@ plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the res
 phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
-(#5060). Deep canvas/imagery testing stays manual by design.
+(#5060). It also holds interaction specs, which every new or changed interaction on a pano page needs (see
+"Pano pages" below).
 
 ## Running locally
 
@@ -38,9 +39,10 @@ Three details worth knowing when something looks odd:
   400s anything else — including `web:9000` and any other port — and because `localhost` now resolves inside
   the web container rather than on your host.
 - It inherits the web container's **mounts** (not its image filesystem), so the repo is at `/home` and worktree
-  paths resolve unchanged. The one exception is `/home/node_modules`, which is deliberately masked with an empty
-  tmpfs so `require('@playwright/test')` resolves to the runner in the image instead of the repo's own copy —
-  two copies in one process makes Playwright abort with *"did not expect `test()` to be called here"*.
+  paths resolve unchanged. The one exception is `/home/node_modules` (and a worktree's own `node_modules`, where
+  `make qa-worktree` has installed one), deliberately masked with an empty tmpfs so `require('@playwright/test')`
+  resolves to the runner in the image instead of the repo's own copy — two copies in one process makes Playwright
+  abort with *"did not expect `test()` to be called here"*.
 - Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
   `--user`), so you can read and delete them from the host like any other file.
 
@@ -60,10 +62,10 @@ regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>
 make test-e2e-host args="-g labelMap --headed"
 ```
 
-That path needs a host toolchain the containerized one doesn't: **Node 24**, `npm ci` at the repo root (the
+That path needs a host toolchain the containerized one doesn't: **Node 26**, `npm ci` at the repo root (the
 container's `node_modules` is a Docker volume, so the host copy is a separate install of the same pinned versions),
 and `npx playwright install chromium`, plus `sudo npx playwright install-deps` on Linux/WSL. Use it for
-interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
+interactive debugging; `make test-e2e` is the normal run.
 
 ## How a spec works
 
@@ -72,7 +74,11 @@ interactive debugging; `make test-e2e` is what a normal run and CI both exercise
    session) and back. A page under test therefore may load with **or** without a session, which is itself
    part of what the suite covers — an init-time fetch that assumes a session `console.error`s and fails the
    spec. Registered-user pages (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js`
-   (two-step CSRF `POST /signUp`).
+   (two-step CSRF `POST /signUp`). Admin pages call `signInAsAdmin(context)` first. It signs in as an
+   admin that `fixtures/ensure-admin.sh` makes (sign up through the app, then set the role in the database)
+   with a random name and password, kept in the git-ignored `.admin-account.json`: a dev database's logins
+   are a copy of production's, so a known admin password would expose real users. `make test-e2e` and CI
+   run the script before the suite; before a bare `npx playwright test`, run it once yourself.
 2. Wait for `window.appManager.isReady` (every page's shared init manager), plus the page's own signal
    where one exists (the `#page-loading` overlay hiding).
    **The wait is not the assertion**: AppManager catches init/ready-callback exceptions, `console.error`s
@@ -139,6 +145,17 @@ keeps it out of the smoke half — one definition, used for the a11y project's `
 noise, each with a comment explaining the cause — never to get a red run green. `pageerror` (an uncaught
 exception) is never allowlisted.
 
+## Pano pages
+
+Explore, Validate, and the `label-detail` card bill Google when opened by hand, so their interactions are tested
+here. What a spec there can't reach still gets a checklist:
+
+- **Call `serveAnyPano(context)`** in a Validate or label-card spec. Without it, a dev database's live panos don't
+  load, the page lands on the no-mission modal, and the spec skips, which looks like a pass.
+- **Street View itself never renders** (the stub stands in), so Street View-only behavior isn't covered.
+- **Explore specs reach only the tutorial**, where a new user lands. A change outside it needs new setup to reach
+  a mission, or a PR note that it's untested.
+
 ## Where it runs in CI
 
 The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
@@ -162,7 +179,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Every panorama it names is expired**, as the rows it was taken from are. That is what keeps the server side
   hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
   imagery nor the `GOOGLE_MAPS_SECRET` CI does not have (#4948). What stands in is on disk — `install-media.sh`,
-  run right after the seed, installs the backup panoramas Pannellum renders and the crops the Gallery reads.
+  run right after the seed, installs the backup panoramas Pannellum renders and the crops Gallery reads.
   The *browser* still tries the primary viewer first, and what happens next is the Google Maps stub's call
   (phase 2, below): by default it answers `ZERO_RESULTS` for a pano it has never seen, the way Google does for an
   expired one, so Validate and the label popups render those backups through Pannellum — the path the seed was
@@ -197,10 +214,13 @@ read, not a second city dump to maintain. Three things about it shape this suite
   `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
-  error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
+  error). Explore's minimap is a real MapLibre map; CI's app has no tile archive (the job that cuts one is off in CI),
+  so it draws over a plain background. A reload counter
+  turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
-  CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
-  the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
+  CI must take the mission branch (`loadValidate` fails without one there; locally either is fine) — the seed carries
+  the ≥ 10 validatable labels of one type a mission needs, and the server resolves their imagery from the committed
+  backups rather than a provider (#5115) — and on it asserts
   that a panorama rendered *and which viewer rendered it*: Pannellum, on the default path and under `serveAnyPano`
   alike, since every seeded label is flagged expired. The primary viewer's own path is covered by `/explore`'s
   tutorial. `/mobile`
@@ -210,14 +230,15 @@ read, not a second city dump to maintain. Three things about it shape this suite
 - **Phase 2b:** make CI exercise `/validate`'s real mission path. ✅ via #5115's seed — ten validatable labels
   on panos with committed backup imagery. The `GOOGLE_MAPS_SECRET` #4948 called for
   turned out not to be needed: the seeded panoramas are expired, so the server-side imagery check reads the
-  backup files on disk instead of asking a provider. Still open under #4948 is coverage of the mission's
-  *interactions* (menu handlers, keyboard shortcuts, undo), not reaching a mission at all. Also open: gallery
-  expanded-card view and api-docs preview content asserts.
+  backup files on disk instead of asking a provider. The mission's interactions (menu, keyboard shortcuts, undo)
+  ✅ `validate-interactions.spec.js`, #4948: it calls `serveAnyPano`, so a dev database's live panos load in the
+  stub and the spec runs locally too. Still open: gallery expanded-card view and api-docs preview content asserts.
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
-  end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
-  superuser `UPDATE user_role` in CI).
+  end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
+  ✅ `validate-interactions.spec.js`, #4948); admin pages (✅ the sign-in: `signInAsAdmin`, #5946; Expert Validate
+  in `validate-interactions.spec.js` is the first, the admin dashboard pages are still open).
 
 ## File map
 
@@ -225,11 +246,12 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate` and its mission helpers, `signInAsAdmin`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
 | `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/ensure-admin.sh` | Makes the admin the admin specs sign in as, with random credentials it keeps in the git-ignored `.admin-account.json`. Run by `make test-e2e` and CI before the suite |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
@@ -242,5 +264,11 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
+| `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
+| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948). Also Expert Validate as the admin (#5946), in the same file so its votes can't land between another test's count and its check |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
+| `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
+| `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
+| `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |
+| `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason against CI's seed |

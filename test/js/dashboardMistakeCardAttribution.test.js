@@ -2,11 +2,17 @@
  * Tests the imagery credit on a dashboard "recent mistakes" card (frontend/js/user-dashboard/MistakeGallery.js, #5254).
  *
  * The card shows the label's saved crop, which is our own copy of the provider's image, so it has to credit that
- * provider the same way the Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
+ * provider the same way Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
  * the whole point is checking that the card hooks them up.
  */
 
-const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
+import { loadModules, mockModule } from './loader.js';
+
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
+// The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
+window.ResizeObserver = class { observe() {} disconnect() {} };
+const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -38,29 +44,13 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
   async function renderGallery(opts = {}) {
     document.body.innerHTML = '<div id="ud-mistakes"></div>';
-    const gallery = new window.MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
+    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', limit: 6, ...opts });
     await gallery.render();
   }
 
-  beforeAll(() => {
-    window.i18next = { t: (key) => key };
-    // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
-    window.ResizeObserver = class { observe() {} disconnect() {} };
-    window.util = {
-      assetPath: assetPathStub,
-      EXPLORE_CANVAS_WIDTH: 720,
-      EXPLORE_CANVAS_HEIGHT: 480,
-      camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
-    };
-    installUtilitiesMisc();
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewerLogo.js'));
-    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoAttribution.js'));
-    window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
-  });
-
   beforeEach(() => {
     mistakes = [mistake()];
-    window.fetch = jest.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
   });
 
@@ -112,7 +102,7 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     await renderGallery();
     expect(logo().style.display).toBe('flex');
 
-    photo().dispatchEvent(new window.Event('error'));
+    photo().dispatchEvent(new Event('error'));
 
     expect(photo().src).toContain(GSV_URL);
     expect(logo().style.display).toBe('none');
@@ -135,7 +125,7 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     await renderGallery();
     expect(logo().style.display).toBe('flex');
 
-    photo().dispatchEvent(new window.Event('error'));
+    photo().dispatchEvent(new Event('error'));
 
     expect(photo()).toBeNull();
     expect(logo().style.display).toBe('none');

@@ -9,9 +9,9 @@
  */
 
 import { util } from '../common/utilities.js';
-import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class DataQualityPage {
   static #TOP_TAGS_PER_TYPE = 8;
@@ -93,18 +93,18 @@ export class DataQualityPage {
     const agreed = overall.agreed || 0;
     const validated = overall.validated || 0;
 
-    this.#setText('kpi-total-labels', (labels.count || 0).toLocaleString());
-    this.#setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
-    this.#setText(
+    AdminShell.setText('kpi-total-labels', (labels.count || 0).toLocaleString());
+    AdminShell.setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
+    AdminShell.setText(
       'kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`,
     );
-    this.#setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
-    this.#setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
-    this.#setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
+    AdminShell.setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
+    AdminShell.setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
+    AdminShell.setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
 
     // Imagery freshness: overallStats returns a string like "1037 days"; show it in years for readability.
     const ageDays = parseInt(labels.avg_age_of_image_when_labeled, 10);
-    this.#setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
+    AdminShell.setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
   }
 
   /** Labels by type: one row per type, bar width relative to the largest count. Sorted by count descending. */
@@ -117,7 +117,7 @@ export class DataQualityPage {
     const max = rows.length ? rows[0].count : 1;
 
     document.getElementById('dq-labels').innerHTML = rows.map((r) => {
-      const pct = total ? ` <span class="dq-sub">(${DataQualityPage.#pct(r.count / total)})</span>` : '';
+      const pct = ` <span class="dq-sub">(${DataQualityPage.#pct(r.count / total)})</span>`;
       const bar = `<div class="dq-bar-track"><div class="dq-bar" style="width:${(r.count / max) * 100}%;`
         + `background:${this.#color(r.type)}"></div></div>`;
       return this.#row(r.type, bar, `${r.count.toLocaleString()}${pct}`);
@@ -286,7 +286,7 @@ export class DataQualityPage {
             const tip = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
             // No tab stop per cell: a tag grid runs to hundreds of them, and the label covers screen readers.
             return `<div class="dq-heat-cell" role="img" aria-label="${util.escapeHTML(tip)}"
-                            data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
+                            data-ps-tooltip="${util.escapeHTML(tip)}"
                             style="background:${util.escapeHTML(color)};opacity:${opacity}"></div>`;
           }).join('');
           return [
@@ -438,15 +438,15 @@ export class DataQualityPage {
 
   // --- Canonical metadata accessors (from /v3/api/labelTypes). ---
   #color(type) {
-    return (this.#meta.get(type) || {}).color || '#888';
+    return this.#meta.get(type).color || '#888';
   }
 
   #icon(type) {
-    return (this.#meta.get(type) || {}).icon || '';
+    return this.#meta.get(type).icon || '';
   }
 
   #name(type) {
-    return (this.#meta.get(type) || {}).display || type;
+    return this.#meta.get(type).display;
   }
 
   // --- Behavior from util.misc (the shared label-type framework, loaded by the shell). ---
@@ -472,11 +472,6 @@ export class DataQualityPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

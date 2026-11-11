@@ -90,8 +90,14 @@ function summarize(features) {
   return stats;
 }
 
-export function percent(count, total) {
-  return total > 0 ? Math.round(((count || 0) / total) * 100) : 0;
+/**
+ * A share of the region's street sides, as a whole percent. Only called once the region is known to have some.
+ * @param {number|undefined} count - Sides with one verdict; undefined when the region has none with it.
+ * @param {number} total - Every street side in the region.
+ * @returns {number}
+ */
+function percent(count, total) {
+  return Math.round(((count || 0) / total) * 100);
 }
 
 export function plural(count, noun) {
@@ -309,6 +315,12 @@ export const SidewalkPresencePreview = {
         ? `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(props.osm_way_id)}" target="_blank"
             rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
         : 'N/A';
+      // Which side of each OSM way this face is: what a sidewalk:left / sidewalk:right tag on the way would mean.
+      const osmSides = (ApiDocsMap.featureProp(props, 'osm_ways') || []).map((way) => {
+        const side = way.osm_side === null ? 'side unknown' : `its ${util.escapeHTML(way.osm_side)} side`;
+        return `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(way.osm_way_id)}" target="_blank"
+            rel="noopener noreferrer">${util.escapeHTML(way.osm_way_id)}</a> (${side})`;
+      });
 
       ApiDocsMap.popup(map, e.lngLat, `
         <h4>Street ${util.escapeHTML(props.street_edge_id)}, ${util.escapeHTML(props.street_side)} side</h4>
@@ -323,6 +335,7 @@ export const SidewalkPresencePreview = {
         <p><strong>Other side:</strong> ${other ? util.escapeHTML(presenceLabel(other.presence)) : 'N/A'}</p>
         <p><strong>Type:</strong> ${util.escapeHTML(props.way_type || 'Unknown')}</p>
         <p><strong>OSM ID:</strong> ${osmLink}</p>
+        ${osmSides.length ? `<p><strong>On OSM:</strong> ${osmSides.join('; ')}</p>` : ''}
         <a href="/explore?streetEdgeId=${util.escapeHTML(props.street_edge_id)}"
           class="button button--primary button--tiny" target="_blank">
           Explore Street in Project Sidewalk

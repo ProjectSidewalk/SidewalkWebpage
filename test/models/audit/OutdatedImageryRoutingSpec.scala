@@ -46,7 +46,7 @@ class OutdatedImageryRoutingSpec extends SidewalkSpec with GuiceOneAppPerSuite w
     val regionStreetCounts = auditTaskTable.nonDeletedStreetEdgeRegions
       .groupBy(_.regionId)
       .map { case (regionId, group) => (regionId, group.length) }
-    // Up-to-date audits only, mirroring getRegionsCompletedByUser: a pair whose region completion rests on an
+    // Up-to-date audits only, mirroring getRegionsWithNothingLeftToPick: a pair whose region completion rests on an
     // already-flagged audit would fail the regionsBefore assertion instead of exercising the flag flip.
     val userRegionStreetCounts = auditTasks
       .filter(task => task.completed && !task.outdatedImagery)
@@ -162,7 +162,7 @@ class OutdatedImageryRoutingSpec extends SidewalkSpec with GuiceOneAppPerSuite w
       val (userId, regionId) = completedUserRegion.get
 
       val (regionsBefore, regionsAfter) = runRolledBack(for {
-        regionsBefore <- auditTaskTable.getRegionsCompletedByUser(userId)
+        regionsBefore <- auditTaskTable.getRegionsWithNothingLeftToPick(userId)
         // Flag every completed audit this user has on one street of the region.
         streetId <- auditTaskTable.nonDeletedStreetEdgeRegions
           .filter(_.regionId === regionId)
@@ -175,7 +175,7 @@ class OutdatedImageryRoutingSpec extends SidewalkSpec with GuiceOneAppPerSuite w
           .filter(t => t.completed)
           .map(_.outdatedImagery)
           .update(true)
-        regionsAfter <- auditTaskTable.getRegionsCompletedByUser(userId)
+        regionsAfter <- auditTaskTable.getRegionsWithNothingLeftToPick(userId)
       } yield (regionsBefore, regionsAfter))
 
       regionsBefore must contain(regionId)

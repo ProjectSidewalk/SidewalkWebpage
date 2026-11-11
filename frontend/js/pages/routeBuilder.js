@@ -1,6 +1,7 @@
 /** Entry point for the RouteBuilder. */
 import { RouteBuilder } from '../route-builder/RouteBuilder.js';
 import { util } from '../common/utilities.js';
+import '../../css/pages/route-builder.css';
 
 const data = document.getElementById('page-entry').dataset;
 // Gets all translations before loading the map.
@@ -12,7 +13,7 @@ window.appManager.ready(async () => {
   const routeBuilder = new RouteBuilder(data.mapboxApiKey, mapParams, data.signedIn === 'true',
     Number(data.minutesPerHundredM));
   loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
-    .catch((err) => console.error('Failed to load regions:', err));
+    .catch((err) => console.error('Failed to load or draw regions:', err));
   loadStreets.then((streetData) => routeBuilder.renderStreets(streetData))
-    .catch((err) => console.error('Failed to load streets:', err));
+    .catch((err) => console.error('Failed to load or draw streets:', err));
 });

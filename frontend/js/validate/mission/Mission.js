@@ -2,65 +2,54 @@
  * Represents a single validation mission.
  */
 
-import { svv } from '../svv.js';
+/** @typedef {import('./MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../status/StatusField.js').StatusField} StatusField */
+
+/**
+ * What a mission knows about itself, as MissionContainer builds it from the server's mission and progress.
+ * @typedef {object} MissionProperties
+ * @property {number} agreeCount - Agree votes cast in this mission so far.
+ * @property {number} disagreeCount - Disagree votes cast in this mission so far.
+ * @property {number} unsureCount - Unsure votes cast in this mission so far.
+ * @property {number} missionId
+ * @property {string} missionType - E.g. 'validation'.
+ * @property {boolean} completed
+ * @property {?number} labelsProgress - Labels validated so far; null for a mission nobody has started.
+ * @property {number} labelsValidated - How many labels the mission asks for.
+ * @property {string} labelType
+ */
 
 export class Mission {
-  #properties = {
-    agreeCount: 0,
-    disagreeCount: 0,
-    missionId: undefined,
-    missionType: undefined,
-    completed: undefined,
-    labelsProgress: undefined,
-    labelType: undefined,
-    labelsValidated: undefined,
-    unsureCount: 0,
-  };
+  /** @type {MissionContainer} */
+  #missionContainer;
+  /** @type {StatusField} */
+  #statusField;
+  /** @type {MissionProperties} */
+  #properties;
 
   /**
-   * @param {object} params - Mission metadata passed in from MissionContainer.js.
+   * @param {MissionProperties} params - Mission metadata passed in from MissionContainer.js.
+   * @param {MissionContainer} missionContainer - Told when this mission's last label is validated.
+   * @param {StatusField} statusField - Shows this mission's progress and the validator's running count.
    */
-  constructor(params) {
-    this.#init(params);
-  }
-
-  /**
-   * Initializes a front-end mission object from metadata.
-   * @param {object} params - Mission metadata.
-   */
-  #init(params) {
-    if ('agreeCount' in params) this.setProperty('agreeCount', params.agreeCount);
-    if ('disagreeCount' in params) this.setProperty('disagreeCount', params.disagreeCount);
-    if ('missionId' in params) this.setProperty('missionId', params.missionId);
-    if ('missionType' in params) this.setProperty('missionType', params.missionType);
-    if ('regionId' in params) this.setProperty('regionId', params.regionId);
-    if ('completed' in params) this.setProperty('completed', params.completed);
-    if ('labelsProgress' in params) this.setProperty('labelsProgress', params.labelsProgress);
-    if ('labelsValidated' in params) this.setProperty('labelsValidated', params.labelsValidated);
-    if ('labelType' in params) this.setProperty('labelType', params.labelType);
-    if ('unsureCount' in params) this.setProperty('unsureCount', params.unsureCount);
+  constructor(params, missionContainer, statusField) {
+    this.#missionContainer = missionContainer;
+    this.#statusField = statusField;
+    this.#properties = { ...params };
   }
 
   /**
    * Gets a single property for this mission object.
-   * @param {string} key - String representation of property.
-   * @returns {*} Property if it exists, null otherwise.
+   * @param {keyof MissionProperties} key - Property name.
+   * @returns {*} The property's value.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
-  }
-
-  /**
-   * Returns all properties associated with this mission.
-   * @returns {object} Object for properties.
-   */
-  getProperties() {
-    return this.#properties;
+    return this.#properties[key];
   }
 
   /**
    * Function that checks if the current mission is complete.
-   * @returns {boolean|undefined} True if this mission is complete, false if in progress, undefined if not yet known.
+   * @returns {boolean} True if this mission is complete, false if in progress.
    */
   isComplete() {
     return this.getProperty('completed');
@@ -78,41 +67,34 @@ export class Mission {
   }
 
   /**
-   * Updates status bar (UI) and current mission properties.
-   * @param {boolean} undo - If true, the user clicked the undo button, so we are progressing backwards.
+   * Moves the mission's progress one label forward, or back for an undo, and updates the status bar.
+   * @param {?string} undoneResult - The verdict an undo took back (Agree, Disagree, or Unsure); null for a verdict
+   *     cast, which moves the mission forward.
    */
-  updateMissionProgress(undo) {
+  updateMissionProgress(undoneResult) {
     let labelsProgress = this.getProperty('labelsProgress');
     if (labelsProgress < this.getProperty('labelsValidated')) {
-      if (undo) {
+      if (undoneResult) {
         labelsProgress -= 1;
-        const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
-        this.updateValidationResult(priorLabelFormData.validation_result, true);
-        svv.statusField.decrementLabelCounts();
-        // We either have or have not submitted the last label to the backend.
-        if (svv.labelContainer.getLabelsToSubmit().length > 0) {
-          svv.labelContainer.pop();
-        } else {
-          svv.labelContainer.pushUndoValidation(priorLabelFormData);
-        }
+        this.updateValidationResult(undoneResult, true);
+        this.#statusField.decrementLabelCounts();
       } else {
         labelsProgress += 1;
-        svv.statusField.incrementLabelCounts();
+        this.#statusField.incrementLabelCounts();
       }
 
       this.setProperty('labelsProgress', labelsProgress);
       // Submit mission if mission is complete.
       if (labelsProgress >= this.getProperty('labelsValidated')) {
         this.setProperty('completed', true);
-        svv.missionContainer.completeAMission();
-        svv.undoValidation.disableUndo();
+        this.#missionContainer.completeAMission();
       }
     }
 
     // Update progress bar.
     const labelsInMission = this.getProperty('labelsValidated');
-    svv.statusField.setProgressBar(labelsProgress, labelsInMission);
-    svv.statusField.setProgressText(labelsProgress, labelsInMission);
+    this.#statusField.setProgressBar(labelsProgress, labelsInMission);
+    this.#statusField.setProgressText(labelsProgress, labelsInMission);
   }
 
   /**

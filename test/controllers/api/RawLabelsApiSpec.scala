@@ -40,7 +40,7 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
   private val apiVisiblePositionedLabels =
     """FROM label
        INNER JOIN label_point ON label.label_id = label_point.label_id
-       INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+       INNER JOIN osm_way_street_edge_primary ON label.street_edge_id = osm_way_street_edge_primary.street_edge_id
        INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
        INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
        INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
@@ -78,7 +78,7 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
         "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
           "street_edge_id,osm_way_id,region_id,region_name,street_side,centerline_offset_m,correct,agree_count," +
           "disagree_count,unsure_count," +
-          "validations,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y," +
+          "validations,comments,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y," +
           "canvas_width,canvas_height,pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch," +
           "camera_roll,pano_url,latitude,longitude"
       )
@@ -169,6 +169,56 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
         .as[Seq[play.api.libs.json.JsObject]]
         .map(v => ((v \ "user_id").as[String], (v \ "validation_result").as[String], (v \ "validator_type").as[String]))
       fromRawLabels.diff(fromValidations) mustBe empty
+    }
+
+    "list each label's validator comments by user_id, oldest first (#5849)" in {
+      val anchor = run(
+        sql"""SELECT label.label_id, label_point.lng, label_point.lat
+              #$apiVisiblePositionedLabels
+                AND EXISTS (
+                  SELECT 1
+                  FROM validation_task_comment
+                  WHERE validation_task_comment.label_id = label.label_id
+                    AND validation_task_comment.label_type = label.label_type
+                )
+              ORDER BY label.label_id DESC
+              LIMIT 1""".as[(Int, Double, Double)].headOption
+      )
+      assume(anchor.isDefined, "no API-visible label with a validator comment in this schema; needs a seeded DB")
+      val (labelId, lng, lat) = anchor.get
+      val expected            = run(
+        sql"""SELECT validation_task_comment.user_id, validation_task_comment.comment
+              FROM validation_task_comment
+              INNER JOIN label ON validation_task_comment.label_id = label.label_id
+                  AND validation_task_comment.label_type = label.label_type
+              WHERE validation_task_comment.label_id = $labelId
+                -- The same commenters as the votes in validations: not the labeler, not excluded.
+                AND validation_task_comment.user_id <> label.user_id
+                AND NOT EXISTS (
+                  SELECT 1 FROM user_stat
+                  WHERE user_stat.user_id = validation_task_comment.user_id AND user_stat.excluded
+                )
+              ORDER BY validation_task_comment.timestamp""".as[(String, String)]
+      )
+
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?${bboxAround(lng, lat)}")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[play.api.libs.json.JsObject]].map(_ \ "properties")
+      // Every label carries the list, empty when it has no comments.
+      features.foreach(props => (props \ "comments").validate[Seq[play.api.libs.json.JsObject]].isSuccess mustBe true)
+
+      val feature = features.find(props => (props \ "label_id").as[Int] == labelId)
+      feature mustBe defined
+      val comments = (feature.get \ "comments").as[Seq[play.api.libs.json.JsObject]]
+      comments.map(c => ((c \ "user_id").as[String], (c \ "comment").as[String])) mustBe expected
+      comments.foreach(c => (c \ "username").toOption mustBe None)
+      // A commenter's vote is one of the label's counted votes, with the same value.
+      val votes = (feature.get \ "validations")
+        .as[Seq[play.api.libs.json.JsObject]]
+        .map(v => ((v \ "user_id").as[String], (v \ "validation").as[String]))
+      comments
+        .flatMap(c => (c \ "validation").asOpt[String].map(vote => ((c \ "user_id").as[String], vote)))
+        .foreach(votes must contain(_))
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {

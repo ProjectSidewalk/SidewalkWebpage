@@ -8,20 +8,13 @@
  * trigger, for items stacked in a column where a card above or below would sit on the neighbor. A tail points back
  * at the trigger; this file places it, and main.css draws it. Escape dismisses it (WCAG 1.4.13). Set the attribute
  * directly, or via i18nDom's `data-i18n-tooltip="ns:key"` so the text stays translated. `data-ps-tooltip-theme="light"`
- * gives a white card, for content styled for a light ground (Gallery's overflow tag pills).
+ * gives a white card, for content styled for a light ground (Gallery's overflow tag pills). Dispatch a bubbling
+ * `ps-tooltip:show` event on a trigger to open its card at once, skipping the hover delay (copyToClipboard does).
  *
- * **The attribute value renders as HTML**, so translation strings can carry inline emphasis (<b>, <i>) and a caller
- * can build a small rich card. Anything user-supplied — a username, a label description, any third-party text — must
- * therefore be escaped *twice*:
- *
- *   1. Escape the value, and interpolate it into the card markup.
- *   2. Escape that whole markup string again when writing it into the `data-ps-tooltip` attribute.
- *
- * Parsing the attribute consumes one level and rendering the card the other. A missed step 2 in markup lets the value
- * close the attribute and inject into the host page, which nothing here can clean. The card goes through
- * `util.sanitizeHtml`, so a missed step 1 can't run script, but can still show a stranger's images and links.
+ * **The attribute value is plain text**, so outside text goes in as-is. A card needing markup (an image, links) uses
+ * `data-ps-tooltip-html`, which wins and goes through `util.sanitizeHtml`: escape outside values into that markup, and
+ * escape the whole card again when it is itself written into a markup string.
  * `AcrossCitiesPage.#dayTipHtml` is the worked example, and `test/js/acrossCitiesBreakdowns.test.js` pins it.
- * Plain-text callers need none of this — pass first-party text and it renders as-is.
  *
  * **Pinning (opt-in).** A trigger that also carries `data-ps-tooltip-pinnable` can be clicked (or given Enter/Space
  * from the keyboard) to pin its card open (#5495). A pinned card stops following the pointer and takes pointer events,
@@ -48,6 +41,10 @@ import { util } from './utilities.js';
   const TAIL_HALF_WIDTH_PX = 6;
   const CORNER_RADIUS_PX = 6;
 
+  const TEXT_ATTR = 'data-ps-tooltip';
+  const HTML_ATTR = 'data-ps-tooltip-html';
+  const TRIGGER_SELECTOR = `[${TEXT_ATTR}], [${HTML_ATTR}]`;
+
   let tooltip = null;
   let activeTrigger = null; // The trigger whose tooltip is visible, or pending via showTimer.
   let showTimer = null;
@@ -69,6 +66,9 @@ import { util } from './utilities.js';
     const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'));
     return Number.isFinite(raw) && raw > 0 ? raw : 1;
   };
+
+  /** @returns {boolean} True when `el` still carries either tooltip attribute. */
+  const hasTip = (el) => el.hasAttribute(TEXT_ATTR) || el.hasAttribute(HTML_ATTR);
 
   /**
    * Lazily creates the single shared tooltip element.
@@ -107,22 +107,24 @@ import { util } from './utilities.js';
    * Shows the tooltip for a trigger: fills in its text, sizes it, then places it centered above the trigger —
    * clamped into the viewport, and flipped below the trigger when the space above is too tight — or beside it when
    * the trigger asks for that and there is room. Finally aims the tail back at the trigger.
-   * @param {Element} trigger - The element carrying data-ps-tooltip.
+   * @param {Element} trigger - The element carrying data-ps-tooltip or data-ps-tooltip-html.
    */
   const show = (trigger) => {
     // The trigger can be gone by the time a delayed or repeated show runs: a tag pill clicked away inside the hover
     // delay, or replaced before its image loaded.
-    if (!trigger.isConnected || !trigger.hasAttribute('data-ps-tooltip')) {
+    if (!trigger.isConnected || !hasTip(trigger)) {
       hide();
       return;
     }
     const card = ensureTooltip();
     // A modal <dialog> or an open popover paints above every z-index on the page, so a card on <body> opens behind
-    // it; follow the trigger inside instead. Neither sets a transform/filter, so the card stays fixed to the viewport.
-    // A closed popover isn't rendered, so any [popover] match is an open one.
+    // it; follow the trigger inside instead. A closed popover isn't rendered, so any [popover] match is an open one.
+    // A host with a transform (the reason pop-up's grow-in) is the card's containing block; `place` allows for that.
     const host = trigger.closest('dialog[open], [popover]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
-    card.replaceChildren(util.sanitizeHtml(trigger.getAttribute('data-ps-tooltip')));
+    const html = trigger.getAttribute(HTML_ATTR);
+    if (html !== null) card.replaceChildren(util.sanitizeHtml(html));
+    else card.textContent = trigger.getAttribute(TEXT_ATTR);
     // An image still loading has no height yet, so the card measured below is short and, once the image lands,
     // grows down over its trigger; place it again at its final size.
     card.querySelectorAll('img').forEach((img) => {
@@ -147,22 +149,22 @@ import { util } from './utilities.js';
     // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do; so does a trigger
     // hiding itself (the minimap's Map key pill).
     if (textObserver === null) {
+      // Only ever watching the trigger of the card on screen: `hide` disconnects it, which drops anything pending.
       textObserver = new MutationObserver((records) => {
-        if (activeTrigger === null || !tooltip?.classList.contains('ps-tooltip--visible')) return;
         if (activeTrigger.checkVisibility?.() === false) {
           hide();
           return;
         }
-        if (!records.some((r) => r.attributeName === 'data-ps-tooltip')) return;
+        if (!records.some((r) => r.attributeName === TEXT_ATTR || r.attributeName === HTML_ATTR)) return;
         // Re-rendering replaces the card's children, so a pinned card being read from the keyboard would lose the
         // focused link out from under the reader. Keep the old content until they leave it.
         if (pinned && tooltip.contains(document.activeElement)) return;
-        if (activeTrigger.hasAttribute('data-ps-tooltip')) show(activeTrigger);
+        if (hasTip(activeTrigger)) show(activeTrigger);
         else hide();
       });
     }
     textObserver.disconnect();
-    const watched = ['data-ps-tooltip', 'class', 'hidden', 'style'];
+    const watched = [TEXT_ATTR, HTML_ATTR, 'class', 'hidden', 'style'];
     textObserver.observe(trigger, { attributes: true, attributeFilter: watched });
     if (removalObserver === null) {
       removalObserver = new MutationObserver(() => {
@@ -195,6 +197,10 @@ import { util } from './utilities.js';
     const tailInset = (TAIL_HALF_WIDTH_PX + CORNER_RADIUS_PX) * scale;
     const triggerRect = trigger.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect(); // Text is set, so this measures the final size while still hidden.
+    // Where left/top 0 actually lands: the viewport's corner, unless a transformed ancestor is the containing block,
+    // in which case every coordinate below has to be shifted into that ancestor's frame.
+    const originX = cardRect.left;
+    const originY = cardRect.top;
     const placement = trigger.getAttribute('data-ps-tooltip-placement');
     const side = placement === 'left' || placement === 'right'
       ? sideThatFits(placement, triggerRect, cardRect.width, gap)
@@ -212,8 +218,8 @@ import { util } from './utilities.js';
         ),
       );
       card.classList.add(`ps-tooltip--beside-${side}`);
-      card.style.left = `${left}px`;
-      card.style.top = `${top}px`;
+      card.style.left = `${left - originX}px`;
+      card.style.top = `${top - originY}px`;
       card.style.setProperty('--ps-tooltip-tail-top', `${Math.max(
         tailInset,
         Math.min(triggerRect.top + triggerRect.height / 2 - top, cardRect.height - tailInset),
@@ -246,8 +252,8 @@ import { util } from './utilities.js';
       );
       // A clamp moves the card off the trigger's edge, so its tail would point at empty space; drop the tail instead.
       if (clampedTop !== top) card.classList.add('ps-tooltip--untailed');
-      card.style.left = `${left}px`;
-      card.style.top = `${clampedTop}px`;
+      card.style.left = `${left - originX}px`;
+      card.style.top = `${clampedTop - originY}px`;
 
       // Aim the tail at the trigger's center, not the card's: the clamp above slides the card sideways near a
       // viewport edge, and a tail pinned to the card's middle would then point at empty space.
@@ -364,7 +370,7 @@ import { util } from './utilities.js';
       if (!immediate || withinPinned(target)) return;
       hide();
     }
-    const trigger = target instanceof Element ? target.closest('[data-ps-tooltip]') : null;
+    const trigger = target instanceof Element ? target.closest(TRIGGER_SELECTOR) : null;
     if (trigger === activeTrigger) {
       return; // Still on the same trigger (e.g. moving between its children); leave the tooltip as is.
     }
@@ -412,6 +418,12 @@ import { util } from './utilities.js';
     if (r.bottom < 0 || r.top > window.innerHeight) hide();
     else place(tooltip, activeTrigger);
   }, true);
+  document.addEventListener('ps-tooltip:show', (event) => {
+    if (!pinned && event.target instanceof Element && hasTip(event.target)) {
+      hide();
+      show(event.target);
+    }
+  });
   document.addEventListener('pointerdown', (event) => {
     if (pinned && !withinPinned(event.target)) hide();
   });

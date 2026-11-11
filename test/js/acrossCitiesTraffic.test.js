@@ -6,28 +6,13 @@
  * week-over-week chips read the traffic windows and color by direction, anomaly flags mark the row and feed the
  * "needs attention" panel with a baseline-relative reason, and every unavailability path — `available: false` or a
  * failed request — collapses the section to a note without disturbing the already-rendered page.
- *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
+import { useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
 
-// The page fetches through util.fetchJson.
-window.util = realUtil();
-
-
-/** The text psTooltip's card shows for an element: its attribute is rendered as HTML, so it's decoded once more. */
-function tooltipText(el) {
-  const card = document.createElement('div');
-  card.innerHTML = el.getAttribute('data-ps-tooltip');
-  return card.textContent;
-}
-
-/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
-function loadPage() {
-  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
-}
+useUtil(metricDistanceUtil);
 
 /** A minimal scorecard row; the traffic section only reads identity/lifecycle from it. */
 function makeCity(id) {
@@ -83,45 +68,14 @@ const MARKUP = `
   <div id="ac-traffic-status"></div>`;
 
 describe('Across Cities — traffic section', () => {
-  let AcrossCitiesPage;
-
-  /**
-   * Renders the page against fixtures and returns the initialized instance.
-   *
-   * @param {Array} cities - Scorecard rows from makeCity().
-   * @param {object|Error} traffic - The /adminapi/cityTraffic response body, or an Error to reject the request with.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
-   */
   async function render(cities, traffic) {
-    document.body.innerHTML = MARKUP;
-    global.fetch = jest.fn((url) => {
-      if (url === '/adminapi/cityScorecards') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            cities, summary: {}, over_time_all_time: [], over_time_daily: [], window_summary: null, window_by_city: {},
-          }),
-        });
-      }
-      if (url === '/adminapi/cityTraffic') {
-        if (traffic instanceof Error) return Promise.reject(traffic);
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(traffic) });
-      }
-      return Promise.reject(new Error(`unexpected fetch: ${url}`));
-    });
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards', trafficUrl: '/adminapi/cityTraffic' });
-    await page.init();
-    return page;
+    await renderAcrossCities({ markup: MARKUP, scorecards: { cities }, traffic });
   }
 
   /** City names in the traffic table, in display order. */
   function trafficCityOrder() {
     return [...document.querySelectorAll('#ac-traffic-tbody tr')].map((tr) => tr.cells[0].textContent.trim());
   }
-
-  beforeEach(() => {
-    AcrossCitiesPage = loadPage();
-  });
 
   it('rows only cities with traffic data, busiest sessions first', async () => {
     await render([makeCity('alpha'), makeCity('bravo'), makeCity('charlie')], {
@@ -162,6 +116,18 @@ describe('Across Cities — traffic section', () => {
     expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
   });
 
+  it('ranks a city with no value in the sorted column as zero', async () => {
+    await render([makeCity('alpha'), makeCity('bravo')], {
+      available: true,
+      traffic_by_city: {
+        alpha: makeTraffic({ sessions_7d: 500, mobile_share_28d: null }),
+        bravo: makeTraffic({ sessions_7d: 50, mobile_share_28d: 0.01 }),
+      },
+    });
+    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_28d"]').click();
+    expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
+  });
+
   it('flags an anomalous row and feeds the needs-attention panel with a baseline-relative reason', async () => {
     await render([makeCity('alpha')], {
       available: true,
@@ -185,35 +151,17 @@ describe('Across Cities — traffic section', () => {
   });
 
   it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
-    document.body.innerHTML = MARKUP;
     let releaseTraffic;
-    global.fetch = jest.fn((url) => {
-      if (url === '/adminapi/cityScorecards') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            cities: [makeCity('alpha')], summary: {}, over_time_all_time: [], over_time_daily: [],
-            window_summary: null, window_by_city: {},
-          }),
-        });
-      }
-      return new Promise((resolve) => { releaseTraffic = resolve; });
-    });
-    const page = new AcrossCitiesPage({
-      scorecardsUrl: '/adminapi/cityScorecards', trafficUrl: '/adminapi/cityTraffic',
-    });
-    const initing = page.init();
-    // init finishes the scorecards fetch and main render first, so wait for the request rather than count microtasks.
-    while (!releaseTraffic) await new Promise((resolve) => { setTimeout(resolve, 0); });
+    const traffic = new Promise((resolve) => { releaseTraffic = resolve; });
+    const rendering = render([makeCity('alpha')], traffic);
+    // init finishes the scorecards fetch and main render first, so wait for the traffic load to start.
+    await vi.waitFor(() => expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…'));
     document.querySelector('#ac-traffic-table th[data-sort="traffic.sessions_7d"]').click();
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…');
     expect(document.querySelectorAll('#ac-traffic-tbody tr')).toHaveLength(0);
 
-    releaseTraffic({
-      ok: true,
-      json: () => Promise.resolve({ available: true, traffic_by_city: { alpha: makeTraffic() } }),
-    });
-    await initing;
+    releaseTraffic({ available: true, traffic_by_city: { alpha: makeTraffic() } });
+    await rendering;
     expect(trafficCityOrder()).toEqual(['alpha']);
   });
 
@@ -227,8 +175,8 @@ describe('Across Cities — traffic section', () => {
     expect(cells[6].textContent.trim()).toBe('17,690');
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
-    expect(tooltipText(cells[5])).toContain('2021');
-    expect(tooltipText(cells[5])).toContain("earlier traffic isn't counted");
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain('2021');
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {
@@ -250,7 +198,7 @@ describe('Across Cities — traffic section', () => {
       available: true,
       traffic_by_city: { alpha: makeTraffic({ ga_since: null }) },
     });
-    expect(tooltipText(document.querySelector('#ac-traffic-tbody tr').cells[5]))
+    expect(document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('data-ps-tooltip'))
       .toBe("Covers this property's whole GA4 history.");
   });
 
@@ -265,6 +213,12 @@ describe('Across Cities — traffic section', () => {
     expect(status).toContain('1 could not be fetched this round.');
   });
 
+  it('shows an empty state when GA is configured but no city has a property yet', async () => {
+    await render([makeCity('alpha')], { available: true, traffic_by_city: {} });
+    expect(document.getElementById('ac-traffic-tbody').textContent).toBe('No traffic data to show.');
+    expect(document.getElementById('ac-traffic-status').textContent).toBe('');
+  });
+
   it('collapses to an unavailable note when the deployment has no GA configured', async () => {
     await render([makeCity('alpha')], { available: false });
     expect(document.getElementById('ac-traffic-wrap').style.display).toBe('none');
@@ -272,10 +226,52 @@ describe('Across Cities — traffic section', () => {
   });
 
   it('collapses the same way when the traffic request fails, leaving the page intact', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     await render([makeCity('alpha')], new Error('boom'));
     expect(document.getElementById('ac-traffic-wrap').style.display).toBe('none');
     expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');
     console.error.mockRestore();
+  });
+
+  describe('sparse traffic', () => {
+    it('copes with a row missing its counts and weekly series, an unknown flag, and an unreadable date', async () => {
+      await render([makeCity('alpha')], {
+        available: true, traffic_by_city: { alpha: { anomaly: 'odd_flag', ga_since: 'whenever' } },
+      });
+      const row = document.querySelector('#ac-traffic-tbody tr');
+      const chip = row.querySelector('.ac-chip');
+      expect(chip.textContent).toBe('odd_flag');
+      expect(chip.classList).toContain('ac-chip--info');
+      expect(row.cells[1].textContent).toBe('0');
+      expect(row.cells[1].querySelector('.ac-cell-delta')).toBeNull();
+      expect(row.cells[8].dataset.psTooltip).toBe('No weekly sessions to plot.');
+      expect(row.cells[5].dataset.psTooltip).toBe('Covers this property\'s whole GA4 history.');
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('alpha — 0 sessions in the last 7 days, down from a typical 0');
+    });
+
+    it('says a spike is up from the baseline', async () => {
+      await render([makeCity('alpha')], {
+        available: true,
+        traffic_by_city: { alpha: makeTraffic({ anomaly: 'traffic_spike', sessions_7d: 300, baseline_median: 99.6 }) },
+      });
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('alpha — 300 sessions in the last 7 days, up from a typical 100');
+    });
+
+    it('shows no rows when the payload has no per-city block', async () => {
+      await render([makeCity('alpha')], { available: true });
+      expect(document.getElementById('ac-traffic-tbody').textContent.trim()).toBe('No traffic data to show.');
+    });
+
+    it('still reports traffic as unavailable, or loads it, on a page without the table', async () => {
+      const markup = '<div id="ac-traffic-status"></div>';
+      await renderAcrossCities({ markup, scorecards: { cities: [makeCity('alpha')] }, traffic: { available: false } });
+      expect(document.getElementById('ac-traffic-status').textContent).toBe('Traffic data unavailable.');
+      await renderAcrossCities({ markup, scorecards: { cities: [makeCity('alpha')] },
+        traffic: { available: true, traffic_by_city: { alpha: makeTraffic() } } });
+      // Nothing to draw into, so the loading note stays.
+      expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…');
+    });
   });
 });

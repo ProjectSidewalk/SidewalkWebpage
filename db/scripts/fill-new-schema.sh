@@ -39,46 +39,46 @@ REGIONS_SHOWN=""
 REGIONS_HIDDEN=""
 
 if [[ -n "$REGIONS_SPEC" ]]; then
-    case $REGIONS_SPEC in
-        all)       INCLUDE_ALL_REGIONS="y" ;;
-        include:*) INCLUDE_ALL_REGIONS="n"; MODE="include"; REGIONS_SHOWN=${REGIONS_SPEC#include:} ;;
-        exclude:*) INCLUDE_ALL_REGIONS="n"; MODE="exclude"; REGIONS_HIDDEN=${REGIONS_SPEC#exclude:} ;;
-        *)
-            echo "Error: regions spec must be 'all', 'include:<space-separated ids>', or 'exclude:<ids>'" >&2
-            exit 1
-            ;;
-    esac
+  case $REGIONS_SPEC in
+    all)       INCLUDE_ALL_REGIONS="y" ;;
+    include:*) INCLUDE_ALL_REGIONS="n"; MODE="include"; REGIONS_SHOWN=${REGIONS_SPEC#include:} ;;
+    exclude:*) INCLUDE_ALL_REGIONS="n"; MODE="exclude"; REGIONS_HIDDEN=${REGIONS_SPEC#exclude:} ;;
+    *)
+      echo "Error: regions spec must be 'all', 'include:<space-separated ids>', or 'exclude:<ids>'" >&2
+      exit 1
+      ;;
+  esac
 else
-    INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
-    if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
-        MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
-        if [ "$MODE" = "include" ]; then
-            REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
-        else
-            REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
-        fi
+  INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
+  if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
+    MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
+    if [ "$MODE" = "include" ]; then
+      REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
+    else
+      REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
     fi
+  fi
 fi
 
 # Everything interpolated into SQL below is an integer or a space-separated list of them.
 if [[ ! "$TUTORIAL_REGION_ID" =~ ^[0-9]+$ ]]; then
-    echo "Error: the tutorial region id must be an integer (got '$TUTORIAL_REGION_ID')." >&2
-    exit 1
+  echo "Error: the tutorial region id must be an integer (got '$TUTORIAL_REGION_ID')." >&2
+  exit 1
 fi
 if [[ "$MODE" == "include" && ! "$REGIONS_SHOWN" =~ ^[0-9]+( [0-9]+)*$ ]] ||
-   [[ "$MODE" == "exclude" && ! "$REGIONS_HIDDEN" =~ ^[0-9]+( [0-9]+)*$ ]]; then
-    echo "Error: region ids must be a non-empty, space-separated list of integers (e.g. '1 2 3')." >&2
-    exit 1
+  [[ "$MODE" == "exclude" && ! "$REGIONS_HIDDEN" =~ ^[0-9]+( [0-9]+)*$ ]]; then
+  echo "Error: region ids must be a non-empty, space-separated list of integers (e.g. '1 2 3')." >&2
+  exit 1
 fi
 
 # The tutorial region must end up open (space-padded literal containment, not a regex).
 if [ "$MODE" = "include" ] && [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list" >&2
-    exit 1
+  echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list" >&2
+  exit 1
 fi
 if [ "$MODE" = "exclude" ] && [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
-    echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list" >&2
-    exit 1
+  echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list" >&2
+  exit 1
 fi
 
 # Print configs to the user.
@@ -86,37 +86,49 @@ echo -e "\nConfiguration Summary:"
 echo "schema name: $SCHEMA_NAME"
 echo "tutorial region id: $TUTORIAL_REGION_ID"
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
-    echo "regions to include: all"
+  echo "regions to include: all"
 elif [ "$MODE" = "include" ]; then
-    echo "regions to include: $REGIONS_SHOWN"
+  echo "regions to include: $REGIONS_SHOWN"
 else
-    echo "regions to exclude: $REGIONS_HIDDEN"
+  echo "regions to exclude: $REGIONS_HIDDEN"
 fi
 
 # Check for confirmation before making changes to the db — skipped when everything was supplied as args (a scripted
 # caller already chose).
 if [[ $# -lt 3 ]]; then
-    PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
-    if [ "$PROCEED" = "n" ]; then
-        exit 1
-    fi
+  PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
+  if [ "$PROCEED" = "n" ]; then
+    exit 1
+  fi
 fi
 
 # Create some pieces of the queries that change based on user input.
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
-    REGION_DELETED_Q="FALSE"
-    OPEN_STATUS_Q="fully"
+  REGION_DELETED_Q="FALSE"
+  OPEN_STATUS_Q="fully"
 elif [ "$MODE" = "include" ]; then
-    REGION_DELETED_Q="region_id NOT IN (${REGIONS_SHOWN// /,})"
-    OPEN_STATUS_Q="partially"
+  REGION_DELETED_Q="region_id NOT IN (${REGIONS_SHOWN// /,})"
+  OPEN_STATUS_Q="partially"
 else
-    REGION_DELETED_Q="region_id IN (${REGIONS_HIDDEN// /,})"
-    OPEN_STATUS_Q="partially"
+  REGION_DELETED_Q="region_id IN (${REGIONS_HIDDEN// /,})"
+  OPEN_STATUS_Q="partially"
 fi
 
 # Run the queries.
 # NOTE: this assumes qgis_road/qgis_region columns already have the expected types (e.g. integer ids). If a future
 # import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
+# The build's lineage table, or, for a staging load from before it existed, each street's way ids unpositioned.
+HAS_LINEAGE=$(psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" -At \
+  -c "SELECT to_regclass('qgis_road_osm_way') IS NOT NULL")
+if [[ "$HAS_LINEAGE" == t ]]; then
+  LINEAGE_SOURCE_Q="qgis_road_osm_way"
+else
+  LINEAGE_SOURCE_Q="(SELECT road_id, unnest(osm_ids) AS osm_way_id, NULL::double precision AS street_from_frac,
+                            NULL::double precision AS street_to_frac, NULL::double precision AS way_from_frac,
+                            NULL::double precision AS way_to_frac, NULL::boolean AS same_direction
+                     FROM qgis_road) lineage"
+fi
+
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     BEGIN;
     -- The schema arrives holding exactly one street: the shared DC tutorial street (so config's tutorial_street_edge_id
@@ -142,11 +154,13 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
-    -- Fill in the osm_way_street_edge table to link streets to their original OSM ways. The table holds one row per
-    -- street (UNIQUE street_edge_id), so a street that spans several ways -- osmnx joins consecutive ways between
-    -- intersections -- records the way it starts on; the full list stays in the QA GeoPackage's osm_ids column.
-    INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
-        SELECT osm_ids[1], road_id FROM qgis_road;
+    -- Link each street to every OSM way it lies on (#5741): one row per street-way pair from the build's
+    -- qgis_road_osm_way, positioned rows stamped as matched now; an older staging load gives way ids without positions.
+    INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id, street_from_frac, street_to_frac, way_from_frac,
+                                     way_to_frac, same_direction, matched_at)
+        SELECT osm_way_id, road_id, street_from_frac, street_to_frac, way_from_frac, way_to_frac, same_direction,
+               CASE WHEN street_from_frac IS NOT NULL THEN now() END
+        FROM $LINEAGE_SOURCE_Q;
 
     -- Fill in the region table using the qgis_region table. Names go in exactly as staged: fixing them needs judgment
     -- about the local language (#4619), so it happens during onboarding review, not here.
@@ -234,8 +248,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         END LOOP;
     END \$\$;
 
-    -- Remove the staging tables — qgis_road first, since onboard_city.py's staging SQL gives it a foreign key to
-    -- qgis_region.
+    -- Remove the staging tables, each before the one its foreign key points at.
+    DROP TABLE IF EXISTS qgis_road_osm_way;
     DROP TABLE qgis_road;
     DROP TABLE qgis_region;
 

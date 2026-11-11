@@ -22,8 +22,8 @@ CSV_FILENAME=${2:-$(prompt_with_default \
     "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/street_imagery_summary.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
-    echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
-    exit 1
+  echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2
+  exit 1
 fi
 
 # The summary has grown diagnostic columns over time (6 before #5460, 7 after it, 8 with the cross-track limit), and
@@ -31,14 +31,14 @@ fi
 # them; the header is checked against a plain column-name pattern first, since it is spliced into the SQL.
 HEADER_COLUMNS=$(head -1 "$CSV_FILENAME" | tr -d '\r')
 if [[ ! "$HEADER_COLUMNS" =~ ^[a-z_]+(,[a-z_]+)*$ ]]; then
-    echo "Error: unexpected header in $CSV_FILENAME: $HEADER_COLUMNS" >&2
-    exit 1
+  echo "Error: unexpected header in $CSV_FILENAME: $HEADER_COLUMNS" >&2
+  exit 1
 fi
 for required in street_edge_id has_imagery oldest_capture newest_capture n_panos; do
-    if [[ ",$HEADER_COLUMNS," != *",$required,"* ]]; then
-        echo "Error: $CSV_FILENAME has no $required column. Is it a street_imagery_summary.csv?" >&2
-        exit 1
-    fi
+  if [[ ",$HEADER_COLUMNS," != *",$required,"* ]]; then
+    echo "Error: $CSV_FILENAME has no $required column. Is it a street_imagery_summary.csv?" >&2
+    exit 1
+  fi
 done
 
 # Stage the CSV in a temp table (all text so empty date fields survive as ''), then upsert only the streets that have

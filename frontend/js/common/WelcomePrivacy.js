@@ -6,6 +6,7 @@
  * order, and a failed save puts the box back rather than leaving a setting on screen that wasn't written.
  */
 
+import i18next from 'i18next';
 import { saveUserSettings } from './saveUserSettings.js';
 
 export class WelcomePrivacy {
@@ -15,7 +16,6 @@ export class WelcomePrivacy {
     this.leaderboard = /** @type {HTMLInputElement} */ (document.getElementById('wl-on-leaderboard'));
     this.profile = /** @type {HTMLInputElement} */ (document.getElementById('wl-public-profile'));
     this.status = document.getElementById('wl-privacy-status');
-    if (!this.leaderboard || !this.profile) return;
 
     // Rendered disabled so that without JS they are visibly inert rather than silently dropping a privacy choice.
     this.#setEnabled(true);
@@ -23,7 +23,7 @@ export class WelcomePrivacy {
     const boxes = [[this.leaderboard, 'Leaderboard'], [this.profile, 'PublicProfile']];
     boxes.forEach(([box, name]) => {
       box.addEventListener('change', () => {
-        window.logWebpageActivity?.(`Click_module=WelcomePrivacy_setting=${name}_value=${box.checked}`);
+        window.logWebpageActivity(`Click_module=WelcomePrivacy_setting=${name}_value=${box.checked}`);
         this.#save(box);
       });
     });
@@ -62,7 +62,6 @@ export class WelcomePrivacy {
    * @param {?boolean} ok - true saved, false failed, null in progress.
    */
   #setStatus(text, ok) {
-    if (!this.status) return;
     this.status.textContent = text;
     this.status.classList.remove('saved', 'failed');
     if (ok === true) this.status.classList.add('saved');

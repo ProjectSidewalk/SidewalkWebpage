@@ -44,9 +44,6 @@ import { PanoViewer } from '../pano-viewer/PanoViewer.js';
  */
 export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));
-  if (!dialog) {
-    throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
-  }
   const panoEl = dialog.querySelector('.label-detail__pano');
 
   // The pano viewer is built on the first showLabel(), never here (#5128): Google bills every StreetViewPanorama
@@ -90,8 +87,8 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
-  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
-  // or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
+  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
+  // or Enter or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
@@ -113,10 +110,11 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
     });
   }
 
+  /** Enables each arrow only while the navigator has a label that way. */
   function updatePagingState() {
     if (!nearbyNav) return;
-    if (prevBtn) prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
-    if (nextBtn) nextBtn.disabled = !nearbyNav.hasNext(currentLabelId);
+    prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
+    nextBtn.disabled = !nearbyNav.hasNext(currentLabelId);
   }
 
   /**
@@ -127,7 +125,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
     // Clear the close-guard so this label's pano is allowed to reveal itself once it loads.
-    delete panoEl?.dataset.closedDuringLoad;
+    delete panoEl.dataset.closedDuringLoad;
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(labelId);
     currentLabelId = labelId;
     lastSource = source;
@@ -139,16 +137,15 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
     const meta = await innerShowLabel(labelId, source);
     updatePagingState();
     // Guard against a newer label having been opened while the fetch resolved.
-    if (typeof opts.onMetadata === 'function' && meta && currentLabelId === labelId) opts.onMetadata(labelId, meta);
+    if (typeof opts.onMetadata === 'function' && currentLabelId === labelId) opts.onMetadata(labelId, meta);
   }
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
   dialog.addEventListener('close', () => {
-    if (panoEl) {
-      // Clear setPano()'s inline visibility and flag the close, so a load still in flight can't reveal itself.
-      panoEl.style.visibility = '';
-      panoEl.dataset.closedDuringLoad = 'true';
-    }
+    labelDetail.saveOpenEdits();
+    // Clear setPano()'s inline visibility and flag the close, so a load still in flight can't reveal itself.
+    panoEl.style.visibility = '';
+    panoEl.dataset.closedDuringLoad = 'true';
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(null);
     if (typeof opts.onClose === 'function' && currentLabelId) opts.onClose(currentLabelId);
   });
@@ -168,6 +165,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
+   * Only a host that renders the arrows (`withPaging`) has anywhere to page, so only those call this.
    * @param {{next: (labelId: number) => ?number, prev: (labelId: number) => ?number,
    *     hasPrev: (labelId: number) => boolean, hasNext: (labelId: number) => boolean,
    *     onRefresh: (listener: () => void) => void}} nav - Navigator over the host's label set. Its onRefresh is what
@@ -179,7 +177,6 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
     // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.
     if (nav !== nearbyNav) nav.onRefresh(updatePagingState);
     nearbyNav = nav;
-    if (!prevBtn || !nextBtn) return;
     prevBtn.hidden = false;
     nextBtn.hidden = false;
     updatePagingState();

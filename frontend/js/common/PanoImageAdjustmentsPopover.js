@@ -13,23 +13,25 @@
  * nudge a slider instead of panning the pano — are injected as callbacks, which keeps the class mountable on any
  * page with a pano. A page whose shortcut handler can scope the panel itself needs no keyboard hooks at all.
  *
- * Usage (Explore suspends its shortcuts while the panel is open):
- *   new PanoImageAdjustmentsPopover(svl.imageAdjustments, button, popoverEl, {
- *     placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
- *     onOpen: () => svl.keyboard.disableKeyboard(),
- *     onClose: (via) => svl.keyboard.enableKeyboard(),
- *     onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+ * Usage (Explore holds its keyboard lock while the panel is open):
+ *   new PanoImageAdjustmentsPopover(imageAdjustments, button, popoverEl, {
+ *     placement: () => (immersiveMode.isActive() ? 'right' : 'below'),
+ *     onOpen: () => keyboardLock.hold('image-adjustments'),
+ *     onClose: (via) => keyboardLock.release('image-adjustments'),
+ *     onChange: (values) => tracker.push('ImageAdjustments_Change', values),
  *   });
  *
  * Usage (Validate's KeyboardManager treats the panel as its own scope, so only logging is injected):
- *   new PanoImageAdjustmentsPopover(svv.imageAdjustments, button, popoverEl, {
+ *   new PanoImageAdjustmentsPopover(imageAdjustments, button, popoverEl, {
  *     placement: 'below',
- *     onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+ *     onOpen: () => tracker.push('Click_ImageAdjustments_Open'),
  *   });
  */
 
+import i18next from 'i18next';
 import { PanoImageAdjustments } from './PanoImageAdjustments.js';
 import { util } from './utilities.js';
+import '../../css/components/pano-image-adjustments.css';
 
 export class PanoImageAdjustmentsPopover {
   /** Class on the trigger while any control is off its default, so a persisted setting isn't a mystery later. */
@@ -56,9 +58,9 @@ export class PanoImageAdjustmentsPopover {
   /**
    * Visually hidden text inside the trigger that says a filter is in force. The active dot is a pseudo-element, which
    * assistive tech never announces, so without this a screen reader user has no way to learn the imagery is altered.
-   * @type {HTMLSpanElement|null}
+   * @type {HTMLSpanElement}
    */
-  #activeText = null;
+  #activeText;
 
   /**
    * @type {{onOpen: Function, onClose: Function, onChange: Function, onReset: Function,
@@ -250,14 +252,12 @@ export class PanoImageAdjustmentsPopover {
     }
     if (this.#resetButton) this.#resetButton.disabled = atDefault;
     this.#button.classList.toggle(PanoImageAdjustmentsPopover.ACTIVE_CLASS, !atDefault);
-    if (this.#activeText) {
-      // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
-      // The leading space keeps the pill's accessible name from running "Image" and this text together.
-      if (!atDefault && typeof i18next !== 'undefined') {
-        this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
-      }
-      this.#activeText.hidden = atDefault;
+    // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
+    // The leading space keeps the pill's accessible name from running "Image" and this text together.
+    if (!atDefault) {
+      this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
     }
+    this.#activeText.hidden = atDefault;
   }
 
   /**

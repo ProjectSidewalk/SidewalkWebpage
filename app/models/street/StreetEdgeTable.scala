@@ -1,7 +1,7 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.api.{StreetDataForApi, StreetFiltersForApi}
+import models.api.{OsmWayLinkForApi, StreetDataForApi, StreetFiltersForApi}
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
@@ -51,6 +51,7 @@ case class StreetEdge(
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
+// CHECK in the DB: geom is at least 1 m long unless the street is disabled (#5691).
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id", O.PrimaryKey)
   def geom                          = column[LineString]("geom")
@@ -96,10 +97,11 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   val auditTasks        = TableQuery[AuditTaskTableDef]
   val streetsUnfiltered = TableQuery[StreetEdgeTableDef]
   val streetEdgeRegion  = TableQuery[StreetEdgeRegionTableDef]
-  val osmWayStreetEdge  = TableQuery[OsmWayStreetEdgeTableDef]
-  val regions           = TableQuery[RegionTableDef]
-  val userStats         = TableQuery[UserStatTableDef]
-  val configTable       = TableQuery[ConfigTableDef]
+  // The way the APIs name for a street is its primary one (#5741).
+  val osmWayStreetEdge = TableQuery[OsmWayStreetEdgePrimaryTableDef]
+  val regions          = TableQuery[RegionTableDef]
+  val userStats        = TableQuery[UserStatTableDef]
+  val configTable      = TableQuery[ConfigTableDef]
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
@@ -298,9 +300,10 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     val query: SQLActionBuilder = sql"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, osm_way.maxspeed AS max_speed,
-               r.region_id, reg.name as region_name
+               r.region_id, reg.name as region_name,
+               #${OsmWayLinkForApi.jsonListSql("s.street_edge_id")} AS osm_ways
         FROM street_edge s
-        JOIN osm_way_street_edge o ON s.street_edge_id = o.street_edge_id
+        JOIN osm_way_street_edge_primary o ON s.street_edge_id = o.street_edge_id
         LEFT JOIN osm_way ON o.osm_way_id = osm_way.osm_way_id
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
@@ -336,8 +339,8 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
-      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.max_speed, s.status,
-             COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
+      SELECT s.street_edge_id, s.osm_way_id, s.osm_ways, s.region_id, s.region_name, s.way_type, s.max_speed,
+             s.status, COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
              -- Audited before, but every audit predates newer imagery (needs re-audit, #4384); mirrors the
@@ -357,6 +360,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
         osmWayId = r.nextLong(),
+        osmWays = OsmWayLinkForApi.parseJsonList(r.nextString()),
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),

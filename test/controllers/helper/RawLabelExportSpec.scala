@@ -83,6 +83,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
     disagreeCount = 0,
     unsureCount = 0,
     validations = Seq.empty,
+    comments = Seq.empty,
     auditTaskId = Some(6),
     missionId = Some(3),
     imageCaptureDate = Some("2012-08"),
@@ -368,9 +369,9 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
         Array(Coordinate(-74.03, 40.88), Coordinate(-74.01, 40.90), Coordinate(-74.02, 40.885))
       )
       val street = StreetDataForApi(
-        streetEdgeId = 951, osmWayId = 11584845L, regionId = 1, regionName = "Teaneck", wayType = "residential",
-        maxSpeed = None, status = "open", userIds = Seq.empty, labelCount = 0, auditCount = 0, outdated = false,
-        geometry = bent
+        streetEdgeId = 951, osmWayId = 11584845L, osmWays = Seq.empty, regionId = 1, regionName = "Teaneck",
+        wayType = "residential", maxSpeed = None, status = "open", userIds = Seq.empty, labelCount = 0, auditCount = 0,
+        outdated = false, geometry = bent
       )
       inTempDir("streets") { base =>
         val gpkg =

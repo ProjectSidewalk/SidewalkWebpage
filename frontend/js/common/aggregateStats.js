@@ -5,6 +5,7 @@
  * documentation landing page with real-time data.
  */
 
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import './utilitiesMath.js';
 
@@ -166,8 +167,7 @@ function updateStatsDisplay(stats) {
   // the crawlable no-JS fallback; only the number's textContent is replaced so the translated copy around it is
   // untouched. Loading/error states deliberately leave the fallback numbers in place.
   document.querySelectorAll('[data-live-stat]').forEach((el) => {
-    const value = stats[el.dataset.liveStat];
-    if (typeof value === 'number') el.textContent = formatNumber(value);
+    el.textContent = formatNumber(stats[el.dataset.liveStat]);
   });
 
   // Update cities page intro paragraph.

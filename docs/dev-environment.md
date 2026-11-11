@@ -95,8 +95,8 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    edit it for the city you want to run:
    - **`SIDEWALK_CITY_ID`** — the city to run (e.g. `seattle-wa`); see the [City IDs table](#city-ids).
    - **`DATABASE_USER`** — that city's database user, replacing the default `sidewalk` (e.g. `sidewalk_seattle`).
-   - **`platform`** — leave it commented. Every host builds the web image for its own architecture as of
-     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069), so Apple Silicon is native
+   - **`platform`** — leave it commented. Every host builds the web and db images for their own architecture as of
+     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and [#5789](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5789), so Apple Silicon is native
      without it. Uncomment it *only* if a native build fails, to force an emulated `linux/amd64` build.
 
 2. **Stage the database dumps.** Put the dump files from your maintainer in the **`db/`** directory and rename them
@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs the asset build (`npm run build`: Rolldown for the JS, Grunt for the CSS bundles), keeps a
+   `npm start` runs the asset build (`npm run build`: Vite, for every page's JS and CSS bundle), keeps a
    watcher (`npm run watch`) rebuilding it on save, then runs `sbt ~ run` for continuous recompile. The first compile
    takes 5+ minutes; later ones are seconds. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -224,6 +224,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
 | bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
+| juneau-ak | sidewalk_juneau_ak | | beringen-be | sidewalk_beringen_be |
 
 ---
 
@@ -259,16 +260,19 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
-  bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
-  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
-  something imports it; a new page needs an entry file in `frontend/js/pages/`.
+- **JavaScript / CSS** — the `npm run watch` behind `npm start` rebuilds `public/build/` on every save: Vite
+  bundles each page's entry in `frontend/js/pages/` and what it imports, stylesheets included (`frontend/css/`).
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file or stylesheet is picked up as
+  soon as something imports it; a new page needs an entry file in `frontend/js/pages/`, which the watcher notices and
+  restarts for. The watcher builds in Vite's development mode: the CSS stays unminified for DevTools (Vite writes no
+  CSS source map), and the previous build stays in place while the next is written, so a reload mid-rebuild still
+  renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
-- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
-  is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
-  offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
-  [`tools/README.md`](../tools/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container's `python3` is 3.12, the same minor
+  as the `python3.12` the app shells out to on prod for in-band clustering, and it holds every script's libraries. Run
+  scripts as `python3 tools/...`. Details in [`tools/README.md`](../tools/README.md); upgrade notes in
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -309,9 +313,9 @@ make compile
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Werror`, so a `[success]` is also warning-clean.
 
-Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
-so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
-directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
+`sbt --client` uses the native thin client (`sbtn`), which the container's glibc is new enough for (#5268). A server
+belongs to one project directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the
+running `~ run` included.
 An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
 
 That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
@@ -329,6 +333,9 @@ make test-scala
 make test-scala only=controllers.api.PublicApiSpec
 ```
 
+The specs render views, whose stylesheet tags come from the asset build's manifest, so the tree needs a build
+(`npm run build`; `npm start` and `make qa-worktree` both do one). Without one the target stops and says so.
+
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
 `earlyoom` comes to kill one mid-run. A second `make test-scala` says who it's waiting on, then starts when they finish.
@@ -341,8 +348,8 @@ cancel in both directions: most want rows your schema may not have, while `Night
 CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line there means the seed stopped covering
 something.
 
-There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
-frontend modules (`make test-js` — Jest's `node_modules` are in the container, not on your host).
+There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Vitest suite for
+frontend modules (`make test-js` — Vitest's `node_modules` are in the container, not on your host).
 [`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
@@ -464,6 +471,10 @@ curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
 curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
+A page that needs a registered account or an admin (the admin pages, role checks) needs a real sign-up instead. Make
+one through `/signUp`, then raise its role on the dev DB; `.claude/skills/create-registered-user-account/SKILL.md`
+has the commands. Test accounts on the local dev DB are always fine to make.
+
 ### Inspecting the database
 
 Each city lives in its own schema (`sidewalk_<city>`); authentication lives in `sidewalk_login`. For ad-hoc
@@ -520,14 +531,15 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
-| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
+| Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
 | A new JS file isn't in the bundle | Nothing imports it yet: import it from the page's entry in `frontend/js/pages/` or from a file that entry reaches. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
+| `docker compose build db` fails with `no match for platform in manifest` | Your checkout predates [#5789](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5789), when the db image was built on `postgis/postgis`, which is published for amd64 only. Pull `develop` and rebuild: `docker compose build db`. If you worked around it with `platform: linux/amd64`, remove that and check `docker image inspect projectsidewalk/db:18 --format '{{.Architecture}}'` says `arm64`; Compose reuses an existing image rather than rebuilding it. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |
 
 ### Recovering a schema stranded below evolution 372
@@ -573,7 +585,7 @@ only over the *name*: Postgres won't hold a table and an enum called `role` in o
 
 Schemas already past 372 are never touched, and need no down-migration.
 
-Two other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
+Three other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
 
 - **`column "infra3d_access" does not exist`** — 313 reads it and 316 drops it. A schema below 303 self-heals,
   since 303 re-adds the column with `IF NOT EXISTS`; one in the 303–312 window needs it restored (exactly as 316's
@@ -581,6 +593,8 @@ Two other evolutions can strand a schema the same way, because they read shared 
 - **`function replace(jsonb, unknown, unknown) does not exist`** — 276 converts `config.excluded_tags` from text to
   jsonb. A dump whose `play_evolutions` predates 276 but whose `config` was already converted can't replay it;
   restore the column to the pre-276 text value from that schema's own dump.
+- **`column "community_service" does not exist`**: 385 reads it from `user_role` and 418 drops it. Use a newer
+  dump.
 
 Both are symptoms of the same underlying problem: a committed dump whose contents disagree with the
 `play_evolutions` it ships with. If an evolution fails on a table or column that should exist at that level, check

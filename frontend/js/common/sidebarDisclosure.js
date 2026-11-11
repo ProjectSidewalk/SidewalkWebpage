@@ -1,6 +1,6 @@
 /**
  * Narrow-viewport sidebar disclosure, shared by the `.page-*` shell (components/page-shell.css: API docs, admin
- * dashboard, user dashboard, labeling guide) and the Gallery's filter column.
+ * dashboard, user dashboard, labeling guide) and Gallery's filter column.
  *
  * Under their breakpoints these sidebars stop being columns and become an in-flow strip between the navbar and the
  * content, with their contents collapsed. The button that reopens them belongs *inside* that strip, so what it
@@ -8,7 +8,7 @@
  *
  * The two surfaces differ in where the button comes from: the shells have no server-side hook, so
  * `buildSidebarDisclosure` creates one labelled with the active nav item (the strip then also answers "which page am
- * I on?"); the Gallery renders its own in Twirl so the label goes through Play's i18n. Both share
+ * I on?"); Gallery renders its own in Twirl so the label goes through Play's i18n. Both share
  * `wireSidebarDisclosure` for the part that has to behave identically.
  */
 
@@ -49,11 +49,12 @@ export function wireSidebarDisclosure(toggle, root, options = {}) {
  * @returns {HTMLButtonElement} The wired-up button, not yet inserted into the document.
  */
 function buildSidebarDisclosure(sidebar) {
-  // The active item names the current page; the first group header is the fallback on a page with no active item. An
-  // item that also carries a description or badge marks its name with .page-nav-label, so the toggle reads just that.
+  // The active item names the current page; the first group header, which every shell sidebar opens with, is the
+  // fallback on a page with no active item. An item that also carries a description or badge marks its name with
+  // .page-nav-label, so the toggle reads just that.
   const active = sidebar.querySelector('.page-nav-item.is-active');
   const heading = sidebar.querySelector('.page-nav-header');
-  const label = (active?.querySelector('.page-nav-label') || active || heading)?.textContent.trim() || 'Menu';
+  const label = (active?.querySelector('.page-nav-label') || active || heading).textContent.trim();
 
   const toggle = document.createElement('button');
   toggle.type = 'button';

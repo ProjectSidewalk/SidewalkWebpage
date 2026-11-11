@@ -1,4 +1,3 @@
-@import models.pano.PanoSource
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
@@ -10,7 +9,7 @@
 @* An "i" button whose tooltip carries an explanation the panel has no room to print. psTooltip.js is loaded
    site-wide and shows it on hover and on focus; the same string is the button's accessible name, so a screen
    reader hears the explanation itself rather than a bare "more information". *@
-@info(key: String) = {<button type="button" class="acs-info" data-i18n-tooltip="accessscore:@key" data-i18n-aria-label="accessscore:@key" aria-label="More information"><span aria-hidden="true">i</span></button>}
+@info(key: String) = {<button type="button" class="acs-info info-button" data-i18n-tooltip="accessscore:@key" data-i18n-aria-label="accessscore:@key" aria-label="More information"><span aria-hidden="true">i</span></button>}
 
 @* A sidebar section: heading row plus content, with an optional info button beside the heading. Mirrors the
    shared filter sidebar's section markup so the two panels read the same, while the controls are this tool's own. *@
@@ -59,26 +58,7 @@
           </div>
         }
 
-        @* The sliders start folded away so the panel reads as map controls first; the heading is the disclosure
-           (the accordion pattern, with the LabelMap drawers' chevron), and the hint beside it says "Custom" while the
-           weights in force are not the engine's own, since that is what a folded section would otherwise hide. *@
-        <section class="filter-sidebar__section acs-section" id="acs-weights-section" aria-labelledby="acs-weights-section-heading">
-          <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-weights-section-heading">
-              <button type="button" id="acs-weights-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-weights">
-                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
-                <span data-i18n="accessscore:adjust">Adjust the weights</span>
-                <span class="acs-disclosure__hint" id="acs-weights-summary"></span>
-              </button>
-            </h3>
-            <button type="button" id="acs-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:reset" hidden>Reset weights</button>
-            @info("weights-help")
-          </div>
-          <div id="acs-weights" class="acs-weights" hidden></div>
-          @* The map repaints instantly and without motion, so this is the only sign a reader gets that the slider
-             drove a recomputation (#5223). *@
-          <p class="acs-flash" id="acs-weights-flash" aria-live="polite"></p>
-        </section>
+        @common.accessScoreWeights(3, "acs-section")(info("weights-help"))
 
         @* How street slope enters the score (#5223). Hidden until AccessScoreSlopePanel.js finds both the engine's
            slope settings and a sampled city in the config; folded like the weights, so the panel reads as map
@@ -86,22 +66,25 @@
            config. *@
         <section class="filter-sidebar__section acs-section" id="acs-slope-section" aria-labelledby="acs-slope-section-heading" hidden>
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-slope-section-heading">
-              <button type="button" id="acs-slope-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-slope">
-                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+            <h3 class="filter-sidebar__heading ps-disclosure__heading" id="acs-slope-section-heading">
+              <button type="button" id="acs-slope-toggle" class="ps-disclosure" aria-expanded="false" aria-controls="acs-slope">
+                <img class="ps-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 <span data-i18n="accessscore:slope-section">Street grade</span>
-                <span class="acs-disclosure__hint" id="acs-slope-summary"></span>
+                <span class="ps-disclosure__hint" id="acs-slope-summary"></span>
               </button>
             </h3>
-            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset grade</button>
+            <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all ps-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset grade</button>
             @info("slope-help")
           </div>
           <div id="acs-slope" class="acs-slope" hidden>
-            <div class="acs-weight" id="acs-slope-weight-row">
-              <div class="acs-weight__head">
-                <label class="acs-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
-                <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
-                <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
+            @* Filled in by AccessScoreSlopePanel.js in a city whose grades come from a coarse model: why the slider
+               below moves nothing until approximate grades are included. Empty, and so not shown, elsewhere. *@
+            <p class="acs-field__note" id="acs-slope-coarse-note"></p>
+            <div class="ps-weight" id="acs-slope-weight-row">
+              <div class="ps-weight__head">
+                <label class="ps-weight__label" for="acs-slope-weight" data-i18n="accessscore:slope-weight">Grade weight</label>
+                <span class="ps-weight__role ps-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
+                <output class="ps-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
               </div>
               <input type="range" class="ps-range" id="acs-slope-weight" min="0" step="0.05" aria-describedby="acs-slope-impact">
               @* What a barely-moving map cannot say: a weight of 0 and a threshold no street passes look alike on it. *@
@@ -137,13 +120,13 @@
             </div>
             <div class="acs-check-row">
               <label class="acs-check" for="acs-slope-approximate">
-                <input type="checkbox" id="acs-slope-approximate">
+                <input type="checkbox" id="acs-slope-approximate" aria-describedby="acs-slope-coarse-note">
                 <span data-i18n="accessscore:slope-approximate-include">Include approximate grades</span>
               </label>
               @info("slope-approximate-include-help")
             </div>
           </div>
-          <p class="acs-flash" id="acs-slope-flash" aria-live="polite"></p>
+          <p class="ps-flash" id="acs-slope-flash" aria-live="polite"></p>
         </section>
 
         @* Category rows are rendered by AccessScoreSidebar.js from the backend's catalog; the icons are the legend.
@@ -152,14 +135,14 @@
            sidebar's: "Select all" until every row is on, then "Deselect all". *@
         <section class="filter-sidebar__section acs-section" id="acs-places-section" aria-labelledby="acs-places-section-heading">
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading acs-disclosure__heading" id="acs-places-section-heading">
-              <button type="button" id="acs-places-toggle" class="acs-disclosure" aria-expanded="false" aria-controls="acs-place-categories">
-                <img class="acs-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+            <h3 class="filter-sidebar__heading ps-disclosure__heading" id="acs-places-section-heading">
+              <button type="button" id="acs-places-toggle" class="ps-disclosure" aria-expanded="false" aria-controls="acs-place-categories">
+                <img class="ps-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 <span data-i18n="accessscore:places">Places</span>
-                <span class="acs-disclosure__hint" id="acs-places-summary"></span>
+                <span class="ps-disclosure__hint" id="acs-places-summary"></span>
               </button>
             </h3>
-            <button type="button" id="acs-places-toggle-all" class="filter-sidebar__deselect-all acs-heading-action" data-i18n="labelmap:select-all">Select all</button>
+            <button type="button" id="acs-places-toggle-all" class="filter-sidebar__deselect-all ps-heading-action" data-i18n="labelmap:select-all">Select all</button>
             @info("places-help")
           </div>
           <div id="acs-place-categories" class="acs-place-categories" hidden></div>
@@ -278,6 +261,22 @@
         </div>
       </aside>
 
+      @* The street panel (#5748): what a click on a street, or on a place, opens. A sibling of the dock, after it,
+         so the stylesheet can end the dock at the panel's edge. AccessScoreStreetPanel.js fills the body. *@
+      <aside id="acs-panel" class="acs-panel" aria-labelledby="acs-panel-title" data-docs-url="@routes.ApiDocsController.accessScoreStreets#scoring-model" hidden>
+        <div class="acs-panel__head">
+          <div class="acs-panel__titles">
+            <h2 class="acs-panel__title" id="acs-panel-title" tabindex="-1"></h2>
+            <p class="acs-panel__meta" id="acs-panel-meta"></p>
+          </div>
+          <div class="acs-panel__actions" id="acs-panel-actions"></div>
+          <button type="button" id="acs-panel-close" class="acs-panel__close" aria-label="Close" data-i18n-aria-label="common:close">
+            <img src="@assets.path("images/icons/cross.svg")" alt="">
+          </button>
+        </div>
+        <div class="acs-panel__body" id="acs-panel-body"></div>
+      </aside>
+
       @common.mapLoadingOverlay()
     </div>
   </div>
@@ -286,34 +285,7 @@
   @* Paging steps through the labels of the cluster a card was opened from. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-mini-card.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/toast.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/elevation-profile.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/access-score.css")' rel="stylesheet">
-
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.6.0.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-    <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-    <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  @ViteAssets.stylesheets("accessScore")
 
   <script type="module" id="page-entry" src='@assets.path("build/js/accessScore.js")'
           data-mapbox-api-key="@commonData.mapboxApiKey"

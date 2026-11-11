@@ -14,6 +14,7 @@
  *   namespace (the chart's strings)
  */
 
+import i18next from 'i18next';
 import { AccessScoreElevationProfile } from '../common/AccessScoreElevationProfile.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
 import { featureCollectionBounds } from '../common/geoBounds.js';
@@ -33,9 +34,7 @@ import { ApiDocsTheme } from './apiDocsTheme.js';
  * @property {?number} mean_grade - Its mean grade; null where it has none.
  * @property {?string} grade_quality - How its profile was obtained; null where it has not been sampled.
  *
- * @typedef {object} StreetGradeFeature
- * @property {{coordinates: Array<Array<number>>}} geometry - The street's LineString.
- * @property {StreetGradeProperties} properties - Its fields.
+ * @typedef {GeoJSON.Feature<GeoJSON.LineString, StreetGradeProperties>} StreetGradeFeature
  */
 
 const STREET_SOURCE = 'street-grade-streets';

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { util } from './utilities.js';
 
 /**
@@ -8,10 +9,10 @@ import { util } from './utilities.js';
  * @param {boolean} [options.tooltip] - Attach the tooltip; off where the surroundings already say it (#5359).
  * @returns {HTMLElement} Configured AI indicator element.
  */
-export function aiLabelIndicator(extraClasses = [], { tooltip = true } = {}) {
+export function aiLabelIndicator(extraClasses, { tooltip = true } = {}) {
   const icon = document.createElement('img');
   icon.src = util.assetPath('images/icons/ai-icon-black-filled-white-circle.png');
-  icon.alt = 'AI indicator';
+  icon.alt = i18next.t('common:ai-generated-label');
   icon.classList.add('ai-icon-marker');
   extraClasses.forEach((cls) => icon.classList.add(cls));
   if (tooltip) icon.setAttribute('data-ps-tooltip', i18next.t('common:ai-generated-label-tooltip'));

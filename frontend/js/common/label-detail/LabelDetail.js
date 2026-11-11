@@ -11,8 +11,10 @@
  * container at init.
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from '../BadgeAchievements.js';
 import { ConfirmDialog } from '../ConfirmDialog.js';
+import { KeyboardShortcuts } from '../KeyboardShortcuts.js';
 import { LabelTypeDropdown } from '../LabelTypePicker.js';
 import { LabelVisibilityToggle } from '../LabelVisibilityToggle.js';
 import { Toast } from '../Toast.js';
@@ -20,12 +22,17 @@ import { PopupPanoManager } from './PopupPanoManager.js';
 import { StorySection } from './StorySection.js';
 import { TagEditor } from './TagEditor.js';
 import { PanoInfoPopover } from '../pano-viewer/PanoInfoPopover.js';
+import { ReasonChips } from '../ReasonChips.js';
+import { reasonPopover } from '../ReasonPopover.js';
+import { validationReasons } from '../validationReasons.js';
 import { ShareWidget } from '../share/ShareWidget.js';
 import { camelToKebab, util } from '../utilities.js';
 import { buildBackupImageData } from '../utilitiesSidewalk.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../urlQuery.js';
 import '../pano-viewer/panoUtilities.js';
+import { newTabNote } from '../newTabNote.js';
+import '../../../css/components/label-detail.css';
 
 export class LabelDetail {
   /**
@@ -120,8 +127,8 @@ export class LabelDetail {
   #canRestore = false;      // Set per-label in #handleData() from meta.can_restore (#3591).
   #deletedHere = false;     // A delete made from this card, until another label shows: what Ctrl+Z undoes.
   #tagEditor;
-  /** @type {?LabelTypeDropdown} Null on a host whose page doesn't load the picker. */
-  #typeDropdown = null;
+  /** @type {LabelTypeDropdown} */
+  #typeDropdown;
   /** @type {number[]} The hold and fade timers for the edit-status line; both are cleared when it is re-shown. */
   #editStatusTimers = [];
 
@@ -134,6 +141,8 @@ export class LabelDetail {
    */
   static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+  /** How long a vote refresh may take; edits queued behind it wait this long at most. */
+  static #REFRESH_TIMEOUT_MS = 10000;
   // A type change's status carries the Undo, which needs time to be read and hit.
   static #EDIT_STATUS_HOLD_UNDO_MS = 8000;
 
@@ -153,13 +162,31 @@ export class LabelDetail {
   #prevAction = null;
   #taskId = null;
   #aiValidation;
-  #comments;
+  #comments = [];
   #myCommentIdx;
   #commentStatusTimer = null;
   #editingComment = false;
+  // Keeps the comment section up after the reader deletes theirs, so the "deleted" note and focus have a place to land.
+  #deletedComment = false;
+  // Words a refused pop-up save handed to the box, holding it open over a vote the pop-up would otherwise ask about.
+  #holdingWords = false;
+  // Set when held words reached the box while the pano was loading and it was disabled; focus follows once it isn't.
+  #focusCommentOnLoad = false;
+  // Set while a vote's reason pop-up is up: the comment box holds its state so the card never reflows under it.
+  #awaitingReason = false;
+  #quietClose = false;
   // Bumped by each comment save or delete, so a refresh fetched before one doesn't overwrite it.
   #commentWrites = 0;
   #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
+  // A vote POST, and a reason pick, in flight for the label on screen. Either locks both the vote controls and the
+  // reason pop-up: a reason explains the vote on record, so neither may move while the other is being written (#5475).
+  #votePending = false;
+  #pickPending = false;
+  /** @type {?HTMLElement} The control that cast the vote in flight, where its reason pop-up will hang (#5475). */
+  #voteAnchor = null;
+  /** @type {?HTMLElement} Set by a keyboard shortcut ahead of the click it dispatches, since that click lands on the
+   * overlay button, which is invisible without hover; the thumb is the anchor a shortcut vote gets. */
+  #shortcutAnchor = null;
   #shareWidget;
   #storySection;
   #highlightStoryId;
@@ -191,7 +218,7 @@ export class LabelDetail {
    * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
    *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
    * @param {() => boolean} [opts.isOpen] - Whether the card is on screen right now, which the keyboard shortcuts
-   *     (#5194) will not fire without. Only inline hosts that show and hide their panel need it (the Gallery's
+   *     (#5194) will not fire without. Only inline hosts that show and hide their panel need it (Gallery's
    *     expanded view): a <dialog> host answers for itself, and a host that never hides the card (the share page,
    *     where the card *is* the page) has nothing to answer.
    */
@@ -245,13 +272,11 @@ export class LabelDetail {
   async #init() {
     this.#cacheElements();
     this.#tagEditor = new TagEditor(this.#els.tags);
-    if (this.#els.typePopover) {
-      this.#typeDropdown = new LabelTypeDropdown(this.#els.title, this.#els.typePopover, {
-        onOpen: () => this.#prepareTypePicker(),
-        onPick: (labelType) => this.#submitEdit({ labelType, severity: this.#severityAfterTypeChange(labelType) }),
-        hint: i18next.t('common:label-type-picker.change-type-hint'),
-      });
-    }
+    this.#typeDropdown = new LabelTypeDropdown(this.#els.title, this.#els.typePopover, {
+      onOpen: () => this.#prepareTypePicker(),
+      onPick: (labelType) => this.#submitEdit({ labelType, severity: this.#severityAfterTypeChange(labelType) }),
+      hint: i18next.t('common:label-type-picker.change-type-hint'),
+    });
     this.#wireHandlers();
     this.#wireKeyboard();
 
@@ -274,7 +299,7 @@ export class LabelDetail {
 
     // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
     // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
-    if (this.#els.metaRow && typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== 'undefined') {
       this.#metaRowObserver = new ResizeObserver(() => this.#fitMetaRow());
       this.#metaRowObserver.observe(this.#els.metaRow);
     }
@@ -287,10 +312,8 @@ export class LabelDetail {
    * Wires the pano's Hide-label toggle (#2477). Built after the pano manager, which is what its changes act on.
    */
   #initHideLabelToggle() {
-    const button = this.#els.hideLabelButton;
-    if (!button) return;
     new LabelVisibilityToggle({
-      buttons: [button],
+      buttons: [this.#els.hideLabelButton],
       text: {
         hide: i18next.t('common:hide-label'),
         show: i18next.t('common:show-label'),
@@ -309,10 +332,7 @@ export class LabelDetail {
    * label in each #handleData() call via this.#shareWidget.setTarget().
    */
   #initShareWidget() {
-    const trigger = this.#q('.label-detail__share-trigger');
-    if (trigger) {
-      this.#shareWidget = new ShareWidget(/** @type {HTMLButtonElement} */ (trigger));
-    }
+    this.#shareWidget = new ShareWidget(/** @type {HTMLButtonElement} */ (this.#q('.label-detail__share-trigger')));
   }
 
   /**
@@ -321,13 +341,10 @@ export class LabelDetail {
    * is a first-class use case, the inverse of the own-label validation lock.
    */
   #initStorySection() {
-    const section = this.#q('.label-detail__stories');
-    if (section) {
-      this.#storySection = new StorySection(this.#root, {
-        currUsername: this.#currUsername,
-        highlightStoryId: this.#highlightStoryId,
-      });
-    }
+    this.#storySection = new StorySection(this.#root, {
+      currUsername: this.#currUsername,
+      highlightStoryId: this.#highlightStoryId,
+    });
   }
 
   /**
@@ -336,7 +353,6 @@ export class LabelDetail {
    */
   #initInfoPopover() {
     const host = this.#q('.label-detail__info-button-host');
-    if (!host) return;
 
     // Resolve panoManager.panoViewer per use rather than capturing it: it swaps between the primary viewer and
     // Pannellum as labels are opened, and a captured viewer keeps describing the previously shown pano (#4813).
@@ -359,7 +375,10 @@ export class LabelDetail {
       () => this.#logAction('PanoInfoButton'),
       () => this.#logAction('PanoInfoCopyToClipboard'),
       () => this.#logAction('PanoInfoViewInPano'),
-      () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
+      {
+        id: () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
+        linkLogging: (labelId) => this.#logAction('PanoInfoLabelLink', false, labelId),
+      },
     );
 
     // The popover's own trigger is the (i) icon it appends into the host span; forward clicks on the rest of the
@@ -367,15 +386,13 @@ export class LabelDetail {
     // light-dismiss from seeing the original event and instantly re-closing the popover it just opened.
     const chip = this.#q('.label-detail__meta-cell--details');
     const infoImg = host.querySelector('img');
-    if (chip && infoImg) {
-      infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
-      chip.addEventListener('click', (e) => {
-        if (e.target !== infoImg) {
-          e.stopPropagation();
-          infoImg.click();
-        }
-      });
-    }
+    infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
+    chip.addEventListener('click', (e) => {
+      if (e.target !== infoImg) {
+        e.stopPropagation();
+        infoImg.click();
+      }
+    });
   }
 
   /**
@@ -428,7 +445,6 @@ export class LabelDetail {
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
-    els.panHint = this.#q('.label-detail__pan-hint');
     els.hideLabelButton = this.#q('.label-detail__hide-label');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.exploreHereLink = this.#q('.label-detail__explore-link');
@@ -466,12 +482,9 @@ export class LabelDetail {
       Disagree: voteEl('disagree', '.label-detail__vote-count'),
       Unsure:   voteEl('unsure', '.label-detail__vote-count'),
     };
-    // Icon + count rows, which #flashVoteEcho mounts its ghost icon into.
-    els.voteTops = {
-      Agree:    voteEl('agree', '.label-detail__vote-top'),
-      Disagree: voteEl('disagree', '.label-detail__vote-top'),
-      Unsure:   voteEl('unsure', '.label-detail__vote-top'),
-    };
+    // Each vote's icon and count together, the shape util.misc.animateVoteChange takes.
+    els.voteTallies = Object.fromEntries(Object.keys(els.voteIcons).map((action) => (
+      [action, { icon: els.voteIcons[action], count: els.voteCounts[action] }])));
     // Hover-reveal overlay buttons on the pano. Both these and the column buttons fire a vote.
     els.panoOverlayButtons = {
       Agree:    this.#root.querySelector('.label-detail__pano-overlay-button--agree'),
@@ -498,16 +511,12 @@ export class LabelDetail {
    */
   #wireHandlers() {
     const els = this.#els;
-    // Cross-surface hop into the LabelMap (only rendered on hosts that aren't the LabelMap itself).
-    if (els.labelMapLink) {
-      els.labelMapLink.addEventListener('click', () => this.#logAction('ViewOnLabelMap'));
-    }
-    if (els.exploreHereLink) {
-      els.exploreHereLink.addEventListener('click', () => this.#logAction('ExploreHere'));
-    }
-    if (els.deleteButton) els.deleteButton.addEventListener('click', () => this.#deleteLabel());
+    // Cross-surface hop into the LabelMap (only shown on hosts that aren't the LabelMap itself).
+    els.labelMapLink.addEventListener('click', () => this.#logAction('ViewOnLabelMap'));
+    els.exploreHereLink.addEventListener('click', () => this.#logAction('ExploreHere'));
+    els.deleteButton.addEventListener('click', () => this.#deleteLabel());
     // `detail` 0 is the keyboard (Ctrl+Z, or Enter/Space on the button), logged apart from a click.
-    if (els.restoreButton) els.restoreButton.addEventListener('click', (e) => this.#restoreLabel(e.detail === 0));
+    els.restoreButton.addEventListener('click', (e) => this.#restoreLabel(e.detail === 0));
     // The three vote controls are toggles: clicking the one you already picked clears your vote (#4653). There's no
     // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
@@ -515,12 +524,18 @@ export class LabelDetail {
     // focused button — which only the ClearVote event needs, since casting a vote is recorded by its own row.
     const voteHandler = (action, buttonSource) => (e) => {
       if (this.#interactionBlocked) return;
+      // The reason pop-up hangs off the control that cast the vote (#5475); a shortcut names the thumb instead.
+      this.#voteAnchor = this.#shortcutAnchor ?? e.currentTarget;
+      this.#shortcutAnchor = null;
       this.#setVoteButtonsDisabled(true);
       this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action, e.detail === 0);
     };
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
       els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
+      // Tells the open pop-up that a press here is a re-vote for it to follow, not a click outside to dismiss on.
+      els.panoOverlayButtons[action].dataset.reasonAnchor = '';
+      els.voteButtons[action].dataset.reasonAnchor = '';
       els.panoOverlayButtons[action].addEventListener('mouseleave', (e) => {
         e.currentTarget.classList.remove('is-just-voted');
       });
@@ -546,17 +561,20 @@ export class LabelDetail {
         this.#submitEdit({ severity: Number(face.dataset.severity) });
       });
     });
-    if (els.tagsEdit) {
-      els.tagsEdit.addEventListener('click', () => {
-        if (!this.#editingEnabled) return;
-        if (this.#tagEditor.isOpen) this.#finishTagEditing();
-        else this.#startTagEditing();
-      });
-    }
+    els.tagsEdit.addEventListener('click', () => {
+      if (!this.#editingEnabled) return;
+      if (this.#tagEditor.isOpen) this.#finishTagEditing();
+      else this.#startTagEditing();
+    });
     els.commentInput.addEventListener('input', () => {
       els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     });
     els.commentInput.addEventListener('keydown', (e) => {
+      // Safari reports the Enter that confirms an IME composition with isComposing false but keyCode 229, the
+      // "composing" sentinel; neither `code` nor `key` carries it, so this is the one place the deprecated field is
+      // the only signal.
+      // eslint-disable-next-line no-restricted-properties
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         if (this.#interactionBlocked) return;
@@ -590,11 +608,10 @@ export class LabelDetail {
       }
     });
     els.commentButton.addEventListener('click', () => {
-      if (this.#interactionBlocked) return;
       const comment = els.commentInput.value.trim();
       if (comment) this.#submitComment(comment);
     });
-    els.commentCancel?.addEventListener('click', () => this.#cancelCommentEdit());
+    els.commentCancel.addEventListener('click', () => this.#cancelCommentEdit());
 
     if (this.#admin) {
       for (const flag of this.#FLAG_NAMES) {
@@ -608,20 +625,26 @@ export class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * The vote each shortcut casts, keyed by `KeyboardEvent.code` so a shortcut stays on the same physical key
-   * whatever the layout — the convention Validate's KeyboardManager already follows. A/Y for agree and D/N for
-   * disagree are the pairs Validate and the Gallery have long offered, kept so the muscle memory carries over.
+   * The vote each shortcut casts, keyed the way KeyboardShortcuts.keyOf names a key: by the letter printed on it, so
+   * the card reads the same keys as Validate on any layout (#5618). A/Y for agree and D/N for disagree are the pairs
+   * Validate and Gallery have long offered, kept so the muscle memory carries over.
    */
   static #VOTE_KEYS = {
     KeyA: 'Agree', KeyY: 'Agree', KeyD: 'Disagree', KeyN: 'Disagree', KeyU: 'Unsure',
   };
 
   /**
-   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, and A/Y, D/N and U cast
-   * agree, disagree and unsure (#5194).
+   * Which way each paging shortcut moves. S sits between A and D, so the left hand can vote and move on without
+   * reaching for the arrows, the way S submits and moves on in Validate (#5883).
+   */
+  static #PAGING_KEYS = { ArrowLeft: 'prev', ArrowRight: 'next', KeyS: 'next' };
+
+  /**
+   * Listens for the card's shortcuts: left/right arrows (and S) page to the previous/next label, and A/Y, D/N and U
+   * cast agree, disagree and unsure (#5194).
    *
    * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
-   * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
+   * thing on the page with nothing inside it holding focus — Gallery's expanded view opens from a click on an
    * `<img>`, which takes none — so a listener on the root would never see those keys at all. And every pano viewer
    * registers a window-capture listener that `stopPropagation()`s the arrow keys (plus A/D/W/S on GSV) to keep
    * them from steering the imagery, which ends the dispatch there: a bubble-phase listener anywhere on the page
@@ -648,15 +671,25 @@ export class LabelDetail {
     }
     if (!this.#ownsKeyboard(e)) return;
 
-    const vote = LabelDetail.#VOTE_KEYS[e.code];
+    const key = KeyboardShortcuts.keyOf(e);
+    // Focus on a reason chip (#5475): the arrows move along the chips (ReasonChips' own handler), not through the
+    // labels; every other key is still the card's, so A/D/U vote from a chip as from anywhere else.
+    if (key.startsWith('Arrow') && reasonPopover().containsFocus()) return;
+
+    const vote = LabelDetail.#VOTE_KEYS[key];
+    const paging = LabelDetail.#PAGING_KEYS[key];
+    // Paging away throws out words typed into "Other…" but not yet saved, so a paging key waits until they are.
+    if (paging && reasonPopover().isOpenFor(this.#root) && reasonPopover().hasUnsavedWords) return;
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
-    else if (e.code === 'ArrowLeft') button = this.#els.pagingPrev;
-    else if (e.code === 'ArrowRight') button = this.#els.pagingNext;
+    else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
     if (!button || button.hidden || button.disabled) return;
 
     e.preventDefault();
     e.stopPropagation();
+    // A shortcut has no pointer on a control, so its reason pop-up hangs off the thumb in the Validations column,
+    // which is on screen whatever the mouse is doing; the overlay button below is only there under hover.
+    if (vote) this.#shortcutAnchor = this.#els.voteButtons[vote];
     // A click whose `detail` is 0 — exactly what the browser fires for a button reached with Tab and pressed with
     // Enter or Space — so the handlers behind these buttons can still log the keyboard apart from the mouse (the
     // idiom Navbar.js uses).
@@ -671,15 +704,14 @@ export class LabelDetail {
    */
   #severityAfterTypeChange(labelType) {
     const meta = this.#currentLabelMeta;
-    const from = meta?.label_type;
     const sameScale = util.misc.labelTypeHasSeverity(labelType)
-      && util.misc.getRatingScale(labelType) === util.misc.getRatingScale(from);
-    return sameScale ? meta?.severity ?? null : null;
+      && util.misc.getRatingScale(labelType) === util.misc.getRatingScale(meta.label_type);
+    return sameScale ? meta.severity ?? null : null;
   }
 
   /** @returns {boolean} Ctrl+Z or Cmd+Z, the undo chord on every platform. */
   static #isUndoChord(e) {
-    return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyZ';
+    return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && KeyboardShortcuts.keyOf(e) === 'KeyZ';
   }
 
   /**
@@ -688,9 +720,9 @@ export class LabelDetail {
    * @param {KeyboardEvent} e
    */
   #pressUndo(e) {
-    const typeUndo = this.#els.editStatus?.type?.querySelector('.label-detail__edit-status-action');
+    const typeUndo = this.#els.editStatus.type.querySelector('.label-detail__edit-status-action');
     const restore = this.#els.restoreButton;
-    const restoreUp = this.#deletedHere && restore && !restore.hidden;
+    const restoreUp = this.#deletedHere && !restore.hidden;
     const undo = restoreUp ? restore : typeUndo;
     const target = e.target instanceof Element ? e.target : null;
     if (!undo || !this.#isShowing || target?.closest('input, textarea, [contenteditable]')) return;
@@ -715,7 +747,7 @@ export class LabelDetail {
     const target = e.target instanceof Element ? e.target : null;
     // A typed "a" has to stay an "a", and the arrows have to move the caret: the comment box is inside the card.
     if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return false;
-    if (this.#typeDropdown?.contains(target)) return false; // Its chips are buttons; A/D/U must not vote.
+    if (this.#typeDropdown.contains(target)) return false; // Its chips are buttons; A/D/U must not vote.
 
     const hostDialog = this.#root.tagName === 'DIALOG' ? this.#root : null;
     const active = document.activeElement;
@@ -725,6 +757,8 @@ export class LabelDetail {
     // card doesn't settle it. The innermost open <dialog> around the focused control has to be the card itself
     // on a popup host, and none at all on an inline one.
     if (active && this.#root.contains(active)) return active.closest('dialog') === hostDialog;
+    // The reason pop-up is the card's too, though it lives in the top layer outside the card's markup (#5475).
+    if (active && reasonPopover().isOpenFor(this.#root) && reasonPopover().containsFocus()) return true;
 
     // Focus nowhere in particular, which the card owns just as much. It is the resting state on an inline host,
     // where the click that opens the card takes no focus (a Gallery card is an `<img>`). On a popup host it is
@@ -753,6 +787,11 @@ export class LabelDetail {
     if (!this.#root.isConnected) return false;
     if (this.#isOpenHook) return !!this.#isOpenHook();
     return this.#root.tagName === 'DIALOG' ? this.#root.open : true;
+  }
+
+  /** Saves a tag pick still open, as Done would; for a host closing the card, which is a way out like paging. */
+  saveOpenEdits() {
+    if (this.#tagEditor.isOpen) this.#finishTagEditing();
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -788,6 +827,8 @@ export class LabelDetail {
 
     this.#source = source;
     this.#resetVoteButtonStyles();
+    // A reason pop-up still up belongs to the label being left; closed quietly, since nobody dismissed it.
+    this.#closeReasonPopoverQuietly();
     this.panoManager.clearLabels();
 
     if (typeof idOrMeta === 'object' && idOrMeta !== null) {
@@ -840,6 +881,10 @@ export class LabelDetail {
    */
   #handleData(meta) {
     const els = this.#els;
+    // Paging on with a tag pick open saves it, as Done would; it was made on the label being left, so it is saved
+    // before that label stops being the current one. A redraw of the same label drops the pick instead, since the
+    // redraw is there because the label changed under it.
+    if (this.#tagEditor.isOpen && this.#currentLabelMeta?.label_id !== meta.label_id) this.#finishTagEditing();
     this.#currentLabelMeta = meta;
 
     // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
@@ -854,17 +899,15 @@ export class LabelDetail {
     this.#deleted = !!meta.deleted;
     this.#canRestore = !!meta.can_restore;
     this.#deletedHere = false;
-    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
+    if (this.#tagEditor.isOpen) this.#tagEditor.close();
     this.#applyInteractionLock();
 
     this.#showEditStatus('');
     this.#applyOwnLabelWording();
-    if (els.ownBadge) {
-      els.ownBadge.hidden = !meta.from_current_user;
-      const ownLabel = i18next.t('labelmap:own-label');
-      els.ownBadge.setAttribute('aria-label', ownLabel);
-      LabelDetail.#setTooltip(els.ownBadge, ownLabel);
-    }
+    els.ownBadge.hidden = !meta.from_current_user;
+    const ownLabel = i18next.t('labelmap:own-label');
+    els.ownBadge.setAttribute('aria-label', ownLabel);
+    LabelDetail.#setTooltip(els.ownBadge, ownLabel);
 
     const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
@@ -898,6 +941,11 @@ export class LabelDetail {
         this.#noImagery = !imageShown;
         this.#panoLoading = false;
         this.#applyInteractionLock();
+        if (this.#focusCommentOnLoad) {
+          this.#focusCommentOnLoad = false;
+          const input = this.#els.commentInput;
+          if (!input.disabled && this.#els.commentRow.classList.contains('is-open')) input.focus();
+        }
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
         // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
@@ -940,12 +988,12 @@ export class LabelDetail {
       this.#renderFlagButtons();
     }
 
-    this.#typeDropdown?.setOpen(false);
-    this.#renderTitle(meta.label_type);
+    this.#typeDropdown.setOpen(false);
+    this.#typeDropdown.setType(meta.label_type);
     const labelTypeName = util.misc.labelTypeName(meta.label_type);
 
     // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
-    if (this.#showLabelMapLink && els.labelMapLink) {
+    if (this.#showLabelMapLink) {
       els.labelMapLink.href = `/labelMap?labelId=${meta.label_id}`;
       els.labelMapLink.hidden = false;
     }
@@ -954,41 +1002,36 @@ export class LabelDetail {
     // with the label's pano + stored POV riding along so the user arrives facing what they clicked. The pano is
     // skipped when known-expired; either way the coordinates are the fallback if it fails to load (#4635). Paging
     // can move between labels with and without coordinates, so the link re-hides when there's nothing to seed.
-    if (els.exploreHereLink) {
-      // /explore still bounces mobile visitors to /mobileLanding, and this card ships on pages phones do reach
-      // (/stories, /dashboard, /profile), so offering the link there can only throw the reader off what they
-      // are looking at.
-      const canExploreHere = this.#showExploreHereLink && !util.isMobile()
-        && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
-      if (canExploreHere) {
-        const exploreParams = new URLSearchParams({ lat: meta.lat, lng: meta.lng });
-        // The POV rides along even without the pano: it's Explore's signal to face the label (rather than the
-        // route direction) when it has to land on a different camera.
-        if ([meta.heading, meta.pitch, meta.zoom].every(Number.isFinite)) {
-          exploreParams.set('heading', meta.heading);
-          exploreParams.set('pitch', meta.pitch);
-          exploreParams.set('zoom', String(Math.round(meta.zoom)));
-        }
-        // A known-expired pano is skipped up front; the coordinates above are the seed instead.
-        if (meta.pano_id && !meta.expired) exploreParams.set('panoId', meta.pano_id);
-        const address = meta.pano_data?.address;
-        if (address) exploreParams.set('placeName', address);
-        els.exploreHereLink.href = `/explore?${exploreParams.toString()}`;
+    // /explore bounces phones to /mobileLanding, and phones do reach this card (/stories, /dashboard, /profile), so
+    // there the link would only pull the reader away from the label they came to see.
+    const canExploreHere = this.#showExploreHereLink && !util.isMobile()
+      && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
+    if (canExploreHere) {
+      const exploreParams = new URLSearchParams({ lat: meta.lat, lng: meta.lng });
+      // The POV rides along even without the pano: it's Explore's signal to face the label (rather than the
+      // route direction) when it has to land on a different camera.
+      if ([meta.heading, meta.pitch, meta.zoom].every(Number.isFinite)) {
+        exploreParams.set('heading', meta.heading);
+        exploreParams.set('pitch', meta.pitch);
+        exploreParams.set('zoom', String(Math.round(meta.zoom)));
       }
-      els.exploreHereLink.hidden = !canExploreHere;
+      // A known-expired pano is skipped up front; the coordinates above are the seed instead.
+      if (meta.pano_id && !meta.expired) exploreParams.set('panoId', meta.pano_id);
+      const address = meta.pano_data?.address;
+      if (address) exploreParams.set('placeName', address);
+      els.exploreHereLink.href = `/explore?${exploreParams.toString()}`;
     }
+    els.exploreHereLink.hidden = !canExploreHere;
 
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
     // spotlight page and serves the og:image crawlers embed in the share card.
-    if (this.#shareWidget) {
-      // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
-      this.#shareWidget.setTarget({
-        url: `${window.location.origin}/label/${meta.label_id}`,
-        title: shareText,
-        text: shareText,
-      });
-    }
+    // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
+    const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
+    this.#shareWidget.setTarget({
+      url: `${window.location.origin}/label/${meta.label_id}`,
+      title: shareText,
+      text: shareText,
+    });
 
     this.#renderSeverity(meta.severity, meta.label_type);
     this.#renderTags(meta.tags);
@@ -1015,14 +1058,14 @@ export class LabelDetail {
     // The status message is per-label: without this, paging within its 1.5s leaves the last label's "Comment
     // Submitted" over this one.
     clearTimeout(this.#commentStatusTimer);
-    if (els.commentConfirm) els.commentConfirm.hidden = true;
+    els.commentConfirm.hidden = true;
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
     // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
     // Withheld for the two types whose names aren't a thing you can have a story "about" — "…about this Other" and
     // "…about this Can't See the Sidewalk" don't read as English — leaving those on the generic title.
     const NO_STORY_SUBJECT = ['Other', 'Occlusion'];
-    this.#storySection?.setLabel(
+    this.#storySection.setLabel(
       meta.label_id, NO_STORY_SUBJECT.includes(meta.label_type) ? null : labelTypeName);
 
     // Fill in some admin-only fields at the bottom if applicable.
@@ -1083,12 +1126,13 @@ export class LabelDetail {
    */
   #updateCommentRow() {
     const els = this.#els;
-    if (!els.commentRow) return;
     const action = this.#prevAction;
     const voted = Object.hasOwn(LabelDetail.#COMMENT_PROMPT_KEYS, action ?? '');
     // Editing opens the box even with no vote: clearing a vote deletes its comment, but comments predating that rule
     // still exist, and their author must be able to reach their own text.
-    const show = !this.#locked && (this.#editingComment || (voted && this.#myCommentIdx < 0));
+    const held = els.commentRow.classList.contains('is-open');
+    const show = !this.#locked && (this.#editingComment || this.#holdingWords
+      || (this.#awaitingReason ? held : voted && this.#myCommentIdx < 0));
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
       // An edit with no vote behind it has no per-vote prompt to show, so it falls back to the neutral one.
@@ -1096,10 +1140,10 @@ export class LabelDetail {
         ? i18next.t(LabelDetail.#COMMENT_PROMPT_KEYS[action])
         : i18next.t('labelmap:add-comment');
       els.commentInput.placeholder = prompt;
-      if (els.commentLabel) els.commentLabel.textContent = prompt;
+      els.commentLabel.textContent = prompt;
     }
     els.commentButton.textContent = i18next.t(this.#editingComment ? 'labelmap:comment-save' : 'labelmap:comment');
-    if (els.commentCancel) els.commentCancel.hidden = !this.#editingComment;
+    els.commentCancel.hidden = !this.#editingComment;
 
     // Show each half of the zone only when it has something to say: the labeler's description when one was
     // written, the validator comments when any exist or the comment box is open. An empty heading over nothing
@@ -1107,10 +1151,11 @@ export class LabelDetail {
     // would show.
     const desc = this.#currentLabelMeta?.description;
     const hasDescription = desc !== null && desc !== undefined && String(desc).trim() !== '';
-    const hasComments = this.#comments && this.#comments.length > 0;
-    if (els.descriptionSection) els.descriptionSection.hidden = !hasDescription;
-    if (els.commentsSection) els.commentsSection.hidden = !hasComments && !show;
-    if (els.descComments) els.descComments.hidden = !hasDescription && !hasComments && !show;
+    const hasComments = this.#comments.length > 0;
+    els.descriptionSection.hidden = !hasDescription;
+    const keepComments = hasComments || show || this.#deletedComment;
+    els.commentsSection.hidden = !keepComments;
+    els.descComments.hidden = !hasDescription && !keepComments;
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -1182,10 +1227,13 @@ export class LabelDetail {
    *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
    *     label returns to no-vote for this user.
    * @param {boolean} [viaKeyboard=false] - The vote came from the keyboard rather than a pointer. Reaches the
-   *     ClearVote event, which logs the two input paths apart, and the vote echo, which only the keyboard gets.
+   *     ClearVote event, which logs the two input paths apart, and the reason pop-up, which it then opens with focus.
    */
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
+    // Whatever the pop-up was asking about is about to change under it; it comes back on the new vote's success.
+    // Quietly, so the box stays as it is until the new vote lands.
+    this.#closeReasonPopoverQuietly();
     const validationTimestamp = new Date();
     // Whole pixels; the backend rejects a fraction.
     const canvasWidth = this.panoManager.svHolder.clientWidth;
@@ -1194,7 +1242,7 @@ export class LabelDetail {
     // Where the validator was looking. On the static-crop fallback that's the label's stored POV — what the crop is
     // a screenshot of — rather than whatever the idle pano viewer happens to report (#4711). canvas_x/canvas_y are
     // derived from it, so they follow.
-    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta);
     const userPov = { heading: context.heading, pitch: context.pitch, zoom: context.zoom };
 
     const labelRadius = 10;
@@ -1208,8 +1256,8 @@ export class LabelDetail {
       label_type: this.panoManager.label.label_type,
       validation_result: action,
       // A vote from the card never carries a change: edits go through /label/edit on their own (#2575).
-      severity: this.#currentLabelMeta?.severity ?? null,
-      tags: this.#currentLabelMeta?.tags ?? [],
+      severity: this.#currentLabelMeta.severity ?? null,
+      tags: this.#currentLabelMeta.tags ?? [],
       canvas_x: pixelCoordinates ? Math.round(pixelCoordinates.x) : null,
       canvas_y: pixelCoordinates ? Math.round(pixelCoordinates.y) : null,
       heading: userPov.heading,
@@ -1227,8 +1275,7 @@ export class LabelDetail {
 
     // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
     // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
-    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
-    // still landed server-side; reopening this label shows it.
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses.
     const votedLabelMeta = this.#currentLabelMeta;
 
     this.#postJson('/labelmap/validate', data).then(async (res) => {
@@ -1241,31 +1288,190 @@ export class LabelDetail {
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (this.#currentLabelMeta !== votedLabelMeta) return;
       const newAction = undone ? null : action;
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
-      if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
+      if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard, votedLabelMeta.label_id);
+      if (this.#currentLabelMeta !== votedLabelMeta) {
+        // The card has moved on (a quick A then S), so only the vote's record-keeping is left: the badge count, and
+        // the host, or paging back shows no vote.
+        if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
+        if (typeof this.#onVote === 'function') this.#onVote(newAction, votedLabelMeta);
+        return;
+      }
+      const previousAction = this.#prevAction;
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
       // Show the vote's result until the mouse leaves, rather than instantly previewing an undo.
       const overlayButton = this.#els.panoOverlayButtons[action];
       if (overlayButton?.matches(':hover')) overlayButton.classList.add('is-just-voted');
-      // Only for a vote cast from the keyboard: a pointer already has the button it pressed as feedback, and a
-      // vote being *cleared* is the opposite of what a rising icon says.
-      if (viaKeyboard && !undone) this.#flashVoteEcho(action);
-      // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
-      // here too so the list and its vote chips (#5015) match what a reload would show.
-      const commentDropped = (undone || data.redone) && this.#dropOwnComment();
+      // Every vote, however cast, pops the icon it gained and moves the counts it changed, as a Gallery card does.
+      util.misc.animateVoteChange(this.#els.voteTallies, previousAction, newAction);
+      // Mirrors the server (#5475) so the list and its vote chips (#5015) match what a reload would show.
+      const commentDropped = undone ? this.#dropOwnComment() : data.redone && this.#carryOwnComment(action);
+      this.#awaitingReason = !undone && !this.#locked && this.#reasonsOffered();
       this.#updateCommentRow();
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
+      // Now that the vote is on record, ask why (#5475). After the POST rather than before it: a changed vote
+      // archives a canned reason it doesn't offer, so a pick racing the vote could be archived by it.
+      // An admin's type change while the vote was out reloads the comments, which drops the anchor; the vote's own
+      // button stands in for it.
+      const anchor = this.#voteAnchor ?? this.#els.voteButtons[action];
+      this.#voteAnchor = null;
+      if (this.#awaitingReason && !this.#openReasonPopover(anchor, viaKeyboard)) this.#releaseReasonHold();
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);
+      this.#voteAnchor = null;
       this.#setVoteButtonsDisabled(false);
+      this.#releaseReasonHold();
     });
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // One-tap reasons (#5475)
+  // ───────────────────────────────────────────────────────────────────
+
+  /** @returns {boolean} Whether the label's type offers canned reasons for the reader's current vote. */
+  #reasonsOffered() {
+    const meta = this.#currentLabelMeta;
+    const action = this.#prevAction;
+    return !!meta && !!action && validationReasons.hasReasons(meta.label_type, action);
+  }
+
+  /**
+   * @returns {?(string|symbol)} The reason the reader's own comment already records, `ReasonChips.OTHER` for typed
+   *     words, or null with no comment of theirs on the label.
+   */
+  #selectedReason() {
+    const own = this.#comments[this.#myCommentIdx];
+    if (!own || typeof own !== 'object') return null;
+    return typeof own.reason === 'string' ? own.reason : ReasonChips.OTHER;
+  }
+
+  /** @returns {string} The reader's own typed comment on the label, for "Other…" to open holding, or ''. */
+  #ownTypedComment() {
+    const own = this.#comments[this.#myCommentIdx];
+    if (!own || typeof own !== 'object' || typeof own.reason === 'string') return '';
+    return typeof own.comment === 'string' ? own.comment : '';
+  }
+
+  /**
+   * Opens the reason pop-up on the reader's current vote, hung off the given control, with the reason their own
+   * comment already records marked. Called only for a landed vote the label's type has reasons for, on an unlocked
+   * card; the pop-up itself still refuses a card that has left the page.
+   *
+   * @param {HTMLElement} anchor - The control the pop-up points at.
+   * @param {boolean} viaKeyboard - Opened from the keyboard, so focus moves into the chips.
+   * @returns {boolean} Whether it opened.
+   */
+  #openReasonPopover(anchor, viaKeyboard) {
+    const opened = reasonPopover().open({
+      anchor,
+      host: this.#root,
+      labelType: this.#currentLabelMeta.label_type,
+      vote: this.#prevAction,
+      selected: this.#selectedReason(),
+      otherText: this.#ownTypedComment(),
+      viaKeyboard,
+      onPick: (id, kb) => this.#pickReason(id, kb),
+      onOther: (kb) => this.#logAction(`${this.#prevAction}Reason_Other`, kb),
+      onSubmitOther: (text, kb) => this.#submitOtherReason(text, kb),
+      onDismiss: (via, kb) => this.#logAction('ReasonMenu_Dismiss', kb),
+      onClose: () => {
+        if (!this.#quietClose) this.#releaseReasonHold();
+      },
+    });
+    if (opened) this.#syncControlLocks();
+    return opened;
+  }
+
+  /** Closes this card's pop-up without letting the comment box react, for a close the card itself is causing. */
+  #closeReasonPopoverQuietly() {
+    if (!reasonPopover().isOpenFor(this.#root)) return;
+    this.#quietClose = true;
+    try {
+      reasonPopover().close();
+    } finally {
+      this.#quietClose = false;
+    }
+  }
+
+  /** Lets the comment box follow the vote again once the pop-up is gone, opening it if no reason was given. */
+  #releaseReasonHold() {
+    this.#awaitingReason = false;
+    this.#updateCommentRow();
+  }
+
+  /**
+   * Records a picked reason as the reader's comment on the label, through the same path a typed one takes, so it
+   * replaces whatever they had said before and shows up in the list with their vote.
+   *
+   * @param {string} id - The reason id, from the catalog.
+   * @param {boolean} viaKeyboard - Picked with a number key (or Enter/Space on the chip) rather than a pointer.
+   */
+  #pickReason(id, viaKeyboard) {
+    const vote = this.#prevAction;
+    const text = validationReasons.text(id);
+    if (!vote || !text || this.#interactionBlocked) return;
+    this.#logAction(`${vote}Reason_Option=${id}`, viaKeyboard);
+    this.#saveReasonComment(text, id);
+  }
+
+  /**
+   * Records the words typed into the pop-up's "Other…" field as the reader's comment, with no reason id.
+   * @param {string} text - Trimmed, never empty.
+   * @param {boolean} viaKeyboard - Saved with Enter rather than a click on Save.
+   */
+  #submitOtherReason(text, viaKeyboard) {
+    const vote = this.#prevAction;
+    if (!vote || this.#interactionBlocked) return;
+    this.#logAction(`${vote}Reason_Other_Save`, viaKeyboard);
+    this.#saveReasonComment(text, null);
+  }
+
+  /**
+   * Posts an answer from the pop-up, holding the vote controls until it lands, and tells the pop-up how it went.
+   * @param {string} text - The comment.
+   * @param {?string} id - The reason id, or null for typed words.
+   */
+  #saveReasonComment(text, id) {
+    const meta = this.#currentLabelMeta;
+    this.#pickPending = true;
+    this.#syncControlLocks();
+    this.#submitComment(text, { reason: id, fromPopover: true }).then((saved) => {
+      // A reply for a label already paged away from must not unlock, or report to, the label now on screen.
+      if (this.#currentLabelMeta !== meta) return;
+      this.#pickPending = false;
+      this.#syncControlLocks();
+      // The pop-up is shared: by now it may be open for another card, whose chips this reply says nothing about.
+      if (!reasonPopover().isOpenFor(this.#root)) return;
+      if (saved) reasonPopover().markSaved(id ?? ReasonChips.OTHER);
+      else reasonPopover().markFailed();
+    });
+  }
+
+  /**
+   * Hands words typed in the pop-up to the card's own box after a save that the redraw on a type change (#5510)
+   * refused, since that redraw takes the pop-up and its field with it. Opened, so the words are seen, not parked in a
+   * hidden input.
+   * @param {string} text
+   */
+  #keepTypedWords(text) {
+    if (this.#myCommentIdx >= 0) {
+      // The redraw resolves before the new pano does, so the box has to open while it is still loading.
+      this.#startCommentEdit(false, true);
+    } else {
+      this.#holdingWords = true;
+      this.#updateCommentRow();
+    }
+    const input = this.#els.commentInput;
+    input.value = text;
+    this.#els.commentButton.classList.toggle('is-active', text.trim().length > 0);
+    if (input.disabled) this.#focusCommentOnLoad = true;
+    else if (!input.closest('[hidden]')) input.focus();
   }
 
   /**
@@ -1280,8 +1486,26 @@ export class LabelDetail {
   }
 
   /**
+   * Follows the current user's comment across a vote change, as the server does (#5475).
+   *
+   * @param {string} vote - The vote it changed to.
+   * @returns {boolean} Whether the comment was dropped.
+   */
+  #carryOwnComment(vote) {
+    const own = this.#comments.find((c) => this.#isOwnComment(c));
+    if (!own) return false;
+    if (!validationReasons.survivesVoteChange(this.#currentLabelMeta.label_type, own.reason, vote)) {
+      return this.#dropOwnComment();
+    }
+    own.validation = vote;
+    this.#renderComments();
+    this.#commentsChanged(this.#currentLabelMeta);
+    return false;
+  }
+
+  /**
    * Removes the current user's validator comments from the rendered list, mirroring the server-side delete that
-   * rides along with clearing or changing a vote. No-op when they hadn't commented.
+   * rides along with clearing a vote, or changing it away from a canned reason. No-op when they hadn't commented.
    *
    * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
    * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
@@ -1290,36 +1514,47 @@ export class LabelDetail {
    * @returns {boolean} Whether anything was actually removed.
    */
   #dropOwnComment() {
-    if (!this.#comments) return false;
-    const remaining = this.#comments.filter((c) => !this.#isOwnComment(c));
-    if (remaining.length === this.#comments.length) return false;
-    this.#comments = remaining;
+    // In place, not a new array: a Gallery host hands the card its own comments array and reads it back when the
+    // label is reopened, so replacing it here would leave the host with the list as it stood before this vote.
+    let removed = false;
+    for (let i = this.#comments.length - 1; i >= 0; i -= 1) {
+      if (this.#isOwnComment(this.#comments[i])) {
+        this.#comments.splice(i, 1);
+        removed = true;
+      }
+    }
+    if (!removed) return false;
     this.#myCommentIdx = -1;
     this.#renderComments();
-    if (this.#currentLabelMeta) this.#commentsChanged(this.#currentLabelMeta);
+    this.#commentsChanged(this.#currentLabelMeta);
     return true;
   }
 
   /**
    * Opens the comment box on the user's existing comment, prefilled and focused, so changing it is a deliberate act
    * rather than a side effect of typing into an empty box (#5015).
+   *
+   * @param {boolean} [prefill=true] - Start from the existing text. "Other…" passes false over a canned reason, whose
+   *     text would only be in the way of the words replacing it.
+   * @param {boolean} [whileLoading=false] - Open even before the pano has loaded; only a lock still refuses.
+   * @returns {boolean} Whether the box opened; the Edit button logs on that, a reopen the card makes itself doesn't.
    */
-  #startCommentEdit() {
-    const own = this.#comments?.[this.#myCommentIdx];
-    if (!own || this.#interactionBlocked) return;
+  #startCommentEdit(prefill = true, whileLoading = false) {
+    const own = this.#comments[this.#myCommentIdx];
+    if (!own || this.#locked || (this.#panoLoading && !whileLoading)) return false;
     this.#editingComment = true;
     this.#updateCommentRow();
     this.#renderComments(); // Drops the Edit/Delete pair; the box below now speaks for this comment.
     const els = this.#els;
     // The last save's confirmation is about to be contradicted by an open box, so it goes now rather than on its timer.
     clearTimeout(this.#commentStatusTimer);
-    if (els.commentConfirm) els.commentConfirm.hidden = true;
+    els.commentConfirm.hidden = true;
     // #isOwnComment only ever matches an object, so #myCommentIdx cannot point at a bare comment string.
-    els.commentInput.value = own.comment;
+    els.commentInput.value = prefill ? own.comment : '';
     els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     els.commentInput.focus();
-    els.commentInput.select();
-    this.#logAction('EditCommentOpen');
+    if (prefill) els.commentInput.select();
+    return true;
   }
 
   /**
@@ -1351,7 +1586,10 @@ export class LabelDetail {
    * along with the text — the two are worth separating (#5015).
    */
   async #deleteOwnComment() {
-    if (this.#interactionBlocked) return;
+    // Paging isn't blocked by the confirm or the request, so pin the label whose comment this is: a newer card must
+    // neither lose its own comment to the request nor be told this one was deleted.
+    const meta = this.#currentLabelMeta;
+    const { labelId, label_type: labelType } = this.panoManager.label;
     const confirmed = await ConfirmDialog.confirm({
       message: i18next.t('labelmap:comment-delete-confirm'),
       confirmText: i18next.t('labelmap:comment-delete'),
@@ -1359,28 +1597,35 @@ export class LabelDetail {
       danger: true,
       confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
-    if (!confirmed) return;
-    const { labelId, label_type: labelType } = this.panoManager.label;
+    if (!confirmed || this.#currentLabelMeta !== meta) return;
     try {
       // The type the card shows, so a card behind a type change deletes the comment the user is looking at.
       const url = `/labelmap/comment/${labelId}?labelType=${encodeURIComponent(labelType)}`;
       const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#commentWrites++;
+      if (this.#currentLabelMeta !== meta) {
+        // The card has moved on, but its host still holds this label's comments, which lose the deleted one too.
+        meta.comments = meta.comments.filter((c) => !this.#isOwnComment(c));
+        if (typeof this.#onComments === 'function') this.#onComments(meta);
+        return;
+      }
       this.#editingComment = false;
+      this.#deletedComment = true;
       this.#dropOwnComment();
       this.#updateCommentRow();
       this.#flashCommentStatus('labelmap:comment-deleted', 'removed');
       this.#logAction('DeleteComment');
       // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
       // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
-      // replacement comment gets typed. A comment with no vote behind it leaves the box shut, so fall back to the
-      // section heading rather than stranding focus.
+      // replacement comment gets typed. A comment with no vote behind it, or a box held shut under the reason pop-up,
+      // leaves it shut, so fall back to the section heading rather than stranding focus.
       const els = this.#els;
-      if (els.commentRow?.classList.contains('is-open')) els.commentInput.focus();
-      else this.#q('.label-detail__comments-title')?.focus();
+      if (els.commentRow.classList.contains('is-open')) els.commentInput.focus();
+      else this.#q('.label-detail__comments-title').focus();
     } catch (err) {
       console.error(err);
+      if (this.#currentLabelMeta !== meta) return;
       // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
       this.#flashCommentStatus('labelmap:comment-delete-failed', 'failed');
     }
@@ -1410,7 +1655,6 @@ export class LabelDetail {
    */
   #flashCommentStatus(key, tone = 'saved') {
     const el = this.#els.commentConfirm;
-    if (!el) return;
     clearTimeout(this.#commentStatusTimer);
     el.classList.toggle('is-error', tone === 'failed');
     // Unhidden before the text lands: mutating a live region that is still `hidden` is the case screen readers are
@@ -1431,13 +1675,25 @@ export class LabelDetail {
    * @param {boolean} disabled
    */
   #setVoteButtonsDisabled(disabled) {
-    const off = disabled || this.#interactionBlocked;
+    this.#votePending = disabled;
+    this.#syncControlLocks();
+  }
+
+  /**
+   * Applies the one lock the vote controls and the reason pop-up share: the card's own lock, plus any vote or pick
+   * still in flight for this label. A reason explains the vote on record, so while either is being written the
+   * other must hold, or a pick could race the server's delete of the old comment and land under the new vote
+   * (#5475). Re-run whenever any input to it changes, including a new label, so nothing stays stuck from the last one.
+   */
+  #syncControlLocks() {
+    const off = this.#interactionBlocked || this.#votePending || this.#pickPending;
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.disabled = off;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.disabled = off;
     }
+    if (reasonPopover().isOpenFor(this.#root)) reasonPopover().setBusy(off);
   }
 
   #renderVoteCounts() {
@@ -1460,12 +1716,10 @@ export class LabelDetail {
     if (action) this.#validationCounts[action] += 1;
     this.#renderVoteCounts();
 
-    if (this.#currentLabelMeta) {
-      this.#currentLabelMeta.user_validation = action;
-      this.#currentLabelMeta.num_agree = this.#validationCounts.Agree;
-      this.#currentLabelMeta.num_disagree = this.#validationCounts.Disagree;
-      this.#currentLabelMeta.num_unsure = this.#validationCounts.Unsure;
-    }
+    this.#currentLabelMeta.user_validation = action;
+    this.#currentLabelMeta.num_agree = this.#validationCounts.Agree;
+    this.#currentLabelMeta.num_disagree = this.#validationCounts.Disagree;
+    this.#currentLabelMeta.num_unsure = this.#validationCounts.Unsure;
   }
 
   /**
@@ -1483,19 +1737,19 @@ export class LabelDetail {
       btn.setAttribute('aria-pressed', String(key === action));
     }
     // Border on the pano wrap reflects the current validation.
-    if (this.#els.panoWrap) {
-      this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
-      if (action) this.#els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
-    }
+    this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
+    if (action) this.#els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
     this.#renderVoteIcons();
     this.#renderVoteTooltips(); // Which option is selected changes what its tooltip says clicking will do.
   }
 
   #resetVoteButtonStyles() {
-    // A vote echo still in flight belongs to the label being left, and the tally rows it mounts into are cached
-    // once and reused for every label the card shows — so left alone it would go on rising over a label the reader
-    // never voted on, which is the one thing an affordance that reports a vote must never say.
-    for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
+    // A vote pop still running belongs to the label being left, and the icon and count elements it runs on are
+    // cached once and reused for every label the card shows, so left alone it would go on reporting a vote on a
+    // label the reader never voted on, which is the one thing an affordance that reports a vote must never say.
+    for (const { icon, count } of Object.values(this.#els.voteTallies)) {
+      for (const el of [icon, count]) el?.getAnimations?.().forEach((animation) => animation.cancel());
+    }
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected', 'is-just-voted');
       btn.setAttribute('aria-pressed', 'false');
@@ -1504,9 +1758,7 @@ export class LabelDetail {
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.setAttribute('aria-pressed', 'false');
     }
-    if (this.#els.panoWrap) {
-      this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
-    }
+    this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
   }
 
   /**
@@ -1599,19 +1851,18 @@ export class LabelDetail {
 
     this.#renderVoteTooltips();
     // The toggle goes with the marker it acts on; a load still in flight keeps it, since a marker is coming.
-    if (els.hideLabelButton) els.hideLabelButton.hidden = this.#noImagery;
+    els.hideLabelButton.hidden = this.#noImagery;
     // Your own label is never going to be validatable by you, so the overlay goes away rather than sitting there
     // greyed across the imagery (#5047). Every other lock keeps the buttons: those are states that pass, and a
     // disabled control that explains itself is the thing that tells you to come back.
-    if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly || this.#deleted;
-    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
-    for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
+    els.panoOverlay.hidden = this.#readonly || this.#deleted;
+    this.#syncControlLocks();
 
     // Comment input and submit button. The reason rides the row rather than the two controls it applies to: a
     // disabled control swallows the hover that opens a tooltip on it.
     els.commentInput.disabled = blocked;
     els.commentButton.disabled = blocked;
-    if (els.commentCancel) els.commentCancel.disabled = blocked;
+    els.commentCancel.disabled = blocked;
     // The Edit/Delete controls on the user's own comment lead back into that same box, so they follow its lock.
     for (const btn of els.validatorComments.querySelectorAll('.label-detail__comment-own-control')) {
       btn.disabled = blocked;
@@ -1629,19 +1880,14 @@ export class LabelDetail {
     const els = this.#els;
     const deleted = this.#deleted;
     this.#root.classList.toggle('label-detail--deleted', deleted);
-    if (els.deletedNotice) {
-      els.deletedNotice.hidden = !deleted;
-      const text = els.deletedNotice.querySelector('.label-detail__deleted-notice-text');
-      const key = this.#deletedHere ? 'labelmap:you-deleted-label' : 'labelmap:label-was-deleted';
-      if (text) text.textContent = deleted ? i18next.t(key) : '';
-    }
+    els.deletedNotice.hidden = !deleted;
+    const key = this.#deletedHere ? 'labelmap:you-deleted-label' : 'labelmap:label-was-deleted';
+    els.deletedNotice.querySelector('.label-detail__deleted-notice-text').textContent = deleted ? i18next.t(key) : '';
     // Delete follows the edit lock: inert without imagery, with the reason on hover, like the other edit controls.
-    if (els.deleteButton) {
-      els.deleteButton.hidden = !this.#canEdit || deleted;
-      els.deleteButton.setAttribute('aria-disabled', String(!this.#editingAllowed));
-      LabelDetail.#setTooltip(els.deleteButton, this.#editLockReason() ?? i18next.t('labelmap:delete-label'));
-    }
-    if (els.restoreButton) els.restoreButton.hidden = !deleted || !this.#canRestore;
+    els.deleteButton.hidden = !this.#canEdit || deleted;
+    els.deleteButton.setAttribute('aria-disabled', String(!this.#editingAllowed));
+    LabelDetail.#setTooltip(els.deleteButton, this.#editLockReason() ?? i18next.t('labelmap:delete-label'));
+    els.restoreButton.hidden = !deleted || !this.#canRestore;
   }
 
   /**
@@ -1670,7 +1916,7 @@ export class LabelDetail {
       this.#logAction('DeleteLabel', false, meta.label_id);
       if (!this.#setDeleted(meta, true, !!state.can_restore, true)) return;
       // Delete had focus and just hid; Restore is where the next move is.
-      this.#els.restoreButton?.focus();
+      this.#els.restoreButton.focus();
     } catch (err) {
       console.error(err);
       if (this.#currentLabelMeta !== meta) return;
@@ -1687,7 +1933,6 @@ export class LabelDetail {
    */
   async #restoreLabel(viaKeyboard = false) {
     const meta = this.#currentLabelMeta;
-    if (!meta || !this.#deleted || !this.#canRestore) return;
     const undo = this.#deletedHere;
     try {
       const res = await util.lazyIdentityFetch(`/label/${meta.label_id}/restore`, { method: 'POST' });
@@ -1697,7 +1942,7 @@ export class LabelDetail {
       const hadFocus = document.activeElement === this.#els.restoreButton;
       if (!this.#setDeleted(meta, false, false, false)) return;
       // Only a Restore that had focus hands it to Delete; a Ctrl+Z from elsewhere leaves focus alone.
-      if (hadFocus) this.#els.deleteButton?.focus();
+      if (hadFocus) this.#els.deleteButton.focus();
     } catch (err) {
       console.error(err);
       if (this.#currentLabelMeta !== meta) return;
@@ -1740,8 +1985,8 @@ export class LabelDetail {
   #applyOwnLabelWording() {
     const els = this.#els;
     const own = this.#readonly;
-    if (els.labeledWord) els.labeledWord.textContent = i18next.t(own ? 'labelmap:you-labeled' : 'common:labeled');
-    if (els.tagsTitle) els.tagsTitle.textContent = i18next.t(own ? 'labelmap:your-tags' : 'common:tags');
+    els.labeledWord.textContent = i18next.t(own ? 'labelmap:you-labeled' : 'common:labeled');
+    els.tagsTitle.textContent = i18next.t(own ? 'labelmap:your-tags' : 'common:tags');
   }
 
   /**
@@ -1765,20 +2010,16 @@ export class LabelDetail {
     // tags were chosen against an image that turned out not to be there.
     if (this.#tagEditor.isOpen && !allowed) {
       this.#tagEditor.close();
-      if (meta) this.#renderTags(meta.tags);
+      this.#renderTags(meta.tags);
     }
-    if (els.tagsEdit) {
-      els.tagsEdit.hidden = !this.#canEdit;
-      els.tagsEdit.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
-      LabelDetail.#setTooltip(els.tagsEdit, tip);
-      this.#setTagsEditLabel(this.#tagEditor.isOpen);
-    }
-    if (this.#typeDropdown) {
-      this.#typeDropdown.setEditable(this.#canEdit);
-      this.#typeDropdown.setDisabled(this.#canEdit && !allowed);
-      LabelDetail.#setTooltip(this.#typeDropdown.button, tip);
-    }
-    if (meta) this.#renderSeverity(meta.severity, meta.label_type);
+    els.tagsEdit.hidden = !this.#canEdit;
+    els.tagsEdit.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
+    LabelDetail.#setTooltip(els.tagsEdit, tip);
+    this.#setTagsEditLabel(this.#tagEditor.isOpen);
+    this.#typeDropdown.setEditable(this.#canEdit);
+    this.#typeDropdown.setDisabled(this.#canEdit && !allowed);
+    LabelDetail.#setTooltip(this.#typeDropdown.button, tip);
+    this.#renderSeverity(meta.severity, meta.label_type);
   }
 
   /**
@@ -1810,14 +2051,10 @@ export class LabelDetail {
           // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is
           // 0, even in languages (zh-TW) whose CLDR rules have no zero category, so those carry only _zero/_other.
           const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
-          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, {
-            count: others, interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
         } else {
           const count = this.#validationCounts[action] ?? 0;
-          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, {
-            count, interpolation: { escapeValue: true },
-          });
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
         }
         // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
         // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
@@ -1833,11 +2070,10 @@ export class LabelDetail {
    * Points the shared tooltip (psTooltip.js) at an element, or takes it away. The card's own tooltips go through
    * this rather than the native `title` attribute so a long sentence wraps inside a bounded card instead of
    * stretching into a single browser-drawn line the width of the card (#4778).
-   * @param {?Element} el - The trigger; ignored when the host's markup doesn't include it.
+   * @param {Element} el - The trigger.
    * @param {string} text - The tooltip text, or an empty string to remove the tooltip.
    */
   static #setTooltip(el, text) {
-    if (!el) return;
     if (text) el.setAttribute('data-ps-tooltip', text);
     else el.removeAttribute('data-ps-tooltip');
   }
@@ -1853,51 +2089,6 @@ export class LabelDetail {
   static #voteIconSrc(action, filled, isAi) {
     const state = filled ? 'filled' : 'outline';
     return util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${isAi ? '-ai' : ''}.svg`);
-  }
-
-  /**
-   * How long the keyboard-vote echo lives, in ms. Must match the animation duration on `.label-detail__vote-pop`.
-   *
-   * The timer, rather than an `animationend` listener, is what removes the ghost: closing the card mid-flight
-   * cancels the animation instead of ending it, and a listener on the event that doesn't come would leak a node
-   * into the markup on every such vote.
-   */
-  static #VOTE_ECHO_MS = 700;
-
-  /**
-   * Echoes a keyboard-cast vote as a ghost of that vote's icon drifting off the tally it just incremented (#5194).
-   *
-   * A shortcut leaves nothing under the cursor to watch, so the change it makes — a filled icon and a count one
-   * higher, both small and both in the column rather than on the imagery the reader was looking at — is easy to
-   * miss entirely. The ghost moves in the direction of the verdict (up for agree and unsure, down for disagree),
-   * which is what makes it readable in the corner of the eye rather than something to look at.
-   *
-   * Decorative and silent: `aria-hidden` with an empty alt, since the vote it reports is already carried by the
-   * button's `aria-pressed` and the count beside it. Skipped entirely under prefers-reduced-motion, the way every
-   * other optional flourish here is (Confetti, ObservedArea, StorySection).
-   *
-   * Tied to the label it was cast on: #resetVoteButtonStyles() drops one still in flight when the card moves to
-   * another label, since the tally row it lives in is shared by every label the card shows.
-   *
-   * @param {'Agree'|'Disagree'|'Unsure'} action - The vote that was cast.
-   */
-  #flashVoteEcho(action) {
-    const host = this.#els.voteTops?.[action];
-    if (!host || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
-
-    // One ghost per control: a second vote can only land after the first POST resolves, but a lingering one would
-    // otherwise restart mid-flight and read as a stutter.
-    host.querySelector('.label-detail__vote-pop')?.remove();
-
-    const ghost = document.createElement('img');
-    ghost.className = `label-detail__vote-pop label-detail__vote-pop--${action.toLowerCase()}`;
-    // Always the filled, non-AI variant: the ghost stands for the verdict the user just cast, not for the state
-    // of the icon underneath it.
-    ghost.src = LabelDetail.#voteIconSrc(action, true, false);
-    ghost.alt = '';
-    ghost.setAttribute('aria-hidden', 'true');
-    host.appendChild(ghost);
-    setTimeout(() => ghost.remove(), LabelDetail.#VOTE_ECHO_MS);
   }
 
   /**
@@ -1918,22 +2109,20 @@ export class LabelDetail {
    * that the pano is pannable until the cursor is already over it.
    */
   #showPanHintOnce() {
-    const hint = this.#els.panHint;
-    if (!hint) return;
+    if (this.#deleted) return; // The deleted notice sits over the imagery instead, and the pano can't be judged.
     try {
       if (sessionStorage.getItem('psLabelDetailPanHintShown')) return;
       sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
     } catch {
       return; // Storage access throws under "block all site data" settings; skip the hint rather than reject.
     }
-    hint.hidden = false;
-    requestAnimationFrame(() => hint.classList.add('is-visible'));
-    setTimeout(() => {
-      hint.classList.remove('is-visible');
-      setTimeout(() => {
-        hint.hidden = true;
-      }, 400); // Matches the CSS opacity transition.
-    }, 5500);
+    Toast.show({
+      message: i18next.t('common:drag-to-look-around'),
+      reference: this.#els.panoWrap,
+      top: 14,       // Clear of the validation buttons along the bottom of the imagery.
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
+    });
   }
 
   /**
@@ -1944,14 +2133,14 @@ export class LabelDetail {
    */
   #showAddress(address, link = null) {
     const els = this.#els;
-    if (!els.addressCell) return;
     els.address.textContent = address || '';
     els.addressCell.hidden = !address;
-    if (els.addressDivider) els.addressDivider.hidden = !address;
+    els.addressDivider.hidden = !address;
     if (address && link) {
       els.address.href = link.url;
       els.address.target = '_blank';
       els.address.rel = 'noopener noreferrer';
+      els.address.append(newTabNote());
       // Full address (the strip may ellipsize it) plus where the link goes.
       els.address.title = `${address} — ${link.tooltip}`;
     } else {
@@ -1975,13 +2164,11 @@ export class LabelDetail {
    */
   #fitMetaRow() {
     const els = this.#els;
-    if (!els.metaRow) return;
     els.metaRow.classList.remove('label-detail__meta-row--no-time', 'label-detail__meta-row--compact-details',
       'label-detail__meta-row--wrap');
     // +1 absorbs sub-pixel rounding so a flush-fitting row doesn't flap the classes on and off.
     const rowOverflows = () => els.metaRow.scrollWidth > els.metaRow.clientWidth + 1;
-    const addressClipped = () => Boolean(els.address) && !els.addressCell?.hidden
-      && els.address.scrollWidth > els.address.clientWidth + 1;
+    const addressClipped = () => !els.addressCell.hidden && els.address.scrollWidth > els.address.clientWidth + 1;
     const cramped = () => addressClipped() || rowOverflows();
 
     if (cramped()) els.metaRow.classList.add('label-detail__meta-row--no-time');
@@ -2003,19 +2190,6 @@ export class LabelDetail {
     return link && { url: link.url, tooltip: i18next.t(link.i18nKey) };
   }
 
-  /**
-   * Draws the type into the title; #applyEditLock() decides whether it shows as the picker's button (#3671).
-   * @param {string} labelType
-   */
-  #renderTitle(labelType) {
-    if (this.#typeDropdown) {
-      this.#typeDropdown.setType(labelType);
-      return;
-    }
-    const name = util.misc.labelTypeName(labelType);
-    for (const el of this.#els.title?.querySelectorAll('.label-type-trigger__name') ?? []) el.textContent = name;
-  }
-
   /** @returns {boolean} Whether the picker may open; if so it has been logged and drawn for the current type. */
   #prepareTypePicker() {
     const meta = this.#currentLabelMeta;
@@ -2033,7 +2207,7 @@ export class LabelDetail {
   #renderSeverity(severity, labelType) {
     const els = this.#els;
     // Hide entire section if the label type doesn't support severity ratings.
-    if (els.severitySection) els.severitySection.hidden = !util.misc.labelTypeHasSeverity(labelType);
+    els.severitySection.hidden = !util.misc.labelTypeHasSeverity(labelType);
     if (!util.misc.labelTypeHasSeverity(labelType)) return;
 
     const positive = util.misc.isPositiveLabelType(labelType);
@@ -2044,8 +2218,8 @@ export class LabelDetail {
     // (#5047): the point of the heading there is whose rating it is, and the faces and their level words carry the
     // positive/negative scale the type-specific word would have named.
     const title = this.#readonly ? i18next.t('labelmap:your-rating') : i18next.t(`common:${titleKey}`);
-    if (els.severityTitle) els.severityTitle.textContent = title;
-    if (els.severity) els.severity.setAttribute('aria-label', title);
+    els.severityTitle.textContent = title;
+    els.severity.setAttribute('aria-label', title);
 
     const editable = this.#editingAllowed;
     // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
@@ -2061,7 +2235,7 @@ export class LabelDetail {
       const levelName = i18next.t(`common:${levelKeys[faceSev]}`);
       LabelDetail.#setTooltip(face, lockTip ?? `${scaleName}: ${levelName}`);
       const labelSpan = face.querySelector('.severity-button__label');
-      if (labelSpan) labelSpan.textContent = levelName;
+      labelSpan.textContent = levelName;
 
       // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
       face.classList.toggle('severity-button--static', !editable);
@@ -2116,7 +2290,6 @@ export class LabelDetail {
    */
   #setTagsEditLabel(editing) {
     const btn = this.#els.tagsEdit;
-    if (!btn) return;
     let key = 'done-editing-tags';
     if (!editing) key = this.#currentLabelMeta?.tags?.length ? 'edit-tags' : 'add-tags';
     btn.textContent = i18next.t(`labelmap:${key}`);
@@ -2128,9 +2301,10 @@ export class LabelDetail {
   #showTypeConflictToast() {
     this.#showEditStatus('');
     Toast.show({
-      title: i18next.t('labelmap:edit-conflict-short'),
       message: i18next.t('labelmap:edit-conflict'),
       reference: this.#root,
+      dark: true,    // It floats over the card's street imagery, where a white card glares.
+      compact: true, // An aside on a redraw the reader can already see, not an announcement.
     });
   }
 
@@ -2149,7 +2323,7 @@ export class LabelDetail {
    *
    * @param {string} text - The visible word. Empty to clear every column's status.
    * @param {object} [opts]
-   * @param {string[]} [opts.columns] - Which columns to show it on ('type', 'severity', 'tags'); all when omitted.
+   * @param {string[]} [opts.columns] - Which columns to show it on ('type', 'severity', 'tags'); needed with a text.
    * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
    * @param {string} [opts.detail=''] - The full sentence, when the visible word is only a summary of it.
    * @param {{label: string, onClick: (e: MouseEvent) => void}} [opts.action] - A button after the text (Undo); the
@@ -2157,12 +2331,10 @@ export class LabelDetail {
    */
   #showEditStatus(text, { columns, error = false, detail = '', action = null } = {}) {
     const spans = this.#els.editStatus;
-    if (!spans) return;
     for (const timer of this.#editStatusTimers) clearTimeout(timer);
     this.#editStatusTimers = [];
-    const shown = text ? (columns ?? Object.keys(spans)) : [];
+    const shown = text ? columns : [];
     for (const [name, el] of Object.entries(spans)) {
-      if (!el) continue;
       const on = shown.includes(name);
       LabelDetail.#fillEditStatus(el, on ? text : '', on ? detail : '', on ? action : null);
       el.classList.toggle('label-detail__edit-status--error', on && error);
@@ -2173,13 +2345,10 @@ export class LabelDetail {
     let hold = error ? LabelDetail.#EDIT_STATUS_HOLD_ERROR_MS : LabelDetail.#EDIT_STATUS_HOLD_MS;
     if (action) hold = LabelDetail.#EDIT_STATUS_HOLD_UNDO_MS;
     this.#editStatusTimers.push(setTimeout(() => {
-      for (const el of Object.values(spans)) {
-        if (el) el.classList.add('label-detail__edit-status--fading');
-      }
+      for (const el of Object.values(spans)) el.classList.add('label-detail__edit-status--fading');
     }, hold));
     this.#editStatusTimers.push(setTimeout(() => {
       for (const el of Object.values(spans)) {
-        if (!el) continue;
         LabelDetail.#fillEditStatus(el, '', '');
         el.classList.remove('label-detail__edit-status--fading');
       }
@@ -2238,7 +2407,6 @@ export class LabelDetail {
   /** Replaces the read-only pills with the tag editor's pick-any pills for this label's type. */
   #startTagEditing() {
     const meta = this.#currentLabelMeta;
-    if (!meta) return;
     this.#logAction('EditTagsOpen');
     this.#setTagsEditLabel(true);
     this.#els.tags.classList.remove('label-detail__empty');
@@ -2291,7 +2459,6 @@ export class LabelDetail {
    * @param {Record<string, any>} meta - The metadata of the label the change was made on.
    */
   async #saveEdit(change, meta) {
-    if (!meta || !meta.can_edit) return;
     const labelType = change.labelType ?? meta.label_type;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
@@ -2301,7 +2468,7 @@ export class LabelDetail {
     // The tag editor's pills are the tag display while it's open; redrawing would wipe the picks.
     const render = () => {
       if (this.#currentLabelMeta !== meta) return; // Paged on; this label's card isn't the one on screen.
-      this.#renderTitle(meta.label_type);
+      this.#typeDropdown.setType(meta.label_type);
       this.panoManager.setLabelType?.(meta.label_type);
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
@@ -2322,8 +2489,9 @@ export class LabelDetail {
     if (!sameTags) columns.push('tags');
 
     if (typeChange) {
-      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one.
-      if (this.#tagEditor.isOpen) this.#tagEditor.close();
+      // A tag pick in progress was for the old type; it is abandoned rather than saved under the new one. A pick
+      // open on a label paged to since is left alone.
+      if (this.#currentLabelMeta === meta && this.#tagEditor.isOpen) this.#tagEditor.close();
     } else {
       meta.severity = severity;
       meta.tags = tags;
@@ -2342,17 +2510,23 @@ export class LabelDetail {
       const conflict = res.status === 409;
       if (!res.ok && !conflict) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
-      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
-      if (this.#currentLabelMeta !== meta) return;
+      // Kept even after paging on, since saves queued behind this one for the same label start from these values.
       meta.label_type = body.label_type ?? meta.label_type;
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
+      if (!conflict) this.#logEdit(meta, prev, change, sameTags);
+      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
+      // The host still hears of a plain save, which is how a tag pick saved by paging on reaches Gallery's grid.
+      if (this.#currentLabelMeta !== meta) {
+        if (!conflict && !typeChange && typeof this.#onEdit === 'function') this.#onEdit(meta);
+        return;
+      }
       render();
       if (conflict) {
         this.#showTypeConflictToast();
         if (meta.label_type !== prev.labelType) {
+          await this.#refreshVotes(meta);
           if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-          this.#refreshVotes(meta);
         }
         return;
       }
@@ -2369,50 +2543,76 @@ export class LabelDetail {
       } else {
         this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       }
-      if (meta.label_type !== prev.labelType) {
-        const undoNote = change.undo ? '_undo=true' : '';
-        this.#logAction(`EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`, !!change.viaKeyboard);
-      }
-      if (meta.severity !== prev.severity) {
-        this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
-      }
-      if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      // Votes are per type, so the host hears of a type change only once they've been re-read for the new one.
+      if (typeChange) await this.#refreshVotes(meta);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
-      if (typeChange) this.#refreshVotes(meta);
     } catch (err) {
       console.error(err);
-      if (this.#currentLabelMeta !== meta) return;
+      // Rolled back even after paging on, or saves queued behind this one would resend the values the server refused.
       meta.label_type = prev.labelType;
       meta.severity = prev.severity;
       meta.tags = prev.tags;
+      if (this.#currentLabelMeta !== meta) {
+        // The card shows another label now, so the failure can't be shown beside the control; a toast says it.
+        Toast.show({ message: i18next.t('labelmap:edit-failed-previous'), reference: this.#root, dark: true });
+        return;
+      }
       render();
       this.#showEditFailure(columns);
     }
   }
 
   /**
-   * Re-reads votes and comments after a change only the server can resolve: a type change (the old type's stop
-   * showing, #5510) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
+   * Logs each field a saved edit changed, under the label it was made on even if the reader has paged on.
+   * @param {Record<string, any>} meta - The label's metadata, holding the saved values.
+   * @param {{labelType: string, severity: ?number, tags: string[]}} prev - The values before the edit.
+   * @param {{undo?: boolean, viaKeyboard?: boolean}} change - The change as submitted.
+   * @param {boolean} sameTags - The edit left the tags as they were.
+   */
+  #logEdit(meta, prev, change, sameTags) {
+    const id = meta.label_id;
+    if (meta.label_type !== prev.labelType) {
+      const undoNote = change.undo ? '_undo=true' : '';
+      const action = `EditLabelType_old=${prev.labelType}_new=${meta.label_type}${undoNote}`;
+      this.#logAction(action, !!change.viaKeyboard, id);
+    }
+    if (meta.severity !== prev.severity) {
+      this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`, false, id);
+    }
+    if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`, false, id);
+  }
+
+  /**
+   * Re-reads votes, comments and the AI badge after a change only the server can resolve: a type change (the old
+   * type's votes stop showing, #5510, and the badge may go, #5925) or an admin's delete (which files their Disagree,
+   * #3591). A failure leaves them as they were.
    * @param {Record<string, any>} meta - The metadata of the label that changed.
    */
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
     const commentWrites = this.#commentWrites;
+    // A vote cast now would be overwritten by the older counts on their way back.
+    this.#setVoteButtonsDisabled(true);
     try {
-      const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(LabelDetail.#REFRESH_TIMEOUT_MS),
+      });
       if (!response.ok) return;
       const fresh = await response.json();
       if (this.#currentLabelMeta !== meta) return;
-      for (const key of ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation']) {
-        meta[key] = fresh[key];
-      }
+      const refreshed = ['num_agree', 'num_disagree', 'num_unsure', 'user_validation', 'ai_validation', 'ai_generated'];
+      for (const key of refreshed) meta[key] = fresh[key];
+      this.panoManager.setAiGenerated?.(meta.ai_generated);
       this.#validationCounts.Agree = meta.num_agree;
       this.#validationCounts.Disagree = meta.num_disagree;
       this.#validationCounts.Unsure = meta.num_unsure;
       this.#prevAction = meta.user_validation;
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
-      this.#renderVoteIcons();
+      // The border and pressed button show the user's own vote, which may be gone under the new type.
+      this.#highlightVote(this.#readonly ? null : meta.user_validation);
       if (this.#commentWrites === commentWrites) {
         this.#loadComments(fresh.comments);
         this.#commentsChanged(meta);
@@ -2420,6 +2620,8 @@ export class LabelDetail {
       this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
+    } finally {
+      if (this.#currentLabelMeta === meta) this.#setVoteButtonsDisabled(false);
     }
   }
 
@@ -2435,6 +2637,13 @@ export class LabelDetail {
     this.#comments = comments || [];
     this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#editingComment = false;
+    this.#deletedComment = false;
+    this.#holdingWords = false;
+    this.#focusCommentOnLoad = false;
+    this.#awaitingReason = false;
+    this.#votePending = false;
+    this.#pickPending = false;
+    this.#voteAnchor = null;
     this.#renderComments();
     this.#els.commentInput.value = '';
     this.#els.commentButton.classList.remove('is-active');
@@ -2477,6 +2686,22 @@ export class LabelDetail {
     'M10 5.19823C10.1026 4.87321 10.4787 4.33616 11.2308 4.54819C12.1538 4.80844 12.4615 6.1733 10.9231 '
     + '6.82334V7.47337M10.9231 8.94841V9'],
   };
+
+  /**
+   * The words to show for a comment: a canned reason in the reader's own language, else the text as written.
+   *
+   * A canned reason is stored as the text of the button its writer saw, in whatever language they were reading, and
+   * as its id (#5475). The id is what travels between languages, so a Dutch reader sees a Dutch "This is a driveway"
+   * whichever language it was picked in; an id this page's locale files don't know falls back to the stored text.
+   *
+   * @param {Record<string, any>|string} c - An entry from #comments.
+   * @returns {string}
+   */
+  static commentText(c) {
+    if (typeof c !== 'object' || c === null) return String(c);
+    const localized = typeof c.reason === 'string' ? validationReasons.text(c.reason) : null;
+    return localized ?? c.comment;
+  }
 
   /**
    * Builds the chip that pairs a comment with its author's vote on the label.
@@ -2524,13 +2749,11 @@ export class LabelDetail {
    */
   #renderComments() {
     const els = this.#els;
-    const count = this.#comments ? this.#comments.length : 0;
+    const count = this.#comments.length;
 
     // Count badge next to the section eyebrow — signals comments exist before the reader reaches the list.
-    if (els.commentsCount) {
-      els.commentsCount.textContent = String(count);
-      els.commentsCount.hidden = count === 0;
-    }
+    els.commentsCount.textContent = String(count);
+    els.commentsCount.hidden = count === 0;
 
     els.validatorComments.replaceChildren();
     els.validatorComments.classList.remove('label-detail__empty');
@@ -2589,12 +2812,15 @@ export class LabelDetail {
           return btn;
         };
         return [
-          make('label-detail__comment-edit', 'labelmap:comment-edit', () => this.#startCommentEdit()),
+          make('label-detail__comment-edit', 'labelmap:comment-edit', () => {
+            if (this.#startCommentEdit()) this.#logAction('EditCommentOpen');
+          }),
           make('label-detail__comment-delete', 'labelmap:comment-delete', () => this.#deleteOwnComment()),
         ];
       };
 
       const voteChip = LabelDetail.voteChipFor(c);
+      const text = LabelDetail.commentText(c);
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
@@ -2608,7 +2834,7 @@ export class LabelDetail {
           if (!timeCreated) p.appendChild(document.createTextNode(' '));
           p.appendChild(voteChip);
         }
-        p.appendChild(document.createTextNode(`: ${c.comment}`));
+        p.appendChild(document.createTextNode(`: ${text}`));
         for (const btn of ownControls()) p.appendChild(btn);
       } else {
         // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
@@ -2622,7 +2848,7 @@ export class LabelDetail {
         }
         if (timeCreated) p.appendChild(whenPill());
         if (voteChip) p.appendChild(voteChip);
-        p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
+        p.appendChild(document.createTextNode(text));
         for (const btn of ownControls()) p.appendChild(btn);
       }
       els.validatorComments.appendChild(p);
@@ -2633,10 +2859,15 @@ export class LabelDetail {
    * POSTs a comment for the current label to /labelmap/comment. On success, clears the input, briefly shows the
    * confirmation message, and updates the visible comments list — replacing the user's previous entry if one exists.
    * @param {string} comment - Trimmed, non-empty comment text.
+   * @param {object} [opts]
+   * @param {?string} [opts.reason=null] - The canned reason the text is (#5475), so analysis needn't match strings.
+   * @param {boolean} [opts.fromPopover=false] - Written in the reason pop-up rather than the card's box, which keeps
+   *     whatever the reader has in that box: it is no edit of theirs, and an unsent draft there is not this comment.
+   * @returns {Promise<boolean>} Whether the comment was stored. Never rejects: a failure is reported on the card.
    */
-  #submitComment(comment) {
+  #submitComment(comment, { reason = null, fromPopover = false } = {}) {
     const els = this.#els;
-    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta);
 
     els.commentButton.disabled = true;
 
@@ -2644,6 +2875,7 @@ export class LabelDetail {
       label_id: this.panoManager.label.labelId,
       label_type: this.panoManager.label.label_type,
       comment,
+      reason,
       pano_id: context.panoId,
       heading: context.heading,
       pitch: context.pitch,
@@ -2652,28 +2884,34 @@ export class LabelDetail {
       lng: context.lng,
     };
 
+    // Paging isn't blocked while this is in flight, so pin the label the comment belongs to and leave the card alone
+    // if a newer one has been shown by the time the reply lands, the same guard #submitValidation keeps. The comment
+    // itself landed server-side; reopening that label shows it.
     const commentedLabelMeta = this.#currentLabelMeta;
-    this.#postJson('/labelmap/comment', data).then(async (res) => {
+    return this.#postJson('/labelmap/comment', data).then(async (res) => {
       if (res.status === 409) {
         // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
-        if (this.#currentLabelMeta !== commentedLabelMeta) return;
+        if (this.#currentLabelMeta !== commentedLabelMeta) return false;
         await this.#redrawShownLabel(commentedLabelMeta.label_id);
-        els.commentInput.value = comment;
+        if (!reason && fromPopover) this.#keepTypedWords(comment);
+        else if (!reason) els.commentInput.value = comment;
         this.#showTypeConflictToast();
-        return;
+        return false;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#commentWrites++;
       const body = await res.json();
-      const wasEdit = this.#editingComment;
-      els.commentInput.value = '';
-      els.commentButton.classList.remove('is-active');
-      if (wasEdit) this.#logAction('EditComment');
+      if (this.#currentLabelMeta !== commentedLabelMeta) return true;
+      const wasEdit = this.#editingComment && !fromPopover;
+      if (!fromPopover) {
+        els.commentInput.value = '';
+        els.commentButton.classList.remove('is-active');
+      }
+      if (wasEdit && !reason) this.#logAction('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
       // comments from the same user before inserting, so the visible list should match.
-      if (!this.#comments) this.#comments = [];
       const timeCreated = new Date().toISOString();
       // Keep the avatar color stable across the replace-own-comment flow; new commenters take the next index.
       const commenter = this.#myCommentIdx >= 0 && this.#comments[this.#myCommentIdx]
@@ -2682,27 +2920,38 @@ export class LabelDetail {
       // The chip mirrors the server's (label_id, user_id) join: the commenter's current vote, or none.
       const validation = this.#prevAction ?? null;
       const newEntry = this.#admin
-        ? { username: body.username, comment, time_created: timeCreated, commenter, validation }
-        : { comment, mine: true, time_created: timeCreated, commenter, validation };
+        ? { username: body.username, comment, reason, time_created: timeCreated, commenter, validation }
+        : { comment, reason, mine: true, time_created: timeCreated, commenter, validation };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {
         this.#comments.push(newEntry);
         this.#myCommentIdx = this.#comments.length - 1;
       }
-      // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it.
-      this.#editingComment = false;
+      // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it. An edit
+      // left open beside a pop-up save stays open, holding its own words.
+      if (!fromPopover) {
+        this.#editingComment = false;
+        this.#holdingWords = false;
+      }
       this.#updateCommentRow();
       this.#renderComments();
-      if (this.#currentLabelMeta === commentedLabelMeta) this.#commentsChanged(commentedLabelMeta);
+      this.#commentsChanged(commentedLabelMeta);
       // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
       // message with it, and the reader hears the outcome of a card that is already in its final state.
-      this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
+      let statusKey = wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted';
+      if (reason || fromPopover) statusKey = 'common:validation-reason.saved';
+      this.#flashCommentStatus(statusKey);
+      return true;
     }).catch((err) => {
       console.error(err);
-      this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
+      if (this.#currentLabelMeta === commentedLabelMeta) {
+        this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
+      }
+      return false;
     }).finally(() => {
-      els.commentButton.disabled = false;
+      // Not a blanket re-enable: a stale reply must not unlock a card that is locked or still loading its next label.
+      els.commentButton.disabled = this.#interactionBlocked;
     });
   }
 

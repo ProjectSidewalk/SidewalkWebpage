@@ -5,13 +5,11 @@ import models.api.UserStatForApi
 import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
-import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Writes}
-import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
@@ -56,18 +54,6 @@ case class UserStatsForAdminPage(
     highQuality: Boolean,
     highQualityManual: Option[Boolean]
 )
-case class UserCount(
-    count: Int,
-    toolUsed: String,
-    role: String,
-    timeInterval: TimeInterval,
-    taskCompletedOnly: Boolean,
-    highQualityOnly: Boolean
-) {
-  require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.name.toLowerCase()) ++ Seq("all")).contains(role))
-}
-
 case class LeaderboardStat(
     username: String,
     labelCount: Int,
@@ -241,7 +227,9 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
+  // Free exploration earns meters_audited too (#5733); without its labels here, its users read as labeling nothing.
+  private val auditMissions =
+    missionTable.filter(_.missionType inSet Set(MissionType.Audit, MissionType.ExploreAddress))
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
@@ -645,7 +633,8 @@ class UserStatTable @Inject() (
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly"  =>
-        """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
+        """(now() AT TIME ZONE 'America/Los_Angeles')::date
+          - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
       "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
@@ -664,7 +653,12 @@ class UserStatTable @Inject() (
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
     val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
     val groupingColName: String    = if (byTeam) "team_id" else "user_id"
-    val joinUserTeamForAcc: String = if (byTeam) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    val joinUserTeamForAcc: String =
+      if (byTeam || teamId.isDefined) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
+    // Qualified, since a one-team board joins user_team, which has its own user_id.
+    val accGroupingCol: String = if (byTeam) "user_team.team_id" else "label.user_id"
+    // Repeated in the stat subqueries so a one-team board only reads that team's rows, not the whole city's.
+    val subqueryTeamFilter: String = teamId.map(id => s"AND user_team.team_id = $id").getOrElse("")
     val usernamesJoin: String      = {
       if (byTeam) {
         "INNER JOIN (SELECT team_id, name AS username FROM team) \"usernames\" ON label_counts.team_id = usernames.team_id"
@@ -691,7 +685,7 @@ class UserStatTable @Inject() (
           #$joinUserTeamTable
           WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               #$leaderboardVisibilityFilter
-              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+              AND (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
               #$teamFilter
           GROUP BY #$groupingCol
           ORDER BY label_count DESC
@@ -704,7 +698,8 @@ class UserStatTable @Inject() (
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (mission_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
@@ -714,17 +709,19 @@ class UserStatTable @Inject() (
           INNER JOIN #${FilteredTables.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          WHERE (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          WHERE (task_end AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (
-          SELECT #$groupingColName,
+          SELECT #$accGroupingCol AS #$groupingColName,
                  CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
           FROM #${FilteredTables.accuracyLabels}
           #$joinUserTeamForAcc
-          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
-          GROUP BY #$groupingColName
+          WHERE (label.time_created AT TIME ZONE 'America/Los_Angeles') > #$statStartTime
+              #$subqueryTeamFilter
+          GROUP BY #$accGroupingCol
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
     """
@@ -961,12 +958,13 @@ class UserStatTable @Inject() (
    */
   def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
     val weekStart =
-      "((now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7))"
+      """((now() AT TIME ZONE 'America/Los_Angeles')::date
+        - (cast(extract(dow from (now() AT TIME ZONE 'America/Los_Angeles')::date) as int) % 7))"""
     val timeFilter = mode.toLowerCase match {
-      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= $weekStart"
+      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= $weekStart"
       case "lastweek" =>
-        s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= ($weekStart - INTERVAL '7 days') " +
-          s"AND (label.time_created AT TIME ZONE 'US/Pacific') < $weekStart"
+        s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') >= ($weekStart - INTERVAL '7 days') " +
+          s"AND (label.time_created AT TIME ZONE 'America/Los_Angeles') < $weekStart"
       case _ => ""
     }
     sql"""
@@ -1018,19 +1016,19 @@ class UserStatTable @Inject() (
     sql"""
       WITH activity AS (
           -- Excluded users still see their own streak.
-          SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
+          SELECT (label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS d
           FROM #${FilteredTables.labels(contributors = Contributors.Everyone)}
           WHERE label.user_id = $userId
           UNION ALL
-          SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
+          SELECT (audit_task.task_end AT TIME ZONE 'America/Los_Angeles')::date
           FROM #${FilteredTables.completedAudits(contributors = Contributors.Everyone)}
           WHERE audit_task.user_id = $userId AND audit_task.task_end IS NOT NULL
           UNION ALL
-          SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
           UNION ALL
-          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date
           FROM voided_label_validation
           WHERE voided_label_validation.user_id = $userId
       )
@@ -1112,24 +1110,16 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Counts everyone who has explored or validated, leaving out AI and excluded users.
+   * Counts this city's contributors ([[models.utils.FilteredTables.contributorIds]]), leaving out AI accounts.
+   *
+   * @return The number of distinct non-AI contributors, all time.
    */
-  def countAllUsersContributed(): DBIO[UserCount] = {
+  def countAllUsersContributed(): DBIO[Int] = {
     sql"""
-      SELECT COUNT(DISTINCT(users.user_id))
-      FROM (
-          SELECT DISTINCT(mission.user_id)
-          FROM mission
-          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-          UNION
-          SELECT DISTINCT(user_id)
-          FROM audit_task
-      ) users
-      INNER JOIN user_stat ON users.user_id = user_stat.user_id
-      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      WHERE user_role.role <> 'AI'
-          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
+      SELECT COUNT(*)
+      FROM #${FilteredTables.contributorIds()}
+      WHERE #${FilteredTables.notAi("contributor.user_id")};
+    """.as[Int].head
   }
 
   /**

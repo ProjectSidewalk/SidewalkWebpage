@@ -137,7 +137,6 @@
     "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
   },
   "right-ui": {
-    "opens-new-tab": "(在新分頁中開啟)",
     "accuracy-tooltip": "精準度是依照其他用戶的檢核。若您的精準度很低，請查看近期檢核出的錯誤於 <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">您的用戶儀表板</a> 以協助您增加精準度！",
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
@@ -158,6 +157,9 @@
     "route-unavailable": {
       "message": "找不到這條路線，可能已被刪除。"
     },
+    "street-unavailable": {
+      "message": "無法探索這條街道，可能沒有街景影像，或已被移除。"
+    },
     "region-finished": {
       "message": "你已經探索過那個社區的每一條街道，所以我們把你移到了{{regionName}}。"
     },
@@ -177,6 +179,7 @@
       "needs-reassessment-tip-others": "有使用者在 {{assessedDate}} 最後一次評估這個地點，但這裡的影像更新（{{captureDate}}）。請再次評估，幫助我們分析有哪些改變。"
     },
     "minimap": {
+      "attribution-toggle": "地圖資料來源",
       "coach-dismiss": "知道了",
       "distance-left": "剩餘 {{distance}}",
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。",
@@ -188,16 +191,13 @@
       "mission-progress": "任務進度",
       "legend-explored": "已探索",
       "legend-ahead": "剩餘路線",
+      "legend-jump": "跳到下一條街",
       "legend-you": "你的位置與視角方向",
-      "legend-visited": "已造訪的位置",
+      "legend-crumbs": "圓圈：可點選前往的位置",
       "legend-unseen": "尚未查看",
-      "legend-next-stops": "路線上的站點",
       "forward-crumb-title": "前往第 {{rank}} 站",
-      "legend-other-links": "其他方向",
-      "legend-faced": "實心：向前會到達的位置",
       "legend-earlier-labels": "我先前的標記",
       "link-crumb-title": "前往此全景",
-      "legend-next-step": "淺藍：下一步（空白鍵）",
       "route-stop-title": "路線上的第 {{rank}} 站",
       "breadcrumb-title": "已造訪：點擊返回此處",
       "label-marker-title": "{{labelType}} 標記：點擊查看",
@@ -206,7 +206,10 @@
       "route-start-flag": "路線起點",
       "route-finish-flag": "路線終點",
       "mission-start-flag": "本次任務的起點",
-      "mission-finish-flag": "本次任務的終點"
+      "mission-finish-flag": "本次任務的終點",
+      "map-title": "您周圍區域的地圖",
+      "unavailable": "此瀏覽器無法顯示地圖。您仍可繼續探索。",
+      "recenter": "回到您的位置"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"
@@ -274,7 +277,7 @@
         "sand-gravel": "泥/沙/礫石(<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "未封蓋之人孔蓋(<tag-underline>e</tag-underline>)",
         "ends-abruptly": "突然中斷(<tag-underline>a</tag-underline>)",
-        "street-has-a-sidewalk": "街道另一側有實體人行道(<tag-underline>r</tag-underline>)",
+        "other-side-has-a-sidewalk": "街道另一側有實體人行道(<tag-underline>r</tag-underline>)",
         "street-has-no-sidewalks": "街道兩側皆無實體人行道(<tag-underline>t</tag-underline>)",
         "gravel-dirt-road": "碎石/泥土路(<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "行人車輛共用空間(<tag-underline>e</tag-underline>)",

@@ -50,6 +50,8 @@ class StreetImageryTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           case (Some(oldest), Some(newest)) => oldest.isAfter(newest) mustBe false
           case _                            => succeed // a one-sided or absent range has nothing to compare
         }
+        // A poll stamps both at once and other feeders bump only updated_at, so polled_at can never be the newer.
+        row.polledAt.foreach(polledAt => polledAt.isAfter(row.updatedAt) mustBe false)
       }
     }
 

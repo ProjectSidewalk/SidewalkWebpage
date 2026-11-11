@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { ShareWidget } from '../common/share/ShareWidget.js';
 import { CommunityListPage } from './CommunityListPage.js';
 
@@ -69,7 +70,6 @@ export class StoryListPage {
   #makeCardsClickable() {
     for (const card of this.#list.cards) {
       const link = card.querySelector('.story-card__label-link');
-      if (!link) continue;
       card.classList.add('story-card--clickable');
 
       let shareWasOpen = false;
@@ -96,7 +96,7 @@ export class StoryListPage {
   #addShareChips() {
     for (const card of this.#list.cards) {
       const storyId = card.dataset.storyId;
-      const labelId = card.querySelector('.story-card__label-link')?.dataset.labelId;
+      const labelId = card.querySelector('.story-card__label-link').dataset.labelId;
       const foot = card.querySelector('.story-card__foot');
       if (!storyId || !labelId || !foot) continue;
 

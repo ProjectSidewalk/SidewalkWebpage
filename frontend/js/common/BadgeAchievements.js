@@ -8,6 +8,7 @@
  * @property {string} iconSrc - URL of the badge icon.
  */
 
+import i18next from 'i18next';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
 import './utilitiesMath.js';
@@ -143,9 +144,9 @@ export class BadgeAchievements {
 
     if (!next) return { level, badge, next: null, earnedAt, nextAt: 0, fraction: 1, remaining: 0 };
 
+    // Thresholds climb strictly from above zero, so a tier always has width to divide by.
     const nextAt = thresholds[level];
-    const span = nextAt - earnedAt;
-    const fraction = span > 0 ? Math.min(1, Math.max(0, (value - earnedAt) / span)) : 0;
+    const fraction = Math.min(1, Math.max(0, (value - earnedAt) / (nextAt - earnedAt)));
     return { level, badge, next, earnedAt, nextAt, fraction, remaining: Math.max(0, nextAt - value) };
   }
 
@@ -180,7 +181,7 @@ export class BadgeAchievements {
       icon: badge.iconSrc,
       title: i18next.t('common:badges.congratulations'),
       message: i18next.t('common:badges.you-earned', { badge: badgeLabel }),
-      button: { label: i18next.t('common:badges.my-dashboard'), href: '/dashboard#achievements', newTab: true },
+      button: { label: i18next.t('common:badges.my-dashboard'), href: '/dashboard#achievements' },
       reference: referenceEl,
     });
   }

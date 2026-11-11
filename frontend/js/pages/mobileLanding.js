@@ -1,4 +1,5 @@
 /** Entry point for the mobile landing page. */
+import '../../css/pages/mobile-landing.css';
 
 window.appManager.ready(() => {
   document.getElementById('mobile-hero-cta-btn').addEventListener('click', () => {

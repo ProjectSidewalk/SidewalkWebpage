@@ -1,11 +1,12 @@
 package service
 
+import actor.SidewalkPresenceActor
 import com.google.inject.ImplementedBy
-import models.street.{SidewalkPresenceRebuildCounts, SidewalkPresenceTable}
-import models.utils.MyPostgresProfile
+import models.street.{SidewalkPresenceRebuildCounts, SidewalkPresenceStreetForAdmin, SidewalkPresenceTable}
+import models.utils.{BackgroundJobRunTable, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api.given
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.{Inject, Singleton}
@@ -46,6 +47,12 @@ trait SidewalkPresenceService {
 
   /** Whether a rebuild is in flight. */
   def isRunning: Boolean
+
+  /**
+   * Every open street's two faces with their evidence, and when the table was last rebuilt, as the admin Sidewalks
+   * page's payload (#5724).
+   */
+  def getForAdmin: Future[JsValue]
 }
 
 /**
@@ -56,7 +63,8 @@ trait SidewalkPresenceService {
 @Singleton
 class SidewalkPresenceServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    sidewalkPresenceTable: SidewalkPresenceTable
+    sidewalkPresenceTable: SidewalkPresenceTable,
+    backgroundJobRunTable: BackgroundJobRunTable
 )(using ec: ExecutionContext)
     extends SidewalkPresenceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -81,5 +89,12 @@ class SidewalkPresenceServiceImpl @Inject() (
         }
         .andThen { case _ => running.set(false) }
     }
+  }
+
+  def getForAdmin: Future[JsValue] = {
+    db.run(for {
+      streets   <- sidewalkPresenceTable.getForAdmin
+      rebuiltAt <- backgroundJobRunTable.lastSuccessfulFinish(SidewalkPresenceActor.Name)
+    } yield SidewalkPresenceStreetForAdmin.payload(streets, rebuiltAt))
   }
 }

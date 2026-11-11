@@ -1,6 +1,6 @@
 @import models.label.Tag
 @*
- * The shared filter sidebar (#4585): the same controls on the map pages and in the Gallery, driven by the
+ * The shared filter sidebar (#4585): the same controls on the map pages and in Gallery, driven by the
  * FilterSidebar controller in `frontend/js/common/filter-sidebar/`.
  *
  * @param tags                All tags for the city, rendered as per-label-type drawers.
@@ -13,11 +13,11 @@
  *                            folds outdated streets into the audited checkbox.
  * @param showCounts          Whether rows carry a live count slot for the host to fill in.
  * @param withMapChrome       Whether to wrap the sections in the map's panel: collapse button and resize handle.
- *                            Hosts with their own container (the Gallery) pass false and get the sections alone.
+ *                            Hosts with their own container (Gallery) pass false and get the sections alone.
  * @param checkedLabelTypes   Which label type rows start checked; empty means all of them.
  * @param checkedValidations  Which validation rows start checked.
  * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
- * @param activeTags          Tags that start applied, e.g. from the Gallery's URL.
+ * @param activeTags          Tags that start applied, e.g. from Gallery's URL.
  *@
 @(tags: Seq[Tag] = Seq.empty,
   sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),

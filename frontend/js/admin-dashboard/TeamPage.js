@@ -70,7 +70,7 @@ export class TeamPage {
     AdminShell.setText('kpi-team-members', AdminShell.num(totals.members || 0));
     AdminShell.setText('kpi-team-labels', AdminShell.num(totals.labels || 0));
     AdminShell.setText('kpi-team-validations', AdminShell.num(totals.validations || 0));
-    AdminShell.setText('kpi-team-distance', TeamPage.#km(totals.distance_meters));
+    AdminShell.setText('kpi-team-distance', util.metersToLongDistanceString(totals.distance_meters, 1));
     AdminShell.setText('kpi-team-accuracy', TeamPage.#pct(totals.labels_agreed, totals.labels_validated));
     AdminShell.setText('kpi-team-accuracy-note', totals.labels_validated
       ? `of ${AdminShell.num(totals.labels_validated)} judged labels`
@@ -86,7 +86,7 @@ export class TeamPage {
    */
   #columns() {
     return [
-      { key: 'username', label: 'User', align: 'left', sort: (m) => (m.username || '').toLowerCase() },
+      { key: 'username', label: 'User', align: 'left', sort: (m) => m.username.toLowerCase() },
       { key: 'role', label: 'Role', align: 'left', sort: (m) => m.role || '' },
       { key: 'labels', label: 'Labels', align: 'right', sort: (m) => m.labels || 0 },
       { key: 'validations', label: 'Validations given', align: 'right', sort: (m) => m.validations || 0 },
@@ -104,15 +104,14 @@ export class TeamPage {
   }
 
   #sortedMembers() {
-    const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key && c.sort) || cols[0];
+    const col = this.#columns().find((c) => c.key === this.#sort.key);
     const dir = this.#sort.dir === 'asc' ? 1 : -1;
     return this.#members.slice().sort((a, b) => {
       const av = col.sort(a);
       const bv = col.sort(b);
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
-      return (a.username || '').localeCompare(b.username || '');
+      return a.username.localeCompare(b.username);
     });
   }
 
@@ -145,7 +144,7 @@ export class TeamPage {
         cell(util.escapeHTML(m.role), 'left'),
         cell(AdminShell.num(m.labels || 0), 'right'),
         cell(AdminShell.num(m.validations || 0), 'right'),
-        cell(TeamPage.#km(m.distance_meters), 'right'),
+        cell(util.escapeHTML(util.metersToLongDistanceString(m.distance_meters, 1)), 'right'),
         cell(TeamPage.#accuracyCell(m), 'right'),
         cell(m.last_active ? util.escapeHTML(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
           'right'),
@@ -358,14 +357,6 @@ export class TeamPage {
    */
   static #defaultDir(key) {
     return ['username', 'role'].includes(key) ? 'asc' : 'desc';
-  }
-
-  /**
-   * @param {number} meters - A distance.
-   * @returns {string} The distance in km with one decimal, matching the rest of the admin dashboard.
-   */
-  static #km(meters) {
-    return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
 
   /**

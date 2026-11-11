@@ -19,6 +19,7 @@ class ActorModule extends AbstractModule with PekkoGuiceSupport {
     bindActor[SidewalkPresenceActor]("sidewalk-presence-actor")
     bindActor[PlacesRefreshActor]("places-refresh-actor")
     bindActor[StreetGradientStalenessActor]("street-gradient-staleness-actor")
+    bindActor[BasemapRefreshActor]("basemap-refresh-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

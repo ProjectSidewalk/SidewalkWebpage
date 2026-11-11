@@ -25,5 +25,5 @@ SELECT :'city' AS city,
 FROM label_validation
 INNER JOIN label ON label_validation.label_id = label.label_id
 WHERE label.deleted = FALSE
-    AND label.tutorial = FALSE
+  AND label.tutorial = FALSE
 ORDER BY label_validation.label_id, label_validation.end_timestamp, label_validation.label_validation_id;

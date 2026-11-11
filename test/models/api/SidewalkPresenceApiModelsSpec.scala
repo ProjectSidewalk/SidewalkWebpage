@@ -23,11 +23,26 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
 
   /** A face called absent, so every property is populated. */
   private def absentFace: SidewalkPresenceForApi = SidewalkPresenceForApi(
-    streetEdgeId = 10425, streetSide = "left", osmWayId = 6479562L, regionId = 44, regionName = "Highland Park",
-    wayType = "residential", status = "open", presence = "absent", presenceBasis = "no_sidewalk_labels",
-    noSidewalkLabelCount = 3, noSidewalkUserCount = 2, validatedNoSidewalkCount = 1, rejectedNoSidewalkCount = 1,
-    labelCount = 5, auditCount = 2, firstNoSidewalkLabelDate = Some(OffsetDateTime.parse("2019-11-04T22:31:07Z")),
-    lastNoSidewalkLabelDate = Some(OffsetDateTime.parse("2023-02-18T17:05:44Z")), geometry = line
+    streetEdgeId = 10425,
+    streetSide = "left",
+    osmWayId = 6479562L,
+    osmWays =
+      Seq(OsmWayLinkForApi(6479562L, Some(0.0), Some(1.0), Some(0.3), Some(0.55), Some(false)).withOsmSide("left")),
+    regionId = 44,
+    regionName = "Highland Park",
+    wayType = "residential",
+    status = "open",
+    presence = "absent",
+    presenceBasis = "no_sidewalk_labels",
+    noSidewalkLabelCount = 3,
+    noSidewalkUserCount = 2,
+    validatedNoSidewalkCount = 1,
+    rejectedNoSidewalkCount = 1,
+    labelCount = 5,
+    auditCount = 2,
+    firstNoSidewalkLabelDate = Some(OffsetDateTime.parse("2019-11-04T22:31:07Z")),
+    lastNoSidewalkLabelDate = Some(OffsetDateTime.parse("2023-02-18T17:05:44Z")),
+    geometry = line
   )
 
   /** The other side of the same street, with nothing to date. */
@@ -55,6 +70,13 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
     (props \ "rejected_no_sidewalk_count").as[Int] shouldBe 1
     (props \ "first_no_sidewalk_label_date").as[String] shouldBe "2019-11-04T22:31:07Z"
     (props \ "streetSide").toOption shouldBe None
+    // The way runs the other direction, so this left face is the way's right side (#5741).
+    val way = (props \ "osm_ways")(0)
+    (way \ "osm_way_id").as[Long] shouldBe 6479562L
+    (way \ "osm_side").as[String] shouldBe "right"
+    (way \ "way_from_frac").as[Double] shouldBe 0.3
+    way.as[JsObject].keys shouldBe Set("osm_way_id", "street_from_frac", "street_to_frac", "way_from_frac",
+      "way_to_frac", "osm_side")
   }
 
   test("a face without NoSidewalk labels carries null dates, not missing keys") {
@@ -67,7 +89,8 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
     SidewalkPresenceForApi.csvHeader shouldBe
       "street_edge_id,street_side,osm_way_id,region_id,region_name,way_type,status,presence,presence_basis," +
       "no_sidewalk_label_count,no_sidewalk_user_count,label_count,audit_count,first_no_sidewalk_label_date," +
-      "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,start_point,end_point"
+      "last_no_sidewalk_label_date,validated_no_sidewalk_count,rejected_no_sidewalk_count,osm_ways,start_point," +
+      "end_point"
   }
 
   test("a CSV row has one cell per header column, empty where the JSON is null") {
@@ -78,5 +101,6 @@ class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
     cells(header.indexOf("presence")) shouldBe "present"
     cells(header.indexOf("first_no_sidewalk_label_date")) shouldBe ""
     cells(header.indexOf("start_point")) shouldBe "\"-122.3546715,47.5309889\""
+    cells(header.indexOf("osm_ways")) should include("\"\"osm_side\"\":\"\"right\"\"")
   }
 }

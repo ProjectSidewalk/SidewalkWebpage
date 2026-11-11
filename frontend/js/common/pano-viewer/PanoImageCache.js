@@ -13,7 +13,7 @@
  * Entries are keyed by the exact network URL the viewer would otherwise request, so the two agree without either
  * knowing how the other builds it: `prefetchBackups` derives it from the pano's metadata the same way the viewer
  * does, and the viewer asks `resolve()` with the URL it was about to fetch. Pannellum takes a `blob:` URL where it
- * takes any other (its loader XHRs the URL to a Blob either way), so no change to the vendored viewer is needed.
+ * takes any other (its loader XHRs the URL to a Blob either way), so no change to the viewer library is needed.
  *
  * Usage:
  *

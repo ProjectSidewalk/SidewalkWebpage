@@ -6,6 +6,7 @@
  * @requires DOM element with id 'label-tags-preview'
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { createApiTableWrapper } from './apiTableWrapper.js';
 
@@ -167,6 +168,8 @@ export const LabelTagsPreview = {
       permalink.href = `#${headingId}`;
       permalink.className = 'permalink';
       permalink.textContent = '#';
+      permalink.setAttribute('aria-label', i18next.t('common:copy.section-link'));
+      permalink.setAttribute('data-ps-tooltip', i18next.t('common:copy.section-link'));
       heading.appendChild(permalink);
 
       section.appendChild(heading);

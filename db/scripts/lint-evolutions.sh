@@ -23,35 +23,35 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 EVOLUTIONS_DIR="${1:-$SCRIPT_DIR/../../conf/evolutions/default}"
 
 if [[ ! -d "$EVOLUTIONS_DIR" ]]; then
-    echo "lint-evolutions: evolutions dir not found: $EVOLUTIONS_DIR" >&2
-    exit 1
+  echo "lint-evolutions: evolutions dir not found: $EVOLUTIONS_DIR" >&2
+  exit 1
 fi
 
 problems=0
 
 shopt -s nullglob
 for sql_file in "$EVOLUTIONS_DIR"/*.sql; do
-    # Check 1: a `--` comment containing a `;` that has more non-whitespace after it on the same line. That trailing
-    # text is what Play orphans into the next statement. A `;` at end-of-comment-line, or a normal statement-ending `;`
-    # with no `--`, is fine and not matched.
-    while IFS= read -r match; do
-        echo "ERROR ($(basename "$sql_file")): semicolon mid-'--'-comment -- Play splits on it and executes the text"
-        echo "       after the ';' as SQL. Reword to drop the ';'."
-        echo "       $match"
-        problems=1
-    done < <(grep -nE -- '--.*;[[:space:]]*[^[:space:]]' "$sql_file" || true)
+  # Check 1: a `--` comment containing a `;` that has more non-whitespace after it on the same line. That trailing
+  # text is what Play orphans into the next statement. A `;` at end-of-comment-line, or a normal statement-ending `;`
+  # with no `--`, is fine and not matched.
+  while IFS= read -r match; do
+    echo "ERROR ($(basename "$sql_file")): semicolon mid-'--'-comment -- Play splits on it and executes the text"
+    echo "       after the ';' as SQL. Reword to drop the ';'."
+    echo "       $match"
+    problems=1
+  done < <(grep -nE -- '--.*;[[:space:]]*[^[:space:]]' "$sql_file" || true)
 
-    # Check 2: a `;` inside a single-quoted string. Scan character by character rather than with a regex, because
-    # whether a given `;` is quoted depends on every quote before it. String and block-comment state both carry across
-    # lines, since either may span them. A doubled '' is an escaped quote that stays in the string. Prose apostrophes
-    # inside comments are why comments must be skipped rather than merely ignored: `/* ... we don't ... */` holds an
-    # odd number of quotes and would otherwise open a string that never closes (242.sql).
-    while IFS= read -r match; do
-        echo "ERROR ($(basename "$sql_file")): semicolon inside a string literal -- Play splits on it and hands"
-        echo "       Postgres an unterminated string. Reword to drop the ';'."
-        echo "       $match"
-        problems=1
-    done < <(awk '
+  # Check 2: a `;` inside a single-quoted string. Scan character by character rather than with a regex, because
+  # whether a given `;` is quoted depends on every quote before it. String and block-comment state both carry across
+  # lines, since either may span them. A doubled '' is an escaped quote that stays in the string. Prose apostrophes
+  # inside comments are why comments must be skipped rather than merely ignored: `/* ... we don't ... */` holds an
+  # odd number of quotes and would otherwise open a string that never closes (242.sql).
+  while IFS= read -r match; do
+    echo "ERROR ($(basename "$sql_file")): semicolon inside a string literal -- Play splits on it and hands"
+    echo "       Postgres an unterminated string. Reword to drop the ';'."
+    echo "       $match"
+    problems=1
+  done < <(awk '
         BEGIN { q = sprintf("%c", 39); in_str = 0; in_block = 0 }
         {
             reported = 0
@@ -77,19 +77,19 @@ for sql_file in "$EVOLUTIONS_DIR"/*.sql; do
         }
     ' "$sql_file")
 
-    # Check 3: both section markers must be present.
-    if ! grep -qE '^#[[:space:]]*---[[:space:]]*!Ups' "$sql_file"; then
-        echo "ERROR ($(basename "$sql_file")): missing '# --- !Ups' marker."
-        problems=1
-    fi
-    if ! grep -qE '^#[[:space:]]*---[[:space:]]*!Downs' "$sql_file"; then
-        echo "ERROR ($(basename "$sql_file")): missing '# --- !Downs' marker."
-        problems=1
-    fi
+  # Check 3: both section markers must be present.
+  if ! grep -qE '^#[[:space:]]*---[[:space:]]*!Ups' "$sql_file"; then
+    echo "ERROR ($(basename "$sql_file")): missing '# --- !Ups' marker."
+    problems=1
+  fi
+  if ! grep -qE '^#[[:space:]]*---[[:space:]]*!Downs' "$sql_file"; then
+    echo "ERROR ($(basename "$sql_file")): missing '# --- !Downs' marker."
+    problems=1
+  fi
 done
 
 if [[ "$problems" -eq 0 ]]; then
-    echo "lint-evolutions: OK ($(basename "$EVOLUTIONS_DIR") is clean)"
+  echo "lint-evolutions: OK ($(basename "$EVOLUTIONS_DIR") is clean)"
 fi
 
 exit "$problems"

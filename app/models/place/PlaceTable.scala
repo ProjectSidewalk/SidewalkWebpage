@@ -3,7 +3,7 @@ package models.place
 import com.google.inject.ImplementedBy
 import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.utils.MyPostgresProfile.api.*
-import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
+import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
@@ -144,15 +144,6 @@ trait PlaceTableRepository {
   /** When the refresh last saw any OSM place, or None before the first successful refresh. */
   def newestFetchedAt: DBIO[Option[OffsetDateTime]]
 
-  /**
-   * The bounding box of the city's live regions: what the refresh asks Overpass for. The configured map bounds are
-   * for panning and can cover a metro area (Teaneck's fetched 42k objects and kept 175), while every kept place has
-   * to sit within 250 m of a region anyway.
-   *
-   * @return The box, or None for a schema with no regions.
-   */
-  def regionsExtent: DBIO[Option[LatLngBBox]]
-
   /** How many OSM-sourced places the table holds. */
   def osmPlaceCount: DBIO[Int]
 
@@ -279,14 +270,6 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   def newestFetchedAt: DBIO[Option[OffsetDateTime]] =
     places.filter(_.source === "osm").map(_.fetchedAt).max.result
-
-  def regionsExtent: DBIO[Option[LatLngBBox]] =
-    sql"""SELECT ST_XMin(extent.box), ST_YMin(extent.box), ST_XMax(extent.box), ST_YMax(extent.box)
-          FROM (SELECT ST_Extent(region.geom) AS box FROM region WHERE NOT region.deleted) extent
-          WHERE extent.box IS NOT NULL"""
-      .as[(Double, Double, Double, Double)]
-      .headOption
-      .map(_.map { case (minLng, minLat, maxLng, maxLat) => LatLngBBox(minLat, minLng, maxLat, maxLng) })
 
   def osmPlaceCount: DBIO[Int] = places.filter(_.source === "osm").length.result
 

@@ -6,66 +6,62 @@
  * band, which draws no rect), the --emphasis classes landing on exactly the requested index, and the default bar
  * output staying label-free so other MiniLineChart callers are unaffected.
  *
- * Runs under jsdom (jest.config.js); MiniLineChart.svg is a pure string builder, so tests parse its output into a
- * detached container and assert on the resulting DOM.
+ * MiniLineChart.svg builds a string, so the tests parse its output into a detached container and assert on that DOM.
  */
 
-const { loadModules, realUtil } = require('./loadGlobalScript');
-
-window.util = realUtil();
-
+import { loadModules } from './loader.js';
 
 /** Loads a fresh MiniLineChart class. */
-function loadMiniLineChart() {
-    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
+async function loadMiniLineChart() {
+  return (await loadModules('frontend/js/admin-dashboard/MiniLineChart.js')).MiniLineChart;
 }
 
 describe('MiniLineChart bar mode', () => {
-    const CATS = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-    const VALUES = [5, 0, 1234, 8, 15, 3, 2];
-    let MiniLineChart;
+  const CATS = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+  const VALUES = [5, 0, 1234, 8, 15, 3, 2];
+  let MiniLineChart;
 
-    /** Render one bar series into a detached div and return the div for querying. */
-    function render(opts = {}) {
-        const div = document.createElement('div');
-        div.innerHTML = MiniLineChart.svg(CATS, [{ name: 'Labels', key: 'aclabels', values: VALUES }],
-            { kind: 'bar', maxXLabels: 7, ...opts });
-        return div;
-    }
+  /** Render one bar series into a detached div and return the div for querying. */
+  function render(opts = {}) {
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg(CATS, [{ name: 'Labels', key: 'aclabels', values: VALUES }],
+      { kind: 'bar', maxXLabels: 7, ...opts });
+    return div;
+  }
 
-    beforeEach(() => {
-        MiniLineChart = loadMiniLineChart();
-    });
+  beforeEach(async () => {
+    MiniLineChart = await loadMiniLineChart();
+  });
 
-    test('barValues draws one formatted label per bar, including "0" over a zero band with no rect', () => {
-        const div = render({ barValues: true });
-        const labels = [...div.querySelectorAll('text.mini-value')].map((t) => t.textContent);
-        expect(labels).toEqual(['5', '0', '1,234', '8', '15', '3', '2']);
-        // The zero value draws a label but no bar.
-        expect(div.querySelectorAll('rect.mini-bar')).toHaveLength(6);
-    });
+  test('barValues draws one formatted label per bar, including "0" over a zero band with no rect', () => {
+    const div = render({ barValues: true });
+    const labels = [...div.querySelectorAll('text.mini-value')].map((t) => t.textContent);
+    expect(labels).toEqual(['5', '0', '1,234', '8', '15', '3', '2']);
+    // The zero value draws a label but no bar.
+    expect(div.querySelectorAll('rect.mini-bar')).toHaveLength(6);
+  });
 
-    test('barValues labels use a caller-supplied valueFormat', () => {
-        const div = render({ barValues: true, valueFormat: (v) => `${v}!` });
-        const labels = [...div.querySelectorAll('text.mini-value')].map((t) => t.textContent);
-        expect(labels[2]).toBe('1234!');
-    });
+  test('barValues labels use a caller-supplied valueFormat', () => {
+    const div = render({ barValues: true, valueFormat: (v) => `${v}!` });
+    const labels = [...div.querySelectorAll('text.mini-value')].map((t) => t.textContent);
+    expect(labels[2]).toBe('1234!');
+  });
 
-    test('emphasisIndex marks exactly that bar, its value label, and its x label', () => {
-        const last = VALUES.length - 1;
-        const div = render({ barValues: true, emphasisIndex: last });
-        expect(div.querySelectorAll('rect.mini-bar--emphasis')).toHaveLength(1);
-        const emphValues = div.querySelectorAll('text.mini-value--emphasis');
-        expect(emphValues).toHaveLength(1);
-        expect(emphValues[0].textContent).toBe('2');
-        const emphAxis = div.querySelectorAll('text.mini-axis--emphasis');
-        expect(emphAxis).toHaveLength(1);
-        expect(emphAxis[0].textContent).toBe('Thu');
-    });
+  test('emphasisIndex marks exactly that bar, its value label, and its x label', () => {
+    const last = VALUES.length - 1;
+    const div = render({ barValues: true, emphasisIndex: last });
+    expect(div.querySelectorAll('rect.mini-bar--emphasis')).toHaveLength(1);
+    const emphValues = div.querySelectorAll('text.mini-value--emphasis');
+    expect(emphValues).toHaveLength(1);
+    expect(emphValues[0].textContent).toBe('2');
+    const emphAxis = div.querySelectorAll('text.mini-axis--emphasis');
+    expect(emphAxis).toHaveLength(1);
+    expect(emphAxis[0].textContent).toBe('Thu');
+  });
 
-    test('defaults stay label- and emphasis-free', () => {
-        const div = render();
-        expect(div.querySelectorAll('text.mini-value')).toHaveLength(0);
-        expect(div.querySelectorAll('.mini-bar--emphasis, .mini-axis--emphasis')).toHaveLength(0);
-    });
+  test('defaults stay label- and emphasis-free', () => {
+    const div = render();
+    expect(div.querySelectorAll('text.mini-value')).toHaveLength(0);
+    expect(div.querySelectorAll('.mini-bar--emphasis, .mini-axis--emphasis')).toHaveLength(0);
+  });
 });

@@ -1,3 +1,6 @@
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
+import mapboxgl from '../common/mapboxgl.js';
+import i18next from 'i18next';
 import { featureCollectionBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
 import { MapSidebarDrawer } from './MapSidebarDrawer.js';
@@ -7,6 +10,7 @@ import { addLabelsToMap, setLabelData } from './addLabelsToMap.js';
 import { addRegionsToMap } from './addRegionsToMap.js';
 import { addStreetsToMap } from './addStreetsToMap.js';
 import { fetchLabelFeed } from './psMapUtilities.js';
+import '../../css/components/choropleth.css';
 
 /**
  * Central function that handles the creation of choropleths and maps.
@@ -54,12 +58,10 @@ import { fetchLabelFeed } from './psMapUtilities.js';
  */
 export function createPSMap(params) {
   // Set default parameters.
-  params.logClicks = params.logClicks === undefined ? true : params.logClicks;
-  params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
-  params.regionTooltip = params.regionTooltip === undefined ? 'none' : params.regionTooltip;
-  params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined
-    ? false
-    : params.differentiateUnauditedStreets;
+  params.logClicks ??= true;
+  params.scrollWheelZoom ??= true;
+  params.regionTooltip ??= 'none';
+  params.differentiateUnauditedStreets ??= false;
 
   // Create the map.
   let map;
@@ -192,7 +194,7 @@ export function createPSMap(params) {
    * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
    */
   function createMap(mapParamData) {
-    params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
+    params.zoomCorrection ||= 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
     // Mobile opens zoomed in on the city center rather than fitted to the whole city: with viewport label
@@ -221,7 +223,8 @@ export function createPSMap(params) {
     });
     newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     const navPosition = params.navigationControlPosition || 'top-left';
-    newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
+    newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }),
+      /** @type {mapboxgl.ControlPosition} */ (navPosition));
 
     // Move the Mapbox logo if necessary.
     if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {

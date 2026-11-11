@@ -100,4 +100,4 @@ if [ -n "$DB_LOCK" ]; then
   done
 fi
 
-exec sbt --jvm-client "$@"
+exec sbt --client "$@"

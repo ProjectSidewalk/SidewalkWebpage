@@ -137,7 +137,6 @@
     "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!"
   },
   "right-ui": {
-    "opens-new-tab": "(abre em uma nova aba)",
     "accuracy-tooltip": "A precisão é baseada em validações de outros usuários. Se sua precisão estiver baixa, verifique alguns erros recentes em <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">seu Painel de Usuário</a> para ajudá-lo a melhorar!",
     "no-accuracy-tooltip": "Precisamos de mais dados para calcular uma classificação de precisão para você. Adicione mais rótulos e inscreva-se para acompanhar sua classificação de precisão!",
     "current-mission": {
@@ -158,6 +157,9 @@
     "route-unavailable": {
       "message": "Essa rota não está disponível. Ela pode ter sido excluída."
     },
+    "street-unavailable": {
+      "message": "Essa rua não está disponível para explorar. Ela pode não ter imagens ou pode ter sido removida."
+    },
     "region-finished": {
       "message": "Você já explorou todas as ruas desse bairro, então levamos você para {{regionName}}."
     },
@@ -177,6 +179,7 @@
       "needs-reassessment-tip-others": "Um usuário avaliou este local pela última vez em {{assessedDate}}, mas as imagens aqui são mais recentes ({{captureDate}}). Por favor, avalie-o novamente para nos ajudar a analisar o que mudou."
     },
     "minimap": {
+      "attribution-toggle": "Créditos dos dados do mapa",
       "coach-dismiss": "Entendi",
       "distance-left": "Faltam {{distance}}",
       "explore-current-location": "Vire 360 graus para garantir que nada seja perdido.",
@@ -188,16 +191,13 @@
       "mission-progress": "Progresso da missão",
       "legend-explored": "Explorado",
       "legend-ahead": "Rota restante",
+      "legend-jump": "Salto para a próxima rua",
       "legend-you": "Você + direção da vista",
-      "legend-visited": "Local visitado",
+      "legend-crumbs": "Círculos: lugares aonde você pode ir com um clique",
       "legend-unseen": "Ainda não visto",
-      "legend-next-stops": "Paradas na sua rota",
       "forward-crumb-title": "Avançar para a parada {{rank}}",
-      "legend-other-links": "Outras direções",
-      "legend-faced": "Preenchido: para onde avançar leva",
       "legend-earlier-labels": "Meus rótulos anteriores",
       "link-crumb-title": "Ir para este panorama",
-      "legend-next-step": "Azul claro: próximo passo (barra de espaço)",
       "route-stop-title": "Parada {{rank}} da sua rota",
       "breadcrumb-title": "Visitado: clique para voltar aqui",
       "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
@@ -206,7 +206,10 @@
       "route-start-flag": "Início da rota",
       "route-finish-flag": "Fim da rota",
       "mission-start-flag": "Onde esta missão começou",
-      "mission-finish-flag": "Onde esta missão termina"
+      "mission-finish-flag": "Onde esta missão termina",
+      "map-title": "Mapa da área ao seu redor",
+      "unavailable": "Este navegador não consegue exibir o mapa. Você pode continuar explorando sem ele.",
+      "recenter": "Voltar à sua localização"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"
@@ -275,7 +278,7 @@
         "sand-gravel": "lama/areia/cascalho (<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "bueiro d<tag-underline>e</tag-underline>scoberto",
         "ends-abruptly": "termina <tag-underline>a</tag-underline>brutamente",
-        "street-has-a-sidewalk": "<tag-underline>r</tag-underline>ua tem uma calçada",
+        "other-side-has-a-sidewalk": "out<tag-underline>r</tag-underline>o lado tem uma calçada",
         "street-has-no-sidewalks": "rua não tem calçadas (<tag-underline>t</tag-underline>)",
         "gravel-dirt-road": "estrada de cascalho/terra/<tag-underline>d</tag-underline>etritos",
         "shared-pedestrian-car-space": "espaço compartilhado p<tag-underline>e</tag-underline>destre/carro",

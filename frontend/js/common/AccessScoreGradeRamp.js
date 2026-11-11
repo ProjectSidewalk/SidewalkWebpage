@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * The street-slope color ramp (#5223), read from the `--color-grade-ramp-*` tokens in main.css so the map's lines,
  * the legend's swatches and the elevation profile's threshold lines agree on what a color means.

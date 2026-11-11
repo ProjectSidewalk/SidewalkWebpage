@@ -3,17 +3,14 @@ package models.utils
 import models.label.LabelType
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api.*
 import models.api.AggregateStats
 import service.{CityScorecard, ConfigService}
-import util.SidewalkSpec
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{LocalDate, ZoneId}
 import java.time.temporal.ChronoUnit
-import scala.concurrent.Await
-import scala.concurrent.duration.*
 
 /**
  * Integration test for the Across-Cities scorecard query on ConfigTable.
@@ -25,9 +22,11 @@ import scala.concurrent.duration.*
  * surfaces as a build failure here rather than as a silently-dropped city on the Owner-only page (where
  * `ConfigService.getCityScorecards` swallows the per-city failure in a `.recover`).
  *
+ * The one mutating case runs inside a rolled-back transaction (runRolledBack), leaving the connected DB untouched.
+ *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -35,9 +34,6 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .build()
 
   private lazy val configTable: ConfigTable = app.injector.instanceOf[ConfigTable]
-
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 30.seconds)
 
   // Resolve the current city's schema the same way ConfigService.getCitySchema does; this schema has all
   // evolutions applied, so it exercises the query against the current street_edge_status schema.
@@ -63,6 +59,41 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       sc.coverage must be >= 0.0
       sc.coverage must be <= 100.0
     }
+
+    "order the distance measures walked >= mapped >= current (#5828)" in {
+      val sc = run(configTable.getCityScorecardBySchema(schema))
+      // The hero's funnel and the re-audit backlog (mapped - current) both rely on each measure containing the next.
+      sc.walkedKm must be >= (sc.mappedKm - 0.001)
+      sc.mappedKm must be >= (sc.auditedKm - 0.001)
+      sc.mappedKm must be <= (sc.totalKm + 0.001)
+    }
+
+    "drop a street whose audits are all on outdated imagery from coverage, but not from mapped or walked (#4384)" in {
+      // Chosen through the scorecard's own row filters, so the street is one its coverage counts before the flip.
+      val countedStreetId = run(sql"""
+        SELECT street_edge.street_edge_id
+        FROM #${FilteredTables.streets(Some(schema))}
+        INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+            ON street_edge.street_edge_id = audit_task.street_edge_id AND audit_task.outdated_imagery = FALSE
+        ORDER BY street_edge.street_edge_id
+        LIMIT 1""".as[Int].headOption)
+      assume(countedStreetId.isDefined)
+      val streetId = countedStreetId.get
+
+      val (before, after) = runRolledBack(for {
+        before <- configTable.getCityScorecardBySchema(schema)
+        // Every completed audit, so no current-imagery audit is left to keep the street covered.
+        _ <- sqlu"""
+          UPDATE "#$schema".audit_task SET outdated_imagery = TRUE
+          WHERE street_edge_id = $streetId AND completed = TRUE"""
+        after <- configTable.getCityScorecardBySchema(schema)
+      } yield (before, after))
+
+      after.auditedStreets mustBe before.auditedStreets - 1
+      after.auditedKm must be < before.auditedKm
+      after.mappedKm mustBe before.mappedKm +- 1e-6
+      after.walkedKm mustBe before.walkedKm +- 1e-6
+    }
   }
 
   // The rest of the cross-city surface runs raw SQL against "#$schema".* and was otherwise untested — the same gap
@@ -78,6 +109,11 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "execute getContributorUserIdsBySchema" in {
       run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[?]]
     }
+
+    "execute getAiUserIds" in {
+      run(configTable.getAiUserIds) mustBe a[Seq[?]]
+    }
+
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
       run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
@@ -99,7 +135,7 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     // two still count the same things is running both over the same data. A window reaching back to 2010 covers the
     // whole seeded history, and the guard below keeps an empty schema from passing this vacuously.
     "count the baseline on exactly the daily bars' basis" in {
-      val today = LocalDate.now(ZoneId.of("US/Pacific"))
+      val today = LocalDate.now(ZoneId.of("America/Los_Angeles"))
       val days  = ChronoUnit.DAYS.between(LocalDate.of(2010, 1, 1), today).toInt
       val bars  = run(configTable.getCityDailyActivityByUserBySchema(schema, days)).map(currentCityId -> _)
       val base  = run(configTable.getCityDailyBaselineBySchema(schema, days)).map(currentCityId -> _)

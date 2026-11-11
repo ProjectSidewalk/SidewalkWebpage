@@ -10,6 +10,7 @@ a structural change to those files that would break the orchestrator fails here 
 import hashlib
 import re
 import shutil
+import sqlite3
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -525,7 +526,7 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
     writes = re.compile(r'(?i)(?:insert\s+into|\\copy|\bcopy)\s+(?:"?\$\{?\w+\}?"?\.)?"?(\w+)"?\s*'
                         r'(?:\(|from|values|select)')
     for name in ('fill-new-schema.sh', 'import-street-imagery.sh', 'helpers.sh', 'hide-streets-without-imagery.sh',
-                 'reveal-or-hide-regions.sh', 'import-street-gradient.sh'):
+                 'reveal-or-hide-regions.sh', 'import-street-gradient.sh', 'disable-streets-outside-area.sh'):
         text = (scripts / name).read_text()
         # A staging table the script creates for its own session is gone before the dump can see it.
         written |= set(writes.findall(text)) - set(re.findall(r'(?i)create temp(?:orary)? table (\w+)', text))
@@ -677,12 +678,12 @@ def test_run_imagery_scan_exports_scans_hides_and_imports(monkeypatch, tmp_path,
     calls = _fake_run(monkeypatch, {'COPY (SELECT': (0, 'street_edge_id,region_id\n1,1\n2,1\n')})
     city_dir = tmp_path / 'db' / 'onboarding' / 'x'
     city_dir.mkdir(parents=True)
-    (city_dir / 'streets_with_no_imagery.csv').write_text('street_edge_id\n2\n')
+    (city_dir / 'street_imagery_summary.csv').write_text('street_edge_id,region_id,has_imagery\n1,1,True\n2,1,False\n')
     snc.run_imagery_scan('sidewalk_x', 'x', 'panoramax')
     joined = _joined(calls)
     assert (city_dir / 'street_edge_endpoints.csv').read_text().startswith('street_edge_id,region_id')
     assert any('check_streets_for_imagery.py --city-id x --panoramax' in cmd for cmd in joined)
-    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/streets_with_no_imagery.csv' in cmd
+    assert any('hide-streets-without-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
     assert any('import-street-imagery.sh sidewalk_x onboarding/x/street_imagery_summary.csv' in cmd
                for cmd in joined)
@@ -711,7 +712,7 @@ def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, 
     # The build's flags stand in for the osm_way cache, which a city has no rows in until its first nightly refresh.
     assert any('export-street-gradient-input.sh sidewalk_x x --structures onboarding/x/street_structures.csv' in cmd
                for cmd in joined)
-    assert any('projectsidewalk-web python3.13 tools/city/street_gradient.py --city-id x' in cmd for cmd in joined)
+    assert any('projectsidewalk-web python3 tools/city/street_gradient.py --city-id x' in cmd for cmd in joined)
     assert any('import-street-gradient.sh sidewalk_x onboarding/x/street_gradient.csv' in cmd for cmd in joined)
     captured = capsys.readouterr()
     assert 'Sampling the elevation model' in captured.out and 'usgs-3dep-10m' in captured.err
@@ -1110,6 +1111,43 @@ def _city_artifacts(repo_copy, city_id='testville-wa', preflight=True):
     return city_dir
 
 
+def _staging_gpkg(path):
+    """A bare GeoPackage with the two staging layers, enough for the fingerprint."""
+    db = sqlite3.connect(path)
+    db.execute('CREATE TABLE qgis_road (fid INTEGER PRIMARY KEY, geom BLOB, road_id INTEGER, region_id INTEGER)')
+    db.execute('CREATE TABLE qgis_region (fid INTEGER PRIMARY KEY, geom BLOB, region_id INTEGER, name TEXT)')
+    db.executemany('INSERT INTO qgis_road VALUES (?, ?, ?, ?)', [(1, b'\x01', 1, 1), (2, b'\x02', 2, 1)])
+    db.execute('INSERT INTO qgis_region VALUES (1, ?, 1, ?)', (b'\x03', 'West'))
+    db.commit()
+    db.close()
+    return path
+
+
+def _edit_street(path):
+    db = sqlite3.connect(path)
+    db.execute("UPDATE qgis_road SET geom = x'0102' WHERE road_id = 2")
+    db.commit()
+    db.close()
+
+
+def test_staging_fingerprint_follows_the_rows_not_the_file(tmp_path):
+    gpkg = _staging_gpkg(tmp_path / 'a.gpkg')
+    before = snc.staging_fingerprint(gpkg)
+    assert before == snc.staging_fingerprint(_staging_gpkg(tmp_path / 'b.gpkg'))
+    _edit_street(gpkg)
+    assert snc.staging_fingerprint(gpkg) != before
+
+
+def test_sql_fingerprint_reads_only_the_header(tmp_path):
+    sql = tmp_path / 'qgis_tables.sql'
+    sql.write_text('-- Generated\n-- Staging fingerprint: abc123\nBEGIN;\n-- Staging fingerprint: later\n')
+    assert snc.sql_fingerprint(sql) == 'abc123'
+    sql.write_text('-- Generated\nBEGIN;\nCOMMIT;\n')
+    assert snc.sql_fingerprint(sql) is None
+    sql.write_text('-- Generated\n')
+    assert snc.sql_fingerprint(sql) is None
+
+
 def _answers(monkeypatch, *answers):
     """Scripts input(): each prompt takes the next answer ('' accepts the default)."""
     queue = list(answers)
@@ -1192,7 +1230,14 @@ def test_main_stops_when_the_data_is_refused(repo_copy, monkeypatch):
 def test_main_needs_the_build_artifacts_and_running_containers(repo_copy, monkeypatch):
     with pytest.raises(SystemExit, match='make build-city-data'):
         snc.main(['testville-wa'])
-    _city_artifacts(repo_copy)
+    city_dir = _city_artifacts(repo_copy)
+    gpkg = _staging_gpkg(city_dir / 'testville-wa_qa.gpkg')
+    sql_file = city_dir / 'qgis_tables.sql'
+    sql_file.write_text(f'-- Staging fingerprint: {snc.staging_fingerprint(gpkg)}\n{_QGIS_SQL}')
+    _edit_street(gpkg)
+    with pytest.raises(SystemExit, match='testville-wa_qa.gpkg has changed since qgis_tables.sql'):
+        snc.main(['testville-wa'])
+    sql_file.write_text(f'-- Staging fingerprint: {snc.staging_fingerprint(gpkg)}\n{_QGIS_SQL}')
     _stub_steps(monkeypatch, repo_copy)
     _fake_run(monkeypatch, {'true': (1, '')})
     _answers(monkeypatch, 'y', '', '', '', '', '', '', '')
@@ -1222,6 +1267,51 @@ def test_main_first_run_walks_every_step(repo_copy, monkeypatch, capsys):
     assert record['scan'] == 'mapillary' and record['dump'] == 'sidewalk_testville_wa'
     assert record['gradient'] == 'sidewalk_testville_wa' and 'Street grades ride in the dump' in out
     assert 'Server handoff for testville-wa' in out and 'mapathon_event_link` was cleared' in out
+
+
+def test_db_relative_names_a_path_as_the_db_container_mounts_it(repo_copy, tmp_path):
+    assert snc.db_relative(repo_copy / 'db' / 'onboarding' / 'x' / 'area.geojson') == 'onboarding/x/area.geojson'
+    assert snc.db_relative(tmp_path.parent / 'elsewhere.geojson') is None
+
+
+def test_main_disables_streets_outside_the_study_area_once_the_scan_is_in(repo_copy, monkeypatch):
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    area = repo_copy / 'db' / 'onboarding' / 'testville-wa' / 'study_area.geojson'
+    area.write_text('{}')
+    # The scan check reads 0 before step 7 runs the (stubbed) scan, and its rows after.
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB, street_imagery=[(0, '0\n'), (0, '167\n')]))
+    _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', '2', 'include:1 2')
+    snc.main(['testville-wa', '--study-area', str(area)])
+    assert any(cmd[-3:] == ['/opt/scripts/disable-streets-outside-area.sh', 'sidewalk_testville_wa',
+                            'onboarding/testville-wa/study_area.geojson'] for cmd in calls)
+
+
+def test_main_holds_the_study_area_until_the_scan_is_in(repo_copy, monkeypatch, capsys):
+    _city_artifacts(repo_copy)
+    _stub_steps(monkeypatch, repo_copy)
+    area = repo_copy / 'db' / 'onboarding' / 'testville-wa' / 'study_area.geojson'
+    area.write_text('{}')
+    calls = _fake_run(monkeypatch, dict(_FRESH_DB))
+    _answers(monkeypatch, 'y', '', '', '', 'gsv', '', '', '', '2', 'include:1 2')
+    snc.main(['testville-wa', '--skip-scan', '--study-area', str(area)])
+    out = capsys.readouterr().out
+    assert 'it waits for the scan' in out
+    assert 'NOT YET: the study area (onboarding/testville-wa/study_area.geojson) waits' in out
+    assert not any('disable-streets-outside-area.sh' in cmd for cmd in calls)
+
+
+def test_main_wants_a_study_area_the_db_container_can_read(repo_copy, tmp_path, capsys):
+    outside = tmp_path.parent / 'study_area.geojson'
+    outside.write_text('{}')
+    for argv in (['--study-area', str(outside)], ['--study-area', str(repo_copy / 'db' / 'missing.geojson')]):
+        with pytest.raises(SystemExit):
+            snc.main(['testville-wa', *argv])
+        assert 'must name a file under' in capsys.readouterr().err
+    (repo_copy / 'db' / 'area.geojson').write_text('{}')
+    with pytest.raises(SystemExit):
+        snc.main(['testville-wa', '--dump-only', '--study-area', str(repo_copy / 'db' / 'area.geojson')])
+    assert 'which --dump-only skips' in capsys.readouterr().err
 
 
 def test_main_rerun_skips_what_already_happened(repo_copy, monkeypatch, capsys):

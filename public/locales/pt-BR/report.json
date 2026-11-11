@@ -1,0 +1,30 @@
+{
+  "card": {
+    "cost": "Custa {{points}} pontos",
+    "cost-shared": "Custa {{points}} pontos, com mais {{others}}",
+    "labels_one": "{{count}} rótulo",
+    "labels_other": "{{count}} rótulos",
+    "more_one": "Mostrar mais {{count}}",
+    "more_other": "Mostrar mais {{count}}"
+  },
+  "map": {
+    "location": "{{type}}: mostrar a foto",
+    "gesture-windows": "Use Ctrl + rolagem para ampliar o mapa",
+    "gesture-mac": "Use ⌘ + rolagem para ampliar o mapa",
+    "gesture-touch": "Use dois dedos para mover o mapa",
+    "aligned": "Rótulos alinhados",
+    "aligned-note": "Cada rótulo no seu lado da rua, aproximadamente no seu ponto ao longo dela: não o local exato."
+  },
+  "place": {
+    "score": "Pontuação {{score}}",
+    "street": "{{street}} · a {{distance}}",
+    "unscored": "A rua ainda não tem pontuação",
+    "unnamed": "Rua sem nome"
+  },
+  "worst": {
+    "close": "Fechar",
+    "unavailable": "Não foi possível carregar o cartão deste rótulo.",
+    "loading": "Carregando…",
+    "rejected": "Todos os rótulos deste local foram marcados como incorretos depois do último cálculo das pontuações deste relatório, então não há cartão para mostrar."
+  }
+}

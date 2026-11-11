@@ -9,6 +9,7 @@
  * additive KPI totals).
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
@@ -33,14 +34,27 @@ export class ActivityPage {
     comment: { label: 'Comment', cls: 'is-comment' },
   };
 
-  /** Volume small-multiples: each is one additive metric drawn as a single-series sparkline. */
+  /**
+   * @param {string} unit - What one of them is called, e.g. "label".
+   * @returns {(v: number) => string} Formats a count rounded to a whole number, e.g. "1 label" or "1,234 labels".
+   */
+  static #counted = (unit) => (v) => AdminShell.count(Math.round(v), unit);
+
+  /**
+   * Volume small-multiples: each is one additive metric drawn as a single-series sparkline. `fmt` writes a bucket's
+   * or the range's sum. Distance arrives in meters, so `toChart` plots it in the reader's km or mi and `tickFormat`
+   * labels that axis with its unit and decimals, since a few km a day would otherwise label as 0, 1, 1, 2.
+   */
   static #VOLUME = [
-    { title: 'Labels', fields: ['labels'], unit: 'labels' },
-    { title: 'Validations', fields: ['validations'], unit: 'validations' },
-    { title: 'Streets explored', fields: ['audits'], unit: 'streets' },
-    { title: 'Missions', fields: ['missions'], unit: 'missions' },
-    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], unit: 'sign-ins' },
-    { title: 'New users', fields: ['new_users'], unit: 'users' },
+    { title: 'Labels', fields: ['labels'], fmt: ActivityPage.#counted('label') },
+    { title: 'Validations', fields: ['validations'], fmt: ActivityPage.#counted('validation') },
+    { title: 'Distance explored', fields: ['explored_distance_m'], fmt: (m) => util.metersToLongDistanceString(m, 1),
+      toChart: (m) => util.metersToLongDistance(m),
+      tickFormat: (v) => `${new Intl.NumberFormat(i18next.language, { maximumFractionDigits: 2 }).format(v)} `
+        + `${util.unitWords().unitAbbr}` },
+    { title: 'Missions', fields: ['missions'], fmt: ActivityPage.#counted('mission') },
+    { title: 'Sign-ins', fields: ['signins_registered', 'signins_anon'], fmt: ActivityPage.#counted('sign-in') },
+    { title: 'New users', fields: ['new_users'], fmt: ActivityPage.#counted('user') },
   ];
 
   /** @param {{seriesUrl: string, recentUrl: string, contributionTimeUrl: string}} opts */
@@ -105,8 +119,7 @@ export class ActivityPage {
    */
   #renderBanner() {
     const el = document.getElementById('activity-latest');
-    if (!el) return;
-    const top = this.#recent && this.#recent[0];
+    const top = this.#recent[0];
     if (!top && !this.#series.length) {
       el.innerHTML = 'No activity yet.';
       return;
@@ -135,8 +148,8 @@ export class ActivityPage {
     const showAll = el.querySelector('.act-show-all');
     if (showAll) {
       showAll.addEventListener('click', () => {
-        const allBtn = document.querySelector('.act-range-btn[data-range="all"]');
-        if (allBtn) allBtn.click(); // reuse the range toggle's wiring (updates state + re-renders)
+        // Reuses the range toggle's wiring (updates state + re-renders).
+        /** @type {HTMLElement} */ (document.querySelector('.act-range-btn[data-range="all"]')).click();
       });
     }
   }
@@ -146,16 +159,17 @@ export class ActivityPage {
   #renderKpis() {
     const recs = this.#windowRecords();
     const sum = (field) => recs.reduce((a, r) => a + (r[field] || 0), 0);
-    const note = `in ${this.#rangeNoun()}`;
+    const note = this.#rangePhrase();
     const set = (id, field) => {
-      this.#setText(`kpi-${id}`, sum(field).toLocaleString());
-      this.#setText(`kpi-${id}-note`, note);
+      AdminShell.setText(`kpi-${id}`, sum(field).toLocaleString());
+      AdminShell.setText(`kpi-${id}-note`, note);
     };
     set('labels', 'labels');
     set('validations', 'validations');
-    set('audits', 'audits');
     set('missions', 'missions');
     set('newusers', 'new_users');
+    AdminShell.setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
+    AdminShell.setText('kpi-distance-note', note);
   }
 
   /**
@@ -178,9 +192,9 @@ export class ActivityPage {
     };
     // explore_per_100m is median minutes/100 m.
     const fmtMinutes = (m) => (m === null || m === undefined ? 'N/A' : `${m.toFixed(1)} min`);
-    this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
-    this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
-    this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
+    AdminShell.setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
+    AdminShell.setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
+    AdminShell.setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
   }
 
   // --- Volume small-multiples ---------------------------------------------------------------------------------
@@ -194,8 +208,8 @@ export class ActivityPage {
     }
     const labels = buckets.map((b) => b.label);
     const cards = ActivityPage.#VOLUME.map((metric, i) => {
-      const values = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0));
-      return { metric, values, total: values.reduce((a, v) => a + v, 0), idx: i };
+      const sums = buckets.map((b) => metric.fields.reduce((a, f) => a + b.vol[f], 0));
+      return { metric, sums, total: sums.reduce((a, v) => a + v, 0), idx: i };
     });
     // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
     el.innerHTML = cards.map((c) => `
@@ -203,15 +217,21 @@ export class ActivityPage {
         <div class="activity-card-head">
           <span class="activity-card-title">${util.escapeHTML(c.metric.title)}</span>
           <span class="activity-card-total">
-            <strong>${c.total.toLocaleString()}</strong> in ${util.escapeHTML(this.#rangeNoun())}
+            <strong>${util.escapeHTML(c.metric.fmt(c.total))}</strong> ${util.escapeHTML(this.#rangePhrase())}
           </span>
         </div>
         <div class="mini-host" data-idx="${util.escapeHTML(c.idx)}"></div>
       </div>`).join('');
     cards.forEach((c) => {
       MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
-        [{ name: c.metric.title, key: 'activity', values: c.values }], {
-          valueFormat: (v) => `${Math.round(v).toLocaleString()} ${c.metric.unit}`,
+        [{
+          name: c.metric.title,
+          key: 'activity',
+          values: c.metric.toChart ? c.sums.map(c.metric.toChart) : c.sums,
+          // Labeled from the raw sums, so a point's tooltip and the card total format the same value the same way.
+          tooltips: c.sums.map((v, idx) => `${labels[idx]} · ${c.metric.title}: ${c.metric.fmt(v)}`),
+        }], {
+          tickFormat: c.metric.tickFormat,
           ariaLabel: `${c.metric.title} over time`,
         });
     });
@@ -237,13 +257,15 @@ export class ActivityPage {
       { name: 'Anonymous', key: 'anon', values: buckets.map((b) => b.activeAnon) },
     ];
     const weekly = this.#gran === 'week';
-    const unit = weekly ? 'avg users/day' : 'users';
+
     const caption = weekly
       ? '<p class="dq-empty">Weekly points are the average of that week’s daily active-user counts.</p>'
       : '';
     el.innerHTML = `<div class="mini-host"></div>${caption}`;
     MiniLineChart.renderInto(el.querySelector('.mini-host'), labels, series, {
-      valueFormat: (v) => `${Math.round(v).toLocaleString()} ${unit}`,
+      valueFormat: (v) => (weekly
+        ? `${Math.round(v).toLocaleString()} avg users/day`
+        : AdminShell.count(Math.round(v), 'user')),
       ariaLabel: 'Active contributors over time',
       dotRadius: 2,
     });
@@ -269,7 +291,7 @@ export class ActivityPage {
 
     const buckets = new Map();
     const order = [];
-    const volFields = ['labels', 'validations', 'audits', 'missions',
+    const volFields = ['labels', 'validations', 'explored_distance_m', 'missions',
       'signins_registered', 'signins_anon', 'new_users'];
     for (let cur = new Date(windowStart); cur <= today; cur = ActivityPage.#addDays(cur, 1)) {
       const iso = util.localIsoDate(cur);
@@ -298,8 +320,8 @@ export class ActivityPage {
       const a = buckets.get(k);
       return {
         key: a.key, label: a.label, days: a.days, vol: a.vol,
-        activeRegistered: a.days ? a.activeRegSum / a.days : 0,
-        activeAnon: a.days ? a.activeAnonSum / a.days : 0,
+        activeRegistered: a.activeRegSum / a.days,
+        activeAnon: a.activeAnonSum / a.days,
       };
     });
   }
@@ -322,7 +344,7 @@ export class ActivityPage {
 
   #renderFeed() {
     const el = document.getElementById('activity-feed');
-    const all = this.#recent || [];
+    const all = this.#recent;
     if (!all.length) {
       el.innerHTML = '<p class="dq-empty">No recent activity yet.</p>';
       return;
@@ -436,7 +458,6 @@ export class ActivityPage {
    */
   #wireFeedClicks() {
     const feed = document.getElementById('activity-feed');
-    if (!feed) return;
     feed.addEventListener('click', (e) => {
       const link = /** @type {Element} */ (e.target).closest('.activity-label-link');
       if (!link || !this.#labelPopup) return; // no popup yet → let the href navigate
@@ -483,9 +504,9 @@ export class ActivityPage {
 
   // --- Small helpers ------------------------------------------------------------------------------------------
 
-  /** The selected window as a noun phrase for KPI/total notes, e.g. "the last 90 days" or "all time". */
-  #rangeNoun() {
-    return this.#range > 0 ? `the last ${this.#range} days` : 'all time';
+  /** The selected window as a phrase for KPI/total notes, e.g. "in the last 90 days" or "all time". */
+  #rangePhrase() {
+    return this.#range > 0 ? `in the last ${this.#range} days` : 'all time';
   }
 
   /** Message shown when the window has fewer than two buckets, so there's no line to draw. */
@@ -535,14 +556,8 @@ export class ActivityPage {
       : d.toLocaleString(undefined, util.SHORT_DATE_TIME);
   }
 
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('activity-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

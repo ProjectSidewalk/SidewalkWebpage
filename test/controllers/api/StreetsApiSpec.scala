@@ -51,6 +51,29 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       features.get.headOption.foreach { feature => (feature \ "properties" \ "max_speed").toOption mustBe defined }
     }
 
+    "list every OSM way a street lies on, the primary way among them, in street order (#5741)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[JsObject]]
+      features must not be empty
+      features.foreach { feature =>
+        val props = feature \ "properties"
+        val ways  = (props \ "osm_ways").as[Seq[JsObject]]
+        // The Infra3d placeholder -1 names no way and is left out of the list; any real primary way is in it.
+        if ((props \ "osm_way_id").as[Long] != -1L)
+          ways.map(w => (w \ "osm_way_id").as[Long]) must contain((props \ "osm_way_id").as[Long])
+        ways.foreach { way =>
+          way.keys mustBe Set("osm_way_id", "street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac",
+            "same_direction")
+          // A positioned link carries every position column; an unpositioned one none of them.
+          val positions = Seq("street_from_frac", "street_to_frac", "way_from_frac", "way_to_frac", "same_direction")
+          positions.map(k => (way \ k).toOption.exists(_ != play.api.libs.json.JsNull)).distinct.size mustBe 1
+        }
+        val starts = ways.flatMap(w => (w \ "street_from_frac").asOpt[Double])
+        starts mustBe starts.sorted
+      }
+    }
+
     "return CSV with the documented snake_case header when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/streets?$tinyBbox&filetype=csv")).get
       status(resp) mustBe OK
@@ -60,7 +83,7 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
         "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count," +
-          "audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point"
+          "audit_count,outdated,user_count,first_label_date,last_label_date,osm_ways,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"
@@ -110,6 +133,7 @@ class StreetsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       bytes.containsSlice(org.apache.pekko.util.ByteString("max_speed")) mustBe true
       bytes.containsSlice(org.apache.pekko.util.ByteString("street_edge_id")) mustBe true   // #5273
       bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_date")) mustBe true // #5273
+      bytes.containsSlice(org.apache.pekko.util.ByteString("osm_ways")) mustBe true         // #5741
       bytes.containsSlice(org.apache.pekko.util.ByteString("first_label_time")) mustBe false
     }
   }

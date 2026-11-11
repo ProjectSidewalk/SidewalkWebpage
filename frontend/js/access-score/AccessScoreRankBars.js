@@ -91,11 +91,9 @@ export class AccessScoreRankBars extends AccessScoreChart {
       row.bar.style.backgroundColor = ScoreRamp.at(r.score);
       row.score.textContent = AccessScoreChart.score(r.score);
       row.button.classList.toggle('acs-rank__row--out', Boolean(data.outIds?.has(r.id)));
-      // A name like "Al 'Ummah Community Center" reaches the accessible name as written, and the tooltip (an HTML
-      // sink) escaped exactly once.
       row.button.setAttribute('aria-label', r.label);
       // The name column is narrow enough to clip a long name; the tooltip carries the whole line.
-      row.button.setAttribute('data-ps-tooltip', util.escapeHTML(r.label));
+      row.button.setAttribute('data-ps-tooltip', r.label);
     });
     this.#markSelected(data.selectedId);
     this.#els.note.hidden = data.note === '';

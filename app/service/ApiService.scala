@@ -9,6 +9,7 @@ import models.label.*
 import models.place.PlaceTable
 import models.region.{Region, RegionTable}
 import models.street.{
+  DemSourceCount,
   OsmWayTable,
   SidewalkPresenceTable,
   StreetEdgeInfo,
@@ -67,8 +68,8 @@ trait ApiService {
    */
   def getStreetGradient(streetEdgeId: Int): Future[Option[(StreetGradient, Boolean)]]
 
-  /** The elevation models this city's served streets were sampled from, as (dem_source, street count), most first. */
-  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]]
+  /** The elevation models this city's served streets were sampled from, with their counts, most streets first. */
+  def getStreetGradientSourceCounts: Future[Seq[DemSourceCount]]
 
   /** The intersections at the ends of the streets the filter selects, with what AccessScore needs to score them (#5095). */
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[IntersectionInfo]]
@@ -384,7 +385,7 @@ class ApiServiceImpl @Inject() (
     stale    <- streetGradientTable.isStale(streetEdgeId)
   } yield gradient.map(g => (g, stale.getOrElse(false))))
 
-  def getStreetGradientSourceCounts: Future[Seq[(String, Int)]] =
+  def getStreetGradientSourceCounts: Future[Seq[DemSourceCount]] =
     db.run(streetGradientTable.sourceCounts(streetEdgeTable.streets.map(_.streetEdgeId)))
 
   /** Derives a lat/lng bounding box from a region's MultiPolygon envelope (geometry is stored in EPSG:4326). */

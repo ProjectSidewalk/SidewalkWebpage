@@ -1,5 +1,5 @@
 ---
-applyTo: "public/css/**/*.css"
+applyTo: "frontend/css/**/*.css"
 ---
 # CSS review
 

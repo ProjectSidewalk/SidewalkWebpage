@@ -9,20 +9,22 @@
  * save also names the type the card showed, and a 409 means the label moved on under it, so the card redraws from
  * the reply instead of rolling back.
  *
- * Built the same way as labelDetailEditGating.test.js: the sources are eval'd into jsdom with the collaborators
- * LabelDetail reaches for stubbed on `window`. jsdom has no popover API, so the picker takes the inline fallback
- * path, which is what the assertions read.
+ * jsdom has no popover API, so the picker takes the inline fallback path, which is what the assertions read. The
+ * pano manager, the toast and the card's flourishes (badges, stories, the info popover, the hide toggle) are
+ * stand-ins: the real ones want a viewer and page markup, and none is what a type change exercises.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) } }));
 
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
+const toast = { show: vi.fn() };
 
-const TYPES = ['CurbRamp', 'Obstacle', 'SurfaceProblem', 'Signal'];
-const RATED = { CurbRamp: true, Obstacle: true, SurfaceProblem: true, Signal: false };
-// A curb ramp is rated on how well it does its job, an obstacle on how much it gets in the way, so a rating means
-// something different either side of that line; Signal carries none at all.
-const SCALES = { CurbRamp: 'quality', Obstacle: 'severity', SurfaceProblem: 'severity', Signal: 'unrated' };
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -41,6 +43,7 @@ function buildCard() {
               <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </button>
           </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
           <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </div>
@@ -51,13 +54,16 @@ function buildCard() {
       </div>
       <div class="label-detail__pano-wrap">
         <div class="label-detail__pano"></div>
+        <div class="label-detail__deleted-notice" role="status" hidden>
+          <span class="label-detail__deleted-notice-text"></span>
+          <button type="button" class="label-detail__restore" hidden></button>
+        </div>
         <button type="button" class="label-detail__hide-label"></button>
         <div class="label-detail__pano-overlay" role="group">
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false"></button>
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false"></button>
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false"></button>
         </div>
-        <span class="label-detail__pan-hint" hidden></span>
       </div>
       <div class="label-detail__meta-row">
         <div class="label-detail__meta-cell"><span><span class="label-detail__labeled-word"></span>:</span><span class="label-detail__timestamp label-detail__meta-value"></span></div>
@@ -104,6 +110,7 @@ function buildCard() {
             <label class="sr-only" for="c">Why?</label>
             <input type="text" id="c" class="label-detail__comment-input">
             <button type="button" class="label-detail__comment-submit" data-action="submit-comment"></button>
+            <button type="button" class="label-detail__comment-cancel" hidden></button>
             <span class="label-detail__comment-confirmation" role="status" hidden></span>
           </div>
           <div class="label-detail__validator-comments"></div>
@@ -111,7 +118,7 @@ function buildCard() {
       </div>
       <section class="label-detail__stories" hidden></section>
       <span class="label-detail__story-status sr-only" role="status"></span>
-      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a></div>
+      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a><div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div></div>
     </div>`;
   return document.getElementById('card');
 }
@@ -129,7 +136,6 @@ function meta(overrides = {}) {
 
 describe('changing a label\'s type from the card (#3671)', () => {
   let card;
-  let panoManager;
   let saveRequest;
   let onEdit;
   /** What /label/edit answers next: a status and a body, or the default echo of the request. */
@@ -153,11 +159,11 @@ describe('changing a label\'s type from the card (#3671)', () => {
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
+    vi.useFakeTimers({ toNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
     card = buildCard();
     nextReply = null;
-    onEdit = jest.fn();
-    saveRequest = jest.fn(async (url, opts) => {
+    onEdit = vi.fn();
+    saveRequest = vi.fn(async (url, opts) => {
       const body = JSON.parse(opts.body);
       const reply = nextReply ?? {
         status: 200,
@@ -167,69 +173,35 @@ describe('changing a label\'s type from the card (#3671)', () => {
       return { ok: reply.status < 400, status: reply.status, json: async () => reply.body };
     });
 
-    window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-    window.logWebpageActivity = jest.fn();
-    window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-    window.buildBackupImageData = () => null;
-    window.util = {
-      assetPath: assetPathStub,
-      camelToKebab: window.camelToKebab,
-      EXPLORE_CANVAS_WIDTH: 720,
-      EXPLORE_CANVAS_HEIGHT: 480,
-      isMobile: () => false,
-      lazyIdentityFetch: saveRequest,
-      misc: {
-        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-        VALID_LABEL_TYPES: TYPES,
-        getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-        getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-        isPositiveLabelType: (type) => type === 'CurbRamp',
-        labelTypeHasSeverity: (type) => RATED[type],
-        getRatingScale: (type) => SCALES[type] ?? 'unrated',
-        getIconImagePaths: (type) => ({ iconImagePath: `/assets/${type}_small.svg` }),
-        getLabelColors: (type) => `color-${type}`,
-      },
-      pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
-      url: { replaceQuery: () => {} },
-    };
-    installDateHelpers();
-    window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: jest.fn() };
-    window.LabelVisibilityToggle = class { constructor() {} };
-    window.PanoInfoPopover = class { constructor() {} };
+    window.logWebpageActivity = vi.fn();
+    useUtil({ lazyIdentityFetch: saveRequest });
 
     let resolvePano;
     panoManager = {
-      clearLabels: jest.fn(),
-      setLabel: jest.fn(),
-      setLabelType: jest.fn(),
-      setLabelsHidden: jest.fn(),
-      setPano: jest.fn(() => new Promise((res) => { resolvePano = res; })),
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelType: vi.fn(),
+      setAiGenerated: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
       svHolder: document.createElement('div'),
     };
-    window.PopupPanoManager = { create: async () => panoManager };
-    // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-    window.StorySection = class { setLabel() {} };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
-    window.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
         return Promise.resolve({ ok: true, json: async () => meta({ num_agree: 1, num_disagree: 0, num_unsure: 0 }) });
       }
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-    card.detail = await window.LabelDetail.create(card, {
+    const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
+    card.detail = await LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onEdit,
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
@@ -335,6 +307,86 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(q('.label-detail__vote--agree .label-detail__vote-count').textContent).toBe('1');
   });
 
+  test('a type change redraws the AI badge from the re-read label, and tells the host (#5925)', async () => {
+    await showLabel({ ai_generated: true });
+    window.fetch.mockImplementation(async () => ({ ok: true, json: async () => meta({ ai_generated: false }) }));
+    typeButton().click();
+
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    expect(panoManager.setAiGenerated).toHaveBeenLastCalledWith(false);
+    expect(onEdit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label_type: 'SurfaceProblem', ai_generated: false }),
+    );
+  });
+
+  test('a type change clears the user\'s vote from the pano when it was cast on the old type (#5853)', async () => {
+    await showLabel({ num_disagree: 1, user_validation: 'Disagree' });
+    const wrap = q('.label-detail__pano-wrap');
+    const overlayDisagree = q('.label-detail__pano-overlay-button--disagree');
+    expect(wrap.classList.contains('is-disagree')).toBe(true);
+    expect(overlayDisagree.classList.contains('is-selected')).toBe(true);
+    typeButton().click();
+
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    expect(wrap.classList.contains('is-disagree')).toBe(false);
+    expect(overlayDisagree.classList.contains('is-selected')).toBe(false);
+    expect(overlayDisagree.getAttribute('aria-pressed')).toBe('false');
+    expect(q('.label-detail__vote--disagree').getAttribute('aria-pressed')).toBe('false');
+    // Gallery's small card is redrawn from what the host is handed, so it must carry the new type's votes.
+    expect(onEdit).toHaveBeenLastCalledWith(expect.objectContaining({
+      label_type: 'SurfaceProblem', user_validation: null, num_agree: 1, num_disagree: 0,
+    }));
+  });
+
+  test('voting waits while the votes are re-read after a type change (#5853)', async () => {
+    let answer;
+    window.fetch = vi.fn((url) => {
+      if (String(url).includes('/label/id/')) return new Promise((res) => { answer = res; });
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    await showLabel({ user_validation: 'Disagree' });
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+
+    expect(q('.label-detail__vote--agree').disabled).toBe(true);
+    answer({ ok: true, json: async () => meta() });
+    await flush();
+    expect(q('.label-detail__vote--agree').disabled).toBe(false);
+  });
+
+  test('a Disagree still out when the type changes asks why from its own button once it lands', async () => {
+    await showLabel({ user_validation: null, num_disagree: 0 });
+    // A vote records where the viewer was looking.
+    Object.assign(panoManager, {
+      getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }), getOriginalPosition: () => ({ heading: 0, pitch: 0 }),
+      panoViewer: {
+        currPanoData: null, getViewerType: () => 'gsv', getPanoId: () => 'pano-1',
+        getPosition: () => ({ lat: 47.61, lng: -122.33 }),
+      },
+      label: { labelId: 42, label_type: 'Obstacle' },
+    });
+    let landVote;
+    saveRequest.mockImplementationOnce(() => new Promise((res) => { landVote = res; }));
+    q('.label-detail__vote--disagree').click();
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+    await flush();
+
+    landVote({ ok: true, status: 200, json: async () => ({}) });
+    await flush();
+
+    const popover = document.querySelector('.reason-popover');
+    expect(popover && !popover.hidden).toBe(true);
+  });
+
   test('a 409 redraws the card from the reply and says the label was changed elsewhere', async () => {
     await showLabel({ severity: 2, tags: ['pole'] });
     typeButton().click();
@@ -345,8 +397,8 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
     expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:curb-ramp');
     expect(q('.label-detail__severity-faces [data-severity="1"]').getAttribute('aria-pressed')).toBe('true');
-    expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',
+    expect(toast.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'labelmap:edit-conflict', dark: true, compact: true,
     }));
     expect(typeStatus().textContent).toBe('');
     // The label really is on a different type now, so the host and the vote counts have to hear about it.
@@ -370,6 +422,14 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'CurbRamp', severity: null }));
   });
 
+  test('an unrated label stays unrated across a type that reads ratings the same way', async () => {
+    await showLabel({ severity: null, tags: [] });
+    typeButton().click();
+    chip('SurfaceProblem').click();
+    await flush();
+    expect(savedEdits().at(-1)).toEqual(expect.objectContaining({ new_label_type: 'SurfaceProblem', severity: null }));
+  });
+
   test('a rating edit also names the type shown, so the server can spot a card that fell behind', async () => {
     await showLabel({ severity: 2 });
 
@@ -384,7 +444,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     typeButton().click();
     chip('Signal').focus();
     const agree = q('[data-result="Agree"]');
-    const clicks = jest.fn();
+    const clicks = vi.fn();
     agree.addEventListener('click', clicks);
 
     chip('Signal').dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', bubbles: true }));

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Asset-URL check for frontend/js/ (#4893), public/css/ (#5094), and the `assets.path("…")` literals in app/views/.
+// Asset-URL check for frontend/js/ (#4893), the stylesheets (#5094), and the `assets.path("…")` literals in app/views/.
 //
 // == frontend/js/ ==
 // Frontend JS names a public asset by its logical path and resolves it with
@@ -24,16 +24,16 @@
 //      the filename inside one leaves another file's fingerprint in front of it.
 //   4. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
 //
-// == public/css/ ==
+// == frontend/css/ ==
 // A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
 // `url(...)` targets at stage time, resolving each against the file itself rather than a manifest, so nothing needs
 // registering. Two rules keep that working:
 //
 //   5. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
-//      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build.
-//   6. That url is relative, never '/assets/...'. Grunt's concat_css rewrites a bundled stylesheet's relative urls to
-//      '/assets/' paths for its new home in build/, and would put a second prefix on one that already has it. Holding
-//      every stylesheet to the one form means a file can join a bundle without breaking.
+//      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build. A
+//      stylesheet is bundled by Vite from a source nothing serves, so its url is the file's root-absolute path under
+//      public/ (`url("/images/icons/x.svg")`), which the build turns into the served '/assets/' URL.
+//   6. No url is written '/assets/...' itself: the build adds that prefix.
 //
 // Exits non-zero with the offending files listed, so it can gate CI.
 
@@ -81,7 +81,6 @@ function walkJs(dir) {
   });
 }
 
-/** @returns {string[]} Every .css file under `dir` outside a build/ output directory, as repo-relative paths. */
 /** @returns {string[]} Every Twirl template under `dir`, recursively, as repo-relative paths. */
 function walkViews(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -91,31 +90,13 @@ function walkViews(dir) {
   });
 }
 
+/** @returns {string[]} Every .css file under `dir`, recursively, as repo-relative paths. */
 function walkCss(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name === 'build' || entry.name === 'node_modules') return [];
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return walkCss(full);
     return entry.name.endsWith('.css') ? [relative(ROOT, full)] : [];
   });
-}
-
-/**
- * @param {string} url - The url() target, unquoted, with any query string or fragment already cut off.
- * @param {string} cssFile - Repo-relative path of the stylesheet, which a relative url resolves against.
- * @returns {string|null} The path under public/, or null if the url is absolute or climbs above public/.
- */
-function cssTarget(url, cssFile) {
-  if (url.startsWith('/')) return null; // Rule 6 has already turned away '/assets/' urls, so this names no asset.
-
-  const segments = relative(PUBLIC_DIR, join(ROOT, cssFile)).split('/').slice(0, -1);
-  for (const segment of url.split('/')) {
-    if (segment === '' || segment === '.') continue;
-    if (segment !== '..') segments.push(segment);
-    else if (segments.length === 0) return null;
-    else segments.pop();
-  }
-  return segments.join('/');
 }
 
 // The tokens a '/' can follow and still open a regex literal rather than divide. Anything else ending an expression
@@ -370,9 +351,9 @@ for (const file of files) {
   }
 }
 
-// --- 5 + 6. Every css url() is a relative path to a real file ------------------------------------------------------
+// --- 5 + 6. Every css url() names a real file, in the one form its tree uses --------------------------------------
 
-const cssFiles = walkCss(PUBLIC_DIR);
+const cssFiles = walkCss(join(ROOT, 'frontend', 'css'));
 let cssUrls = 0;
 
 for (const file of cssFiles) {
@@ -385,15 +366,20 @@ for (const file of cssFiles) {
       cssUrls++;
 
       if (url.startsWith(ASSETS_PREFIX)) {
-        problems.push(`${file}:${i + 1}: url(${url}) is an absolute /assets/ path — write it relative to this file, `
-          + 'since Grunt rewrites relative urls for its bundles and would double the prefix on this one');
+        problems.push(`${file}:${i + 1}: url(${url}) carries the /assets/ prefix — write the path under public/ `
+          + '(url("/images/...")); the build adds the prefix');
+        continue;
+      }
+      if (!url.startsWith('/')) {
+        problems.push(`${file}:${i + 1}: url(${url}) is relative, but this stylesheet is bundled from a folder nothing `
+          + 'serves — write the file\'s root-absolute path under public/ instead (url("/images/..."))');
         continue;
       }
 
       // A query string or fragment is part of the URL but not of the filename (a font's `?#iefix` carries both).
       const cut = url.search(/[?#]/);
-      const target = cssTarget(cut < 0 ? url : url.slice(0, cut), file);
-      if (target === null || !existsSync(join(PUBLIC_DIR, target))) {
+      const pathPart = cut < 0 ? url : url.slice(0, cut);
+      if (!existsSync(join(PUBLIC_DIR, pathPart.slice(1)))) {
         problems.push(`${file}:${i + 1}: url(${url}) names no file under public/ — the stage that rewrites these to `
           + 'their fingerprinted names resolves each one against the file itself, so it has to exist');
       }
@@ -403,9 +389,9 @@ for (const file of cssFiles) {
 
 // --- 7. Every literal assets.path("…") in a view names a real file -------------------------------------------------
 // The Twirl side of rule 2: `AssetsFinder.path` hands back the plain path for a file it can't find rather than
-// throwing, so a mistyped vendor filename (the usual slip when a library is bumped and renamed) ships a 404 <script>
-// and a page whose map or viewer silently never starts. No manifest-family rule here: a view resolves against
-// sbt-digest's full manifest, so any file under public/ fingerprints; the prefix list only scopes what JS can see.
+// throwing, so a mistyped filename ships a 404 and a page silently missing that image or script. No manifest-family
+// rule here: a view resolves against sbt-digest's full manifest, so any file under public/ fingerprints; the prefix
+// list only scopes what JS can see.
 
 const VIEW_CALL = /assets\.path\(\s*"([^"]*)"\s*\)/g;
 const viewFiles = walkViews(VIEWS_DIR);
@@ -428,8 +414,8 @@ for (const file of viewFiles) {
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
     + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes; `
-    + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); ${viewFiles.length} views, `
-    + `${viewCalls} literal assets.path() calls.`);
+    + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); `
+    + `${viewFiles.length} views, ${viewCalls} literal assets.path() calls.`);
   process.exit(0);
 }
 

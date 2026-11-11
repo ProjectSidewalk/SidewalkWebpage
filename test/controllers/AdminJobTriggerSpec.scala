@@ -1,6 +1,7 @@
 package controllers
 
 import actor.{
+  BasemapRefreshActor,
   CheckImageExpiryActor,
   ClusteringActor,
   CropGenerationActor,
@@ -12,6 +13,7 @@ import actor.{
   StreetGradientStalenessActor,
   UserStatActor
 }
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
@@ -30,6 +32,8 @@ import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
 import service.{
   AdminService,
+  BasemapRefreshResult,
+  BasemapService,
   ClusterService,
   ClusteringResults,
   CropService,
@@ -93,6 +97,10 @@ class AdminJobTriggerSpec
   )
 
   private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
+  private val PriorityRecalc  = StreetPriorityRecalc(streetsChanged = 4660, streetsWithoutRow = 4661)
+
+  private val BasemapResult =
+    BasemapRefreshResult(skipped = false, Some("basemap-20261015-4643.pmtiles"), Some("20261015"), Some(4644L))
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
@@ -105,6 +113,9 @@ class AdminJobTriggerSpec
 
   /** As `cropRunning`, for the places refresh, whose trigger refuses the same way. */
   @volatile private var placesRunning: Boolean = false
+
+  /** As `cropRunning`, for the minimap basemap refresh. */
+  @volatile private var basemapRunning: Boolean = false
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -123,7 +134,7 @@ class AdminJobTriggerSpec
         bind[StreetService].toInstance(
           StubService.answering[StreetService](
             Map(
-              "recalculateStreetPriority"    -> Future.successful(Seq(1, 2)),
+              "recalculateStreetPriority"    -> Future.successful(PriorityRecalc),
               "countStreetGradientStaleness" -> Future.successful(StalenessResult)
             )
           )
@@ -159,6 +170,11 @@ class AdminJobTriggerSpec
         bind[PlacesService].toInstance(
           StubService.answeringWith[PlacesService](
             Map("refresh" -> (() => Future.successful(PlacesResult)), "isRunning" -> (() => placesRunning))
+          )
+        ),
+        bind[BasemapService].toInstance(
+          StubService.answeringWith[BasemapService](
+            Map("refresh" -> (() => Future.successful(BasemapResult)), "isRunning" -> (() => basemapRunning))
           )
         )
       )
@@ -254,7 +270,7 @@ class AdminJobTriggerSpec
       jobRun.status mustBe JobRunStatus.Succeeded
       // This one covers only the recalculation step, not the region_completion rebuild the nightly sequence wraps
       // around it, so it reports a null count rather than a number a reader could mistake for a rebuild that ran.
-      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(None)
+      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(PriorityRecalc, None)
     }
   }
 
@@ -333,6 +349,34 @@ class AdminJobTriggerSpec
         contentAsString(response) must include("already in progress")
         runsSince(idFloor, PlacesRefreshActor.Name) mustBe empty
       } finally placesRunning = false
+    }
+  }
+
+  "POST /adminapi/refreshBasemap" should {
+    "answer at once and record the rebuild as a manual run of the nightly job, with its result" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/refreshBasemap", POST)
+      status(response) mustBe ACCEPTED
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, BasemapRefreshActor.Name)
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.details.value mustBe BasemapResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a rebuild is already in flight" in {
+      basemapRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/refreshBasemap", POST)
+        status(response) mustBe CONFLICT
+        runsSince(idFloor, BasemapRefreshActor.Name) mustBe empty
+      } finally basemapRunning = false
     }
   }
 
@@ -421,6 +465,7 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
         (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
+        (POST, "/adminapi/refreshBasemap", BasemapRefreshActor.Name),
         (POST, "/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)

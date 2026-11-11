@@ -16,7 +16,9 @@ import java.time.OffsetDateTime
  *
  * @param streetEdgeId              Project Sidewalk's street segment identifier
  * @param streetSide                `left` or `right` of the street's digitized direction (its coordinate order)
- * @param osmWayId                  OpenStreetMap way identifier
+ * @param osmWayId                  OpenStreetMap way identifier: the way covering most of the street
+ * @param osmWays                   Every OpenStreetMap way the street lies on, with the stretch shared and which
+ *                                  side of the way this face is (what an OSM `sidewalk:left` / `:right` tag means)
  * @param regionId                  Region ID where the street is located
  * @param regionName                Name of the region where the street is located
  * @param wayType                   Type of way (e.g., "residential", "primary", etc.)
@@ -39,6 +41,7 @@ case class SidewalkPresenceForApi(
     streetEdgeId: Int,
     streetSide: String,
     osmWayId: Long,
+    osmWays: Seq[OsmWaySideForApi],
     regionId: Int,
     regionName: String,
     wayType: String,
@@ -87,7 +90,9 @@ object SidewalkPresenceForApi extends ApiFields[SidewalkPresenceForApi] {
     // Appended after the 383 fields, not grouped with the counts: v11.12.0 shipped the endpoint before these existed,
     // so a positional CSV or .dbf reader written against it keeps its column indexes (#5285).
     field("validated_no_sidewalk_count")(_.validatedNoSidewalkCount),
-    field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount)
+    field("rejected_no_sidewalk_count")(_.rejectedNoSidewalkCount),
+    // Last, so a reader that goes by column position in the CSV or .dbf is only disturbed after it.
+    field("osm_ways")(_.osmWays)
   )
 
   override val csvOnlyFields: Seq[ApiField[SidewalkPresenceForApi]] = Seq(

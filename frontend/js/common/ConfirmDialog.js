@@ -5,6 +5,7 @@
  * @property {'secondary'|'primary'|'danger'} [style] - Defaults to 'secondary'.
  * @property {string|null} [iconSrc] - URL of a decorative icon before the text.
  */
+import '../../css/components/confirm-dialog.css';
 
 /**
  * @typedef {object} ConfirmDialogParts

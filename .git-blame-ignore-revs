@@ -1,0 +1,37 @@
+# Formatting-only commits (reindents, formatter runs, line rewraps) that `git blame` should look past. GitHub's blame
+# view reads this file on its own; locally, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+
+# Small whitespace-only reindents (2016-2024)
+0233393a8eba617de88fbacda683aed9ba5a70bf
+20893289e69a0b144c618640396f064a79f92b1f
+b988420b0365427d19a909b2d48b430e8c8eb67b
+1dcf649ad3d44632613b42edacb563e7c5530ea9
+44a582381d19d4c212778a02324c5fcda93938cf
+d5bed30842a4aac318b6117d8bbafbcd3118dd11
+98bcc0de7a4611a48bcccea33b0a01f7fdc325f0
+f7e577018d5b30b33fc559a765fcf36af2aa98e5
+cd75d385b6dd22fc1f7c1f046435724878739b51
+9408829b33e2e7ec021bbcc259d623c435e74ba2
+46a406e89bf50003a22a2840f63b20255508ffb1
+
+# API docs reindent and comment rewraps (2025)
+2b8266684201186bfb24b820e3f63666ca67c912
+46891e07a2e954576b15aad5d9cc3dbab1cb571f
+5d1140c12329d4627e2dac0e8146d3e154683486
+
+# scalafmt run across the Scala code (2026)
+e39d69f50984177f5c2a93717068cada8e696986
+
+# 4 -> 2 space reindent of JS, CSS and JSON, with the auto-fixes and rewraps around it (#2487)
+43a5288296b9ac335e4951d75f91c1160b12128d
+50815e036a9581852af579b416eb7a5dc782be24
+e45f8f862110ef004bf19ef3d556c06ad21fadb6
+9f4f156d14b7ed9a8679defa00064c59a36bfaae
+74ce71c665c4aa49756f93dded5b9464c7aeec73
+4d6424fe70aed26f85a5f9fd32f26669f4a399d6
+
+# Reindent to 2 spaces (#5778)
+1f6b1ce05a97915afdb9d15661b3b6b147e214e2
+b331178e86b4c6d937283685c0d3a5a1fb1cc4ec
+d242bfcf014f4dc9d4fb8b6c843e3875ed40d5d5
+baf11eeba8b0cf1f5eb8b27816e9f09d47747e9c

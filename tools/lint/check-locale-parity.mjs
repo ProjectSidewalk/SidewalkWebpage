@@ -39,8 +39,8 @@ const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
  * @returns {string[]} Dotted paths of every leaf (string) value.
  */
 function leafKeys(obj, prefix = '') {
-    return Object.entries(obj).flatMap(([key, value]) =>
-        value && typeof value === 'object' ? leafKeys(value, `${prefix}${key}.`) : [`${prefix}${key}`]);
+  return Object.entries(obj).flatMap(([key, value]) =>
+    value && typeof value === 'object' ? leafKeys(value, `${prefix}${key}.`) : [`${prefix}${key}`]);
 }
 
 /**
@@ -50,12 +50,12 @@ function leafKeys(obj, prefix = '') {
  * @returns {object|null} The parsed translations.
  */
 function readTranslations(filePath) {
-    if (!existsSync(filePath)) return null;
-    try {
-        return JSON.parse(readFileSync(filePath, 'utf8'));
-    } catch {
-        return null;
-    }
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -66,12 +66,11 @@ function readTranslations(filePath) {
  * @returns {Set<string>} Normalized leaf key set.
  */
 function normalizedKeySet(parsed) {
-    return parsed ? new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, ''))) : new Set();
+  return parsed ? new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, ''))) : new Set();
 }
 
-// The reference's key sets are compared against once per locale file, so parse each namespace once rather than 63x.
-const referenceKeysByNamespace = new Map();
-const referencePlaceholdersByNamespace = new Map();
+// Every locale file is compared against the reference, so parse each reference namespace once rather than 63x.
+const referenceByNamespace = new Map();
 
 // `{{name}}` or `{{name, format(...)}}`; the name is what the caller passes, so it is all that has to match.
 const PLACEHOLDER = /\{\{\s*([\w.]+)/g;
@@ -84,43 +83,34 @@ const PLACEHOLDER = /\{\{\s*([\w.]+)/g;
  * @returns {Array<[string, string]>} [path, value] pairs for every string leaf.
  */
 function leafEntries(obj, prefix = '') {
-    return Object.entries(obj).flatMap(([key, value]) => {
-        if (value && typeof value === 'object' && !Array.isArray(value)) return leafEntries(value, `${prefix}${key}.`);
-        return typeof value === 'string' ? [[`${prefix}${key}`, value]] : [];
-    });
+  return Object.entries(obj).flatMap(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return leafEntries(value, `${prefix}${key}.`);
+    return typeof value === 'string' ? [[`${prefix}${key}`, value]] : [];
+  });
 }
 
 /** @returns {Set<string>} The placeholder names a translation string interpolates. */
 function placeholders(value) {
-    return new Set([...value.matchAll(PLACEHOLDER)].map(match => match[1]));
+  return new Set([...value.matchAll(PLACEHOLDER)].map(match => match[1]));
 }
 
 /**
- * The placeholders the reference supplies for each normalized key of a base namespace: the union over its plural
- * forms, since `_one` may leave out a `{{count}}` that `_other` uses and a translation may use either.
+ * What the reference locale has for a base namespace. A key's placeholders are the union over its plural forms,
+ * since `_one` may leave out a `{{count}}` that `_other` uses and a translation may use either.
  *
- * @returns {Map<string, Set<string>>} Normalized key to placeholder names.
+ * @param {string} baseNamespace - Namespace name without any city suffix, e.g. `common`.
+ * @returns {{keys: Set<string>, placeholders: Map<string, Set<string>>}} Normalized keys, and each one's placeholders.
  */
-function referencePlaceholders(baseNamespace) {
-    if (!referencePlaceholdersByNamespace.has(baseNamespace)) {
-        const parsed = readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
-        const byKey = new Map();
-        for (const [path, value] of parsed ? leafEntries(parsed) : []) {
-            const key = path.replace(PLURAL_SUFFIX, '');
-            byKey.set(key, new Set([...(byKey.get(key) ?? []), ...placeholders(value)]));
-        }
-        referencePlaceholdersByNamespace.set(baseNamespace, byKey);
+function reference(baseNamespace) {
+  return referenceByNamespace.getOrInsertComputed(baseNamespace, () => {
+    const parsed = readTranslations(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
+    const placeholdersByKey = new Map();
+    for (const [path, value] of parsed ? leafEntries(parsed) : []) {
+      const names = placeholdersByKey.getOrInsertComputed(path.replace(PLURAL_SUFFIX, ''), () => new Set());
+      placeholders(value).forEach(name => names.add(name));
     }
-    return referencePlaceholdersByNamespace.get(baseNamespace);
-}
-
-/** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
-function referenceKeySet(baseNamespace) {
-    if (!referenceKeysByNamespace.has(baseNamespace)) {
-        const path = join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`);
-        referenceKeysByNamespace.set(baseNamespace, normalizedKeySet(readTranslations(path)));
-    }
-    return referenceKeysByNamespace.get(baseNamespace);
+    return { keys: normalizedKeySet(parsed), placeholders: placeholdersByKey };
+  });
 }
 
 /**
@@ -134,118 +124,117 @@ function referenceKeySet(baseNamespace) {
  * @returns {Array<{path: string, reason: string}>} One entry per unusable leaf.
  */
 function unusableValues(obj, prefix = '') {
-    return Object.entries(obj).flatMap(([key, value]) => {
-        const path = `${prefix}${key}`;
-        if (typeof value === 'string') {
-            if (value.trim() === '') return [{ path, reason: 'empty string' }];
-            // Much of our JS writes translations as plain text, where the entity prints literally; `\u00AD` works in
-            // both plain text and HTML.
-            return value.includes('&shy;') ? [{ path, reason: '&shy; entity, write \\u00AD instead' }] : [];
-        }
-        if (Array.isArray(value)) return [{ path, reason: 'array' }];
-        if (value && typeof value === 'object') {
-            return Object.keys(value).length ? unusableValues(value, `${path}.`) : [{ path, reason: 'empty object' }];
-        }
-        return [{ path, reason: `${value === null ? 'null' : typeof value}, not a string` }];
-    });
+  return Object.entries(obj).flatMap(([key, value]) => {
+    const path = `${prefix}${key}`;
+    if (typeof value === 'string') {
+      if (value.trim() === '') return [{ path, reason: 'empty string' }];
+      // Much of our JS writes translations as plain text, where the entity prints literally; `\u00AD` works in
+      // both plain text and HTML.
+      return value.includes('&shy;') ? [{ path, reason: '&shy; entity, write \\u00AD instead' }] : [];
+    }
+    if (Array.isArray(value)) return [{ path, reason: 'array' }];
+    if (value && typeof value === 'object') {
+      return Object.keys(value).length ? unusableValues(value, `${path}.`) : [{ path, reason: 'empty object' }];
+    }
+    return [{ path, reason: `${value === null ? 'null' : typeof value}, not a string` }];
+  });
 }
 
 /** @returns {string[]} The `.json` filenames directly inside a locale directory. */
 function localeFiles(locale) {
-    return readdirSync(join(LOCALES_DIR, locale)).filter(name => name.endsWith('.json'));
+  return readdirSync(join(LOCALES_DIR, locale)).filter(name => name.endsWith('.json'));
 }
 
 // The reference locale's base namespaces (files whose name has no `-` city suffix): common, validate, audit, ...
 const baseNamespaces = localeFiles(REFERENCE_LOCALE)
-    .map(name => name.replace(/\.json$/, ''))
-    .filter(stem => !stem.includes('-'));
+  .map(name => name.replace(/\.json$/, ''))
+  .filter(stem => !stem.includes('-'));
 
 const locales = readdirSync(LOCALES_DIR, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name);
+  .filter(entry => entry.isDirectory())
+  .map(entry => entry.name);
 
 const problems = [];
 
 for (const locale of locales) {
-    const isOverrideOnlyLocale = OVERRIDE_ONLY_LOCALES.has(locale);
+  const isOverrideOnlyLocale = OVERRIDE_ONLY_LOCALES.has(locale);
 
-    for (const file of localeFiles(locale)) {
-        const stem = file.replace(/\.json$/, '');
+  for (const file of localeFiles(locale)) {
+    const stem = file.replace(/\.json$/, '');
 
-        const parsed = readTranslations(join(LOCALES_DIR, locale, file));
-        const problem = { file: `${locale}/${file}` };
-        if (parsed) problem.unusable = unusableValues(parsed);
+    const parsed = readTranslations(join(LOCALES_DIR, locale, file));
+    const problem = { file: `${locale}/${file}` };
+    if (parsed) problem.unusable = unusableValues(parsed);
 
-        const baseNamespace = stem.split('-')[0];
-        const isCityOverlay = stem.includes('-');
+    const baseNamespace = stem.split('-')[0];
+    const isCityOverlay = stem.includes('-');
 
-        // The reference for any file is the reference locale's *base* namespace (e.g. `common-zurich.json` and
-        // `en-US/common.json` both compare against `en/common.json`).
-        // The reference's own base-namespace files have nothing to compare against (they'd compare to themselves).
-        // Its city overlays are still worth subset-checking against the base namespace. An unknown namespace has
-        // nothing to compare against either -- but its values were still worth checking above.
-        const comparable = baseNamespaces.includes(baseNamespace) && !(locale === REFERENCE_LOCALE && !isCityOverlay);
-        if (comparable) {
-            const referenceKeys = referenceKeySet(baseNamespace);
-            const localeKeys = normalizedKeySet(parsed);
+    // The reference for any file is the reference locale's *base* namespace (e.g. `common-zurich.json` and
+    // `en-US/common.json` both compare against `en/common.json`).
+    // The reference's own base-namespace files have nothing to compare against (they'd compare to themselves).
+    // Its city overlays are still worth subset-checking against the base namespace. An unknown namespace has
+    // nothing to compare against either -- but its values were still worth checking above.
+    const comparable = baseNamespaces.includes(baseNamespace) && !(locale === REFERENCE_LOCALE && !isCityOverlay);
+    if (comparable) {
+      const { keys: referenceKeys, placeholders: supplied } = reference(baseNamespace);
+      const localeKeys = normalizedKeySet(parsed);
 
-            problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
-            // A placeholder the caller never passes: i18next leaves it as literal `{{name}}` text on screen.
-            const supplied = referencePlaceholders(baseNamespace);
-            problem.strayPlaceholders = (parsed ? leafEntries(parsed) : []).flatMap(([path, value]) => {
-                const allowed = supplied.get(path.replace(PLURAL_SUFFIX, ''));
-                return allowed ? [...placeholders(value)].filter(name => !allowed.has(name)).map(name => `${path} {{${name}}}`)
-                    : [];
-            });
-            // Override-only: only unknown/typo'd keys are errors; missing keys are the intended fallback behavior.
-            if (!isOverrideOnlyLocale && !isCityOverlay) {
-                problem.missing = [...referenceKeys].filter(key => !localeKeys.has(key));
-            }
-        }
+      problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
+      // A placeholder the caller never passes: i18next leaves it as literal `{{name}}` text on screen.
+      problem.strayPlaceholders = (parsed ? leafEntries(parsed) : []).flatMap(([path, value]) => {
+        const allowed = supplied.get(path.replace(PLURAL_SUFFIX, ''));
+        return allowed ? [...placeholders(value)].filter(name => !allowed.has(name)).map(name => `${path} {{${name}}}`)
+          : [];
+      });
+      // Override-only: only unknown/typo'd keys are errors; missing keys are the intended fallback behavior.
+      if (!isOverrideOnlyLocale && !isCityOverlay) {
+        problem.missing = [...referenceKeys].filter(key => !localeKeys.has(key));
+      }
+    }
 
-        if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length
+    if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length
             || problem.strayPlaceholders?.length) problems.push(problem);
-    }
+  }
 
-    // Full locales must carry every base namespace file; a whole missing file is drift the per-file loop can't see.
-    if (locale !== REFERENCE_LOCALE && !isOverrideOnlyLocale) {
-        for (const namespace of baseNamespaces) {
-            if (!existsSync(join(LOCALES_DIR, locale, `${namespace}.json`))) {
-                problems.push({ file: `${locale}/${namespace}.json`, missingFile: true });
-            }
-        }
+  // Full locales must carry every base namespace file; a whole missing file is drift the per-file loop can't see.
+  if (locale !== REFERENCE_LOCALE && !isOverrideOnlyLocale) {
+    for (const namespace of baseNamespaces) {
+      if (!existsSync(join(LOCALES_DIR, locale, `${namespace}.json`))) {
+        problems.push({ file: `${locale}/${namespace}.json`, missingFile: true });
+      }
     }
+  }
 }
 
 if (problems.length === 0) {
-    console.log(`Locale checks OK -- all locales consistent with '${REFERENCE_LOCALE}', no empty values.`);
-    process.exit(0);
+  console.log(`Locale checks OK -- all locales consistent with '${REFERENCE_LOCALE}', no empty values.`);
+  process.exit(0);
 }
 
 console.error(`Locale checks failed (${problems.length} problem(s), reference locale '${REFERENCE_LOCALE}'):\n`);
 for (const { file, missingFile, missing, unknown, unusable, strayPlaceholders } of problems) {
-    if (missingFile) {
-        console.error(`  ${file}\n    - entire namespace file is missing`);
-        continue;
-    }
-    console.error(`  ${file}`);
-    if (unusable?.length) {
-        const shown = unusable.slice(0, 10).map(({ path, reason }) => `${path} (${reason})`).join(', ');
-        console.error(`    - ${unusable.length} unusable value(s): ${shown}${unusable.length > 10 ? ', ...' : ''}`);
-    }
-    if (missing?.length) {
-        const shown = missing.slice(0, 10).join(', ');
-        console.error(`    - missing ${missing.length} key(s): ${shown}${missing.length > 10 ? ', ...' : ''}`);
-    }
-    if (unknown?.length) {
-        const shown = unknown.slice(0, 10).join(', ');
-        const more = unknown.length > 10 ? ', ...' : '';
-        console.error(`    - ${unknown.length} unknown key(s) not in reference: ${shown}${more}`);
-    }
-    if (strayPlaceholders?.length) {
-        const shown = strayPlaceholders.slice(0, 10).join(', ');
-        const more = strayPlaceholders.length > 10 ? ', ...' : '';
-        console.error(`    - ${strayPlaceholders.length} placeholder(s) the reference never supplies: ${shown}${more}`);
-    }
+  if (missingFile) {
+    console.error(`  ${file}\n    - entire namespace file is missing`);
+    continue;
+  }
+  console.error(`  ${file}`);
+  if (unusable?.length) {
+    const shown = unusable.slice(0, 10).map(({ path, reason }) => `${path} (${reason})`).join(', ');
+    console.error(`    - ${unusable.length} unusable value(s): ${shown}${unusable.length > 10 ? ', ...' : ''}`);
+  }
+  if (missing?.length) {
+    const shown = missing.slice(0, 10).join(', ');
+    console.error(`    - missing ${missing.length} key(s): ${shown}${missing.length > 10 ? ', ...' : ''}`);
+  }
+  if (unknown?.length) {
+    const shown = unknown.slice(0, 10).join(', ');
+    const more = unknown.length > 10 ? ', ...' : '';
+    console.error(`    - ${unknown.length} unknown key(s) not in reference: ${shown}${more}`);
+  }
+  if (strayPlaceholders?.length) {
+    const shown = strayPlaceholders.slice(0, 10).join(', ');
+    const more = strayPlaceholders.length > 10 ? ', ...' : '';
+    console.error(`    - ${strayPlaceholders.length} placeholder(s) the reference never supplies: ${shown}${more}`);
+  }
 }
 process.exit(1);

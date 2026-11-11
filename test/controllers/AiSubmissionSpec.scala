@@ -21,8 +21,9 @@ import scala.concurrent.duration.*
  * pano — while a payload without the key leaves any stored blob untouched (the Explore write path shares this upsert
  * and its payloads never carry the key). A blob that isn't an object, or is absurdly large, is refused outright.
  *
- * Uses `labels: []` payloads throughout: the endpoint upserts the pano and inserts no labels, so the spec needs no
- * street/region/mission fixtures and leaves only pano rows, which it deletes on both ends of the run.
+ * Uses `labels: []` payloads throughout, apart from one the endpoint refuses before writing (#4808): the endpoint
+ * upserts the pano and inserts no labels, so the spec needs no street/region/mission fixtures and leaves only pano
+ * rows, which it deletes on both ends of the run. Submissions with labels are [[AiSubmissionOverwriteSpec]]'s.
  *
  * Boots the real application against Postgres+PostGIS (like the /v3 API specs). The endpoint's two fail-closed gates
  * are opened via config overrides: `internal-api-key` (bearer auth) and the running city's AI-submission flag.
@@ -152,6 +153,11 @@ class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOne
       storedMetadata(barePanoId) mustBe None
     }
 
+    "accept overwrite=true on a pano-only submission for a pano with no AI labels (#5382)" in {
+      status(post(payload(None, id = barePanoId) + ("overwrite" -> Json.toJson(true)))) mustBe OK
+      panoRowCount(barePanoId) mustBe 1
+    }
+
     "reject a source_metadata that isn't a JSON object" in {
       status(post(payloadWithRawMetadata(Json.toJson("not an object")))) mustBe BAD_REQUEST
       storedMetadata().map(Json.parse) mustBe Some(metadataV2)
@@ -171,6 +177,18 @@ class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOne
       val badLatPay = base + ("pano" -> ((base \ "pano").as[JsObject] + ("lat" -> Json.toJson(999.0))))
 
       status(post(badLatPay)) mustBe INTERNAL_SERVER_ERROR
+      panoRowCount(badLatPanoId) mustBe 0
+    }
+
+    "refuse labels on a pano without the position to place them with a 400, not a 500 (#4808)" in {
+      // Reuses the bad-lat pano id: the previous case left no row for it, and neither may this one.
+      val base = payload(None, id = badLatPanoId) +
+        ("labels" -> Json.arr(Json.obj("pano_x" -> 4096, "pano_y" -> 3500, "confidence" -> 0.9)))
+      val noLatPay = base + ("pano" -> ((base \ "pano").as[JsObject] - "lat"))
+
+      val resp = post(noLatPay)
+      status(resp) mustBe BAD_REQUEST
+      contentAsString(resp) must include("needs the pano's")
       panoRowCount(badLatPanoId) mustBe 0
     }
   }

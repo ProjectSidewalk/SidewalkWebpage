@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { util } from './utilities.js';
 import './pano-viewer/panoUtilities.js';
 
@@ -7,8 +8,8 @@ function UtilitiesMisc(JSON) {
   // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,
   // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
   // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
-  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
-  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  /** @type {Array<Record<string, any>>} */
+  const labelTypes = window.labelTypes;
   const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
   self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
@@ -54,6 +55,12 @@ function UtilitiesMisc(JSON) {
   }
 
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
+  /**
+   * A mode's keyboard shortcut and, for a label type, its tags' shortcuts and translated names.
+   * @param {string} category - A label type name, or 'Walk'.
+   * @returns {{id: string, keyChar: string, tagInfo?: Record<string, {keyChar: string, text: string}>}|undefined}
+   *   The entry, or undefined for a mode with none.
+   */
   function getLabelDescriptions(category) {
     const descriptions = {
       Walk: {
@@ -300,9 +307,9 @@ function UtilitiesMisc(JSON) {
             keyChar: 'A',
             text: i18next.t('center-ui.context-menu.tag.ends-abruptly'),
           },
-          'street has a sidewalk': {
+          'other side has a sidewalk': {
             keyChar: 'R',
-            text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk'),
+            text: i18next.t('center-ui.context-menu.tag.other-side-has-a-sidewalk'),
           },
           'street has no sidewalks': {
             keyChar: 'T',
@@ -452,7 +459,7 @@ function UtilitiesMisc(JSON) {
         keyChar: 'B',
       },
     };
-    return category ? descriptions[category] : descriptions;
+    return descriptions[category];
   }
 
   /**
@@ -781,7 +788,37 @@ function UtilitiesMisc(JSON) {
     return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
   }
 
+  /**
+   * Ties a vote to the tally it changed: the gained vote's icon pops and its count rises, a lost vote's count dips.
+   * Under prefers-reduced-motion each of those blinks instead. Shared by the Gallery cards and the label detail card
+   * so a vote reads the same on both. Decoration only (the icon's state and the new counts are the record), so a
+   * browser without the Web Animations API just skips it.
+   *
+   * @example
+   *   util.misc.animateVoteChange({ Agree: { icon, count }, Disagree: { icon, count } }, 'Disagree', 'Agree');
+   *
+   * @param {Record<string, {icon: ?Element, count: ?Element}>} els - Each vote's icon and count, keyed by vote.
+   * @param {?string} previous - The viewer's vote before, or null.
+   * @param {?string} current - The viewer's vote now, or null once cleared.
+   */
+  function animateVoteChange(els, previous, current) {
+    if (previous === current) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const blink = [{ opacity: 1 }, { opacity: 0.25 }, { opacity: 1 }];
+    const pop = [{ transform: 'scale(1)' }, { transform: 'scale(1.5) rotate(-10deg)', offset: 0.4 },
+      { transform: 'scale(1)' }];
+    const rise = [{ transform: 'translateY(0)' }, { transform: 'translateY(-35%)' }, { transform: 'translateY(0)' }];
+    const dip = [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(30%)', opacity: 0.4 },
+      { transform: 'translateY(0)', opacity: 1 }];
+    const gained = current ? els[current] : null;
+    gained?.icon?.animate?.(reduceMotion ? blink : pop, { duration: 550, easing: 'ease-in-out' });
+    gained?.count?.animate?.(reduceMotion ? blink : rise, { duration: 400, delay: 100, easing: 'ease-in-out' });
+    const lost = previous ? els[previous] : null;
+    lost?.count?.animate?.(reduceMotion ? blink : dip, { duration: 400, easing: 'ease-in-out' });
+  }
+
   self.labelMarkerFraction = labelMarkerFraction;
+  self.animateVoteChange = animateVoteChange;
   self.getIconImagePaths = getIconImagePaths;
   self.labelTypeName = labelTypeName;
   self.getLabelDescriptions = getLabelDescriptions;
@@ -806,9 +843,10 @@ util.misc = { ...UtilitiesMisc(JSON), ...util.misc };
 
 /**
  * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
- * row can be missing. See the note there before changing this list.
+ * row can be missing. See the note there before changing this list. Camera pitch and roll are not on it: the viewer
+ * never reads them (#5174), and a Mapillary pano the AI pipeline recorded without a pose is still viewable (#5725).
  */
-util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading'];
 
 /**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.

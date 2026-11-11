@@ -6,25 +6,21 @@ import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import forms.ChangePasswordForm
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
-import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, NewsEmailOptOutSource, Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
-import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
+import service.{AdminService, ConfigService, GlobalLeaderboardEntry, TeamBoard, UserService}
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474),
- * plus the admin's view of another user's dashboard (#4964).
- *
- * The pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
- * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
- * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323), plus the admin's view of
+ * another user's dashboard (#4964). The pages are responsive, so mobile visitors get them rather than /mobileLanding.
  */
 @Singleton
 class UserDashboardController @Inject() (
@@ -48,10 +44,7 @@ class UserDashboardController @Inject() (
   private val ReauditListSize: Int = ReauditPageSize * 3
 
   /**
-   * Renders the redesigned User Dashboard: a single page of "your impact" sections (hero stats, activity streak,
-   * badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared shell.
-   *
-   * Secured to any signed-in user.
+   * Renders the User Dashboard: the user's stats, streak, badges, standing, mistakes, map, team, and streets to redo.
    */
   def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_UserDashboard")
@@ -134,8 +127,8 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
-   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
+   * Renders the Leaderboard: this city's impact band, podium, weekly/all-time/team tables, the viewer's standing and
+   * teammates, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -149,6 +142,8 @@ class UserDashboardController @Inject() (
     val cityName                                   = configService.getCityName(request2Messages.lang)
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
+    val myTeamF: Future[Option[TeamBoard]]                   =
+      signedInUser.map(u => userService.getTeamBoard(u.userId)).getOrElse(Future.successful(None))
     for {
       commonData          <- configService.getCommonPageData(request2Messages.lang)
       (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
@@ -158,21 +153,22 @@ class UserDashboardController @Inject() (
       standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
+      myTeam <- myTeamF
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
         views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
-          overall, weekly, teams, standing, global)
+          overall, weekly, teams, myTeam, standing, global)
       )
     }
   }
 
   /**
    * Renders the user's Settings page: editable username, read-only email, a measurement-units choice, team membership,
-   * and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard public"). The toggles reflect the
-   * user's real flags; `privateByDefault` tells the view whether this deployment starts users private (school/minor
-   * cities) so it can explain the default.
+   * the project-news email opt-out (#5864), and the two privacy toggles ("Show me on the leaderboard" and "Make my
+   * dashboard public"). The toggles reflect the user's real flags; `privateByDefault` tells the view whether this
+   * deployment starts users private (school/minor cities) so it can explain the default.
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity
@@ -182,12 +178,13 @@ class UserDashboardController @Inject() (
       openTeams  <- userService.getAllOpenTeams
       currTeam   <- userService.getUserTeam(user.userId)
       privacy    <- userService.getPrivacySettings(user.userId)
+      newsStatus <- userService.getNewsEmailStatus(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
       val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
-          unitsChoice, configService.getPrivateProfilesByDefault)
+          unitsChoice, newsEmail = newsStatus.optOut.isEmpty, configService.getPrivateProfilesByDefault)
       )
     }
   }
@@ -200,7 +197,8 @@ class UserDashboardController @Inject() (
    * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
-   * Units and community service hours are saved to the account, so they apply in every city (#3720).
+   * Units, community service hours, and the project-news email choice are saved to the account, so they apply in
+   * every city, not just this one (#3720, #5864).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user                    = request.identity
@@ -220,6 +218,14 @@ class UserDashboardController @Inject() (
           .map(MeasurementSystem.withNameOption)
           .filter(_ != user.measurementSystem)
         val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
+        // The box reads "send me news", so a checked box means no opt-out.
+        val newsEmailEdit: Future[Option[Boolean]] = s.newsEmail match {
+          case Some(subscribed) =>
+            userService
+              .getNewsEmailStatus(user.userId)
+              .map(status => Option.when(status.optOut.isEmpty != subscribed)(subscribed))
+          case None => Future.successful(None)
+        }
 
         // Only the username can be refused, so it's checked before the first write and renamed after the last one.
         val usernameCheck: Future[Either[String, Unit]] = usernameEdit
@@ -232,13 +238,20 @@ class UserDashboardController @Inject() (
             for {
               _ <- userService.updatePrivacySettings(user.userId, s.onLeaderboard, s.publicProfile)
               _ <- teamId
-                .map(id => userService.setUserTeam(user.userId, id))
-                .getOrElse(Future.successful(0))
+                .map(id => userService.joinTeam(user.userId, id))
+                .getOrElse(Future.successful(false))
               _ <- serviceEdit
                 .map(cs => userService.setCommunityService(user.userId, cs))
                 .getOrElse(Future.successful(0))
               _ <- unitsEdit
                 .map(units => userService.setMeasurementSystem(user.userId, units))
+                .getOrElse(Future.successful(0))
+              newsEdit <- newsEmailEdit
+              _        <- newsEdit
+                .map(subscribed =>
+                  if (subscribed) userService.consentToNewsEmail(user.userId)
+                  else userService.optOutOfNewsEmail(user.userId, NewsEmailOptOutSource.Settings)
+                )
                 .getOrElse(Future.successful(0))
               _ <- usernameEdit
                 .map(name => userService.changeUsername(user.userId, name))
@@ -254,6 +267,13 @@ class UserDashboardController @Inject() (
                   user.userId,
                   request.ipAddress,
                   s"Click_module=ChangeUnits_from=${from}_to=$to"
+                )
+              }
+              newsEdit.foreach { subscribed =>
+                cc.loggingService.insert(
+                  user.userId,
+                  request.ipAddress,
+                  s"Click_module=NewsEmail_subscribed=${subscribed}_source=Settings"
                 )
               }
               Ok(Json.obj("success" -> true))

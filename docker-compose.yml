@@ -42,18 +42,20 @@ services:
       - SIDEWALK_IMAGES_DIR=.crops
 
   db:
-    image: projectsidewalk/db
+    # Tagged by Postgres version, so a checkout with the old 16 image builds this one instead of reusing it.
+    image: projectsidewalk/db:18
     container_name: projectsidewalk-db
     build:
       context: ./db/
     shm_size: '512mb'
-    # The image's JIT crashes heavy PostGIS queries (mismatched LLVM versions); prod has it off too (#4376).
+    # Matches prod, which runs with JIT off (#4376).
     command: postgres -c jit=off
     volumes:
       - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"
       # Named, so the data survives `make docker-stop`, which runs `docker compose rm -fv`, rather than being deleted.
-      - "pgdata:/var/lib/postgresql/data"
+      # Postgres 18 images keep their data in /var/lib/postgresql/18/docker, so the volume is mounted one level up.
+      - "pgdata18:/var/lib/postgresql"
     ports:
       - "5432:5432"
     environment:
@@ -63,5 +65,5 @@ services:
 volumes:
   # Leave these unprefixed. Compose namespaces them per project — your checkout directory, lowercased — so an explicit
   # `name:` would point every Sidewalk checkout on the machine at one shared database (or one shared node_modules).
-  pgdata:
+  pgdata18:
   node_modules:

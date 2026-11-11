@@ -69,11 +69,13 @@ case class StoryForOwner(
  * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
  * has no uploaded photo, so every card can still carry an image; None when neither source is available.
  * `address` is the label's street address from pano_data, which is back-filled lazily — often None.
+ * `streetEdgeId` is the label's street, so a neighborhood report (#5900) can send the story to that street's section.
  */
 case class StoryForListing(
     storyId: Int,
     labelId: Int,
     labelType: LabelType,
+    streetEdgeId: Int,
     regionId: Int,
     regionName: String,
     address: Option[String],

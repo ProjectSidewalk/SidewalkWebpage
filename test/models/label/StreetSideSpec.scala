@@ -219,14 +219,18 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
     "match a fresh recompute from the same function for every label" in {
       // The backfill and the insert path share label_centerline_offset_m, so the only way to drift is a reposition
       // that forgot to recompute (docs/evolutions.md, cached distance columns). Unpositioned labels are in scope
-      // too: their offset must be absent, not merely unequal to a recompute that never ran.
+      // too: their offset must be absent, not merely unequal to a recompute that never ran. A 1 mm tolerance, because
+      // a PostGIS/GEOS upgrade (#3955) recomputes the same distance a hair differently; a forgotten recompute is
+      // off by meters.
       val (labelled, stale) = run(
         sql"""SELECT count(*),
-                     count(*) FILTER (WHERE label_point.centerline_offset_m IS DISTINCT FROM
-                                            label_centerline_offset_m(label_point.geom, street_edge.geom))
+                     count(*) FILTER (WHERE (label_point.centerline_offset_m IS NULL) <> (fresh.offset_m IS NULL)
+                                         OR abs(label_point.centerline_offset_m - fresh.offset_m) > 0.001)
               FROM label_point
               INNER JOIN label ON label.label_id = label_point.label_id
-              INNER JOIN street_edge ON street_edge.street_edge_id = label.street_edge_id""".as[(Int, Int)].head
+              INNER JOIN street_edge ON street_edge.street_edge_id = label.street_edge_id
+              CROSS JOIN LATERAL (SELECT label_centerline_offset_m(label_point.geom, street_edge.geom) AS offset_m) fresh
+           """.as[(Int, Int)].head
       )
       assume(labelled > 0, "no labels in this schema; cache freshness needs a seeded DB")
       stale mustBe 0

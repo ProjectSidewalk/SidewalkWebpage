@@ -25,7 +25,6 @@
   "street-count_other": "{{count}} 條街道",
   "street-count-in-region_other": "{{region}}的 {{count}} 條街道",
   "see-all-routes_other": "在儀表板中查看全部 {{count}} 條路線",
-  "copied-to-clipboard": "已複製到剪貼板！",
   "street-count-across-regions": "橫跨 {{regions}} 個社區的 {{streets}} 條街道",
   "region-and-more": "{{region}} 及另外 {{more}} 區",
   "route-name-default": "{{region}}的路線",

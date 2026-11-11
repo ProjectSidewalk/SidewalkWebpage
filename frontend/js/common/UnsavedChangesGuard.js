@@ -10,6 +10,7 @@
  * `isDirty` is asked fresh each time, so a caller only has to keep its own baseline up to date after a save.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from './ConfirmDialog.js';
 
 export class UnsavedChangesGuard {

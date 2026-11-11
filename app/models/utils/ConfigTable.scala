@@ -305,29 +305,24 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     }
 
   /**
-   * Retrieves the distinct contributor user ids for a single city schema (#3976).
-   *
-   * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label
-   * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
-   * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
-   * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
-   * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
-   * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
+   * One city's contributor ids ([[FilteredTables.contributorIds]]), not a count, so callers can dedupe across cities.
    *
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
   def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] =
-    sql"""
-      SELECT label.user_id
-      FROM #${FilteredTables.labels(Some(schema))}
-      UNION
-      SELECT label_validation.user_id
-      FROM #${FilteredTables.votesCast(Some(schema))}
-      UNION
-      SELECT voided_label_validation.user_id
-      FROM #${FilteredTables.voidedVotesCast(Some(schema))};
-    """.as[String]
+    sql"""SELECT contributor.user_id FROM #${FilteredTables.contributorIds(Some(schema))}""".as[String]
+
+  /**
+   * The `user_id`s holding the AI role, from the shared login schema (#5828).
+   *
+   * Lets a caller strip AI accounts from a cross-city union of [[getContributorUserIdsBySchema]] once, rather than
+   * adding a role join to every city's query.
+   *
+   * @return DBIO action yielding the AI accounts' `user_id`s.
+   */
+  def getAiUserIds: DBIO[Seq[String]] =
+    sql"""SELECT user_id FROM sidewalk_login.user_role WHERE role = 'AI'""".as[String]
 
   /**
    * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
@@ -377,6 +372,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets: Int,
       totalKm: Double,
       auditedKm: Double,
+      walkedKm: Double,
+      mappedKm: Double,
       totalLabels: Int,
       aiLabels: Int,
       labelsWithSeverity: Int,
@@ -405,6 +402,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       auditedStreets = r.nextInt(),
       totalKm = r.nextDouble(),
       auditedKm = r.nextDouble(),
+      walkedKm = r.nextDouble(),
+      mappedKm = r.nextDouble(),
       totalLabels = r.nextInt(),
       aiLabels = r.nextInt(),
       labelsWithSeverity = r.nextInt(),
@@ -451,27 +450,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               `coverage` is 0.0 when the city has no streets loaded.
    */
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
-    // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
-    // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
-    // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
-    // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
-    // scorecardCoreQuery) can go away -- tracked in #4705.
-    val upToDateFilterQuery = columnExists(schema, "audit_task", "outdated_imagery")
-
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
     // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
     // long-cached path (getCrossCityLabelingSpeed).
     for {
-      hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
       labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
-      core <- scorecardCoreQuery(
-        schema,
-        if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
-        labelTypeSql,
-        hasValidationLabelType
-      )
+      core        <- scorecardCoreQuery(schema, labelTypeSql, hasValidationLabelType)
       byLabelType <- labelTypeStatsBySchema(schema, labelTypeSql)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
@@ -483,15 +469,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * activity windows, and the last activity time.
    *
    * @param schema                 The city schema to query.
-   * @param upToDateFilter         SQL added to the audited-street joins to keep only current imagery, when the schema
-   *                               has that column (see the caller).
    * @param labelTypeSql           How this schema spells label types (enum or text).
    * @param hasValidationLabelType Whether the schema records a vote's label type, which the verdict counts need.
    * @return                       The one core row.
    */
   private def scorecardCoreQuery(
       schema: String,
-      upToDateFilter: String,
       labelTypeSql: LabelTypeSql,
       hasValidationLabelType: Boolean
   ): DBIO[ScorecardCore] = {
@@ -500,6 +483,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
            audited_streets.cnt        AS audited_streets,
            COALESCE(street_km.km, 0)  AS total_km,
            COALESCE(audited_km.km, 0) AS audited_km,
+           COALESCE(walked_km.km, 0)  AS walked_km,
+           COALESCE(mapped_km.km, 0)  AS mapped_km,
            label_counts.label_count    AS total_labels,
            label_counts.ai_count       AS ai_labels,
            label_counts.with_severity     AS labels_with_severity,
@@ -527,7 +512,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
         FROM #${FilteredTables.streets(Some(schema))}
         INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-            ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+            ON street_edge.street_edge_id = audit_task.street_edge_id AND audit_task.outdated_imagery = FALSE
     ) AS audited_streets, (
         SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
         FROM #${FilteredTables.streets(Some(schema))}
@@ -538,9 +523,25 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             SELECT DISTINCT street_edge.street_edge_id, geom
             FROM #${FilteredTables.streets(Some(schema))}
             INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-                ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+                ON street_edge.street_edge_id = audit_task.street_edge_id AND audit_task.outdated_imagery = FALSE
         ) AS distinct_audited
     ) AS audited_km, (
+        -- Effort: every completed audit's length, repeats and outdated imagery included. The public API's km_explored
+        -- counts the same thing but over streets of every status, the tutorial street included.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM #${FilteredTables.streets(Some(schema))}
+        INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+            ON street_edge.street_edge_id = audit_task.street_edge_id
+    ) AS walked_km, (
+        -- audited_km without the current-imagery filter, so mapped_km - audited_km is exactly the re-audit backlog.
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM (
+            SELECT DISTINCT street_edge.street_edge_id, geom
+            FROM #${FilteredTables.streets(Some(schema))}
+            INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+                ON street_edge.street_edge_id = audit_task.street_edge_id
+        ) AS distinct_mapped
+    ) AS mapped_km, (
         SELECT COUNT(DISTINCT label.label_id) AS label_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
@@ -589,23 +590,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         FROM #${FilteredTables.completedAudits(Some(schema))}
         WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
     ) AS audit_windows, (
-        -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
-        SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
-            SELECT label.user_id AS contributor_id
-            FROM #${FilteredTables.labels(Some(schema))}
-            LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-            WHERE user_role.role IS DISTINCT FROM 'AI'
-            UNION
-            SELECT label_validation.user_id AS contributor_id
-            FROM #${FilteredTables.votesCast(Some(schema))}
-            LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-            WHERE user_role.role IS DISTINCT FROM 'AI'
-            -- Voided votes (#4842) still mark their caster as a contributor. No AI-role filter here, unlike the
-            -- arms above: the archive is human-only by construction.
-            UNION
-            SELECT voided_label_validation.user_id AS contributor_id
-            FROM #${FilteredTables.voidedVotesCast(Some(schema))}
-        ) AS contributor_union
+        SELECT COUNT(*) AS cnt
+        FROM #${FilteredTables.contributorIds(Some(schema))}
+        WHERE #${FilteredTables.notAi("contributor.user_id")}
     ) AS active_contributors, (
         -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
         -- Everyone's labels, since this counts the excluded users.
@@ -648,6 +635,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       coverage = if (core.totalStreets > 0) core.auditedStreets.toDouble / core.totalStreets else 0.0,
       totalKm = core.totalKm,
       auditedKm = core.auditedKm,
+      walkedKm = core.walkedKm,
+      mappedKm = core.mappedKm,
       totalLabels = core.totalLabels,
       aiLabels = core.aiLabels,
       labelsWithSeverity = core.labelsWithSeverity,
@@ -705,7 +694,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     val newUsersCtes =
       if (weeks.isEmpty) """,
       first_weeks AS (
-          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'US/Pacific'))::date AS week_start
+          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'America/Los_Angeles'))::date AS week_start
           FROM activity
           GROUP BY activity_user_id
       ),
@@ -730,7 +719,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           #$valBound
       ),
       weekly AS (
-          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS week_start,
+          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS week_start,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
                  COUNT(DISTINCT activity_user_id)            AS active_users
@@ -826,7 +815,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
       ),
       per_day_user AS (
-          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS day, activity_user_id,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations
           FROM activity
@@ -877,7 +866,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
       ),
       per_day_user AS (
-          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'America/Los_Angeles')::date AS day, activity_user_id,
                  COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations
           FROM activity
@@ -1151,14 +1140,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
       val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
       sql"""
-      SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label.time_created AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              #${labelTypeSql.name},
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM #${FilteredTables.labels(Some(schema), contributors)}
       #${labelTypeSql.join}
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
+      GROUP BY (label.time_created AT TIME ZONE 'America/Los_Angeles')::date, #${labelTypeSql.name}
       ORDER BY date ASC, #${labelTypeSql.name}
       """.as[DailyLabelStat]
     }
@@ -1189,7 +1178,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         // Group by the type the vote judged; older schemas only have the label's current type.
         val typeName = if (hasValidationLabelType) "label_validation.label_type::text" else labelTypeSql.name
         sql"""
-      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              #$typeName,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
@@ -1208,7 +1197,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       #${labelTypeSql.join}
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
       WHERE label.deleted = FALSE
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #$typeName
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date, #$typeName
       ORDER BY date ASC, #$typeName
       """.as[DailyValidationStat]
     }

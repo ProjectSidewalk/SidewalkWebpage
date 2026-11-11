@@ -44,6 +44,16 @@ enum StreetGradientConfidence(val name: String) extends NamedEnum {
 object StreetGradientConfidence extends PgEnumCompanion[StreetGradientConfidence]("street_gradient_confidence")
 
 /**
+ * How many of a city's served streets an elevation model covers, and how far their grades can be trusted (#5223).
+ *
+ * @param demSource   The model, as `street_gradient.dem_source` names it.
+ * @param streetCount The served streets sampled from it.
+ * @param confidence  The confidence of its rows. A model has one grid size, so one confidence; should a name ever
+ *                    be stored at two, this is the lower, since the caveat is what a reader needs to hear.
+ */
+case class DemSourceCount(demSource: String, streetCount: Int, confidence: StreetGradientConfidence)
+
+/**
  * A street's slope statistics without its elevation profile: what a city-wide payload carries per street (#5223).
  *
  * Grades are fractions (0.05 is a 5% grade). Every statistic is optional because a `structure` or `no_data` row has
@@ -232,15 +242,24 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
    *
    * @param servedStreetIds The streets to count, the set the public street APIs serve (`StreetEdgeTable.streets`),
    *                        so a count never includes a hidden street no API returns.
-   * @return (dem_source, street count) pairs, most streets first, so the city's main source leads a credit line.
+   * @return One entry per model, most streets first, so the city's main source leads a credit line.
    */
-  def sourceCounts(servedStreetIds: Query[Rep[Int], Int, Seq]): DBIO[Seq[(String, Int)]] =
+  def sourceCounts(servedStreetIds: Query[Rep[Int], Int, Seq]): DBIO[Seq[DemSourceCount]] =
     streetGradients
       .filter(_.streetEdgeId in servedStreetIds)
-      .groupBy(_.demSource)
-      .map { case (source, rows) => (source, rows.length) }
+      .groupBy(g => (g.demSource, g.confidence))
+      .map { case ((source, confidence), rows) => (source, confidence, rows.length) }
       .result
-      .map(_.sortBy { case (source, count) => (-count, source) })
+      .map { counts =>
+        counts
+          .groupBy(_._1)
+          .map { case (source, rows) =>
+            // Scala declares the cases best first, so the highest ordinal is the lowest confidence.
+            DemSourceCount(source, rows.map(_._3).sum, rows.map(_._2).maxBy(_.ordinal))
+          }
+          .toSeq
+          .sortBy(c => (-c.streetCount, c.demSource))
+      }
 
   // Neither has a Slick binding, and the hash has to be computed the way the export script writes it.
   private val stAsBinary = SimpleFunction.unary[LineString, Array[Byte]]("ST_AsBinary")

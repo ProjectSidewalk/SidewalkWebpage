@@ -48,7 +48,8 @@ class GalleryTaskInteractionTable @Inject() (protected val dbConfigProvider: Dat
     (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) += interaction
   }
 
-  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]] = {
-    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
+  /** Without `returning`, so Slick batches the rows rather than sending one statement each (#5718). */
+  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Option[Int]] = {
+    galleryTaskInteractions ++= interactions
   }
 }

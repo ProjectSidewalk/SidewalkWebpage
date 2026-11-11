@@ -8,109 +8,100 @@
  * instead.
  */
 
-const path = require('path');
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
-
-/**
- * Loads the `Tracker` class out of the production file — a bare `class` the Grunt bundle concatenates into page
- * scope — by wrapping the source in an IIFE that returns it.
- * @returns {Function} The Tracker class.
- */
-function loadTrackerClass() {
-    return loadModules(TRACKER_PATH).Tracker;
-}
-
-const Tracker = loadTrackerClass();
+const { Tracker } = await loadModules('frontend/js/validate/Tracker.js');
 
 describe('Tracker before the first pano loads', () => {
-    beforeEach(() => {
-        jest.useFakeTimers();
-    });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
 
-    afterEach(() => {
-        jest.useRealTimers();
-        delete global.svv;
-    });
+  /** A GSV-shaped viewer in its pre-load state: nothing to report yet. */
+  function unloadedViewer() {
+    return { getPosition: () => null, getPov: () => null, getPanoId: () => null };
+  }
 
-    /** A GSV-shaped viewer in its pre-load state: nothing to report yet. */
-    function unloadedViewer() {
-        return { getPosition: () => null, getPov: () => null, getPanoId: () => null };
-    }
+  /**
+     * A tracker reporting on the given pano manager, the way PanoManager's constructor registers itself.
+     * @param {object} panoManager - A manager, or what it exposes of its viewer.
+     * @returns {Tracker}
+     */
+  function trackerFor(panoManager) {
+    const tracker = new Tracker();
+    tracker.trackPano(panoManager);
+    return tracker;
+  }
 
-    test('records nulls for position, pov and pano rather than throwing', () => {
-        global.svv = { panoManager: {}, panoViewer: unloadedViewer(), missionContainer: null, form: {} };
-        const tracker = new Tracker();
-        expect(() => tracker.push('Viewer_Pannellum')).not.toThrow();
-        const [action] = tracker.getActions();
-        expect(action).toMatchObject({
-            action: 'Viewer_Pannellum', pano_id: null, lat: null, lng: null, heading: null, pitch: null, zoom: null,
-        });
+  test('records nulls for position, pov and pano rather than throwing', () => {
+    const tracker = trackerFor({ panoViewer: unloadedViewer() });
+    expect(() => tracker.push('Viewer_Pannellum')).not.toThrow();
+    const [action] = tracker.getActions();
+    expect(action).toMatchObject({
+      action: 'Viewer_Pannellum', pano_id: null, lat: null, lng: null, heading: null, pitch: null, zoom: null,
     });
+  });
 
-    test('reads the viewer before PanoManager.create has returned, when svv.panoManager is still unset', () => {
-        global.svv = {
-            panoViewer: {
-                getPosition: () => ({ lat: 40.9, lng: -74.0 }),
-                getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
-                getPanoId: () => 'pano-first',
-            },
-            missionContainer: null,
-            form: {},
-        };
-        const [action] = new Tracker().push('Viewer_Pannellum').getActions();
-        expect(action.pano_id).toBe('pano-first');
-    });
+  test('reports nothing about the pano before any manager has registered, or before it has a viewer', () => {
+    const [unregistered] = new Tracker().push('Viewer_Pannellum').getActions();
+    expect(unregistered).toMatchObject({ pano_id: null, lat: null, heading: null });
 
-    test('reports the position and pov once a viewer has them', () => {
-        global.svv = {
-            panoManager: {},
-            panoViewer: {
-                getPosition: () => ({ lat: 40.9, lng: -74.0 }),
-                getPov: () => ({ heading: 10, pitch: 2, zoom: 1 }),
-                getPanoId: () => 'pano-1',
-            },
-            missionContainer: null,
-            form: {},
-        };
-        const [action] = new Tracker().push('POV_Changed').getActions();
-        expect(action).toMatchObject({ pano_id: 'pano-1', lat: 40.9, lng: -74.0, heading: 10, pitch: 2, zoom: 1 });
+    // PanoManager registers itself in its constructor, before create() has built its viewer.
+    const [noViewerYet] = trackerFor({ panoViewer: undefined }).push('Viewer_Pannellum').getActions();
+    expect(noViewerYet).toMatchObject({ pano_id: null, lat: null, heading: null });
+  });
+
+  test('reads the manager\'s viewer as soon as it has one, even before create() has returned', () => {
+    const panoManager = { panoViewer: undefined };
+    const tracker = trackerFor(panoManager);
+    panoManager.panoViewer = {
+      getPosition: () => ({ lat: 40.9, lng: -74.0 }),
+      getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+      getPanoId: () => 'pano-first',
+    };
+    const [action] = tracker.push('Viewer_Pannellum').getActions();
+    expect(action.pano_id).toBe('pano-first');
+  });
+
+  test('reports the position and pov once a viewer has them', () => {
+    const tracker = trackerFor({
+      panoViewer: {
+        getPosition: () => ({ lat: 40.9, lng: -74.0 }),
+        getPov: () => ({ heading: 10, pitch: 2, zoom: 1 }),
+        getPanoId: () => 'pano-1',
+      },
     });
+    const [action] = tracker.push('POV_Changed').getActions();
+    expect(action).toMatchObject({ pano_id: 'pano-1', lat: 40.9, lng: -74.0, heading: 10, pitch: 2, zoom: 1 });
+  });
 });
 
 describe('Tracker before the mission exists', () => {
-    beforeEach(() => {
-        jest.useFakeTimers();
-    });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
 
-    afterEach(() => {
-        jest.useRealTimers();
-        delete global.svv;
-    });
+  /** A mission container reporting one mission, as MissionContainer does once Main has created it. */
+  function missionContainerWith(missionId) {
+    return { getCurrentMission: () => ({ getProperty: (key) => (key === 'missionId' ? missionId : undefined) }) };
+  }
 
-    /** A mission container reporting one mission, as MissionContainer does once Main has created it. */
-    function missionContainerWith(missionId) {
-        return { getCurrentMission: () => ({ getProperty: (key) => (key === 'missionId' ? missionId : undefined) }) };
-    }
+  test('an action pushed before the mission container exists is filed under the mission at drain time', () => {
+    const tracker = new Tracker();
+    tracker.push('Viewer_Pannellum');
+    expect(tracker.getActions()[0].mission_id).toBeNull();
 
-    test('an action pushed before the mission container exists is filed under the mission at drain time', () => {
-        global.svv = { panoManager: null, panoViewer: null, missionContainer: null, form: {} };
-        const tracker = new Tracker();
-        tracker.push('Viewer_Pannellum');
-        expect(tracker.getActions()[0].mission_id).toBeNull();
+    tracker.trackMissions(missionContainerWith(42));
+    tracker.push('MissionStart');
+    expect(tracker.getActions().map((a) => a.mission_id)).toEqual([42, 42]);
+  });
 
-        global.svv.missionContainer = missionContainerWith(42);
-        tracker.push('MissionStart');
-        expect(tracker.getActions().map((a) => a.mission_id)).toEqual([42, 42]);
-    });
-
-    test('an action that already names a mission keeps it', () => {
-        global.svv = { panoManager: null, panoViewer: null, missionContainer: missionContainerWith(7), form: {} };
-        const tracker = new Tracker();
-        tracker.push('MissionComplete');
-        global.svv.missionContainer = missionContainerWith(8);
-        tracker.push('MissionStart');
-        expect(tracker.getActions().map((a) => a.mission_id)).toEqual([7, 8]);
-    });
+  test('an action that already names a mission keeps it', () => {
+    const tracker = new Tracker();
+    tracker.trackMissions(missionContainerWith(7));
+    tracker.push('MissionComplete');
+    tracker.trackMissions(missionContainerWith(8));
+    tracker.push('MissionStart');
+    expect(tracker.getActions().map((a) => a.mission_id)).toEqual([7, 8]);
+  });
 });

@@ -7,6 +7,7 @@
  * identity: hovering or focusing a row highlights that street there.
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 
 export class OutdatedStreets {
@@ -17,12 +18,12 @@ export class OutdatedStreets {
 
   /**
    * @param {HTMLElement} listEl - The <ul> of street rows.
-   * @param {object} [opts] - Options.
-   * @param {Promise<object|null>} [opts.mapReady] - Resolves with the contribution map, or null if it failed to load.
+   * @param {object} opts - Options.
+   * @param {Promise<object|null>} opts.mapReady - Resolves with the contribution map, or null if it failed to load.
    */
-  constructor(listEl, opts = {}) {
+  constructor(listEl, { mapReady }) {
     this.#list = listEl;
-    this.#mapReady = opts.mapReady ?? Promise.resolve(null);
+    this.#mapReady = mapReady;
   }
 
   /** Attaches all row behaviors. */

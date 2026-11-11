@@ -3,6 +3,7 @@
 import { ImageLightbox } from './ImageLightbox.js';
 import { initSidebarDisclosure } from './sidebarDisclosure.js';
 import { util } from './utilities.js';
+import '../../css/components/page-shell.css';
 
 util.onDomReady(() => {
   const links = [...document.querySelectorAll('.page-content h2[id]')].map((question) => {

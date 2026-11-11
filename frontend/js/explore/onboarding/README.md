@@ -49,7 +49,10 @@ that interaction.
 ## Tips
 
 - Never edit `public/build/`; `npm start`'s watch rebuilds the Explore bundle on save (see [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md)).
-- The tutorial can't be exercised by automated GSV testing; step through it manually in the browser after changes.
+- The jsdom suites `test/js/onboardingWalkthrough.test.js` and `onboardingDisplay.test.js` play the real script
+  through `Onboarding.js` (`make test-js`). When a step's right rating or tag changes, update `SEVERITY`/`TAGS` in
+  `test/js/support/onboardingHarness.js` to match. They don't render the pano, so still step through the tutorial in
+  the browser after a visual change.
 - For worked examples of tutorial-flow changes, see PRs
   [#1493](https://github.com/ProjectSidewalk/SidewalkWebpage/pull/1493) and
   [#1485](https://github.com/ProjectSidewalk/SidewalkWebpage/pull/1485).

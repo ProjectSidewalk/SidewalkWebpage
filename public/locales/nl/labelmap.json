@@ -90,6 +90,7 @@
   "done-editing-tags-label": "Klaar met tags bewerken",
   "edit-failed": "De wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
   "edit-failed-short": "Niet opgeslagen",
+  "edit-failed-previous": "Je wijziging aan het vorige etiket kon niet worden opgeslagen.",
   "no-imagery-disabled": "Je kunt niet valideren of becommentariëren wanneer er geen beeldmateriaal beschikbaar is voor dit etiket",
   "no-imagery-edit-disabled": "Je kunt dit etiket niet beoordelen, bewerken of verwijderen wanneer er geen beeldmateriaal beschikbaar is",
   "admin-only": "Alleen beheerders",
@@ -107,8 +108,7 @@
     "hint-shapefile": "Voor ArcGIS, QGIS",
     "hint-geopackage": "Open GIS-formaat",
     "caveat": "Sommige filters uit de link van deze pagina (meerdere regio’s, routes of AI-validatie) kunnen niet worden toegepast op downloads, dus het bestand kan meer etiketten bevatten dan het aantal hierboven.",
-    "api-docs-link": "Documentatie van de Raw Labels API",
-    "opens-new-tab": " (opent in een nieuw tabblad)"
+    "api-docs-link": "Documentatie van de Raw Labels API"
   },
   "story": {
     "heading": "Verhalen uit de community",
@@ -179,13 +179,14 @@
   },
   "edit-type-changed": "Gewijzigd naar {{labelType}}",
   "edit-undo": "Ongedaan maken",
-  "edit-conflict-short": "Labeltype elders gewijzigd",
   "edit-conflict": "Het type van dit label is elders gewijzigd, dus de kaart toont nu de huidige staat.",
   "delete-label": "Etiket verwijderen",
   "delete-label-confirm": "Weet je zeker dat je dit etiket wilt verwijderen?",
   "delete-label-confirm-admin": "Weet je zeker dat je dit etiket wilt verwijderen? Je stem 'Het oneens zijn' wordt erbij vastgelegd.",
   "delete-label-failed": "Het etiket kon niet worden verwijderd. Probeer het opnieuw.",
   "restore-label": "Etiket herstellen",
+  "previous-label": "Vorig etiket",
+  "next-label": "Volgend etiket",
   "restore-label-brief": "Herstellen",
   "restore-label-failed": "Het etiket kon niet worden hersteld. Probeer het opnieuw.",
   "you-deleted-label": "Je hebt dit etiket verwijderd",

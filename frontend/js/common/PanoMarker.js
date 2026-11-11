@@ -12,7 +12,6 @@
  * with the user's viewport changes. The marker actually sits on top of the panorama DOM-wise.
  */
 
-import { svv } from '../validate/svv.js';
 import { util } from './utilities.js';
 import './pano-viewer/panoUtilities.js';
 /** @typedef {import('./pano-viewer/PanoViewer.js').PanoViewer} PanoViewer */
@@ -31,57 +30,36 @@ import './pano-viewer/panoUtilities.js';
  */
 export class PanoMarker {
   /**
-   * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
-   * upon construction. Note that the position must be set for the marker to display.
+   * Creates a PanoMarker and adds it to the given container right away.
    *
    * @param {object} opts - A set of parameters to customize the marker.
    * @param {PanoViewer} opts.panoViewer - Panorama viewer on which to display marker.
    * @param {HTMLElement} opts.markerContainer - The container holding the markers.
-   * @param {string} [opts.className] - The class name which will be assigned to the created div node.
    * @param {string} [opts.icon] - URL to an image file that shall be used.
    * @param {string} [opts.id] - A unique identifier that will be assigned to the created div-node.
-   * @param {{heading: number, pitch: number}} [opts.position] - Marker position on the panorama.
-   * @param {{width: number, height: number}} [opts.size] - The size of the marker in pixels.
-   * @param {string} [opts.title] - Hover tooltip.
-   * @param {boolean} [opts.visible=true] - If true, the marker is visible.
+   * @param {{heading: number, pitch: number}} opts.position - Marker position on the panorama.
+   * @param {{width: number, height: number}} opts.size - The size of the marker in pixels.
    * @param {number} [opts.zIndex=1] - The marker's z-index.
+   * @param {() => void} [opts.onDraw] - Called after every draw, for anything anchored to the marker's position.
    */
   constructor(opts) {
-    if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
-    if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
-
     /** @type {HTMLElement} */
     this.markerContainer_ = opts.markerContainer;
 
     /** @type {PanoViewer} */
     this.panoViewer_ = opts.panoViewer;
 
-    /** @type {?string} */
-    this.className_ = opts.className || null;
-
-    /** @type {?string} */
-    this.icon_ = opts.icon || null;
-
-    /** @type {?string} */
-    this.id_ = opts.id || null;
+    /** @type {?(() => void)} */
+    this.onDraw_ = opts.onDraw || null;
 
     /** @type {?HTMLDivElement} */
     this.marker_ = null;
 
     /** @type {{heading: number, pitch: number}} */
-    this.position_ = opts.position || { heading: 0, pitch: 0 };
+    this.position_ = opts.position;
 
     /** @type {{width: number, height: number}} */
-    this.size_ = opts.size || { width: 32, height: 32 };
-
-    /** @type {string} */
-    this.title_ = opts.title || '';
-
-    /** @type {boolean} */
-    this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
-
-    /** @type {number} */
-    this.zIndex_ = opts.zIndex || 1;
+    this.size_ = opts.size;
 
     /**
      * New code (April 17, 2019) -- modified by Aileen
@@ -95,18 +73,20 @@ export class PanoMarker {
      */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
     const pixelCanvas = document.createElement('canvas');
-    if (pixelCanvas && (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl'))) {
+    if (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl')) {
       this.povToPixel_ = util.pano.centeredPovToCanvasCoord;
     }
 
-    // At last, call some methods which use the initialized parameters.
-    this.createMarker();
+    this.createMarker(opts.zIndex || 1, opts.id, opts.icon);
   }
 
   /**
    * Sets up a marker and then calls draw().
+   * @param {number} zIndex - The marker's z-index.
+   * @param {string} [id] - The id to give the marker element.
+   * @param {string} [icon] - URL of the marker's icon.
    */
-  createMarker = function () {
+  createMarker = function (zIndex, id, icon) {
     const marker = document.createElement('div');
     marker.classList.add('icon-outline', 'label-marker');
 
@@ -120,32 +100,13 @@ export class PanoMarker {
     // instead of hardcoding px that only look right at one of its sizes (e.g. main.css's .label-marker-pulse halo,
     // where Validate's marker is 22px on desktop but 52px on mobile).
     marker.style.setProperty('--marker-diameter', `${this.size_.width}px`);
-    marker.style.display = this.visible_ ? 'block' : 'none';
-    marker.style.zIndex = this.zIndex_;
+    marker.style.display = 'block';
+    marker.style.zIndex = String(zIndex);
 
-    // Set other CSS attributes based on the given parameters.
-    if (this.id_) {
-      marker.id = this.id_;
-    }
-    if (this.className_) {
-      // Added, not assigned: .label-marker is what draws the icon, so replacing the list renders an empty marker.
-      marker.classList.add(...this.className_.split(' '));
-    }
-    if (this.title_) {
-      marker.title = this.title_;
-    }
+    if (id) marker.id = id;
     // --label-icon rather than the element's own background, so hiding the label can crossfade just the icon
     // (.label-marker::before) while the ring around it stays to mark the spot.
-    if (this.icon_) {
-      marker.style.setProperty('--label-icon', `url(${this.icon_})`);
-    }
-
-    // If neither icon, class nor id is specified, assign the basic Google Maps marker image to the marker.
-    if (!(this.id_ || this.className_ || this.icon_)) {
-      marker.style.setProperty(
-        '--label-icon', 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)',
-      );
-    }
+    if (icon) marker.style.setProperty('--label-icon', `url(${icon})`);
 
     this.marker_ = marker;
     this.markerContainer_.appendChild(marker);
@@ -157,118 +118,6 @@ export class PanoMarker {
     this.listenerViewer_ = this.panoViewer_;
     window.addEventListener('resize', this.boundDraw_);
     this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
-
-    // On Validate, the marker is what opens the label card (its metadata plus the Hide-label toggle). Positioning
-    // and timing live in LabelVisibilityControl; this only reports the pointer and the keyboard focus.
-    if (this.id_ === 'validate-pano-marker') {
-      // The marker is a control, not just a hover target (#4729): the card it opens is the only place the label's
-      // rating, tags, and description appear. role=button with aria-expanded makes it read as a disclosure, and
-      // aria-describedby hands a screen reader the card's contents right off the marker — the card itself never
-      // takes focus. Its aria-label (the label's type) is set per label by PanoManager.renderPanoMarker, and
-      // LabelVisibilityControl mirrors the card's visibility onto aria-expanded. Both platforms claim the same
-      // contract, because both answer the activation an assistive technology sends (a click).
-      marker.setAttribute('tabindex', '0');
-      marker.setAttribute('role', 'button');
-      marker.setAttribute('aria-haspopup', 'dialog');
-      marker.setAttribute('aria-expanded', 'false');
-      marker.setAttribute('aria-describedby', 'label-card');
-
-      if (util.isMobile()) {
-        // Three ways in, one path out: a finger, an assistive technology's activate gesture (which arrives as a
-        // click, never as a touch), and Enter/Space for a keyboard on a tablet. Mobile Validate builds no
-        // KeyboardManager (Main.js), so unlike desktop the keys are handled right here.
-        //
-        // A touch is the marker's from the moment it lands, so a drag beginning on it can't pan the pano — the same
-        // trade the desktop marker makes with the mouse, over a target this small. Answering on touchend, and only
-        // when the finger stayed put, at least keeps such a drag from opening the card on its way past.
-        // (mobile-validate.css is what lets the touch reach the marker at all: the layer around it is
-        // click-through so the pano gets every pan.)
-        const TAP_SLOP = 25; // In this page's oversized px — it draws at ~2.5x the screen, so this is ~10 real px.
-        const CLICK_AFTER_TOUCH_MS = 700;
-        let touchStart = null;
-        let lastTouchEndAt = 0;
-        const activate = () => svv.labelVisibilityControl.toggleLabelCard();
-
-        marker.addEventListener('touchstart', (e) => {
-          // A second finger means a pinch is starting, not a tap. Drop the tracked touch rather than overwrite it:
-          // the marker is the one thing over the pano a finger can land on, so both fingers of a pinch can begin
-          // here, and the second one's lift would otherwise read as a tap that started where the first finger did.
-          if (e.touches.length > 1) {
-            touchStart = null;
-            return;
-          }
-          const touch = e.changedTouches[0];
-          touchStart = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
-        }, { passive: true });
-
-        marker.addEventListener('touchcancel', () => {
-          touchStart = null;
-        }, { passive: true });
-
-        marker.addEventListener('touchend', (e) => {
-          lastTouchEndAt = Date.now();
-          if (!touchStart) return;
-          // Only the finger the tap started with, and only once it is the last one down.
-          const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchStart.id);
-          if (!touch) return;
-          const { x, y } = touchStart;
-          touchStart = null;
-          if (e.touches.length > 0) return;
-          if (Math.hypot(touch.clientX - x, touch.clientY - y) <= TAP_SLOP) activate();
-        }, { passive: true });
-
-        marker.addEventListener('click', () => {
-          // A tap synthesizes a click shortly after its touchend, and that touch has already been judged above —
-          // honoured as a tap or turned down as a drag. So this is only for the activations that arrive with no
-          // touch behind them, which is how an assistive technology presses a button.
-          if (Date.now() - lastTouchEndAt < CLICK_AFTER_TOUCH_MS) return;
-          activate();
-        });
-
-        marker.addEventListener('keydown', (e) => {
-          // role=button brings no native key handling, and there is no KeyboardManager here to supply it.
-          if (e.key !== 'Enter' && e.key !== ' ') return;
-          e.preventDefault(); // Space would otherwise scroll the page.
-          activate();
-        });
-      } else {
-        // Enter, Space, and Escape are handled in Validate's KeyboardManager, which listens on window with capture
-        // and would otherwise submit a validation on the same keys.
-        marker.addEventListener('mouseover', (e) => {
-          // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
-          if (e.buttons) return;
-          svv.labelVisibilityControl.showLabelCard();
-        });
-
-        // Scheduled rather than immediate: the card sits beside the marker, so the cursor has to cross a gap to
-        // reach it and an instant hide would make the button inside it unclickable.
-        marker.addEventListener('mouseout', () => svv.labelVisibilityControl.scheduleHideLabelCard());
-
-        // A click focuses the marker too, and that focus must not reopen the card the same press just closed.
-        let pressing = false;
-        marker.addEventListener('mousedown', () => {
-          pressing = true;
-          // On the window, since a drag that starts here can end anywhere.
-          window.addEventListener('mouseup', () => {
-            pressing = false;
-          }, { once: true });
-        });
-
-        // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
-        // can travel from the marker onto the card's controls before the hide fires.
-        marker.addEventListener('focus', (e) => {
-          if (pressing) return;
-          // Focus returning from inside the card is not an open request: it is either Escape closing the card
-          // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
-          // this cancel undoes).
-          const card = document.getElementById('label-card');
-          const cameFrom = /** @type {Node} */ (e.relatedTarget);
-          if (card && card.contains(cameFrom)) svv.labelVisibilityControl.cancelScheduledCardHide();
-          else svv.labelVisibilityControl.showLabelCard({ viaKeyboard: true });
-        });
-        marker.addEventListener('blur', () => svv.labelVisibilityControl.scheduleHideLabelCard());
-      }
-    }
 
     this.draw();
   };
@@ -288,126 +137,34 @@ export class PanoMarker {
    * Draws the marker on the canvas.
    */
   draw = function () {
-    if (!this.panoViewer_) {
-      return;
-    }
-
+    // A viewer loops over a copy of its pov listeners, awaiting each, so one removed partway through still gets called.
+    if (!this.marker_) return;
     // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
     // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
-    if (this.marker_) {
-      const pov = this.panoViewer_.getPov();
-      const width = this.markerContainer_.offsetWidth;
-      const height = this.markerContainer_.offsetHeight;
-      // The fov the viewer renders for this container's shape, not the zoom curve alone: GSV clamps its vertical
-      // field on a tall or wide viewport (#5083), and a marker projected with the curve would sit off its feature.
-      const coords = this.povToPixel_(
-        this.position_, pov, width, height, this.size_.width,
-        util.pano.renderedHFov(pov.zoom, width / height, this.panoViewer_.getViewerType?.()),
-      );
-      if (coords !== null) {
-        this.marker_.style.left = `${coords.x - this.size_.width / 2}px`;
-        this.marker_.style.top = `${coords.y - this.size_.height / 2}px`;
-      } else {
-        // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
-        this.marker_.style.left = `${-(9999 + this.size_.width)}px`;
-        this.marker_.style.top = '0';
-      }
-
-      // The Validate card is anchored to the marker, so it has to move with it. This runs on every pov_changed and
-      // resize, but re-anchoring costs nothing while the card is hidden, which is the whole time on other pages.
-      if (this.id_ === 'validate-pano-marker') {
-        svv.labelVisibilityControl?.reanchorLabelCard();
-      }
+    const pov = this.panoViewer_.getPov();
+    const width = this.markerContainer_.offsetWidth;
+    const height = this.markerContainer_.offsetHeight;
+    // The fov the viewer renders for this container's shape, not the zoom curve alone: GSV clamps its vertical
+    // field on a tall or wide viewport (#5083), and a marker projected with the curve would sit off its feature.
+    const coords = this.povToPixel_(
+      this.position_, pov, width, height, this.size_.width,
+      util.pano.renderedHFov(pov.zoom, width / height, this.panoViewer_.getViewerType?.()),
+    );
+    if (coords !== null) {
+      this.marker_.style.left = `${coords.x - this.size_.width / 2}px`;
+      this.marker_.style.top = `${coords.y - this.size_.height / 2}px`;
+    } else {
+      // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
+      this.marker_.style.left = `${-(9999 + this.size_.width)}px`;
+      this.marker_.style.top = '0';
     }
+
+    this.onDraw_?.();
   };
 
-  // Getter to be roughly equivalent to the regular google.maps.Marker. //
-
-  /** @returns {?string} The className or null if not set upon marker creation. */
-  getClassName = function () {
-    return this.className_;
-  };
-
-  /** @returns {?string} The current icon, if any. */
-  getIcon = function () {
-    return this.icon_;
-  };
-
-  /** @returns {?string} The identifier or null if not set upon marker creation. */
-  getId = function () {
-    return this.id_;
-  };
-
-  /** @returns {PanoViewer} The current PanoViewer. */
-  getPanoViewer = function () {
-    return this.panoViewer_;
-  };
-
-  /** @returns {HTMLDivElement} The container holding the markers. */
-  getMarkerContainer = function () {
-    return this.markerContainer_;
-  };
-
-  /** @returns {{heading: number, pitch: number}} The marker's location on the panorama. */
-  getPosition = function () {
-    return this.position_;
-  };
-
-  /** @returns {{width: number, height: number}} The size of the marker in pixels. */
-  getSize = function () {
-    return this.size_;
-  };
-
-  /** @returns {string} The marker's rollover text. */
-  getTitle = function () {
-    return this.title_;
-  };
-
-  /** @returns {boolean} Whether the marker is currently visible. */
-  getVisible = function () {
-    return this.visible_;
-  };
-
-  /** @returns {number} The marker's z-index. */
-  getZIndex = function () {
-    return this.zIndex_;
-  };
-
-  // Setter for the properties mentioned above. //
-
-  /** @param {string} className - The new className. */
-  setClassName = function (className) {
-    this.className_ = className;
-    if (this.marker_) {
-      this.marker_.className = className;
-      this.marker_.classList.add('icon-outline', 'label-marker'); // Structural; .label-marker draws the icon.
-    }
-  };
-
-  /** @param {?string} icon - URL to a new icon, or null in order to remove it. */
+  /** @param {string} icon - URL to a new icon. */
   setIcon = function (icon) {
-    this.icon_ = icon;
-    if (this.marker_) {
-      this.marker_.style.setProperty('--label-icon', icon ? `url(${icon})` : '');
-    }
-  };
-
-  /** @param {string} id - The new id. */
-  setId = function (id) {
-    this.id_ = id;
-    if (this.marker_) {
-      this.marker_.id = id;
-    }
-  };
-
-  /** @param {PanoViewer} panoViewer - The panorama in which to show the marker. */
-  setPanoViewer = function (panoViewer) {
-    this.panoViewer_ = panoViewer;
-  };
-
-  /** @param {HTMLDivElement} markerContainer - The container holding the markers. */
-  setMarkerContainer = function (markerContainer) {
-    this.markerContainer_ = markerContainer;
+    this.marker_.style.setProperty('--label-icon', `url(${icon})`);
   };
 
   /** @param {{heading: number, pitch: number}} position - The desired location for the marker on the pano. */
@@ -419,35 +176,14 @@ export class PanoMarker {
   /** @param {{width: number, height: number}} size - The new size of the marker in pixels. */
   setSize = function (size) {
     this.size_ = size;
-    if (this.marker_) {
-      this.marker_.style.width = `${size.width}px`;
-      this.marker_.style.height = `${size.height}px`;
-      this.marker_.style.setProperty('--marker-diameter', `${size.width}px`);
-      this.draw();
-    }
-  };
-
-  /** @param {string} title - The new rollover text. */
-  setTitle = function (title) {
-    this.title_ = title;
-    if (this.marker_) {
-      this.marker_.title = title;
-    }
+    this.marker_.style.width = `${size.width}px`;
+    this.marker_.style.height = `${size.height}px`;
+    this.marker_.style.setProperty('--marker-diameter', `${size.width}px`);
+    this.draw();
   };
 
   /** @param {boolean} show - Whether the marker shall be visible. */
   setVisible = function (show) {
-    this.visible_ = show;
-    if (this.marker_) {
-      this.marker_.style.display = show ? 'block' : 'none';
-    }
-  };
-
-  /** @param {number} zIndex - The new z-index. */
-  setZIndex = function (zIndex) {
-    this.zIndex_ = zIndex;
-    if (this.marker_) {
-      this.marker_.style.zIndex = zIndex;
-    }
+    this.marker_.style.display = show ? 'block' : 'none';
   };
 }

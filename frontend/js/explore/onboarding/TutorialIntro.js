@@ -8,9 +8,12 @@
  * "Next"/"Start Mission" label.
  */
 
-import { svl } from '../svl.js';
+import i18next from 'i18next';
+
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class TutorialIntro {
+  #routeWaiting;
   #tracker;
   #onStart;
   #onSkip;
@@ -24,12 +27,14 @@ export class TutorialIntro {
   #motionPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /**
-   * @param {object} tracker - Interaction logger (svl.tracker).
+   * @param {boolean} routeWaiting - Whether a route waits for the user past the tutorial, so the intro can say so.
+   * @param {Tracker} tracker - Interaction logger.
    * @param {object} callbacks - Callbacks fired when the user leaves the intro.
    * @param {Function} callbacks.onStart - Invoked when the user finishes the intro and starts the tutorial.
    * @param {Function} callbacks.onSkip - Invoked when the user skips the tutorial from the intro.
    */
-  constructor(tracker, { onStart, onSkip }) {
+  constructor(routeWaiting, tracker, { onStart, onSkip }) {
+    this.#routeWaiting = routeWaiting;
     this.#tracker = tracker;
     this.#onStart = onStart;
     this.#onSkip = onSkip;
@@ -66,7 +71,7 @@ export class TutorialIntro {
     // A user who clicked through to a specific route lands here instead, so say the route is still waiting —
     // otherwise the tutorial looks like it replaced what they asked for. Main captures the ask before it pins the
     // URL (#5480); the page's own route params are blank during the tutorial (#4816), so they can't say.
-    if (this.#ui.routeNote && svl.tutorialRouteWaiting) {
+    if (this.#ui.routeNote && this.#routeWaiting) {
       this.#ui.routeNote.hidden = false;
     }
     // Kick off the Impact-stats fetch now (fire-and-forget): the Impact step is last, so the server-cached numbers are

@@ -3,6 +3,8 @@
  * @typedef {{shapeKey: string} & Record<string, any>} AccessScoreChartData
  */
 
+import i18next from 'i18next';
+
 /**
  * Base for the views in the AccessScore insights dock (#5217): a container, the callbacks a view reports through,
  * and the render/update split that keeps a slider drag cheap.

@@ -1,5 +1,7 @@
+import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { filterLabelLayers } from './psMapUtilities.js';
+import { paddingTarget } from './mapPadding.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
 
@@ -36,6 +38,9 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  *     filter bypass (null/undefined before the label layers exist).
  * @param {(labelId: number) => ?Array<number>} host.getCoords - Best known [lng, lat] for a label ID.
  * @param {(labelId: number) => ?string} host.getLabelType - Best known label type for a label ID.
+ * @param {() => {left: number, top: number, right: number, bottom: number}} [host.getFreeBox] - The part of the
+ *     viewport, in client pixels, where the dot may be parked: the window unless the page covers some of its map
+ *     with drawers (AccessScore's controls drawer and street panel, #5748), which would otherwise hide the dot.
  * @returns {{spotlight: (labelId: number, jump?: boolean) => void, pulse: (labelId: number) => void,
  *     updateTail: () => void, refreshBeacon: (labelId: number) => void, spotlightedLabelId: () => ?number}}
  *     `spotlight(labelId, jump)` beacons + positions the camera while the popup shows the label, `pulse(labelId)`
@@ -43,8 +48,11 @@ function centerShowingLabelAt(coords, dx, dy, zoom) {
  *     'move'), `refreshBeacon(labelId)` redraws the beacon after the label's type changed (#3671), and
  *     `spotlightedLabelId()` reports the currently spotlighted label (null when none).
  */
-export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelType }) {
+export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelType, getFreeBox }) {
   let spotlightedLabelId = null;
+  const freeBox = () => (getFreeBox
+    ? getFreeBox()
+    : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight });
 
   // Marks `labelId` (or null) as exempt from the sidebar filters, so the dot a user explicitly asked to see
   // (deep link, arrow paging) can't be hidden by them — e.g. the default incorrect/low-quality exclusions
@@ -54,7 +62,7 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
     const mapData = getMapData();
     if (!map || !mapData || mapData.spotlightLabelId === labelId) return;
     mapData.spotlightLabelId = labelId;
-    filterLabelLayers(null, map, mapData, true);
+    filterLabelLayers(map, mapData, true);
   };
 
   // Chat-bubble tail connecting the dialog to the spotlighted dot, so the pair visibly reads as one unit:
@@ -169,13 +177,12 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
       centerDot.style.background = fill.fillStyle;
       el.appendChild(centerDot);
     }
-    beacon = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(getMap());
+    const [lng, lat] = coords;
+    beacon = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(getMap());
     if (mode === 'flash') {
       beaconTimer = setTimeout(() => {
-        if (beacon && beacon.getElement() === el) {
-          beacon.remove();
-          beacon = null;
-        }
+        beacon.remove();
+        beacon = null;
         setSpotlightFilter(null); // Re-hide a filtered-out dot only after the flash is done ringing it.
       }, 2600);
     }
@@ -193,17 +200,39 @@ export function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, ge
     // the dot under the dialog and leaves updateTail() nothing to draw. A phone leaves no gutter either way.
     const MIN_GUTTER = 24;
     const rect = dialog.open ? dialog.getBoundingClientRect() : null;
-    const gutterX = (window.innerWidth - (rect?.width || 650)) / 2;
-    const gutterY = (window.innerHeight - (rect?.height || 0)) / 2;
+    const box = freeBox();
+    // The dialog is centered in the window; the free area may not be. Each gutter is the free area's part beside
+    // or below the dialog, and the dot is parked in the middle of the roomier one.
+    const dialogLeft = rect ? rect.left : (window.innerWidth - 650) / 2;
+    const dialogRight = rect ? rect.right : (window.innerWidth + 650) / 2;
+    const dialogBottom = rect ? rect.bottom : window.innerHeight / 2;
+    const gutterRight = box.right - dialogRight;
+    const gutterLeft = dialogLeft - box.left;
+    const gutterX = Math.max(gutterRight, gutterLeft);
+    const gutterY = box.bottom - dialogBottom;
+    // Mapbox's center is the center of the viewport inside the map's padding (a page's drawers, #5748), and the
+    // offset below is from there; the container's own center would land the dot a drawer's half-width off. The
+    // padding is the one the drawers are heading for, and the move carries it, since a move cuts short a padding
+    // ease still under way and would strand it half-way.
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const pad = paddingTarget(map);
+    const mapCenter = {
+      x: mapRect.left + pad.left + (mapRect.width - pad.left - pad.right) / 2,
+      y: mapRect.top + pad.top + (mapRect.height - pad.top - pad.bottom) / 2,
+    };
     let dx = 0;
     let dy = 0;
-    if (gutterX >= gutterY && gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
-    else if (gutterY > MIN_GUTTER) dy = (window.innerHeight - gutterY) / 2;
+    if (gutterX >= gutterY && gutterX > MIN_GUTTER) {
+      const targetX = gutterRight >= gutterLeft ? dialogRight + gutterRight / 2 : box.left + gutterLeft / 2;
+      dx = targetX - mapCenter.x;
+    } else if (gutterY > MIN_GUTTER) {
+      dy = dialogBottom + gutterY / 2 - mapCenter.y;
+    }
     const zoom = Math.max(map.getZoom(), 16);
     // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
     // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
     // and with it the beacon and tail — under the centered dialog. This keeps jump and ease placing identically.
-    const camera = { center: centerShowingLabelAt(coords, dx, dy, zoom), zoom };
+    const camera = { center: centerShowingLabelAt(coords, dx, dy, zoom), zoom, padding: pad };
     if (jump) map.jumpTo(camera);
     else map.easeTo(camera);
     setBeacon(labelId, 'spotlight');

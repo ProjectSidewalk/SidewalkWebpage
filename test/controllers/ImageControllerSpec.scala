@@ -9,11 +9,12 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.{PanoDataService, ShareImageCache}
+import models.label.LabelType
+import service.{CropService, ImageSigningService, PanoDataService, ShareImageCache}
 import util.{AnonSession, SidewalkSpec}
 
 import java.awt.image.BufferedImage
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.util.Base64
 import javax.imageio.ImageIO
 
@@ -188,6 +189,73 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
     "reject a request with no JSON body" in {
       val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession()*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
+    }
+  }
+
+  "GET /cropImage/:labelType/:labelId/thumbnail" should {
+    val labelId = Int.MaxValue - 5876
+
+    def thumbnailFile: File = File(File(shareImageCache.dir, "crop-thumbnails"), s"crop_$labelId.jpg")
+
+    def cleanUpThumbnail(): Unit = {
+      cleanUp(labelId)
+      val _ = thumbnailFile.delete()
+    }
+
+    def writeCrop(width: Int, height: Int): Unit = {
+      val _ = cropFileFor(labelId).getParentFile.mkdirs()
+      val _ = ImageIO.write(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", cropFileFor(labelId))
+    }
+
+    def thumbnailUrl: String = panoDataService.cropThumbnailUrl(labelId, LabelType.CurbRamp).get
+
+    "serve a small JPEG of the crop's shape, however large the crop" in {
+      cleanUpThumbnail()
+      try {
+        writeCrop(1440, 960)
+        val resp = route(app, FakeRequest(GET, thumbnailUrl)).get
+        status(resp) mustBe OK
+        contentType(resp) mustBe Some("image/jpeg")
+        val image = ImageIO.read(ByteArrayInputStream(contentAsBytes(resp).toArray))
+        (image.getWidth, image.getHeight) mustBe ((CropService.ThumbnailMaxEdge, 480))
+      } finally cleanUpThumbnail()
+    }
+
+    "rebuild once the crop is newer than the cached thumbnail, so a re-cut crop doesn't keep its old picture" in {
+      cleanUpThumbnail()
+      try {
+        writeCrop(1440, 960)
+        status(route(app, FakeRequest(GET, thumbnailUrl)).get) mustBe OK
+        writeCrop(1440, 720)
+        val _     = cropFileFor(labelId).setLastModified(thumbnailFile.lastModified() + 5000)
+        val image =
+          ImageIO.read(ByteArrayInputStream(contentAsBytes(route(app, FakeRequest(GET, thumbnailUrl)).get).toArray))
+        (image.getWidth, image.getHeight) mustBe ((CropService.ThumbnailMaxEdge, 360))
+      } finally cleanUpThumbnail()
+    }
+
+    "be a 404 for a label with no crop, or one too damaged to decode" in {
+      cleanUpThumbnail()
+      val signed = app.injector.instanceOf[ImageSigningService].signedUrl(s"/cropImage/CurbRamp/$labelId/thumbnail")
+      try {
+        status(route(app, FakeRequest(GET, signed)).get) mustBe NOT_FOUND
+        val _ = cropFileFor(labelId).getParentFile.mkdirs()
+        val _ = java.nio.file.Files.writeString(cropFileFor(labelId).toPath, "not an image")
+        status(route(app, FakeRequest(GET, signed)).get) mustBe NOT_FOUND
+      } finally cleanUpThumbnail()
+    }
+
+    "refuse a missing signature, a signature for the full crop, and another site's Referer" in {
+      cleanUpThumbnail()
+      try {
+        writeCrop(1440, 960)
+        status(route(app, FakeRequest(GET, s"/cropImage/CurbRamp/$labelId/thumbnail")).get) mustBe FORBIDDEN
+        val fullCrop = panoDataService.cropUrl(labelId, LabelType.CurbRamp).get
+        val query    = fullCrop.substring(fullCrop.indexOf('?'))
+        status(route(app, FakeRequest(GET, s"/cropImage/CurbRamp/$labelId/thumbnail$query")).get) mustBe FORBIDDEN
+        val elsewhere = FakeRequest(GET, thumbnailUrl).withHeaders("Referer" -> "https://example.com/page")
+        status(route(app, elsewhere).get) mustBe FORBIDDEN
+      } finally cleanUpThumbnail()
     }
   }
 }

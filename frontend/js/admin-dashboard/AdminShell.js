@@ -1,15 +1,12 @@
 /**
- * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
- * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, keeps a deep link's target in place while sections above it are still loading, and
- * adds the left nav's mobile disclosure (sidebarDisclosure.js).
- *
- * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
- * the look and behavior match. It self-initializes on DOMContentLoaded.
+ * Page-shell behavior for the admin and user dashboards (#4272): builds the "On this page" contents from the headings,
+ * highlights the section in view, scrolls anchor jumps clear of the navbar, and holds a deep link's target in place
+ * while sections above it are still loading.
  */
 
 import { initSidebarDisclosure } from '../common/sidebarDisclosure.js';
 import { util } from '../common/utilities.js';
+import '../../css/components/page-shell.css';
 
 export class AdminShell {
   /** Height of the fixed top navbar, in px; headings are offset by this so they aren't hidden when scrolled to. */
@@ -73,10 +70,10 @@ export class AdminShell {
 
     const toc = document.querySelector('.page-toc');
     if (this.#headings.length === 0) {
-      if (toc) toc.style.display = 'none';
+      toc.style.display = 'none';
       return;
     }
-    if (toc) toc.style.removeProperty('display');
+    toc.style.removeProperty('display');
 
     const frag = document.createDocumentFragment();
     for (const heading of this.#headings) {
@@ -240,22 +237,22 @@ export class AdminShell {
   }
 
   /**
-   * Escapes plain text for a `data-ps-tooltip` attribute. psTooltip renders the attribute as HTML, so text escaped only
-   * once would come back out as live markup; see psTooltip.js for why it takes two levels.
-   *
-   * @param {*} value - Plain text, possibly from the data; null and undefined render as the empty string.
-   * @returns {string} The value escaped twice.
-   */
-  static tooltipAttr(value) {
-    return util.escapeHTML(util.escapeHTML(value));
-  }
-
-  /**
    * @param {number|string} n - A number, or anything Number() can read.
    * @returns {string} Thousands-separated integer.
    */
   static num(n) {
     return Number(n).toLocaleString('en-US');
+  }
+
+  /**
+   * Admin is English-only, so this stands in for i18next's plurals there.
+   * @param {number} n - A whole-number count.
+   * @param {string} singular - The unit for exactly one, e.g. "user".
+   * @param {string} [plural] - The unit otherwise; defaults to `singular` plus "s".
+   * @returns {string} The count and its unit, e.g. "1 user" or "1,234 users".
+   */
+  static count(n, singular, plural = `${singular}s`) {
+    return `${AdminShell.num(n)} ${n === 1 ? singular : plural}`;
   }
 
   /**

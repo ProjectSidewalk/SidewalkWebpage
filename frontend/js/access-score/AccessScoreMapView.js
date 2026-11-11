@@ -17,6 +17,7 @@
  * kept inputs; the pointer handlers survive because Mapbox keys them by layer id, not by layer object.
  */
 
+import mapboxgl from '../common/mapboxgl.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { AccessScoreMapLegend } from './AccessScoreMapLegend.js';
 import { AccessScoreGradeRamp } from '../common/AccessScoreGradeRamp.js';
@@ -88,6 +89,8 @@ export class AccessScoreMapView {
    * @param {boolean} [options.dark=false] - True on a dark basemap.
    * @param {?number[]} [options.gradeBreaks=null] - The ascending grades the slope classes break at
    *                                       (`gradient.map_class_breaks`); null leaves the slope coloring unavailable.
+   * @param {boolean} [options.gradeCoarse=false] - True where the city's grades come from a coarse elevation model,
+   *                                       which the legend then says beside its classes.
    * @param {string} [options.gradeAttribution=''] - The elevation models' credit, as markup. It rides on the street
    *                                       source, so Mapbox's own attribution control shows it and a basemap swap
    *                                       cannot lose it.
@@ -95,7 +98,7 @@ export class AccessScoreMapView {
    *                                       classes are clicked (empty to clear), so the owner can brush on them.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeAttribution = '',
+    hoverClaimed = () => false, dark = false, gradeBreaks = null, gradeCoarse = false, gradeAttribution = '',
     onGradeClasses = () => {} }) {
     this.#map = map;
     this.#model = model;
@@ -120,7 +123,7 @@ export class AccessScoreMapView {
     this.#addStreetLayers(streets);
     this.#addInteractions();
     // After the navigation control: the corner's reversed flex row keeps the first control at the edge.
-    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, onGradeClasses });
+    this.#legend = new AccessScoreMapLegend({ gradeBreaks: this.#gradeBreaks, gradeCoarse, onGradeClasses });
     this.#map.addControl(this.#legend, 'top-right');
     this.#legend.setDark(dark);
     this.#legend.setGrade(this.#showGrade, model.displayGradeStatistic);
@@ -313,6 +316,18 @@ export class AccessScoreMapView {
       1.2,
     ]);
     if (this.#hover.id === null) this.#markSelectionOnLegend();
+  }
+
+  /**
+   * Lights a street as the pointer would, for a hover that starts in the street panel (its "continues as" button,
+   * #5748), or puts it out. No tooltip, no legend mark, no report through `onHover`: the pointer is not on the map.
+   * @param {?number} streetId - The street, or null to clear.
+   */
+  hoverStreet(streetId) {
+    this.#clearHover();
+    if (streetId === null || streetId === undefined) return;
+    this.#hover = { source: AccessScoreMapView.STREET_SOURCE, id: streetId, html: null };
+    this.#map.setFeatureState({ source: AccessScoreMapView.STREET_SOURCE, id: streetId }, { hover: true });
   }
 
   /**
@@ -582,9 +597,13 @@ export class AccessScoreMapView {
     };
     bind(AccessScoreMapView.STREET_LAYER, AccessScoreMapView.STREET_SOURCE, 'streets');
     bind(AccessScoreMapView.REGION_FILL_LAYER, AccessScoreMapView.REGION_SOURCE, 'regions');
-    // A click on bare map clears the selection; Mapbox marks layer clicks with defaultPrevented.
+    // A click on bare map clears the selection. Mapbox marks a layer click with defaultPrevented, but only once
+    // that layer's handler has run, and the cluster and place layers are mounted after this view, so their clicks
+    // reach here unmarked: they are asked directly, or a click on a cluster dot would close the street panel under
+    // the sheet it opens (#5748).
     this.#map.on('click', (e) => {
-      if (!e.defaultPrevented && this.#selected.id !== null) this.#onSelect(null);
+      if (e.defaultPrevented || this.#selected.id === null || this.#clickClaimed(e)) return;
+      this.#onSelect(null);
     });
     // Leaving the canvas for a DOM element over it — the address-search pin and its popup, a control — fires no
     // layer mouseleave, and the tooltip would otherwise sit open beside the pin's own popup.

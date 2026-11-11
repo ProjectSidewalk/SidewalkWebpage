@@ -5,33 +5,61 @@ name: Dependency auto-merge
 # Branch protection's required checks are the only gate, so a bump they don't exercise merges unreviewed.
 # See issue #4385, workstream B.
 #
-# `pull_request_target` runs in the base-repo context (needed for the token to enable auto-merge on bot PRs),
-# so this workflow file must never checkout or execute PR-authored code.
+# No `pull_request_target`: GitHub blocks it by default in public repos (#5944). Both jobs hold a write token, so never
+# run PR code here. A draft is skipped, and so is a PR whose auto-merge was ever turned off, by a person or by GitHub:
+# either is a hold, and no run undoes one.
 
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, labeled, ready_for_review]
+  pull_request:
+    types: [opened, reopened, synchronize]
+  # Scala Steward's PRs come from a fork, whose `pull_request` runs only get a read-only token.
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   dependabot:
-    # Dependabot: derive the semver bump from official metadata (reliable), auto-merge patch & minor.
-    if: github.actor == 'dependabot[bot]'
+    # Dependabot: derive the semver bump from official metadata (reliable), auto-merge patch & minor. The actor check
+    # skips a person's push to the PR; the author and repo checks skip a fork PR that Dependabot pushed to.
+    if: >-
+      github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # A Dependabot run's token is read-only unless the workflow asks for more.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Fetch Dependabot metadata
         id: meta
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      # pip is left out: the only CI leg that installs its bumps (offline tooling) is advisory, so a broken one would
-      # merge and break the web image build.
+      # Every Dependabot push re-runs this job.
+      - name: Check for a hold
+        id: hold
+        run: |
+          set -euo pipefail
+          turned_off=$(gh api graphql -f owner="${GITHUB_REPOSITORY%/*}" -f name="${GITHUB_REPOSITORY#*/}" \
+            -F number="$PR_NUMBER" \
+            -f query='query($owner: String!, $name: String!, $number: Int!) {
+              repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+                timelineItems(itemTypes: [AUTO_MERGE_DISABLED_EVENT], first: 1) { nodes { __typename } }
+              } }
+            }' --jq '.data.repository.pullRequest.timelineItems.nodes | length')
+          echo "turned-off=$turned_off" >> "$GITHUB_OUTPUT"
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The npm-imagery groups (dependabot.yml) are left out: nothing in CI drives a pano viewer, so their bumps wait
+      # for a person to try them in a city that uses each one.
       - name: Enable auto-merge for patch & minor
         if: >-
-          steps.meta.outputs.package-ecosystem != 'pip' && (
+          steps.hold.outputs.turned-off == '0' && !startsWith(steps.meta.outputs.dependency-group, 'npm-imagery') && (
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||
           steps.meta.outputs.update-type == 'version-update:semver-minor')
         run: gh pr merge --auto --merge "$PR_URL"
@@ -40,18 +68,45 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   scala-steward:
-    # The hosted Steward opens PRs from a fork, so it can't apply GitHub labels; it writes them into the PR body
-    # instead. Early-semver is the Scala convention: a 0.x minor counts as breaking. A PR with more than one commit
-    # carries generated edits (e.g. a scalafmt reformat of the whole codebase), so it waits for a human.
-    if: >-
-      github.actor == 'scala-steward' &&
-      contains(github.event.pull_request.body, 'commit-count:1') &&
-      (contains(github.event.pull_request.body, 'early-semver-patch') ||
-       contains(github.event.pull_request.body, 'early-semver-minor'))
+    # The hosted Steward can't apply GitHub labels, so it writes them into the PR body instead. Early-semver is the
+    # Scala convention: a 0.x minor counts as breaking. A PR with more than one commit carries generated edits (e.g. a
+    # scalafmt reformat of the whole codebase), so it waits for a human. A PR whose checks are already green merges
+    # right away, so the merge is pinned to the commit the search saw. A failed merge fails the run once the rest are
+    # tried, since that PR needs a person; drafting it stops the failures.
+    if: github.event_name != 'pull_request'
+    # A manual run during a scheduled one would try the same merges twice.
+    concurrency: dependency-auto-merge-steward
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Enable auto-merge for patch & minor
-        run: gh pr merge --auto --merge "$PR_URL"
+        run: |
+          set -euo pipefail
+          prs=$(gh api graphql -f q="repo:$GITHUB_REPOSITORY is:pr is:open base:develop author:scala-steward" -f query='
+            query($q: String!) {
+              search(query: $q, type: ISSUE, first: 100) {
+                nodes {
+                  ... on PullRequest {
+                    url headRefOid isDraft body autoMergeRequest { enabledAt } commits { totalCount }
+                    timelineItems(itemTypes: [AUTO_MERGE_DISABLED_EVENT], first: 1) { nodes { __typename } }
+                  }
+                }
+              }
+            }' --jq '.data.search.nodes[]
+              | select((.isDraft | not) and .autoMergeRequest == null and .commits.totalCount == 1
+                and (.body | test("early-semver-(patch|minor)")) and (.timelineItems.nodes | length) == 0)
+              | "\(.url) \(.headRefOid)"')
+          status=0
+          while read -r url sha; do
+            [ -n "$url" ] || continue
+            echo "Enabling auto-merge on $url at $sha"
+            # gh must not read the loop's input, or the rest of the list is lost.
+            gh pr merge --auto --merge --match-head-commit "$sha" "$url" < /dev/null \
+              || { echo "::error::Could not enable auto-merge on $url"; status=1; }
+          done <<< "$prs"
+          [ -n "$prs" ] || echo "No Scala Steward PR needs auto-merge."
+          exit "$status"
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

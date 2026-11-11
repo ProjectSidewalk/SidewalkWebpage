@@ -104,7 +104,7 @@ export class MapSidebarFilter {
         apply();
       });
       row.addEventListener('focusin', (event) => {
-        if (!MapSidebarFilter.#isFocusVisible(event.target)) return;
+        if (!MapSidebarFilter.#isFocusVisible(/** @type {Element} */ (event.target))) return;
         focused = streetState;
         apply();
       });
@@ -117,11 +117,10 @@ export class MapSidebarFilter {
 
   /**
    * Whether an element is focused in a way the browser would draw a focus ring for.
-   * @param {EventTarget} element - The element that just received focus.
+   * @param {Element} element - The element that just received focus.
    * @returns {boolean} True when it matches `:focus-visible`, or when the engine can't tell us.
    */
   static #isFocusVisible(element) {
-    if (!(element instanceof Element)) return false;
     try {
       return element.matches(':focus-visible');
     } catch {
@@ -161,7 +160,7 @@ export class MapSidebarFilter {
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
       if (!this.#typeChecked(labelType)) continue;
       for (const feature of features) {
-        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
+        if (bounds && !bounds.contains(/** @type {[number, number]} */ (feature.geometry.coordinates))) continue;
         if (this.#passesLabelFilters(labelType, feature.properties)) total += 1;
       }
     }
@@ -249,7 +248,7 @@ export class MapSidebarFilter {
     const state = this.getState();
     this.#syncMapData(state);
     this.#syncLayerVisibility(state);
-    filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+    filterLabelLayers(this.#map, this.#mapData, this.#highQualityFilter);
     this.#updateCounts();
   }
 
@@ -319,7 +318,7 @@ export class MapSidebarFilter {
       let count = 0;
       for (const feature of features) {
         const props = feature.properties;
-        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
+        if (bounds && !bounds.contains(/** @type {[number, number]} */ (feature.geometry.coordinates))) continue;
         if (!this.#passesQualityFilters(props)) continue;
         const severityOk = this.#passesSeverity(props);
         const tagsOk = this.#passesTags(labelType, props);

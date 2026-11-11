@@ -3,20 +3,30 @@
  * ones it has left can be shown. Creates an overlay saying which, and disables controls and shortcuts.
  */
 
-import { svv } from '../svv.js';
+import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ModalNoNewMission {
   #uiModalMission;
   #noMissionsRemaining;
   #imageryUnavailable;
   #showing = false;
+  /** @type {Gate} */
+  #keyboardLock;
+  /** @type {Tracker} */
+  #tracker;
 
   /**
    * @param {object} uiModalMission - Mission modal UI elements.
+   * @param {Gate} keyboardLock - Pauses the shortcuts while the dead end is up.
+   * @param {Tracker} tracker - Logs the button clicks.
    */
-  constructor(uiModalMission) {
+  constructor(uiModalMission, keyboardLock, tracker) {
     this.#uiModalMission = uiModalMission;
+    this.#keyboardLock = keyboardLock;
+    this.#tracker = tracker;
 
     const instructions = util.isMobile()
       ? i18next.t('mobile.no-new-mission-body')
@@ -41,10 +51,10 @@ export class ModalNoNewMission {
 
   #handleButtonClick = () => {
     if (util.isMobile()) {
-      svv.tracker.push('Click_NoMoreMissionModal_ValidateSeattle');
+      this.#tracker.push('Click_NoMoreMissionModal_ValidateSeattle');
       window.location.replace('https://sidewalk-sea.cs.washington.edu/validate');
     } else {
-      svv.tracker.push('Click_NoMoreMissionModal_Audit');
+      this.#tracker.push('Click_NoMoreMissionModal_Audit');
       window.location.replace('/explore');
     }
   };
@@ -53,7 +63,7 @@ export class ModalNoNewMission {
   // is resumed with a fresh set of labels on load, so retrying is the action worth offering. It reloads rather than
   // retrying in place because the whole page was left disabled behind this modal.
   #handleRetryClick = () => {
-    svv.tracker.push('Click_ImageryUnavailableModal_Retry');
+    this.#tracker.push('Click_ImageryUnavailableModal_Retry');
     window.location.reload();
   };
 
@@ -64,9 +74,7 @@ export class ModalNoNewMission {
    */
   show({ imageryUnavailable = false } = {}) {
     this.#showing = true;
-    if (svv.keyboard) {
-      svv.keyboard.disableKeyboard();
-    }
+    this.#keyboardLock.hold('no-mission');
     this.#uiModalMission.background.style.visibility = 'visible';
     this.#uiModalMission.instruction.innerHTML = imageryUnavailable
       ? this.#imageryUnavailable

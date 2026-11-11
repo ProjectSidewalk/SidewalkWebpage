@@ -65,7 +65,6 @@ test.server.warning.message = <strong>Você está em um servidor de teste.</stro
 test.server.warning.label = Aviso de servidor de teste
 test.server.warning.close = Dispensar aviso
 dont.show.again = Não mostrar novamente
-explore.alert.close = Fechar
 
 press.key = Pressione a tecla "{0}"
 press.keys = Pressione as teclas "{0}"
@@ -77,11 +76,14 @@ city.name.validation-study = Estudo de Validação
 city.name.taipei = Taipé
 city.name.new-taipei-tw = Nova Taipé
 city.name.niagara-falls-ny = Cataratas do Niágara
+city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
 state.name.florida = Flórida
+state.name.alaska = Alasca
 
 country.name.usa = EUA
 country.name.mexico = México
@@ -93,6 +95,7 @@ country.name.canada = Canadá
 country.name.india = Índia
 country.name.brazil = Brasil
 country.name.france = França
+country.name.belgium = Bélgica
 
 navbar.explore = Explorar
 navbar.validate = Validar
@@ -153,6 +156,7 @@ seo.title.welcome = Boas-vindas — Project Sidewalk
 seo.title.forgot.password = Recuperar senha — Project Sidewalk
 seo.title.reset.password = Redefinir senha — Project Sidewalk
 seo.title.service.hours = Informação voluntária — Project Sidewalk
+seo.title.unsubscribe = Cancelar inscrição — Project Sidewalk
 seo.title.time.check = Verificação de tempo — Project Sidewalk
 seo.title.about = Sobre nós — Project Sidewalk
 seo.description.default = Ajude a mapear e avaliar as calçadas de {0} por meio de exploração virtual. Dados abertos sobre rampas de calçada, obstáculos e problemas de superfície para um mundo mais acessível.
@@ -206,46 +210,45 @@ about.impact.newberg.body = Depois que moradores mapearam as calçadas locais, a
 about.impact.zurich.place = Zurique, Suíça
 about.impact.zurich.body = Zurique publica os dados do Project Sidewalk no portal de dados abertos da cidade, e a implantação venceu o prêmio Smart City Hub Switzerland na categoria ciência cidadã.
 about.impact.schools.place = Salas de aula pelos EUA
-about.impact.schools.body = Estudantes usam o Project Sidewalk para aprender ciência de dados e advocacia cívica — de escoteiras em Oradell, Nova Jersey, apresentando resultados à câmara municipal, a <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">alunos de Waltham, Massachusetts, reconhecidos em nível estadual</a>.
-about.impact.more = Quer mais? Nosso site irmão <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> traz notícias, recursos e guias para usar o Project Sidewalk na sua comunidade.
+about.impact.schools.body = Estudantes usam o Project Sidewalk para aprender ciência de dados e advocacia cívica — de escoteiras em Oradell, Nova Jersey, apresentando resultados à câmara municipal, a <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/" target="_blank" rel="noopener">alunos de Waltham, Massachusetts, reconhecidos em nível estadual</a>.
+about.impact.more = Quer mais? Nosso site irmão <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a> traz notícias, recursos e guias para usar o Project Sidewalk na sua comunidade.
 about.where.title = Onde estamos
 about.where.body = De Seattle a Cidade do México e Zurique, pessoas voluntárias colocaram <span data-live-stat="num_cities">{0}</span> cidades de <span data-live-stat="num_countries">{1}</span> países no mapa da acessibilidade, rua por rua.
-about.where.links = <a href="/cities">Veja todas as implantações</a> ou <a href="https://accessiblecommunities.org/use-project-sidewalk/">leve o Project Sidewalk para a sua cidade</a>.
+about.where.links = <a href="/cities">Veja todas as implantações</a> ou <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">leve o Project Sidewalk para a sua cidade</a>.
 about.history.title = Nossa história
-about.history.2012 = O Project Sidewalk começa como projeto de pesquisa do professor Jon E. Froehlich e do doutorando Kotaro Hara no <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, com apoio inicial de um <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> e da <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2012 = O Project Sidewalk começa como projeto de pesquisa do professor Jon E. Froehlich e do doutorando Kotaro Hara no <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, com apoio inicial de um <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> e da <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
 about.history.2017 = A primeira implantação em escala de cidade é lançada em Washington, DC, liderada pela doutoranda Manaswi Saha e pelo cientista de pesquisa Mikey Saugstad, enquanto o laboratório se muda para a Escola Paul G. Allen de Ciência da Computação e Engenharia da Universidade de Washington.
 about.history.2019 = O estudo piloto de Washington, DC mostra que a colaboração coletiva on-line pode ser usada para mapear as calçadas de uma cidade inteira — e recebe o prêmio de Best Paper na CHI 2019.
-about.history.2021 = Um <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">financiamento NSF Smart &amp; Connected Communities</a> aprofunda nossa parceria com a Universidade de Illinois em Chicago e a Easterseals, ampliando implantações, programas educacionais e nosso site irmão <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = Um <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">financiamento NSF Smart &amp; Connected Communities</a> aprofunda nossa parceria com a Universidade de Illinois em Chicago e a Easterseals, ampliando implantações, programas educacionais e nosso site irmão <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
 about.history.today.label = Hoje
 about.history.today = O Project Sidewalk opera em <span data-live-stat="num_cities">{0}</span> cidades pelo mundo, com tradução nativa para {1} idiomas e o apoio de milhares de voluntários.
 about.team.title = A equipe
-about.team.intro = O Project Sidewalk é pesquisa universitária, liderada pelo professor Jon E. Froehlich no <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da Universidade de Washington e pelo professor Yochai Eisenberg na Universidade de Illinois em Chicago, com engenharia principal de Mikey Saugstad — e contribuições de mais de cem estudantes e colaboradores ao longo dos anos.
+about.team.intro = O Project Sidewalk é pesquisa universitária, liderada pelo professor Jon E. Froehlich no <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> da Universidade de Washington e pelo professor Yochai Eisenberg na Universidade de Illinois em Chicago, com engenharia principal de Mikey Saugstad — e contribuições de mais de cem estudantes e colaboradores ao longo dos anos.
 about.team.current.title = Equipe atual
 about.team.past.title = Lideranças anteriores
-about.team.past.kotarohara = Iniciou o Project Sidewalk com o professor Froehlich como seu aluno de doutorado, criando os métodos de colaboração coletiva e visão computacional por trás do projeto — tema de sua <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">tese de doutorado</a>.
+about.team.past.kotarohara = Iniciou o Project Sidewalk com o professor Froehlich como seu aluno de doutorado, criando os métodos de colaboração coletiva e visão computacional por trás do projeto — tema de sua <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf" target="_blank" rel="noopener">tese de doutorado</a>.
 about.team.past.davidjacobs = Co-investigador principal do financiamento original da NSF e do primeiro Google Faculty Research Award que deram início ao Project Sidewalk, orientando as primeiras pesquisas em visão computacional.
-about.team.past.manaswisaha = Ajudou a liderar a primeira implantação em larga escala, em Washington, DC, e projetou ferramentas para entender dados de acessibilidade urbana — tema de sua <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">tese de doutorado</a>.
+about.team.past.manaswisaha = Ajudou a liderar a primeira implantação em larga escala, em Washington, DC, e projetou ferramentas para entender dados de acessibilidade urbana — tema de sua <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf" target="_blank" rel="noopener">tese de doutorado</a>.
 about.team.contributors.title = Colaboradores
 about.team.contributors.intro = Mais de {0} pessoas já contribuíram com código, designs e ideias para o Project Sidewalk, incluindo {1} estudantes do ensino médio ao doutorado. Parte da nossa missão é ajudar estudantes de computação e design a trabalhar em projetos de impacto social por meio da aprendizagem experiencial.
-about.team.contributors = … além de organizações parceiras e milhares de voluntários mapeando pelo mundo — veja a <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">página do projeto</a>.
+about.team.contributors = … além de organizações parceiras e milhares de voluntários mapeando pelo mundo — veja a <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">página do projeto</a>.
 about.pubs.title = Publicações relacionadas
-about.pubs.intro = A pesquisa do Project Sidewalk é publicada nos principais fóruns de interação humano-computador e acessibilidade. Se você usar nossos dados ou ferramentas em sua pesquisa, cite nosso <a href="https://doi.org/10.1145/3290605.3300292">artigo da CHI 2019</a>.
-about.pubs.fallback = Veja <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas as publicações do Project Sidewalk</a> no site do Makeability Lab.
+about.pubs.intro = A pesquisa do Project Sidewalk é publicada nos principais fóruns de interação humano-computador e acessibilidade. Se você usar nossos dados ou ferramentas em sua pesquisa, cite nosso <a href="https://doi.org/10.1145/3290605.3300292" target="_blank" rel="noopener">artigo da CHI 2019</a>.
+about.pubs.fallback = Veja <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">todas as publicações do Project Sidewalk</a> no site do Makeability Lab.
 about.pubs.showAll = Mostrar todas as {0} publicações
 about.pubs.cite.title = Como citar o Project Sidewalk
 about.pubs.cite.plain = Citação
 about.pubs.cite.copy = Copiar
-about.pubs.cite.copied = Copiado
 about.data.title = Dados abertos e código aberto
-about.data.body = Tudo o que coletamos é aberto. Baixe rótulos, grupos de rótulos, ruas e pontuações de acessibilidade pelas nossas <a href="/api">APIs públicas</a>, em formatos de CSV a GeoJSON — tudo publicado sob CC0; consulte a <a href="/api">documentação da API</a> para detalhes e orientações de citação. Nosso <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">código também é aberto</a>.
+about.data.body = Tudo o que coletamos é aberto. Baixe rótulos, grupos de rótulos, ruas e pontuações de acessibilidade pelas nossas <a href="/api">APIs públicas</a>, em formatos de CSV a GeoJSON — tudo publicado sob CC0; consulte a <a href="/api">documentação da API</a> para detalhes e orientações de citação. Nosso <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">código também é aberto</a>.
 about.partners.title = Parceiros comunitários
 about.partners.body = Trabalhamos lado a lado com organizações de defesa das pessoas com deficiência, governos, escolas e grupos comunitários no mundo todo — incluindo Easterseals, World Enabled, Liga Peatonal e a Active Transportation Alliance — para planejar implantações, organizar mutirões de mapeamento e transformar dados em ação local.
-about.partners.schools = Educadores levam o Project Sidewalk para aulas de cidadania e ciência de dados, e nossa equipe e parceiros pilotaram currículos de aprendizagem-serviço e desenvolvimento profissional para jovens com deficiência. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Saiba como usar o Project Sidewalk na sua comunidade</a>.
+about.partners.schools = Educadores levam o Project Sidewalk para aulas de cidadania e ciência de dados, e nossa equipe e parceiros pilotaram currículos de aprendizagem-serviço e desenvolvimento profissional para jovens com deficiência. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Saiba como usar o Project Sidewalk na sua comunidade</a>.
 about.funding.title = Financiamento da pesquisa
 about.funding.body = O Project Sidewalk é pesquisa acadêmica financiada por subvenções, com apoio da National Science Foundation e apoio adicional do Google, da Fundação Alfred P. Sloan, do PacTrans e do centro CREATE da Universidade de Washington.
 about.cta.title = Ajude-nos a mapear todas as calçadas
 about.cta.city = Leve o Project Sidewalk para a sua cidade
-about.contact.body = Dúvidas, ideias ou imprensa? Escreva para <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abra um issue no <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> ou siga-nos no <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> e no <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
+about.contact.body = Dúvidas, ideias ou imprensa? Escreva para <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abra um issue no <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">GitHub</a> ou siga-nos no <a href="https://www.linkedin.com/company/project-sidewalk/" target="_blank" rel="noopener">LinkedIn</a> e no <a href="https://bsky.app/profile/projectsidewalk.bsky.social" target="_blank" rel="noopener">Bluesky</a>.
 
 landing.create.path = Vamos criar um caminho para todos
 landing.start.exploring = Começar a explorar
@@ -292,7 +295,7 @@ landing.partners.official.contact = O Project Sidewalk é uma ferramenta de pesq
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = O Project Sidewalk foi criado com {0} por
 landing.partners.created.heart = amor
-landing.partners.created.credits = …e moldado por parceiros de longa data como a <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, o <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> e a <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, além de mais de 100 estudantes contribuidores e milhares de mapeadores voluntários em todo o mundo. <a href="/about" data-partner-source="about-team">Conheça a equipe</a>.
+landing.partners.created.credits = …e moldado por parceiros de longa data como a <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, o <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> e a <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, além de mais de 100 estudantes contribuidores e milhares de mapeadores voluntários em todo o mundo. <a href="/about" data-partner-source="about-team">Conheça a equipe</a>.
 landing.partners.creator.makeability.alt = Logotipo do Makeability Lab
 landing.partners.creator.uw.alt = Logotipo da Paul G. Allen School of Computer Science & Engineering da University of Washington
 landing.partners.creator.uic.alt = Logotipo do Institute on Disability and Human Development da University of Illinois Chicago
@@ -316,8 +319,8 @@ footer.api = API do Sidewalk
 footer.connect = CONECTE-SE
 footer.email = Envie um e-mail
 footer.funding = TEMOS ORGULHO DE SER FINANCIADOS POR
-footer.award = Prêmio <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id="nsf-link">#1302338</a> <br> e <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id="nsf-link">#2125087</a>
-footer.designed.operated = O Project Sidewalk é projetado e operado pelo <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
+footer.award = Prêmio <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> e <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.designed.operated = O Project Sidewalk é projetado e operado pelo <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> da <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">University of Washington</a>
 footer.version = Versão {0} | Última atualização: {1}
 
 audit.tutorial.complete.1 = Você conseguiu!
@@ -346,6 +349,10 @@ audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer
 audit.center.ui.description.header = Descreva (opcional)
 audit.center.ui.description.placeholder = Descrição
 
+audit.all.regions.finished.title = Você explorou todos os bairros de {0}!
+audit.all.regions.finished.body = Obrigado! Você verificou todas as ruas que temos em {0}. Você pode continuar ajudando validando os rótulos de outras pessoas ou explorando outra cidade.
+audit.all.regions.finished.validate = Validar rótulos
+audit.all.regions.finished.other.cities = Explorar outra cidade
 audit.survey.title = Por favor, participe desta pesquisa única sobre o <i>Project Sidewalk</i>
 audit.survey.enjoyment.question = Quanto você está gostando de usar o <i>Project Sidewalk</i>?
 audit.survey.enjoyment.option.1 = Muito entediante
@@ -386,10 +393,11 @@ authenticate.new = É novo aqui? <a href="#" id="form-open-sign-up">Cadastre-se!
 authenticate.confirm.password = Confirmar senha
 authenticate.service.hours.title = Você pretende solicitar que seu trabalho no Project Sidewalk seja contado como horas de serviço comunitário/voluntariado?
 authenticate.terms = Você concorda com nossos <a target="_blank" href="/terms">Termos de Uso e Política de Privacidade</a>
+authenticate.news.email = Enviar-me novidades ocasionais sobre o Project Sidewalk
 authenticate.signup = Cadastre-se
 authenticate.has.account = Já tem uma conta? <a href="#" id="form-open-sign-in">Entrar</a>
 
-# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+# Sign-in/sign-up (#4375): draft translations, pending native-speaker polish (#4494).
 authenticate.welcome.back = Bem-vindo(a) de volta
 authenticate.join = Participe do Project Sidewalk
 authenticate.tagline = Mapeie calçadas. Ajude a tornar sua cidade acessível para todos.
@@ -501,6 +509,14 @@ reset.pw.email.hello = Olá {0},
 reset.pw.email.reset.title = Redefinir a senha da sua conta Project Sidewalk
 reset.pw.email.send.link = Enviar e-mail
 reset.pw.email.reset.pw.sent = Um e-mail para redefinir sua senha foi enviado.
+unsubscribe.confirm.title = Cancelar a inscrição nas novidades do Project Sidewalk?
+unsubscribe.confirm.intro = Você deixará de receber novidades e atualizações do projeto no e-mail da sua conta. E-mails sobre sua conta, como redefinição de senha, continuam chegando.
+unsubscribe.confirm.submit = Cancelar inscrição
+unsubscribe.done.title = Inscrição cancelada
+unsubscribe.done.intro = Não enviaremos mais novidades do projeto para você. Mudou de ideia? Ative novamente em <a href="{0}">Configurações</a>.
+unsubscribe.invalid.title = Este link não é válido
+unsubscribe.invalid.intro = O link para cancelar a inscrição pode ter sido cortado ao ser copiado. Você também pode gerenciar e-mails em <a href="{0}">Configurações</a> ou escrever para <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+reset.pw.email.send.failed = Não foi possível enviar o e-mail agora. Por favor, tente novamente mais tarde.
 reset.pw.email.reset.request.message = Você solicitou recentemente a redefinição da senha da sua conta Project Sidewalk. Clique no link abaixo para redefinir sua senha:
 reset.pw.email.reset.not.requested = Se você não solicitou a redefinição da senha, por favor ignore esta mensagem ou nos envie um e-mail para nos informar.
 reset.pw.email.reset.valid.duration = Esta redefinição de senha será válida pelos próximos 60 minutos
@@ -538,7 +554,7 @@ dashboard.team.name = Nome da equipe
 dashboard.team.description = Descrição da equipe (opcional)
 dashboard.team.button = Criar equipe
 
-labeling.guide.curb.ramp.summary = Uma rampa de calçada é uma pequena rampa que corta ou conecta o meio-fio à calçada. Uma rampa de calçada acessível é aquela que oferece uma rota acessível para pessoas com mobilidade reduzida fazerem a transição com segurança entre a calçada com meio-fio e a via, ou vice-versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Rotule todas as rampas de calçada, independentemente de haver problemas ou não.
+labeling.guide.curb.ramp.summary = Uma rampa de calçada é uma pequena rampa que corta ou conecta o meio-fio à calçada. Uma rampa de calçada acessível é aquela que oferece uma rota acessível para pessoas com mobilidade reduzida fazerem a transição com segurança entre a calçada com meio-fio e a via, ou vice-versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm" target="_blank" rel="noopener">ADA</a>). Rotule todas as rampas de calçada, independentemente de haver problemas ou não.
 labeling.guide.obstacle.summary = Obstáculos são objetos que estão diretamente no caminho de uma rota de pedestres, bloqueando a passagem. A ADA (Americans with Disabilities Act) exige um "espaço livre no piso ou no solo" ao longo das rotas acessíveis de pedestres. Isso permite que pedestres, especialmente aqueles que usam andadores ou cadeiras de rodas, permaneçam com segurança na calçada ou na faixa de pedestres. Sair do caminho para evitar um obstáculo pode ser impossível ou pode causar desequilíbrio, tropeços ou outros riscos.
 labeling.guide.surface.problem.summary = Um problema na superfície é um problema que causaria uma experiência irregular ou desconfortável para alguém usando cadeira de rodas ou outros dispositivos de assistência. Se algo na superfície dificultar ou impedir a travessia, deve ser rotulado como Problema na Superfície. Para problemas na superfície que cobrem uma área grande, coloque um rótulo de Problema na Superfície no início do problema e continue colocando rótulos a cada poucos metros (aproximadamente 1 por panorama) até o final do problema.
 labeling.guide.no.sidewalk.summary = Você deve colocar um rótulo de Sem Calçada a partir do ponto onde a calçada termina e continuar colocando rótulos a cada poucos metros (aproximadamente 1 por panorama) até chegar a um ponto onde a calçada comece novamente.
@@ -555,7 +571,15 @@ gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
-gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
+gallery.cards = Os rótulos são ordenados aleatoriamente com base nos filtros selecionados
+gallery.cards.sorted = Os rótulos são ordenados por "{0}" com base nos filtros selecionados
+gallery.sort.by = Ordenar por
+gallery.sort.random = Aleatório
+gallery.sort.newest = Mais recentes primeiro
+gallery.sort.oldest = Mais antigos primeiro
+gallery.sort.most.severe = Mais graves primeiro
+gallery.sort.least.severe = Menos graves primeiro
+gallery.sort.most.disputed = Mais disputados primeiro
 gallery.clear.filters = Limpar filtros
 gallery.list.count = {0,choice,1#1 rótulo|1<{0} rótulos} nesta lista
 gallery.list.truncated = {0,choice,1#1 ID passou do limite de {1} e não pôde ser carregado.|1<{0} IDs passaram do limite de {1} e não puderam ser carregados.}
@@ -660,7 +684,7 @@ sharedlabel.stat.labels = rótulos
 sharedlabel.stat.validations = validações
 sharedlabel.stat.miles = milhas exploradas
 sharedlabel.legend.title = O que esses rótulos significam
-# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+# User dashboard, leaderboard, settings, and public profile (#4323, #4475).
 dashboard.title = Seu painel
 dashboard.you = Você
 dashboard.hero.greeting = Bem-vindo(a) de volta, {0} 👋
@@ -808,6 +832,9 @@ dashboard.settings.service.hours = Horas de serviço voluntário
 dashboard.settings.service.hours.toggle = Inscrever-me nas horas de serviço comunitário
 dashboard.settings.service.hours.help = Inscreve você para o reconhecimento oficial — seu supervisor pode verificar suas horas — e adiciona "Horas de serviço" e "Verificação de tempo" ao menu da sua conta.
 dashboard.settings.service.hours.link = Como funcionam as horas de serviço
+dashboard.settings.news.email = Novidades por e-mail
+dashboard.settings.news.email.toggle = Enviar-me novidades sobre o Project Sidewalk
+dashboard.settings.news.email.help = Novidades ocasionais sobre o projeto, cada uma com um link para cancelar a inscrição. E-mails sobre sua conta, como redefinição de senha, sempre chegam.
 dashboard.settings.team = Equipe
 dashboard.settings.team.label = Sua equipe
 dashboard.settings.team.help = Entre em uma equipe ou turma para mapear em conjunto e aparecer na classificação de equipes.
@@ -854,6 +881,16 @@ leaderboard.thisweek.none = ✨ Ainda sem rótulos esta semana — seja a primei
 leaderboard.teams.title = Equipes em {0}
 leaderboard.teams.intro = Crie ou entre em uma equipe para fazer a diferença em conjunto!
 leaderboard.teams.none = 👥 Ainda sem equipes — seja a primeira! Crie uma e convide amigos ou colegas.
+leaderboard.myteam.title = Sua equipe: {0}
+leaderboard.myteam.intro = Como você se compara com seus colegas de equipe em {0}.
+leaderboard.myteam.none = 👥 Ninguém da sua equipe está na classificação ainda.
+leaderboard.myteam.you.hidden = Você não aparece porque desativou “{0}”.
+leaderboard.myteam.you.settings = Altere nas Configurações
+leaderboard.myteam.you.nolabels = Você aparecerá aqui assim que colocar seu primeiro rótulo.
+leaderboard.myteam.pager = Páginas da classificação da equipe
+leaderboard.myteam.prev = ‹ Anterior
+leaderboard.myteam.next = Próxima ›
+leaderboard.myteam.page = Página {0} de {1}
 leaderboard.allcities.title = Todas as cidades, desde sempre
 leaderboard.allcities.intro = Os melhores mapeadores de todas as cidades do Project Sidewalk, classificados pelo total de rótulos.
 leaderboard.allcities.note = A distância é atualizada uma vez por dia.
@@ -910,3 +947,167 @@ error.500.id = ID do erro: {0}
 error.500.report = Se isso continuar acontecendo, {0} e inclua o ID do erro acima para que possamos investigar.
 error.500.report.link = avise-nos
 error.home = Voltar ao início
+
+# Relatórios de bairro (#5876).
+report.seo.title = {0}: relatório do bairro — Project Sidewalk
+report.eyebrow = Relatório do bairro
+report.generated = Gerado em {0}.
+report.latest.observation = Último rótulo: {0}.
+report.print = Imprimir ou salvar em PDF
+report.copy.link = Copiar link
+report.count = {0}
+report.coverage.screened.label = Ruas avaliadas
+report.coverage.screened.value = {0} de {1} {2}
+report.coverage.screened.detail = {0}% das ruas exploráveis
+report.coverage.observations.label = Rótulos
+report.coverage.observations.detail = de {0,choice,1#1 pessoa|1<{0} pessoas} desde {1}
+report.coverage.observations.none = Nenhuma registrada ainda
+report.coverage.reviewed.label = Revisadas
+report.coverage.reviewed.detail = verificadas por pelo menos um revisor
+report.coverage.confirmed.label = Confirmadas
+report.coverage.confirmed.detail = mais revisores concordaram do que discordaram
+report.coverage.imagery.label = Ano mediano das imagens
+report.coverage.imagery.detail = {0}% têm mais de {1} anos
+report.coverage.imagery.none = Nenhuma data de imagem registrada
+report.coverage.excluded = {0,choice,1#1 rótulo marcado como incorreto na revisão fica de fora|1<{0} rótulos marcados como incorretos na revisão ficam de fora} de todas as contagens desta página.
+report.headline.label = Principal constatação
+report.headline.evidence = Ver {0,choice,1#este local|1<estes {0} locais}
+report.headline.noalternate = {0,choice,1#Quase todas as rampas ausentes não têm|1<Cerca de 1 em cada {0} rampas ausentes não tem} como ser contornada.
+report.headline.concentration = Apenas {0} ruas concentram {1}% dos locais com a pior avaliação.
+report.headline.worst = {0,choice,1#1 local|1<{0} locais} com a pior avaliação, em {1,choice,1#1 rua|1<{1} ruas}.
+report.headline.none = Nenhum dos {0} locais aqui tem a pior avaliação.
+report.streets.title = Trechos de rua, da menor para a maior pontuação
+report.street.unnamed = Rua sem nome ({0})
+report.street.score = Pontuação {0}
+report.street.length = {0} {1} explorados
+report.rule.label = Como esta lista funciona.
+report.rule.text = As pontuações são do AccessScore, de 0 a 100; quanto menor, mais difícil é se locomover. Um trecho é uma rua entre dois cruzamentos, mais ou menos uma quadra. Ele é pontuado pelo que foi encontrado ao longo dele, e uma travessia pelo que foi encontrado ali, qualquer que seja a rua de onde foi rotulada. A pontuação de um trecho é a média da sua quadra e da travessia em cada extremidade, todas com o mesmo peso. Cada trecho aparece separadamente, então uma rua pode aparecer mais de uma vez. Um trecho é classificado quando já foi explorado, tem pelo menos {0} m e tem pelo menos {1} locais ao longo dele ou nenhum.
+report.punch.title = Os reparos que mais fariam diferença
+report.fix.map = Mapa do local em {0}
+report.fix.photo = Foto: {0}
+report.fix.lede = O +número no alto de cada cartão indica quantos pontos, de 100, a pontuação do trecho de rua subiria se aquele ponto fosse corrigido.
+report.fix.raise = Corrigi-lo elevaria a pontuação deste trecho em {2} pontos, de {0} para {1}.
+report.places.near = Perto de
+report.place.school = escola
+report.place.health = unidade de saúde
+report.place.library = biblioteca
+report.place.grocery = mercado
+report.place.transit = ponto de transporte
+report.place.park = parque
+report.place.community = centro comunitário
+report.place.government = órgão público
+report.fix.why.noalternate = Pesa tanto porque o AccessScore conta mais uma rampa ausente quando não há outra rampa por perto: quem precisa dela não tem como contornar esta esquina.
+report.fix.why.corner = Pesa tanto porque fica numa esquina: a pontuação de um trecho conta cada esquina das suas pontas tanto quanto o quarteirão inteiro entre elas, e a esquina também pesa contra todas as ruas que se encontram ali.
+report.fix.why.worst = Pesa tanto porque tem a gravidade máxima, e nada mais encontrado em {0} baixa mais a pontuação.
+report.fix.why.costliest = De tudo o que foi encontrado em {0}, este ponto, pelo tipo e pela avaliação, é o que mais baixa a pontuação.
+report.punch.none = Nenhum local se qualifica ainda: esta lista precisa de um com a pior avaliação ou a imediatamente anterior, que um revisor tenha confirmado.
+report.punch.rule = Como foram escolhidos: percorrendo os trechos classificados, o local de cada rua que mais custa à pontuação do seu trecho, ou seja, quanto a pontuação subiria sem ele. Um local precisa custar pelo menos {0,choice,1#1 ponto|1<{0} pontos}, ter a pior avaliação ou a imediatamente anterior (ou ser de um tipo sem avaliação) e ter um rótulo com essa avaliação que um revisor tenha confirmado e nenhum tenha rejeitado. Calçadas ausentes ao longo de um trecho contam aqui como um único local, pois um marcador a mais ou a menos raramente muda uma pontuação. Um trecho com muitos problemas pode não ter nenhum local que valha tanto, então pode não aparecer.
+report.rating = Avaliação {0} de {1} ({1} é a pior)
+report.inventory.title = O que foi observado, por tipo
+report.inventory.problems = Problemas
+report.inventory.features = Recursos de acessibilidade
+report.inventory.neutral = Outras etiquetas
+report.inventory.none = Nenhum rótulo foi registrado aqui ainda.
+report.inventory.type = Tipo
+report.inventory.observed = Rótulos
+report.inventory.worst.short = Pior avaliação
+report.inventory.worst.problems = Gravidade máxima
+report.inventory.worst.features = Qualidade ruim
+report.inventory.worst.neutral = Gravidade máxima
+report.inventory.confirmed = Confirmadas
+report.inventory.define.locations = Locais distintos. Várias etiquetas no mesmo elemento contam uma vez, e é isso que o AccessScore conta.
+report.inventory.define.observed = Todas as etiquetas colocadas aqui, exceto as rejeitadas pelos validadores.
+report.inventory.define.worst = Etiquetas com a pior avaliação: gravidade máxima em um problema, qualidade ruim em um elemento como uma rampa.
+report.inventory.define.confirmed = Etiquetas com mais votos de concordância do que de discordância.
+report.inventory.tags = Etiquetas mais comuns
+report.inventory.unrated = Sem avaliação
+report.inventory.ratings.title = Como cada tipo foi avaliado
+report.inventory.ratings.lede = Etiquetas em cada avaliação, como parte das etiquetas do tipo. Problemas são avaliados por gravidade, de baixa a alta; elementos como rampas, por qualidade, de boa a ruim.
+report.scale.severity = gravidade
+report.scale.quality = qualidade
+report.scale.severity.1 = Baixa
+report.scale.severity.2 = Média
+report.scale.severity.3 = Alta
+report.scale.quality.1 = Boa
+report.scale.quality.2 = Regular
+report.scale.quality.3 = Ruim
+report.inventory.note = Um local é um único ponto: rótulos de várias pessoas sobre o mesmo elemento contam como um, e é isso que o AccessScore conta. Um traço significa que o tipo não tem avaliação ou não é pontuado.
+report.deeper.title = Aprofundar
+report.deeper.labelmap = Ver todas as etiquetas no mapa
+report.deeper.gallery = Navegar pelas fotos na Galeria
+report.deeper.accessscore = Ver o AccessScore deste bairro
+report.deeper.explore = Ajude a avaliar mais ruas aqui
+report.beta.badge = Beta
+report.beta.note = Este relatório é novo, então o layout e o texto ainda podem mudar. Conte para nós o que é útil ou o que parece errado:
+report.provenance.title = Sobre este relatório
+report.provenance.generated = Gerado em
+report.provenance.version = Versão do aplicativo
+report.provenance.data = Dados
+report.provenance.csv = Os rótulos que este relatório conta (CSV)
+report.provenance.reviewers = Revisores são pessoas: votos de validadores de IA não contam como revisores nesta página, embora influenciem se uma etiqueta é marcada como incorreta.
+report.coverage.unclustered = {0,choice,1#1 rótulo não faz parte de nenhum local, então não afeta|1<{0} rótulos não fazem parte de nenhum local, então não afetam} nenhuma pontuação. Foram adicionados depois da última atualização do AccessScore ou vieram de alguém cujo trabalho fica fora da pontuação.
+report.score.label = AccessScore do bairro
+report.score.value = {0} de 100
+report.score.detail = Quanto menor, mais difícil é se locomover.
+report.score.none = Ainda sem pontuação
+report.score.none.detail = O AccessScore pontua um bairro quando {0}% de suas ruas foram exploradas. Até agora, foram {1}%.
+report.headline.nosidewalk = Faltam calçadas em algum ponto de {0} das {1} ruas exploradas aqui.
+report.streets.title.sofar = Trechos de rua até agora, da menor para a maior pontuação
+report.streets.sofar = Apenas {0}% explorado, então isso pode mudar.
+report.streets.none.unranked = Nenhum trecho de rua aqui tem dados suficientes para o AccessScore classificá-lo ainda.
+report.street.block = Quadra {0}
+report.street.crossings = Travessias {0}
+report.street.slope = A inclinação custa {0} pontos
+report.street.length.partial = {0} de {1} {2} explorados
+report.street.road = Um de {0,choice,1#1 trecho explorado|1<{0} trechos explorados} desta rua; juntos, somam {1} nos {2} {3} explorados.
+report.street.between = entre {0} e {1}
+report.street.near = perto de {0}
+report.streets.more = Mostrar {0,choice,1#o outro trecho|1<os outros {0} trechos}
+report.count.locations = {0,choice,1#1 local|1<{0} locais}
+report.rule.docs = Como o AccessScore é calculado
+report.photo.cost = Custa a esta rua {0} pontos
+report.inventory.locations = Locais
+report.inventory.unscored = Não pontuado
+report.provenance.scored = AccessScore atualizado
+report.provenance.csv.streets = As pontuações das ruas (CSV)
+report.provenance.csv.locations = Os locais por trás delas (CSV)
+report.computing.title = Este relatório ainda está sendo preparado
+report.computing.body = O AccessScore está calculando as pontuações desta cidade, o que leva um ou dois minutos depois de uma atualização. Os relatórios usam essas mesmas pontuações, então este precisa esperar por elas.
+report.computing.retry = Tentar novamente
+report.map.street.label = Mapa de {0}
+report.map.region.label = Mapa das ruas de {0}
+report.map.color.title = Colorir ruas por
+report.map.color.score = AccessScore
+report.map.color.slope = Inclinação máxima
+report.weights.title = Pesos
+report.weights.help = Quanto conta cada tipo de problema ou característica. Alterar um recalcula esta página com a fórmula do AccessScore.
+report.weights.reset = Redefinir pesos
+report.weights.custom = Pesos personalizados: estas pontuações não são as publicadas pelo AccessScore.
+report.map.sidewalks.absent = Marcada sem calçada
+report.map.sidewalks.present = Provável calçada
+report.map.sidewalks.help = Desenha cada lado da rua no lugar da linha central: na cor da própria rua onde provavelmente há calçada e tracejado onde ela foi marcada como ausente. Inferidas a partir dos rótulos, não é um levantamento: uma calçada mostrada aqui significa que ninguém a marcou como ausente.
+report.map.sidewalks = Calçadas (inferidas)
+report.map.title = Nos mapas
+report.streets.score.label = AccessScore {0}
+report.sidebar.label = Configurações do relatório
+report.toc.details = Trecho por trecho
+report.details.order = {0,choice,1#O trecho de rua com a pontuação mais baixa|1<Os {0} trechos de rua com as pontuações mais baixas}, da menor para a maior, na mesma ordem da lista acima.
+report.toc.streets = Todos os trechos
+report.toc.summary = Resumo
+report.toc.title = Nesta página
+report.provenance.rules = Como os números funcionam
+report.punch.rule.short = Em cada rua, o local cujo reparo mais elevaria a pontuação do seu trecho. “Sobre este relatório” traz a regra completa.
+report.rule.short = As pontuações do AccessScore, de 0 a 100. Quanto menor, mais difícil é se locomover. “Sobre este relatório” explica como funcionam.
+report.worst.title = Onde estão os piores problemas
+report.worst.rule = Cada local avaliado no pior extremo da escala do seu tipo: gravidade alta para um problema, ruim para um recurso como uma rampa. A avaliação de um local é a mediana dos seus rótulos, a que sua pontuação usa, então essas contagens podem ser menores que os rótulos com a pior avaliação na tabela abaixo.
+report.worst.none = Nenhum local aqui tem a pior avaliação da sua escala.
+report.worst.none.sofar = Nenhum local aqui tem ainda a pior avaliação da sua escala.
+report.worst.map.label = Mapa dos piores problemas em {0}
+report.worst.lede = {0,choice,1#1 local|1<{0} locais} com a pior avaliação, por tipo:
+report.worst.count.label = {0,choice,1#1 local|1<{0} locais}: {1}. Ver os rótulos
+report.worst.nosidewalk = Calçadas ausentes não têm avaliação, então não estão neste mapa. Ative "{0}" na barra lateral para vê-las como linhas tracejadas nos outros mapas.
+report.toc.worst = Piores problemas
+report.stories.title = Histórias da comunidade
+report.stories.rule = Histórias que membros da comunidade anexaram a rótulos deste bairro, as mais recentes primeiro. Uma história é a experiência de uma pessoa; ela não altera nenhum número desta página.
+report.stories.street = Ver esta rua
+report.stories.all = Ler todas as histórias da comunidade

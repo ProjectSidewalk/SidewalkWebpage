@@ -11,6 +11,7 @@
   "grade-legend-title": "Street gradient",
   "grade-legend-title-by": "Street gradient · {{statistic}}",
   "grade-legend-none": "No gradient data",
+  "grade-legend-coarse": "From a coarse elevation model: each gradient is a straight line between a street's two ends.",
   "popup-slope": "Gradient",
   "slope-tooltip": "Gradient {{grade}}",
   "slope-none": "No gradient data",
@@ -25,5 +26,6 @@
   "slope-thresholds": "Gradient thresholds",
   "slope-barrier-help": "A segment whose steepest stretch is over this gradient scores 0, whatever its footpaths are like. The street's score still averages in the crossings at its ends.",
   "slope-approximate-include": "Include approximate gradients",
-  "slope-approximate-include-help": "Some gradients are only a straight line between a street's two ends: where a city has only a coarse elevation model, or where the model looked unreliable. Turn this on to let those gradients count too."
+  "slope-approximate-include-help": "Some gradients are only a straight line between a street's two ends: where a city has only a coarse elevation model, or where the model looked unreliable. Turn this on to let those gradients count too.",
+  "slope-coarse-note": "This city's gradients come from a coarse elevation model, so they are approximate. They count toward the score only when approximate gradients are included below."
 }

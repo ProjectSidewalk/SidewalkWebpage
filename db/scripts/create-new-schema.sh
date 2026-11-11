@@ -49,53 +49,53 @@ DONOR=${2:-}
 MAX_EVOLUTION=${3:-}
 EXPECTED_HASH=${4:-}
 if [[ -z "$NAME" || -z "$DONOR" ]]; then
-    echo "Usage: create-new-schema.sh <schema_name> <donor_schema> [max_evolution] [max_evolution_hash]" >&2
-    echo "       Typically run via: make create-new-schema name=<schema_name> donor=<donor_schema>" >&2
-    exit 1
+  echo "Usage: create-new-schema.sh <schema_name> <donor_schema> [max_evolution] [max_evolution_hash]" >&2
+  echo "       Typically run via: make create-new-schema name=<schema_name> donor=<donor_schema>" >&2
+  exit 1
 fi
 for identifier in "$NAME" "$DONOR"; do
-    if [[ ! "$identifier" =~ ^[a-z][a-z0-9_]*$ ]]; then
-        echo "Error: '$identifier' is not a valid schema name." >&2
-        echo "       Use lowercase letters, digits, and underscores, starting with a letter" >&2
-        echo "       (e.g. sidewalk_newcity)." >&2
-        exit 1
-    fi
+  if [[ ! "$identifier" =~ ^[a-z][a-z0-9_]*$ ]]; then
+    echo "Error: '$identifier' is not a valid schema name." >&2
+    echo "       Use lowercase letters, digits, and underscores, starting with a letter" >&2
+    echo "       (e.g. sidewalk_newcity)." >&2
+    exit 1
+  fi
 done
 if [[ "$NAME" == "$DONOR" ]]; then
-    echo "Error: the new schema and the donor must differ." >&2
-    exit 1
+  echo "Error: the new schema and the donor must differ." >&2
+  exit 1
 fi
 if [[ -n "$MAX_EVOLUTION" && ! "$MAX_EVOLUTION" =~ ^[0-9]+$ ]]; then
-    echo "Error: max_evolution must be a number (got '$MAX_EVOLUTION')." >&2
-    exit 1
+  echo "Error: max_evolution must be a number (got '$MAX_EVOLUTION')." >&2
+  exit 1
 fi
 if [[ -n "$EXPECTED_HASH" && ! "$EXPECTED_HASH" =~ ^[0-9a-f]{40}$ ]]; then
-    echo "Error: max_evolution_hash must be a 40-char sha1 (got '$EXPECTED_HASH')." >&2
-    exit 1
+  echo "Error: max_evolution_hash must be a 40-char sha1 (got '$EXPECTED_HASH')." >&2
+  exit 1
 fi
 
 # The donor must be a real city schema at a shipped evolution level.
 donor_exists=$(psql -U postgres -d sidewalk -tAc "SELECT 1 FROM pg_namespace WHERE nspname = '$DONOR'")
 if [[ "$donor_exists" != "1" ]]; then
-    echo "Error: donor schema '$DONOR' does not exist." >&2
-    exit 1
+  echo "Error: donor schema '$DONOR' does not exist." >&2
+  exit 1
 fi
 donor_evolution=$(psql -U postgres -d sidewalk -tAc "SELECT max(id) FROM $DONOR.play_evolutions")
 if [[ -z "$donor_evolution" ]]; then
-    echo "Error: '$DONOR' has no play_evolutions rows — is it a city schema?" >&2
-    exit 1
+  echo "Error: '$DONOR' has no play_evolutions rows — is it a city schema?" >&2
+  exit 1
 fi
 if [[ -n "$MAX_EVOLUTION" && "$donor_evolution" -gt "$MAX_EVOLUTION" ]]; then
-    echo "Error: donor '$DONOR' is at evolution $donor_evolution, beyond this checkout's highest ($MAX_EVOLUTION)." >&2
-    echo "       It has applied an evolution from another branch; pick a donor that hasn't" >&2
-    echo "       (see docs/onboarding-a-city.md)." >&2
-    exit 1
+  echo "Error: donor '$DONOR' is at evolution $donor_evolution, beyond this checkout's highest ($MAX_EVOLUTION)." >&2
+  echo "       It has applied an evolution from another branch; pick a donor that hasn't" >&2
+  echo "       (see docs/onboarding-a-city.md)." >&2
+  exit 1
 fi
 if [[ "$donor_evolution" -lt "$MIN_DONOR_EVOLUTION" ]]; then
-    echo "Error: donor '$DONOR' is at evolution $donor_evolution; this script needs a donor at $MIN_DONOR_EVOLUTION" >&2
-    echo "       or later. Pick a current city, or bring this one forward first: a schema below 372 cannot be" >&2
-    echo "       booted forward, see docs/dev-environment.md → Recovering a schema stranded below evolution 372." >&2
-    exit 1
+  echo "Error: donor '$DONOR' is at evolution $donor_evolution; this script needs a donor at $MIN_DONOR_EVOLUTION" >&2
+  echo "       or later. Pick a current city, or bring this one forward first: a schema below 372 cannot be" >&2
+  echo "       booted forward, see docs/dev-environment.md → Recovering a schema stranded below evolution 372." >&2
+  exit 1
 fi
 
 # Same number, different evolution: a dev schema that hosted a branch's QA can hold that branch's 375 while develop
@@ -106,23 +106,23 @@ fi
 donor_hash=$(psql -U postgres -d sidewalk -tAc \
     "SELECT hash FROM $DONOR.play_evolutions WHERE id = $donor_evolution")
 if [[ -n "$EXPECTED_HASH" && "$donor_hash" == "$EXPECTED_HASH" ]]; then
-    echo "Donor's evolution $donor_evolution carries this checkout's hash (${donor_hash:0:8})."
+  echo "Donor's evolution $donor_evolution carries this checkout's hash (${donor_hash:0:8})."
 else
-    disagreeing=""
-    for schema in $(psql -U postgres -d sidewalk -tAc "SELECT nspname FROM pg_namespace
+  disagreeing=""
+  for schema in $(psql -U postgres -d sidewalk -tAc "SELECT nspname FROM pg_namespace
             WHERE nspname LIKE 'sidewalk\_%' AND nspname NOT IN ('$DONOR', '$NAME') ORDER BY nspname"); do
-        other_hash=$(psql -U postgres -d sidewalk -tAc \
-            "SELECT hash FROM $schema.play_evolutions WHERE id = $donor_evolution" 2>/dev/null) || continue
-        if [[ -n "$other_hash" && "$other_hash" != "$donor_hash" ]]; then
-            disagreeing+=" $schema"
-        fi
-    done
-    if [[ -n "$disagreeing" ]]; then
-        echo "Error: donor '$DONOR' applied a different evolution $donor_evolution (hash ${donor_hash:0:8})" >&2
-        echo "       than:$disagreeing. One side is another branch's evolution under the same number; pick a" >&2
-        echo "       donor whose $donor_evolution matches develop (see docs/onboarding-a-city.md)." >&2
-        exit 1
+    other_hash=$(psql -U postgres -d sidewalk -tAc \
+        "SELECT hash FROM $schema.play_evolutions WHERE id = $donor_evolution" 2>/dev/null) || continue
+    if [[ -n "$other_hash" && "$other_hash" != "$donor_hash" ]]; then
+      disagreeing+=" $schema"
     fi
+  done
+  if [[ -n "$disagreeing" ]]; then
+    echo "Error: donor '$DONOR' applied a different evolution $donor_evolution (hash ${donor_hash:0:8})" >&2
+    echo "       than:$disagreeing. One side is another branch's evolution under the same number; pick a" >&2
+    echo "       donor whose $donor_evolution matches develop (see docs/onboarding-a-city.md)." >&2
+    exit 1
+  fi
 fi
 echo "Cloning the structure of $DONOR (at evolution $donor_evolution) into $NAME..."
 
@@ -146,10 +146,10 @@ run_with_progress "Copying $DONOR's schema structure" bash -o pipefail -c \
 # without a cross-schema cast. Order matters for the FKs: the tutorial street before config (which points at it),
 # survey questions before their options.
 copy_rows() {
-    local table=$1
-    local select=$2
-    psql -U postgres -d sidewalk -c "\\copy ($select) TO STDOUT" \
-        | psql -v ON_ERROR_STOP=1 -q -U postgres -d sidewalk -c "\\copy $NAME.$table FROM STDIN"
+  local table=$1
+  local select=$2
+  psql -U postgres -d sidewalk -c "\\copy ($select) TO STDOUT" \
+      | psql -v ON_ERROR_STOP=1 -q -U postgres -d sidewalk -c "\\copy $NAME.$table FROM STDIN"
 }
 copy_rows play_evolutions "SELECT * FROM $DONOR.play_evolutions ORDER BY id"
 copy_rows version         "SELECT * FROM $DONOR.version"

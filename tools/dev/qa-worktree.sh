@@ -112,8 +112,8 @@ lease take app --checkout "$WT_DIR" --pid $$ "${LEASE_FLAGS[@]}" || exit 1
 
 # 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for the bundler rather than the
 #    folder, so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
-if [ ! -x node_modules/.bin/rolldown ]; then
-  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no rolldown"
+if [ ! -x node_modules/.bin/vite ]; then
+  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no vite"
   rm -rf node_modules
   ln -s /home/node_modules node_modules
   echo "==> linked node_modules -> /home/node_modules"
@@ -149,7 +149,7 @@ if port_9000_in_use; then
   exit 1
 fi
 
-# 5. Start a backgrounded `npm run watch` so `frontend/js/**` / `public/css/**` edits rebuild the bundles
+# 5. Start a backgrounded `npm run watch` so `frontend/js/**` / `frontend/css/**` edits rebuild the bundles
 #    automatically. It gets its own process group (setsid) so the trap can kill npm, its shell and the watcher
 #    together on exit (Ctrl-C, sbt quitting, an error), and it never outlives the app it was serving.
 WATCH_PGID=""

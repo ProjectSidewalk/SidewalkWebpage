@@ -2,6 +2,7 @@ package models.street
 
 import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -59,10 +60,30 @@ class OsmWayTableSpec
 
   private def micros(time: OffsetDateTime): Instant = time.toInstant.truncatedTo(ChronoUnit.MICROS)
 
+  "OsmWayTable.upsert" should {
+    "keep the edit version and timestamp the refresh stored when an on-demand lookup rewrites the way" in {
+      val fetchedAt = OffsetDateTime.now.minusDays(2)
+      val edited    = OffsetDateTime.now.minusDays(30)
+      run(osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(bridgeTags, Some(7), Some(edited)), None)), Nil, fetchedAt))
+      val line = GeometryFactory(PrecisionModel(), 4326).createLineString(Array(Coordinate(0, 0), Coordinate(1, 0)))
+      run(
+        osmWayTable.upsert(OsmWay(wayId, bridgeTags, Some("40 mph"), Some(line), "on_demand", OffsetDateTime.now, None))
+      ) mustBe 1
+      val (version, timestamp, source, hasGeom) = run(
+        sql"""SELECT osm_version, osm_timestamp, source, geom IS NOT NULL FROM osm_way WHERE osm_way_id = $wayId"""
+          .as[(Option[Int], Option[OffsetDateTime], String, Boolean)]
+          .head
+      )
+      (version, timestamp.map(micros), source, hasGeom) mustBe (Some(7), Some(micros(edited)), "on_demand", true)
+    }
+  }
+
   "OsmWayTable.upsertBatch" should {
     "store a found way's tags with no missing mark" in {
       val fetchedAt = OffsetDateTime.now
-      run(osmWayTable.upsertBatch(Seq((wayId, bridgeTags, Some("40 mph"))), Nil, fetchedAt)) mustBe 1
+      run(
+        osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))), Nil, fetchedAt)
+      ) mustBe 1
       row(wayId) mustBe ((bridgeTags, Some("40 mph"), micros(fetchedAt), None))
     }
 
@@ -86,7 +107,7 @@ class OsmWayTableSpec
     "take the new tags and clear missing_since when the way is back" in {
       val backTags = Json.obj("highway" -> "primary", "bridge" -> "yes", "layer" -> "1")
       val backAt   = OffsetDateTime.now
-      run(osmWayTable.upsertBatch(Seq((wayId, backTags, None)), Nil, backAt))
+      run(osmWayTable.upsertBatch(Seq((wayId, OsmWayFetched(backTags, None, None), None)), Nil, backAt))
       row(wayId) mustBe ((backTags, None, micros(backAt), None))
     }
 
@@ -97,7 +118,13 @@ class OsmWayTableSpec
     }
 
     "count found and missing ways together, and write nothing for an empty chunk" in {
-      run(osmWayTable.upsertBatch(Seq((wayId, bridgeTags, Some("40 mph"))), Seq(unseenId), OffsetDateTime.now)) mustBe 2
+      run(
+        osmWayTable.upsertBatch(
+          Seq((wayId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))),
+          Seq(unseenId),
+          OffsetDateTime.now
+        )
+      ) mustBe 2
       run(osmWayTable.upsertBatch(Nil, Nil, OffsetDateTime.now)) mustBe 0
     }
   }
@@ -204,7 +231,11 @@ class OsmWayTableSpec
       val (written, stored) = runRolledBack(for {
         _ <- insertGoneWay(blankedId, Json.obj(), "batch", OffsetDateTime.now)
         // Another run's refresh found the way in OSM again and wrote its live tags.
-        _       <- osmWayTable.upsertBatch(Seq((blankedId, bridgeTags, Some("40 mph"))), Nil, OffsetDateTime.now)
+        _ <- osmWayTable.upsertBatch(
+          Seq((blankedId, OsmWayFetched(bridgeTags, None, None), Some("40 mph"))),
+          Nil,
+          OffsetDateTime.now
+        )
         written <- osmWayTable.recordHistoryTags(blankedId, Some(Json.obj("highway" -> "footway")), None)
         stored  <- storedRow(blankedId)
       } yield (written, stored))

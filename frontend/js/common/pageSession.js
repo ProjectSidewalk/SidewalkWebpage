@@ -2,6 +2,7 @@
  * The tool pages' start-up fetch (#5650). The page's HTML carries only session scalars; the mission or task it opens
  * on is asked for here, so a copy of the page served from a cache can never show work the user already did.
  */
+import i18next from 'i18next';
 import { util } from './utilities.js';
 
 /**
@@ -20,7 +21,6 @@ export async function loadPageSession(url, init = {}) {
     // The request can fail before the translations are in; the app manager runs the callback once they are.
     window.appManager.ready(() => {
       const overlay = document.getElementById('page-loading');
-      if (!overlay) return;
       overlay.classList.add('page-loading--failed');
       overlay.querySelector('.loading-text').textContent = i18next.t('common:session-load-failed.title');
       overlay.querySelector('.loading-sub-text').textContent

@@ -6,7 +6,8 @@
  * `close` the way a browser does (asynchronously).
  */
 
-const { loadModules } = require('./loadGlobalScript');
+import { loadModules } from './loader.js';
+import { fakeGate } from './fakes.js';
 
 
 function installDialogStub() {
@@ -31,8 +32,9 @@ const nextClose = () => new Promise((resolve) => {
 let logged;
 let posted;
 let survey;
+let ModalSurvey;
 
-beforeEach(() => {
+beforeEach(async () => {
   document.body.innerHTML = `
     <dialog id="survey-modal-container" tabindex="-1" closedby="none">
       <button type="button" id="survey-skip-button">×</button>
@@ -46,18 +48,12 @@ beforeEach(() => {
   logged = [];
   posted = [];
   window.logWebpageActivity = (name) => logged.push(name);
-  window.fetch = jest.fn((url, opts) => {
+  window.fetch = vi.fn((url, opts) => {
     posted.push(JSON.parse(opts.body));
     return Promise.resolve({ ok: true });
   });
-  const noop = () => {};
-  window.svl = {
-    popUpMessage: { disableInteractions: noop, enableInteractions: noop },
-    ribbon: { disableModeSwitch: noop, enableModeSwitch: noop },
-    zoomControl: { disableZoomIn: noop, disableZoomOut: noop, enableZoomIn: noop, enableZoomOut: noop },
-  };
-  Object.assign(window, loadModules('frontend/js/explore/modal/ModalSurvey.js'));
-  survey = new window.ModalSurvey();
+  ({ ModalSurvey } = await loadModules('frontend/js/explore/modal/ModalSurvey.js'));
+  survey = new ModalSurvey(fakeGate(), { zoomInGate: fakeGate(), zoomOutGate: fakeGate() });
 });
 
 test('opens with focus on the dialog itself, not the skip X', () => {
@@ -86,6 +82,31 @@ test('a submit posts the answers as name/value pairs and is not a skip', async (
   expect(posted).toEqual([[{ name: '1', value: 'a' }, { name: '2', value: 'because' }]]);
   expect(document.getElementById('survey-modal-container').open).toBe(false);
   expect(logged).toEqual([]);
+});
+
+test('neither Escape nor a typed answer reaches past the dialog', () => {
+  survey.open();
+  const dialog = document.getElementById('survey-modal-container');
+  const cancel = new Event('cancel', { cancelable: true });
+  dialog.dispatchEvent(cancel);
+  expect(cancel.defaultPrevented).toBe(true);
+
+  const pageKeys = vi.fn();
+  document.addEventListener('keydown', pageKeys);
+  dialog.querySelector('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+  expect(pageKeys).not.toHaveBeenCalled();
+});
+
+test('opening a survey already up holds the tool once, not twice', () => {
+  const lock = fakeGate();
+  const zoomControl = { zoomInGate: fakeGate(), zoomOutGate: fakeGate() };
+  survey = new ModalSurvey(lock, zoomControl);
+
+  survey.open();
+  survey.open();
+
+  expect(lock.hold).toHaveBeenCalledTimes(1);
+  expect(zoomControl.zoomInGate.hold).toHaveBeenCalledTimes(1);
 });
 
 test('a skip after an earlier submit is still a skip', async () => {

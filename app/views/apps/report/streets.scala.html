@@ -1,0 +1,74 @@
+@import controllers.helper.ControllerUtils
+@import views.html.apps.report as reportViews
+@import models.report.{NeighborhoodReport, RankedStreetRow, ReportFormat, ReportLinks}
+@import models.utils.CommonUtils
+
+@*
+ * Every ranked street in detail, in the overview's order. A section's number and everything under it describe its
+ * street's lowest stretch; the whole street's number sits beside it only as context. Scores link to the tool, where
+ * their parts can be seen, and counts link to their labels.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
+
+@distance(meters: Double) = @{
+  val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
+  BigDecimal(value).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
+}
+@unit = @{ControllerUtils.distanceUnitWords.abbr}
+
+@if(report.streets.nonEmpty) {
+<section class="report-section report-streets" aria-labelledby="report-streets-title">
+  <h2 class="report-section__title" id="report-streets-title">@Messages("report.toc.details")</h2>
+  <p class="report-section__lede">@Messages("report.details.order", report.detailed.size)</p>
+    <ol class="report-street-list">
+      @for(row <- report.detailed) {
+        <li class="report-street" id="@row.anchor" data-street="@row.street.worst.toolEdgeId">
+          <header class="report-street__head">
+            <span class="report-street__rank" aria-hidden="true">@row.rank</span>
+            <h3 class="report-street__name">@RankedStreetRow.displayName(row.street.worst)@for(between <- RankedStreetRow.between(row.street.worst)) {<span class="report-street__between">@between</span>}</h3>
+            <a class="report-street__score" href="@ReportLinks.accessScoreStreet(row.street.worst.toolEdgeId, report.weights)" data-report-event="Report_OpenAccessScore">@Messages("report.street.score", ReportFormat.score(row.street.worst.score))</a>
+          </header>
+          <p class="report-street__meta">
+            @for(block <- row.street.worst.blockScore) {<span>@Messages("report.street.block", ReportFormat.score(block))</span>}
+            @for(crossing <- row.street.worst.crossingScore) {<span>@Messages("report.street.crossings", ReportFormat.score(crossing))</span>}
+            @for(slope <- row.street.worst.slopePoints) {<span>@Messages("report.street.slope", ReportFormat.oneDecimal(slope))</span>}
+            <span>
+              @if(row.street.worst.exploredMeters < row.street.worst.totalMeters) {
+                @Messages("report.street.length.partial", distance(row.street.worst.exploredMeters), distance(row.street.worst.totalMeters), unit)
+              } else {
+                @Messages("report.street.length", distance(row.street.worst.exploredMeters), unit)
+              }
+            </span>
+          </p>
+          @if(row.street.stretchCount > 1) {
+            <p class="report-street__context">@Messages("report.street.road", row.street.stretchCount, ReportFormat.score(row.street.wholeScore), distance(row.street.wholeExploredMeters), unit)</p>
+          }
+          @reportViews.places(report.placesNear(row.street.worst.toolEdgeId), row.street.worst.score)
+          <ul class="report-counts">
+            @for(evidence <- row.evidence) {
+              <li>
+                <a class="report-count" href="@ReportLinks.labelList(evidence.labelIds)" data-report-event="Report_OpenGallery">
+                  <img src='@assets.path(evidence.labelType.smallIconSvgPath)' alt="" width="16" height="16">
+                  @Messages(evidence.labelType.nameKey):
+                  <span class="report-count__number">@Messages("report.count.locations", evidence.locations)</span>
+                </a>
+              </li>
+            }
+          </ul>
+          <div class="report-street__body">
+            <div class="report-street__where">
+              <div class="report-map" data-street-map role="group" aria-label="@Messages("report.map.street.label", RankedStreetRow.displayName(row.street.worst))"></div>
+              <div class="report-street__profile" data-street-profile hidden></div>
+            </div>
+            <div class="report-street__what">
+              <ul class="report-cards" data-street-cards></ul>
+              <button type="button" class="button button--secondary button--small report-cards__more" data-street-more hidden></button>
+            </div>
+          </div>
+        </li>
+      }
+    </ol>
+</section>
+}

@@ -5,13 +5,15 @@
  * @property {string} label_type
  * @property {?string} mutually_exclusive_with
  */
+import i18next from 'i18next';
+import '../../../css/components/tag-pills.css';
 
 /**
  * Inline tag editor for the label detail card (#2575).
  *
  * While open, it fills the card's tag area with every tag the label's type offers with the label's current tags
- * pressed. Toggling a tag that is mutually exclusive with a pressed. The host reads `selectedTags` when the user is
- * done and decides whether anything changed; the editor never talks to the server itself.
+ * pressed. Pressing a tag that is mutually exclusive with a pressed one releases that one. The host reads
+ * `selectedTags` when the user is done and decides whether anything changed; the editor never talks to the server.
  */
 export class TagEditor {
   /** @type {?Promise<Map<string, TagOption[]>>} The city's tags grouped by label type; fetched once per page. */

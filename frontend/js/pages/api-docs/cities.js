@@ -1,6 +1,8 @@
 /** Entry point for the /v3/api-docs/cities page. */
 import '../../common/aggregateStats.js';
 import { createPSMap } from '../../ps-map/createPSMap.js';
+import '../../../css/components/deployment-map.css';
+import '../../../css/pages/api-docs/cities.css';
 
 // apiDocs.js reads these for the download buttons.
 Object.assign(document.documentElement.dataset, { apiBaseUrl: '/v3/api', apiEndpoint: 'cities' });

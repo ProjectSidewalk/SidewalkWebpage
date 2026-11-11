@@ -6,7 +6,13 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
+import models.street.{
+  DemSourceCount,
+  StreetEdgeInfo,
+  StreetGradientConfidence,
+  StreetGradientQuality,
+  StreetGradientStats
+}
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
@@ -62,6 +68,20 @@ object AccessScoreService {
    * computation finishes unobserved (#5418). Under this one it gets a `Retry-After` and comes back to a warm cache.
    */
   val FullCityColdWait: FiniteDuration = 45.seconds
+
+  /**
+   * A street's stored slope as the engine takes it. `approximate` gathers the two ways a row's grade is an
+   * end-to-end line: the coarse-model tier (`low` confidence), and a profile the sampler distrusted (`suspect`).
+   */
+  def slopeInput(g: StreetGradientStats): AccessScoreCalculator.SlopeInput =
+    AccessScoreCalculator.SlopeInput(
+      meanGrade = g.meanGrade,
+      maxGrade = g.maxGrade,
+      netGrade = g.netGrade,
+      metersOver5pct = g.metersOver5pctGrade,
+      metersOver8pct = g.metersOver8pctGrade,
+      approximate = g.confidence == StreetGradientConfidence.Low || g.quality == StreetGradientQuality.Suspect
+    )
 }
 
 @Singleton
@@ -190,7 +210,7 @@ class AccessScoreService @Inject() (
     val subScores: Map[String, Double] = AccessScoreCalculator.scoreByType(inputs, Some(lengthMeters))
     // Slope is its own field rather than folded into `sub_scores`, which are per label type (#5223), so that
     // `logit(segment_score) = sum(sub_scores) + grade_term` holds and subtracting it recovers the label-only score.
-    val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(toSlopeInput)
+    val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(AccessScoreService.slopeInput)
     val slopeTerm: Double                               =
       AccessScoreCalculator.slopeTerm(slope, lengthMeters, AccessScoreCalculator.defaultSlopeSettings)
     val segmentScore: Option[Double] =
@@ -220,20 +240,6 @@ class AccessScoreService @Inject() (
       geometry = s.street.geom
     )
   }
-
-  /**
-   * A street's stored slope as the engine takes it. `approximate` gathers the two ways a row's grade is an
-   * end-to-end line: the coarse-model tier (`low` confidence), and a profile the sampler distrusted (`suspect`).
-   */
-  private def toSlopeInput(g: StreetGradientStats): AccessScoreCalculator.SlopeInput =
-    AccessScoreCalculator.SlopeInput(
-      meanGrade = g.meanGrade,
-      maxGrade = g.maxGrade,
-      netGrade = g.netGrade,
-      metersOver5pct = g.metersOver5pctGrade,
-      metersOver8pct = g.metersOver8pctGrade,
-      approximate = g.confidence == StreetGradientConfidence.Low || g.quality == StreetGradientQuality.Suspect
-    )
 
   /**
    * Builds a single intersection's AccessScore DTO from the cluster rows attributed to it.
@@ -352,9 +358,9 @@ class AccessScoreService @Inject() (
    * (#5223). Cached like the full-city scores: `accessScoreConfig` is asked for on every AccessScore tool load and
    * was a constant before it carried this, while the answer only changes when someone imports a gradient CSV.
    */
-  def gradientSourceCounts: Future[Seq[(String, Int)]] =
-    swrCache.staleWhileRevalidate[Seq[(String, Int)]](
-      "accessScore:gradient-sources:v1",
+  def gradientSourceCounts: Future[Seq[DemSourceCount]] =
+    swrCache.staleWhileRevalidate[Seq[DemSourceCount]](
+      "accessScore:gradient-sources:v2",
       AccessScoreService.FullCityFreshFor,
       AccessScoreService.FullCityMaxAge
     )(apiService.getStreetGradientSourceCounts)

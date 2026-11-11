@@ -8,7 +8,7 @@
  * on screen and focus has somewhere to return when the panel closes.
  *
  * Usage:
- *   const menu = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+ *   const menu = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), tracker);
  *   menu.setCollapsedIndicator(true);
  */
 export class PanoControlMenu {

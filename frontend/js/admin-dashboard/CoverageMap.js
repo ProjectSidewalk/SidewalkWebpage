@@ -1,3 +1,7 @@
+import mapboxgl from '../common/mapboxgl.js';
+import { featureCollectionBounds } from '../common/geoBounds.js';
+import { util } from '../common/utilities.js';
+
 /**
  * Sequential color scale for coverage (ColorBrewer "Blues", colorblind-safe). Shared by the map fill, the Vega bar
  * chart, and the legend so all three agree. Keep STOPS in sync with the --coverage-c* tokens in admin-dashboard.css.
@@ -18,15 +22,11 @@ export class CoverageColors {
   static forRate(rate) {
     const r = Math.max(0, Math.min(1, Number.isFinite(rate) ? rate : 0));
     const stops = CoverageColors.STOPS;
-    for (let i = 1; i < stops.length; i++) {
-      if (r <= stops[i][0]) {
-        const [lo, loHex] = stops[i - 1];
-        const [hi, hiHex] = stops[i];
-        const t = (r - lo) / (hi - lo || 1);
-        return CoverageColors.#lerpHex(loHex, hiHex, t);
-      }
-    }
-    return stops[stops.length - 1][1];
+    let i = 1;
+    while (r > stops[i][0]) i++;
+    const [lo, loHex] = stops[i - 1];
+    const [hi, hiHex] = stops[i];
+    return CoverageColors.#lerpHex(loHex, hiHex, (r - lo) / (hi - lo));
   }
 
   /** Builds a Mapbox 'interpolate' expression over completion_rate using the same stops. */
@@ -59,14 +59,6 @@ export class CoverageFormat {
   static pct(rate) {
     return `${Math.round((rate || 0) * 100)}%`;
   }
-
-  /**
-   * @param {number} meters - A distance in meters.
-   * @returns {string} The distance in km with one decimal, e.g. "4.2 km".
-   */
-  static km(meters) {
-    return `${((meters || 0) / 1000).toFixed(1)} km`;
-  }
 }
 
 /**
@@ -88,15 +80,15 @@ export class CoverageMap {
 
   /**
    * @param {string} containerId - ID of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} opts
+   * @param {{mapboxToken: string, onRegionClick: (id: number) => void, onRegionHover: (id: number) => void,
+   *          onRegionHoverEnd: () => void}} opts
    */
   constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
-    this.#onRegionClick = opts.onRegionClick || (() => {});
-    this.#onRegionHover = opts.onRegionHover || (() => {});
-    this.#onRegionHoverEnd = opts.onRegionHoverEnd || (() => {});
+    this.#onRegionClick = opts.onRegionClick;
+    this.#onRegionHover = opts.onRegionHover;
+    this.#onRegionHoverEnd = opts.onRegionHoverEnd;
   }
 
   /**
@@ -111,7 +103,7 @@ export class CoverageMap {
     this.#map = new mapboxgl.Map({
       container: this.containerId,
       style: 'mapbox://styles/mapbox/light-v11',
-      bounds: CoverageMap.#bounds(geojson),
+      bounds: featureCollectionBounds(geojson),
       fitBoundsOptions: { padding: 24 },
     });
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -216,32 +208,13 @@ export class CoverageMap {
       `<div class="coverage-popup-name">${p.name}</div>`,
       '<dl class="coverage-popup-dl">',
       row('Coverage', CoverageFormat.pct(p.completion_rate)),
-      row('Audited', `${CoverageFormat.km(p.audited_distance_m)} / ${CoverageFormat.km(p.total_distance_m)}`),
+      row('Audited', `${util.metersToLongDistanceString(p.audited_distance_m, 1)} / `
+      + `${util.metersToLongDistanceString(p.total_distance_m, 1)}`),
       row('Streets', (p.street_count || 0).toLocaleString()),
       row('Audits', (p.audit_count || 0).toLocaleString()),
       row('Labels', (p.label_count || 0).toLocaleString()),
       row('Contributors', (p.user_count || 0).toLocaleString()),
       '</dl>',
     ].join('');
-  }
-
-  /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
-  static #bounds(geojson) {
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
-    const visit = (coords) => {
-      if (typeof coords[0] === 'number') {
-        minLng = Math.min(minLng, coords[0]);
-        maxLng = Math.max(maxLng, coords[0]);
-        minLat = Math.min(minLat, coords[1]);
-        maxLat = Math.max(maxLat, coords[1]);
-      } else {
-        coords.forEach(visit);
-      }
-    };
-    for (const f of geojson.features) if (f.geometry) visit(f.geometry.coordinates);
-    return [[minLng, minLat], [maxLng, maxLat]];
   }
 }

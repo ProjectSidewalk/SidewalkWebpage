@@ -151,7 +151,7 @@ class ExploreRoutePauseSpec
   ): ExplorePageData = await(
     exploreService.getDataForExplorePage(userId, retakingTutorial = false, newRegion = false, routeId = routeId,
       resumeRoute = resumeRoute, regionId = regionId, streetEdgeId = streetEdgeId)
-  )
+  ).getOrElse(fail("Every region is finished, so there was no session to serve."))
 
   private def walksFor(userId: String): Seq[UserRoute] =
     run(userRoutes.filter(_.userId === userId).sortBy(_.userRouteId).result)
@@ -170,7 +170,7 @@ class ExploreRoutePauseSpec
           missionProgress = AuditMissionProgress(data.mission.missionId, Some(0d), data.region.regionId,
             completed = false, task.auditTaskId, skipped = false),
           auditTask = TaskSubmission(task.edgeId, now, task.auditTaskId, Some(false), task.currentLat, task.currentLng,
-            startPointReversed = false, None, now, requestUpdatedStreetPriority = false, None, task.routeStreetId),
+            startPointReversed = false, None, now, requestUpdatedStreetPriority = false, task.routeStreetId),
           labels = Seq.empty,
           interactions = Seq.empty,
           environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),

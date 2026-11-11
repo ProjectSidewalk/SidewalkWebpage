@@ -4,13 +4,22 @@
  * Covers who sees Delete, the confirm, the card staying open with Restore, Ctrl+Z as undo only for a delete made in
  * the same card, and the lock a deleted label puts on validating and editing.
  *
- * Built the way labelDetailTypeEdit.test.js is: the sources are eval'd into the jsdom global scope with the
- * collaborators LabelDetail reaches for as bare globals stubbed on `window` first.
+ * The pano manager, the confirm and the card's flourishes (badges, stories, the info popover, the hide toggle) are
+ * stand-ins: the real ones want a viewer and page markup, and none is what a delete exercises.
  */
 
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { mockLabelDetailCollaborators } from './fakes.js';
 
-const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
+/** The pano manager the card is handed; rebuilt per test so a test can settle its setPano() when it likes. */
+let panoManager;
+let confirmAnswer;
+const confirmDialog = { confirm: vi.fn(async () => confirmAnswer) };
+
+mockLabelDetailCollaborators(() => panoManager);
+mockModule('frontend/js/common/ConfirmDialog.js', () => ({ ConfirmDialog: confirmDialog }));
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -50,7 +59,6 @@ function buildCard() {
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false"></button>
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false"></button>
         </div>
-        <span class="label-detail__pan-hint" hidden></span>
       </div>
       <div class="label-detail__meta-row">
         <div class="label-detail__meta-cell"><span><span class="label-detail__labeled-word"></span>:</span><span class="label-detail__timestamp label-detail__meta-value"></span></div>
@@ -97,6 +105,7 @@ function buildCard() {
             <label class="sr-only" for="c">Why?</label>
             <input type="text" id="c" class="label-detail__comment-input">
             <button type="button" class="label-detail__comment-submit" data-action="submit-comment"></button>
+            <button type="button" class="label-detail__comment-cancel" hidden></button>
             <span class="label-detail__comment-confirmation" role="status" hidden></span>
           </div>
           <div class="label-detail__validator-comments"></div>
@@ -104,7 +113,7 @@ function buildCard() {
       </div>
       <section class="label-detail__stories" hidden></section>
       <span class="label-detail__story-status sr-only" role="status"></span>
-      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a></div>
+      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a><div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div></div>
     </div>`;
   return document.getElementById('card');
 }
@@ -123,10 +132,8 @@ function meta(overrides = {}) {
 
 describe('deleting a label from the card (#3591)', () => {
   let card;
-  let panoManager;
   let request;
   let onDelete;
-  let confirmAnswer;
   /** The HTTP status the next DELETE or restore gets; 200 unless a test says otherwise. */
   let nextStatus;
   /** What the next DELETE or restore answers with; the labeler's own delete unless a test says otherwise. */
@@ -140,8 +147,9 @@ describe('deleting a label from the card (#3591)', () => {
   const noticeText = () => q('.label-detail__deleted-notice-text').textContent;
   const typeStatus = () => q('.label-detail__edit-status--type');
   const requests = () => request.mock.calls.map(([url, opts]) => `${opts.method} ${url}`);
-  const pressCtrlZ = () =>
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }));
+  // At whatever has focus, as a browser routes a key, so the card's window listener sees an element as the target.
+  const pressCtrlZ = () => (document.activeElement || document.body).dispatchEvent(
+    new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }));
   // jsdom's element.click() fires with `detail` 0, which the card reads as the keyboard; a pointer says 1.
   const pointerClick = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
 
@@ -160,13 +168,13 @@ describe('deleting a label from the card (#3591)', () => {
   }
 
   beforeEach(async () => {
-    jest.useFakeTimers({ doNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
+    vi.useFakeTimers({ toNotFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'nextTick', 'queueMicrotask'] });
     card = buildCard();
     confirmAnswer = true;
     nextStatus = 200;
     nextBody = null;
-    onDelete = jest.fn();
-    request = jest.fn(async (url, opts) => {
+    onDelete = vi.fn();
+    request = vi.fn(async (url, opts) => {
       const status = nextStatus;
       const deleted = opts.method === 'DELETE';
       const body = nextBody ?? { deleted, can_restore: deleted };
@@ -175,55 +183,23 @@ describe('deleting a label from the card (#3591)', () => {
       return { ok: status < 400, status, json: async () => body };
     });
 
-    window.i18next = { t: (key) => key };
-    window.logWebpageActivity = jest.fn();
-    window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-    window.buildBackupImageData = () => null;
-    window.util = {
-      assetPath: assetPathStub,
-      camelToKebab: window.camelToKebab,
-      EXPLORE_CANVAS_WIDTH: 720,
-      EXPLORE_CANVAS_HEIGHT: 480,
-      isMobile: () => false,
-      lazyIdentityFetch: request,
-      misc: {
-        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
-        VALID_LABEL_TYPES: ['Obstacle'],
-        getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
-        getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
-        isPositiveLabelType: () => false,
-        labelTypeHasSeverity: () => true,
-        getRatingScale: () => 'severity',
-        getIconImagePaths: (type) => ({ iconImagePath: `/assets/${type}_small.svg` }),
-        getLabelColors: (type) => `color-${type}`,
-      },
-      pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
-      url: { replaceQuery: () => {} },
-    };
-    installDateHelpers();
-    window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
-    window.Toast = { show: jest.fn() };
-    window.ConfirmDialog = { confirm: jest.fn(async () => confirmAnswer) };
-    window.LabelVisibilityToggle = class { constructor() {} };
-    window.PanoInfoPopover = class { constructor() {} };
+    window.logWebpageActivity = vi.fn();
+    useUtil({ lazyIdentityFetch: request });
 
     let resolvePano;
     panoManager = {
-      clearLabels: jest.fn(),
-      setLabel: jest.fn(),
-      setLabelType: jest.fn(),
-      setLabelsHidden: jest.fn(),
-      setPano: jest.fn(() => new Promise((res) => { resolvePano = res; })),
+      clearLabels: vi.fn(),
+      setLabel: vi.fn(),
+      setLabelType: vi.fn(),
+      setLabelsHidden: vi.fn(),
+      setPano: vi.fn(() => new Promise((res) => { resolvePano = res; })),
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
       svHolder: [document.createElement('div')],
     };
-    window.PopupPanoManager = { create: async () => panoManager };
-    // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
-    window.StorySection = class { setLabel() {} };
     // The tag catalog, and the label itself for the vote re-read after an admin's delete.
-    window.fetch = jest.fn((url) => {
+    window.fetch = vi.fn((url) => {
       if (String(url).includes('/label/id/')) {
         return Promise.resolve({
           ok: true, json: async () => meta({ num_disagree: 1, user_validation: 'Disagree', deleted: true }),
@@ -232,15 +208,11 @@ describe('deleting a label from the card (#3591)', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
-    card.detail = await window.LabelDetail.create(card, {
+    const { LabelDetail } = await loadModules('frontend/js/common/label-detail/LabelDetail.js');
+    card.detail = await LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onDelete,
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   test('Delete shows for whoever may edit a live label, and Restore for whoever may undo a deleted one', async () => {
@@ -278,7 +250,7 @@ describe('deleting a label from the card (#3591)', () => {
     expect(deleteButton().getAttribute('aria-disabled')).toBe('true');
     expect(deleteButton().getAttribute('data-ps-tooltip')).toBe('labelmap:no-imagery-edit-disabled');
     await deleteLabel();
-    expect(window.ConfirmDialog.confirm).not.toHaveBeenCalled();
+    expect(confirmDialog.confirm).not.toHaveBeenCalled();
     expect(requests()).toEqual([]);
   });
 
@@ -296,7 +268,7 @@ describe('deleting a label from the card (#3591)', () => {
     const payload = await showLabel();
     await deleteLabel();
 
-    expect(window.ConfirmDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({
+    expect(confirmDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({
       message: 'labelmap:delete-label-confirm', danger: true,
     }));
     expect(requests()).toEqual(['DELETE /label/42?source=TestSource']);
@@ -315,7 +287,7 @@ describe('deleting a label from the card (#3591)', () => {
   test('an admin deleting someone else\'s label is told their Disagree goes with it, and the card shows it', async () => {
     await showLabel({ can_edit: true, from_current_user: false });
     await deleteLabel();
-    expect(window.ConfirmDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({
+    expect(confirmDialog.confirm).toHaveBeenCalledWith(expect.objectContaining({
       message: 'labelmap:delete-label-confirm-admin',
     }));
     expect(requests()).toEqual(['DELETE /label/42?source=TestSource']);
@@ -335,6 +307,7 @@ describe('deleting a label from the card (#3591)', () => {
   });
 
   test('a failed delete leaves the label live and says so', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     nextStatus = 500;
     await showLabel();
     await deleteLabel();
@@ -344,6 +317,7 @@ describe('deleting a label from the card (#3591)', () => {
     expect(typeStatus().classList.contains('label-detail__edit-status--error')).toBe(true);
     expect(typeStatus().getAttribute('data-ps-tooltip')).toBe('labelmap:delete-label-failed');
     expect(onDelete).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
   });
 
   test('Restore undoes the delete and brings Delete back', async () => {
@@ -390,7 +364,7 @@ describe('deleting a label from the card (#3591)', () => {
     // A type-change status with its Undo, as #submitEdit leaves it.
     const typeUndo = document.createElement('button');
     typeUndo.className = 'label-detail__edit-status-action';
-    const undoClick = jest.fn();
+    const undoClick = vi.fn();
     typeUndo.addEventListener('click', undoClick);
     typeStatus().append('changed', typeUndo);
 

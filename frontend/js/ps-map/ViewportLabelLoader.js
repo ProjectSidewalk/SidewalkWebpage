@@ -38,8 +38,6 @@ export class ViewportLabelLoader {
   /** @type {?{minLng: number, minLat: number, maxLng: number, maxLat: number}} Padded bbox of the last
    *     successful fetch; null until one lands (and cleared when the floor empties the layers). */
   #lastFetchedBbox = null;
-  /** @type {number} Monotonic token; a resolving fetch only applies while it is still the newest. */
-  #fetchSeq = 0;
   /** @type {boolean} */
   #inFlight = false;
   /** @type {boolean} A move landed while a fetch was in flight; run one follow-up when it settles. */
@@ -57,7 +55,7 @@ export class ViewportLabelLoader {
   #belowFloor = false;
   /** @type {string} */
   #state = 'idle';
-  /** @type {?{featureCollection: GeoJSON.FeatureCollection, meta: {isInitial: boolean}}} Latest emission, replayed. */
+  /** @type {?{featureCollection: GeoJSON.FeatureCollection<GeoJSON.Point>, meta: {isInitial: boolean}}} Replayed. */
   #lastEmission = null;
   /** @type {{data: Function[], error: Function[], state: Function[]}} */
   #listeners = { data: [], error: [], state: [] };
@@ -129,8 +127,7 @@ export class ViewportLabelLoader {
    * Registers a callback for label data. Called with the fetched GeoJSON FeatureCollection and
    * `{isInitial}` (true only for the first emission, floor-cleared empty collections included). If data has
    * already been emitted, the callback is invoked immediately with the latest emission.
-   * @param {(featureCollection: GeoJSON.FeatureCollection, meta: {isInitial: boolean}) => void} callback - The
-   *     subscriber.
+   * @param {(featureCollection: GeoJSON.FeatureCollection<GeoJSON.Point>, meta: {isInitial: boolean}) => void} callback
    */
   onData(callback) {
     this.#listeners.data.push(callback);
@@ -193,26 +190,24 @@ export class ViewportLabelLoader {
   }
 
   /**
-   * Fetches one bbox's worth of labels and fans the result out. Serialized by the caller's busy guard; the
-   * sequence token additionally keeps a response that was superseded (floor abort, destroy) from applying.
+   * Fetches one bbox's worth of labels and fans the result out. Serialized by the caller's busy guard; a request
+   * the floor or destroy() supersedes is aborted, and so rejects instead of applying.
    * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox - The padded bbox to fetch.
    */
   async #fetch(bbox) {
     this.#inFlight = true;
-    const token = ++this.#fetchSeq;
-    this.#abortController = typeof AbortController === 'undefined' ? null : new AbortController();
+    this.#abortController = new AbortController();
     this.#setState('loading');
     try {
       const url = new URL(this.#labelsURL, window.location.origin);
       url.searchParams.set('bbox', [bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat].join(','));
-      const data = await fetchLabelFeed(url, { signal: this.#abortController?.signal });
-      if (token !== this.#fetchSeq) return;
+      const data = await fetchLabelFeed(url, { signal: this.#abortController.signal });
       this.#lastFetchedBbox = bbox;
       this.#coversAllData = this.#dataBounds !== null && this.#contains(bbox, this.#dataBounds);
       this.#emitData(data);
       this.#setState('idle');
     } catch (e) {
-      if (e.name === 'AbortError' || token !== this.#fetchSeq) return;
+      if (e.name === 'AbortError') return;
       // The failed bbox is deliberately not stored: the next moveend (or refetch()) tries again.
       for (const callback of this.#listeners.error) callback(e);
       this.#setState('error');
@@ -286,7 +281,7 @@ export class ViewportLabelLoader {
 
   /**
    * Emits a data event and records it for replay to late subscribers.
-   * @param {GeoJSON.FeatureCollection} featureCollection - The GeoJSON FeatureCollection to fan out.
+   * @param {GeoJSON.FeatureCollection<GeoJSON.Point>} featureCollection - The GeoJSON FeatureCollection to fan out.
    */
   #emitData(featureCollection) {
     const meta = { isInitial: this.#lastEmission === null };
@@ -295,11 +290,11 @@ export class ViewportLabelLoader {
   }
 
   /**
-   * Emits a state change, deduplicated so subscribers only hear transitions.
+   * Emits a state change. Every caller is already a transition: a fetch starts only once the last has settled, and
+   * the floor is entered only from above it.
    * @param {string} state - One of 'idle' | 'loading' | 'belowFloor' | 'error'.
    */
   #setState(state) {
-    if (state === this.#state) return;
     this.#state = state;
     for (const callback of this.#listeners.state) callback(state);
   }

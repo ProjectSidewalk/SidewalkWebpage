@@ -1,17 +1,9 @@
 /**
- * Renders the admin Management page (#4272): the operational console for deployment-wide, state-changing actions.
+ * Renders the admin Management page (#4272): the Users table, team settings, and maintenance jobs.
  *
- * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
- *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
- *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
- *
- * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
- * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
- * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
- *
- * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations update local state
- * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
+ * The user list (over 10k in a big city) is downloaded once, then searched, sorted, and paged in the browser: small
+ * enough that every column can sort without a server trip, too big to put on the page all at once. A change shows
+ * right away and reverts with a message if the server refuses it.
  */
 
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
@@ -41,7 +33,7 @@ export class ManagementPage {
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
-   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
+   *          refreshPlacesUrl: string, refreshBasemapUrl: string, recountGradientStalenessUrl: string}} urls
    * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
   constructor(urls, assignableRoles) {
@@ -97,8 +89,7 @@ export class ManagementPage {
   }
 
   #filteredSortedUsers() {
-    const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key) || cols[0];
+    const col = this.#columns().find((c) => c.key === this.#sort.key);
     const q = this.#filter.trim().toLowerCase();
     const rows = q
       ? this.#users.filter((u) => (u.username || '').toLowerCase().includes(q)
@@ -119,7 +110,6 @@ export class ManagementPage {
     const cols = this.#columns();
     const all = this.#filteredSortedUsers();
     const pageCount = Math.max(1, Math.ceil(all.length / this.#pageSize));
-    if (this.#page > pageCount) this.#page = pageCount;
     const start = (this.#page - 1) * this.#pageSize;
     const rows = all.slice(start, start + this.#pageSize);
 
@@ -167,9 +157,8 @@ export class ManagementPage {
 
   #renderCount(matched) {
     const count = document.getElementById('mgmt-user-count');
-    if (!count) return;
     count.textContent = matched === this.#users.length
-      ? `${this.#users.length.toLocaleString()} users`
+      ? AdminShell.count(this.#users.length, 'user')
       : `${matched.toLocaleString()} of ${this.#users.length.toLocaleString()} users`;
   }
 
@@ -178,7 +167,7 @@ export class ManagementPage {
     const from = (this.#page - 1) * this.#pageSize + 1;
     const to = Math.min(total, this.#page * this.#pageSize);
     const btn = (page, label, disabled) =>
-      `<button type="button" class="mgmt-page-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
+      `<button type="button" class="ps-pager-btn" data-page="${page}"${disabled ? ' disabled' : ''}>${label}</button>`;
     const atStart = this.#page <= 1;
     const atEnd = this.#page >= pageCount;
     const sizeOpts = ManagementPage.#PAGE_SIZES.map((s) =>
@@ -186,20 +175,19 @@ export class ManagementPage {
     const html = total === 0
       ? ''
       : [
-          '<div class="mgmt-page-controls">',
+          '<div class="ps-pager-controls">',
           btn('first', '« First', atStart),
           btn('prev', '‹ Prev', atStart),
-          `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
+          `<span class="ps-pager-status">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
           + `· Page ${this.#page} of ${pageCount}</span>`,
           btn('next', 'Next ›', atEnd),
           btn('last', 'Last »', atEnd),
           '</div>',
-          `<label class="mgmt-page-size-label">Rows per page `
-          + `<select class="ps-select mgmt-page-size">${sizeOpts}</select></label>`,
+          `<label class="ps-pager-size">Rows per page `
+          + `<select class="ps-select">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
+      document.getElementById(id).innerHTML = html;
     }
   }
 
@@ -253,23 +241,29 @@ export class ManagementPage {
       if (!sel || sel.disabled) return;
       const userId = sel.getAttribute('data-user-id');
       if (sel.getAttribute('data-kind') === 'role') this.#changeRole(userId, sel);
-      else if (sel.getAttribute('data-kind') === 'team') this.#changeTeam(userId, sel);
+      else this.#changeTeam(userId, sel);
     });
     // Pagination controls (delegated on each stable pagination bar — top and bottom stay in sync).
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const bar = document.getElementById(id);
-      if (!bar) continue;
       bar.addEventListener('click', (e) => {
-        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-btn'));
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-btn'));
         if (!btn || btn.disabled) return;
-        this.#gotoPage(btn.getAttribute('data-page'));
+        const token = btn.getAttribute('data-page');
+        this.#gotoPage(token);
+        // Each render rebuilds the bars, so put focus back on the same button, or the nearest usable one.
+        const same = /** @type {HTMLButtonElement|null} */ (bar.querySelector(`.ps-pager-btn[data-page="${token}"]`));
+        const target = same && !same.disabled ? same : bar.querySelector('.ps-pager-btn:not(:disabled)');
+        /** @type {HTMLElement|null} */ (target)?.focus();
       });
       bar.addEventListener('change', (e) => {
-        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-size'));
+        const target = /** @type {Element} */ (e.target);
+        const sel = /** @type {HTMLSelectElement} */ (target.closest('.ps-pager-size select'));
         if (!sel) return;
-        this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
+        this.#pageSize = parseInt(sel.value, 10);
         this.#page = 1;
         this.#renderUsers();
+        /** @type {HTMLSelectElement|null} */ (bar.querySelector('.ps-pager-size select'))?.focus();
       });
     }
   }
@@ -279,34 +273,34 @@ export class ManagementPage {
     if (token === 'first') this.#page = 1;
     else if (token === 'prev') this.#page = Math.max(1, this.#page - 1);
     else if (token === 'next') this.#page = Math.min(pageCount, this.#page + 1);
-    else if (token === 'last') this.#page = pageCount;
+    else this.#page = pageCount;
     this.#renderUsers();
   }
 
   async #changeRole(userId, sel) {
     const user = this.#users.find((u) => u.user_id === userId);
-    const previous = user ? user.role : null;
+    const previous = user.role;
     const newRole = sel.value;
     try {
       const res = await AdminShell.mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
-      if (user) user.role = res.role || newRole;
-      this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
+      user.role = res.role || newRole;
+      this.#flash(`Set ${user.username} to ${newRole}.`);
     } catch (err) {
       // Revert the control to the server's truth.
-      if (previous !== null && previous !== undefined) sel.value = previous;
+      sel.value = previous;
       this.#flash(`Could not change role: ${err.message}`, true);
     }
   }
 
   async #changeTeam(userId, sel) {
     const user = this.#users.find((u) => u.user_id === userId);
-    const previousName = user ? user.team : null;
+    const previousName = user.team;
     const teamId = parseInt(sel.value, 10);
     const team = this.#teams.find((t) => t.team_id === teamId);
     try {
       await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
-      if (user) user.team = team ? team.name : user.team;
-      this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
+      user.team = team.name;
+      this.#flash(`Assigned ${user.username} to ${team.name}.`);
     } catch (err) {
       // Revert to the previously selected team (or the placeholder).
       sel.value = previousName && this.#teamsByName.has(previousName)
@@ -359,8 +353,7 @@ export class ManagementPage {
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
       await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
-      const team = this.#teams.find((t) => t.team_id === teamId);
-      if (team) team[field === 'open' ? 'open' : 'visible'] = next;
+      this.#teams.find((t) => t.team_id === teamId)[field] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
       this.#flash(`Team ${teamId}: ${field} → ${next ? onLabel : offLabel}.`);
     } catch (err) {
@@ -384,7 +377,6 @@ export class ManagementPage {
      */
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
-      if (!btn) return;
       btn.addEventListener('click', async () => {
         const confirmed = await ConfirmDialog.confirm({
           message: btn.getAttribute('data-confirm'),
@@ -414,6 +406,8 @@ export class ManagementPage {
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
+    run('mgmt-refresh-basemap', this.#urls.refreshBasemapUrl, 'POST', 'rebuild minimap basemap',
+      'Started: rebuild minimap basemap. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
@@ -425,7 +419,6 @@ export class ManagementPage {
 
   #wireSearch() {
     const input = /** @type {HTMLInputElement} */ (document.getElementById('mgmt-user-search'));
-    if (!input) return;
     input.addEventListener('input', () => {
       this.#filter = input.value;
       this.#page = 1;
@@ -441,7 +434,6 @@ export class ManagementPage {
 
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('mgmt-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);
@@ -449,7 +441,6 @@ export class ManagementPage {
 
   #maintResult(message, isError = false) {
     const el = document.getElementById('mgmt-maint-result');
-    if (!el) return;
     el.textContent = message;
     el.classList.toggle('error', !!isError);
   }

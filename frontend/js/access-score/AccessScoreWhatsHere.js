@@ -9,6 +9,7 @@
  * @property {boolean} empty - True when the scope holds no audited street.
  */
 
+import i18next from 'i18next';
 import { AccessScoreChart } from './AccessScoreChart.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
@@ -120,7 +121,7 @@ export class AccessScoreWhatsHere extends AccessScoreChart {
       else if (parts.length === 0) label = i18next.t('accessscore:whats-here-row-unrated', { type: name, count });
       else label = i18next.t('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
       row.track.setAttribute('aria-label', label);
-      row.track.setAttribute('data-ps-tooltip', util.escapeHTML(label));
+      row.track.setAttribute('data-ps-tooltip', label);
     }
     this.#els.empty.hidden = !data.empty;
     this.#els.list.hidden = data.empty;

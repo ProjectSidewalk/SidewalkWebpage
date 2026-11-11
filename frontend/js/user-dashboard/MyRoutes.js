@@ -6,7 +6,9 @@
  * comes back 404 and is surfaced via the shared error message.
  */
 
+import i18next from 'i18next';
 import { ConfirmDialog } from '../common/ConfirmDialog.js';
+import { copyToClipboard } from '../common/copyToClipboard.js';
 import { Toast } from '../common/Toast.js';
 import { util } from '../common/utilities.js';
 
@@ -66,26 +68,20 @@ export class MyRoutes {
 
   /** Announces a change to screen readers via the section's live region. */
   #announce(message) {
-    if (this.#statusEl) this.#statusEl.textContent = message;
+    this.#statusEl.textContent = message;
   }
 
   /**
-   * Copies the route's shareable link to the clipboard and confirms with a toast. The slug URL (/r/<slug>) is
+   * Copies the route's shareable link to the clipboard, confirming on the button. The slug URL (/r/<slug>) is
    * preferred; rows without one fall back to the routeId link, which also keeps working.
    * @param {HTMLElement} btn - The clicked copy button (carries data-route-id).
    */
   #copyLink(btn) {
-    const slug = btn.closest('.ud-route-row')?.dataset.slug;
+    const slug = btn.closest('.ud-route-row').dataset.slug;
     const url = slug
       ? `${window.location.origin}/r/${slug}`
       : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
-    navigator.clipboard.writeText(url);
-    Toast.show({
-      message: i18next.t('dashboard:routes-link-copied'),
-      reference: btn,
-      duration: Toast.CONFIRMATION_MS,
-    });
-    this.#announce(i18next.t('dashboard:routes-link-copied'));
+    copyToClipboard(btn, url);
     window.logWebpageActivity(`Click_module=RouteList_Copy_RouteId=${btn.dataset.routeId}`);
   }
 
@@ -185,7 +181,7 @@ export class MyRoutes {
       this.#announce(i18next.t('dashboard:routes-deleted', { name }));
       if (this.#list.querySelectorAll('.ud-route-row').length === 0) {
         this.#list.hidden = true;
-        if (this.#emptyEl) this.#emptyEl.hidden = false;
+        this.#emptyEl.hidden = false;
       }
       window.logWebpageActivity(`Click_module=RouteList_Delete_RouteId=${row.dataset.routeId}`);
     } catch (e) {

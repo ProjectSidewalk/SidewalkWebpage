@@ -869,7 +869,8 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
         + "userCount:Integer,"         // Number of unique users
         + "userIds:String,"            // List of user IDs as a string
         + "firstLabel:String,"         // First label date
-        + "lastLabel:String"           // Last label date
+        + "lastLabel:String,"          // Last label date
+        + "osmWays:String"             // Every OSM way the street lies on: way:from-to:+ (or :-) per way (#5741)
     )
 
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -896,6 +897,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
       // Add date fields
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
+      featureBuilder.add(street.osmWays.map(_.shapefileText).mkString(","))
 
       featureBuilder.buildFeature(null)
     }
@@ -931,8 +933,9 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
         + "auditCount:Integer,"
         + "firstNsLbl:String," // first_no_sidewalk_label_date
         + "lastNsLbl:String,"  // last_no_sidewalk_label_date
-        + "nsValid:Integer,"   // validated_no_sidewalk_count; last two appended so v11.12.0 readers keep their indexes
-        + "nsReject:Integer"   // rejected_no_sidewalk_count
+        + "nsValid:Integer,"   // validated_no_sidewalk_count; appended so v11.12.0 readers keep their indexes
+        + "nsReject:Integer,"  // rejected_no_sidewalk_count
+        + "osmWays:String"     // Every OSM way the street lies on: way:from-to:left (or :right) per way (#5741)
     )
 
     def buildFeature(face: SidewalkPresenceForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -954,6 +957,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
       featureBuilder.add(face.lastNoSidewalkLabelDate.map(_.toString).orNull)
       featureBuilder.add(face.validatedNoSidewalkCount)
       featureBuilder.add(face.rejectedNoSidewalkCount)
+      featureBuilder.add(face.osmWays.map(_.shapefileText).mkString(","))
       featureBuilder.buildFeature(null)
     }
 

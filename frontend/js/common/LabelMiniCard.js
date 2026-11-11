@@ -12,10 +12,12 @@
  *
  */
 
+import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
 import './utilitiesSidewalk.js';
+import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
   // Width:height of the card's figure (.lmc__figure); the crop is cover-fitted into it.
@@ -34,17 +36,17 @@ export class LabelMiniCard {
    * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    * @param {object} options - Presentation and callbacks.
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
-   * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
-   * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
+   * @param {boolean} [options.showType=false] - Whether a sheet card's caption opens with the label type's name, as
+   *   the Gallery card's does; off where the host's heading already names it (a cluster sheet of one type).
+   * @param {Function} options.onOpen - Called with the label id when the picture is chosen.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
-   * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
+   * @param {Function} options.log - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
    */
-  constructor(label, { size = 'sheet', onOpen = () => {}, onVote = () => {}, source, log = () => {}, className = '',
-    tag = 'li' }) {
+  constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li' }) {
     this.#label = { ...label };
-    this.#opts = { size, onOpen, onVote, source, log, className };
+    this.#opts = { size, showType, onOpen, source, log, className };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -74,13 +76,15 @@ export class LabelMiniCard {
    * The stand-in for a label with no picture: its type icon on a neutral panel, so every host says "no image"
    * the same way.
    * @param {string} type - The label type.
+   * @param {('unavailable'|'coming')} [reason='unavailable'] - 'coming' only when the crop just hasn't been cut yet.
    * @returns {HTMLElement} The placeholder element.
    */
-  static placeholder(type) {
+  static placeholder(type, reason = 'unavailable') {
+    const key = reason === 'coming' ? 'common:mini-card.image-coming' : 'common:mini-card.image-unavailable';
     const el = document.createElement('span');
     el.className = 'lmc__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${util.escapeHTML(i18next.t('common:mini-card.no-image'))}</span>`;
+      <span>${util.escapeHTML(i18next.t(key))}</span>`;
     return el;
   }
 
@@ -115,7 +119,6 @@ export class LabelMiniCard {
     const marker = label.crop_url
       ? `<img class="lmc__marker" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`
       : '';
-    const colors = rating ? util.misc.getSeverityLevelColors(label.severity, type) : null;
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
     const date = label.timestamp
@@ -126,11 +129,12 @@ export class LabelMiniCard {
       ? i18next.t(util.misc.isPositiveLabelType(type) ? 'common:quality' : 'common:severity')
       : '';
     const ratingHtml = rating
-      ? `<span class="lmc__rating" style="--lmc-wash: ${esc(colors?.wash ?? '')}">${esc(ratingHeader)}: ${
-        esc(rating)}</span>`
+      ? `<span class="lmc__rating" style="--lmc-wash: ${
+        esc(util.misc.getSeverityLevelColors(label.severity, type).wash)}">${esc(ratingHeader)}: ${esc(rating)}</span>`
       : '';
     const body = this.#opts.size === 'sheet'
       ? `<div class="lmc__body">
+          ${this.#opts.showType ? `<span class="lmc__type">${esc(typeName)}</span>` : ''}
           <span class="lmc__meta">
             ${ratingHtml}
             ${date ? `<span class="lmc__date">${esc(date)}</span>` : ''}
@@ -208,7 +212,8 @@ export class LabelMiniCard {
    * @param {string} action - 'Agree', 'Disagree' or 'Unsure'.
    */
   async #vote(action) {
-    if (this.#busy || this.#lockReason()) return;
+    // A locked card's chips are disabled, but a host's `update` mid-vote redraws them enabled.
+    if (this.#busy) return;
     const before = this.#label;
     const prev = before.user_validation ?? null;
     const undone = prev === action;
@@ -230,7 +235,6 @@ export class LabelMiniCard {
       // Casting is recorded by the label_validation row; clearing deletes it, so the event is the only trace.
       if (undone) this.#opts.log(`ClearVote_result=${action}_labelId=${before.label_id}`);
       else if (prev === null) BadgeAchievements.recordValidation(this.#el);
-      this.#opts.onVote(next, this.#label);
     } catch (err) {
       console.error('LabelMiniCard: vote failed', err);
       this.#label = before;
@@ -264,7 +268,7 @@ export class LabelMiniCard {
       source: this.#opts.source,
       undone,
       redone: !undone && prev !== null,
-      // Which picture the vote was judged on, as the Gallery and the landing grid report it.
+      // Which picture the vote was judged on, as Gallery and the landing grid report it.
       viewer_type: label.crop_url ? 'StaticCrop' : 'StaticApi',
     };
   }

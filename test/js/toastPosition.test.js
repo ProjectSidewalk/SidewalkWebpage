@@ -7,16 +7,15 @@
  * than the viewport (where centering is impossible and it left-aligns instead). Like the anchoring geometry, these
  * only misbehave at the edges, which is where a manual pass is least likely to look.
  *
- * Toast.js declares a top-level class: on a page that makes it a global binding, but under require() it stays
- * module-scoped, so the test evaluates the source directly (the same approach badgeAchievements.test.js takes).
  * jsdom has no layout engine, so getBoundingClientRect is stubbed — the toast reports the width each test states and
  * the reference reports the rect it was given, which is what a geometry test wants anyway.
  */
 
+import { loadModules, mockModule } from './loader.js';
 
-const { assetPathStub, loadModules } = require('./loadGlobalScript');
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
-const Toast = loadModules('frontend/js/common/Toast.js').Toast;
+const { Toast } = await loadModules('frontend/js/common/Toast.js');
 
 // Matches the constants in Toast.#position.
 const EDGE = 8;
@@ -26,12 +25,12 @@ const VIEWPORT_WIDTH = 1000;
 
 /** Installs a layout stub: elements report `toastWidth` if they are the toast, `refRect` otherwise. */
 function stubLayout(toastWidth, refRect) {
-    Element.prototype.getBoundingClientRect = function () {
-        if (this.classList.contains('ps-toast')) {
-            return { left: 0, top: 0, right: toastWidth, bottom: 40, width: toastWidth, height: 40 };
-        }
-        return { right: refRect.left + refRect.width, bottom: refRect.top + refRect.height, ...refRect };
-    };
+  Element.prototype.getBoundingClientRect = function () {
+    if (this.classList.contains('ps-toast')) {
+      return { left: 0, top: 0, right: toastWidth, bottom: 40, width: toastWidth, height: 40 };
+    }
+    return { right: refRect.left + refRect.width, bottom: refRect.top + refRect.height, ...refRect };
+  };
 }
 
 /**
@@ -41,110 +40,103 @@ function stubLayout(toastWidth, refRect) {
  * @param {string} [minTop] - An inline `--toast-min-top` on the reference, as a page's layout code sets it.
  */
 function place(toastWidth, refRect, minTop, extra = {}) {
-    stubLayout(toastWidth, refRect);
-    const reference = document.createElement('div');
-    if (minTop) reference.style.setProperty('--toast-min-top', minTop);
-    document.body.appendChild(reference);
+  stubLayout(toastWidth, refRect);
+  const reference = document.createElement('div');
+  if (minTop) reference.style.setProperty('--toast-min-top', minTop);
+  document.body.appendChild(reference);
 
-    // duration 0 disables the auto-dismiss timer, so nothing is left pending after the test.
-    Toast.show({ message: 'hi', reference, duration: 0, ...extra });
+  // duration 0 disables the auto-dismiss timer, so nothing is left pending after the test.
+  Toast.show({ message: 'hi', reference, duration: 0, ...extra });
 
-    const el = document.querySelector('.ps-toast');
-    return { left: parseFloat(el.style.left), top: parseFloat(el.style.top) };
+  const el = document.querySelector('.ps-toast');
+  return { left: parseFloat(el.style.left), top: parseFloat(el.style.top) };
 }
 
 describe('Toast placement', () => {
-    const realGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+  const realGetBoundingClientRect = Element.prototype.getBoundingClientRect;
 
-    beforeEach(() => {
-        document.body.innerHTML = '';
-        window.innerWidth = VIEWPORT_WIDTH;
-        global.i18next = { t: (key) => key };
-        global.util = { assetPath: assetPathStub }; // The close button's icon URL.
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    window.innerWidth = VIEWPORT_WIDTH;
+  });
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = realGetBoundingClientRect;
+  });
+
+  it('sits at the reference\'s --toast-min-top when 10% down would be higher (#5085)', () => {
+    const rect = { left: 200, top: 100, width: 600, height: 400 };
+    expect(place(300, rect, '300px').top).toBe(300);
+    document.querySelector('.ps-toast').remove();
+    expect(place(300, rect, '120px').top).toBe(100 + 400 * VERTICAL_FRACTION); // 140 is already lower.
+  });
+
+  it('re-places a live toast on repositionAll, as a layout switch without a resize event needs (#5085)', () => {
+    const rect = { left: 200, top: 100, width: 600, height: 400 };
+    expect(place(300, rect).top).toBe(140);
+    // The page re-lays itself out: the reference now fills the window and asks toasts to stay under a strip.
+    stubLayout(300, { left: 0, top: 0, width: 1000, height: 800 });
+    document.querySelectorAll('div:not(.ps-toast)').forEach((d) => d.style.setProperty('--toast-min-top', '190px'));
+    Toast.repositionAll();
+    const el = document.querySelector('.ps-toast');
+    expect(parseFloat(el.style.top)).toBe(190);
+    expect(parseFloat(el.style.left)).toBe(500);
+  });
+
+  it('sits at the caller\'s top offset instead of 10% down, still no higher than --toast-min-top', () => {
+    const rect = { left: 200, top: 100, width: 600, height: 400 };
+    expect(place(300, rect, undefined, { top: 16 }).top).toBe(116);
+    document.querySelector('.ps-toast').remove();
+    expect(place(300, rect, '150px', { top: 16 }).top).toBe(150);
+  });
+
+  it('follows its reference when that is re-laid out without a window resize', () => {
+    const observed = [];
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback) { this.callback = callback; }
+      observe(el) { observed.push({ el, fire: () => this.callback([]) }); }
+      disconnect() { this.disconnected = true; }
     });
+    expect(place(300, { left: 200, top: 100, width: 600, height: 400 }).left).toBe(500);
+    expect(observed).toHaveLength(1);
+    // A panel opens beside the reference, narrowing it to the right half of the window.
+    stubLayout(300, { left: 500, top: 100, width: 500, height: 400 });
+    observed[0].fire();
+    expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
+  });
 
-    afterEach(() => {
-        Element.prototype.getBoundingClientRect = realGetBoundingClientRect;
-    });
+  it('centers on the reference and sits 10% down it when there is room on both sides', () => {
+    const { left, top } = place(300, { left: 200, top: 100, width: 600, height: 400 });
 
-    it('sits at the reference\'s --toast-min-top when 10% down would be higher (#5085)', () => {
-        const rect = { left: 200, top: 100, width: 600, height: 400 };
-        expect(place(300, rect, '300px').top).toBe(300);
-        document.querySelector('.ps-toast').remove();
-        expect(place(300, rect, '120px').top).toBe(100 + 400 * VERTICAL_FRACTION); // 140 is already lower.
-    });
+    expect(left).toBe(500);                               // 200 + 600/2
+    expect(top).toBe(100 + 400 * VERTICAL_FRACTION);      // 140
+  });
 
-    it('re-places a live toast on repositionAll, as a layout switch without a resize event needs (#5085)', () => {
-        const rect = { left: 200, top: 100, width: 600, height: 400 };
-        expect(place(300, rect).top).toBe(140);
-        // The page re-lays itself out: the reference now fills the window and asks toasts to stay under a strip.
-        stubLayout(300, { left: 0, top: 0, width: 1000, height: 800 });
-        document.querySelectorAll('div:not(.ps-toast)').forEach((d) => d.style.setProperty('--toast-min-top', '190px'));
-        Toast.repositionAll();
-        const el = document.querySelector('.ps-toast');
-        expect(parseFloat(el.style.top)).toBe(190);
-        expect(parseFloat(el.style.left)).toBe(500);
-    });
+  it('pulls the center right so the toast clears the left edge', () => {
+    // Centering on a reference at x=40 would put the toast's left edge at -110, off-screen and unreachable.
+    const { left } = place(300, { left: 0, top: 0, width: 80, height: 400 });
 
-    it('sits at the caller\'s top offset instead of 10% down, still no higher than --toast-min-top', () => {
-        const rect = { left: 200, top: 100, width: 600, height: 400 };
-        expect(place(300, rect, undefined, { top: 16 }).top).toBe(116);
-        document.querySelector('.ps-toast').remove();
-        expect(place(300, rect, '150px', { top: 16 }).top).toBe(150);
-    });
+    expect(left).toBe(EDGE + 150); // 158
+  });
 
-    it('follows its reference when that is re-laid out without a window resize', () => {
-        const observed = [];
-        const realResizeObserver = global.ResizeObserver;
-        global.ResizeObserver = class {
-            constructor(callback) { this.callback = callback; }
-            observe(el) { observed.push({ el, fire: () => this.callback([]) }); }
-            disconnect() { this.disconnected = true; }
-        };
-        try {
-            expect(place(300, { left: 200, top: 100, width: 600, height: 400 }).left).toBe(500);
-            expect(observed).toHaveLength(1);
-            // A panel opens beside the reference, narrowing it to the right half of the window.
-            stubLayout(300, { left: 500, top: 100, width: 500, height: 400 });
-            observed[0].fire();
-            expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
-        } finally {
-            global.ResizeObserver = realResizeObserver;
-        }
-    });
+  it('pulls the center left so the toast clears the right edge', () => {
+    const { left } = place(300, { left: 900, top: 0, width: 100, height: 400 });
 
-    it('centers on the reference and sits 10% down it when there is room on both sides', () => {
-        const { left, top } = place(300, { left: 200, top: 100, width: 600, height: 400 });
+    expect(left).toBe(VIEWPORT_WIDTH - EDGE - 150); // 842
+  });
 
-        expect(left).toBe(500);                               // 200 + 600/2
-        expect(top).toBe(100 + 400 * VERTICAL_FRACTION);      // 140
-    });
+  it('left-aligns a toast too wide to fit, rather than centering it off both edges', () => {
+    // No center satisfies both bounds, so the start of the message is what stays on screen.
+    const { left } = place(1200, { left: 0, top: 0, width: VIEWPORT_WIDTH, height: 400 });
 
-    it('pulls the center right so the toast clears the left edge', () => {
-        // Centering on a reference at x=40 would put the toast's left edge at -110, off-screen and unreachable.
-        const { left } = place(300, { left: 0, top: 0, width: 80, height: 400 });
+    expect(left).toBe(EDGE + 600); // 608 -> left edge at EDGE
+  });
 
-        expect(left).toBe(EDGE + 150); // 158
-    });
+  it('centers on the viewport when no reference is given', () => {
+    stubLayout(300, {});
+    Toast.show({ message: 'hi', duration: 0 });
 
-    it('pulls the center left so the toast clears the right edge', () => {
-        const { left } = place(300, { left: 900, top: 0, width: 100, height: 400 });
-
-        expect(left).toBe(VIEWPORT_WIDTH - EDGE - 150); // 842
-    });
-
-    it('left-aligns a toast too wide to fit, rather than centering it off both edges', () => {
-        // No center satisfies both bounds, so the start of the message is what stays on screen.
-        const { left } = place(1200, { left: 0, top: 0, width: VIEWPORT_WIDTH, height: 400 });
-
-        expect(left).toBe(EDGE + 600); // 608 -> left edge at EDGE
-    });
-
-    it('centers on the viewport when no reference is given', () => {
-        stubLayout(300, {});
-        Toast.show({ message: 'hi', duration: 0 });
-
-        const el = document.querySelector('.ps-toast');
-        expect(parseFloat(el.style.left)).toBe(VIEWPORT_WIDTH / 2);
-    });
+    const el = document.querySelector('.ps-toast');
+    expect(parseFloat(el.style.left)).toBe(VIEWPORT_WIDTH / 2);
+  });
 });

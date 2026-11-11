@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 /**
  * Small non-blocking status pill for viewport label loading (#5002): "zoom in to see labels" when the zoom floor
  * is holding fetches back, and a brief "loading" note during refetches. The full-map MapLoadingOverlay owns the
@@ -206,7 +208,6 @@ export class MapStatusPill {
 
   /** Fades the pill out, then hides it; `hidden` itself can't animate. */
   #fadeOut() {
-    if (this.#el.hidden) return;
     this.#el.classList.add('map-status-pill--leaving');
     this.#fadeTimer = setTimeout(() => this.#hide(), MapStatusPill.FADE_MS);
   }

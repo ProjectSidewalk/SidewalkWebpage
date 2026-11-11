@@ -1,5 +1,4 @@
 @import models.label.{LabelMetadata, LabelType, LatLng}
-@import models.pano.PanoSource
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json._
@@ -26,9 +25,11 @@
  * @param cityName    Formatted deployment-city name (e.g. "Seattle, WA").
  * @param shareMeta   Pre-built Open Graph / Twitter Card <meta> block, injected into <head>.
  * @param isAdmin     Render the label detail card in admin mode (only ever true behind the admin-gated route).
+ * @param goldReason  On the admin's page, the reason this label is a training example (#1445), if it is one.
  *@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, meta: LabelMetadata,
-    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false
+    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false,
+    goldReason: Option[String] = None
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. *@
@@ -37,6 +38,7 @@
     "labelId"            -> meta.labelId,
     "labelType"          -> meta.labelType.name,
     "admin"              -> isAdmin,
+    "goldReason"         -> goldReason,
     "lat"                -> labelLatLng.map(_.lat),
     "lng"                -> labelLatLng.map(_.lng),
     "imagerySource"      -> commonData.imagerySource.name,
@@ -65,6 +67,27 @@
           @common.labelDetail(admin = isAdmin)
         </div>
         @common.panoInfoPopover()
+        @if(isAdmin) {
+          @* Admin-only, so English only, like the admin dashboard. Driven by GoldExamplePin.js. *@
+          <section class="spotlight__gold" id="spotlight-gold" aria-labelledby="spotlight-gold-title">
+            <h2 id="spotlight-gold-title" class="spotlight__gold-title">Training example</h2>
+            <p class="spotlight__gold-help">
+              Shown to validators as a common mistake; if they don't disagree, they're told why it's wrong.
+              <a href="@routes.AdminDashboardController.goldExamples">All training examples</a>
+            </p>
+            <div class="spotlight__gold-field">
+              <label class="spotlight__gold-label" for="spotlight-gold-reason">Why it's wrong</label>
+              <select class="ps-select" id="spotlight-gold-reason"></select>
+            </div>
+            <div class="spotlight__gold-actions">
+              <button type="button" class="button button--primary button--medium" id="spotlight-gold-pin"></button>
+              <button type="button" class="button button--secondary button--medium" id="spotlight-gold-unpin" hidden>
+                Remove
+              </button>
+            </div>
+            <p class="spotlight__gold-status" id="spotlight-gold-status" role="status" aria-live="polite"></p>
+          </section>
+        }
       </div>
 
       <aside class="spotlight__side">
@@ -137,30 +160,7 @@
     </section>
   </main>
 
-  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
-  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/pages/shared-label.css")' rel="stylesheet">
-
-  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
-  } else if (commonData.imagerySource == PanoSource.Mapillary) {
-    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-  } else if (commonData.imagerySource == PanoSource.Panoramax) {
-    <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
-    <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
-  }
-  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
+  @ViteAssets.stylesheets("sharedLabel")
 
   <script type="application/json" id="page-data">@jsonForScript(configJson)</script>
   <script type="module" src='@assets.path("build/js/sharedLabel.js")'></script>

@@ -5,9 +5,13 @@
  * outside: the user either submits it or skips it with the X, and both close it.
  */
 
-import { svl } from '../svl.js';
+/** @typedef {import('../../common/Gate.js').Gate} Gate */
+/** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
 
 export class ModalSurvey {
+  #interactionLock;
+  #zoomControl;
+
   /** @type {HTMLDialogElement} */
   #dialog;
 
@@ -16,7 +20,13 @@ export class ModalSurvey {
 
   #submitted = false;
 
-  constructor() {
+  /**
+   * @param {Gate} interactionLock - Held while the survey is up.
+   * @param {ZoomControl} zoomControl - Kept from zooming while the survey is up.
+   */
+  constructor(interactionLock, zoomControl) {
+    this.#interactionLock = interactionLock;
+    this.#zoomControl = zoomControl;
     this.#dialog = /** @type {HTMLDialogElement} */ (document.getElementById('survey-modal-container'));
     this.#form = /** @type {HTMLFormElement} */ (document.getElementById('survey-form'));
 
@@ -31,10 +41,9 @@ export class ModalSurvey {
   open() {
     if (this.#dialog.open) return;
     this.#submitted = false;
-    svl.popUpMessage.disableInteractions();
-    svl.ribbon.disableModeSwitch();
-    svl.zoomControl.disableZoomIn();
-    svl.zoomControl.disableZoomOut();
+    this.#interactionLock.hold('survey');
+    this.#zoomControl.zoomInGate.hold('survey');
+    this.#zoomControl.zoomOutGate.hold('survey');
     this.#dialog.showModal();
     // showModal() lands focus on the first control, the skip X. The survey opens on its own mid-labeling, so a key
     // the user is already pressing would skip it; the dialog itself takes the focus instead.
@@ -45,10 +54,9 @@ export class ModalSurvey {
   // whichever way it happened, so the skip is logged here rather than on the X.
   #handleHideSurvey = () => {
     if (!this.#submitted) window.logWebpageActivity('SurveySkip');
-    svl.popUpMessage.enableInteractions();
-    svl.ribbon.enableModeSwitch();
-    svl.zoomControl.enableZoomIn();
-    svl.zoomControl.enableZoomOut();
+    this.#interactionLock.release('survey');
+    this.#zoomControl.zoomInGate.release('survey');
+    this.#zoomControl.zoomOutGate.release('survey');
   };
 
   // Submits the survey responses, then hides the modal. Prevents the page from reloading with the posted data.

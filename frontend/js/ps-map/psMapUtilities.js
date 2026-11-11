@@ -29,7 +29,7 @@ export function logPopupLinkClicks(map, selector, activityFor) {
  * @param {string|URL} url - The label feed endpoint.
  * @param {object} [options]
  * @param {AbortSignal} [options.signal] - Optional abort signal, so a superseded viewport fetch can be cancelled.
- * @returns {Promise<GeoJSON.FeatureCollection>} The parsed GeoJSON FeatureCollection.
+ * @returns {Promise<GeoJSON.FeatureCollection<GeoJSON.Point>>} The parsed GeoJSON FeatureCollection.
  */
 export async function fetchLabelFeed(url, { signal } = {}) {
   const response = await fetch(url, { signal });
@@ -58,17 +58,11 @@ export function toggleLabelLayer(labelType, visible, map, mapData) {
 
 /**
  * Builds and applies Mapbox filter expressions to all label layers based on the current filter state in mapData.
- * @param {HTMLInputElement|string|null} checkbox - The validation checkbox that was clicked, or null (or a string,
- *      which is ignored) if the update was triggered by something else (e.g., a severity toggle).
  * @param {mapboxgl.Map} map - The Mapbox map object.
  * @param {MapLayerTracker} mapData - The layer tracker containing current filter state.
  * @param {boolean} highQualityFilter - Whether to apply the high-quality user filter.
  */
-export function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
-  if (checkbox && typeof checkbox === 'object') {
-    mapData[checkbox.id] = checkbox.checked;
-  }
-
+export function filterLabelLayers(map, mapData, highQualityFilter) {
   // Build severity sub-filter: show labels whose severity matches any enabled toggle.
   /** @type {Array<any>} */
   const sevFilter = ['any'];
@@ -213,13 +207,13 @@ export function filterStreetLayer(map) {
  * @property {?number} spotlightLabelId
  * @property {Record<number, boolean>} severities
  * @property {Record<string, Set<string>>} selectedTags
- * @property {Record<string, GeoJSON.Feature[]>} sortedLabels
+ * @property {Record<string, GeoJSON.Feature<GeoJSON.Point>[]>} sortedLabels
  * @property {Record<string, string>} layerNames
  * @property {(labelId: number, labelType: string) => void} [updateLabelType] - Set by addLabelsToMap; moves a
  *   label to another type's layer after its type is edited (#3671).
  * @property {(labelId: number, deleted: boolean) => void} [setLabelDeleted] - Set by addLabelsToMap; drops or
  *   restores a label deleted from the card (#3591).
- * @property {Map<number, GeoJSON.Feature>} [deletedFeatures] - What setLabelDeleted took off the map, for a restore.
+ * @property {Map<number, GeoJSON.Feature<GeoJSON.Point>>} [deletedFeatures] - Held for setLabelDeleted's restore.
  * @property {{audited: number, outdated: number, unaudited: number}} [streetCounts] - Set once the streets load.
  * @property {ViewportLabelLoader} [labelLoader] - Set on maps that load labels by viewport.
  */

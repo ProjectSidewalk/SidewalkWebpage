@@ -74,9 +74,9 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     lazy val daily = await(configService.getCrossCityDailyTrend(30))
 
     "return exactly 30 consecutive Pacific days ending today, zero-filled" in {
-      val before = LocalDate.now(ZoneId.of("US/Pacific"))
+      val before = LocalDate.now(ZoneId.of("America/Los_Angeles"))
       val days   = await(configService.getCrossCityDailyTrend(30)).map(_.point)
-      val after  = LocalDate.now(ZoneId.of("US/Pacific"))
+      val after  = LocalDate.now(ZoneId.of("America/Los_Angeles"))
 
       days.length mustBe 30
       days.zip(days.tail).foreach { case (a, b) => b.day mustBe a.day.plusDays(1) }
@@ -144,10 +144,10 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "getCrossCityDailyBaseline" should {
     "average the trailing year ending yesterday, on the bars' basis" in {
-      val before = LocalDate.now(ZoneId.of("US/Pacific"))
+      val before = LocalDate.now(ZoneId.of("America/Los_Angeles"))
       // A wait longer than any test-DB compute, so the cold call returns the value rather than None.
       val baseline = await(configService.getCrossCityDailyBaseline(1.minute)).value
-      val after    = LocalDate.now(ZoneId.of("US/Pacific"))
+      val after    = LocalDate.now(ZoneId.of("America/Los_Angeles"))
 
       baseline.days mustBe ConfigService.DailyBaselineDays
       // The run may legitimately cross midnight Pacific between the call and this assertion.

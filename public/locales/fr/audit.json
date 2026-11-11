@@ -137,7 +137,6 @@
     "feedback-title": "Une idée ? Quelque chose de confus ? Un bug repéré ?<br>Envoyez-nous vos commentaires !"
   },
   "right-ui": {
-    "opens-new-tab": "(s'ouvre dans un nouvel onglet)",
     "accuracy-tooltip": "La précision se fonde sur les validations des autres utilisateurs. Si la vôtre est faible, consultez vos erreurs récentes sur <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">votre tableau de bord</a> pour vous améliorer !",
     "no-accuracy-tooltip": "Il nous faut plus de données pour calculer votre précision. Ajoutez des étiquettes et créez un compte pour suivre votre précision !",
     "current-mission": {
@@ -158,6 +157,9 @@
     "route-unavailable": {
       "message": "Cet itinéraire n'est pas disponible. Il a peut-être été supprimé."
     },
+    "street-unavailable": {
+      "message": "Cette rue n'est pas disponible à l'exploration. Elle n'a peut-être pas d'images, ou elle a été supprimée."
+    },
     "region-finished": {
       "message": "Vous avez déjà exploré toutes les rues de ce quartier, nous vous avons donc déplacé vers {{regionName}}."
     },
@@ -177,6 +179,7 @@
       "needs-reassessment-tip-others": "Un utilisateur a évalué ce lieu pour la dernière fois en {{assessedDate}}, mais les images ici sont plus récentes ({{captureDate}}). Veuillez l'évaluer à nouveau pour nous aider à analyser ce qui a changé."
     },
     "minimap": {
+      "attribution-toggle": "Crédits des données cartographiques",
       "coach-dismiss": "Compris",
       "distance-left": "{{distance}} restants",
       "explore-current-location": "Tournez à 360 degrés pour ne rien manquer.",
@@ -188,16 +191,13 @@
       "mission-progress": "Progression de la mission",
       "legend-explored": "Exploré",
       "legend-ahead": "Itinéraire à venir",
+      "legend-jump": "Saut vers la rue suivante",
       "legend-you": "Vous + direction du regard",
-      "legend-visited": "Lieu visité",
+      "legend-crumbs": "Cercles : lieux où aller d’un clic",
       "legend-unseen": "Pas encore vu",
-      "legend-next-stops": "Arrêts sur votre itinéraire",
       "forward-crumb-title": "Avancer jusqu'à l'arrêt {{rank}}",
-      "legend-other-links": "Autres directions",
-      "legend-faced": "Rempli : où mène avancer",
       "legend-earlier-labels": "Mes étiquettes précédentes",
       "link-crumb-title": "Aller à ce panorama",
-      "legend-next-step": "Bleu clair : prochaine étape (barre d’espace)",
       "route-stop-title": "Arrêt {{rank}} sur votre itinéraire",
       "breadcrumb-title": "Visité : cliquez pour y revenir",
       "label-marker-title": "Étiquette {{labelType}} : cliquez pour la revoir",
@@ -206,7 +206,10 @@
       "route-start-flag": "Départ de l’itinéraire",
       "route-finish-flag": "Arrivée de l’itinéraire",
       "mission-start-flag": "Où cette mission a commencé",
-      "mission-finish-flag": "Où cette mission se termine"
+      "mission-finish-flag": "Où cette mission se termine",
+      "map-title": "Carte des environs de votre position",
+      "unavailable": "Ce navigateur ne peut pas afficher la carte. Vous pouvez continuer à explorer sans elle.",
+      "recenter": "Revenir à votre position"
     },
     "stats": {
       "leaderboard-cta": "Voir le classement de la communauté"
@@ -275,7 +278,7 @@
         "sand-gravel": "boue / sable / gra<tag-underline>v</tag-underline>ier",
         "uncovered-manhole": "r<tag-underline>e</tag-underline>gard non couvert",
         "ends-abruptly": "s'<tag-underline>a</tag-underline>rrête brusquement",
-        "street-has-a-sidewalk": "la <tag-underline>r</tag-underline>ue a un trottoir",
+        "other-side-has-a-sidewalk": "l'aut<tag-underline>r</tag-underline>e côté a un trottoir",
         "street-has-no-sidewalks": "la rue n'a aucun <tag-underline>t</tag-underline>rottoir",
         "gravel-dirt-road": "route en gravier / en terre (<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "<tag-underline>e</tag-underline>space partagé piétons / voitures",

@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import java.time.LocalDate
 
 /**
- * Pure (no DB, no app boot) unit test for the dashboard's streak and accuracy-by-type math (User Dashboard redesign).
+ * Pure (no DB, no app boot) unit test for the dashboard's streak and accuracy-by-type math.
  *
  * `today` is injected into computeStreakStats precisely so this stays deterministic. Pins the streak edge cases
  * (empty, ends-today vs ends-yesterday, longest across a gap) and the accuracy rules (primary-types-only, canonical

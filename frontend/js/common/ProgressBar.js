@@ -1,3 +1,5 @@
+import '../../css/components/progress-bar.css';
+
 /**
  * A single-fill progress bar: sizes a track fill from a fraction and, optionally, writes a label beside it.
  * Centralizes the fill sizing and completion-percentage formatting shared by the mission, badge, and validation

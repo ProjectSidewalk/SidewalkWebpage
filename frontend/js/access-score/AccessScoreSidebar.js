@@ -9,16 +9,19 @@
  * @property {string|boolean} [value] - What the change set, for the log.
  */
 
+import i18next from 'i18next';
 import { AccessScorePlacesLayer } from './AccessScorePlacesLayer.js';
 import { AccessScoreSlopePanel } from './AccessScoreSlopePanel.js';
+import { AccessScoreWeightsPanel } from './AccessScoreWeightsPanel.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreConfig} AccessScoreConfig */
 /** @typedef {import('./AccessScoreModel.js').AccessScoreState} AccessScoreState */
 
 /**
- * The AccessScore tool's sidebar: the unit switch, one weight slider per scored label type, the options block
- * that gathers the view toggles in one place (#5217), and the places section with one row per category (#5311).
+ * The AccessScore tool's sidebar: the unit switch, the weights panel it shares with the neighborhood report, the
+ * options block that gathers the view toggles in one place (#5217), and the places section with one row per category
+ * (#5311).
  *
  * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, the place categories,
  * their order, and the default magnitudes are never re-declared here. The sidebar reports changes; the page owns
@@ -29,12 +32,6 @@ import '../common/utilitiesSidewalk.js';
  * of seven sliders is unreadable with a paragraph between every control.
  */
 export class AccessScoreSidebar {
-  /**
-   * Slider ceiling for a weight magnitude, at least this and always above the engine's largest default (see
-   * `#maxWeight`), so a range input can never clamp a default it is asked to show.
-   */
-  static MAX_WEIGHT = 3;
-
   #root;
   /** @type {AccessScoreConfig} */
   #config;
@@ -43,6 +40,8 @@ export class AccessScoreSidebar {
   #els = {};
   /** @type {AccessScoreSlopePanel} */
   #slope;
+  /** @type {AccessScoreWeightsPanel} */
+  #weights;
 
   /** The change kinds each section's "Updated" line answers for. */
   static #WEIGHT_KINDS = ['Weight', 'Preset', 'ResetAll'];
@@ -58,6 +57,8 @@ export class AccessScoreSidebar {
   constructor(root, config, slopeImpact = () => null) {
     this.#root = root;
     this.#config = config;
+    this.#weights = new AccessScoreWeightsPanel(root, config);
+    this.#weights.onChange((partial, meta) => this.#emit(partial, meta));
     this.#render();
     this.#bind();
     // The slope section keeps its own controls and reports through the same channel as everything else here.
@@ -75,23 +76,21 @@ export class AccessScoreSidebar {
       this.#slope.refreshImpact();
       if (meta.final !== false) this.#flash(this.#slope.flashElement, changed);
     }
-    if (AccessScoreSidebar.#WEIGHT_KINDS.includes(meta.kind) && meta.final !== false) {
-      this.#flash(this.#els.weightsFlash, changed);
-    }
+    if (AccessScoreSidebar.#WEIGHT_KINDS.includes(meta.kind) && meta.final !== false) this.#weights.flash(changed);
   }
 
   /**
-   * Fills a section's "Updated" line and restarts its fade.
+   * Fills the Slope section's "Updated" line and restarts its fade.
    * @param {?HTMLElement} el - The line, absent in a layout that has none.
    * @param {number} changed - How many scored streets moved.
    */
   #flash(el, changed) {
     if (!el) return;
     el.textContent = i18next.t('accessscore:recalculated', { count: changed });
-    el.classList.remove('acs-flash--on');
+    el.classList.remove('ps-flash--on');
     // Reading back the layout restarts the animation on a change that lands while the last one is still fading.
     void el.offsetWidth;
-    el.classList.add('acs-flash--on');
+    el.classList.add('ps-flash--on');
   }
 
   /** The Slope section, for the page to fold open when a link carries custom slope settings. */
@@ -117,11 +116,7 @@ export class AccessScoreSidebar {
     e.unitInputs.forEach((input) => {
       input.checked = input.value === state.unit;
     });
-    for (const type of this.#config.scored_types) {
-      const row = e.weightRows[type];
-      row.input.value = state.weights[type];
-      AccessScoreSidebar.#showWeight(row, state.weights[type]);
-    }
+    this.#weights.setWeights(state.weights);
     e.showUnaudited.checked = state.showUnaudited;
     e.showGrade.checked = state.showGrade;
     this.#showGradeOptions(state.showGrade);
@@ -131,7 +126,6 @@ export class AccessScoreSidebar {
     }
     this.#slope.setState(state);
     this.#showUnitOptions(state.unit);
-    this.#updateWeightsSummary();
     this.#updatePlacesAction();
   }
 
@@ -157,44 +151,11 @@ export class AccessScoreSidebar {
    * @param {Record<string, number>} means - Mean term per type (from `AccessScoreModel#contributions`).
    */
   setContributions(means) {
-    const max = Math.max(0.05, ...Object.values(means).map((v) => Math.abs(v)));
-    for (const type of this.#config.scored_types) {
-      const row = this.#els.weightRows[type];
-      const value = means[type] ?? 0;
-      row.bar.style.width = `${Math.round((Math.abs(value) / max) * 100)}%`;
-      row.bar.classList.toggle('acs-weight__bar--feature', value > 0);
-      row.bar.classList.toggle('acs-weight__bar--problem', value < 0);
-      row.barLabel.textContent = i18next.t('accessscore:row-avg',
-        { value: (value >= 0 ? '+' : '−') + Math.abs(value).toFixed(2) });
-    }
+    this.#weights.setContributions(means);
   }
 
   #render() {
     const root = this.#root;
-    const weights = root.querySelector('#acs-weights');
-    weights.innerHTML = this.#config.scored_types.map((type) => {
-      const problem = this.#config.type_weights[type].base_weight < 0;
-      const name = util.misc.labelTypeName(type);
-      const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
-      const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
-      const typeAttr = util.escapeHTML(type);
-      return `
-        <div class="acs-weight" data-type="${typeAttr}">
-          <div class="acs-weight__head">
-            <img class="acs-weight__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-            <label class="acs-weight__label" for="acs-weight-${typeAttr}">${name}</label>
-            <span class="acs-weight__role acs-weight__role--${problem ? 'problem' : 'feature'}"
-                  tabindex="0" data-ps-tooltip="${roleTitle}">${role}</span>
-            <output class="acs-weight__value" for="acs-weight-${typeAttr}"></output>
-          </div>
-          <input type="range" class="ps-range" id="acs-weight-${typeAttr}" min="0" max="${this.#maxWeight()}"
-                 step="0.05" data-type="${typeAttr}">
-          <div class="acs-weight__contrib" aria-hidden="true">
-            <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>
-          </div>
-        </div>`;
-    }).join('');
-
     const categories = this.#config.place_categories ?? [];
     const placeRows = root.querySelector('#acs-place-categories');
     placeRows.innerHTML = categories.map((category) => {
@@ -222,17 +183,6 @@ export class AccessScoreSidebar {
 
     this.#els = {
       unitInputs: Array.from(root.querySelectorAll('input[name="acs-unit"]')),
-      weightRows: Object.fromEntries(this.#config.scored_types.map((type) => {
-        const row = weights.querySelector(`.acs-weight[data-type="${type}"]`);
-        return [type, {
-          root: row,
-          input: row.querySelector('input'),
-          output: row.querySelector('output'),
-          bar: row.querySelector('.acs-weight__bar'),
-          barLabel: row.querySelector('.acs-weight__bar-label'),
-        }];
-      })),
-      weightsFlash: root.querySelector('#acs-weights-flash'),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
       showGrade: root.querySelector('#acs-show-grade'),
       gradeOption: root.querySelector('#acs-grade-option'),
@@ -250,10 +200,6 @@ export class AccessScoreSidebar {
       placesSummary: root.querySelector('#acs-places-summary'),
       placeCategories: placeRows,
       placesUnavailable: root.querySelector('#acs-places-unavailable'),
-      reset: root.querySelector('#acs-reset'),
-      weightsToggle: root.querySelector('#acs-weights-toggle'),
-      weights: root.querySelector('#acs-weights'),
-      weightsSummary: root.querySelector('#acs-weights-summary'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
   }
@@ -265,17 +211,6 @@ export class AccessScoreSidebar {
       this.#showUnitOptions(input.value);
       this.#emit({ unit: input.value }, { kind: 'Unit', value: input.value, final: true });
     }));
-    for (const [type, row] of Object.entries(e.weightRows)) {
-      const value = () => Number.parseFloat(row.input.value);
-      const emitWeight = (final) =>
-        this.#emit({ weights: { [type]: value() } }, { kind: 'Weight', value: `${type}_value=${value()}`, final });
-      row.input.addEventListener('input', () => {
-        AccessScoreSidebar.#showWeight(row, value());
-        this.#updateWeightsSummary();
-        emitWeight(false);
-      });
-      row.input.addEventListener('change', () => emitWeight(true));
-    }
     e.showUnaudited.addEventListener('change', () =>
       this.#emit({ showUnaudited: e.showUnaudited.checked },
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
@@ -300,12 +235,7 @@ export class AccessScoreSidebar {
         this.#emitPlaceCategories({ kind: 'PlaceCategoryOnly', value: category });
       });
     }
-    e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
-    // Opening a fold is worth knowing about: it says whether people reach for the weights or the places at all.
-    e.weightsToggle.addEventListener('click', () => {
-      const open = this.setWeightsOpen(!this.weightsOpen);
-      this.#emit(null, { kind: 'Section', value: `weights_open=${open}`, final: true });
-    });
+    // Opening a fold is worth knowing about: it says whether people reach for the places at all.
     e.placesToggle.addEventListener('click', () => {
       const open = this.setPlacesOpen(!this.placesOpen);
       this.#emit(null, { kind: 'Section', value: `places_open=${open}`, final: true });
@@ -314,7 +244,7 @@ export class AccessScoreSidebar {
 
   /** @returns {boolean} Whether the weights section is unfolded. */
   get weightsOpen() {
-    return this.#els.weightsToggle.getAttribute('aria-expanded') === 'true';
+    return this.#weights.open;
   }
 
   /**
@@ -323,7 +253,7 @@ export class AccessScoreSidebar {
    * @returns {boolean} The state now in force.
    */
   setWeightsOpen(open) {
-    return AccessScoreSidebar.#setFold(this.#els.weightsToggle, this.#els.weights, open);
+    return this.#weights.setOpen(open);
   }
 
   /** @returns {boolean} Whether the places section is unfolded. */
@@ -337,16 +267,7 @@ export class AccessScoreSidebar {
    * @returns {boolean} The state now in force.
    */
   setPlacesOpen(open) {
-    return AccessScoreSidebar.#setFold(this.#els.placesToggle, this.#els.placeCategories, open);
-  }
-
-  /** The accordion mechanics both folds share: the heading button's state, the body, and the chevron. */
-  static #setFold(toggle, body, open) {
-    toggle.setAttribute('aria-expanded', String(open));
-    body.hidden = !open;
-    const chevron = toggle.querySelector('img');
-    chevron.src = open ? chevron.dataset.upSrc : chevron.dataset.downSrc;
-    return open;
+    return AccessScoreWeightsPanel.setFold(this.#els.placesToggle, this.#els.placeCategories, open);
   }
 
   /** Reports the category rows as they now stand, after any of the three ways they change. */
@@ -376,12 +297,6 @@ export class AccessScoreSidebar {
       : i18next.t('accessscore:places-summary', { count: on, total: categories.length });
   }
 
-  /** The slider ceiling: `MAX_WEIGHT`, or the next whole number above the largest default if that is higher. */
-  #maxWeight() {
-    const largest = Math.max(0, ...Object.values(this.#config.presets.default).map((w) => Math.abs(w)));
-    return Math.max(AccessScoreSidebar.MAX_WEIGHT, Math.ceil(largest) + 1);
-  }
-
   /**
    * The street-only toggles mean nothing in the regions unit, and the slope toggle nothing in a city whose streets
    * have not been sampled: the config lists the elevation models in use, and an empty list is that city.
@@ -405,40 +320,7 @@ export class AccessScoreSidebar {
     this.#els.streetOptions.classList.toggle('acs-check-row--disabled', showGrade);
   }
 
-  /** Whether every slider sits on the engine's default magnitude. */
-  #slidersAtDefault() {
-    const defaults = this.#config.presets.default;
-    return this.#config.scored_types.every((t) =>
-      Math.abs(defaults[t] - Number.parseFloat(this.#els.weightRows[t].input.value)) < 1e-9);
-  }
-
   #emit(partial, meta) {
     for (const listener of this.#listeners) listener(partial, meta);
-  }
-
-  static #format(value) {
-    return `×${Number(value).toFixed(2)}`;
-  }
-
-  /**
-   * Writes a weight into its row's output. At 0 the type is out of the score entirely, which "×0.00" states only
-   * to a reader who does the arithmetic, so the row says "Off" and mutes.
-   * @param {{root: HTMLElement, output: HTMLElement}} row - The weight row.
-   * @param {number} value - The weight in force.
-   */
-  static #showWeight(row, value) {
-    const off = Number(value) === 0;
-    row.output.textContent = off ? i18next.t('accessscore:weight-off') : AccessScoreSidebar.#format(value);
-    row.root.classList.toggle('acs-weight--off', off);
-  }
-
-  /**
-   * "Reset weights" only appears once a slider has moved; at the defaults there is nothing to reset. The hint
-   * beside the folded heading says the same thing for a reader who cannot see the sliders.
-   */
-  #updateWeightsSummary() {
-    const atDefault = this.#slidersAtDefault();
-    this.#els.reset.hidden = atDefault;
-    this.#els.weightsSummary.textContent = atDefault ? '' : i18next.t('accessscore:weights-custom');
   }
 }

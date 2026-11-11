@@ -309,6 +309,49 @@ The two metrics the issue names move the right way — 37% more faces per thousa
 face — and the pile-on drops from 68 votes on one face to 24. The constants are starting points; re-run the tool after
 the queue has been live for a while and tune them against the settled-face rate.
 
+## Training examples
+
+A validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
+example" in the code): a label an admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree
+reason that explains it. The label is a real one the crowd has already voted wrong; the pin only says it teaches.
+A lesson is a reason on a label type (a few reasons are offered on more than one type). A validator is done with a
+lesson once they get an example of it right, or after `GoldExampleTable.AnswersPerReason` (3) answers on it either
+way (`GoldExampleTable.reasonSettled`), and done with examples once every lesson the city has a pin for is done.
+A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the label query and the
+per-type counts): it is a known-wrong label, so an ordinary vote on it is noise and a beginner's Agree would count
+toward voting it back to correct.
+
+- **Who and where.** `LabelServiceImpl.goldExampleEligible`: the plain pages only (no `regions`, no
+  `unvalidatedOnly`, never Expert Validate), and never an admin, who pins the examples. Replacement labels
+  (`/validationTask/moreLabels`) are never examples. `owedGoldExample` then checks, before the label query runs, that
+  the mission's example isn't already answered and that some pin (`anyOpen`) teaches a lesson the user isn't done with.
+- **Which one.** `LabelTable.goldExampleForValidationQuery`: the pinned labels of the mission's type that pass every
+  rule the mission's own labels pass (`validationCandidates`: not the validator's, not voted on by them, imagery
+  their viewer renders) and teach a lesson the validator isn't done with, in random order, through the same imagery
+  check, minus one whose type changed since the pin so its reason no longer fits. A missed reason so comes round
+  again on a fresh label while the city has one. The example takes one of the mission's slots, never the first, and
+  its block face counts as taken for a NoSidewalk mission (#5285).
+- **The answer is not a vote.** The examples are picked for being commonly mistaken, so counting beginners' Agrees
+  would vote a known-wrong label back to correct, and with it the labeler's accuracy and the API's `correct`. The
+  serve is recorded in `gold_example_response` (label, user, mission), and when the vote arrives the controller files
+  it there instead of `label_validation`: a pinned label is in no queue the Validate endpoint serves, so any vote
+  there on one is its answer (the Gallery and label page vote through another endpoint). The first answer stands: a
+  validator told the answer could otherwise undo and get it "right", so the client sends it at once rather than
+  after the usual wait, and before the explanation is shown, so a tab closed on it still counts. A reload before the
+  example is answered rebuilds the mission with one (the same or another open lesson); a reload after it gets no
+  second. A serve answered in no mission is re-pointed at the next, with the pin's current reason.
+- **What they see.** Nothing on a Disagree. On Agree or Unsure, `ModalGoldFeedback` explains the pinned reason in a
+  modal dialog over the page, beside the label's own crop (`gold_crop_url`, when one is on disk), with the reason
+  menu's text and tooltip (or `gold-feedback.explanation.<reason>`, for a tooltip that points at a picture the card
+  places elsewhere) and a line saying to vote No on these, before the mission moves on.
+- **Afterwards.** A label the validator has answered as an example is not offered to them again, as an example or,
+  once unpinned, as an ordinary label (`answeredAsGoldExample`): they were told the answer. An unpinned label is a
+  real label again for everyone else, and a vote on it is a validation (`servedTo` checks the pin still stands). The
+  answer counts toward the mission's ten and its end-of-mission tally (`LabelServiceImpl.missionTally`), but not
+  toward the validator's validation count or stats.
+- **Expiry.** An example whose pano the provider dropped is served through its backup like any label; one without a
+  backup fails `imageryViewable` and is simply not picked, and `/admin/goldExamples` marks it "imagery gone".
+
 ## Expert Validate's `?triage=`
 
 `GET /expertValidate?triage=<bool>` and `GET /adminValidate?triage=<bool>` take an optional boolean that **defaults to
@@ -552,14 +595,14 @@ scp <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-po
 Then the same three lines with `validations.sql` / `validation-queue-validations`, and the analysis for one city:
 
 ```bash
-python3.13 tools/validation_queue/analyze_validation_queue.py \
+python3 tools/validation_queue/analyze_validation_queue.py \
     --pool tmp/validation-queue/validation-queue-pool.csv \
     --validations tmp/validation-queue/validation-queue-validations.csv \
     --city seattle --out tmp/validation-queue/validation-queue-seattle.md
 ```
 
 The CSVs are a snapshot of a database and stay in `tmp/` (ignored); only the report is meant to leave the machine.
-The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
+The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3` does).
 
 For one city on the dev DB, run an export the way the runner does (`readonly_user` needs `USAGE` on the schema):
 
@@ -571,8 +614,9 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 
 ## QA
 
-Validate cannot be browser-automated (it needs live street-view panoramas), so this is a manual checklist. Run the app
-locally against your dev schema — `make dev` then `npm start`, or `make qa-worktree wt=<name>` for a worktree — then:
+Validate needs live street-view panoramas, which are never browser-automated (each is billed), so this is a manual
+checklist. Run the app on your dev schema (`make dev` then `npm start`, or `make qa-worktree wt=<name>` in a worktree)
+and work through these steps:
 
 1. Sign in as an admin and open `/expertValidate`. In devtools, `svv.validateParams.triage === true`. The labels
    served should be ties, unsure-heavy, or high-vote-count labels (the admin panel lists each label's votes).
@@ -588,8 +632,9 @@ locally against your dev schema — `make dev` then `npm start`, or `make qa-wor
 
 `NoSidewalk` (#5285), against a schema with `street_side` (Teaneck locally):
 
-8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools each `svv.labelList` entry carries
-   `street_side` (`left`/`right`/`null`); the first labels come from distinct streets; the admin panel shows 0 votes
+8. `/expertValidate?labelType=NoSidewalk` → labels arrive; in devtools' network tab, each label in the
+   `/validationTask/mission` response carries `street_side` (`left`/`right`/`null`); the first labels come from
+   distinct streets; the admin panel shows 0 votes
    on them, and `SELECT street_edge_id, street_side, count(*) FROM label JOIN label_point USING (label_id) WHERE
    label_id IN (…) GROUP BY 1, 2` shows one label per face.
 9. Agree on one, then reload `/expertValidate?labelType=NoSidewalk` several times: the other labels on that face

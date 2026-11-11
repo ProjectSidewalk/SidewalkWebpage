@@ -190,6 +190,19 @@ class LabelValidationTable @Inject() (
       .result
   }
 
+  /**
+   * The user's current vote on the label as the given type, locked for the rest of the transaction (#5475). Both the
+   * vote path and a comment whose reason must match the vote take this lock before touching the comment, so the two
+   * serialize. A vote change deletes and re-inserts the row, so a comment that waited on one finds no row ("no vote").
+   */
+  def lockValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
+      .forUpdate
+      .result
+      .headOption
+  }
+
   /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
   def getValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
     validations
@@ -198,13 +211,14 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
-  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
-  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations
-      .filter(x => x.labelId === labelId && x.userId === userId)
-      .sortBy(_.labelValidationId.desc)
-      .result
-      .headOption
+  /**
+   * The user's most recent vote on the label, of any type: the one a redo replaces. Locked, as `lockValidation`.
+   * Read again after the lock, because a row that a concurrent change deletes while this waits is skipped, not
+   * replaced by the row it inserted, so the locking read alone could return an older vote.
+   */
+  def lockNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    val votes = validations.filter(x => x.labelId === labelId && x.userId === userId)
+    votes.forUpdate.result.flatMap(_ => votes.sortBy(_.labelValidationId.desc).result.headOption)
   }
 
   /**
@@ -582,7 +596,7 @@ class LabelValidationTable @Inject() (
     ).flatten
 
     sql"""
-      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
+      SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date AS TEXT) AS date,
              label_validation.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
@@ -602,7 +616,8 @@ class LabelValidationTable @Inject() (
       WHERE """
       .concat(SqlFragments.allOf(conditions))
       .concat(sql"""
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_validation.label_type::text
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'America/Los_Angeles')::date,
+               label_validation.label_type::text
       ORDER BY date ASC, label_validation.label_type::text
     """)
       .as[DailyValidationStat]

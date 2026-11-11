@@ -17,26 +17,21 @@
  * injects elements that use these attributes.
  */
 
+import i18next from 'i18next';
+
 /**
  * Localize every element under `root` (inclusive) that has a `data-i18n*` attribute.
- * @param {ParentNode} root - The element (or document) to walk.
+ * @param {Element} root - The element to walk.
  */
 export function localizeSubtree(root) {
-  if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
+  // Before translations load there is nothing to swap in, and the markup's English fallback should stay.
+  if (!i18next.isInitialized) return;
 
   const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-tooltip], [data-i18n-alt]';
 
-  // querySelectorAll doesn't include `root` itself; check it explicitly so callers can pass an element that itself
-  // carries a data-i18n attribute.
-  const rootEl = /** @type {Element} */ (root);
-  if (root.nodeType === Node.ELEMENT_NODE && rootEl.matches && rootEl.matches(selector)) {
-    localizeElement(rootEl);
-  }
-  if (typeof root.querySelectorAll === 'function') {
-    for (const el of root.querySelectorAll(selector)) {
-      localizeElement(el);
-    }
-  }
+  // querySelectorAll skips `root` itself, so check it too: a caller may hand over an element carrying data-i18n.
+  if (root.matches(selector)) localizeElement(root);
+  for (const el of root.querySelectorAll(selector)) localizeElement(el);
 }
 
 /**

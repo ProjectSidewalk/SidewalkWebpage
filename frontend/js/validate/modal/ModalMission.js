@@ -3,33 +3,46 @@
  *
  * Briefs a mobile validator before a mission: what they're about to validate, and what the label type looks like when
  * it's right and when it isn't, as a swipeable carousel of the same examples the desktop tools teach from
- * (MissionStartTutorial.slidesFor).
+ * (MissionStartTutorial.slidesFor). Desktop builds it too, since every mission starts the same way, but keeps it
+ * display:none under the start tutorial, so it never pauses the shortcuts: the phone has none, desktop never sees it.
  */
 
-import { svv } from '../svv.js';
+import i18next from 'i18next';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
 import { util } from '../../common/utilities.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
+/** @typedef {import('./ModalNoNewMission.js').ModalNoNewMission} ModalNoNewMission */
+/** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class ModalMission {
   #uiModalMission;
   #currentSlideIdx = 0;
+  /** @type {ModalNoNewMission} */
+  #modalNoNewMission;
+  /** @type {Tracker} */
+  #tracker;
+  /** @type {?Mission} The mission the screen is briefing, from setMissionMessage; what its button starts. */
+  #mission = null;
 
   /**
    * @param {object} uiModalMission - Mission modal UI elements.
+   * @param {ModalNoNewMission} modalNoNewMission - The dead end that paints these same elements and wins over this.
+   * @param {Tracker} tracker - Logs the mission start and the swipes.
    */
-  constructor(uiModalMission) {
+  constructor(uiModalMission, modalNoNewMission, tracker) {
     this.#uiModalMission = uiModalMission;
+    this.#modalNoNewMission = modalNoNewMission;
+    this.#tracker = tracker;
   }
 
   #handleButtonClick = () => {
-    const mission = svv.missionContainer.getCurrentMission();
+    const mission = this.#mission;
 
     // Check added so that if a user begins a mission, leaves partway through, and then resumes the mission later,
     // another MissionStart will not be triggered
     if (mission.getProperty('labelsProgress') < 1) {
-      svv.tracker.push(
+      this.#tracker.push(
         'MissionStart',
         {
           missionId: mission.getProperty('missionId'),
@@ -39,10 +52,6 @@ export class ModalMission {
         },
       );
     }
-    // Update zoom availability on desktop.
-    if (svv.zoomControl) {
-      svv.zoomControl.updateZoomAvailability();
-    }
     this.hide();
   };
 
@@ -50,9 +59,6 @@ export class ModalMission {
    * Hides the new/continuing mission screen.
    */
   hide() {
-    if (svv.keyboard) {
-      svv.keyboard.enableKeyboard();
-    }
     this.#uiModalMission.background.style.visibility = 'hidden';
     this.#uiModalMission.holder.style.visibility = 'hidden';
     this.#uiModalMission.foreground.style.visibility = 'hidden';
@@ -158,14 +164,14 @@ export class ModalMission {
    *
    * @param {HTMLElement} title - The title element, already holding the text to fit.
    */
-  static #fitTitleWhenReady(title) {
+  #fitTitleWhenReady(title) {
     ModalMission.#fitToOneLine(title);
     if (!document.fonts) return;
     const { fontWeight, fontSize, fontFamily } = getComputedStyle(title);
     document.fonts.load(`${fontWeight} ${fontSize} ${fontFamily}`, title.textContent)
       .then(() => {
         // A dead end can take this screen over while the face is in flight, and it wants the heading's own size.
-        if (!svv.modalNoNewMission?.isShowing()) ModalMission.#fitToOneLine(title);
+        if (!this.#modalNoNewMission.isShowing()) ModalMission.#fitToOneLine(title);
       })
       .catch(() => { /* A face the browser won't parse is not worth failing the briefing over. */ });
   }
@@ -175,14 +181,13 @@ export class ModalMission {
    */
   #watchCarousel() {
     const strip = this.#uiModalMission.instruction.querySelector('.mv-examples');
-    if (!strip) return;
     const dots = strip.parentElement.querySelectorAll('.mv-dot');
     strip.addEventListener('scroll', () => {
       const idx = Math.round(strip.scrollLeft / strip.clientWidth);
       if (idx === this.#currentSlideIdx || !dots[idx]) return;
       this.#currentSlideIdx = idx;
       dots.forEach((dot, i) => dot.classList.toggle('mv-dot--current', i === idx));
-      svv.tracker.push('MSTSlide_Swipe', { currentSlideIdx: idx });
+      this.#tracker.push('MSTSlide_Swipe', { currentSlideIdx: idx });
     }, { passive: true });
   }
 
@@ -195,6 +200,7 @@ export class ModalMission {
    * @param {Mission} mission - Mission object for the new mission.
    */
   setMissionMessage(mission) {
+    this.#mission = mission;
     const labelType = mission.getProperty('labelType');
     // The screen renders its title as HTML, so the count is escaped; the type name is written `{{- labelType}}`.
     const title = i18next.t('validate:mission-start-tutorial.mst-instruction-2', {
@@ -210,19 +216,15 @@ export class ModalMission {
 
   /**
    * @param {string} title - What this mission is, e.g. "Validate 10 Curb Ramp Labels".
-   * @param {string} [instruction] - Body HTML — the examples carousel.
-   * @param {string} [labelType] - The mission's label type, whose marker icon heads the screen.
+   * @param {string} instruction - Body HTML: the examples carousel on the phone, empty on desktop.
+   * @param {string} labelType - The mission's label type, whose marker icon heads the screen.
    */
   show(title, instruction, labelType) {
     // ModalNoNewMission paints these same elements, and what it puts there is a dead end with its own button and
     // handler. Page load reaches the mission-start message after the first label has rendered, which is one of the
     // points that dead end can be hit, so this would otherwise bury it under an "Ok" that just closes (#4810).
-    if (svv.modalNoNewMission?.isShowing()) return;
+    if (this.#modalNoNewMission.isShowing()) return;
 
-    // Disable keyboard on mobile.
-    if (svv.keyboard) {
-      svv.keyboard.disableKeyboard();
-    }
     if (instruction) {
       this.#uiModalMission.instruction.innerHTML = instruction;
       this.#currentSlideIdx = 0;
@@ -230,7 +232,7 @@ export class ModalMission {
     }
     // The eyebrow is the phone briefing's; desktop has none.
     if (this.#uiModalMission.eyebrow) {
-      const icon = labelType ? `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">` : '';
+      const icon = `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">`;
       const eyebrowText = i18next.t('validate:mission-start-tutorial.mst-instruction-1');
       this.#uiModalMission.eyebrow.innerHTML = `${icon}${eyebrowText}`;
     }
@@ -239,7 +241,7 @@ export class ModalMission {
     this.#uiModalMission.missionTitle.innerHTML = title;
     // Only the phone screen is tight enough to need it, and only it is visible: desktop's copy of this modal is
     // display:none, so a fit measured there would size the title against a box of zero width.
-    if (util.isMobile()) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
+    if (util.isMobile()) this.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
     this.#uiModalMission.holder.style.visibility = 'visible';
     this.#uiModalMission.foreground.style.visibility = 'visible';
     // Hiding this screen only makes it invisible, which preserves how far it was scrolled — and briefings routinely

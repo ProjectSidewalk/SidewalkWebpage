@@ -3,13 +3,16 @@
  * Docs: https://developers.infra3d.com/javascript-api/reference/classes/Viewer.Viewer.html
  */
 
-import { svl } from '../../explore/svl.js';
+import * as turf from '@turf/turf';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
 import '../utilitiesMath.js';
+
+/** The Infra3d SDK and proj4 from sdk/infra3d.js, once preloadLibrary() has fetched them. */
+let sdk;
 
 export class Infra3dViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -61,13 +64,22 @@ export class Infra3dViewer extends PanoViewer {
   }
 
   /**
-   * See PanoViewer.initialize().
-   * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions]
+   * See PanoViewer.preloadLibrary(); the chunk is sdk/infra3d.js.
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
-    this.manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
+  static async preloadLibrary() {
+    sdk ??= await util.importOrReload(() => import('./sdk/infra3d.js'));
+  }
+
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} panoOptions
+   * @returns {Promise<void>}
+   */
+  async initialize(canvasElem, panoOptions) {
+    await Infra3dViewer.preloadLibrary();
+    this.manager = await sdk.infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
     // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time. A
     // project is one commissioned drive (a single campaign), so a city getting new imagery means a new project whose
@@ -79,17 +91,16 @@ export class Infra3dViewer extends PanoViewer {
 
     // Docs on Infra3D viewer options:
     // https://developers.infra3d.com/custom-content/reference/classes/Manager.Manager.html#initViewer
-    const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
+    // No page shows the SDK's own chrome.
     let panoOpts = {
       project_uid: projectId,
-      show_topbar: !disableDefaultUi,
-      show_toolbar: !disableDefaultUi,
-      show_mapWindow: !disableDefaultUi,
-      map_expand: !disableDefaultUi, // Only used if show_mapWindow is true
-      show_cockpit: !disableDefaultUi,
+      show_topbar: false,
+      show_toolbar: false,
+      show_mapWindow: false,
+      map_expand: false,
+      show_cockpit: false,
 
       defaultNavigation: false, // If true, we show infra3D viewer's navigation arrows
-      zoomControl: true,
     };
     panoOpts = { ...panoOpts, ...panoOptions };
 
@@ -119,12 +130,9 @@ export class Infra3dViewer extends PanoViewer {
     // Before the initial move, so the first pano's images get retries too.
     this.#retryFailedImageDownloads();
 
-    // Handle a few other configs that need to be handled after initialization.
+    // The SDK has no option for its arrows, so they come off once it is up.
     if (panoOpts.defaultNavigation === false) {
       this.hideNavigationArrows();
-    }
-    if (panoOpts.zoomControl === false) {
-      this.#disableUserZoom();
     }
 
     // Initialize pano at the desired location.
@@ -140,9 +148,7 @@ export class Infra3dViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
-      // Let the keys through in a text field, where they move the cursor rather than the pano.
-      const t = e.target;
-      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
+      if (util.pano.keyBelongsToPage(e.target)) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -343,11 +349,11 @@ export class Infra3dViewer extends PanoViewer {
     // Convert from WGS84 to Web Mercator (EPSG:3857), which is what Infra3D uses.
     const wgs84 = 'EPSG:4326';
     const webMercator = 'EPSG:3857';
-    const [easting, northing] = proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
+    const [easting, northing] = sdk.proj4(wgs84, webMercator, [latLng.lng, latLng.lat]);
     const newPosition = { easting, northing };
 
     // Using the internal function that returns a node, since the usual one in the API does not.
-    // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+    // TODO We should be checking if the new location is within SEARCH_RADIUS_M. But we always have imagery
     //      in the zurich test city, so this should never be a problem.
     const node = await this.viewer._sdk_viewer.movePosition(newPosition, 3857);
     const panoData = await this.#finishRecordingMetadata(node);
@@ -369,7 +375,7 @@ export class Infra3dViewer extends PanoViewer {
   //         });
   //     });
   //
-  //     // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
+  //     // TODO We should be checking if the new location is within SEARCH_RADIUS_M. But we always have imagery
   //     //      in the zurich test city, so this should never be a problem. But can we get that info from the KNN data?
   //     return closestPano.then(this.setPano);
   // };
@@ -405,6 +411,9 @@ export class Infra3dViewer extends PanoViewer {
 
   supportsLocationSearch = () => true;
 
+  // The nearest frame is often a flat photo a metre or two from a pano, which findPanoNear() then can't see.
+  findPanoNearCanMiss = () => true;
+
   /**
    * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
    * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the
@@ -433,7 +442,7 @@ export class Infra3dViewer extends PanoViewer {
     const metersAway = turf.distance(
       turf.point([latLng.lng, latLng.lat]), turf.point([lng, lat]), { units: 'meters' },
     );
-    if (metersAway > svl.STREETVIEW_MAX_DISTANCE) return null;
+    if (metersAway > PanoViewer.SEARCH_RADIUS_M) return null;
     if ([...excludedPanos].some((pano) => pano.getPanoId() === nearest.key)) return null;
     return { panoId: nearest.key, lat, lng };
   };
@@ -644,10 +653,6 @@ export class Infra3dViewer extends PanoViewer {
     const z = Math.cos(omega) * Math.cos(phi);
 
     return (Math.atan(z / Math.sqrt(x * x + y * y)) * 180) / Math.PI;
-  };
-
-  #disableUserZoom = () => {
-    this.viewer.setUserInteraction(true, false); // first option is panning, second is zooming
   };
 
   hideNavigationArrows = () => {

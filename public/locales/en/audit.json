@@ -137,7 +137,6 @@
     "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
   },
   "right-ui": {
-    "opens-new-tab": "(opens in a new tab)",
     "accuracy-tooltip": "Accuracy is based on validations from other users. If your accuracy is low, check out some recent mistakes on <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">your User Dashboard</a> to help you improve!",
     "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
     "current-mission": {
@@ -158,6 +157,9 @@
     "route-unavailable": {
       "message": "That route isn't available. It may have been deleted."
     },
+    "street-unavailable": {
+      "message": "That street isn't available to explore. It may have no imagery, or it may have been removed."
+    },
     "region-finished": {
       "message": "You've already explored every street in that neighborhood, so we've moved you to {{regionName}}."
     },
@@ -177,6 +179,7 @@
       "needs-reassessment-tip-others": "A user last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed."
     },
     "minimap": {
+      "attribution-toggle": "Map data credits",
       "coach-dismiss": "Got it",
       "distance-left": "{{distance}} left",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
@@ -188,16 +191,13 @@
       "mission-progress": "Mission progress",
       "legend-explored": "Explored",
       "legend-ahead": "Route ahead",
+      "legend-jump": "Jump to next street",
       "legend-you": "You + view direction",
-      "legend-visited": "Visited location",
+      "legend-crumbs": "Circles: places you can click to go",
       "legend-unseen": "Not yet viewed",
-      "legend-next-stops": "Stops on your route",
       "forward-crumb-title": "Move ahead to stop {{rank}}",
-      "legend-other-links": "Other directions",
-      "legend-faced": "Filled: where forward takes you",
       "legend-earlier-labels": "My earlier labels",
       "link-crumb-title": "Move to this pano",
-      "legend-next-step": "Light blue: next step (spacebar)",
       "route-stop-title": "Stop {{rank}} on your route",
       "breadcrumb-title": "Visited: click to go back here",
       "label-marker-title": "{{labelType}} label: click to review it",
@@ -206,7 +206,10 @@
       "route-start-flag": "Route start",
       "route-finish-flag": "Route finish",
       "mission-start-flag": "Where this mission started",
-      "mission-finish-flag": "Where this mission ends"
+      "mission-finish-flag": "Where this mission ends",
+      "map-title": "Map of the area around you",
+      "unavailable": "This browser can't show the map. You can keep exploring without it.",
+      "recenter": "Back to your location"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
@@ -275,7 +278,7 @@
         "sand-gravel": "mud/sand/gra<tag-underline>v</tag-underline>el",
         "uncovered-manhole": "uncov<tag-underline>e</tag-underline>red manhole",
         "ends-abruptly": "ends <tag-underline>a</tag-underline>bruptly",
-        "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a sidewalk",
+        "other-side-has-a-sidewalk": "othe<tag-underline>r</tag-underline> side has a sidewalk",
         "street-has-no-sidewalks": "s<tag-underline>t</tag-underline>reet has no sidewalks",
         "gravel-dirt-road": "gravel/<tag-underline>d</tag-underline>irt road",
         "shared-pedestrian-car-space": "shared p<tag-underline>e</tag-underline>destrian/car space",

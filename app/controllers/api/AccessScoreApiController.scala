@@ -241,8 +241,8 @@ class AccessScoreApiController @Inject() (
       updatedAt <- updatedAtFuture
       sources   <- sourcesFuture
     } yield {
-      val gradient = StreetGradientConfigForApi(sources.map { case (name, n) =>
-        DemSourceForApi(DemSource.forName(name), Some(n))
+      val gradient = StreetGradientConfigForApi(sources.map { c =>
+        DemSourceForApi(DemSource.forName(c.demSource), Some(c.streetCount), Some(c.confidence))
       })
       Ok(
         AccessScoreConfigForApi.current.toJson +

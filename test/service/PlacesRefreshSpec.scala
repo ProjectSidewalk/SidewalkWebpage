@@ -1,6 +1,7 @@
 package service
 
 import models.place.PlaceTable
+import models.region.RegionTable
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.actor.ActorSystem
@@ -69,6 +70,7 @@ class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with Optio
         app.injector.instanceOf[ActorSystem],
         app.injector.instanceOf[ApiService],
         placeTable,
+        app.injector.instanceOf[RegionTable],
         Configuration(
           "places.overpass.url"         -> s"http://localhost:${port.value}/api/interpreter",
           "places.overpass.retry-delay" -> "10ms"
