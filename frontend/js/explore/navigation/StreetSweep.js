@@ -144,9 +144,8 @@ export class StreetSweep {
   }
 
   /**
-   * What the provider says at each point a sweep searches, in order: the furthest point reached and on down the
-   * street, a DIST_INCREMENT apart. The one walk through those points, so the sweep lands where findLanding said
-   * (#5918).
+   * What the provider says at each point a sweep searches: the furthest point reached and on down the street, a
+   * DIST_INCREMENT apart. The sweep and findLanding both walk these, so the sweep lands where findLanding said (#5918).
    * @param {Task} task - The street being walked.
    * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
    * @returns {AsyncGenerator<SearchedPoint, void, void>}
@@ -205,8 +204,7 @@ export class StreetSweep {
   }
 
   /**
-   * Where the labeler stands or already stood on this walk. Another street's stuck set is ignored, as the sweep
-   * clears it on arrival.
+   * Where the labeler stands or already stood on this walk. Another street's stuck set doesn't count.
    * @param {Task} task - The street the next sweep will walk.
    * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
    */
@@ -220,8 +218,7 @@ export class StreetSweep {
 
   /**
    * The panos a search won't land on: looking ahead, everywhere stood at on this walk; coming back to the street,
-   * only where the labeler stands. The pano they left is where to return, and ruling it out makes its ground look
-   * empty to a provider that names only the nearest pano (#5918).
+   * only where the labeler stands, since the pano they left is the one to return to (#5918).
    * @param {{lookingAhead: boolean}} target - The search's start, from #computeMoveTarget.
    * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
    * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}

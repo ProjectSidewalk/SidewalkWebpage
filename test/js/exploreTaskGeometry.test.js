@@ -103,8 +103,7 @@ describe('Task geometry', () => {
 
       // 15 m further along an eastward street: due east.
       expect(task.headingAlongRoute(standingAt(street, 50))).toBeCloseTo(90, 0);
-      // 15 m north of that point the goal is a true south-east, which only holds if longitude degrees count as
-      // shorter than latitude degrees.
+      // 15 m north of there the goal is true south-east, only if longitude degrees count as shorter than latitude's.
       expect(task.headingAlongRoute(standingAt(street, 50, 15))).toBeCloseTo(135, 0);
     });
 

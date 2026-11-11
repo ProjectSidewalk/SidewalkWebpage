@@ -314,8 +314,8 @@ export class PanoViewer {
   prefetchPano(_panoId) {}
 
   /**
-   * Whether findPanoNear() can answer "nothing here" where setLocation() would still land on a pano. A caller that
-   * acts on an empty answer (ending a street, passing a point over) must not, for such a provider.
+   * Whether findPanoNear() can answer "nothing here" where setLocation() would still land on a pano. If so, callers
+   * must not act on an empty answer (ending a street, passing a point over).
    * @returns {boolean}
    */
   findPanoNearCanMiss() {

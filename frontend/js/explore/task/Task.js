@@ -383,8 +383,7 @@ export class Task {
 
   /**
    * @param {{lat: number, lng: number}} latLng - Where a pano sits.
-   * @returns {boolean} Whether stepping there takes the walk on: on the street, MIN_STEP_ADVANCE_M past the furthest
-   *   point reached.
+   * @returns {boolean} Whether a step there advances the walk: on-street, MIN_STEP_ADVANCE_M past the furthest point.
    */
   advancesWalk(latLng) {
     const meters = { units: /** @type {const} */ ('meters') };

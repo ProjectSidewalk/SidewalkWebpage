@@ -134,10 +134,9 @@ export class NavArrows {
   /**
    * Removes the old arrows and creates new ones from the current pano's links.
    *
-   * The blue arrow always points at the pano its click lands on (#4671, #5918): the link the spacebar would take,
-   * else the link to the walk's landing. With no such link one is synthesized, aimed at the landing, or down the
-   * street when no pano is known ahead. Once the street has ended only a landing further down it is blue: the
-   * nearest link there can point back and forth between its last panos.
+   * The blue arrow points at the pano its click lands on (#4671, #5918): the link the spacebar would take, else the
+   * link to the walk's landing, else a synthesized arrow aimed at the landing (down the street when none is known).
+   * On an ended street only a landing further down it is blue: the nearest link can pace between its last panos.
    */
   reset() {
     while (this.#group.firstChild) {
