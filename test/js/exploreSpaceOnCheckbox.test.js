@@ -22,7 +22,8 @@ describe('Explore spacebar shortcut and focused form controls', () => {
     };
     // One instance for the file: the constructor adds window listeners that are never removed.
     new KeyboardManager(fakeGate(), {},
-      { isOpen: () => false, onTextFieldFocusChanged: vi.fn() }, navigationService, {}, {}, {}, {}, {}, {});
+      { isOpen: () => false, onTextFieldFocusChanged: vi.fn() }, navigationService, {}, {}, {}, {},
+      { isLabelBeforeJumpArmed: () => false }, {}, {});
   });
 
   beforeEach(() => {

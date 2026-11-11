@@ -17,6 +17,7 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
 /** @typedef {import('../menu/LabelModes.js').LabelModes} LabelModes */
+/** @typedef {import('../task/StreetProgress.js').StreetProgress} StreetProgress */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 /** @typedef {import('../zoom/ZoomControl.js').ZoomControl} ZoomControl */
 
@@ -32,6 +33,7 @@ export class KeyboardManager {
   #zoomControl;
   #panoManager;
   #compass;
+  #streetProgress;
   #immersiveMode;
   #tracker;
 
@@ -76,11 +78,12 @@ export class KeyboardManager {
    * @param {ZoomControl} zoomControl
    * @param {PanoManager} panoManager
    * @param {Compass} compass - Says which way the route goes, for the spacebar.
+   * @param {StreetProgress} streetProgress - Says when the street has ended, where the spacebar stops taking links.
    * @param {ImmersiveMode} immersiveMode - Toggled by F.
    * @param {Tracker} tracker
    */
   constructor(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl, panoManager, compass,
-    immersiveMode, tracker) {
+    streetProgress, immersiveMode, tracker) {
     this.#keyboardLock = keyboardLock;
     this.#canvas = canvas;
     this.#contextMenu = contextMenu;
@@ -89,6 +92,7 @@ export class KeyboardManager {
     this.#zoomControl = zoomControl;
     this.#panoManager = panoManager;
     this.#compass = compass;
+    this.#streetProgress = streetProgress;
     this.#immersiveMode = immersiveMode;
     this.#tracker = tracker;
 
@@ -217,10 +221,13 @@ export class KeyboardManager {
       // Silent on failure: a link that won't load is not the end of this shortcut, it's the reason for the
       // moveForward() fallback below — which reports its own outcome. Alerting here would tell the labeler imagery
       // couldn't be loaded on the same keypress that walked them down the street (#4918).
-      const moved = await this.#navigationService.moveToLinkedPano(routeHeading - currHeading,
+      // With the street ended, the nearest link can pace between its last panos, so only the walk steps (#5918).
+      const streetEnded = this.#streetProgress.isLabelBeforeJumpArmed();
+      const moved = !streetEnded && await this.#navigationService.moveToLinkedPano(routeHeading - currHeading,
         { alertOnFailure: false });
       if (!moved) {
-        await this.#navigationService.moveForward();
+        const landedOn = await this.#navigationService.moveForward();
+        if (streetEnded && !landedOn) return;
       }
       this.#tracker.push('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: !moved });
     } catch (e) {
