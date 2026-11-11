@@ -115,6 +115,13 @@ same `N` and `--seed` resumes, a different sample replaces the row.
 
 Below about 70% coverage, say so before going on: the full scan will hide that share of the city.
 
+For choosing which neighborhoods to open first, a sample of 150 streets is too thin. If the city is in
+[Streetscape Tracker](https://makeabilitylab.cs.washington.edu/public/streetscape-tracker/), its road walks already
+hold every provider's nearest pano at 15 m spacing along the whole drive network, and
+`tools/city/tracker_coverage_by_region.py` joins them to a regions file: coverage, Google-only coverage and capture
+dates per region and citywide, with no API calls. Its header says where the walk files are. The denominator is the
+tracker's network, not this build's, so read its percentages beside the preflight row, not in place of it.
+
 ## 3. Run the setup
 
 ```

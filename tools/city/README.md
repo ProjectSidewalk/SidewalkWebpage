@@ -16,6 +16,7 @@ root, so they run from any directory; unit tests live in [`test/python/`](../../
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
 | `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
 | `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage`; `--dry-run` prints the request count first |
+| `tracker_coverage_by_region.py` | `python3` in the web container, by hand | Per-region imagery coverage and capture dates from a city's Streetscape Tracker road walks, for choosing pilot neighborhoods; no API calls |
 | `overpass.py` | (imported; `--check` by hand) | How the two fetchers above talk to the public Overpass server without getting the network blocked: identity, small tiled requests, a day cache, 30 s-and-doubling retries, one exit code (75) for "stop and resume later" |
 
 The OSM fetches share one cache, `db/onboarding/osmnx-cache/<date>/`, which `overpass.py` keeps for a week: a rerun
