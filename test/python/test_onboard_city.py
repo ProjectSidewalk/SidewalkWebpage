@@ -104,7 +104,7 @@ def test_boundary_coverage_half_covered():
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# drop_short_segments / region_street_stats
+# merge_short_segments / region_street_stats
 # --------------------------------------------------------------------------------------------------------------------
 
 def _roads(lengths, region_ids=None):
@@ -116,10 +116,107 @@ def _roads(lengths, region_ids=None):
     }, crs='EPSG:4326')
 
 
-def test_drop_short_segments_partitions_at_threshold():
-    kept, dropped = oc.drop_short_segments(_roads([5, 14.9, 15, 300]), 15)
-    assert list(kept['length_m']) == [15, 300]
-    assert list(dropped['length_m']) == [5, 14.9]
+def _pieces(lines, ways=None, regions=None, structures=None):
+    """Street pieces as the healing pass hands them to the merge: 0.0001 degrees here is about 11 m."""
+    geometries = [LineString(line) for line in lines]
+    return gpd.GeoDataFrame({'osm_ids': ways or [[100 + i] for i in range(len(lines))],
+                             'highway': ['residential'] * len(lines),
+                             'is_structure': structures or [False] * len(lines),
+                             'region_id': regions or [1] * len(lines),
+                             'length_m': [oc.geodesic_length_m(geom) for geom in geometries]},
+                            geometry=geometries, crs='EPSG:4326')
+
+
+def test_endpoint_nodes_numbers_coinciding_ends_alike():
+    nodes = oc.endpoint_nodes([LineString([(0, 0), (0.001, 0)]), LineString([(0.001, 0), (0.002, 0)]),
+                               LineString([(0.002 + 1e-9, 0), (0.003, 0)]), LineString([(0.005, 0), (0.006, 0)])])
+    assert nodes[0][1] == nodes[1][0]
+    assert nodes[1][1] == nodes[2][0]          # Within the overlay's rounding of each other.
+    assert len({node for pair in nodes for node in pair}) == 6
+    assert oc.endpoint_nodes([]) == []
+
+
+def test_deflection_is_zero_straight_on_and_180_doubling_back():
+    east = oc.leaving_vector(LineString([(0, 0), (0.001, 0)]), True)
+    west = oc.leaving_vector(LineString([(-0.001, 0), (0, 0)]), False)
+    north = oc.leaving_vector(LineString([(0, 0), (0, 0.001)]), True)
+    assert oc.deflection_deg(east, west) == pytest.approx(0)
+    assert oc.deflection_deg(east, north) == pytest.approx(90)
+    assert oc.deflection_deg(east, east) == pytest.approx(180)
+
+
+def test_leaving_vector_reads_the_heading_past_a_kink_at_the_end():
+    # The last centimetre turns north; the street heads east.
+    kinked = LineString([(0, 1e-7), (0, 0), (0.001, 0)])
+    east, north = oc.leaving_vector(kinked, True)
+    assert east > 100 * abs(north)
+
+
+@pytest.mark.parametrize('keeper, keeper_at_start, piece, piece_at_start, expected', [
+    ([(1, 0), (2, 0)], False, [(2, 0), (3, 0)], True, [(1, 0), (2, 0), (3, 0)]),
+    ([(1, 0), (2, 0)], False, [(3, 0), (2, 0)], False, [(1, 0), (2, 0), (3, 0)]),
+    ([(1, 0), (2, 0)], True, [(0, 0), (1, 0)], False, [(0, 0), (1, 0), (2, 0)]),
+    ([(1, 0), (2, 0)], True, [(1, 0), (0, 0)], True, [(0, 0), (1, 0), (2, 0)]),
+])
+def test_join_at_end_keeps_the_keepers_direction(keeper, keeper_at_start, piece, piece_at_start, expected):
+    joined = oc.join_at_end(LineString(keeper), keeper_at_start, LineString(piece), piece_at_start)
+    assert list(joined.coords) == expected
+
+
+def test_merge_short_segments_joins_a_short_piece_to_the_street_it_continues():
+    # A long street in region 1, then an 11 m link on another way in region 2, drawn towards the long street.
+    pieces = _pieces([[(0, 0), (0.002, 0)], [(0.0021, 0), (0.002, 0)]], regions=[1, 2], structures=[False, True])
+    kept, merged, dropped = oc.merge_short_segments(pieces, 15)
+    assert dropped.empty
+    street = kept.iloc[0]
+    assert list(street.geometry.coords) == [(0, 0), (0.002, 0), (0.0021, 0)]
+    assert street.osm_ids == [100, 101] and street.region_id == 1 and street.is_structure
+    assert street.length_m == pytest.approx(pieces['length_m'].sum())
+    # The QA layer shows the piece as it was, tied to the street it joined.
+    assert list(merged['piece_id']) == [street.piece_id]
+    assert list(merged.geometry.iloc[0].coords) == [(0.0021, 0), (0.002, 0)] and merged['region_id'].iloc[0] == 2
+
+
+def test_merge_short_segments_drops_a_piece_that_only_meets_a_corner():
+    pieces = _pieces([[(0, 0), (0.002, 0)], [(0.002, 0), (0.002, 0.0001)]])
+    kept, merged, dropped = oc.merge_short_segments(pieces, 15)
+    assert len(kept) == 1 and merged.empty
+    assert list(dropped.geometry.iloc[0].coords) == [(0.002, 0), (0.002, 0.0001)]
+
+
+def test_merge_short_segments_prefers_the_same_osm_way_over_a_straighter_other_way():
+    # The link continues both neighbours; the eastern one bends 20 degrees but is the link's own way.
+    pieces = _pieces([[(0, 0), (0.002, 0)], [(0.002, 0), (0.0021, 0)], [(0.0021, 0), (0.004, 0.0007)]],
+                     ways=[[100], [101], [101]])
+    kept, merged, dropped = oc.merge_short_segments(pieces, 15)
+    assert dropped.empty and len(merged) == 1
+    assert sorted(len(geom.coords) for geom in kept.geometry) == [2, 3]
+    assert kept[kept['osm_ids'].map(len) == 1]['osm_ids'].map(tuple).tolist() == [(100,), (101,)]
+
+
+def test_merge_short_segments_never_closes_a_ring():
+    # The link would join the two ends of one street that loops back on itself.
+    loop = [(0, 0), (-0.001, 0), (-0.001, 0.001), (0.0011, 0.001), (0.0011, 0), (0.0001, 0)]
+    kept, merged, dropped = oc.merge_short_segments(_pieces([loop, [(0, 0), (0.0001, 0)]]), 15)
+    assert len(kept) == 1 and merged.empty and len(dropped) == 1
+    assert list(kept.geometry.iloc[0].coords) == loop
+
+
+def test_merge_short_segments_chains_slivers_into_one_street():
+    # 10 m then 8 m: neither is a street alone, together they are. The longer gives the direction.
+    pieces = _pieces([[(0, 0), (0.00009, 0)], [(0.00016, 0), (0.00009, 0)]])
+    kept, merged, dropped = oc.merge_short_segments(pieces, 15)
+    assert dropped.empty and len(kept) == 1 and len(merged) == 2
+    assert list(kept.geometry.iloc[0].coords) == [(0, 0), (0.00009, 0), (0.00016, 0)]
+    assert set(merged['piece_id']) == {kept['piece_id'].iloc[0]}
+
+
+def test_merge_short_segments_leaves_a_tiny_loop_and_an_empty_input_alone():
+    tiny_loop = [(0, 0), (0.00003, 0), (0.00003, 0.00003), (0, 0)]
+    kept, merged, dropped = oc.merge_short_segments(_pieces([tiny_loop, [(0, 0), (-0.002, 0)]]), 15)
+    assert len(kept) == 1 and merged.empty and len(dropped) == 1
+    kept, merged, dropped = oc.merge_short_segments(_pieces([]), 15)
+    assert kept.empty and merged.empty and dropped.empty
 
 
 def test_region_street_stats_flags_oversized_sparse_and_empty():
@@ -941,8 +1038,8 @@ def test_assign_regions_splits_streets_and_assigns_dense_road_ids():
         [(0.002, 0.005), (0.008, 0.005)],   # Fully inside west.
         [(0.005, 0.002), (0.015, 0.002)],   # A genuine west-east crossing: split into two long pieces.
     ], structures=[False, True])
-    roads, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15, heal_m=30,
-                                                           boundary_merge_tol_m=15)
+    roads, merged, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15,
+                                                                   heal_m=30, boundary_merge_tol_m=15)
     assert list(roads['road_id']) == [1, 2, 3]
     assert sorted(roads['region_id']) == [1, 1, 2]
     # Both pieces of the split street keep its structure flag.
@@ -950,9 +1047,23 @@ def test_assign_regions_splits_streets_and_assigns_dense_road_ids():
                                    'geometry']
     assert sorted(zip(roads['osm_ids'].map(tuple), roads['is_structure'])) == [((100,), False), ((101,), True),
                                                                                ((101,), True)]
-    assert dropped.empty
+    assert dropped.empty and merged.empty
     assert heal_stats.n_riders == 0
     assert riders.empty
+
+
+def test_assign_regions_ties_a_merged_piece_to_its_streets_road_id():
+    streets = _streets_gdf([
+        [(0.002, 0.002), (0.008, 0.002)],
+        [(0.002, 0.005), (0.008, 0.005)],
+        [(0.008, 0.005), (0.0081, 0.005)],   # An 11 m link carrying the second street on.
+    ])
+    roads, merged, dropped, _, _ = oc.assign_regions(streets, _city_regions(), min_segment_m=15, heal_m=30,
+                                                     boundary_merge_tol_m=15)
+    assert dropped.empty and len(roads) == 2
+    joined = roads[roads['osm_ids'].map(tuple) == (101, 102)]
+    assert list(merged['road_id']) == list(joined['road_id'])
+    assert 'piece_id' not in merged.columns and 'piece_id' not in roads.columns
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -974,9 +1085,10 @@ def test_write_gpkg_writes_qa_layers(tmp_path):
     roads = _staged_roads()
     riders = gpd.GeoDataFrame({'osm_ids': [[100]]}, geometry=[Point(0.01, 0.005)], crs='EPSG:4326')
     path = tmp_path / 'qa.gpkg'
-    oc.write_gpkg(path, roads, _city_regions(), _CITY_GDF, roads.iloc[0:1], riders)
+    oc.write_gpkg(path, roads, _city_regions(), _CITY_GDF, roads.iloc[0:1], riders, merged=roads.iloc[1:2])
     assert set(gpd.list_layers(path)['name']) == {'qgis_road', 'qgis_region', 'city_boundary', 'dropped_segments',
-                                                  'rider_merges'}
+                                                  'merged_segments', 'rider_merges'}
+    assert list(gpd.read_file(path, layer='merged_segments')['road_id']) == [2]
     # Way-id lists travel as text in the GeoPackage and come back as lists; the structure flag survives the round
     # trip too, which is what lets a --from-gpkg re-export still write street_structures.csv.
     road_layer = gpd.read_file(path, layer='qgis_road')
@@ -1249,10 +1361,11 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     stats = oc.region_street_stats(roads, regions, 60)
     heal = oc.HealStats(3, 2, 45.0, 1)
     oc.write_report(tmp_path / 'report.md', args, 'US Census tracts (TIGERweb)', roads, regions, roads.iloc[0:1],
-                    stats, 0.98, heal, n_tier1_merged=7)
+                    stats, 0.98, heal, n_tier1_merged=7, merged=roads)
     report = (tmp_path / 'report.md').read_text()
     assert '98.0%' in report
-    assert 'dropped_segments' in report
+    assert 'a corner): **1** (see the `dropped_segments` QA layer)' in report
+    assert 'of straight on, #4717): **2** (see the `merged_segments` QA layer)' in report
     assert 'make onboard-city id=testville-wa' in report
     assert '| residential | 1 |' in report
     assert 'Tiny segments (#4717): < 5 m: **0**, < 10 m: **0**, < 20 m: **0** (**0%**' in report
@@ -1938,8 +2051,8 @@ def test_assign_regions_keeps_loop_roads_simple_and_never_longer_than_the_input(
     straddling = LineString([(0.008, 0.002), (0.012, 0.002), (0.012, 0.004), (0.008, 0.004), (0.008, 0.002)])
     on_city_edge = LineString([(0.018, 0.002), (0.022, 0.002), (0.022, 0.004), (0.018, 0.004), (0.018, 0.002)])
     streets = _streets_gdf([list(ring.coords) for ring in (_RING, straddling, on_city_edge)])
-    roads, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15, heal_m=30,
-                                                           boundary_merge_tol_m=15)
+    roads, merged, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15,
+                                                                   heal_m=30, boundary_merge_tol_m=15)
     assert roads.geometry.is_simple.all()
     assert dropped.empty and riders.empty
     assert roads['length_m'].sum() <= sum(oc.geodesic_length_m(g) for g in streets.geometry) * (1 + 1e-9)

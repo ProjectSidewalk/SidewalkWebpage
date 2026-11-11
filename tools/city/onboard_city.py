@@ -88,9 +88,11 @@ Street semantics vs. the manual QGIS flow:
     street runs
     *along* the boundary rather than across it — one side lying entirely within ``--boundary-merge-tol-m`` of the
     other side's region — so a boundary-running road split midway comes back as one street (genuine crossings pull
-    away from the boundary and keep their split; merged junctions land in the ``rider_merges`` QA layer). Whatever
-    is still shorter than ``MIN_SEGMENT_M`` after healing is dropped (the runbook's manual "delete tiny segments"
-    pass) — kept in the QA GeoPackage's ``dropped_segments`` layer for review.
+    away from the boundary and keep their split; merged junctions land in the ``rider_merges`` QA layer).
+  * Whatever is still shorter than ``MIN_SEGMENT_M`` after healing joins the street it continues: a neighbour that
+    ends where it does and runs on within ``MAX_JOIN_DEFLECTION_DEG`` of straight, whatever its OSM way (#4717's
+    tier 2; the QA GeoPackage's ``merged_segments`` layer shows each piece and the street it joined). Only a piece
+    with no such neighbour — a spur off the side of a road, a corner — is dropped, into ``dropped_segments``.
 
 The decision logic lives in pure, import-safe functions; network and file I/O live in the ``fetch_*``/``write_*``
 wrappers and ``main``. Everything is unit-tested in ``test/python/test_onboard_city.py`` (the I/O with osmnx and the
@@ -107,11 +109,12 @@ import re
 import sys
 import time
 from collections import Counter, defaultdict, namedtuple
-from math import cos, radians
+from math import atan2, cos, degrees, radians
 from datetime import datetime, timezone
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import requests
 import shapely
@@ -445,22 +448,185 @@ def street_length_stats(roads):
                        float(lengths.median()) if len(lengths) else 0.0, n_loops)
 
 
-def drop_short_segments(roads, min_m):
-    """
-    Splits the street set into keepers and too-short fragments.
+# A short piece joins a neighbour only when the two run on as one road. #4717 found that a join round a corner leaves
+# a street whose left and right sides mean different kerbs before and after the bend.
+MAX_JOIN_DEFLECTION_DEG = 30
 
-    Clipping streets at city/region boundaries leaves slivers the manual flow deletes by hand; anything shorter than
-    ``min_m`` is separated out (and later written to the QA GeoPackage rather than silently discarded).
+# How far along a line its direction at an end is read (degrees; ~5 m), so a kink in the last few centimetres, which
+# the region overlay can leave, does not stand in for the street's heading.
+HEADING_SPAN_DEG = 5e-5
+
+
+def endpoint_nodes(geometries):
+    """
+    Numbers the points where lines end, giving ends that coincide the same number.
 
     Args:
-        roads: GeoDataFrame of LineStrings with a ``length_m`` column.
-        min_m: Minimum segment length to keep, in meters.
+        geometries: LineStrings in lon/lat.
 
     Returns:
-        A ``(kept, dropped)`` pair of GeoDataFrames.
+        One ``(start_node, end_node)`` pair per line. Two ends share a node when they lie within
+        :data:`CONTIGUITY_EPS_DEG` of each other.
     """
-    too_short = roads['length_m'] < min_m
-    return roads[~too_short].copy(), roads[too_short].copy()
+    ends = np.array([coord[:2] for geom in geometries for coord in (geom.coords[0], geom.coords[-1])]).reshape(-1, 2)
+    points = shapely.points(ends)
+    near = shapely.STRtree(points).query(points, predicate='dwithin', distance=CONTIGUITY_EPS_DEG)
+    nodes = np.arange(len(points))
+    np.minimum.at(nodes, near[0], near[1])
+    return [(int(nodes[2 * i]), int(nodes[2 * i + 1])) for i in range(len(geometries))]
+
+
+def leaving_vector(geometry, at_start):
+    """
+    The direction a line heads as it leaves one of its ends.
+
+    Args:
+        geometry: A LineString in lon/lat.
+        at_start: True for the line's first point, False for its last.
+
+    Returns:
+        An ``(east, north)`` pair, east scaled by the latitude so the two are comparable.
+    """
+    span = min(geometry.length, HEADING_SPAN_DEG)
+    origin = geometry.coords[0] if at_start else geometry.coords[-1]
+    ahead = geometry.interpolate(span if at_start else geometry.length - span)
+    return (ahead.x - origin[0]) * cos(radians(origin[1])), ahead.y - origin[1]
+
+
+def deflection_deg(first, second):
+    """
+    How far two lines leaving one point are from being a single straight line through it.
+
+    Args:
+        first:  One line's :func:`leaving_vector` at the shared point.
+        second: The other's.
+
+    Returns:
+        Degrees: 0 when the second carries straight on from the first, 180 when it doubles back along it.
+    """
+    cross = first[0] * second[1] - first[1] * second[0]
+    dot = first[0] * second[0] + first[1] * second[1]
+    return 180 - abs(degrees(atan2(cross, dot)))
+
+
+def join_at_end(keeper, keeper_at_start, piece, piece_at_start):
+    """
+    Extends one line with another that meets it end to end, keeping the first line's direction.
+
+    Args:
+        keeper:          The LineString whose direction the result keeps.
+        keeper_at_start: True when the two meet at ``keeper``'s first point, False at its last.
+        piece:           The LineString being added.
+        piece_at_start:  True when the meeting point is ``piece``'s first point.
+
+    Returns:
+        The combined LineString, with the shared point taken from ``keeper``.
+    """
+    kept, added = list(keeper.coords), list(piece.coords)
+    if keeper_at_start:
+        if piece_at_start:
+            added.reverse()
+        return LineString(added[:-1] + kept)
+    if not piece_at_start:
+        added.reverse()
+    return LineString(kept + added[1:])
+
+
+def merge_short_segments(pieces, min_m, max_deflection_deg=MAX_JOIN_DEFLECTION_DEG):
+    """
+    Joins each street piece shorter than ``min_m`` to the street it continues, instead of deleting it (#4717).
+
+    What is left under ``min_m`` after :func:`merge_tiny_same_way` and the healing pass is mostly short links between
+    two close junctions and slivers a boundary cut off, on a different OSM way than their neighbours. Deleting one
+    leaves a gap in the street network. A piece joins a neighbour that ends where it does and runs on within
+    ``max_deflection_deg`` of straight: one on the same OSM way first, then the straightest. The longer of the two
+    gives the joined street its direction, region and road type. A join that would close a ring or cross itself is
+    skipped and the next neighbour tried. Two short pieces can join each other, and the pass repeats until nothing
+    more joins, so a chain of slivers becomes one street.
+
+    A piece with no such neighbour (a spur off the side of a through street, a link that meets its neighbours at a
+    corner) stays short and is returned separately.
+
+    Args:
+        pieces:             GeoDataFrame of LineStrings with ``osm_ids`` (list), ``highway``, ``is_structure``,
+                            ``region_id`` and ``length_m``.
+        min_m:              Pieces shorter than this (meters) look for a street to join.
+        max_deflection_deg: The sharpest bend a join may make.
+
+    Returns:
+        A ``(kept, merged, dropped)`` triple of GeoDataFrames with the input's columns. ``kept`` are the streets, each
+        with a unique ``piece_id``; ``merged`` holds every short piece that joined one, as it was before the join,
+        with that street's ``piece_id``; ``dropped`` are the pieces still under ``min_m``.
+    """
+    columns = ['osm_ids', 'highway', 'is_structure', 'region_id', 'length_m', 'geometry']
+    records = [{'osm_ids': list(row.osm_ids), 'highway': row.highway, 'is_structure': bool(row.is_structure),
+                'region_id': row.region_id, 'length_m': row.length_m, 'geometry': row.geometry}
+               for row in pieces.itertuples()]
+    by_node = defaultdict(set)
+    for index, (record, (start, end)) in enumerate(zip(records, endpoint_nodes([r['geometry'] for r in records]))):
+        record['u'], record['v'] = start, end
+        # The short pieces a street is made of, as they were, for the QA layer.
+        record['parts'] = [dict(record)] if record['length_m'] < min_m else []
+        by_node[start].add(index)
+        by_node[end].add(index)
+    alive = [True] * len(records)
+
+    changed = True
+    while changed:
+        changed = False
+        for i, record in enumerate(records):
+            if not alive[i] or record['length_m'] >= min_m or record['u'] == record['v']:
+                continue
+            options = []
+            for node in (record['u'], record['v']):
+                at_start = node == record['u']
+                heading = leaving_vector(record['geometry'], at_start)
+                for j in by_node[node] - {i}:
+                    other = records[j]
+                    other_at_start = node == other['u']
+                    turn = deflection_deg(heading, leaving_vector(other['geometry'], other_at_start))
+                    if turn <= max_deflection_deg:
+                        same_way = bool(set(other['osm_ids']) & set(record['osm_ids']))
+                        options.append((not same_way, turn, j, at_start, other_at_start))
+            for _, _, j, at_start, other_at_start in sorted(options):
+                other = records[j]
+                if other['length_m'] >= record['length_m']:
+                    keeper, keeper_at_start, piece, piece_at_start = other, other_at_start, record, at_start
+                else:
+                    keeper, keeper_at_start, piece, piece_at_start = record, at_start, other, other_at_start
+                geometry = join_at_end(keeper['geometry'], keeper_at_start, piece['geometry'], piece_at_start)
+                if geometry.is_closed or not geometry.is_simple:
+                    continue
+                far_node = piece['v'] if piece_at_start else piece['u']
+                start, end = (far_node, keeper['v']) if keeper_at_start else (keeper['u'], far_node)
+                for index in (i, j):
+                    by_node[records[index]['u']].discard(index)
+                    by_node[records[index]['v']].discard(index)
+                survivor, absorbed = (j, i) if keeper is other else (i, j)
+                records[survivor] = {
+                    'osm_ids': keeper['osm_ids'] + [way for way in piece['osm_ids'] if way not in keeper['osm_ids']],
+                    'highway': keeper['highway'], 'is_structure': keeper['is_structure'] or piece['is_structure'],
+                    'region_id': keeper['region_id'], 'length_m': geodesic_length_m(geometry), 'geometry': geometry,
+                    'u': start, 'v': end, 'parts': keeper['parts'] + piece['parts']}
+                alive[absorbed] = False
+                by_node[start].add(survivor)
+                by_node[end].add(survivor)
+                changed = True
+                break
+
+    kept_rows, merged_rows, dropped_rows = [], [], []
+    for index, record in enumerate(records):
+        if not alive[index]:
+            continue
+        if record['length_m'] < min_m:
+            dropped_rows.append(record)
+            continue
+        kept_rows.append({**record, 'piece_id': index})
+        merged_rows += [{**part, 'piece_id': index} for part in record['parts']]
+
+    def frame(rows, extra):
+        return gpd.GeoDataFrame(rows, columns=columns + extra, geometry='geometry', crs=pieces.crs)
+    return frame(kept_rows, ['piece_id']), frame(merged_rows, ['piece_id']), frame(dropped_rows, [])
 
 
 def region_street_stats(roads, regions, max_region_street_km):
@@ -965,7 +1131,7 @@ def validate_staging(roads, regions, overlaps_are_fatal=True):
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
     if not errors:
-        # The build drops these itself, so a hit is a QGIS cut or snap that left a fragment too small to see (#4717).
+        # The build merges or drops these itself, so a hit is a QGIS cut or snap that left a fragment too small to see (#4717).
         too_short = roads.loc[roads['length_m'] < MIN_SEGMENT_M].sort_values(['length_m', 'road_id'])
         if not too_short.empty:
             more = ' ...' if len(too_short) > 10 else ''
@@ -1812,24 +1978,25 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     than ``heal_m`` are reabsorbed into their touching neighbor on the same street (see :func:`heal_edge_pieces` —
     this is what keeps boundary-running streets from being shredded). Splits that remain because both sides are long
     are then merged when the street runs entirely along the boundary rather than crossing it
-    (:func:`absorb_boundary_riders`). Whatever is still shorter than ``min_segment_m`` after healing — isolated
-    slivers with nothing to merge into — is separated out for QA review.
+    (:func:`absorb_boundary_riders`). Whatever is still shorter than ``min_segment_m`` after healing joins the street
+    it continues (:func:`merge_short_segments`); a piece with no street to continue is separated out for QA review.
 
     Args:
         streets:              GeoDataFrame of street edges (``osm_ids``, ``highway``, ``is_structure``, geometry).
         regions:              GeoDataFrame from :func:`prepare_regions`.
-        min_segment_m:        Minimum street-piece length to keep, in meters.
+        min_segment_m:        Pieces shorter than this (meters) are joined to a neighbour, or dropped when none
+                              continues them.
         heal_m:               Pieces shorter than this are absorbed into a touching neighbor piece of the same
                               street; out-of-region gaps shorter than this are restored.
         boundary_merge_tol_m: A split street merges back together when one side lies entirely within this distance
                               (meters) of the other side's region.
 
     Returns:
-        A ``(roads, dropped, heal_stats, rider_junctions)`` tuple: ``roads`` has ``road_id`` (1..N), ``osm_ids``,
-        ``highway``, ``is_structure``, ``region_id``, ``length_m``; ``dropped`` holds the too-short fragments;
-        ``heal_stats`` is a
-        :data:`HealStats`; ``rider_junctions`` is a GeoDataFrame of the junction points where boundary-running
-        splits were merged (for the QA layer).
+        A ``(roads, merged, dropped, heal_stats, rider_junctions)`` tuple: ``roads`` has ``road_id`` (1..N),
+        ``osm_ids``, ``highway``, ``is_structure``, ``region_id``, ``length_m``; ``merged`` holds the too-short
+        pieces that joined a street, each with that street's ``road_id``; ``dropped`` holds the ones that had no
+        street to join; ``heal_stats`` is a :data:`HealStats`; ``rider_junctions`` is a GeoDataFrame of the junction
+        points where boundary-running splits were merged (for the QA layer).
     """
     streets = streets.reset_index(drop=True)
     streets['edge_id'] = streets.index
@@ -1875,21 +2042,22 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     rider_junctions = gpd.GeoDataFrame(junction_rows, geometry='geometry', crs=streets.crs,
                                        columns=['osm_ids', 'geometry'])
 
-    roads, dropped = drop_short_segments(healed, min_segment_m)
+    roads, merged, dropped = merge_short_segments(healed, min_segment_m)
     roads['first_osm_id'] = roads['osm_ids'].map(lambda way_ids: way_ids[0])
     roads = roads.sort_values(['region_id', 'first_osm_id']).reset_index(drop=True)
     roads['road_id'] = roads.index + 1
     heal_stats = HealStats(n_raw_pieces - len(healed) - len(rider_junctions), n_bridged_total, restored_m_total,
                            len(rider_junctions))
-    return (roads[['road_id', 'osm_ids', 'highway', 'is_structure', 'region_id', 'length_m', 'geometry']], dropped,
-            heal_stats, rider_junctions)
+    merged['road_id'] = merged['piece_id'].map(dict(zip(roads['piece_id'], roads['road_id'])))
+    return (roads[['road_id', 'osm_ids', 'highway', 'is_structure', 'region_id', 'length_m', 'geometry']],
+            merged.drop(columns='piece_id'), dropped, heal_stats, rider_junctions)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Outputs.
 # ---------------------------------------------------------------------------------------------------------------------
 
-def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=None, lineage=None):
+def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=None, lineage=None, merged=None):
     """
     Writes the QA GeoPackage: the staging layers plus context layers for eyeballing in QGIS.
 
@@ -1898,10 +2066,11 @@ def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=No
         roads:           Final street GeoDataFrame.
         regions:         Final region GeoDataFrame.
         boundary:        City boundary GeoDataFrame.
-        dropped:         Too-short street fragments that were removed.
+        dropped:         Too-short street pieces that had no street to join and were removed.
         rider_junctions: Junction points where boundary-running splits were merged.
         ways:            The :func:`fetch_ways` frame, which a ``--from-gpkg`` re-export re-matches against.
         lineage:         The :func:`street_lineage` frame, drawn as the stretch of each street every way covers.
+        merged:          Too-short street pieces that joined a street, with that street's ``road_id``.
     """
     gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
     regions.to_file(path, layer='qgis_region', driver='GPKG')
@@ -1910,6 +2079,8 @@ def write_gpkg(path, roads, regions, boundary, dropped, rider_junctions, ways=No
         ways.to_file(path, layer='osm_way', driver='GPKG')
     if lineage is not None:
         lineage.to_file(path, layer='qgis_road_osm_way', driver='GPKG')
+    if merged is not None and not merged.empty:
+        gpkg_frame(merged).to_file(path, layer='merged_segments', driver='GPKG')
     if not dropped.empty:
         gpkg_frame(dropped).to_file(path, layer='dropped_segments', driver='GPKG')
     if not rider_junctions.empty:
@@ -2049,7 +2220,7 @@ def copy_null(value):
 
 
 def write_report(path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 n_tier1_merged=None, lineage_stats=None):
+                 n_tier1_merged=None, lineage_stats=None, merged=None):
     """
     Writes a Markdown run report: sources, counts, tiny-segment figures, per-region stats with flags, and the next
     manual steps.
@@ -2060,7 +2231,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         region_source: Human-readable description of where the regions came from.
         roads:         Final street GeoDataFrame.
         regions:       Final region GeoDataFrame.
-        dropped:       Removed too-short fragments.
+        dropped:       Too-short pieces that had no street to join and were removed.
         stats:         Per-region stats DataFrame from :func:`region_street_stats`.
         coverage:      Fraction (0..1) of the city boundary the final regions cover, or None when unknown (a
                        ``--from-gpkg`` re-export without a ``city_boundary`` layer).
@@ -2068,12 +2239,15 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
                        (healing already happened on the original run).
         n_tier1_merged: Pieces absorbed by :func:`merge_tiny_same_way`, or None on a re-export.
         lineage_stats:  :data:`LineageStats` from :func:`street_lineage`, or None when there were no ways to match.
+        merged:        Too-short pieces that joined a street, or None on a re-export.
     """
     way_type_counts = roads['highway'].value_counts()
     total_km = roads['length_m'].sum() / 1000
     street_stats = street_length_stats(roads)
     flagged = stats[stats['flag'] != '']
     dropped_note = ' (see the `dropped_segments` QA layer)' if not dropped.empty else ''
+    n_merged_short = 0 if merged is None else len(merged)
+    merged_note = ' (see the `merged_segments` QA layer)' if n_merged_short else ''
     coverage_note = f', covering **{coverage:.1%}** of the city boundary ' \
                     '(streets outside every region are trimmed)' if coverage is not None else ''
     lines = [
@@ -2114,7 +2288,10 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
             f'- Merged boundary-running splits: **{heal_stats.n_riders}** (one side ran entirely within '
             f'{args.boundary_merge_tol_m:g} m of the other side\'s region — along the boundary, not across it; '
             'see the `rider_merges` QA layer for the merged junctions)',
-            f'- Dropped segments < {MIN_SEGMENT_M} m: **{len(dropped)}**{dropped_note}',
+            f'- Merged segments < {MIN_SEGMENT_M} m into the street they continue (within '
+            f'{MAX_JOIN_DEFLECTION_DEG}° of straight on, #4717): **{n_merged_short}**{merged_note}',
+            f'- Dropped segments < {MIN_SEGMENT_M} m with no street to continue (a spur off a through street, a '
+            f'corner): **{len(dropped)}**{dropped_note}',
         ]
     lines += [
         '',
@@ -2146,7 +2323,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         '',
         '## Next steps',
         '',
-        '1. QA the GeoPackage in QGIS (regions: slivers/gaps/overlaps; streets: boundary clipping, dropped segments).',
+        '1. QA the GeoPackage in QGIS (regions: slivers/gaps/overlaps; streets: boundary clipping, merged and dropped segments).',
         f'2. Rerun with tweaked flags (or hand-edit + `make build-city-data id={args.city_id} args="--from-gpkg"`) '
         'until it looks right.',
         f'3. `make onboard-city id={args.city_id}` — chains the remaining setup: configs, GA properties, schema, '
@@ -2433,8 +2610,8 @@ def main(argv=None):
     logger.info('Merged %d pieces < %g m into a touching piece of the same OSM way (#4717 tier 1); %d edges remain',
                 n_tier1_merged, args.merge_tiny_m, len(streets))
 
-    roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, MIN_SEGMENT_M,
-                                                                 args.heal_segment_m, args.boundary_merge_tol_m)
+    roads, merged, dropped, heal_stats, rider_junctions = assign_regions(
+        streets, regions, MIN_SEGMENT_M, args.heal_segment_m, args.boundary_merge_tol_m)
     if roads.empty:
         sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
                  'street network (the fetch found %d edges).' % len(streets))
@@ -2453,8 +2630,10 @@ def main(argv=None):
                 heal_stats.n_fragments, args.heal_segment_m, heal_stats.n_bridged, heal_stats.restored_m,
                 heal_stats.n_riders)
     street_stats = street_length_stats(roads)
-    logger.info('Final streets: %d (%.1f km, median %.0f m); dropped %d fragments < %g m; %d (%.0f%%) under 20 m',
-                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(dropped), MIN_SEGMENT_M,
+    logger.info('Final streets: %d (%.1f km, median %.0f m); merged %d and dropped %d fragments < %g m; '
+                '%d (%.0f%%) under 20 m',
+                len(roads), roads['length_m'].sum() / 1000, street_stats.median_m, len(merged), len(dropped),
+                MIN_SEGMENT_M,
                 street_stats.n_lt20, street_stats.pct_lt20)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
@@ -2466,12 +2645,12 @@ def main(argv=None):
     sql_path = out_dir / 'qgis_tables.sql'
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     report_path = out_dir / 'report.md'
-    write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions, ways, lineage)
+    write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions, ways, lineage, merged)
     write_sql(sql_path, roads, regions, staging_fingerprint(gpkg_path), lineage)
     write_endpoints_csv(endpoints_path, roads)
     write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
-                 n_tier1_merged, lineage_stats)
+                 n_tier1_merged, lineage_stats, merged)
     logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the '
                 'report).', gpkg_path, sql_path, endpoints_path, out_dir / 'street_structures.csv', report_path)
 

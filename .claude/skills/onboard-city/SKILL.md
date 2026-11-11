@@ -59,7 +59,7 @@ Read `db/onboarding/<city-id>/report.md` before anything else and put the number
 - **Coverage:** regions should cover ≥ 95% of the boundary; streets outside every region are trimmed.
 
 The human QA gate: open `<city-id>_qa.gpkg` in QGIS (`qgis_road`, `qgis_region`, `city_boundary`,
-`dropped_segments`, `rider_merges`) over a basemap. Fixes come back two ways: parameter changes rerun the build;
+`merged_segments`, `dropped_segments`, `rider_merges`) over a basemap. Fixes come back two ways: parameter changes rerun the build;
 hand edits (delete a street, move a boundary) are re-exported with
 `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers and rewrites the SQL. Never
 load a stale SQL over hand edits.

@@ -66,7 +66,9 @@ same highway filter the QGIS runbook used (`--include-alleys` for `service=alley
 ways meet, and applies the anti-tiny-segment rules from #4717: pieces under 20 m left between close intersections
 (roundabout arcs, dual-carriageway stubs) merge back into a touching piece of the same OSM way, never closing a ring;
 region-boundary fragments under 30 m are reabsorbed; a street running *along* a boundary is merged back together
-rather than left cut; boundary-hugging streets get their truncated ends back. Regions are clipped to the city,
+rather than left cut; boundary-hugging streets get their truncated ends back; and a piece still under 15 m joins the
+street it continues (one ending where it does and running on within 30° of straight, whatever its OSM way). Only a
+piece with no such street, a spur off the side of a road or a link that meets its neighbours at a corner, is dropped. Regions are clipped to the city,
 slivers absorbed into their neighbour, and ids assigned densely by name.
 
 It never touches the database. It writes, under `db/onboarding/<city-id>/`:
@@ -74,12 +76,12 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | File | What for |
 |---|---|
 | `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), boundary coverage. |
-| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did, `osm_way` (the whole OSM ways the streets were cut from) and `qgis_road_osm_way` (the stretch of each street every way covers, #5741; the report counts the streets it could not match whole, which are worth a look). |
+| `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `merged_segments` (each sub-15 m piece that joined a street, with that street's `road_id`), `dropped_segments` (the ones with no street to join) and `rider_merges` so you can see what the rules did, `osm_way` (the whole OSM ways the streets were cut from) and `qgis_road_osm_way` (the stretch of each street every way covers, #5741; the report counts the streets it could not match whole, which are worth a look). |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`; `qgis_road_osm_way`: one row per street and OSM way with the shared stretch of each and `same_direction`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
 | `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
-**The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the dropped segments, and any
+**The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the merged and dropped segments, and any
 flagged region. Two ways back:
 
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse

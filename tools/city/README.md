@@ -287,7 +287,9 @@ Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plaz
 `service=alley`), noded only where included ways meet. Then the #4717 anti-tiny-segment rules: pieces under
 `--merge-tiny-m` (20 m) left between close intersections merge back into a touching piece of the same OSM way (never
 closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
-(`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
+(`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored;
+a piece still under 15 m joins the street it continues, within 30° of straight and across OSM ways
+(`merged_segments` QA layer), and is dropped only when no street continues it (`dropped_segments`).
 osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
 `osm_ids`, and `qgis_road_osm_way` records where each lies on the street (#5741), matched by geometry against the
 whole ways, which the build fetches separately and keeps in the GeoPackage's `osm_way` layer. Regions come from the
