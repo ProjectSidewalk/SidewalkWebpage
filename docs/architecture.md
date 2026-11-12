@@ -760,10 +760,9 @@ loaded by the corresponding Twirl view:
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
   where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
-  Each mouse/pen press on the pano holder captures the pointer on the pressed element, so a drag ends wherever it is
-  let go: Infra3D only hears a release on its own canvas, and a natively disabled control over the imagery would
-  swallow `mouseup` for every viewer (#5295, #5294). `test/e2e/label-card-drag.spec.js` checks it in Chromium; Firefox and WebKit
-  behave the same.
+  Each mouse/pen press on the pano holder captures the pointer, so a drag ends wherever it is let go
+  (`test/e2e/label-card-drag.spec.js`): Infra3D only hears a release on its own canvas, and a disabled button over
+  the imagery would swallow `mouseup` (#5295, #5294).
   Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures

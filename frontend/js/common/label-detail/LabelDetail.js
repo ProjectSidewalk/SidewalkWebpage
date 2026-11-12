@@ -545,11 +545,11 @@ export class LabelDetail {
       const btn = els.voteButtons[action];
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
-        if (this.#votesLocked) return;
+        if (this.#interactionBlocked) return;
         img.src = LabelDetail.#voteIconSrc(action, this.#prevAction !== action, this.#aiValidation === action);
       });
       btn.addEventListener('mouseleave', () => {
-        if (this.#votesLocked) return;
+        if (this.#interactionBlocked) return;
         this.#renderVoteIcons();
       });
     }
@@ -683,7 +683,7 @@ export class LabelDetail {
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
     else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
-    if (!button || button.hidden || button.disabled || button.getAttribute('aria-disabled') === 'true') return;
+    if (!button || button.hidden || button.getAttribute('aria-disabled') === 'true') return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -1686,14 +1686,14 @@ export class LabelDetail {
    */
   #syncControlLocks() {
     const off = this.#votesLocked;
-    // `aria-disabled`, not `disabled`, so the button just pressed keeps keyboard focus while its vote saves (#5135).
+    // `aria-disabled` so the button just pressed keeps focus while its vote saves (#5135).
     for (const btn of [...Object.values(this.#els.panoOverlayButtons), ...Object.values(this.#els.voteButtons)]) {
       btn.setAttribute('aria-disabled', String(off));
     }
     if (reasonPopover().isOpenFor(this.#root)) reasonPopover().setBusy(off);
   }
 
-  /** @returns {boolean} Whether the vote controls are locked; their click handlers check it, as the attribute won't. */
+  /** @returns {boolean} Whether the vote controls are locked; click handlers check it, since aria-disabled won't. */
   get #votesLocked() {
     return this.#interactionBlocked || this.#votePending || this.#pickPending;
   }
@@ -1755,12 +1755,12 @@ export class LabelDetail {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected', 'is-just-voted');
       btn.setAttribute('aria-pressed', 'false');
-      if (!this.#interactionBlocked) btn.setAttribute('aria-disabled', 'false');
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.setAttribute('aria-pressed', 'false');
     }
     this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
+    this.#syncControlLocks();
   }
 
   /**

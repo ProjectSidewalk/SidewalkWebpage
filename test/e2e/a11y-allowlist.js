@@ -10,8 +10,8 @@
  *   known-and-scheduled failure from one nobody has looked at.
  *
  * Scope an allowlist entry as tightly as the violation allows — a bare `{rule}` silences that rule for the whole
- * page, hiding the next instance too. `selector` is matched within the node's target up to a name boundary, so
- * `.au-body` covers `#main > .au-body` but not `.au-body-title`.
+ * page, hiding the next instance too. `selector` must match whole names in the node's target, so `.au-body` covers
+ * `#main > .au-body` but not `.au-body-title`.
  *
  * Keys are page paths, optionally with a ` [state]` suffix naming a forced render state
  * (`/v3/api-docs/rawLabels [feed error]`, from a11y-api-docs-states.spec.js). A page's healthy render and its

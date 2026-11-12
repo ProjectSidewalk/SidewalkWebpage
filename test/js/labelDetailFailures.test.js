@@ -27,11 +27,15 @@ describe('the label card, when a reply goes wrong or comes late', () => {
     test('that fails gives the controls back and changes nothing', async () => {
       const { show, q } = await mountCard({ routes: { 'POST /labelmap/validate': { status: 500, body: {} } } });
       await show();
-      q('.label-detail__pano-overlay-button--agree').click();
-      expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('true');
+      const agree = q('.label-detail__vote--agree');
+      agree.dispatchEvent(new MouseEvent('mouseenter'));
+      agree.click();
+      expect(agree.getAttribute('aria-disabled')).toBe('true');
+      agree.dispatchEvent(new MouseEvent('mouseleave')); // The hover preview ends while the vote saves.
       await flush();
 
       expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
+      expect(q('.label-detail__vote--agree .label-detail__vote-icon').src).toContain('agree-outline');
       expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
       expect(count(q, 'agree')).toBe('1');
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');

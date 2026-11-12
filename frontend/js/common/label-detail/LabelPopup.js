@@ -110,10 +110,7 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
     });
   }
 
-  /**
-   * Switches off whichever arrow has nowhere to go from the shown label. `aria-disabled`, not `disabled`, so the arrow
-   * just pressed keeps keyboard focus when it switches off (#5135).
-   */
+  /** Switches off an arrow with nowhere to go; `aria-disabled` so the arrow just pressed keeps focus (#5135). */
   function updatePagingState() {
     if (!nearbyNav) return;
     prevBtn.setAttribute('aria-disabled', String(!nearbyNav.hasPrev(currentLabelId)));

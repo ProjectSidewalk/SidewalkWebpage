@@ -132,17 +132,23 @@ export class AccessScoreClusterSheet {
     this.#updatePaging();
   }
 
+  /** Switches off an arrow with no cluster to go to. */
   #updatePaging() {
     const id = this.#clusterId;
     const can = (fn) => this.#nav !== null && id !== null && fn(id);
-    // `aria-disabled` keeps the arrow just pressed focused at the end of the line (#5135); #page() guards the click.
+    // `aria-disabled` so the arrow just pressed keeps focus (#5135); #page() checks it.
     this.#els.prev.setAttribute('aria-disabled', String(!can((i) => this.#nav.hasPrev(i))));
     this.#els.next.setAttribute('aria-disabled', String(!can((i) => this.#nav.hasNext(i))));
   }
 
-  /** Steps to the previous or next cluster, if there is one, and hands it to the host to open. */
+  /**
+   * Steps to the previous or next cluster and hands it to the host to open. Checks the arrow first, since even a
+   * fruitless next() or prev() changes the navigator's history.
+   * @param {'prev'|'next'} direction - Which way to step.
+   */
   #page(direction) {
     if (!this.#nav || this.#clusterId === null) return;
+    if (this.#els[direction].getAttribute('aria-disabled') === 'true') return;
     const id = direction === 'prev' ? this.#nav.prev(this.#clusterId) : this.#nav.next(this.#clusterId);
     if (id === null || id === undefined) return;
     this.#log('SheetPage', direction);

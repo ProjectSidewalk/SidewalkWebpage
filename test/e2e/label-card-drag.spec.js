@@ -1,8 +1,7 @@
 /**
  * A drag on the label card's imagery ends wherever the mouse is let go (#5295, #5294).
  *
- * This checks the release events the viewers wait for, not one viewer's pan, so it holds whichever viewer the label
- * lands in (the Maps stub on a dev database, Pannellum on CI's seed).
+ * It checks the release events the viewers wait for, not a pan, so it works whichever viewer the label opens in.
  */
 const {test, expect, serveAnyPano, waitForAppReady} = require('./fixtures');
 

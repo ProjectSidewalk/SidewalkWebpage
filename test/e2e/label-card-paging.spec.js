@@ -1,7 +1,6 @@
 /**
- * The label card's paging arrows keep keyboard focus when they switch off (#5135). Paging Gallery's open card back
- * to the first label switches off Prev, which must keep focus, ignore presses, and pass axe. Gallery hosts the card
- * because LabelMap's markers sit on a map canvas with nothing a spec can click.
+ * Paging Gallery's open card back to the first label switches off Prev, which must keep focus, ignore presses, and
+ * pass axe (#5135). Gallery rather than LabelMap, whose markers are on a map canvas a spec can't click.
  */
 const {test, expect, serveAnyPano, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
@@ -52,8 +51,8 @@ test('Prev at the first card switches off with aria-disabled, keeps focus, and i
   await expect(prev, 'native disabled drops focus to the body (#5135)').not.toHaveAttribute('disabled');
   await expect(prev, 'switching off moved focus off the arrow').toBeFocused();
 
-  // Each press clicks synchronously, so the label read right after is its outcome. `force` because Playwright
-  // waits on an aria-disabled button; this tests what clicking it anyway does.
+  // Each press acts at once, so the label read right after shows its result. `force`, since Playwright otherwise
+  // won't click an aria-disabled button.
   const presses = {
     Enter: () => page.keyboard.press('Enter'),
     Space: () => page.keyboard.press('Space'),
@@ -83,8 +82,8 @@ test('Prev at the first card switches off with aria-disabled, keeps focus, and i
   await expect(prev).not.toHaveAttribute('aria-disabled', 'true');
   await expect(prev).not.toHaveAttribute('disabled');
 
-  // A dev database's expired panos have no backup, so /backupImage/:id/metadata 404s and the card falls back to the
-  // crop. CI has a backup for every seeded pano, so there a 404 still fails.
+  // On a dev database an expired pano has no backup, so its /backupImage metadata 404s and the card shows the crop.
+  // CI has every backup, so there a 404 still fails.
   const errors = process.env.CI ? consoleErrors : consoleErrors.filter((e) => !NO_BACKUP_404.test(e));
   expect(errors).toEqual([]);
 });

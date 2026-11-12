@@ -331,15 +331,15 @@ export class ExpandedView {
       return;
     }
 
-    this.#openExpandedView();
-    this.#updatePosition(index);
-
-    // `aria-disabled`, not `disabled`, so the arrow just pressed keeps keyboard focus when it switches off (#5135).
+    // `aria-disabled` so the arrow just pressed keeps focus (#5135).
     const cards = this.#cardContainer;
     const onLastCard = cards.isLastPage()
       && index === (cards.getCurrentPage() - 1) * cards.getCardsPerPage() + cards.getCurrentPageCards().length - 1;
     this.leftArrow?.setAttribute('aria-disabled', String(index === 0));
     this.rightArrow?.setAttribute('aria-disabled', String(onLastCard));
+
+    this.#openExpandedView();
+    this.#updatePosition(index);
   }
 
   /**

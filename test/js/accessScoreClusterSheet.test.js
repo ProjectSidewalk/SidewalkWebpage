@@ -75,9 +75,11 @@ describe('AccessScoreClusterSheet', () => {
     await sheet.open(props(2));
     expect(prev().getAttribute('aria-disabled')).toBe('false');
     expect(next().getAttribute('aria-disabled')).toBe('true');
-    // At the end of the line, the key does nothing; back along the trail, it does.
+    // At the end of the line, a click or the key leaves even the navigator alone; back along the trail, it pages.
+    next().click();
     sheet.dialog.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
     expect(callbacks.onNavigate).toHaveBeenCalledTimes(1);
+    expect(nav.next).toHaveBeenCalledTimes(1);
     sheet.dialog.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', bubbles: true}));
     expect(callbacks.onNavigate).toHaveBeenLastCalledWith(1);
     expect(callbacks.log).toHaveBeenCalledWith('SheetPage', 'prev');

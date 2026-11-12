@@ -721,10 +721,10 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 4px;
 }
 
-.label-detail__vote[aria-disabled="true"] {
-  cursor: wait;
-  opacity: 0.5;
-}
+.label-detail__vote[aria-disabled="true"] { cursor: wait; }
+
+/* Fade the contents, not the button, so the focus ring stays readable. */
+.label-detail__vote[aria-disabled="true"] > * { opacity: 0.5; }
 
 .label-detail__vote-icon {
   width: calc(24px * var(--ui-scale, 1));
@@ -1179,7 +1179,7 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
-  cursor: not-allowed; /* main.css's rule loses to `.label-detail__paging`'s pointer, which loads later. */
+  cursor: not-allowed; /* The pointer cursor above outranks main.css's rule. */
 }
 
 .label-detail__paging:focus-visible {
