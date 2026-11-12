@@ -65,6 +65,11 @@ The backend follows a consistent layering: **routes → Controller → Service �
   `user_stat` table.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Validator reliability (#5063)** — `user_stat.validator_reliability` is the weight to give a user's validations,
+  refreshed by the nightly user stats job. `UserStatTable.validatorTallies` grades each Agree or Disagree vote against
+  the first answer that exists (a training example's, then an admin's vote, then the majority of the other votes) and
+  `ValidatorReliability` turns the graded and matched counts into the score. The AI's Disagree votes grade no one
+  until #5974. The formula is published on the User Stats API docs page.
 - **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
   `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
   turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a

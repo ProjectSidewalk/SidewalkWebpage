@@ -15,19 +15,27 @@ import { AdminShell } from './AdminShell.js';
 
 export class DataQualityPage {
   static #TOP_TAGS_PER_TYPE = 8;
+  /**
+   * Reliability bands for the validator chart, as [lowest score in the band, label]; display only.
+   * @type {Array<[number, string]>}
+   */
+  static #RELIABILITY_BANDS = [
+    [0.9, '90% and up'], [0.8, '80–90%'], [0.7, '70–80%'], [0.6, '60–70%'], [0, 'Below 60%'],
+  ];
 
   #statsUrl;
   #tagsUrl;
   #labelTypesUrl;
   #byDayUrl;
   #tagSeverityUrl;
+  #userStatsUrl;
   #order = [];           // Canonical label-type order (machine names) from /v3/api/labelTypes.
   #meta = new Map();     // name -> { color, icon, display }
   #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
   /**
    * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
-   *          tagSeverityUrl: string}} opts
+   *          tagSeverityUrl: string, userStatsUrl: string}} opts
    */
   constructor(opts) {
     this.#statsUrl = opts.statsUrl;
@@ -35,14 +43,15 @@ export class DataQualityPage {
     this.#labelTypesUrl = opts.labelTypesUrl;
     this.#byDayUrl = opts.byDayUrl;
     this.#tagSeverityUrl = opts.tagSeverityUrl;
+    this.#userStatsUrl = opts.userStatsUrl;
   }
 
   async init() {
     try {
-      const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
+      const [stats, tags, labelTypes, byDay, tagSeverity, userStats] = await Promise.all([
         util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
         util.fetchJson(this.#labelTypesUrl), util.fetchJson(this.#byDayUrl),
-        util.fetchJson(this.#tagSeverityUrl),
+        util.fetchJson(this.#tagSeverityUrl), util.fetchJson(this.#userStatsUrl),
       ]);
 
       this.#buildMeta(labelTypes);
@@ -53,6 +62,7 @@ export class DataQualityPage {
       this.#renderCoverage(stats);
       this.#renderValidation('combined');
       this.#wireValidatorToggle();
+      this.#renderReliability(Array.isArray(userStats) ? userStats : []);
       this.#renderTags(Array.isArray(tags) ? tags : []);
       this.#renderTagSeverity((tagSeverity && tagSeverity.tag_severity) || []);
       this.#renderQualityOverTime(byDay);
@@ -216,6 +226,40 @@ export class DataQualityPage {
         <span class="dq-sub">(${r.agreed.toLocaleString()}/${r.validated.toLocaleString()})</span>`;
       return this.#row(r.type, track, value);
     }).join('');
+  }
+
+  /**
+   * Validator reliability: how many validators fall in each score band, with the totals behind the scores.
+   * @param {Array<{validator_reliability: ?number, validations_graded: number, validations_matched: number}>} users
+   *   Rows from /v3/api/userStats.
+   */
+  #renderReliability(users) {
+    const scored = users.filter((u) => u.validator_reliability !== null && u.validator_reliability !== undefined);
+    const summary = document.getElementById('dq-reliability-summary');
+    const chart = document.getElementById('dq-reliability');
+    if (!scored.length) {
+      summary.textContent = '';
+      chart.innerHTML = '<p class="dq-empty">No validator has a score yet.</p>';
+      return;
+    }
+    const graded = scored.reduce((sum, u) => sum + u.validations_graded, 0);
+    const matched = scored.reduce((sum, u) => sum + u.validations_matched, 0);
+    summary.textContent = `${scored.length.toLocaleString()} validators scored · `
+      + `${graded.toLocaleString()} validations checked · ${DataQualityPage.#pct(matched / graded)} matched`;
+
+    const counts = DataQualityPage.#RELIABILITY_BANDS.map(() => 0);
+    for (const u of scored) {
+      counts[DataQualityPage.#RELIABILITY_BANDS.findIndex(([low]) => u.validator_reliability >= low)] += 1;
+    }
+    const max = Math.max(...counts);
+    chart.innerHTML = DataQualityPage.#RELIABILITY_BANDS.map(([, label], i) => `
+      <div class="dq-tag-row">
+        <span class="dq-tag-name">${util.escapeHTML(label)}</span>
+        <div class="dq-bar-track">
+          <div class="dq-bar dq-bar-agree" style="width:${(counts[i] / max) * 100}%"></div>
+        </div>
+        <span class="dq-tag-count">${counts[i].toLocaleString()}</span>
+      </div>`).join('');
   }
 
   /** Tag usage: a small-multiple — one mini ranked horizontal bar chart of top tags per label type. */

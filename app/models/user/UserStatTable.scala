@@ -27,8 +27,15 @@ case class UserStat(
     accuracy: Option[Double],
     excluded: Boolean,
     onLeaderboard: Boolean,
-    publicProfile: Boolean
+    publicProfile: Boolean,
+    validationsGraded: Int,
+    validationsMatched: Int,
+    validatorReliability: Option[Double],
+    validatorReliabilityUpdatedAt: Option[OffsetDateTime]
 )
+
+/** One validator's graded votes (#5063): how many had an answer to check against, and how many matched it. */
+case class ValidatorTally(userId: String, graded: Int, matched: Int, isAi: Boolean)
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 object LabelTypeStat {
@@ -189,10 +196,17 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def excluded: Rep[Boolean]                  = column[Boolean]("excluded", O.Default(false))
   def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
   def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
+  // CHECKs in the DB: matched never passes graded, and the reliability is null exactly when nothing is graded.
+  def validationsGraded: Rep[Int]                                = column[Int]("validations_graded", O.Default(0))
+  def validationsMatched: Rep[Int]                               = column[Int]("validations_matched", O.Default(0))
+  def validatorReliability: Rep[Option[Double]]                  = column[Option[Double]]("validator_reliability")
+  def validatorReliabilityUpdatedAt: Rep[Option[OffsetDateTime]] =
+    column[Option[OffsetDateTime]]("validator_reliability_updated_at")
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
-      excluded, onLeaderboard, publicProfile).mapTo[UserStat]
+      excluded, onLeaderboard, publicProfile, validationsGraded, validationsMatched, validatorReliability,
+      validatorReliabilityUpdatedAt).mapTo[UserStat]
 
   def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def userUnique = index("user_stat_user_id_key", userId, unique = true)
@@ -233,6 +247,9 @@ class UserStatTable @Inject() (
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
+  private given validatorTallyConverter: GetResult[ValidatorTally] =
+    r => ValidatorTally(r.nextString(), r.nextInt(), r.nextInt(), r.nextBoolean())
+
   private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
     r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt())
 
@@ -269,6 +286,9 @@ class UserStatTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextDoubleOption(),
       // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
       LabelType.ordered.map { lt => lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()) }.toMap
     )
@@ -462,6 +482,110 @@ class UserStatTable @Inject() (
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
+  }.transactionally
+
+  /**
+   * Grades every Agree or Disagree vote that has an answer to check against, and tallies them per validator (#5063).
+   *
+   * The answer for a vote is the first of these that exists:
+   *  1. Disagree, if the label is a training example (#1445). Answers given to an example while training count too.
+   *  2. What the admins who voted on the label said, the validator's own vote left out.
+   *  3. What most of the other votes on the label said, the validator's own vote left out.
+   * A tie gives no answer. Only votes that count toward a label's verdict are used, so excluded users grade no one.
+   * Neither do the AI's Disagree votes until they are cleaned up (#5974), though they are graded themselves.
+   *
+   * @return One row per validator with at least one graded vote.
+   */
+  def validatorTallies: DBIO[Seq[ValidatorTally]] = {
+    val adminRoles = Role.ADMIN_ROLES.map(role => s"'${role.name}'").mkString(", ")
+    sql"""
+      WITH votes AS (
+          SELECT label_validation.label_id, label_validation.user_id,
+                 label_validation.validation_result::text AS vote,
+                 COALESCE(user_role.role = '#${Role.Ai.name}', FALSE) AS is_ai,
+                 COALESCE(user_role.role IN (#$adminRoles), FALSE) AS is_admin
+          FROM #${FilteredTables.verdictVotes()}
+          LEFT JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+          WHERE label_validation.validation_result <> 'Unsure'
+      ), label_counts AS (
+          SELECT label_id,
+                 COUNT(*) FILTER (WHERE vote = 'Agree') AS agrees,
+                 COUNT(*) FILTER (WHERE vote = 'Disagree' AND NOT is_ai) AS disagrees,
+                 COUNT(*) FILTER (WHERE vote = 'Agree' AND is_admin) AS admin_agrees,
+                 COUNT(*) FILTER (WHERE vote = 'Disagree' AND is_admin) AS admin_disagrees
+          FROM votes
+          GROUP BY label_id
+      ), others AS (
+          -- Each vote beside the counts of everyone else's votes on its label.
+          SELECT votes.user_id, votes.vote, votes.is_ai, votes.label_id,
+                 label_counts.agrees - (votes.vote = 'Agree')::int AS agrees,
+                 label_counts.disagrees - (votes.vote = 'Disagree' AND NOT votes.is_ai)::int AS disagrees,
+                 label_counts.admin_agrees - (votes.vote = 'Agree' AND votes.is_admin)::int AS admin_agrees,
+                 label_counts.admin_disagrees - (votes.vote = 'Disagree' AND votes.is_admin)::int AS admin_disagrees
+          FROM votes
+          INNER JOIN label_counts ON votes.label_id = label_counts.label_id
+      ), graded AS (
+          SELECT others.user_id, others.vote, others.is_ai,
+                 CASE WHEN gold_example.label_id IS NOT NULL THEN 'Disagree'
+                      WHEN others.admin_agrees > others.admin_disagrees THEN 'Agree'
+                      WHEN others.admin_agrees < others.admin_disagrees THEN 'Disagree'
+                      WHEN others.agrees > others.disagrees THEN 'Agree'
+                      WHEN others.agrees < others.disagrees THEN 'Disagree'
+                 END AS answer
+          FROM others
+          LEFT JOIN gold_example ON others.label_id = gold_example.label_id
+          UNION ALL
+          SELECT gold_example_response.user_id, gold_example_response.validation_result::text,
+                 COALESCE(user_role.role = '#${Role.Ai.name}', FALSE), 'Disagree'
+          FROM gold_example_response
+          LEFT JOIN sidewalk_login.user_role ON gold_example_response.user_id = user_role.user_id
+          WHERE gold_example_response.validation_result IN ('Agree', 'Disagree')
+              AND #${FilteredTables.userCounts(None, "gold_example_response.user_id", Contributors.NotExcluded)}
+      )
+      SELECT user_id, COUNT(*), COUNT(*) FILTER (WHERE vote = answer), BOOL_OR(is_ai)
+      FROM graded
+      WHERE answer IS NOT NULL
+      GROUP BY user_id""".as[ValidatorTally]
+  }
+
+  /**
+   * Recomputes every validator's tally and reliability (#5063), writing only the rows whose numbers moved.
+   * @return The number of users whose row was updated.
+   */
+  def updateValidatorReliability(): DBIO[Int] = {
+    // Close enough to call a reliability unchanged, so the city's rate drifting a hair doesn't rewrite every row.
+    def rounded(reliability: Option[Double]): Option[Long] = reliability.map(r => math.round(r * 1000))
+    for {
+      tallies <- validatorTallies
+      stored  <- userStats
+        .filter(_.validationsGraded > 0)
+        .map(u => (u.userId, (u.validationsGraded, u.validationsMatched, u.validatorReliability)))
+        .result
+        .map(_.toMap)
+      // The city's rate is the people's; the AI's huge vote count would otherwise drown them out.
+      people        = if (tallies.exists(!_.isAi)) tallies.filterNot(_.isAi) else tallies
+      cityMatchRate = people.map(_.matched).sum.toDouble / math.max(1, people.map(_.graded).sum)
+      fresh         = tallies.map { t =>
+        t.userId -> (t.graded, t.matched, ValidatorReliability.score(t.matched, t.graded, cityMatchRate))
+      }.toMap
+      // Someone whose graded votes all went away (deleted, or their voters excluded) is reset to nothing graded.
+      changed = (fresh.keySet ++ stored.keySet).toSeq.flatMap { userId =>
+        val (graded, matched, reliability) = fresh.getOrElse(userId, (0, 0, None))
+        val unchanged                      = stored.get(userId).exists { case (oldGraded, oldMatched, oldReliability) =>
+          oldGraded == graded && oldMatched == matched && rounded(oldReliability) == rounded(reliability)
+        }
+        Option.unless(unchanged)((userId, graded, matched, reliability))
+      }
+      now = OffsetDateTime.now
+      updated <- DBIO.sequence(changed.map { case (userId, graded, matched, reliability) =>
+        userStats
+          .filter(_.userId === userId)
+          .map(u =>
+            (u.validationsGraded, u.validationsMatched, u.validatorReliability, u.validatorReliabilityUpdatedAt)
+          )
+          .update((graded, matched, reliability, Some(now)))
+      })
+    } yield updated.sum
   }.transactionally
 
   /**
@@ -1181,6 +1305,9 @@ class UserStatTable @Inject() (
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
              COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
+             user_stat.validations_graded,
+             user_stat.validations_matched,
+             user_stat.validator_reliability,
              #$labelTypeSelectCols
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id

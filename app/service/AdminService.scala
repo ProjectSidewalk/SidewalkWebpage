@@ -914,6 +914,7 @@ class AdminServiceImpl @Inject() (
         _lpm        <- userStatTable.updateLabelsPerMeter(cutoffTime)
         _a          <- userStatTable.updateAccuracy(Seq())
         rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
+        _vr         <- userStatTable.updateValidatorReliability()
       } yield rowsUpdated
     )
   }

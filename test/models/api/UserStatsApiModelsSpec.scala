@@ -32,8 +32,16 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     highQualityManual = None, labelAccuracy = Some(0.95), validatedLabels = 50, validationsReceived = 60,
     labelsValidatedCorrect = 40, labelsValidatedIncorrect = 10, labelsNotValidated = 50, validationsGiven = 20,
     dissentingValidationsGiven = 2, agreeValidationsGiven = 15, disagreeValidationsGiven = 3,
-    unsureValidationsGiven = 2, statsByLabelType = sampleStatsByLabelType
+    unsureValidationsGiven = 2, validationsGraded = 16, validationsMatched = 12, validatorReliability = Some(0.7),
+    statsByLabelType = sampleStatsByLabelType
   )
+
+  test("UserStatForApi derives validation_agreement from the graded and matched counts") {
+    (sampleUserStat.toJson \ "validation_agreement").as[Double] shouldBe 0.75
+    val ungraded = sampleUserStat.copy(validationsGraded = 0, validationsMatched = 0, validatorReliability = None)
+    (ungraded.toJson \ "validation_agreement").get shouldBe JsNull
+    (ungraded.toJson \ "validator_reliability").get shouldBe JsNull
+  }
 
   test("UserStatForApi JSON uses snake_case keys and a nested per-label-type breakdown") {
     val json = sampleUserStat.toJson
