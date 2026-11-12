@@ -61,6 +61,22 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
+      # Compiled code only; the rest of target/ is gigabytes of copied static files. This job never restores it, so
+      # the compile gate stays a full build; the other sbt jobs restore it on PRs (#5972).
+      - name: Save compiled Scala
+        uses: actions/cache/save@v6
+        with:
+          path: &scala-cache-paths |
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/scoverage-data/scoverage.coverage
+            project/target
+          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**') }}
+
       # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
       # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
@@ -261,6 +277,15 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
+          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-
+
       - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
@@ -329,6 +354,13 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-coverage-cache-key
+
       # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
       # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
       # one definition of the test city.
@@ -372,12 +404,14 @@ jobs:
       # failure that actually needs fixing.
       #
       # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
-      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # data dir is empty, and the compiler deletes the measurements on every instrumented compile — so anything that
       # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
+          # Measurements are never cached, so finding them proves this run's specs ran under coverage.
           test -s target/scala-*/scoverage-data/scoverage.coverage \
+            && ls target/scala-*/scoverage-data/scoverage.measurements.* > /dev/null 2>&1 \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -444,6 +478,15 @@ jobs:
 
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
+
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-cache-key
+          restore-keys: scala-${{ hashFiles('build.sbt', 'project/*.*') }}-
 
       - name: Set up Node 26
         uses: actions/setup-node@v7
