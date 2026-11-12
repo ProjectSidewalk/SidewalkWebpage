@@ -9,7 +9,9 @@ phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js
 community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
 `a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
 (#5060). It also holds interaction specs, which every new or changed interaction on a pano page needs (see
-"Pano pages" below).
+"Pano pages" below). One spec checks content rather than errors: `api-docs-streets-grade.spec.js` requires the
+Streets API docs' field table to list exactly the properties `/v3/api/streets` serves, its street-grade rows
+included (#5431).
 
 ## Running locally
 
