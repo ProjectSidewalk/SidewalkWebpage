@@ -279,6 +279,26 @@ export class NavigationService {
   }
 
   /**
+   * Free exploration's step off a pano with no links, down the street toward either end (#5968).
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {Promise<string|null|void>} The new pano id; null if nothing loaded; undefined if they can't walk now.
+   */
+  async moveAlongStreet(towardEnd) {
+    if (!this.canWalk()) return undefined;
+    this.#updateUiBeforeMove();
+    let panoId;
+    try {
+      panoId = await this.#streetSweep.stepAlongStreet(towardEnd);
+    } catch (err) {
+      this.#restoreUiAfterFailedMove();
+      throw err;
+    }
+    if (panoId) this.#updateUiAfterMove();
+    else this.#restoreUiAfterFailedMove();
+    return panoId;
+  }
+
+  /**
    * Starts a move, runs `switchStreet`, then searches the new street. Allowed under a walking hold (finishing a
    * street can open the sign-in prompt), but not mid-move or just after one, so a double-click can't skip the prompt.
    * @param {() => void} switchStreet - Finishes the street being left and makes the next one current.

@@ -45,6 +45,9 @@ export class NavArrows {
   /** @type {Array<() => void>} */
   #routeForwardClickListeners = [];
 
+  /** @type {Array<(towardEnd: boolean) => void>} */
+  #streetWalkClickListeners = [];
+
   /** @type {Array<(target: ?ArrowTarget) => void>} */
   #hoverListeners = [];
 
@@ -78,6 +81,9 @@ export class NavArrows {
         this.#linkClickListeners.forEach((listener) => listener(targetPanoId));
       } else if (target.classList.contains('route-forward-arrow')) {
         this.#routeForwardClickListeners.forEach((listener) => listener());
+      } else if (target.classList.contains('street-walk-arrow')) {
+        const towardEnd = target.getAttribute('toward') === 'end';
+        this.#streetWalkClickListeners.forEach((listener) => listener(towardEnd));
       }
     });
 
@@ -106,6 +112,14 @@ export class NavArrows {
    */
   onRouteForwardClick(listener) {
     this.#routeForwardClickListeners.push(listener);
+  }
+
+  /**
+   * Told when a free-exploration arrow down the street is clicked (#5968), and which end of the street it faces.
+   * @param {(towardEnd: boolean) => void} listener
+   */
+  onStreetWalkClick(listener) {
+    this.#streetWalkClickListeners.push(listener);
   }
 
   /**
@@ -138,8 +152,8 @@ export class NavArrows {
    * link to the walk's landing, else a synthesized arrow aimed at the landing (down the street when none is known).
    * On an ended street only a landing further down it is blue: the nearest link can pace between its last panos.
    *
-   * Free exploration has no route, so nothing is blue there, except that a pano with no links gets the synthesized
-   * arrow down the street: providers return some reachable panos that way, with no other visible way out (#5968).
+   * Free exploration has no route, so nothing is blue there. A pano with no links gets a plain arrow each way down
+   * the street instead: providers return some reachable panos that way, with no other visible way out (#5968).
    */
   reset() {
     while (this.#group.firstChild) {
@@ -163,10 +177,6 @@ export class NavArrows {
       if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
     }
 
-    if (links.length === 0 && this.#config.isExploreAddressMode && this.#isEnRoute()) {
-      synthesizedHeading = this.#streetHeading();
-    }
-
     links.forEach((link, i) => {
       const arrow = i === blueIndex ? NavArrows.#createForwardArrow() : NavArrows.#createArrow();
       arrow.setAttribute('transform', `translate(15, 0) rotate(${(link.heading + 360) % 360}, 15, 30)`);
@@ -179,6 +189,16 @@ export class NavArrows {
       arrow.classList.add('route-forward-arrow');
       arrow.setAttribute('transform', `translate(15, 0) rotate(${synthesizedHeading}, 15, 30)`);
       this.#group.appendChild(arrow);
+    }
+
+    if (links.length === 0) {
+      this.#streetWalkHeadings().forEach(({ towardEnd, heading }) => {
+        const arrow = NavArrows.#createArrow();
+        arrow.classList.add('street-walk-arrow');
+        arrow.setAttribute('toward', towardEnd ? 'end' : 'start');
+        arrow.setAttribute('transform', `translate(15, 0) rotate(${heading}, 15, 30)`);
+        this.#group.appendChild(arrow);
+      });
     }
 
     this.rotate(this.#panoManager.getPov().heading);
@@ -220,19 +240,31 @@ export class NavArrows {
    */
   #routeForwardHeading() {
     if (this.#config.isExploreAddressMode || this.#config.isOnboarding) return null;
-    return this.#streetHeading();
-  }
-
-  /**
-   * @returns {?number} Degrees from true north down the current street; null with no task or geometry not ready.
-   */
-  #streetHeading() {
     const task = this.#taskContainer.getCurrentTask();
     if (!this.#taskContainer.tasksLoaded() || !task) return null;
     try {
       return task.headingAlongRoute(this.#panoManager.getPosition());
     } catch {
       return null; // Route geometry not ready yet (e.g. mid-initialization).
+    }
+  }
+
+  /**
+   * Which ways free exploration can step down the street the labeler stands on (#5968).
+   * @returns {Array<{towardEnd: boolean, heading: number}>} Empty outside free exploration, off the street, or with
+   *   no street ready; one entry short at a street's end, where no street is left that way.
+   */
+  #streetWalkHeadings() {
+    const task = this.#taskContainer.getCurrentTask();
+    if (!this.#config.isExploreAddressMode || !this.#taskContainer.tasksLoaded() || !task) return [];
+    const position = this.#panoManager.getPosition();
+    try {
+      if (!task.isNearRoute(position)) return [];
+      return [true, false]
+        .map((towardEnd) => ({ towardEnd, heading: task.headingAlongStreet(position, towardEnd) }))
+        .filter(({ heading }) => heading !== null);
+    } catch {
+      return []; // Street geometry not ready yet (e.g. mid-initialization).
     }
   }
 

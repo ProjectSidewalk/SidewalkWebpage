@@ -45,7 +45,10 @@ describe('NavigationService', () => {
       setPov: vi.fn(),
     });
     panoStore = { getPanoData: (panoId) => ({ panoId }) };
-    streetSweep = { sweep: vi.fn(() => Promise.resolve({ outcome: 'landed', panoId: 'pano-next' })) };
+    streetSweep = {
+      sweep: vi.fn(() => Promise.resolve({ outcome: 'landed', panoId: 'pano-next' })),
+      stepAlongStreet: vi.fn(() => Promise.resolve('pano-next')),
+    };
     navArrows = { show: vi.fn(), hide: vi.fn(), reset: vi.fn() };
     keyboardLock = fakeGate();
     alertController = { showAlert: vi.fn() };
@@ -313,6 +316,36 @@ describe('NavigationService', () => {
       streetSweep.sweep.mockResolvedValueOnce({ outcome: 'walkedOut' });
       await expect(nav.moveForward()).resolves.toBeNull();
       expect(landed).toHaveBeenCalledTimes(1);
+    });
+
+    test('free exploration\'s step either way lands as a move, and says which pano', async () => {
+      const landed = vi.fn();
+      nav.onLanded(landed);
+      await expect(nav.moveAlongStreet(false)).resolves.toBe('pano-next');
+      expect(streetSweep.stepAlongStreet).toHaveBeenCalledWith(false);
+      expect(landed).toHaveBeenCalledTimes(1);
+    });
+
+    test('a step that finds nothing hands the controls back without a landing', async () => {
+      const landed = vi.fn();
+      nav.onLanded(landed);
+      streetSweep.stepAlongStreet.mockResolvedValueOnce(null);
+      await expect(nav.moveAlongStreet(true)).resolves.toBeNull();
+      expect(landed).not.toHaveBeenCalled();
+      expect(nav.canWalk()).toBe(true);
+      expect(keyboardLock.release).toHaveBeenCalledWith('move');
+    });
+
+    test('a step that throws hands the controls back and rethrows', async () => {
+      streetSweep.stepAlongStreet.mockRejectedValueOnce(new Error('provider down'));
+      await expect(nav.moveAlongStreet(true)).rejects.toThrow('provider down');
+      expect(nav.canWalk()).toBe(true);
+    });
+
+    test('a step is refused while walking is held', async () => {
+      nav.walking.hold('popup');
+      await expect(nav.moveAlongStreet(true)).resolves.toBeUndefined();
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
     });
 
     test('to the next street, a switch that throws unlocks everything and rethrows', async () => {

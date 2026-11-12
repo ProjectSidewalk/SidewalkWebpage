@@ -174,16 +174,45 @@ describe('NavArrows', () => {
     });
 
     describe('free exploration on a pano with no links (#5968)', () => {
+      const streetArrows = () => [...group.querySelectorAll('.street-walk-arrow')];
+
       beforeEach(() => {
         config.isExploreAddressMode = true;
         viewer.links = [];
+        // The street runs east; the labeler stands partway down it.
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? 90 : 270));
       });
 
-      test('a blue arrow points down the street, as the only way out', () => {
+      test('a plain arrow points each way down the street, as the only ways out', () => {
         arrows.reset();
-        expect(images()).toEqual([synthesized()]);
-        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(90, 15, 30)');
-        expect(synthesized().hasAttribute('pano-id')).toBe(false);
+        expect(images()).toEqual(streetArrows());
+        expect(streetArrows().map((arrow) => [arrow.getAttribute('toward'), arrow.getAttribute('transform')]))
+          .toEqual([['end', 'translate(15, 0) rotate(90, 15, 30)'], ['start', 'translate(15, 0) rotate(270, 15, 30)']]);
+        expect(forwardArrows()).toEqual([]);
+        expect(images().some((image) => image.hasAttribute('pano-id'))).toBe(false);
+      });
+
+      test('at an end of the street only the arrow back down it is drawn', () => {
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? null : 270));
+        arrows.reset();
+        expect(streetArrows().map((arrow) => arrow.getAttribute('toward'))).toEqual(['start']);
+      });
+
+      test('a click says which end of the street the arrow faces', () => {
+        const streetWalkClicks = vi.fn();
+        const routeForwardClicks = vi.fn();
+        arrows.onStreetWalkClick(streetWalkClicks);
+        arrows.onRouteForwardClick(routeForwardClicks);
+        arrows.reset();
+        streetArrows().forEach((arrow) => fire(arrow, 'click'));
+        expect(streetWalkClicks.mock.calls).toEqual([[true], [false]]);
+        expect(routeForwardClicks).not.toHaveBeenCalled();
+      });
+
+      test('a pano with any link keeps only its link arrows', () => {
+        viewer.links = [{ panoId: 'pano-north', heading: 0 }];
+        arrows.reset();
+        expect(images().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
       });
 
       test.each([
@@ -192,7 +221,7 @@ describe('NavArrows', () => {
         ['standing off the street', () => task.isNearRoute.mockReturnValue(false)],
         [
           'street geometry not ready',
-          () => task.headingAlongRoute.mockImplementation(() => { throw new Error('no geometry'); }),
+          () => task.headingAlongStreet.mockImplementation(() => { throw new Error('no geometry'); }),
         ],
       ])('nothing is drawn with no street to walk: %s', (_name, arrange) => {
         arrange();

@@ -406,6 +406,16 @@ export class Main {
         .then(() => tracker.push('RouteForwardArrow_Success'))
         .catch(() => tracker.push('RouteForwardArrow_PanoNotAvailable'));
     });
+    navArrows.onStreetWalkClick((towardEnd) => {
+      const notes = { toward: towardEnd ? 'end' : 'start' };
+      tracker.push('Click_StreetWalkArrow', notes);
+      navigationService.moveAlongStreet(towardEnd)
+        .then((panoId) => {
+          if (panoId) tracker.push('StreetWalkArrow_Success', notes);
+          else if (panoId === null) tracker.push('StreetWalkArrow_PanoNotAvailable', notes);
+        })
+        .catch(() => tracker.push('StreetWalkArrow_PanoNotAvailable', notes));
+    });
     navArrows.reset();
     const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, streetProgress,
       stuckAlert, tracker);

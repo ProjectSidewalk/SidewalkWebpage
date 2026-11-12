@@ -763,6 +763,47 @@ export class Task {
   }
 
   /**
+   * The street from where a position falls on it to one of its ends, whatever has been walked: free exploration
+   * steps along a street either way (#5968), where unwalkedRemainder() only leads on from the furthest point.
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>} Starts at the position's nearest point on the street.
+   */
+  streetFrom(latLng, towardEnd) {
+    const coords = this.#geojson.geometry.coordinates;
+    const farEnd = turf.point(towardEnd ? coords[coords.length - 1] : coords[0]);
+    const stretch = turf.lineSlice(turf.point([latLng.lng, latLng.lat]), farEnd, this.#geojson);
+    // lineSlice keeps the street's own order, whichever point is named first.
+    if (!towardEnd) stretch.geometry.coordinates.reverse();
+    return stretch;
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {?number} Degrees clockwise from true north to 15 m down the street that way (its end if nearer); null
+   *   when no street is left that way.
+   */
+  headingAlongStreet(latLng, towardEnd) {
+    const stretch = this.streetFrom(latLng, towardEnd);
+    const length = turf.length(stretch);
+    if (length <= 0) return null;
+    const goalLoc = turf.along(stretch, Math.min(0.015, length)).geometry.coordinates;
+    return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
+  }
+
+  /**
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} stretch - From streetFrom().
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there goes down the stretch: MIN_STEP_ADVANCE_M or more from its start. A pano
+   *   behind or beside the start falls on the start itself.
+   */
+  static isStepDown(stretch, latLng) {
+    const snapped = turf.nearestPointOnLine(stretch, turf.point([latLng.lng, latLng.lat]), { units: 'meters' });
+    return snapped.properties.location >= Task.MIN_STEP_ADVANCE_M;
+  }
+
+  /**
    * Whether a position is close enough to this street to count as on its route.
    * @param {{lat: number, lng: number}} latLng
    * @returns {boolean}

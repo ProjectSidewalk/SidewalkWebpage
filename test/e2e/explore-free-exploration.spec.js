@@ -1,15 +1,15 @@
 /**
- * Free exploration's way out of a pano with no links (#5968). The Maps stub answers every pano with no links and mints
- * one wherever a location search asks, so any drop-in lands link-less and the arrow's walk always finds a pano ahead.
+ * Free exploration's ways out of a pano with no links (#5968). The Maps stub answers every pano with no links and mints
+ * one wherever a location search asks, so any drop-in lands link-less and a step down the street always finds a pano.
  */
 const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
 
-test('a free-exploration pano with no links offers a forward arrow that walks the street', async ({page, context,
+test('a free-exploration pano with no links offers an arrow each way down the street', async ({page, context,
   consoleErrors}) => {
   await stubMapbox(context);
 
   // Inside a street's first segment, so the drop-in resolves to that street and not one it meets; a segment long
-  // enough (about 55 m of latitude or more of longitude) that the walk has street left to step along.
+  // enough (about 55 m of latitude or more of longitude) that there is street to step along both ways.
   const streets = await (await page.request.get('/v3/api/streets')).json();
   const coords = streets.features.map((f) => f.geometry.coordinates)
     .find(([a, b]) => Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.0005);
@@ -29,12 +29,13 @@ test('a free-exploration pano with no links offers a forward arrow that walks th
   // A first-time labeler's start pop-up holds walking, and the arrows with it, until it is closed.
   await page.locator('#pop-up-message-button-holder button').click();
 
-  const arrows = page.locator('#nav-arrows-container image');
-  await expect(arrows).toHaveCount(1);
-  await expect(arrows).toHaveClass(/route-forward-arrow/);
+  const arrows = page.locator('#nav-arrows-container image.street-walk-arrow');
+  await expect(page.locator('#nav-arrows-container image')).toHaveCount(2);
+  await expect(arrows).toHaveCount(2);
 
-  await arrows.click();
-  await expect.poll(currentPano, 'the forward arrow did not move the labeler').not.toBe(startPano);
+  // Toward the street's start: the way the mission walk never goes.
+  await arrows.and(page.locator('[toward="start"]')).click();
+  await expect.poll(currentPano, 'the arrow toward the street\'s start did not move the labeler').not.toBe(startPano);
 
   expect(consoleErrors).toEqual([]);
 });
