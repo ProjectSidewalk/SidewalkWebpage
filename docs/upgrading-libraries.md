@@ -27,15 +27,15 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Node (+ npm) | **26.x** (npm ≥ 11) | 26.x (checked 2026-10-30) | Apr 2029 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
 | Python | **3.12** (noble's `python3`; prod's `python3.12`) | 3.14.7 | Oct 2028 | web base image ([details](#interpreter)), `ci.yml` |
 | web image | **`eclipse-temurin:21-jdk-noble`** | noble | Apr 2029 (Ubuntu 24.04) | `Dockerfile` |
-| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.6 (pinned) | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
+| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.7 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **The base image's Ubuntu release picks the Python.** Noble's `python3` is 3.12, chosen to match the `python3.12`
   prod's app shells out to ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)); a later Ubuntu
   would move it, so the two change together. Noble's glibc (2.39) also lets sbt's native client run in the container
   (#5268).
-- **The db image updates by rebuilding.** Everything comes from PGDG, prod's source too (#5970). PostGIS is pinned to
-  prod's minor (`POSTGIS_MINOR` in `db/Dockerfile`).
+- **The db image updates by rebuilding** (`docker compose build --pull --no-cache db`). Postgres and PostGIS come from
+  PGDG, prod's source too (#5970). PostGIS is pinned to prod's minor (`POSTGIS_MINOR` in `db/Dockerfile`).
 - **Java 21** everywhere, prod included (`sidewalk-tools/conf/server.conf` pins `java_sdk_21`, Rocky's
   `java-21-openjdk-devel`). A Java move changes there, in the base image, `build.sbt` and `ci.yml` together, and
   prod has to have the JDK first ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)).
