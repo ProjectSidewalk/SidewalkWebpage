@@ -70,8 +70,8 @@ jobs:
             target/scala-*/test-classes/**/*.tasty
             target/scala-*/scoverage-data/scoverage.coverage
             project/target
-          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/**') }}-${{ hashFiles('app/**', 'conf/**') }}
-          restore-keys: &scala-cache-prefix scala-${{ hashFiles('build.sbt', 'project/**') }}-
+          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**') }}
+          restore-keys: &scala-cache-prefix scala-${{ hashFiles('build.sbt', 'project/*.*') }}-
 
       # Dummy env so any config evaluation during compile has values. Compilation does not touch the database.
       - name: Compile (blocking gate)
@@ -293,8 +293,8 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: *scala-cache-paths
-          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/**') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
-          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/**') }}-
+          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
+          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-
 
       - name: Set up Node 26
         uses: actions/setup-node@v7
