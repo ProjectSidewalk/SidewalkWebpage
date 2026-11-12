@@ -169,8 +169,8 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
-On PRs the sbt jobs restore cached compiled classes, so a run only recompiles what changed. Pushes to `develop` and
-`master` build from scratch and refresh the cache (#5972).
+On PRs, `backend-tests` and `e2e-smoke` restore cached compiled classes, so they only recompile what changed. `backend`
+always compiles from scratch, so the compile gate stays a full build, and saves the cache (#5972).
 
 Parallel jobs:
 - **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in
