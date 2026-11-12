@@ -54,13 +54,21 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      # Compiled code only: the rest of target/ is copied static files, gigabytes that cost more to cache than to copy.
       - name: Cache compiled Scala
         uses: actions/cache@v6
         with:
           path: |
-            target
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/twirl
+            target/scala-*/routes
+            target/scala-*/src_managed
             project/target
-            !target/universal
           key: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
           restore-keys: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-
 
@@ -276,9 +284,17 @@ jobs:
         uses: actions/cache@v6
         with:
           path: |
-            target
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/twirl
+            target/scala-*/routes
+            target/scala-*/src_managed
             project/target
-            !target/universal
+            target/scala-*/scoverage-data
             !target/scala-*/scoverage-data/scoverage.measurements.*
           key: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
           restore-keys: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-
@@ -471,9 +487,16 @@ jobs:
         uses: actions/cache@v6
         with:
           path: |
-            target
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/twirl
+            target/scala-*/routes
+            target/scala-*/src_managed
             project/target
-            !target/universal
           key: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
           restore-keys: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-
 
