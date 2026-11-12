@@ -270,7 +270,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `label-card-paging.spec.js` | Pages Gallery's open card to the first label; Prev switches off but keeps focus (#5135) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
-| `label-card-drag.spec.js` | A drag on the label card's imagery ends when let go over a disabled paging arrow or off the imagery (#5295) |
+| `label-card-drag.spec.js` | A drag on the label card's imagery ends when let go over a disabled vote button or off the imagery (#5295) |
 | `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
 | `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |

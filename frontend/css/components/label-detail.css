@@ -1169,13 +1169,13 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__paging svg { display: block; }
 
-.label-detail__paging:not(:disabled, [aria-disabled="true"]):hover {
+.label-detail__paging:not([aria-disabled="true"]):hover {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
 }
 
 /* Arrows switch off with aria-disabled so the one just pressed keeps keyboard focus (#5135). */
-.label-detail__paging:is(:disabled, [aria-disabled="true"]) {
+.label-detail__paging[aria-disabled="true"] {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;

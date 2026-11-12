@@ -14,14 +14,19 @@ test.describe('label card drag', () => {
     await page.locator('#page-loading').waitFor({state: 'hidden'});
     const firstCard = page.locator('.gallery-card .static-gallery-image').first();
     test.skip(await firstCard.count() === 0, 'the connected database has no Gallery cards');
-    // The first card has nothing before it, so its Prev arrow is the disabled button over the imagery.
     await firstCard.click();
-    await expect(page.locator('.gallery-expanded-view .label-detail__paging--prev')).toBeDisabled();
     await expect(page.locator('.gallery-expanded-view .label-detail__pano-loading')).toBeHidden({timeout: 30_000});
   });
 
-  test('a drag let go on a disabled arrow ends', async ({page, consoleErrors}) => {
-    const released = await dragFromPano(page, page.locator('.gallery-expanded-view .label-detail__paging--prev'));
+  test('a drag let go on a disabled vote button ends', async ({page, consoleErrors}) => {
+    const overlayAgree = page.locator('.gallery-expanded-view .label-detail__pano-overlay-button--agree');
+    test.skip(await overlayAgree.evaluate((btn) => btn.parentElement.hidden), 'the first card is this user\'s label');
+    // The vote buttons stay disabled while a vote saves, so a save that never answers holds them there.
+    await page.route('**/labelmap/validate', () => {});
+    await page.locator('.gallery-expanded-view .label-detail__vote--agree').click();
+    await expect(overlayAgree).toBeDisabled();
+
+    const released = await dragFromPano(page, overlayAgree);
     expect(released.mouseup, 'GSV, Panoramax, Pannellum and the crop end a drag on mouseup').toBe('pano');
     expect(released.pointerup, 'Infra3D ends a drag on a pointerup aimed at its canvas').toBe('pano');
     expect(consoleErrors).toEqual([]);

@@ -177,7 +177,7 @@ describe('LabelPopup paging state', () => {
 
       hiddenByFilters.delete(2);
       nav.filtersChanged();
-      expect(nextBtn.hasAttribute('aria-disabled')).toBe(false);
+      expect(isOff(nextBtn)).toBe(false);
     });
 
     test('a switched-off arrow ignores clicks and Enter: no paging, no log line', async () => {
