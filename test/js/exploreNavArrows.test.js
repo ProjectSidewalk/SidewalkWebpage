@@ -36,6 +36,7 @@ describe('NavArrows', () => {
       getPosition: () => ({ lat: 47.6, lng: -122.3 }),
       getPov() { return { heading: this.heading, pitch: 0, zoom: 1 }; },
       getLinkedPanos() { return this.links; },
+      supportsLocationSearch: () => true,
     };
     arrows = new NavArrows(group, container, config, fakeTaskContainer(() => task, { tasksLoaded: () => tasksLoaded }),
       fakePanoManager(viewer, { onPovChanged: (listener) => { povChanged = listener; } }));
@@ -213,6 +214,13 @@ describe('NavArrows', () => {
         viewer.links = [{ panoId: 'pano-north', heading: 0 }];
         arrows.reset();
         expect(images().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
+        expect(arrows.streetWalkToward(90)).toBeNull();
+      });
+
+      test('an arrow key\'s heading picks the street arrow within 60° of it, as it would a link', () => {
+        expect(arrows.streetWalkToward(100)).toBe(true);
+        expect(arrows.streetWalkToward(250)).toBe(false);
+        expect(arrows.streetWalkToward(0)).toBeNull();
       });
 
       test.each([
@@ -223,10 +231,12 @@ describe('NavArrows', () => {
           'street geometry not ready',
           () => task.headingAlongStreet.mockImplementation(() => { throw new Error('no geometry'); }),
         ],
+        ['a viewer that cannot search the street for a pano', () => { viewer.supportsLocationSearch = () => false; }],
       ])('nothing is drawn with no street to walk: %s', (_name, arrange) => {
         arrange();
         arrows.reset();
         expect(images()).toEqual([]);
+        expect(arrows.streetWalkToward(90)).toBeNull();
       });
 
       test.each([

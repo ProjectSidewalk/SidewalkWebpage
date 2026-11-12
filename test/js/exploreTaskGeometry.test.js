@@ -123,6 +123,73 @@ describe('Task geometry', () => {
     });
   });
 
+  describe('the street either way from where the labeler stands (#5968)', () => {
+    const meters = { units: 'meters' };
+    const metersBetween = (a, b) => turf.distance(turf.point(a), turf.point(b), meters);
+    const lngLat = ({ lat, lng }) => [lng, lat];
+
+    it.each([
+      ['a two-point street', straightStreet(START, 100)],
+      ['a street with a vertex either side', [0, 30, 80, 100].map((m) => straightStreet(START, m || 0.001)[m ? 1 : 0])],
+    ])('on %s, each stretch starts where they stand and runs to its own end', (_name, street) => {
+      const task = new Task(feature(street), COVERAGE, false);
+      const at = standingAt(street, 60, 3);
+      const onStreet = lngLat(standingAt(street, 60));
+
+      const toEnd = task.streetFrom(at, true);
+      expect(metersBetween(toEnd.geometry.coordinates[0], onStreet)).toBeLessThan(0.5);
+      expect(turf.length(toEnd, meters)).toBeCloseTo(40, 0);
+      expect(task.headingAlongStreet(at, true)).toBeCloseTo(90 + 11.3, 0);
+
+      const toStart = task.streetFrom(at, false);
+      expect(metersBetween(toStart.geometry.coordinates[0], onStreet)).toBeLessThan(0.5);
+      expect(metersBetween(toStart.geometry.coordinates.at(-1), street[0])).toBeLessThan(0.5);
+      expect(turf.length(toStart, meters)).toBeCloseTo(60, 0);
+      expect(task.headingAlongStreet(at, false)).toBeCloseTo(270 - 11.3, 0);
+    });
+
+    it('close to the start, the arrow back still points at the start, not across the street', () => {
+      const street = straightStreet(START, 100);
+      const task = new Task(feature(street), COVERAGE, false);
+      expect(task.headingAlongStreet(standingAt(street, 5), false)).toBeCloseTo(270, 0);
+    });
+
+    it('on a loop, whose ends are one point, each stretch still starts where they stand', () => {
+      const corner = (east, north) => turf.destination(
+        turf.destination(turf.point(START), east / 1000, 90), north / 1000, 0,
+      ).geometry.coordinates;
+      const loop = [START, corner(50, 0), corner(50, 50), corner(0, 50), START];
+      const task = new Task(feature(loop), COVERAGE, false);
+      const at = { lng: corner(50, 25)[0], lat: corner(50, 25)[1] }; // Halfway up the east side.
+
+      expect(task.headingAlongStreet(at, true)).toBeCloseTo(0, 0);
+      expect(turf.length(task.streetFrom(at, true), meters)).toBeCloseTo(125, 0);
+      expect(task.headingAlongStreet(at, false)).toBeCloseTo(180, 0);
+      expect(turf.length(task.streetFrom(at, false), meters)).toBeCloseTo(75, 0);
+    });
+
+    it.each([
+      ['at the end', 100], ['a metre short of the end', 99], ['past the end', 110],
+    ])('offers no way toward the end %s, where no pano could count as a step', (_name, alongM) => {
+      const street = straightStreet(START, 100);
+      const task = new Task(feature(street), COVERAGE, false);
+      const at = standingAt(street, alongM);
+      expect(task.headingAlongStreet(at, true)).toBeNull();
+      expect(task.headingAlongStreet(at, false)).toBeCloseTo(270, 0);
+      expect(turf.length(task.streetFrom(standingAt(street, 110), true))).toBe(0);
+    });
+
+    it('counts a pano as a step only from two metres down the stretch; behind or beside is none', () => {
+      const street = straightStreet(START, 100);
+      const task = new Task(feature(street), COVERAGE, false);
+      const toStart = task.streetFrom(standingAt(street, 60), false);
+      expect(Task.isStepDown(toStart, standingAt(street, 50))).toBe(true);
+      expect(Task.isStepDown(toStart, standingAt(street, 59))).toBe(false);
+      expect(Task.isStepDown(toStart, standingAt(street, 70))).toBe(false);
+      expect(Task.isStepDown(toStart, standingAt(street, 60, 8))).toBe(false);
+    });
+  });
+
   describe('the minimap lines of the street being walked', () => {
     const CURRENT = { exploreAddressMode: false, current: true, route: false };
 

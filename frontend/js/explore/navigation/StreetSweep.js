@@ -269,7 +269,8 @@ export class StreetSweep {
         } else if (hit) {
           await this.#panoManager.setPanorama(hit.panoId);
         } else if (viewer.findPanoNearCanMiss()) {
-          // The lookup can't be trusted to rule a point out, so the provider's own move decides.
+          // The lookup can't be trusted to rule a point out, so the provider's own move decides. Where it lands
+          // stands, even off to one side: the labeler has moved, and calling that a miss would strand them there.
           await this.#panoManager.setLocation(currLoc, excluded);
         } else {
           throw new NoImageryError(`No pano near ${currLoc.lat},${currLoc.lng}.`);

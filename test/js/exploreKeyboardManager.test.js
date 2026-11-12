@@ -43,6 +43,7 @@ describe('Explore KeyboardManager', () => {
   const navigationService = {
     canWalk: () => true,
     moveToLinkedPano: vi.fn(() => Promise.resolve(moved)),
+    moveByArrowKey: vi.fn(() => Promise.resolve({ moved, streetWalkToward: null })),
     moveForward: vi.fn(() => Promise.resolve()),
   };
   const labelModes = { switchTo: vi.fn(), backToWalk: vi.fn() };
@@ -119,11 +120,21 @@ describe('Explore KeyboardManager', () => {
       expect(panoManager.setPov).not.toHaveBeenCalled();
     });
 
-    it('steps to the linked pano ahead or behind on the up and down arrows', () => {
+    it('steps ahead or behind on the up and down arrows, logging nothing of its own for a link', async () => {
       press('ArrowUp');
-      expect(navigationService.moveToLinkedPano).toHaveBeenCalledWith(0);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(0);
       press('ArrowDown');
-      expect(navigationService.moveToLinkedPano).toHaveBeenCalledWith(180);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(180);
+      await Promise.resolve();
+      expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', expect.anything());
+    });
+
+    it('logs a step that took a free-exploration street arrow, and whether it landed (#5968)', async () => {
+      navigationService.moveByArrowKey.mockResolvedValueOnce({ moved: true, streetWalkToward: false });
+      press('ArrowDown');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', { toward: 'start', moved: true });
     });
 
     it.each([
@@ -135,7 +146,7 @@ describe('Explore KeyboardManager', () => {
       press('ArrowLeft');
       press('ArrowUp');
       expect(panoManager.setPov).not.toHaveBeenCalled();
-      expect(navigationService.moveToLinkedPano).not.toHaveBeenCalled();
+      expect(navigationService.moveByArrowKey).not.toHaveBeenCalled();
     });
   });
 

@@ -770,10 +770,14 @@ export class Task {
    * @returns {GeoJSON.Feature<GeoJSON.LineString>} Starts at the position's nearest point on the street.
    */
   streetFrom(latLng, towardEnd) {
-    const coords = this.#geojson.geometry.coordinates;
-    const farEnd = turf.point(towardEnd ? coords[coords.length - 1] : coords[0]);
-    const stretch = turf.lineSlice(turf.point([latLng.lng, latLng.lat]), farEnd, this.#geojson);
-    // lineSlice keeps the street's own order, whichever point is named first.
+    const here = turf.nearestPointOnLine(this.#geojson, turf.point([latLng.lng, latLng.lat]));
+    const length = turf.length(this.#geojson);
+    const at = Math.min(Math.max(here.properties.location, 0), length);
+    // Cut by distance along the street, not between two points: on a loop the ends are one point, and two points on
+    // one segment come back in the order named.
+    const [from, to] = towardEnd ? [at, length] : [0, at];
+    if (to - from <= 0) return turf.lineString([here.geometry.coordinates, here.geometry.coordinates]);
+    const stretch = turf.lineSliceAlong(this.#geojson, from, to);
     if (!towardEnd) stretch.geometry.coordinates.reverse();
     return stretch;
   }
@@ -782,12 +786,12 @@ export class Task {
    * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
    * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
    * @returns {?number} Degrees clockwise from true north to 15 m down the street that way (its end if nearer); null
-   *   when no street is left that way.
+   *   when too little street is left that way for any pano to count as a step down it.
    */
   headingAlongStreet(latLng, towardEnd) {
     const stretch = this.streetFrom(latLng, towardEnd);
     const length = turf.length(stretch);
-    if (length <= 0) return null;
+    if (length * 1000 < Task.MIN_STEP_ADVANCE_M) return null;
     const goalLoc = turf.along(stretch, Math.min(0.015, length)).geometry.coordinates;
     return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
   }

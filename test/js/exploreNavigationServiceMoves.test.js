@@ -49,7 +49,7 @@ describe('NavigationService', () => {
       sweep: vi.fn(() => Promise.resolve({ outcome: 'landed', panoId: 'pano-next' })),
       stepAlongStreet: vi.fn(() => Promise.resolve('pano-next')),
     };
-    navArrows = { show: vi.fn(), hide: vi.fn(), reset: vi.fn() };
+    navArrows = { show: vi.fn(), hide: vi.fn(), reset: vi.fn(), streetWalkToward: vi.fn(() => null) };
     keyboardLock = fakeGate();
     alertController = { showAlert: vi.fn() };
     mode = 'Walk';
@@ -340,6 +340,29 @@ describe('NavigationService', () => {
       streetSweep.stepAlongStreet.mockRejectedValueOnce(new Error('provider down'));
       await expect(nav.moveAlongStreet(true)).rejects.toThrow('provider down');
       expect(nav.canWalk()).toBe(true);
+    });
+
+    test('an arrow key takes a link where one lies that way, and never asks about the street', async () => {
+      viewer.links = [{ panoId: 'pano-north', heading: 0 }];
+      viewer.heading = 0;
+      await expect(nav.moveByArrowKey(0)).resolves.toEqual({ moved: true, streetWalkToward: null });
+      expect(navArrows.streetWalkToward).not.toHaveBeenCalled();
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
+    });
+
+    test('with no link that way an arrow key takes the street arrow nearest it', async () => {
+      viewer.links = [];
+      viewer.heading = 30;
+      navArrows.streetWalkToward.mockReturnValue(false);
+      await expect(nav.moveByArrowKey(180)).resolves.toEqual({ moved: true, streetWalkToward: false });
+      expect(navArrows.streetWalkToward).toHaveBeenCalledWith(210);
+      expect(streetSweep.stepAlongStreet).toHaveBeenCalledWith(false);
+    });
+
+    test('with neither a link nor a street arrow that way an arrow key goes nowhere', async () => {
+      viewer.links = [];
+      await expect(nav.moveByArrowKey(0)).resolves.toEqual({ moved: false, streetWalkToward: null });
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
     });
 
     test('a step is refused while walking is held', async () => {

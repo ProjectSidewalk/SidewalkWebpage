@@ -33,9 +33,16 @@ test('a free-exploration pano with no links offers an arrow each way down the st
   await expect(page.locator('#nav-arrows-container image')).toHaveCount(2);
   await expect(arrows).toHaveCount(2);
 
-  // Toward the street's start: the way the mission walk never goes.
+  // Toward the street's start: the way the mission walk never goes. One step from where they stand, so nearer the
+  // start than before but nowhere near it yet.
+  const position = () => page.evaluate(() => window.svl.panoManager.getPosition());
+  const degreesFromStart = ({lat: atLat, lng: atLng}) => Math.hypot(atLng - coords[0][0], atLat - coords[0][1]);
+  const before = degreesFromStart(await position());
   await arrows.and(page.locator('[toward="start"]')).click();
   await expect.poll(currentPano, 'the arrow toward the street\'s start did not move the labeler').not.toBe(startPano);
+  const after = degreesFromStart(await position());
+  expect(after).toBeLessThan(before);
+  expect(after).toBeGreaterThan(before / 2);
 
   expect(consoleErrors).toEqual([]);
 });

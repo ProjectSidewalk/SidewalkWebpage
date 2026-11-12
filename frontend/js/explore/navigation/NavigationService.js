@@ -357,6 +357,20 @@ export class NavigationService {
   }
 
   /**
+   * An arrow key's step: the linked pano nearest that way or, on a free-exploration pano with no links, down the
+   * street by the street arrow nearest it (#5968), which would otherwise be reachable by pointer only.
+   * @param {number} heading - The step's heading relative to the view, in degrees.
+   * @returns {Promise<{moved: boolean, streetWalkToward: ?boolean}>} `streetWalkToward` says which street arrow was
+   *   taken (true for the street's end); null when the step was a link's or there was none to take.
+   */
+  async moveByArrowKey(heading) {
+    if (await this.moveToLinkedPano(heading)) return { moved: true, streetWalkToward: null };
+    const towardEnd = this.#navArrows.streetWalkToward(this.#panoManager.getPov().heading + heading);
+    if (towardEnd === null || !this.canWalk()) return { moved: false, streetWalkToward: null };
+    return { moved: Boolean(await this.moveAlongStreet(towardEnd)), streetWalkToward: towardEnd };
+  }
+
+  /**
    * Move to a specific pano ID.
    * @param {string} panoId - The string ID of the pano that we want to move to.
    * @param {boolean} [force=false] - If true, force a move despite walking being disabled. Used in tutorial.

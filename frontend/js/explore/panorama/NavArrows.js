@@ -251,12 +251,13 @@ export class NavArrows {
 
   /**
    * Which ways free exploration can step down the street the labeler stands on (#5968).
-   * @returns {Array<{towardEnd: boolean, heading: number}>} Empty outside free exploration, off the street, or with
-   *   no street ready; one entry short at a street's end, where no street is left that way.
+   * @returns {Array<{towardEnd: boolean, heading: number}>} Empty outside free exploration, off the street, with no
+   *   street ready, or on a viewer that can't search the street for a pano; one entry short at a street's end.
    */
   #streetWalkHeadings() {
     const task = this.#taskContainer.getCurrentTask();
     if (!this.#config.isExploreAddressMode || !this.#taskContainer.tasksLoaded() || !task) return [];
+    if (!this.#panoManager.panoViewer.supportsLocationSearch()) return [];
     const position = this.#panoManager.getPosition();
     try {
       if (!task.isNearRoute(position)) return [];
@@ -266,6 +267,19 @@ export class NavArrows {
     } catch {
       return []; // Street geometry not ready yet (e.g. mid-initialization).
     }
+  }
+
+  /**
+   * Which street arrow a step toward a heading takes, by the rule that picks a link (ForwardCrumbs.stepLinkIndex), so
+   * the arrow keys work the street arrows as they do link arrows (#5968).
+   * @param {number} heading - The heading to step toward, degrees clockwise from north.
+   * @returns {?boolean} Toward the street's end (true) or start (false); null when no street arrow lies that way.
+   */
+  streetWalkToward(heading) {
+    if (this.#panoManager.panoViewer.getLinkedPanos().length > 0) return null;
+    const ways = this.#streetWalkHeadings();
+    const index = ForwardCrumbs.stepLinkIndex(ways, heading);
+    return index === -1 ? null : ways[index].towardEnd;
   }
 
   /** @returns {boolean} Whether the user stands close enough to the current street to count as on the route. */

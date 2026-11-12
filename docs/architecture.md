@@ -560,7 +560,8 @@ loaded by the corresponding Twirl view:
   searches down the street from where the labeler stands for the next pano that way
   (`StreetSweep.stepAlongStreet`, #5968). It reads the street's whole geometry, not the unwalked remainder the
   mission walk uses, so both directions work wherever the labeler has been. At an end of the street only the arrow
-  back down it is drawn.
+  back down it is drawn, and a viewer that can't search by location gets none. The up and down arrow keys take the
+  street arrow nearest the way they step, as they would a link.
   The order in which a neighborhood mission walks its
   streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
