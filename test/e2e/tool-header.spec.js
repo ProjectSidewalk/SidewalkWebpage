@@ -58,22 +58,29 @@ for (const tool of TOOLS) {
     const closeButton = page.locator('#filter-sidebar-close');
     const chevronBox = await closeButton.locator('img').boundingBox();
     const buttonBox = await closeButton.boundingBox();
-    expect(Math.abs(markBox.y - chevronBox.y), 'the mark starts level with the close chevron').toBeLessThanOrEqual(1);
+    expect(Math.abs(markBox.y - chevronBox.y), 'the mark starts level with the close chevron').toBeLessThan(1);
     expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(buttonBox.x);
 
     // A refetch dims the panel's controls; the logo keeps its colors and the name its contrast.
     const whileLoading = await page.locator('#filter-sidebar').evaluate((sidebar) => {
       sidebar.classList.add('filter-sidebar--loading');
       const {opacity, filter} = getComputedStyle(sidebar.querySelector('.ps-tool-header'));
+      const controls = getComputedStyle(sidebar.querySelector('#labelmap-search-section')).opacity;
       sidebar.classList.remove('filter-sidebar--loading');
-      return {opacity, filter};
+      return {opacity, filter, controls};
     });
-    expect(whileLoading).toEqual({opacity: '1', filter: 'none'});
+    expect(whileLoading).toEqual({opacity: '1', filter: 'none', controls: '0.5'});
 
     // Collapsed, the panel leaves the accessibility tree, and the page must still have its heading.
     await closeButton.click();
     await expect(header).toBeHidden();
     await expect(pageHeadings).toHaveCount(1);
     await expect(pageHeadings).toHaveText(tool.name);
+    // Read before the map, whose own controls would otherwise come ahead of the page's name.
+    const beforeMap = await pageHeadings.evaluate((h1) => {
+      const map = h1.parentElement.querySelector('.choropleth');
+      return Boolean(h1.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(beforeMap, 'the h1 precedes the map in the document').toBe(true);
   });
 }

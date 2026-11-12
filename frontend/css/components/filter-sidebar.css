@@ -41,8 +41,9 @@
   pointer-events: none;
 }
 
-/* The tool header stays as drawn: a logo is never recolored, and the name is the one thing here that isn't loading. */
-.filter-sidebar--loading > :not(.ps-tool-header) {
+/* The tool header stays as drawn: a logo is never recolored, and the name is the one thing here that isn't loading.
+   :where() keeps the rule at one class's weight, so the close button's own opacity (below) still wins. */
+.filter-sidebar--loading > :where(:not(.ps-tool-header)) {
   opacity: 0.5;
   filter: grayscale(1);
 }

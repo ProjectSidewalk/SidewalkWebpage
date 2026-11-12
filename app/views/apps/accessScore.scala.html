@@ -31,10 +31,11 @@
   </div>
   <div id="acs-map-container" class="choropleth-container">
     <div id="acs-map-holder" class="choropleth-holder" data-city-name="@currentCity.cityNameShort">
+      @* The lockup in the panel shows this name, but the panel is hidden from assistive technology while collapsed, and
+         the page's only <h1> would go with it. Ahead of the map, so it is read before the map's own controls. *@
+      <h1 class="sr-only">@views.ToolLockup.name("accessscore")</h1>
       <div id="acs-map" class="choropleth"></div>
 
-      @* Outside the panel, which is hidden from assistive technology while collapsed (see filterSidebar). *@
-      <h1 class="sr-only">@views.ToolLockup.name("accessscore")</h1>
       <div id="filter-sidebar" class="filter-sidebar ps-invisible acs-sidebar" role="complementary" aria-label="AccessScore controls" data-i18n-aria-label="accessscore:controls">
         <button type="button" id="filter-sidebar-close" class="filter-sidebar__close" aria-label="Close" data-i18n-aria-label="common:close">
           <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">

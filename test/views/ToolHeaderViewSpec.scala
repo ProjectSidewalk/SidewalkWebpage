@@ -70,9 +70,5 @@ class ToolHeaderViewSpec extends SidewalkSpec with ViewSpecFixtures {
       an[IllegalArgumentException] must be thrownBy ToolLockup.name("validate")
       an[IllegalArgumentException] must be thrownBy ToolLockup.mark("validate")
     }
-
-    "give a map page's own h1 the name its lockup shows" in {
-      for (tool <- tools) ToolLockup.name(tool) mustBe nameIn(render(tool, asHeading = false))
-    }
   }
 }

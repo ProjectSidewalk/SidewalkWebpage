@@ -61,8 +61,9 @@ These apply across every language in the repo.
   is the one size on the page that doesn't say what it renders at.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
-  `--text-small-accent`, `--text-tool-name`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
-  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
+  `--text-small-accent`, `--text-tool-name`). Raleway defaults to old-style (text) figures — digits vary in height and
+  3/4/5/7/9 descend below the baseline — so any text containing digits (counts, timers, stats, dates) must use a
+  primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 
@@ -252,8 +253,9 @@ Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/l
   that tool's left sidebar. Don't assemble the pair by hand: the component is what keeps the size, face
   (`--text-tool-name`, Raleway ExtraBold) and spacing the same on all four pages.
 - **The name is also the page's `<h1>`**, except on a report, which has its own. In Gallery the lockup itself is the
-  `<h1>`. A map panel can be collapsed, which hides it from assistive technology, so LabelMap and AccessScore pass
-  `asHeading = false` and state the name in a visually hidden `<h1>` outside the panel (`views.ToolLockup.name`).
+  `<h1>` (its review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
+  assistive technology, so LabelMap and AccessScore pass `asHeading = false` and state the name in a visually hidden
+  `<h1>` ahead of the map (`views.ToolLockup.name`).
 - **"AccessScore" and "LabelMap" are wordmarks** and are written that way in every language. "Gallery" and "Reports"
   are ordinary words and are translated (`gallery`, `report.tool.name`).
 - **Drawn for light surfaces.** Their white outlines keep them readable on asphalt, but Gallery's frames and the
