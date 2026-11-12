@@ -54,23 +54,24 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      # Compiled code only: the rest of target/ is copied static files, gigabytes that cost more to cache than to copy.
-      - name: Cache compiled Scala
-        uses: actions/cache@v6
+      # Compiled code only; the rest of target/ is gigabytes of copied static files. Pushes to develop and master
+      # skip the restore, so every merge still gets a full build (#5972).
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
         with:
-          path: |
+          path: &scala-cache-paths |
             target/scala-*/zinc
             target/scala-*/test-zinc
             target/scala-*/classes/**/*.class
             target/scala-*/classes/**/*.tasty
             target/scala-*/test-classes/**/*.class
             target/scala-*/test-classes/**/*.tasty
-            target/scala-*/twirl
-            target/scala-*/routes
-            target/scala-*/src_managed
+            target/scala-*/scoverage-data/scoverage.coverage
             project/target
-          key: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
-          restore-keys: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-
+          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/**') }}-${{ hashFiles('app/**', 'conf/**') }}
+          restore-keys: &scala-cache-prefix scala-${{ hashFiles('build.sbt', 'project/**') }}-
 
       # Dummy env so any config evaluation during compile has values. Compilation does not touch the database.
       - name: Compile (blocking gate)
@@ -78,6 +79,13 @@ jobs:
         env:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
+
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-cache-key
 
       # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
       # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
@@ -279,25 +287,14 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      # Old coverage hits stay out of the cache, or they'd count toward the ratchet.
-      - name: Cache compiled Scala
-        uses: actions/cache@v6
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
         with:
-          path: |
-            target/scala-*/zinc
-            target/scala-*/test-zinc
-            target/scala-*/classes/**/*.class
-            target/scala-*/classes/**/*.tasty
-            target/scala-*/test-classes/**/*.class
-            target/scala-*/test-classes/**/*.tasty
-            target/scala-*/twirl
-            target/scala-*/routes
-            target/scala-*/src_managed
-            project/target
-            target/scala-*/scoverage-data
-            !target/scala-*/scoverage-data/scoverage.measurements.*
-          key: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
-          restore-keys: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-
+          path: *scala-cache-paths
+          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/**') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
+          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/**') }}-
 
       - name: Set up Node 26
         uses: actions/setup-node@v7
@@ -367,6 +364,13 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-coverage-cache-key
+
       # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
       # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
       # one definition of the test city.
@@ -415,7 +419,8 @@ jobs:
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
-          test -s target/scala-*/scoverage-data/scoverage.coverage \
+          # Measurements are never cached, so finding them proves this run's specs ran under coverage.
+          ls target/scala-*/scoverage-data/scoverage.measurements.* > /dev/null 2>&1 \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -483,22 +488,14 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Cache compiled Scala
-        uses: actions/cache@v6
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
         with:
-          path: |
-            target/scala-*/zinc
-            target/scala-*/test-zinc
-            target/scala-*/classes/**/*.class
-            target/scala-*/classes/**/*.tasty
-            target/scala-*/test-classes/**/*.class
-            target/scala-*/test-classes/**/*.tasty
-            target/scala-*/twirl
-            target/scala-*/routes
-            target/scala-*/src_managed
-            project/target
-          key: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
-          restore-keys: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-
+          path: *scala-cache-paths
+          key: *scala-cache-key
+          restore-keys: *scala-cache-prefix
 
       - name: Set up Node 26
         uses: actions/setup-node@v7
@@ -547,6 +544,13 @@ jobs:
       # play.filters.hosts.allowed.
       - name: Stage the app (prod-mode binary)
         run: sbt stage
+
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-cache-key
 
       # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
       # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
