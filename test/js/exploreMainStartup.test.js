@@ -129,6 +129,23 @@ describe('Explore Main wires the callbacks its modules call back on', () => {
     expect(navigationService.moveToPano).toHaveBeenCalledWith('pano2');
   });
 
+  it('logs a free-exploration street arrow click, its direction, and whether the step landed (#5968)', async () => {
+    const { navArrows, navigationService, tracker } = exploreMain.built;
+    const onStreetWalk = navArrows.onStreetWalkClick.mock.calls[0][0];
+    navigationService.moveAlongStreet.mockImplementation(() => Promise.resolve('pano2'));
+    onStreetWalk(false);
+    await flush();
+    expect(navigationService.moveAlongStreet).toHaveBeenCalledWith(false);
+    expect(tracker.push).toHaveBeenCalledWith('Click_StreetWalkArrow', { toward: 'start' });
+    expect(tracker.push).toHaveBeenCalledWith('StreetWalkArrow_Success', { toward: 'start' });
+
+    navigationService.moveAlongStreet.mockImplementation(() => Promise.resolve(null));
+    onStreetWalk(true);
+    await flush();
+    expect(tracker.push).toHaveBeenCalledWith('StreetWalkArrow_PanoNotAvailable', { toward: 'end' });
+    expect(tracker.push).not.toHaveBeenCalledWith('StreetWalkArrow_Success', { toward: 'end' });
+  });
+
   it('fits the overview to the mission\'s streets plus the one walked and the ones previewed', () => {
     const { minimap, taskContainer, missionContainer, walkPlanLayer, regionModel } = exploreMain.built;
     const overview = minimap.setOverviewStreets.mock.calls[0][0];

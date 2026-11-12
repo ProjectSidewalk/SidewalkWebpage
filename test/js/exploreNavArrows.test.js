@@ -36,6 +36,7 @@ describe('NavArrows', () => {
       getPosition: () => ({ lat: 47.6, lng: -122.3 }),
       getPov() { return { heading: this.heading, pitch: 0, zoom: 1 }; },
       getLinkedPanos() { return this.links; },
+      supportsLocationSearch: () => true,
     };
     arrows = new NavArrows(group, container, config, fakeTaskContainer(() => task, { tasksLoaded: () => tasksLoaded }),
       fakePanoManager(viewer, { onPovChanged: (listener) => { povChanged = listener; } }));
@@ -171,6 +172,82 @@ describe('NavArrows', () => {
       arrows.reset();
       expect(images()).toHaveLength(2);
       expect(forwardArrows()).toEqual([]);
+    });
+
+    describe('free exploration on a pano with no links (#5968)', () => {
+      const streetArrows = () => [...group.querySelectorAll('.street-walk-arrow')];
+
+      beforeEach(() => {
+        config.isExploreAddressMode = true;
+        viewer.links = [];
+        // The street runs east; the labeler stands partway down it.
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? 90 : 270));
+      });
+
+      test('a plain arrow points each way down the street, as the only ways out', () => {
+        arrows.reset();
+        expect(images()).toEqual(streetArrows());
+        expect(streetArrows().map((arrow) => [arrow.getAttribute('toward'), arrow.getAttribute('transform')]))
+          .toEqual([['end', 'translate(15, 0) rotate(90, 15, 30)'], ['start', 'translate(15, 0) rotate(270, 15, 30)']]);
+        expect(forwardArrows()).toEqual([]);
+        expect(images().some((image) => image.hasAttribute('pano-id'))).toBe(false);
+      });
+
+      test('at an end of the street only the arrow back down it is drawn', () => {
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? null : 270));
+        arrows.reset();
+        expect(streetArrows().map((arrow) => arrow.getAttribute('toward'))).toEqual(['start']);
+      });
+
+      test('a click says which end of the street the arrow faces', () => {
+        const streetWalkClicks = vi.fn();
+        const routeForwardClicks = vi.fn();
+        arrows.onStreetWalkClick(streetWalkClicks);
+        arrows.onRouteForwardClick(routeForwardClicks);
+        arrows.reset();
+        streetArrows().forEach((arrow) => fire(arrow, 'click'));
+        expect(streetWalkClicks.mock.calls).toEqual([[true], [false]]);
+        expect(routeForwardClicks).not.toHaveBeenCalled();
+      });
+
+      test('a pano with any link keeps only its link arrows', () => {
+        viewer.links = [{ panoId: 'pano-north', heading: 0 }];
+        arrows.reset();
+        expect(images().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
+        expect(arrows.streetWalkToward(90)).toBeNull();
+      });
+
+      test('an arrow key\'s heading picks the street arrow within 60° of it, as it would a link', () => {
+        expect(arrows.streetWalkToward(100)).toBe(true);
+        expect(arrows.streetWalkToward(250)).toBe(false);
+        expect(arrows.streetWalkToward(0)).toBeNull();
+      });
+
+      test.each([
+        ['no current street', () => { task = null; }],
+        ['streets not loaded yet', () => { tasksLoaded = false; }],
+        ['standing off the street', () => task.isNearRoute.mockReturnValue(false)],
+        [
+          'street geometry not ready',
+          () => task.headingAlongStreet.mockImplementation(() => { throw new Error('no geometry'); }),
+        ],
+        ['a viewer that cannot search the street for a pano', () => { viewer.supportsLocationSearch = () => false; }],
+      ])('nothing is drawn with no street to walk: %s', (_name, arrange) => {
+        arrange();
+        arrows.reset();
+        expect(images()).toEqual([]);
+        expect(arrows.streetWalkToward(90)).toBeNull();
+      });
+
+      test.each([
+        ['the tutorial', () => { config.isOnboarding = true; }],
+        ['a mission, whose arrow waits for the walk\'s landing', () => {}],
+      ])('outside free exploration nothing is drawn by this rule: %s', (_name, arrange) => {
+        config.isExploreAddressMode = false;
+        arrange();
+        arrows.reset();
+        expect(images()).toEqual([]);
+      });
     });
 
     test.each([

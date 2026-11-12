@@ -279,6 +279,26 @@ export class NavigationService {
   }
 
   /**
+   * Free exploration's step off a pano with no links, down the street toward either end (#5968).
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {Promise<string|null|void>} The new pano id; null if nothing loaded; undefined if they can't walk now.
+   */
+  async moveAlongStreet(towardEnd) {
+    if (!this.canWalk()) return undefined;
+    this.#updateUiBeforeMove();
+    let panoId;
+    try {
+      panoId = await this.#streetSweep.stepAlongStreet(towardEnd);
+    } catch (err) {
+      this.#restoreUiAfterFailedMove();
+      throw err;
+    }
+    if (panoId) this.#updateUiAfterMove();
+    else this.#restoreUiAfterFailedMove();
+    return panoId;
+  }
+
+  /**
    * Starts a move, runs `switchStreet`, then searches the new street. Allowed under a walking hold (finishing a
    * street can open the sign-in prompt), but not mid-move or just after one, so a double-click can't skip the prompt.
    * @param {() => void} switchStreet - Finishes the street being left and makes the next one current.
@@ -334,6 +354,22 @@ export class NavigationService {
     const linkedPanos = this.#panoManager.panoViewer.getLinkedPanos();
     const index = ForwardCrumbs.stepLinkIndex(linkedPanos, this.#panoManager.getPov().heading + heading);
     return index === -1 ? Promise.resolve(false) : this.moveToPano(linkedPanos[index].panoId, false, options);
+  }
+
+  /**
+   * An arrow key's step: the linked pano nearest that way or, on a free-exploration pano with no links, down the
+   * street by the street arrow nearest it (#5968), which would otherwise be reachable by pointer only.
+   * @param {number} heading - The step's heading relative to the view, in degrees.
+   * @param {boolean} [held=false] - Whether the key is repeating while held down. A held key takes no street arrow:
+   *   a step that finds nothing searches the whole street and leaves no pause before the next repeat.
+   * @returns {Promise<{moved: boolean, streetWalkToward: ?boolean}>} `streetWalkToward` says which street arrow was
+   *   taken (true for the street's end); null when the step was a link's or there was none to take.
+   */
+  async moveByArrowKey(heading, held = false) {
+    if (await this.moveToLinkedPano(heading)) return { moved: true, streetWalkToward: null };
+    const towardEnd = held ? null : this.#navArrows.streetWalkToward(this.#panoManager.getPov().heading + heading);
+    if (towardEnd === null || !this.canWalk()) return { moved: false, streetWalkToward: null };
+    return { moved: Boolean(await this.moveAlongStreet(towardEnd)), streetWalkToward: towardEnd };
   }
 
   /**

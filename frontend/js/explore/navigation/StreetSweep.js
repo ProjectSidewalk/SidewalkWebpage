@@ -10,6 +10,7 @@ import { NoImageryError } from '../../common/pano-viewer/NoImageryError.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
+import { Task } from '../task/Task.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
@@ -27,7 +28,6 @@ import '../../common/utilitiesSidewalk.js';
  */
 /** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
 /** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
-/** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
@@ -241,6 +241,63 @@ export class StreetSweep {
   }
 
   /**
+   * Free exploration's step off a pano with no links (#5968): lands on the first pano down the street from where the
+   * labeler stands, toward either end. Not sweep(), which only leads on from the furthest point reached.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {Promise<?string>} The pano landed on; null when none turned up, which the labeler is told.
+   */
+  async stepAlongStreet(towardEnd) {
+    const task = this.#taskContainer.getCurrentTask();
+    const viewer = this.#panoManager.panoViewer;
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    const excluded = new Set(standing ? [standing] : []);
+    const stretch = task.streetFrom(this.#panoManager.getPosition(), towardEnd);
+    const failures = [];
+    // Points in a row can name the same pano, and each try at one that won't load waits out its time limit.
+    const wontLoad = new Map();
+    let remainder = stretch;
+    while (turf.length(remainder) > 0) {
+      let currLoc;
+      ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
+      let hit = null;
+      try {
+        hit = await viewer.findPanoNear(currLoc, excluded);
+        if (hit && wontLoad.has(hit.panoId)) {
+          throw wontLoad.get(hit.panoId);
+        } else if (hit && !Task.isStepDown(stretch, hit)) {
+          throw new NoImageryError(`The pano near ${currLoc.lat},${currLoc.lng} is no step this way.`);
+        } else if (hit) {
+          await this.#panoManager.setPanorama(hit.panoId);
+        } else if (viewer.findPanoNearCanMiss()) {
+          // The lookup can't be trusted to rule a point out, so the provider's own move decides. Where it lands
+          // stands, even off to one side: the labeler has moved, and calling that a miss would strand them there.
+          await this.#panoManager.setLocation(currLoc, excluded);
+        } else {
+          throw new NoImageryError(`No pano near ${currLoc.lat},${currLoc.lng}.`);
+        }
+      } catch (err) {
+        if (hit) wontLoad.set(hit.panoId, err);
+        failures.push(err);
+        continue;
+      }
+      NoImageryFlagGuard.reset();
+      return this.#panoManager.getPanoId();
+    }
+    this.#sayFreeExploreStopped(NoImageryError.allNoImagery(failures));
+    return null;
+  }
+
+  /**
+   * Tells a free-exploration labeler why a step found nothing.
+   * @param {boolean} streetLooksEmpty - Every point answered "no imagery", as against the provider not answering.
+   */
+  #sayFreeExploreStopped(streetLooksEmpty) {
+    const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
+    const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
+    this.#alertController.showAlert(i18next.t(key), type, false);
+  }
+
+  /**
    * Searches the current street until a pano loads, moving on to the next street past one with no imagery.
    * @param {() => void} onNextStreet - Called when the search moves on to another street, inside the same move.
    * @returns {Promise<SweepResult>}
@@ -319,9 +376,7 @@ export class StreetSweep {
   async #concludeEmptySearch(task, streetLooksEmpty) {
     // Free exploration (#4451) has no street to finish or move on to, so just say why they can't go further.
     if (this.#config.isExploreAddressMode) {
-      const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
-      const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
-      this.#alertController.showAlert(i18next.t(key), type, false);
+      this.#sayFreeExploreStopped(streetLooksEmpty);
       return 'stopped';
     }
 
