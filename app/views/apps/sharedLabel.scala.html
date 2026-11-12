@@ -101,7 +101,8 @@
             @* The full-map link carries this label's id so the Label Map opens centered on the shared label (with its
                popup + location pulse), making the hand-off from this page seamless rather than a cold city view. *@
             @Html(Messages("sharedlabel.nearby.caption",
-              s"""<a class="spotlight-map__link" id="spotlight-full-map" href="/labelMap?labelId=${meta.labelId}">${Messages("navbar.labelmap")}</a>"""))
+              s"""<a class="spotlight-map__link" id="spotlight-full-map" href="/labelMap?labelId=${meta.labelId}">""" +
+                s"""${Messages("navbar.labelmap")}</a>"""))
             </p>
           </section>
         }
