@@ -35,7 +35,8 @@ module.exports = defineConfig({
     // A project rather than a `--grep` on titles keeps CI's blocking/advisory split structural: rewording a test
     // cannot move it between the halves. No `dependencies` — nothing here needs a session, so the gate that blocks
     // merges does not ride on /signUp.
-    {name: 'a11y', testMatch: A11Y_SPECS, use: {...devices['Desktop Chrome']},
+    // Each test is a read-only page load and nearly all sit in one file, so they spread across workers within it.
+    {name: 'a11y', testMatch: A11Y_SPECS, use: {...devices['Desktop Chrome']}, fullyParallel: true,
       outputDir: 'test-results/a11y'},
     {name: 'chromium', testIgnore: A11Y_SPECS, use: {...devices['Desktop Chrome']},
       dependencies: ['setup'], outputDir: 'test-results/chromium'},
