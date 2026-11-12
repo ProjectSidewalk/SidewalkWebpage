@@ -1,37 +1,24 @@
 /**
  * A drag on the label card's imagery ends wherever the mouse is let go (#5295, #5294).
  *
- * These check the release events the viewers wait for, not one viewer's pan, so they hold whichever viewer the label
- * lands in (the Maps stub on a dev database, Pannellum on CI's seed).
+ * It checks the release events the viewers wait for, not a pan, so it works whichever viewer the label opens in.
  */
 const {test, expect, serveAnyPano, waitForAppReady} = require('./fixtures');
 
-test.describe('label card drag', () => {
-  test.beforeEach(async ({page, context}) => {
-    await serveAnyPano(context);
-    await page.goto('/gallery');
-    await waitForAppReady(page);
-    await page.locator('#page-loading').waitFor({state: 'hidden'});
-    const firstCard = page.locator('.gallery-card .static-gallery-image').first();
-    test.skip(await firstCard.count() === 0, 'the connected database has no Gallery cards');
-    // The first card has nothing before it, so its Prev arrow is the disabled button over the imagery.
-    await firstCard.click();
-    await expect(page.locator('.gallery-expanded-view .label-detail__paging--prev')).toBeDisabled();
-    await expect(page.locator('.gallery-expanded-view .label-detail__pano-loading')).toBeHidden({timeout: 30_000});
-  });
+test('a drag on the label card let go off the imagery ends', async ({page, context, consoleErrors}) => {
+  await serveAnyPano(context);
+  await page.goto('/gallery');
+  await waitForAppReady(page);
+  await page.locator('#page-loading').waitFor({state: 'hidden'});
+  const firstCard = page.locator('.gallery-card .static-gallery-image').first();
+  test.skip(await firstCard.count() === 0, 'the connected database has no Gallery cards');
+  await firstCard.click();
+  await expect(page.locator('.gallery-expanded-view .label-detail__pano-loading')).toBeHidden({timeout: 30_000});
 
-  test('a drag let go on a disabled arrow ends', async ({page, consoleErrors}) => {
-    const released = await dragFromPano(page, page.locator('.gallery-expanded-view .label-detail__paging--prev'));
-    expect(released.mouseup, 'GSV, Panoramax, Pannellum and the crop end a drag on mouseup').toBe('pano');
-    expect(released.pointerup, 'Infra3D ends a drag on a pointerup aimed at its canvas').toBe('pano');
-    expect(consoleErrors).toEqual([]);
-  });
-
-  test('a drag let go off the imagery ends', async ({page, consoleErrors}) => {
-    const released = await dragFromPano(page, page.locator('.gallery-expanded-view .label-detail__meta-row'));
-    expect(released.pointerup, 'Infra3D ends a drag on a pointerup aimed at its canvas').toBe('pano');
-    expect(consoleErrors).toEqual([]);
-  });
+  const released = await dragFromPano(page, page.locator('.gallery-expanded-view .label-detail__meta-row'));
+  expect(released.mouseup, 'GSV, Panoramax, Pannellum and the crop end a drag on mouseup').toBe('pano');
+  expect(released.pointerup, 'Infra3D ends a drag on a pointerup aimed at its canvas').toBe('pano');
+  expect(consoleErrors).toEqual([]);
 });
 
 /**

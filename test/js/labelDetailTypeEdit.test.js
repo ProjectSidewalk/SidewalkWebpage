@@ -355,10 +355,10 @@ describe('changing a label\'s type from the card (#3671)', () => {
     chip('SurfaceProblem').click();
     await flush();
 
-    expect(q('.label-detail__vote--agree').disabled).toBe(true);
+    expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('true');
     answer({ ok: true, json: async () => meta() });
     await flush();
-    expect(q('.label-detail__vote--agree').disabled).toBe(false);
+    expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
   });
 
   test('a Disagree still out when the type changes asks why from its own button once it lands', async () => {

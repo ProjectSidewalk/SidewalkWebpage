@@ -237,19 +237,25 @@ describe('LabelPopup dialog', () => {
       expect(innerShow).toHaveBeenCalledTimes(1);
     });
 
-    test('log a pointer click apart from the keyboard, and stay put with nowhere to go', async () => {
+    test('log a pointer click apart from the keyboard, and ignore an arrow with nowhere to go', async () => {
       const popup = await buildPopup();
       popup.setNearbyNavigator(lineNav());
       await popup.showLabel(3, 'LabelMap');
 
+      expect(next().getAttribute('aria-disabled')).toBe('true');
       next().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
-      expect(logged()).toEqual(['Click_module=LabelPopup_action=NextLabel_labelId=3']);
+      expect(logged()).toEqual([]);
       expect(innerShow).toHaveBeenCalledTimes(1);
 
-      await popup.showLabel(1, 'LabelMap');
+      await popup.showLabel(2, 'LabelMap');
+      next().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      expect(logged()).toEqual(['Click_module=LabelPopup_action=NextLabel_labelId=2']);
+      expect(innerShow).toHaveBeenLastCalledWith(3, 'LabelMap');
+
+      await popup.showLabel(2, 'LabelMap');
       prev().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); // The card's arrow-key shortcut.
-      expect(logged()).toContain('KeyboardShortcut_module=LabelPopup_action=PrevLabel_labelId=1');
-      expect(innerShow).toHaveBeenCalledTimes(2);
+      expect(logged()).toContain('KeyboardShortcut_module=LabelPopup_action=PrevLabel_labelId=2');
+      expect(innerShow).toHaveBeenLastCalledWith(1, 'LabelMap');
     });
 
     test('a navigator handed over twice is listened to once', async () => {

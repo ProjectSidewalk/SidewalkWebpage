@@ -92,10 +92,10 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
 
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
-  // duplicate handlers that would double-advance the navigator on a single click.
+  // duplicate handlers that would double-advance the navigator on a single click. A switched-off arrow does nothing.
   if (prevBtn) {
     prevBtn.addEventListener('click', (e) => {
-      if (!nearbyNav) return;
+      if (!nearbyNav || prevBtn.getAttribute('aria-disabled') === 'true') return;
       window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.prev(currentLabelId);
       if (id) showLabel(id, lastSource);
@@ -103,18 +103,18 @@ export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsern
   }
   if (nextBtn) {
     nextBtn.addEventListener('click', (e) => {
-      if (!nearbyNav) return;
+      if (!nearbyNav || nextBtn.getAttribute('aria-disabled') === 'true') return;
       window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.next(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
   }
 
-  /** Enables each arrow only while the navigator has a label that way. */
+  /** Switches off an arrow with nowhere to go; `aria-disabled` so the arrow just pressed keeps focus (#5135). */
   function updatePagingState() {
     if (!nearbyNav) return;
-    prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
-    nextBtn.disabled = !nearbyNav.hasNext(currentLabelId);
+    prevBtn.setAttribute('aria-disabled', String(!nearbyNav.hasPrev(currentLabelId)));
+    nextBtn.setAttribute('aria-disabled', String(!nearbyNav.hasNext(currentLabelId)));
   }
 
   /**
