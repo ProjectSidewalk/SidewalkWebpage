@@ -666,7 +666,7 @@ share.meta.image.alt = Straatfoto met de gemarkeerde locatie: {0}
 
 # Openbare spotlight-/deelpagina voor een enkel label (#456).
 sharedlabel.nearby.title = Labels in de buurt
-sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie {0} voor de volledige kaart.
+sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie de {0} voor de volledige kaart.
 sharedlabel.view.this.label = Bekijk dit label
 sharedlabel.engage.title = Help stoepen in {0} te beoordelen
 sharedlabel.engage.explore = Vind toegankelijkheidsproblemen in {0}

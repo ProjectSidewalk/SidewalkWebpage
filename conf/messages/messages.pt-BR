@@ -675,7 +675,7 @@ share.meta.image.alt = Foto no nível da rua com o local marcado: {0}
 
 # Página pública de destaque/compartilhamento de um único rótulo (#456).
 sharedlabel.nearby.title = Rótulos próximos
-sharedlabel.nearby.caption = Uma amostra de rótulos de acessibilidade próximos. Veja {0} para o mapa completo.
+sharedlabel.nearby.caption = Uma amostra de rótulos de acessibilidade próximos. Veja o {0} para o mapa completo.
 sharedlabel.view.this.label = Ver este rótulo
 sharedlabel.engage.title = Ajude a avaliar as calçadas em {0}
 sharedlabel.engage.explore = Encontre problemas de acessibilidade em {0}

@@ -670,7 +670,7 @@ share.meta.image.alt = Straßenansicht mit markierter Position: {0}
 
 # Öffentliche Spotlight-/Teilen-Seite für ein einzelnes Label (#456).
 sharedlabel.nearby.title = Labels in der Nähe
-sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe {0} für die vollständige Karte.
+sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe die {0} für die vollständige Karte.
 sharedlabel.view.this.label = Dieses Label ansehen
 sharedlabel.engage.title = Hilf mit, die Gehwege in {0} zu bewerten
 sharedlabel.engage.explore = Barrierefreiheitsprobleme in {0} finden
