@@ -224,8 +224,8 @@ consistent with it.
   rule or a vendor library can hit. The one global state class is `.is-disabled` (below).
 - **Switched-off controls** get their "not allowed" cursor from one rule in `main.css`. A button or input takes the
   `disabled` attribute; a control that would strand a keyboard user by losing focus when it switches itself off (the
-  pano zoom buttons, the label card's paging arrows) takes `aria-disabled="true"` and checks it in its click handler
-  and shortcuts; anything else takes `.is-disabled`.
+  pano zoom buttons, the label card's paging arrows and vote buttons, AccessScore's sheet arrows) takes
+  `aria-disabled="true"` and checks it in its click handler and shortcuts; anything else takes `.is-disabled`.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**

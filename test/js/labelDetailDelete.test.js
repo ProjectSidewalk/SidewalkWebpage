@@ -257,7 +257,7 @@ describe('deleting a label from the card (#3591)', () => {
   test('a deleted label locks validating and editing, with the reason on the controls', async () => {
     await showLabel({ can_edit: true, from_current_user: false, deleted: true, can_restore: true });
     expect(q('.label-detail__pano-overlay').hidden).toBe(true);
-    expect(q('.label-detail__vote--agree').disabled).toBe(true);
+    expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('true');
     expect(q('.label-detail__comment-input').disabled).toBe(true);
     expect(card.classList.contains('label-detail--editable')).toBe(false);
     expect(q('.label-detail__tags-edit').getAttribute('aria-disabled')).toBe('true');

@@ -135,8 +135,9 @@ export class AccessScoreClusterSheet {
   #updatePaging() {
     const id = this.#clusterId;
     const can = (fn) => this.#nav !== null && id !== null && fn(id);
-    this.#els.prev.disabled = !can((i) => this.#nav.hasPrev(i));
-    this.#els.next.disabled = !can((i) => this.#nav.hasNext(i));
+    // `aria-disabled` keeps the arrow just pressed focused at the end of the line (#5135); #page() guards the click.
+    this.#els.prev.setAttribute('aria-disabled', String(!can((i) => this.#nav.hasPrev(i))));
+    this.#els.next.setAttribute('aria-disabled', String(!can((i) => this.#nav.hasNext(i))));
   }
 
   /** Steps to the previous or next cluster, if there is one, and hands it to the host to open. */

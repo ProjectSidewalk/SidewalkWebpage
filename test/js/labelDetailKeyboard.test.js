@@ -705,12 +705,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // A vote button disables while its validation saves, dropping focus to the body. The popup is modal, so the
-      // keys still belong to the card.
+      // The comment Save disables while the next label's imagery loads, dropping focus to the body. The popup is
+      // modal, so the keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(q('.label-detail__vote--unsure'));
+      dropFocusToBody(q('.label-detail__comment-submit'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -726,7 +726,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(q('.label-detail__vote--unsure'));
+      dropFocusToBody(q('.label-detail__comment-submit'));
 
       press('KeyA');
       await flush();

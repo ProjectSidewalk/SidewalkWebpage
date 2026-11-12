@@ -574,7 +574,7 @@ describe('LabelDetail edit gating (#5047)', () => {
 
       expect(q('.label-detail__pano-overlay').hidden).toBe(false);
       for (const btn of card.querySelectorAll('.label-detail__pano-overlay-button')) {
-        expect(btn.disabled).toBe(true);
+        expect(btn.getAttribute('aria-disabled')).toBe('true');
       }
     });
   });

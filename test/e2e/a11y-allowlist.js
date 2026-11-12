@@ -10,8 +10,8 @@
  *   known-and-scheduled failure from one nobody has looked at.
  *
  * Scope an allowlist entry as tightly as the violation allows — a bare `{rule}` silences that rule for the whole
- * page, hiding the next instance too. `selector` is matched as a substring of the node's target, so `.au-body`
- * covers `#main > .au-body`.
+ * page, hiding the next instance too. `selector` is matched within the node's target up to a name boundary, so
+ * `.au-body` covers `#main > .au-body` but not `.au-body-title`.
  *
  * Keys are page paths, optionally with a ` [state]` suffix naming a forced render state
  * (`/v3/api-docs/rawLabels [feed error]`, from a11y-api-docs-states.spec.js). A page's healthy render and its
@@ -66,7 +66,9 @@ function partitionViolations(path, violations) {
   const used = new Set();
   const covers = (entry, violation, node) => {
     if (entry.rule !== violation.id) return false;
-    return !entry.selector || node.target.join(' ').includes(entry.selector);
+    if (!entry.selector) return true;
+    const escaped = entry.selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`${escaped}(?![\\w-])`).test(node.target.join(' '));
   };
   const blocking = [];
   let allowedCount = 0;

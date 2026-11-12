@@ -501,7 +501,7 @@ dialog.label-detail[open]::backdrop {
   outline: 2px solid var(--color-link-100);
   outline-offset: -2px;
 }
-.label-detail__pano-overlay-button[disabled] { cursor: wait; }
+.label-detail__pano-overlay-button[aria-disabled="true"] { cursor: wait; }
 
 .label-detail__pano-overlay-button--agree    { background: var(--color-pine-500); }
 .label-detail__pano-overlay-button--disagree { background: #eb734d; }
@@ -526,7 +526,7 @@ dialog.label-detail[open]::backdrop {
   color: rgb(0 0 0 / 40%);
 }
 .label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.78; }
-.label-detail--readonly .label-detail__vote[disabled] { cursor: default; }
+.label-detail--readonly .label-detail__vote[aria-disabled="true"] { cursor: default; }
 
 .label-detail--readonly .label-detail__comment-input:disabled {
   background: #f5f5f5;
@@ -721,7 +721,7 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 4px;
 }
 
-.label-detail__vote[disabled] {
+.label-detail__vote[aria-disabled="true"] {
   cursor: wait;
   opacity: 0.5;
 }
@@ -1179,6 +1179,7 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
+  cursor: not-allowed; /* main.css's rule loses to `.label-detail__paging`'s pointer, which loads later. */
 }
 
 .label-detail__paging:focus-visible {

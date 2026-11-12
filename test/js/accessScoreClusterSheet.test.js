@@ -65,16 +65,16 @@ describe('AccessScoreClusterSheet', () => {
     expect(sheet.clusterId).toBe(1);
     expect(sheet.dialog.open).toBe(true);
     expect(callbacks.onLoaded).toHaveBeenCalledWith(1);
-    expect(prev().disabled).toBe(true);
-    expect(next().disabled).toBe(false);
+    expect(prev().getAttribute('aria-disabled')).toBe('true');
+    expect(next().getAttribute('aria-disabled')).toBe('false');
     next().click();
     expect(nav.next).toHaveBeenCalledWith(1);
     expect(callbacks.onNavigate).toHaveBeenCalledWith(2);
     expect(callbacks.log).toHaveBeenCalledWith('SheetPage', 'next');
     // The host opens the landing cluster; the arrows re-read their reach from it.
     await sheet.open(props(2));
-    expect(prev().disabled).toBe(false);
-    expect(next().disabled).toBe(true);
+    expect(prev().getAttribute('aria-disabled')).toBe('false');
+    expect(next().getAttribute('aria-disabled')).toBe('true');
     // At the end of the line, the key does nothing; back along the trail, it does.
     sheet.dialog.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true}));
     expect(callbacks.onNavigate).toHaveBeenCalledTimes(1);
@@ -85,7 +85,7 @@ describe('AccessScoreClusterSheet', () => {
     const refresh = nav.onRefresh.mock.calls[0][0];
     nav.hasNext.mockReturnValue(true);
     refresh();
-    expect(next().disabled).toBe(false);
+    expect(next().getAttribute('aria-disabled')).toBe('false');
     // Closing reports the cluster that was on show.
     sheet.close();
     expect(callbacks.onClose).toHaveBeenCalledWith(2);

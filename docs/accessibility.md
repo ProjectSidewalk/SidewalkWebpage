@@ -81,6 +81,11 @@ a page's healthy render cannot silently cover its error render. `EXEMPT_PAGES` k
 exemption is looked up by bare path, and it drops every state of the page — a page nobody is holding to AA yet
 cannot be held to it the moment its feed fails.
 
+A spec outside the gate that drives a page into a state of its own may scan it the same way:
+`label-card-paging.spec.js` scans Gallery's open card with an arrow switched off (`/gallery [expanded card]`). It
+names its key in `OTHER_FORCED_STATES` in `a11y-allowlist.js`, so the stale-key check in
+`a11y-api-docs-states.spec.js` knows the state exists.
+
 ### Announcing what was injected
 
 axe has no rule for a message nobody hears. A preview that swaps its chart for "Failed to load…" long after page
@@ -145,8 +150,8 @@ states* above — to the violations it is currently allowed to have. **It is a w
 queue, not an exemption list.** Every entry needs:
 
 - `rule` — the axe rule id (`color-contrast`, `link-name`, `region`, …).
-- `selector` — optional, but use it. It is matched as a substring of the node's target, so `.au-body` covers
-  `#main > .au-body`. Without it the rule is silenced for the *whole page*, which hides the next instance too.
+- `selector` — optional, but use it. It is matched within the node's target up to a name boundary, so `.au-body`
+  covers `#main > .au-body` but not `.au-body-title`. Without it the rule is silenced for the *whole page*, which hides the next instance too.
 - `issue` — **required**, and it must point at a real tracked issue. An entry with no issue behind it is a bug in
   the file.
 - `note` — what the violation actually is, so a reader can tell a known-and-scheduled failure from one nobody has
