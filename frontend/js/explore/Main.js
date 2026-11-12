@@ -430,7 +430,7 @@ export class Main {
     streetProgress.onLabelBeforeJumpChanged((armed) => forwardCrumbs.setWalkEnded(armed));
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
-    const walkPlanLayer = new WalkPlanLayer(ui.minimap, taskContainer, missionContainer, minimap);
+    const walkPlanLayer = new WalkPlanLayer(taskContainer, missionContainer);
     // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked and
     // the planned streets previewed ahead (#5526), since at street zoom the preview is mostly off screen.
     minimap.setOverviewStreets(() => {

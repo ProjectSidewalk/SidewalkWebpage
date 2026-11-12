@@ -271,7 +271,7 @@ export class StreetProgress {
     if (!this.#taskContainer.hasWalkPlan()) {
       return task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
     }
-    return TaskContainer.jumpGapKm(task, nextTask) < TaskContainer.CONNECTED_TASK_KM;
+    return !TaskContainer.isJump(task, nextTask);
   }
 
   /** The last street had no imagery, so the route or region is done where the labeler stands. */
