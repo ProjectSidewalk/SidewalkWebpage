@@ -955,6 +955,7 @@ error.home = Volver al inicio
 
 # Informes de barrio (#5876).
 report.seo.title = {0}: informe del barrio — Project Sidewalk
+report.tool.name = Informes
 report.eyebrow = Informe del barrio
 report.generated = Generado el {0}.
 report.latest.observation = Última etiqueta: {0}.

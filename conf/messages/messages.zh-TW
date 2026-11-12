@@ -1019,6 +1019,7 @@ error.home = 返回首頁
 
 # 社區報告 (#5876).
 report.seo.title = {0}：社區報告 — Project Sidewalk
+report.tool.name = 報告
 report.eyebrow = 社區報告
 report.generated = 產生於 {0}。
 report.latest.observation = 最新標記：{0}。

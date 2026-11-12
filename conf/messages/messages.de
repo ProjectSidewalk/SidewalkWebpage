@@ -945,6 +945,7 @@ error.home = Zurück zur Startseite
 
 # Nachbarschaftsberichte (#5876).
 report.seo.title = {0}: Nachbarschaftsbericht — Project Sidewalk
+report.tool.name = Berichte
 report.eyebrow = Nachbarschaftsbericht
 report.generated = Erstellt am {0}.
 report.latest.observation = Neueste Beschriftung: {0}.

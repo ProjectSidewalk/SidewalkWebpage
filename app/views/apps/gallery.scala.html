@@ -34,6 +34,7 @@
        itself goes in a strip above the cards instead (see #gallery-content below). *@
     @if(labelIds.isEmpty) {
       <div class="sidebar">
+        @common.toolHeader("gallery")
         @* Admin-only "Sort by" (#2705). Above "Filter By" and outside the filter disclosure on purpose: an order is
            not a filter, so the reset below leaves it alone and a phone reaches it without opening the filters. The
            options are the GallerySort enum, so the JS never re-declares the list. *@

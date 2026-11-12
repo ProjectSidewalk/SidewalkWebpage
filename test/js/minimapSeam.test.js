@@ -522,9 +522,9 @@ describe('Minimap seam', () => {
   test('street lines go over the whole basemap, road names included, so a name never hides the route', () => {
     expect(map.layers.length).toBeGreaterThan(0);
     map.layers.forEach((layer) => expect(layer.beforeId).toBeUndefined());
-    // Bottom to top: context streets, a planned jump's connector, the route's casing and lines, then the chevrons.
+    // Bottom to top: context streets, the route's casing and lines, then the chevrons.
     expect(map.layers.map((layer) => layer.id)).toEqual([
-      'street-other', 'street-completed', 'street-jump', 'street-casing', 'street-audited', 'street-remaining',
+      'street-other', 'street-completed', 'street-casing', 'street-audited', 'street-remaining',
       'street-remaining-chevrons',
     ]);
   });

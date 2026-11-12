@@ -169,9 +169,9 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   region's unwalked streets to `WalkPlanner` (`frontend/js/common/`), stamps each task with its planned position and
   direction, and `nextTask` follows that order the way it follows a route's saved one. It replans when a street is
   given up for lack of imagery and when another labeler's audit changes the priority of a previewed street or which
-  streets are in the top priority tier; a replan asked for while a jump is armed waits until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
-  deterministic, so a reload that resumes the same street replans the same remaining walk. If planning fails, the
-  greedy next-street rule takes over.
+  streets are in the top priority tier; a replan asked for while a jump is armed waits until the jump lands.
+  `WalkPlanLayer` previews the next few streets on the minimap, up to the first jump. The planner is deterministic,
+  so a reload resuming the same street replans the same remaining walk. If planning fails, the greedy rule takes over.
   - *Why the client, and what would move it.* The next-street choice was already client-side (the greedy rule), the
     client holds every street with its live priority and gets priority deltas on every task POST, and both consumers
     (the next-street pick and the minimap preview) are on the client, so a server plan would add a table, an

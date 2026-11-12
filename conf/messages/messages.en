@@ -949,6 +949,7 @@ error.home = Return to home
 
 # Neighborhood reports (#5876).
 report.seo.title = {0}: Neighborhood Report — Project Sidewalk
+report.tool.name = Reports
 report.eyebrow = Neighborhood report
 report.generated = Generated {0}.
 report.latest.observation = Latest label {0}.

@@ -256,6 +256,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
+| `tool-header.spec.js` | The tool logo and name atop the four tools' sidebars, and each page's one `<h1>` (#5958) |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
 | `a11y-api-docs-states.spec.js` | The same gate over the api-docs previews' error and empty renders, forced by intercepting their feeds (#5122) |

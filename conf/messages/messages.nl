@@ -941,6 +941,7 @@ error.home = Terug naar start
 
 # Buurtrapporten (#5876).
 report.seo.title = {0}: buurtrapport — Project Sidewalk
+report.tool.name = Rapporten
 report.eyebrow = Buurtrapport
 report.generated = Gegenereerd op {0}.
 report.latest.observation = Laatste label: {0}.
