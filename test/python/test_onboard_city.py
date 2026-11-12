@@ -1057,6 +1057,15 @@ def test_street_lineage_draws_each_way_s_stretch_of_the_street():
     assert lineage['street_from_frac'].isna().all()
 
 
+def test_fetch_area_is_a_small_outline_that_still_holds_the_city():
+    # A circle traced with 4,000 points stands in for a detailed official city outline.
+    city = Point(0, 0).buffer(0.05, quad_segs=1000)
+    for fetch_buffer_m in (50, 5):
+        area = oc.fetch_area(city, fetch_buffer_m)
+        assert area.contains(city.buffer(fetch_buffer_m / 111_320))
+        assert shapely.get_num_coordinates(area) < 500
+
+
 def test_fetch_ways_keeps_whole_linestring_ways_and_the_way_types_asked_for(monkeypatch):
     seen = {}
 
@@ -1257,6 +1266,7 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     report = (tmp_path / 'report.md').read_text()
     assert 'matched **5** streets along their whole length, **2** in part, **1** not at all' in report
     assert 'check in QGIS: 0 (0%), 1 (1%)' in report and '9 (9%) ...' in report
+    assert f'## Regions ({(stats["flag"] != "").sum()} flagged)' in report
 
 
 def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):

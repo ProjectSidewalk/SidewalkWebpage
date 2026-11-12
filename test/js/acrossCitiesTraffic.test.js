@@ -116,6 +116,18 @@ describe('Across Cities — traffic section', () => {
     expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
   });
 
+  it('ranks a city with no value in the sorted column as zero', async () => {
+    await render([makeCity('alpha'), makeCity('bravo')], {
+      available: true,
+      traffic_by_city: {
+        alpha: makeTraffic({ sessions_7d: 500, mobile_share_28d: null }),
+        bravo: makeTraffic({ sessions_7d: 50, mobile_share_28d: 0.01 }),
+      },
+    });
+    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_28d"]').click();
+    expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
+  });
+
   it('flags an anomalous row and feeds the needs-attention panel with a baseline-relative reason', async () => {
     await render([makeCity('alpha')], {
       available: true,

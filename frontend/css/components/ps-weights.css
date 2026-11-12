@@ -202,10 +202,6 @@
   display: none;
 }
 
-.ps-weights[hidden] {
-  display: none;
-}
-
 .ps-weights-section .filter-sidebar__heading {
   white-space: nowrap;
 }

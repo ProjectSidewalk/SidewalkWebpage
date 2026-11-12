@@ -24,7 +24,7 @@ describe('Explore F shortcut for immersive mode', () => {
       isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: vi.fn(), onTextFieldFocusChanged: vi.fn(),
     };
     new KeyboardManager(fakeGate(), { showLabelHoverInfo: vi.fn() }, contextMenu,
-      { walking: fakeGate({ isHeld: () => true }) }, {}, {}, {}, {}, immersiveMode, fakeTracker());
+      { walking: fakeGate({ isHeld: () => true }) }, {}, {}, {}, {}, {}, immersiveMode, fakeTracker());
   });
 
   beforeEach(() => {

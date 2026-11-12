@@ -1,6 +1,6 @@
 package modules
 
-import modules.PersistentMediaDirCheck.unsafeDirs
+import modules.PersistentMediaDirCheck.{logDirProblem, unsafeDirs}
 import play.api.{Configuration, Environment, Logger, Mode}
 import service.MediaDirs
 
@@ -28,12 +28,16 @@ import scala.util.{Failure, Success, Try}
  * stage redeploys on every push to `develop` while prod waits for a release tag, so a missing variable surfaces on
  * test long before it can reach prod. The rest is derived data whose loss costs rebuild time, so it logs and lets
  * the app run.
+ *
+ * The log directory gets the same look, non-fatal: logback reads `SIDEWALK_LOG_DIR` itself, so a bad value can only
+ * be reported where the operator will see it.
  */
 @Singleton
 class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Environment) {
   private val logger = Logger(this.getClass)
 
   if (environment.mode == Mode.Prod) {
+    logDirProblem(sys.env.get("SIDEWALK_LOG_DIR"), environment).foreach(logger.error(_))
     val unsafe = unsafeDirs(config, environment)
     unsafe.foreach(u => logger.error(u.reason))
 
@@ -109,6 +113,33 @@ object PersistentMediaDirCheck {
           )
       }
     }
+  }
+
+  /**
+   * Why the configured log directory won't hold the file log, if it won't; each reason says what to set instead.
+   *
+   * @param logDir      `SIDEWALK_LOG_DIR` as the deployment passed it, if it did.
+   * @param environment Play environment supplying the application root.
+   * @return            A loggable reason, or None when the value is usable (or unset, which uses the app directory).
+   */
+  def logDirProblem(logDir: Option[String], environment: Environment): Option[String] = logDir.flatMap { value =>
+    val file = File(value.trim)
+    if (value.trim.isEmpty)
+      Some(
+        "SIDEWALK_LOG_DIR is set but empty, so logback writes the file log to the filesystem root and loses it. " +
+          "Set it to an absolute path outside the build, or unset it to log under the application directory."
+      )
+    else if (!file.isAbsolute)
+      Some(
+        s"SIDEWALK_LOG_DIR is relative ($value), so the file log lands wherever the process was started from. " +
+          "Set it to an absolute path outside the build."
+      )
+    else if (canonicalize(file).startsWith(canonicalize(wipeZoneFor(environment.rootPath))))
+      Some(
+        s"SIDEWALK_LOG_DIR resolves to $file, inside the build output tree that a deploy deletes and rebuilds " +
+          "(`sbt clean stage`), so the next release takes the logs with it. Point it outside the application."
+      )
+    else None
   }
 
   /** The tree the deploy destroys: the enclosing `target/` build tree when the app runs from one, else the root. */

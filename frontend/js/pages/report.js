@@ -20,6 +20,7 @@ import '../../css/components/filter-sidebar.css';
 import '../../css/components/info-button.css';
 import '../../css/components/gallery-card.css';
 import '../../css/components/gallery-tags.css';
+import '../../css/components/tool-header.css';
 import '../../css/pages/report.css';
 
 /**

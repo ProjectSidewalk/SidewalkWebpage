@@ -415,7 +415,7 @@ export class TaskContainer {
   /**
    * How far the labeler has to go from the end of one street to where they enter the next. Under CONNECTED_TASK_KM
    * the streets are switched seamlessly; from further away it is a jump, which StreetProgress prompts for and the
-   * minimap draws a connector for, so both read the same gap.
+   * minimap's preview stops at, so both read the same gap.
    *
    * @param {Task} task - The street being finished.
    * @param {Task} nextTask - The street that follows it.
@@ -425,6 +425,15 @@ export class TaskContainer {
     const from = task.getEndCoordinate();
     const to = nextTask.getEntryCoordinate();
     return turf.distance(turf.point([from.lng, from.lat]), turf.point([to.lng, to.lat]), { units: 'kilometers' });
+  }
+
+  /**
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street that follows it on a planned walk.
+   * @returns {boolean} Whether the labeler is moved to `nextTask` rather than walking onto it.
+   */
+  static isJump(task, nextTask) {
+    return TaskContainer.jumpGapKm(task, nextTask) >= TaskContainer.CONNECTED_TASK_KM;
   }
 
   /**
@@ -650,8 +659,7 @@ export class TaskContainer {
     } else if (this.hasWalkPlan()) {
       // The earliest unwalked step of the plan; a street the plan left out sorts last (null would compare as 0). No
       // direction correction, unlike the greedy rule below: the plan chose each street's direction, including a jump
-      // target entered at its far end, and turning one toward the finished street would land the labeler where the
-      // minimap connector does not point.
+      // target entered at its far end, and turning one toward the finished street would undo that choice.
       const position = (t) => t.getPlannedPosition() ?? Infinity;
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return position(current) < position(min) ? current : min;

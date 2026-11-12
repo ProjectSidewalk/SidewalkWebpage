@@ -4,8 +4,8 @@ name: CI
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
-#                      CSS layout, asset paths, JS types, spec base class) + the jsdom Vitest suite in test/js/, which
-#                      also enforces the JS coverage ratchet (#5112).
+#                      CSS layout, asset paths, JS types, spec base class, env var contract) + the jsdom Vitest suite in
+#                      test/js/, which also enforces the JS coverage ratchet (#5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.
@@ -60,6 +60,22 @@ jobs:
         env:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
+
+      # Compiled code only; the rest of target/ is gigabytes of copied static files. This job never restores it, so
+      # the compile gate stays a full build; the other sbt jobs restore it on PRs (#5972).
+      - name: Save compiled Scala
+        uses: actions/cache/save@v6
+        with:
+          path: &scala-cache-paths |
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/scoverage-data/scoverage.coverage
+            project/target
+          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**') }}
 
       # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
       # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
@@ -141,6 +157,11 @@ jobs:
       - name: Spec base class (blocking)
         if: always()
         run: node tools/lint/check-spec-base.mjs
+
+      # The deploy learns which env vars to pass only from the deployment doc's contract table (#5138).
+      - name: Env var contract (blocking)
+        if: always()
+        run: node tools/lint/check-env-contract.mjs
 
       # The jsdom unit suite (test/js/), ending on the coverage ratchet in vitest.config.mjs (#5112).
       - name: Vitest unit tests (blocking)
@@ -256,6 +277,15 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
+          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-
+
       - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
@@ -324,6 +354,13 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-coverage-cache-key
+
       # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
       # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
       # one definition of the test city.
@@ -367,12 +404,14 @@ jobs:
       # failure that actually needs fixing.
       #
       # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
-      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # data dir is empty, and the compiler deletes the measurements on every instrumented compile — so anything that
       # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
+          # Measurements are never cached, so finding them proves this run's specs ran under coverage.
           test -s target/scala-*/scoverage-data/scoverage.coverage \
+            && ls target/scala-*/scoverage-data/scoverage.measurements.* > /dev/null 2>&1 \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -440,6 +479,15 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-cache-key
+          restore-keys: scala-${{ hashFiles('build.sbt', 'project/*.*') }}-
+
       - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
@@ -454,8 +502,9 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      # No `--with-deps`: the runner has Chromium's libraries; it only adds fonts from a mirror that stalls (#5915).
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # DB bring-up + readiness + schema setup are copied verbatim from backend-tests; see the comments there
       # (especially why the readiness probe must stay on TCP via `-h 127.0.0.1`).
@@ -487,8 +536,6 @@ jobs:
       - name: Stage the app (prod-mode binary)
         run: sbt stage
 
-      # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
-      #
       # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
       # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
       # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
@@ -503,11 +550,15 @@ jobs:
       # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
       # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
       # specs build their own application and disable the module themselves.
+      # Started the way the deployment starts a city: from inside the stage dir, with the log dir outside the build.
       - name: Start the app
+        env:
+          SIDEWALK_LOG_DIR: ${{ github.workspace }}/ci-logs
         run: |
-          nohup target/universal/stage/bin/sidewalk-webpage \
+          cd target/universal/stage
+          nohup bin/sidewalk-webpage \
             -Dconfig.resource=application.ci.conf \
-            -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
+            -Dhttp.port=9000 > "$GITHUB_WORKSPACE/app.log" 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
@@ -539,6 +590,13 @@ jobs:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
 
+      # Only the smoke half has admin specs, so it shares that half's condition: a red gate doesn't skip it.
+      - name: Create the e2e admin account
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: bash test/e2e/fixtures/ensure-admin.sh
+        env:
+          E2E_DB_ROLE: postgres
+
       # The condition runs this half even when the gate is red, but unlike `always()` skips it when the app never came
       # up, where every spec would otherwise time out against a dead server.
       - name: Run Playwright smoke suite
@@ -547,6 +605,16 @@ jobs:
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
+
+      # Proves the file log went where the deployment points it and nowhere under the build (#5138). Last, so a miss
+      # can't skip the seeding the smoke suite needs.
+      - name: Check where the app log landed
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: |
+          ls ci-logs/application-*.log
+          for stray in target/universal/stage/logs target/universal/stage/application.home_IS_UNDEFINED; do
+            if [ -e "$stray" ]; then echo "Stray log folder: $stray"; exit 1; fi
+          done
 
       - name: Upload Playwright report + app log
         if: failure()
@@ -557,6 +625,7 @@ jobs:
             playwright-report/
             test-results/
             app.log
+            ci-logs/
           retention-days: 7
 
   python-tests:

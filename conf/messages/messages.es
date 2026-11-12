@@ -81,6 +81,7 @@ city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -99,6 +100,7 @@ country.name.new-zealand = Nueva Zelanda
 country.name.canada = Canadá
 country.name.brazil = Brasil
 country.name.france = Francia
+country.name.belgium = Bélgica
 
 navbar.explore = Explorar
 navbar.validate = Validar
@@ -678,7 +680,7 @@ share.meta.image.alt = Foto a nivel de calle con la ubicación marcada: {0}
 
 # Página pública de detalle/compartir de una sola etiqueta (#456).
 sharedlabel.nearby.title = Etiquetas cercanas
-sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta {0} para ver el mapa completo.
+sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta el {0} para ver el mapa completo.
 sharedlabel.view.this.label = Ver esta etiqueta
 sharedlabel.engage.title = Ayuda a evaluar las aceras en {0}
 sharedlabel.engage.explore = Encuentra problemas de accesibilidad en {0}
@@ -953,6 +955,7 @@ error.home = Volver al inicio
 
 # Informes de barrio (#5876).
 report.seo.title = {0}: informe del barrio — Project Sidewalk
+report.tool.name = Informes
 report.eyebrow = Informe del barrio
 report.generated = Generado el {0}.
 report.latest.observation = Última etiqueta: {0}.
@@ -1110,3 +1113,7 @@ report.worst.lede = {0,choice,1#1 lugar|1<{0} lugares} con la peor calificación
 report.worst.count.label = {0,choice,1#1 lugar|1<{0} lugares}: {1}. Ver las etiquetas
 report.worst.nosidewalk = Las aceras faltantes no tienen calificación, así que no están en este mapa. Active "{0}" en la barra lateral para verlas como líneas discontinuas en los otros mapas.
 report.toc.worst = Peores problemas
+report.stories.title = Historias de la comunidad
+report.stories.rule = Historias que miembros de la comunidad añadieron a etiquetas de este vecindario, las más recientes primero. Una historia es la experiencia de una persona; no cambia ninguna cifra de esta página.
+report.stories.street = Ver esta calle
+report.stories.all = Leer todas las historias de la comunidad

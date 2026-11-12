@@ -109,7 +109,8 @@ describe('ForwardCrumbs marker lifecycle', () => {
       { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
       { hasVisited: (panoId) => visited.has(panoId) },
       nav,
-      { onHover: () => {}, highlightTo: () => {}, clearHighlight: () => {} },
+      { findLanding: async () => null },
+      { onHover: () => {}, highlightTo: () => {}, clearHighlight: () => {}, setWalkLanding: () => {} },
       tracker,
     );
   });

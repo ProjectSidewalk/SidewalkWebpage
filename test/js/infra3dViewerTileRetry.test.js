@@ -125,6 +125,20 @@ describe('Infra3dViewer image download retries', () => {
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
+  it('passes on at once, untried and unlogged, a download that fails after the viewer left the page', async () => {
+    const { requestTexture, engine } = fakeSdk({ outcomes: [] });
+    await createViewer();
+    const onError = vi.fn();
+
+    mount.remove();
+    engine.requestTexture('tile-url', 300, vi.fn(), onError, false);
+    await vi.advanceTimersByTimeAsync(60 * 1000);
+
+    expect(requestTexture).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith('[object Event]');
+    expect(diagnostics).not.toHaveBeenCalled();
+  });
+
   it("lets the SDK's own re-request of a URL that's waiting on a retry through once, without a second chain", async () => {
     const { requestTexture, engine } = fakeSdk({ outcomes: [] });
     await createViewer();

@@ -41,6 +41,7 @@ function stubCard(labelId) {
     updateLabelType: vi.fn((t) => { labelType = t; }),
     updateSeverityAndTags: vi.fn(),
     setVotes: vi.fn(),
+    setAiGenerated: vi.fn(),
     updateUserValidation: vi.fn(),
     updateComments: vi.fn(),
     setDeleted: vi.fn(),
@@ -72,7 +73,7 @@ beforeEach(async () => {
 
 const edited = (labelType) => ({
   label_id: 7, label_type: labelType, severity: 2, tags: [], num_agree: 1, num_disagree: 0, num_unsure: 0,
-  user_validation: null, ai_validation: null,
+  user_validation: null, ai_validation: null, ai_generated: false,
 });
 
 describe('an edit from the expanded view (#5853)', () => {
@@ -82,6 +83,7 @@ describe('an edit from the expanded view (#5853)', () => {
     cardOpts.onEdit(edited('SurfaceProblem'));
     expect(cards[7].updateLabelType).toHaveBeenCalledWith('SurfaceProblem');
     expect(cards[7].setVotes).toHaveBeenCalled();
+    expect(cards[7].setAiGenerated).toHaveBeenCalledWith(false); // A new type can take the AI badge away (#5925).
     expect(cards[8].updateLabelType).not.toHaveBeenCalled();
   });
 

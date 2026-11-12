@@ -55,12 +55,12 @@ class StatsApiController @Inject() (
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
           case Some("csv") =>
-            val userStatsFile = java.io.File(s"$baseFileName.csv")
+            val userStatsFile = newDownloadFile(s"$baseFileName.csv")
             val writer        = java.io.PrintStream(userStatsFile)
             writer.println(UserStatForApi.csvHeader)
             filteredStats.foreach(userStat => writer.println(userStat.toCsvRow))
             writer.close()
-            Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
+            Ok.sendFile(content = userStatsFile, onClose = () => deleteDownload(userStatsFile))
           case _ =>
             Ok(Json.toJson(filteredStats.map(_.toJson)))
         }
@@ -79,12 +79,12 @@ class StatsApiController @Inject() (
         // Output data in the appropriate file format: CSV or JSON (default).
         filetype match {
           case Some("csv") =>
-            val sidewalkStatsFile = java.io.File(s"$baseFileName.csv")
+            val sidewalkStatsFile = newDownloadFile(s"$baseFileName.csv")
             val writer            = java.io.PrintStream(sidewalkStatsFile, "UTF-8")
             writer.println(ProjectSidewalkStats.csvHeader)
             stats.toCsvRows.foreach(writer.println)
             writer.close()
-            Ok.sendFile(content = sidewalkStatsFile, onClose = () => { sidewalkStatsFile.delete(); () })
+            Ok.sendFile(content = sidewalkStatsFile, onClose = () => deleteDownload(sidewalkStatsFile))
           case _ =>
             Ok(stats.toJson)
         }
@@ -118,12 +118,12 @@ class StatsApiController @Inject() (
             val baseFileName = timestampedFilename("aggregateStats")
 
             // Create temporary CSV file (following the same pattern as other endpoints).
-            val aggregateStatsFile = java.io.File(s"$baseFileName.csv")
+            val aggregateStatsFile = newDownloadFile(s"$baseFileName.csv")
             val writer             = java.io.PrintStream(aggregateStatsFile)
             writer.print((AggregateStats.csvHeader +: aggregateStats.toCsvRows).mkString("\n"))
             writer.close()
 
-            Ok.sendFile(content = aggregateStatsFile, onClose = () => { aggregateStatsFile.delete(); () })
+            Ok.sendFile(content = aggregateStatsFile, onClose = () => deleteDownload(aggregateStatsFile))
 
           case _ => // Default to JSON
             Ok(aggregateStats.toJson)
@@ -179,12 +179,12 @@ class StatsApiController @Inject() (
   private def renderDailyStats(stats: Seq[DailyStatRecord], filetype: Option[String], baseName: String): Result = {
     filetype match {
       case Some("csv") =>
-        val file   = java.io.File(s"${timestampedFilename(baseName)}.csv")
+        val file   = newDownloadFile(s"${timestampedFilename(baseName)}.csv")
         val writer = java.io.PrintStream(file, "UTF-8")
         writer.println(DailyStatRecord.csvHeader)
         stats.foreach(record => writer.println(DailyStatRecord.toCsvRow(record)))
         writer.close()
-        Ok.sendFile(content = file, onClose = () => { file.delete(); () })
+        Ok.sendFile(content = file, onClose = () => deleteDownload(file))
       case _ =>
         Ok(Json.obj("status" -> "OK", "data" -> stats))
     }

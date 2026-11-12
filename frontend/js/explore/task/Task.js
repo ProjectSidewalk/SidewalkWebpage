@@ -5,8 +5,6 @@
 
 import * as turf from '@turf/turf';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { util } from '../../common/utilities.js';
-import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
 
 /**
@@ -26,6 +24,10 @@ export class Task {
   // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
   // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
   static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
+  // How far past the furthest point reached (m) a pano must sit for the walk to step to it. Imagery that turns off
+  // the street gets nowhere, and stepping onto it sends the labeler back and forth (#5918). Kept under the spacing
+  // of the densest imagery, so no usable pano is skipped.
+  static MIN_STEP_ADVANCE_M = 2;
   // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
   // compass's on-route check, and picking up the next street all use it.
   static CLOSE_TO_ROUTE_KM = 0.05;
@@ -377,6 +379,18 @@ export class Task {
   getStreetPriorityDiscretized() {
     const n = 4;
     return Math.min(Math.floor(this.#geojson.properties.priority / (1 / n)), n - 1);
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there advances the walk: on-street, MIN_STEP_ADVANCE_M past the furthest point.
+   */
+  advancesWalk(latLng) {
+    const meters = { units: /** @type {const} */ ('meters') };
+    // Past the on-street bound a pano can't move the furthest point, so every search from it would start over.
+    const point = turf.point([latLng.lng, latLng.lat]);
+    if (turf.pointToLineDistance(point, this.#geojson, meters) >= Task.ON_STREET_MAX_DISTANCE_M) return false;
+    return this.getDistanceFromStart(latLng, meters) - this.getAuditedDistance(meters) >= Task.MIN_STEP_ADVANCE_M;
   }
 
   /**
@@ -745,7 +759,7 @@ export class Task {
     const remainder = this.unwalkedRemainder();
     const distIncrement = Math.min(0.015, turf.length(remainder));
     const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
-    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latLng.lng, goalLoc[1] - latLng.lat)) + 360) % 360);
+    return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
   }
 
   /**

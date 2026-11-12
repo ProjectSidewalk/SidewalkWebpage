@@ -84,6 +84,11 @@ export class KeyboardManager {
     { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
   ];
 
+  /** In a menu text box: the comment boxes and the tag picker. */
+  #textBoxShortcuts = [
+    { keys: ['Escape'], action: (e) => this.#leaveTextBox(e) },
+  ];
+
   /** On the label's marker or inside its card (#4729), where none of the shortcuts above fire. */
   #labelCardShortcuts = [
     { keys: ['Escape'], action: (e) => this.#escapeLabelCard(e) },
@@ -130,11 +135,6 @@ export class KeyboardManager {
       else keyboardLock.release('loading');
     });
 
-    // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
-    validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
-    validationMenuUi.disagreeReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
-    validationMenuUi.unsureReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
-
     // We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
   }
@@ -144,13 +144,18 @@ export class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
+    // Keys typed into an input method (Chinese, Japanese) are the input method's until it commits the text.
+    if (e.isComposing) return;
+    // A focused text box is the narrowest scope there is. Ahead of the lock too: leaving a box acts on no label.
+    this.#checkIfTextAreaSelected();
+    if (this.#addingComment && KeyboardShortcuts.run(this.#textBoxShortcuts, e)) return;
+
     if (this.#belongsToFocusedControl(e)) return;
     if (this.#inLabelCard(e)) {
       KeyboardShortcuts.run(this.#labelCardShortcuts, e);
       return;
     }
 
-    this.#checkIfTextAreaSelected();
     if (this.#keyboardLock.isHeld()) return;
     KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
@@ -160,15 +165,6 @@ export class KeyboardManager {
     } else if (!e.altKey) { // Alt+D is the browser's address bar, not Disagree.
       if (!this.#labelVisibilityControl.isCardHeldOpen()) this.#labelVisibilityControl.hideLabelCard();
       KeyboardShortcuts.run(this.#shortcuts, e);
-    }
-  };
-
-  #handleEscapeKey = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      e.currentTarget.blur();
-      this.#tracker.push('KeyboardShortcut_UnfocusComment', { code: e.code });
     }
   };
 
@@ -189,6 +185,19 @@ export class KeyboardManager {
   /** @returns {boolean} Whether the tag picker's text box has focus. */
   #inTagPicker() {
     return document.activeElement === document.getElementById('select-tag-ts-control');
+  }
+
+  /**
+   * Leaves the menu text box so the letter keys are shortcuts again; no other handler sees the Escape. In the tag
+   * picker one press also closes the list: TomSelect's close-the-list-first would almost always take two (#5946).
+   * @param {KeyboardEvent} e
+   */
+  #leaveTextBox(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const event = this.#inTagPicker() ? 'KeyboardShortcut_UnfocusTagSearch' : 'KeyboardShortcut_UnfocusComment';
+    /** @type {HTMLElement} */ (document.activeElement).blur();
+    this.#tracker.push(event, { code: e.code });
   }
 
   /**
@@ -231,16 +240,18 @@ export class KeyboardManager {
   }
 
   /**
-   * Whether Enter should open the pano's chevron menu rather than submit. Only when the chevron was reached by
-   * keyboard: a validator who Tabbed there means "open the menu", while one who clicked it and then pressed Enter
-   * means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox outside macOS focus a
-   * clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false. A browser that
-   * rejects the selector falls through to submit, the page-wide default.
+   * Whether Enter should go to the pano's chevron menu or a link (Admin Info's, the Details popover's) rather than
+   * submit. Only when reached by keyboard: a validator who Tabbed there means "open it", while one who clicked it and
+   * then pressed Enter means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox
+   * outside macOS focus a clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false.
+   * A browser that rejects the selector falls through to submit, the page-wide default.
    * @param {Element} target - The keydown's target.
    * @returns {boolean}
    */
-  static #isKeyboardFocusedChevron(target) {
-    if (target?.id !== 'validate-control-buttons-toggle') return false;
+  static #isKeyboardFocusedOpener(target) {
+    if (target?.id !== 'validate-control-buttons-toggle' && !(target instanceof HTMLAnchorElement && target.href)) {
+      return false;
+    }
     try {
       return target.matches(':focus-visible');
     } catch {
@@ -302,7 +313,7 @@ export class KeyboardManager {
     const key = KeyboardShortcuts.keyOf(e);
     if (key === 'Space' && target.closest?.('#label-visibility-control-holder')) return true;
     const enter = key === 'Enter';
-    if (enter && KeyboardManager.#isKeyboardFocusedChevron(target)) return true;
+    if (enter && KeyboardManager.#isKeyboardFocusedOpener(target)) return true;
     // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
     // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.
     return enter && Boolean(target.closest?.('#validate-verdict-clear, #immersive-toggle-button'));

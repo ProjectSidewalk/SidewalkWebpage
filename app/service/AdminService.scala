@@ -274,7 +274,7 @@ case class HumanVsAiStats(
  * @param reauditDistanceM   Distance of those needs-re-audit streets (meters).
  * @param totalLabels        All labels placed (includes tutorial labels, matching the by-type admin count).
  * @param labelsPastWeek     Labels placed in the last 7 days — the Activity pulse.
- * @param contributors       Distinct users who have contributed any labels or validations.
+ * @param contributors       People with a non-tutorial label or a vote.
  * @param aiLabels           Labels placed by the AI labeler (human + ai sum to the labeler total).
  * @param aiValidations      Validations performed by the AI validator.
  * @param aiAssessments      Labels assessed by the AI tagger (0 where `label_ai_assessment` is absent/empty).
@@ -806,7 +806,7 @@ class AdminServiceImpl @Inject() (
         labelTotal(labelsWeek),
         valTotal(valsWeek),
         auditsWeek,
-        contributors.count,
+        contributors,
         apiExternal.map(_.count).sum,
         apiClients,
         awaitingVal,

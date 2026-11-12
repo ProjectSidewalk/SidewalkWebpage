@@ -41,7 +41,9 @@
   pointer-events: none;
 }
 
-.filter-sidebar--loading > * {
+/* The tool header stays as drawn: a logo is never recolored, and the name is the one thing here that isn't loading.
+   :where() keeps the rule at one class's weight, so the close button's own opacity (below) still wins. */
+.filter-sidebar--loading > :where(:not(.ps-tool-header)) {
   opacity: 0.5;
   filter: grayscale(1);
 }
@@ -77,6 +79,17 @@
   z-index: 100;
   margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
   margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+}
+
+/* Lifted into the panel's 40px of headroom, which exists to clear the close button: the mark's top then sits level
+   with the chevron's. The name starts at the left and, down to the panel's 280px minimum, stops short of the button. */
+.filter-sidebar > .ps-tool-header {
+  margin-top: calc(var(--tool-header-top) - 40px);
+}
+
+/* Under a tool header the search box is already clear of the close button, and the header's rule spaces it. */
+.ps-tool-header + #labelmap-search-section {
+  margin-top: 0;
 }
 
 #labelmap-search-box {
@@ -647,10 +660,6 @@ body.filter-sidebar-resizing {
   flex-wrap: wrap;
   gap: 4px;
   padding: 4px 0 8px 27px; /* Left inset lines pills up under the row's name (18px icon + 9px gap). */
-}
-
-.filter-sidebar__tag-pills[hidden] {
-  display: none;
 }
 
 .filter-sidebar__tag-pills:not([hidden]) {
