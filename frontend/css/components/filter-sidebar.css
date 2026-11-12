@@ -41,7 +41,8 @@
   pointer-events: none;
 }
 
-.filter-sidebar--loading > * {
+/* The tool header stays as drawn: a logo is never recolored, and the name is the one thing here that isn't loading. */
+.filter-sidebar--loading > :not(.ps-tool-header) {
   opacity: 0.5;
   filter: grayscale(1);
 }
@@ -79,10 +80,10 @@
   margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
 }
 
-/* Lifted into the panel's 40px of headroom, which exists to clear the close button: the mark's top then sits 13px
-   down, level with the chevron's. The name starts at the left, so it never reaches the button. */
+/* Lifted into the panel's 40px of headroom, which exists to clear the close button: the mark's top then sits level
+   with the chevron's. The name starts at the left and, down to the panel's 280px minimum, stops short of the button. */
 .filter-sidebar > .ps-tool-header {
-  margin-top: -27px;
+  margin-top: calc(var(--tool-header-top) - 40px);
 }
 
 /* Under a tool header the search box is already clear of the close button, and the header's rule spaces it. */

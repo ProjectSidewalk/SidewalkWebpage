@@ -2,32 +2,21 @@
  * A tool's lockup (#5958): its logo beside its name, heading that tool's left sidebar. The only place a mark is
  * paired with a name, so the four stay one family; see docs/style-guide.md, "Tool logos".
  *
- * "AccessScore" and "LabelMap" are wordmarks, written the same in every language; the other two names are translated.
- *
  * Usage: `@common.toolHeader("gallery")`, or `@common.toolHeader("reports", asHeading = false)`.
  *
- * @param tool      "accessscore", "gallery", "labelmap" or "reports". Anything else throws, so a typo fails the
- *                  render rather than shipping a header with no mark.
- * @param asHeading Whether the name is the page's `<h1>`; false where the page has one of its own.
+ * @param tool      "accessscore", "gallery", "labelmap" or "reports", as `views.ToolLockup` knows them. Anything
+ *                  else throws, so a typo fails the render rather than shipping a header with no mark.
+ * @param asHeading Whether the name is the page's `<h1>`. False where the page has one of its own, and in a map
+ *                  panel, which can be collapsed: the page then carries its `<h1>` outside the panel.
  *@
 @(tool: String, asHeading: Boolean = true)(using messages: Messages, assets: AssetsFinder)
 
-@lockup = @{
-  tool match {
-    case "accessscore" => ("access-score", "AccessScore")
-    case "gallery"     => ("gallery", messages("gallery"))
-    case "labelmap"    => ("label-map", "LabelMap")
-    case "reports"     => ("reports", messages("report.tool.name"))
-    case unknown       => throw new IllegalArgumentException(s"No tool logo for '$unknown'")
-  }
-}
-
 <div class="ps-tool-header">
   @* Decorative: the name beside it already says which tool this is. *@
-  <img class="ps-tool-header__mark" src='@assets.path(s"images/logos/tools/${lockup._1}.svg")' alt="" width="40" height="40">
+  <img class="ps-tool-header__mark" src='@assets.path(s"images/logos/tools/${views.ToolLockup.mark(tool)}.svg")' alt="" width="40" height="40">
   @if(asHeading) {
-    <h1 class="ps-tool-header__name">@lockup._2</h1>
+    <h1 class="ps-tool-header__name">@views.ToolLockup.name(tool)</h1>
   } else {
-    <p class="ps-tool-header__name">@lockup._2</p>
+    <p class="ps-tool-header__name">@views.ToolLockup.name(tool)</p>
   }
 </div>

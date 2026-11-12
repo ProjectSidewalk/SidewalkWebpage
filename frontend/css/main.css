@@ -227,6 +227,9 @@
   --text-h3-bold:          700 calc(24px * var(--ui-scale, 1))/calc(28px * var(--ui-scale, 1)) var(--font-primary);
   --text-h3-medium:        500 calc(24px * var(--ui-scale, 1))/calc(28px * var(--ui-scale, 1)) var(--font-primary);
 
+  /* A tool's name beside its logo (tool-header.css): the logo's own face at its heaviest weight, at h3 size. */
+  --text-tool-name:        800 calc(24px * var(--ui-scale, 1))/calc(28px * var(--ui-scale, 1)) var(--font-accent);
+
   --text-title-bold:       700 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-primary);
   --text-title-medium:     500 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-primary);
 

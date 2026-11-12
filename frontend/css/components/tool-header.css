@@ -1,6 +1,12 @@
-/* A tool's lockup (#5958, common/toolHeader.scala.html): its logo beside its name, heading that tool's left sidebar.
-   Each host's own stylesheet places it so the mark's top is 13px below the sidebar's top edge, the line the map
-   panels' close chevron sits on, which keeps the four tools' headers at one height. */
+/* A tool's lockup (#5958, common/toolHeader.scala.html): its logo beside its name, heading that tool's left sidebar. */
+
+/* How far below its sidebar's top edge a mark starts where the sidebar stands beside the page: the line the top of
+   the map panels' close chevron sits on. Each host's stylesheet reads it, so the four tools' headers start at one
+   height. Stacked above the page on a phone, a host uses its strip's own padding instead. */
+:root {
+  --tool-header-top: 13px;
+}
+
 .ps-tool-header {
   display: flex;
   align-items: center;
@@ -16,31 +22,14 @@
   height: 40px;
 }
 
-/* The logo's own face and weight, since the name is a wordmark here. It may be an <h1> or a <p>, so the margin and
-   color are set rather than inherited from either. */
+/* It may be an <h1> or a <p>, so the margin and color are set rather than inherited from either. */
 .ps-tool-header__name {
   min-width: 0;
   margin: 0;
-  font: var(--text-h3-bold);
-  font-family: var(--font-accent);
-  font-weight: 800;
+  font: var(--text-tool-name);
   letter-spacing: -0.01em;
   color: var(--color-asphalt-500);
 
   /* A translated name can be one long word; it wraps rather than widening the column. */
   overflow-wrap: anywhere;
-}
-
-/* var(--breakpoint-sm): the sidebars stack above their page here, so the header's height costs the content below. */
-@media (width <= 768px) {
-  .ps-tool-header__mark {
-    width: 32px;
-    height: 32px;
-  }
-
-  .ps-tool-header__name {
-    font: var(--text-title-bold);
-    font-family: var(--font-accent);
-    font-weight: 800;
-  }
 }

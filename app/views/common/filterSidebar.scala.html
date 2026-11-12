@@ -18,8 +18,9 @@
  * @param checkedValidations  Which validation rows start checked.
  * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
  * @param activeTags          Tags that start applied, e.g. from Gallery's URL.
- * @param toolHeader          The tool whose `common.toolHeader` opens the map panel; None on a dashboard's embedded
- *                            map. Ignored without map chrome, where the host places its own header.
+ * @param toolHeader          The tool whose `common.toolHeader` opens the map panel, and whose name becomes the
+ *                            page's `<h1>`; None on a dashboard's embedded map. Ignored without map chrome, where the
+ *                            host places its own header.
  *@
 @(tags: Seq[Tag] = Seq.empty,
   sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),
@@ -238,11 +239,14 @@
 }
 
 @if(withMapChrome) {
+  @* Outside the panel: collapsed, the panel is hidden from assistive technology too, and the page's only <h1> would
+     go with it. The lockup inside shows the same name to the eye. *@
+  @for(tool <- toolHeader) {<h1 class="sr-only">@views.ToolLockup.name(tool)</h1>}
   <div id="filter-sidebar" class="filter-sidebar ps-invisible" role="complementary" aria-label="Legend" data-i18n-aria-label="labelmap:legend">
     <button type="button" id="filter-sidebar-close" class="filter-sidebar__close" aria-label="Close" data-i18n-aria-label="common:close">
       <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
-    @for(tool <- toolHeader) {@common.toolHeader(tool)}
+    @for(tool <- toolHeader) {@common.toolHeader(tool, asHeading = false)}
     @filterSections
   </div>
 
