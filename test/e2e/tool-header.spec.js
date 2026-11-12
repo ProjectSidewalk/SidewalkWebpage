@@ -34,7 +34,8 @@ for (const tool of TOOLS) {
     await expect(name).toHaveText(tool.name);
 
     const mark = header.locator('.ps-tool-header__mark');
-    await expect(mark).toHaveAttribute('src', new RegExp(`/logos/tools/${tool.mark}[^/]*\\.svg`));
+    // A staged build serves the file under its digest, `<digest>-<name>.svg`; the dev server under its plain name.
+    await expect(mark).toHaveAttribute('src', new RegExp(`/logos/tools/(?:[0-9a-f]+-)?${tool.mark}\\.svg$`));
     // Decorative beside its name, so it must stay out of the accessibility tree.
     await expect(mark).toHaveAttribute('alt', '');
     const loaded = await mark.evaluate((img) => img.complete && img.naturalWidth > 0);
