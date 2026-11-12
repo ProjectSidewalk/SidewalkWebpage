@@ -271,6 +271,22 @@ describe('the filtered Gallery grid', () => {
       expect(ui.nextPage.disabled).toBe(true);
     });
 
+    it('keeps cards in arrival order, so a fetch of a common type never pushes a rarer type off its page', async () => {
+      filterState.types = ['CurbRamp', 'Obstacle'];
+      const container = await open([...entries(1, 7), entry(8, { label_type: 'Obstacle' }), ...entries(9, 4)]);
+      expect(shownIds()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // Page 2 needs a fetch, and in a city of mostly curb ramps it brings back only curb ramps.
+      ui.nextPage.click();
+      await answer(entries(13, 18));
+      expect(shownIds()).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18]);
+
+      // Grouped by type, the obstacle would now sit behind all 29 curb ramps, on page 4.
+      container.prevPage();
+      await flush();
+      expect(shownIds()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    });
+
     it('pages back, and goes no further back than the first page', async () => {
       const container = await open(entries(1, 30));
       ui.nextPage.click();

@@ -1,6 +1,6 @@
 package modules
 
-import modules.PersistentMediaDirCheck.{persistentDirs, unsafeDirs}
+import modules.PersistentMediaDirCheck.{logDirProblem, persistentDirs, unsafeDirs}
 import play.api.{Configuration, Environment, Mode}
 import util.SidewalkSpec
 
@@ -39,6 +39,28 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
 
   private def runCheck(mode: Mode, dirs: Map[String, String]): Unit = {
     val _ = PersistentMediaDirCheck(Configuration.from(dirs), Environment(appRoot, getClass.getClassLoader, mode))
+  }
+
+  "logDirProblem" should {
+    "accept an unset variable, which logs under the application directory" in {
+      logDirProblem(None, env()) mustBe None
+    }
+
+    "accept an absolute path outside the build tree" in {
+      logDirProblem(Some("/srv/sidewalk/logs"), env()) mustBe None
+    }
+
+    "flag a value that is set but empty, which logback would resolve to the filesystem root" in {
+      logDirProblem(Some(""), env()).value must include("set but empty")
+    }
+
+    "flag a relative path, which depends on the process's starting directory" in {
+      logDirProblem(Some("logs"), env()).value must include("relative")
+    }
+
+    "flag an absolute path inside the build tree, which sbt clean deletes" in {
+      logDirProblem(Some("/srv/sidewalk/target/universal/stage/logs"), env()).value must include("build output tree")
+    }
   }
 
   "unsafeDirs" should {

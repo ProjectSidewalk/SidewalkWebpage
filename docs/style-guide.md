@@ -46,7 +46,9 @@ These apply across every language in the repo.
   `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
   `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
   admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller); a centered page column is
-  `.ps-container`; hide with `.ps-hidden` / `.ps-invisible`, and `.sr-only` keeps text for screen readers only. A
+  `.ps-container`; hide with the `hidden` attribute or `.ps-hidden` / `.ps-invisible` (`main.css` makes `[hidden]`
+  win over any component's `display`, so no per-component `[hidden]` rule is needed), and `.sr-only` keeps text for
+  screen readers only. A
   page-scoped class on top for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring
   the font, border, padding, or hover/focus treatment is not — extend the primitive in `main.css` instead.
 - **Hint text goes in `data-ps-tooltip`, not `title`** (`data-i18n-tooltip="ns:key"` when translated; see
@@ -59,8 +61,9 @@ These apply across every language in the repo.
   is the one size on the page that doesn't say what it renders at.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
-  `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
-  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
+  `--text-small-accent`, `--text-tool-name`). Raleway defaults to old-style (text) figures — digits vary in height and
+  3/4/5/7/9 descend below the baseline — so any text containing digits (counts, timers, stats, dates) must use a
+  primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 
@@ -241,6 +244,26 @@ How to show one depends on where its color comes from:
   in `.au-icon` on the auth pages and `.mst-arrow-icon` in the mission-start carousel. Only the file's shape is used,
   so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
   a button or link itself, since it would hide their focus ring too.
+
+**Tool logos.** AccessScore, Gallery, Label Map and Reports each have a mark, drawn as one family from the Project
+Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/logos/tools/`
+(`access-score.svg`, `gallery.svg`, `label-map.svg`, `reports.svg`), each on a 64-unit grid.
+
+- **Show one through `@common.toolHeader("<tool>")`**, which pairs the mark with the tool's name as the header of
+  that tool's left sidebar. Don't assemble the pair by hand: the component is what keeps the size, face
+  (`--text-tool-name`, Raleway ExtraBold) and spacing the same on all four pages.
+- **The name is also the page's `<h1>`**, except on a report, which has its own. In Gallery the lockup itself is the
+  `<h1>` (its review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
+  assistive technology, so Label Map and AccessScore pass `asHeading = false` and state the name in a visually hidden
+  `<h1>` ahead of the map (`views.ToolLockup.name`).
+- **"AccessScore" is a wordmark** and is written that way in every language. "Gallery", "Label Map" and "Reports"
+  are ordinary words and are translated (`gallery`, `navbar.labelmap`, `report.tool.name`). `LabelMap` as one word
+  is the code and API identifier only, never text a user reads.
+- **Drawn for light surfaces.** Their white outlines keep them readable on asphalt, but Gallery's frames and the
+  other asphalt parts merge into it, and no dark variant has been drawn. Draw one before a mark goes on a dark
+  surface. The navbar's Tools menu keeps its line icons, like every other entry in it.
+- **Never recolor, redraw or crop a mark**, and don't use one below 16px, where the detail inside it closes up. A
+  mark stands for its tool; a control that merely *does* something map- or photo-like takes an icon instead.
 
 ## Scala
 

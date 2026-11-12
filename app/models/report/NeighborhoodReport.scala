@@ -1,7 +1,8 @@
 package models.report
 
 import models.api.{LabelClusterForApi, LabelDataForApi, PlaceForApi, StreetAccessScoreForApi}
-import models.label.{LabelType, RatingScale}
+import models.label.{LabelType, RatingScale, StreetSide}
+import models.story.StoryForListing
 import models.utils.LatLngBBox
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -14,7 +15,9 @@ import java.time.{LocalDate, OffsetDateTime}
  * One label as the report reads it: the Raw Labels API's row, narrowed to the fields the report uses, with its votes
  * reduced to human ones. Reviewers in the report are people, so AI votes never reach these counts.
  *
- * @param correct The site's consensus verdict on the label, `Some(false)` when review marked it incorrect
+ * @param correct    The site's consensus verdict on the label, `Some(false)` when review marked it incorrect
+ * @param streetSide Which side of `streetEdgeId` it sits on (#2886), relative to that edge's digitized direction; None
+ *                   within a metre of the centerline or with no position
  */
 case class ReportLabel(
     labelId: Int,
@@ -22,6 +25,7 @@ case class ReportLabel(
     severity: Option[Int],
     tags: List[String],
     streetEdgeId: Int,
+    streetSide: Option[StreetSide],
     userId: String,
     panoId: String,
     timeCreated: OffsetDateTime,
@@ -60,6 +64,7 @@ object ReportLabel {
       severity = label.severity,
       tags = label.tags,
       streetEdgeId = label.streetEdgeId,
+      streetSide = label.streetSide,
       userId = label.userId,
       panoId = label.panoId,
       timeCreated = label.timeCreated,
@@ -374,6 +379,28 @@ object ReportRules {
   /** @return Whether the report counts this label: everything except what review marked incorrect. */
   def isCounted(label: ReportLabel): Boolean = !label.correct.contains(false)
 
+  /**
+   * Which side of its street a location is drawn on when a map lines its labels up along the street (#5888): the side
+   * most of its counted labels sit on. Only labels on the location's own edge vote, since a side is relative to its
+   * edge's digitized direction and says nothing against another street.
+   *
+   * @param labels Counted labels by id
+   * @return The majority side, or None at a crossing, on a tie or with no sided label, which draws the location where
+   *         it is.
+   */
+  def sideOf(location: ReportLocation, labels: Map[Int, ReportLabel]): Option[StreetSide] = {
+    val sides = location.labelIds
+      .flatMap(labels.get)
+      .filter(_.streetEdgeId == location.streetEdgeId)
+      .flatMap(_.streetSide)
+    val left  = sides.count(_ == StreetSide.Left)
+    val right = sides.count(_ == StreetSide.Right)
+    if (location.intersectionId.isDefined) None
+    else if (left > right) Some(StreetSide.Left)
+    else if (right > left) Some(StreetSide.Right)
+    else None
+  }
+
   /** How many points an item must cost its street to be listed as a fix. */
   val FixMinPoints: Double = 1.0
 
@@ -434,7 +461,7 @@ object ReportRules {
         val item = itemOf.get(location.clusterId)
         val cost = item.fold(0.0)(_.costPoints)
         representative(ReportItem(Seq(location), cost), labels, hasCrop)
-          .map(ReportCard(location, _, cost, item.fold(1)(_.locations.size)))
+          .map(ReportCard(location, _, cost, item.fold(1)(_.locations.size), sideOf(location, labels)))
       }
       // By each location's own share, so a street with fifty of one pooled item doesn't open on fifty alike.
       .sortBy(c =>
@@ -740,8 +767,15 @@ object InventoryRow {
  * @param label      The label the card pictures
  * @param costPoints What this location costs its stretch's score; 0 for one that costs nothing
  * @param poolSize   How many locations share that cost, for a type the score pools along a block
+ * @param side       The side of its street the aligned map view draws it on (`ReportRules.sideOf`); None leaves it put
  */
-case class ReportCard(location: ReportLocation, label: ReportLabel, costPoints: Double, poolSize: Int)
+case class ReportCard(
+    location: ReportLocation,
+    label: ReportLabel,
+    costPoints: Double,
+    poolSize: Int,
+    side: Option[StreetSide]
+)
 
 /**
  * A dot on the worst-problems map.
@@ -855,6 +889,8 @@ case class ReportMapEdge(
  *                          beside the weight sliders
  * @param places            Important places near its segments
  * @param worst             Every location rated at the worst end of its type's scale, for the worst-problems map
+ * @param stories           Community members' stories on labels here (#4054), newest first, up to
+ *                          `ReportService.StoriesListSize`; they change no number
  */
 case class NeighborhoodReport(
     regionId: Int,
@@ -873,8 +909,22 @@ case class NeighborhoodReport(
     weights: AccessScoreWeights = AccessScoreWeights.Default,
     contributions: Map[String, Double] = Map.empty,
     places: Seq[ReportPlace] = Nil,
-    worst: Seq[WorstProblem] = Nil
+    worst: Seq[WorstProblem] = Nil,
+    stories: Seq[StoryForListing] = Nil
 ) {
+
+  /**
+   * @param labelId      A label in the region
+   * @param streetEdgeId The street it was placed on
+   * @return The anchor of the section whose score counts the label, else of the one detailing its street, if either
+   *         exists. The score comes first because a corner label is pooled onto the streets meeting there, which
+   *         needn't include the one it was placed on.
+   */
+  def sectionFor(labelId: Int, streetEdgeId: Int): Option[String] =
+    detailed
+      .find(_.street.worst.locations.exists(_.labelIds.contains(labelId)))
+      .orElse(detailed.find(_.street.worst.edgeIds.contains(streetEdgeId)))
+      .map(_.anchor)
 
   /** @return The worst problems by type, in the canonical type order, leaving out types that have none. */
   def worstByType: Seq[(LabelType, Seq[WorstProblem])] = {
@@ -1105,6 +1155,12 @@ object ReportLinks {
 
   /** @return The label's own card, with its full panorama. */
   def label(labelId: Int): String = s"/label/$labelId"
+
+  /** @return The label's card scrolled to one of its stories, as a story's share link opens it (#4722). */
+  def story(labelId: Int, storyId: Int): String = s"/label/$labelId?storyId=$storyId"
+
+  /** The city's community stories page. */
+  val stories: String = "/stories"
 }
 
 /** What the page's scripts need from a report, written into it as JSON: the maps and cards are drawn in the browser. */
@@ -1124,6 +1180,9 @@ object ReportClientData {
       "labelIds"   -> card.location.labelIds,
       "listIds"    -> card.location.labelIds.take(ReportLinks.MaxListedIds),
       "atCrossing" -> card.location.intersectionId.isDefined,
+      // For the aligned view (#5888): the edge whose line the card is drawn beside, and which side of it.
+      "edgeId"     -> card.location.streetEdgeId,
+      "side"       -> card.side.map(_.name),
       "costPoints" -> card.costPoints,
       "poolSize"   -> card.poolSize
     )

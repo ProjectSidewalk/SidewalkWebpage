@@ -11,6 +11,7 @@
 import { util } from '../common/utilities.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class DataQualityPage {
   static #TOP_TAGS_PER_TYPE = 8;
@@ -92,18 +93,18 @@ export class DataQualityPage {
     const agreed = overall.agreed || 0;
     const validated = overall.validated || 0;
 
-    this.#setText('kpi-total-labels', (labels.count || 0).toLocaleString());
-    this.#setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
-    this.#setText(
+    AdminShell.setText('kpi-total-labels', (labels.count || 0).toLocaleString());
+    AdminShell.setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
+    AdminShell.setText(
       'kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`,
     );
-    this.#setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
-    this.#setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
-    this.#setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
+    AdminShell.setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
+    AdminShell.setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
+    AdminShell.setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
 
     // Imagery freshness: overallStats returns a string like "1037 days"; show it in years for readability.
     const ageDays = parseInt(labels.avg_age_of_image_when_labeled, 10);
-    this.#setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
+    AdminShell.setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
   }
 
   /** Labels by type: one row per type, bar width relative to the largest count. Sorted by count descending. */
@@ -471,11 +472,6 @@ export class DataQualityPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

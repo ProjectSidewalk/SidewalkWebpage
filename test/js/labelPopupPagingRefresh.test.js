@@ -20,6 +20,7 @@ function renderPopupMarkup() {
         <dialog id="label-modal" class="label-detail">
           <button type="button" data-action="close-label-detail"></button>
           <button type="button" class="label-detail__paging label-detail__paging--prev"></button>
+          <div class="label-detail__pano"></div>
           <button type="button" class="label-detail__paging label-detail__paging--next"></button>
         </dialog>`;
 }

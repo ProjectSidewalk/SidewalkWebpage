@@ -58,13 +58,30 @@ function buildCard({ paging = true, asDialog = false } = {}) {
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           ${arrows}
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
@@ -174,6 +191,7 @@ function buildCard({ paging = true, asDialog = false } = {}) {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </${tag}>`;
   return document.getElementById('card');
@@ -340,6 +358,15 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       await flush();
 
       expect(validations().map((v) => v.validation_result)).toEqual([result]);
+    });
+
+    test('a key a page script sends to the document itself, with no element behind it, still votes', async () => {
+      await showLabel();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', bubbles: true, cancelable: true }));
+      await flush();
+
+      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
     });
 
     test('the key drives the card\'s own button, as a click a pointer did not make', async () => {

@@ -38,17 +38,15 @@ export class LabelMiniCard {
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
    * @param {boolean} [options.showType=false] - Whether a sheet card's caption opens with the label type's name, as
    *   the Gallery card's does; off where the host's heading already names it (a cluster sheet of one type).
-   * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
-   * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
+   * @param {Function} options.onOpen - Called with the label id when the picture is chosen.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
-   * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
+   * @param {Function} options.log - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
    */
-  constructor(label, { size = 'sheet', showType = false, onOpen = () => {}, onVote = () => {}, source, log = () => {},
-    className = '', tag = 'li' }) {
+  constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li' }) {
     this.#label = { ...label };
-    this.#opts = { size, showType, onOpen, onVote, source, log, className };
+    this.#opts = { size, showType, onOpen, source, log, className };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -121,7 +119,6 @@ export class LabelMiniCard {
     const marker = label.crop_url
       ? `<img class="lmc__marker" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`
       : '';
-    const colors = rating ? util.misc.getSeverityLevelColors(label.severity, type) : null;
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
     const date = label.timestamp
@@ -132,8 +129,8 @@ export class LabelMiniCard {
       ? i18next.t(util.misc.isPositiveLabelType(type) ? 'common:quality' : 'common:severity')
       : '';
     const ratingHtml = rating
-      ? `<span class="lmc__rating" style="--lmc-wash: ${esc(colors?.wash ?? '')}">${esc(ratingHeader)}: ${
-        esc(rating)}</span>`
+      ? `<span class="lmc__rating" style="--lmc-wash: ${
+        esc(util.misc.getSeverityLevelColors(label.severity, type).wash)}">${esc(ratingHeader)}: ${esc(rating)}</span>`
       : '';
     const body = this.#opts.size === 'sheet'
       ? `<div class="lmc__body">
@@ -215,7 +212,8 @@ export class LabelMiniCard {
    * @param {string} action - 'Agree', 'Disagree' or 'Unsure'.
    */
   async #vote(action) {
-    if (this.#busy || this.#lockReason()) return;
+    // A locked card's chips are disabled, but a host's `update` mid-vote redraws them enabled.
+    if (this.#busy) return;
     const before = this.#label;
     const prev = before.user_validation ?? null;
     const undone = prev === action;
@@ -237,7 +235,6 @@ export class LabelMiniCard {
       // Casting is recorded by the label_validation row; clearing deletes it, so the event is the only trace.
       if (undone) this.#opts.log(`ClearVote_result=${action}_labelId=${before.label_id}`);
       else if (prev === null) BadgeAchievements.recordValidation(this.#el);
-      this.#opts.onVote(next, this.#label);
     } catch (err) {
       console.error('LabelMiniCard: vote failed', err);
       this.#label = before;

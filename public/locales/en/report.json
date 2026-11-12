@@ -11,7 +11,9 @@
     "location": "{{type}}: show its photo",
     "gesture-windows": "Use Ctrl + scroll to zoom the map",
     "gesture-mac": "Use ⌘ + scroll to zoom the map",
-    "gesture-touch": "Use two fingers to move the map"
+    "gesture-touch": "Use two fingers to move the map",
+    "aligned": "Aligned labels",
+    "aligned-note": "Each label on its side of the street, at about its point along it: not its exact spot."
   },
   "place": {
     "score": "Score {{score}}",

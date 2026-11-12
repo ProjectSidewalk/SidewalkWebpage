@@ -17,7 +17,7 @@ import '../../css/components/mission-start-tutorial.css';
  * What a tool hands the tutorial: where to log, and what to re-enable or refresh when the tutorial closes.
  * @typedef {object} TutorialHooks
  * @property {{push: (action: string, notes?: object, extra?: any) => any}} tracker - Logs the slide clicks.
- * @property {{enableKeyboard: () => void}} [keyboard] - Shortcuts to resume once the overlay clears.
+ * @property {{enableKeyboard: () => void}} keyboard - Shortcuts to resume once the overlay clears.
  * @property {{updateZoomAvailability: () => void}} [zoomControl] - Zoom buttons to bring in line with the pano.
  * @property {{getCurrentMission: () => any}} [missionContainer] - Explore only: the mission whose start is logged.
  */
@@ -379,9 +379,7 @@ export class MissionStartTutorial {
 
     document.querySelector(`.mst-carousel-location-indicator[data-idx="${idx}"]`).classList.add('current-location');
 
-    if (slide.labelOnImage) { // Just a defensive check.
-      renderLabelOnImage(slide.labelOnImage.position, labelOnImageTitle, labelOnImageDescriptionText);
-    }
+    renderLabelOnImage(slide.labelOnImage.position, labelOnImageTitle, labelOnImageDescriptionText);
 
     // Disable the previous/next buttons based on the current slide idx
     if (idx === 0) {
@@ -409,7 +407,7 @@ export class MissionStartTutorial {
     // Hides the mission start tutorial, hands the tool back, and logs the interaction.
     const hideMST = () => {
       this.#hooks.zoomControl?.updateZoomAvailability();
-      this.#hooks.keyboard?.enableKeyboard();
+      this.#hooks.keyboard.enableKeyboard();
 
       MissionStartTutorial.#fadeOut(document.querySelector('.mission-start-tutorial-overlay'), (el) => {
         el.style.display = 'none';

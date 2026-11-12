@@ -170,10 +170,20 @@ def _osmnx(request_timeout_s=180, memory_mb=None, overpass_url=OVERPASS_URL):
     return ox
 
 
+# How far the fetch outline may stray from the padded city outline: enough to cut an official outline to ~200 points.
+FETCH_OUTLINE_SMOOTHING_M = 12.5
+
+
 def fetch_area(boundary_poly, fetch_buffer_m):
-    """The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for."""
-    buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
-    return boundary_poly.buffer(buffer_deg)
+    """
+    The city boundary widened by ``fetch_buffer_m`` metres, in lon/lat: what both OSM fetches ask for.
+
+    Overpass gets the outline once per road type, so a detailed one (Beringen's has 5,600 points) is too big a request.
+    It is smoothed to within FETCH_OUTLINE_SMOOTHING_M, after widening by that much extra to make up for it.
+    """
+    metres_per_deg = 111_320 * cos(radians(boundary_poly.centroid.y))
+    smoothing_deg = FETCH_OUTLINE_SMOOTHING_M / metres_per_deg
+    return boundary_poly.buffer(fetch_buffer_m / metres_per_deg + smoothing_deg).simplify(smoothing_deg)
 
 
 # The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
@@ -2087,12 +2097,12 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         lines.append(f'- Merged sub-{args.merge_tiny_m:g} m pieces into a touching piece of the same OSM way '
                      f'(#4717 tier 1): **{n_tier1_merged}**')
     if lineage_stats is not None:
-        flagged = ', '.join(f'{road_id} ({coverage:.0%})' for road_id, coverage in lineage_stats.flagged[:10])
+        to_check = ', '.join(f'{road_id} ({coverage:.0%})' for road_id, coverage in lineage_stats.flagged[:10])
         more = ' ...' if len(lineage_stats.flagged) > 10 else ''
         lines.append(f'- OSM way positions (#5741, `qgis_road_osm_way` layer): matched **{lineage_stats.matched}** '
                      f'streets along their whole length, **{lineage_stats.partial}** in part, '
                      f'**{lineage_stats.unmatched}** not at all'
-                     + (f' — check in QGIS: {flagged}{more}' if flagged else ''))
+                     + (f' — check in QGIS: {to_check}{more}' if to_check else ''))
     if heal_stats is not None:
         lines += [
             f'- Healed region-boundary fragments < {args.heal_segment_m:g} m: **{heal_stats.n_fragments}** '

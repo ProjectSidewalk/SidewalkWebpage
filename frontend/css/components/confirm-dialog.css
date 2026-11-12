@@ -25,8 +25,6 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   margin-bottom: 10px;
 }
 
-.ps-confirm__header[hidden] { display: none; }
-
 .ps-confirm__title {
   margin: 0;
   font: var(--text-subtitle-bold);
@@ -40,8 +38,6 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   -webkit-mask: url("/images/icons/alert-triangle-feather.svg") center / contain no-repeat;
   mask: url("/images/icons/alert-triangle-feather.svg") center / contain no-repeat;
 }
-
-.ps-confirm__warning-icon[hidden] { display: none; }
 
 .ps-confirm__message {
   margin: 0;

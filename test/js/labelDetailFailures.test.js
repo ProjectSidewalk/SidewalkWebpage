@@ -56,6 +56,20 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(q('.label-detail__vote--agree').disabled).toBe(false);
     });
 
+    test('a changed vote that lands after paging, on a host that doesn\'t listen, counts no new badge', async () => {
+      const vote = deferred();
+      const { show, q } = await mountCard({ routes: { 'POST /labelmap/validate': () => vote.promise } });
+      await show({ user_validation: 'Disagree', num_disagree: 1 });
+      q('.label-detail__pano-overlay-button--agree').click();
+      await show({ label_id: 43 });
+
+      vote.resolve({ status: 200, body: {} });
+      await flush();
+      // A changed vote isn't a new validation, so no badge count moves.
+      expect(collaborators.recordValidation).not.toHaveBeenCalled();
+      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+    });
+
     test('refused for a type change after paging doesn\'t redraw the new label', async () => {
       const vote = deferred();
       const { show, q } = await mountCard({ routes: { 'POST /labelmap/validate': () => vote.promise } });
@@ -395,6 +409,39 @@ describe('the label card, when a reply goes wrong or comes late', () => {
 
       expect(q('.label-detail__tags-edit').getAttribute('aria-expanded')).toBe('false');
       expect(q('.label-detail__tags').textContent).toBe('common:none');
+    });
+
+    test('a rating refused because the label changed elsewhere is redrawn from the reply, with no vote re-read',
+      async () => {
+        const { show, q } = await mountCard({
+          routes: { 'POST /label/edit': { status: 409, body: { label_type: 'Obstacle', severity: 1, tags: [] } } },
+        });
+        const meta = await show(editable);
+        q('.severity-button[data-severity="3"]').click();
+        await flush();
+
+        // No route for GET /label/id/42: a re-read would fail the test.
+        expect(meta).toMatchObject({ severity: 1, tags: [] });
+        expect(q('.severity-button[data-severity="1"]').classList.contains('is-selected')).toBe(true);
+        expect(collaborators.toast).toHaveBeenCalledWith(expect.objectContaining({ message: 'labelmap:edit-conflict' }));
+      });
+
+    test('a type changed elsewhere is re-read for its votes, on a host with no edit hook too', async () => {
+      const adminData = { previous_validations: [] };
+      const { show, q, fetch } = await mountCard({
+        admin: true,
+        routes: {
+          'POST /label/edit': { status: 409, body: { label_type: 'Signal', severity: null, tags: [] } },
+          'GET /adminapi/label/id/42': labelMeta({ label_type: 'Signal', num_agree: 7, admin_data: adminData }),
+        },
+      });
+      await show({ ...editable, from_current_user: false, admin_data: adminData });
+      q('.severity-button[data-severity="3"]').click();
+      await flush();
+      await flush();
+
+      expect(fetch.mock.calls.map(([url]) => url)).toContain('/adminapi/label/id/42');
+      expect(q('.label-detail__vote--agree .label-detail__vote-count').textContent).toBe('7');
     });
 
     describe('the vote re-read after a type change', () => {

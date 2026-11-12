@@ -201,12 +201,12 @@ object AccessScoreCalculator {
     (LabelType.Crosswalk.name, "no pedestrian priority")   -> -0.25,
     (LabelType.NoCurbRamp.name, "no alternate route")      -> -0.50,
     (LabelType.NoCurbRamp.name, "alternate route present") -> +0.25,
-    // NoSidewalk tags are pooled per street (#5093). "street has no sidewalks" and "street has a sidewalk" (the other
-    // side has one) are mutually exclusive, so at most one is active unless the street's labels split exactly in half.
+    // NoSidewalk tags are pooled per street (#5093). "street has no sidewalks" and "other side has a sidewalk" are
+    // mutually exclusive, so at most one is active unless the street's labels split exactly in half.
     // "ends abruptly" aggravates: a pedestrian on the sidewalk is stranded in the roadway where it stops.
     (LabelType.NoSidewalk.name, "ends abruptly")               -> -1.00,
     (LabelType.NoSidewalk.name, "street has no sidewalks")     -> -1.00,
-    (LabelType.NoSidewalk.name, "street has a sidewalk")       -> +1.00,
+    (LabelType.NoSidewalk.name, "other side has a sidewalk")   -> +1.00,
     (LabelType.NoSidewalk.name, "gravel/dirt road")            -> -0.25,
     (LabelType.NoSidewalk.name, "shared pedestrian/car space") -> +0.25,
     (LabelType.NoSidewalk.name, "covered walkway")             -> +0.50,

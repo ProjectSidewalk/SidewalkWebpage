@@ -65,7 +65,7 @@ make test-e2e-host args="-g labelMap --headed"
 That path needs a host toolchain the containerized one doesn't: **Node 26**, `npm ci` at the repo root (the
 container's `node_modules` is a Docker volume, so the host copy is a separate install of the same pinned versions),
 and `npx playwright install chromium`, plus `sudo npx playwright install-deps` on Linux/WSL. Use it for
-interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
+interactive debugging; `make test-e2e` is the normal run.
 
 ## How a spec works
 
@@ -74,7 +74,11 @@ interactive debugging; `make test-e2e` is what a normal run and CI both exercise
    session) and back. A page under test therefore may load with **or** without a session, which is itself
    part of what the suite covers — an init-time fetch that assumes a session `console.error`s and fails the
    spec. Registered-user pages (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js`
-   (two-step CSRF `POST /signUp`).
+   (two-step CSRF `POST /signUp`). Admin pages call `signInAsAdmin(context)` first. It signs in as an
+   admin that `fixtures/ensure-admin.sh` makes (sign up through the app, then set the role in the database)
+   with a random name and password, kept in the git-ignored `.admin-account.json`: a dev database's logins
+   are a copy of production's, so a known admin password would expose real users. `make test-e2e` and CI
+   run the script before the suite; before a bare `npx playwright test`, run it once yourself.
 2. Wait for `window.appManager.isReady` (every page's shared init manager), plus the page's own signal
    where one exists (the `#page-loading` overlay hiding).
    **The wait is not the assertion**: AppManager catches init/ready-callback exceptions, `console.error`s
@@ -233,8 +237,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag: ✅ `explore-tutorial-labeling.spec.js`, #4777; validate a label:
-  ✅ `validate-interactions.spec.js`, #4948); admin pages (promote the setup user via a superuser `UPDATE user_role`
-  in CI).
+  ✅ `validate-interactions.spec.js`, #4948); admin pages (✅ the sign-in: `signInAsAdmin`, #5946; Expert Validate
+  in `validate-interactions.spec.js` is the first, the admin dashboard pages are still open).
 
 ## File map
 
@@ -242,15 +246,17 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate` and its mission helpers, `signInAsAdmin`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
 | `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/ensure-admin.sh` | Makes the admin the admin specs sign in as, with random credentials it keeps in the git-ignored `.admin-account.json`. Run by `make test-e2e` and CI before the suite |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
+| `tool-header.spec.js` | The tool logo and name atop the four tools' sidebars, and each page's one `<h1>` (#5958) |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
 | `a11y-api-docs-states.spec.js` | The same gate over the api-docs previews' error and empty renders, forced by intercepting their feeds (#5122) |
@@ -260,7 +266,12 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
-| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948) |
+| `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948). Also Expert Validate as the admin (#5946), in the same file so its votes can't land between another test's count and its check |
 | `label-card-paging.spec.js` | Pages Gallery's open card to the first label; Prev switches off but keeps focus (#5135) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
+| `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
+| `label-card-drag.spec.js` | A drag on the label card's imagery ends when let go over a disabled paging arrow or off the imagery (#5295) |
+| `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
+| `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |
+| `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason against CI's seed |

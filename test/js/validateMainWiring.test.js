@@ -61,7 +61,10 @@ const FIXTURE = `
       <template id="admin-info-template"><div id="admin-info-content"></div></template>
       <div id="svv-panorama-holder">
         <div id="view-control-layer"></div>
-        <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>
+        <div id="label-card">
+          <span><button type="button" id="label-card-share"></button></span>
+          <button type="button" id="label-visibility-button-on-label"></button>
+        </div>
         <div id="speed-limit-sign"><span id="speed-limit"></span><span id="speed-limit-sub"></span></div>
         <button type="button" id="label-visibility-control-button"></button>
         <button type="button" id="zoom-in-button"></button>
@@ -69,6 +72,7 @@ const FIXTURE = `
         <div id="svv-panorama-date-holder"><span id="svv-panorama-date"></span></div>
       </div>
       <div id="validation-menu-holder">
+        <button type="button" id="validate-verdict-clear"></button>
         <h2 id="main-validate-header"></h2>
         <button type="button" id="validate-yes-button"></button>
         <button type="button" id="validate-no-button"></button>
