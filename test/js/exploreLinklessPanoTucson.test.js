@@ -25,12 +25,12 @@ describe('free exploration on Tucson\'s link-less pano (#5968)', () => {
   let viewer;
 
   /** The drop-in's street as Main sets it up: built from the session, then told where the labeler stands. */
-  const dropIn = ({ reversed = false } = {}) => {
+  const dropIn = () => {
     const task = new Task({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: S_9TH_AVE.map((c) => [...c]) },
       properties: {
-        street_edge_id: 1603, task_start: '2026-11-12T13:00:00Z', start_point_reversed: reversed,
+        street_edge_id: 1603, task_start: '2026-11-12T13:00:00Z', start_point_reversed: false,
         current_lat: DEAD_END_PANO.lat, current_lng: DEAD_END_PANO.lng,
       },
     }, COVERAGE, false);
@@ -93,15 +93,5 @@ describe('free exploration on Tucson\'s link-less pano (#5968)', () => {
     expect(bearing).toBeGreaterThan(175);
     expect(bearing).toBeLessThan(185);
     expect(excluded).toEqual([DEAD_END_PANO.panoId]);
-  });
-
-  test('on a street served in the other direction, the arrow and its walk go north instead', () => {
-    const northbound = dropIn({ reversed: true });
-    const heading = arrowHeading(northbound);
-    expect(Math.min(heading, 360 - heading)).toBeLessThan(5);
-
-    const { meters, bearing } = firstSearchPoint(northbound);
-    expect(meters).toBeCloseTo(10, 0);
-    expect(Math.min(bearing, 360 - bearing)).toBeLessThan(5);
   });
 });

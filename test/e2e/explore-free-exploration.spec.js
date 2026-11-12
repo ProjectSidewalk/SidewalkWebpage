@@ -8,9 +8,12 @@ test('a free-exploration pano with no links offers a forward arrow that walks th
   consoleErrors}) => {
   await stubMapbox(context);
 
-  // Inside a street's first segment, so the drop-in resolves to that street and not one it meets.
+  // Inside a street's first segment, so the drop-in resolves to that street and not one it meets; a segment long
+  // enough (about 55 m of latitude or more of longitude) that the walk has street left to step along.
   const streets = await (await page.request.get('/v3/api/streets')).json();
-  const coords = streets.features.find((f) => f.geometry.coordinates.length >= 2).geometry.coordinates;
+  const coords = streets.features.map((f) => f.geometry.coordinates)
+    .find(([a, b]) => Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.0005);
+  test.skip(!coords, 'the connected database has no street with a long first segment');
   const lng = (coords[0][0] + coords[1][0]) / 2;
   const lat = (coords[0][1] + coords[1][1]) / 2;
 

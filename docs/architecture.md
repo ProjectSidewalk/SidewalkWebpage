@@ -556,8 +556,9 @@ loaded by the corresponding Twirl view:
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
   path already resumes the user's own open drop-in mission. Free exploration draws only the provider's link
   arrows, since there is no route to point along, except on a pano with no links at all (providers return some
-  reachable panos that way): there `NavArrows` synthesizes the blue forward arrow down the current street, whose
-  click walks the street as Stuck and Space do, so a named pano is never a place with no visible way out (#5968).
+  reachable panos that way): there `NavArrows` synthesizes the blue forward arrow down the current street, in the
+  direction the street is stored (a drop-in street is never reversed), whose click walks the street as Stuck and
+  Space do (#5968). It is one way only: at the street's far end the click finds nothing and says so.
   The order in which a neighborhood mission walks its
   streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +

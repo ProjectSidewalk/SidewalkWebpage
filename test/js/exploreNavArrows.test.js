@@ -200,9 +200,12 @@ describe('NavArrows', () => {
         expect(images()).toEqual([]);
       });
 
-      test('the tutorial and missions get no arrow from this rule', () => {
+      test.each([
+        ['the tutorial', () => { config.isOnboarding = true; }],
+        ['a mission, whose arrow waits for the walk\'s landing', () => {}],
+      ])('outside free exploration nothing is drawn by this rule: %s', (_name, arrange) => {
         config.isExploreAddressMode = false;
-        config.isOnboarding = true;
+        arrange();
         arrows.reset();
         expect(images()).toEqual([]);
       });
