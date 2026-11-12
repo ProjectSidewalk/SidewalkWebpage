@@ -3,6 +3,7 @@ import { startGallery } from '../gallery/Main.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import '../../css/components/gallery-card.css';
 import '../../css/components/gallery-tags.css';
+import '../../css/components/tool-header.css';
 import '../../css/pages/gallery/filter.css';
 import '../../css/pages/gallery/gallery.css';
 
