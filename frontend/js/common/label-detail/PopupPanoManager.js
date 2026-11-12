@@ -196,11 +196,9 @@ export class PopupPanoManager {
 
     this.svHolder.append(this.#panoCanvas, this.#pannellumCanvas, this.#fallbackContainer, this.#panoNotAvailable);
 
-    // Browsers drop mouseup on a disabled form control, and the card's paging arrows and vote buttons sit over the
-    // imagery, so a drag released on one never ended for GSV, Panoramax, Pannellum or the crop's panzoom; Infra3D only
-    // listens on its canvas, so it missed any release off it (#5295, #5294). Capturing the pointer retargets the rest
-    // of the press, compat mouse events included, at the pressed element. Touch viewers end on touchend; links and
-    // buttons in the holder keep their own click.
+    // Capturing the pointer sends a drag's release to the imagery wherever it is let go. Infra3D only listens on its
+    // own canvas, and a disabled button over the imagery would swallow mouseup (#5295, #5294). Touch viewers end on
+    // touchend; links and buttons keep their own click.
     this.svHolder.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'touch' || e.button !== 0 || !(e.target instanceof Element)) return;
       if (e.target.closest('a, button')) return;

@@ -397,7 +397,7 @@ export class ReasonPopover {
     // Never empty: the close control stays enabled even while a pick saves.
     const inside = ReasonPopover.#tabbables(this.#el);
     const page = ReasonPopover.#tabbables(this.#el.parentElement).filter((n) => !this.#el.contains(n));
-    // By document position rather than index: the anchor is disabled while a pick is saving, so it isn't in `page`.
+    // By document position rather than index, so the anchor itself lands in neither list.
     const after = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
     const before = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING);
     if (!back && target === anchor) return ReasonPopover.#focusFirst(inside);

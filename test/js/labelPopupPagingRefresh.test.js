@@ -25,6 +25,9 @@ function renderPopupMarkup() {
         </dialog>`;
 }
 
+/** Whether an arrow is switched off (aria-disabled, #5135). */
+const isOff = (btn) => btn.getAttribute('aria-disabled') === 'true';
+
 /** A label feature in the shape addLabelsToMap produces. */
 const feature = (id, lng, lat) => ({ properties: { label_id: id }, geometry: { coordinates: [lng, lat] } });
 
@@ -74,33 +77,33 @@ describe('LabelPopup paging state', () => {
 
   test('Next enables on the host\'s nav.refresh() alone, with no second call to the popup', async () => {
     await popup.showLabel(1, 'LabelMap');
-    expect(nextBtn.disabled).toBe(true); // Nowhere to go while the navigator has never heard of label 1.
+    expect(isOff(nextBtn)).toBe(true); // Nowhere to go while the navigator has never heard of label 1.
 
     landViewportData(TWO_LABELS);
 
-    expect(nextBtn.disabled).toBe(false);
+    expect(isOff(nextBtn)).toBe(false);
   });
 
   test('Next disables again when a refetch drops every label but the shown one', async () => {
     await popup.showLabel(1, 'LabelMap');
     landViewportData(TWO_LABELS);
-    expect(nextBtn.disabled).toBe(false);
+    expect(isOff(nextBtn)).toBe(false);
 
     // The map moved on, so the neighbor is outside the new bbox and the popup can no longer page to it.
     landViewportData({ CurbRamp: [feature(1, 0, 0)] });
 
-    expect(nextBtn.disabled).toBe(true);
+    expect(isOff(nextBtn)).toBe(true);
   });
 
   test('Prev is disabled on the first label and enables once the tour moves on', async () => {
     await popup.showLabel(1, 'LabelMap');
     landViewportData(TWO_LABELS);
-    expect(prevBtn.disabled).toBe(true); // Trail-based: nothing has been visited yet.
+    expect(isOff(prevBtn)).toBe(true); // Trail-based: nothing has been visited yet.
 
     nextBtn.click();
     await Promise.resolve(); // The click's showLabel() is async; let it settle.
 
-    expect(prevBtn.disabled).toBe(false);
+    expect(isOff(prevBtn)).toBe(false);
   });
 
   test('a refetch that drops the trail\'s labels leaves Prev live', async () => {
@@ -112,25 +115,25 @@ describe('LabelPopup paging state', () => {
     // Label 1 is gone from the loaded set, but it is still where Prev goes back to.
     landViewportData({ CurbRamp: [feature(2, 0.001, 0)] });
 
-    expect(prevBtn.disabled).toBe(false);
+    expect(isOff(prevBtn)).toBe(false);
   });
 
   test('Next disables on the host\'s nav.filtersChanged() after a filter hides the only neighbor', async () => {
     await popup.showLabel(1, 'LabelMap');
     landViewportData(TWO_LABELS);
-    expect(nextBtn.disabled).toBe(false);
+    expect(isOff(nextBtn)).toBe(false);
 
     // The user unchecks the neighbor's label type; LabelMap's sidebar onChange handler reports it.
     hiddenByFilters.add(2);
     nav.filtersChanged();
 
-    expect(nextBtn.disabled).toBe(true);
+    expect(isOff(nextBtn)).toBe(true);
   });
 
   test('the arrows reflect the newly shown label before its metadata fetch resolves', async () => {
     await popup.showLabel(1, 'LabelMap');
     landViewportData(TWO_LABELS);
-    expect(nextBtn.disabled).toBe(false);
+    expect(isOff(nextBtn)).toBe(false);
 
     // Rebuild the popup over a label fetch that never settles, so the pre-await state is observable.
     labelDetail.create = async () => ({ showLabel: () => new Promise(() => {}), saveOpenEdits: vi.fn() });
@@ -139,6 +142,59 @@ describe('LabelPopup paging state', () => {
     hiddenByFilters.add(1); // From label 2, the only other label (1) is filtered out: nowhere to go.
     pending.showLabel(2, 'LabelMap');
 
-    expect(nextBtn.disabled).toBe(true);
+    expect(isOff(nextBtn)).toBe(true);
+  });
+
+  describe('switching an arrow off while it has focus (#5135)', () => {
+    // jsdom won't focus inside a closed <dialog> and showModal() is stubbed, so open it by hand. jsdom never drops
+    // focus off a disabled button, so the tests check the arrow is never natively disabled.
+    beforeEach(() => document.getElementById('label-modal').setAttribute('open', ''));
+
+    test('Next keeps focus when the label it pages to is the last reachable one', async () => {
+      await popup.showLabel(1, 'LabelMap');
+      landViewportData(TWO_LABELS);
+      nextBtn.focus();
+
+      nextBtn.click();
+      await Promise.resolve();
+
+      // On label 2 the only other label was just visited, so Next switches off.
+      expect(isOff(nextBtn)).toBe(true);
+      expect(nextBtn.disabled).toBe(false); // Native disabled would drop focus.
+      expect(document.activeElement).toBe(nextBtn);
+    });
+
+    test('a refetch switching off the focused arrow keeps focus; one back switches it on', async () => {
+      await popup.showLabel(1, 'LabelMap');
+      landViewportData(TWO_LABELS);
+      nextBtn.focus();
+
+      hiddenByFilters.add(2);
+      nav.filtersChanged();
+      expect(isOff(nextBtn)).toBe(true);
+      expect(nextBtn.disabled).toBe(false);
+      expect(document.activeElement).toBe(nextBtn);
+
+      hiddenByFilters.delete(2);
+      nav.filtersChanged();
+      expect(isOff(nextBtn)).toBe(false);
+    });
+
+    test('a switched-off arrow ignores clicks and Enter: no paging, no log line', async () => {
+      await popup.showLabel(1, 'LabelMap');
+      landViewportData(TWO_LABELS);
+      hiddenByFilters.add(2);
+      nav.filtersChanged();
+      const showSpy = vi.spyOn(nav, 'next');
+      window.logWebpageActivity.mockClear();
+
+      nextBtn.click();
+      nextBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); // Enter on the focused arrow.
+      prevBtn.click(); // Nothing visited yet, so Prev is off too.
+      await Promise.resolve();
+
+      expect(showSpy).not.toHaveBeenCalled();
+      expect(window.logWebpageActivity).not.toHaveBeenCalled();
+    });
   });
 });

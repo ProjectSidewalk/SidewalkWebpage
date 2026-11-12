@@ -374,7 +374,7 @@ describe('the label card', () => {
         const { show, q } = await mountCard();
         vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
         await show();
-        expect(q('.label-detail__vote--agree').disabled).toBe(false);
+        expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
         expect(collaborators.toast).not.toHaveBeenCalled();
       });
     });

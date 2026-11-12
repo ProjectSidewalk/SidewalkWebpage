@@ -443,7 +443,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
       // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
       await showLabel();
-      nextArrow().disabled = true;
+      nextArrow().setAttribute('aria-disabled', 'true'); // How the hosts switch the arrows off (#5135).
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
@@ -705,13 +705,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
-      // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
-      // nothing else on the page can be typed at — the keys are still the card's.
+      // The comment Save disables while the next label's imagery loads, dropping focus to the body. The popup is
+      // modal, so the keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -727,7 +726,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
 
       press('KeyA');
       await flush();
@@ -747,8 +746,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
 
       // And the run continues: the next key still reaches the card.
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
       press('ArrowRight');
-      expect(nextArrow().disabled).toBe(false);
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {

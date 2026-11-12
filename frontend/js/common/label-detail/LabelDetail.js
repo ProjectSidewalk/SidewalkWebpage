@@ -523,7 +523,7 @@ export class LabelDetail {
     // `detail === 0` marks a click the keyboard produced — the card's own A/D/U shortcut, or Enter/Space on the
     // focused button — which only the ClearVote event needs, since casting a vote is recorded by its own row.
     const voteHandler = (action, buttonSource) => (e) => {
-      if (this.#interactionBlocked) return;
+      if (this.#votesLocked) return;
       // The reason pop-up hangs off the control that cast the vote (#5475); a shortcut names the thumb instead.
       this.#voteAnchor = this.#shortcutAnchor ?? e.currentTarget;
       this.#shortcutAnchor = null;
@@ -683,7 +683,7 @@ export class LabelDetail {
     let button = null;
     if (vote) button = this.#els.panoOverlayButtons[vote];
     else if (paging) button = paging === 'next' ? this.#els.pagingNext : this.#els.pagingPrev;
-    if (!button || button.hidden || button.disabled) return;
+    if (!button || button.hidden || button.getAttribute('aria-disabled') === 'true') return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -763,10 +763,9 @@ export class LabelDetail {
     // Focus nowhere in particular, which the card owns just as much. It is the resting state on an inline host,
     // where the click that opens the card takes no focus (a Gallery card is an `<img>`). On a popup host it is
     // reached constantly *while paging*: whenever the control holding focus stops being focusable under the
-    // reader, the browser drops focus to the body, and paging is full of that — the arrow just clicked disables
-    // at either end of the run, the comment box disables while the next label's imagery loads, the comment list
-    // and the pano viewer are rebuilt for the new label. A modal popup is still the only thing on the page that
-    // can be typed at in that state, so the key is the card's.
+    // reader, the browser drops focus to the body, and paging is full of that — the comment box disables while
+    // the next label's imagery loads, the comment list and the pano viewer are rebuilt for the new label. A modal
+    // popup is still the only thing on the page that can be typed at in that state, so the key is the card's.
     if (active && active !== document.body && active !== document.documentElement) return false;
 
     // With no focused node there is no ancestry to read the top layer off, so ask the document instead: any open
@@ -1686,14 +1685,17 @@ export class LabelDetail {
    * (#5475). Re-run whenever any input to it changes, including a new label, so nothing stays stuck from the last one.
    */
   #syncControlLocks() {
-    const off = this.#interactionBlocked || this.#votePending || this.#pickPending;
-    for (const btn of Object.values(this.#els.panoOverlayButtons)) {
-      btn.disabled = off;
-    }
-    for (const btn of Object.values(this.#els.voteButtons)) {
-      btn.disabled = off;
+    const off = this.#votesLocked;
+    // `aria-disabled` so the button just pressed keeps focus while its vote saves (#5135).
+    for (const btn of [...Object.values(this.#els.panoOverlayButtons), ...Object.values(this.#els.voteButtons)]) {
+      btn.setAttribute('aria-disabled', String(off));
     }
     if (reasonPopover().isOpenFor(this.#root)) reasonPopover().setBusy(off);
+  }
+
+  /** @returns {boolean} Whether the vote controls are locked; click handlers check it, since aria-disabled won't. */
+  get #votesLocked() {
+    return this.#interactionBlocked || this.#votePending || this.#pickPending;
   }
 
   #renderVoteCounts() {
@@ -1753,12 +1755,12 @@ export class LabelDetail {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected', 'is-just-voted');
       btn.setAttribute('aria-pressed', 'false');
-      if (!this.#interactionBlocked) btn.disabled = false;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.setAttribute('aria-pressed', 'false');
     }
     this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
+    this.#syncControlLocks();
   }
 
   /**
@@ -2035,8 +2037,7 @@ export class LabelDetail {
    * full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574), so a tooltip would just repeat
    * them — but the selected one now clears rather than casts, which nothing else on it says.
    *
-   * While the label is locked the reason goes on the vote column as a whole: these sentences don't apply, and a
-   * disabled button swallows the hover that would open a tooltip on it anyway.
+   * While the label is locked the reason goes on the vote column as a whole, since these sentences don't apply.
    */
   #renderVoteTooltips() {
     const els = this.#els;

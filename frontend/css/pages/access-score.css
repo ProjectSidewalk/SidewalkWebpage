@@ -1213,12 +1213,12 @@
   cursor: pointer;
 }
 
-.acs-sheet__paging:hover:not(:disabled) {
+.acs-sheet__paging:hover:not([aria-disabled="true"]) {
   background: var(--color-neutral-100);
   color: var(--color-neutral-black);
 }
 
-.acs-sheet__paging:disabled {
+.acs-sheet__paging[aria-disabled="true"] {
   color: var(--color-neutral-400);
   cursor: default;
 }
@@ -1234,7 +1234,7 @@
   height: 20px;
 }
 
-.acs-sheet__paging:disabled img {
+.acs-sheet__paging[aria-disabled="true"] img {
   opacity: 0.4;
 }
 

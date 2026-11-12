@@ -95,9 +95,13 @@ export class ExpandedView {
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
     // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
-    // or Enter or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
-    if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
-    if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
+    // or Enter or Space on the focused arrow; both are logged as shortcuts. A switched-off arrow ignores every click.
+    this.leftArrow?.addEventListener('click', (e) => {
+      if (this.leftArrow.getAttribute('aria-disabled') !== 'true') this.previousLabel(e.detail === 0);
+    });
+    this.rightArrow?.addEventListener('click', (e) => {
+      if (this.rightArrow.getAttribute('aria-disabled') !== 'true') this.nextLabel(e.detail === 0);
+    });
 
     // Wire close button.
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
@@ -132,7 +136,7 @@ export class ExpandedView {
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
-    if (this.leftArrow) this.leftArrow.disabled = true;
+    this.leftArrow?.setAttribute('aria-disabled', 'true');
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -317,8 +321,6 @@ export class ExpandedView {
    * @param {number} index - The index of the card to update to.
    */
   #updateExpandedViewCardByIndex(index) {
-    if (this.leftArrow) this.leftArrow.disabled = false;
-    if (this.rightArrow) this.rightArrow.disabled = false;
     this.cardIndex = index;
     this.refCard = this.#cardContainer.getCardByIndex(this.cardIndex);
 
@@ -329,17 +331,15 @@ export class ExpandedView {
       return;
     }
 
+    // `aria-disabled` so the arrow just pressed keeps focus (#5135).
+    const cards = this.#cardContainer;
+    const onLastCard = cards.isLastPage()
+      && index === (cards.getCurrentPage() - 1) * cards.getCardsPerPage() + cards.getCurrentPageCards().length - 1;
+    this.leftArrow?.setAttribute('aria-disabled', String(index === 0));
+    this.rightArrow?.setAttribute('aria-disabled', String(onLastCard));
+
     this.#openExpandedView();
     this.#updatePosition(index);
-
-    if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
-
-    if (this.#cardContainer.isLastPage()) {
-      const page = this.#cardContainer.getCurrentPage();
-      const lastCardIndex
-        = (page - 1) * this.#cardContainer.getCardsPerPage() + this.#cardContainer.getCurrentPageCards().length - 1;
-      if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
-    }
   }
 
   /**

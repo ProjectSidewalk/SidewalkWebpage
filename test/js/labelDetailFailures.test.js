@@ -27,14 +27,34 @@ describe('the label card, when a reply goes wrong or comes late', () => {
     test('that fails gives the controls back and changes nothing', async () => {
       const { show, q } = await mountCard({ routes: { 'POST /labelmap/validate': { status: 500, body: {} } } });
       await show();
-      q('.label-detail__pano-overlay-button--agree').click();
-      expect(q('.label-detail__vote--agree').disabled).toBe(true);
+      const agree = q('.label-detail__vote--agree');
+      agree.dispatchEvent(new MouseEvent('mouseenter'));
+      agree.click();
+      expect(agree.getAttribute('aria-disabled')).toBe('true');
+      agree.dispatchEvent(new MouseEvent('mouseleave')); // The hover preview ends while the vote saves.
       await flush();
 
       expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
-      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+      expect(q('.label-detail__vote--agree .label-detail__vote-icon').src).toContain('agree-outline');
+      expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
       expect(count(q, 'agree')).toBe('1');
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    test('still saving keeps focus on the pressed button and ignores more presses (#5135)', async () => {
+      const saving = () => new Promise(() => {});
+      const { show, q, fetch } = await mountCard({ routes: { 'POST /labelmap/validate': saving } });
+      await show();
+      const agree = q('.label-detail__vote--agree');
+      agree.focus();
+      agree.click();
+
+      expect(agree.getAttribute('aria-disabled')).toBe('true');
+      expect(agree.disabled).toBe(false); // Native disabled would drop focus.
+      expect(document.activeElement).toBe(agree);
+      agree.click();
+      q('.label-detail__pano-overlay-button--disagree').click();
+      expect(fetch.mock.calls.filter(([url]) => String(url).startsWith('/labelmap/validate'))).toHaveLength(1);
     });
 
     test('that lands after paging leaves the new label\'s counts alone, but still tells the host', async () => {
@@ -53,7 +73,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(q('.label-detail__vote--agree').getAttribute('aria-pressed')).toBe('false');
       // A quick A then S pages on before the vote lands (#5883); Gallery's grid card still has to record it.
       expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({ label_id: 42 }));
-      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+      expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
     });
 
     test('a changed vote that lands after paging, on a host that doesn\'t listen, counts no new badge', async () => {
@@ -67,7 +87,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       await flush();
       // A changed vote isn't a new validation, so no badge count moves.
       expect(collaborators.recordValidation).not.toHaveBeenCalled();
-      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+      expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
     });
 
     test('refused for a type change after paging doesn\'t redraw the new label', async () => {
@@ -302,7 +322,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
       expect(logged()).toContain('Click_module=LabelDetail_action=EditLabelType_old=Obstacle_new=Signal_labelId=42');
       expect(onEdit).not.toHaveBeenCalled();
       expect(q('.label-detail__title').textContent).not.toContain('Signal');
-      expect(q('.label-detail__vote--agree').disabled).toBe(false);
+      expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
     });
 
     test('paging on with a tag pick open saves it to the label it was made on, as Done would', async () => {
@@ -478,7 +498,7 @@ describe('the label card, when a reply goes wrong or comes late', () => {
         await flush();
         await flush();
         expect(error).toHaveBeenCalledWith('Could not refresh the vote counts:', expect.any(Error));
-        expect(q('.label-detail__vote--agree').disabled).toBe(false);
+        expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('false');
       });
 
       test('a re-read that lands after paging leaves the new label alone', async () => {
