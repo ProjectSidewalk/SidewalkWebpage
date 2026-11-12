@@ -137,6 +137,9 @@ export class NavArrows {
    * The blue arrow points at the pano its click lands on (#4671, #5918): the link the spacebar would take, else the
    * link to the walk's landing, else a synthesized arrow aimed at the landing (down the street when none is known).
    * On an ended street only a landing further down it is blue: the nearest link can pace between its last panos.
+   *
+   * Free exploration has no route, so nothing is blue there, except that a pano with no links gets the synthesized
+   * arrow down the street: providers return some reachable panos that way, with no other visible way out (#5968).
    */
   reset() {
     while (this.#group.firstChild) {
@@ -158,6 +161,10 @@ export class NavArrows {
       blueIndex = landing ? links.findIndex((link) => link.panoId === landing.panoId) : -1;
       const leadsOn = landing || !this.#walkEnded;
       if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
+    }
+
+    if (links.length === 0 && this.#config.isExploreAddressMode && this.#isEnRoute()) {
+      synthesizedHeading = this.#streetHeading();
     }
 
     links.forEach((link, i) => {
@@ -213,6 +220,13 @@ export class NavArrows {
    */
   #routeForwardHeading() {
     if (this.#config.isExploreAddressMode || this.#config.isOnboarding) return null;
+    return this.#streetHeading();
+  }
+
+  /**
+   * @returns {?number} Degrees from true north down the current street; null with no task or geometry not ready.
+   */
+  #streetHeading() {
     const task = this.#taskContainer.getCurrentTask();
     if (!this.#taskContainer.tasksLoaded() || !task) return null;
     try {

@@ -173,6 +173,41 @@ describe('NavArrows', () => {
       expect(forwardArrows()).toEqual([]);
     });
 
+    describe('free exploration on a pano with no links (#5968)', () => {
+      beforeEach(() => {
+        config.isExploreAddressMode = true;
+        viewer.links = [];
+      });
+
+      test('a blue arrow points down the street, as the only way out', () => {
+        arrows.reset();
+        expect(images()).toEqual([synthesized()]);
+        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(90, 15, 30)');
+        expect(synthesized().hasAttribute('pano-id')).toBe(false);
+      });
+
+      test.each([
+        ['no current street', () => { task = null; }],
+        ['streets not loaded yet', () => { tasksLoaded = false; }],
+        ['standing off the street', () => task.isNearRoute.mockReturnValue(false)],
+        [
+          'street geometry not ready',
+          () => task.headingAlongRoute.mockImplementation(() => { throw new Error('no geometry'); }),
+        ],
+      ])('nothing is drawn with no street to walk: %s', (_name, arrange) => {
+        arrange();
+        arrows.reset();
+        expect(images()).toEqual([]);
+      });
+
+      test('the tutorial and missions get no arrow from this rule', () => {
+        config.isExploreAddressMode = false;
+        config.isOnboarding = true;
+        arrows.reset();
+        expect(images()).toEqual([]);
+      });
+    });
+
     test.each([
       ['free exploration', () => { config.isExploreAddressMode = true; }],
       ['the tutorial', () => { config.isOnboarding = true; }],

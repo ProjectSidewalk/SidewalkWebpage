@@ -554,7 +554,11 @@ loaded by the corresponding Twirl view:
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission. The order in which a neighborhood mission walks its
+  path already resumes the user's own open drop-in mission. Free exploration draws only the provider's link
+  arrows, since there is no route to point along, except on a pano with no links at all (providers return some
+  reachable panos that way): there `NavArrows` synthesizes the blue forward arrow down the current street, whose
+  click walks the street as Stuck and Space do, so a named pano is never a place with no visible way out (#5968).
+  The order in which a neighborhood mission walks its
   streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
