@@ -8,11 +8,14 @@ test('a free-exploration pano with no links offers an arrow each way down the st
   consoleErrors}) => {
   await stubMapbox(context);
 
-  // Inside a street's first segment, so the drop-in resolves to that street and not one it meets; a segment long
-  // enough (about 55 m of latitude or more of longitude) that there is street to step along both ways.
+  // Inside a street's first segment, so the drop-in resolves to that street and not one it meets; a segment of 60 m
+  // or more, so a 10 m step from its middle is plainly one step and not a jump to its end.
+  const metersBetween = ([lng1, lat1], [lng2, lat2]) => {
+    const perDegree = 111320;
+    return Math.hypot((lng1 - lng2) * perDegree * Math.cos((lat1 * Math.PI) / 180), (lat1 - lat2) * perDegree);
+  };
   const streets = await (await page.request.get('/v3/api/streets')).json();
-  const coords = streets.features.map((f) => f.geometry.coordinates)
-    .find(([a, b]) => Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.0005);
+  const coords = streets.features.map((f) => f.geometry.coordinates).find(([a, b]) => metersBetween(a, b) > 60);
   test.skip(!coords, 'the connected database has no street with a long first segment');
   const lng = (coords[0][0] + coords[1][0]) / 2;
   const lat = (coords[0][1] + coords[1][1]) / 2;
@@ -36,13 +39,13 @@ test('a free-exploration pano with no links offers an arrow each way down the st
   // Toward the street's start: the way the mission walk never goes. One step from where they stand, so nearer the
   // start than before but nowhere near it yet.
   const position = () => page.evaluate(() => window.svl.panoManager.getPosition());
-  const degreesFromStart = ({lat: atLat, lng: atLng}) => Math.hypot(atLng - coords[0][0], atLat - coords[0][1]);
-  const before = degreesFromStart(await position());
+  const metersFromStart = ({lat: atLat, lng: atLng}) => metersBetween([atLng, atLat], coords[0]);
+  const before = metersFromStart(await position());
   await arrows.and(page.locator('[toward="start"]')).click();
   await expect.poll(currentPano, 'the arrow toward the street\'s start did not move the labeler').not.toBe(startPano);
-  const after = degreesFromStart(await position());
+  const after = metersFromStart(await position());
   expect(after).toBeLessThan(before);
-  expect(after).toBeGreaterThan(before / 2);
+  expect(after).toBeGreaterThan(before - 20);
 
   expect(consoleErrors).toEqual([]);
 });

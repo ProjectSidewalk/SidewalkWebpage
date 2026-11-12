@@ -44,20 +44,26 @@ export class KeyboardManager {
   #walkingShortcuts = [
     { keys: ['ArrowLeft'], action: () => this.#rotatePovByDegree(-2) },
     { keys: ['ArrowRight'], action: () => this.#rotatePovByDegree(2) },
-    { keys: ['ArrowUp'], action: () => this.#arrowKeyStep(0) },
-    { keys: ['ArrowDown'], action: () => this.#arrowKeyStep(180) },
+    { keys: ['ArrowUp'], action: (e) => this.#arrowKeyStep(0, e.repeat) },
+    { keys: ['ArrowDown'], action: (e) => this.#arrowKeyStep(180, e.repeat) },
     { keys: ['Space'], when: (e) => !KeyboardManager.#isCheckboxOrRadio(e.target), action: (e) => this.#spacebar(e) },
   ];
 
   /**
-   * Steps ahead or behind. A step that took one of free exploration's street arrows is logged as its click is; a
+   * Steps ahead or behind. A step that took one of free exploration's street arrows logs its own event (#5968); a
    * step along a link logs as any move.
    * @param {number} heading - The step's heading relative to the view, in degrees.
+   * @param {boolean} held - Whether this is the key repeating while held down.
    */
-  async #arrowKeyStep(heading) {
-    const { moved, streetWalkToward } = await this.#navigationService.moveByArrowKey(heading);
-    if (streetWalkToward === null) return;
-    this.#tracker.push('KeyboardShortcut_StreetWalkArrow', { toward: streetWalkToward ? 'end' : 'start', moved });
+  async #arrowKeyStep(heading, held) {
+    try {
+      const { moved, streetWalkToward } = await this.#navigationService.moveByArrowKey(heading, held);
+      if (streetWalkToward === null) return;
+      this.#tracker.push('KeyboardShortcut_StreetWalkArrow', { toward: streetWalkToward ? 'end' : 'start', moved });
+    } catch (err) {
+      // Nothing awaits a key press, so a search that throws would otherwise go unhandled.
+      console.error(err);
+    }
   }
 
   /** Closing the context menu. These also work while typing in its description box. */

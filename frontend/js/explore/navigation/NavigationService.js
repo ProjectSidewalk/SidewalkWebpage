@@ -360,12 +360,14 @@ export class NavigationService {
    * An arrow key's step: the linked pano nearest that way or, on a free-exploration pano with no links, down the
    * street by the street arrow nearest it (#5968), which would otherwise be reachable by pointer only.
    * @param {number} heading - The step's heading relative to the view, in degrees.
+   * @param {boolean} [held=false] - Whether the key is repeating while held down. A held key takes no street arrow:
+   *   a step that finds nothing searches the whole street and leaves no pause before the next repeat.
    * @returns {Promise<{moved: boolean, streetWalkToward: ?boolean}>} `streetWalkToward` says which street arrow was
    *   taken (true for the street's end); null when the step was a link's or there was none to take.
    */
-  async moveByArrowKey(heading) {
+  async moveByArrowKey(heading, held = false) {
     if (await this.moveToLinkedPano(heading)) return { moved: true, streetWalkToward: null };
-    const towardEnd = this.#navArrows.streetWalkToward(this.#panoManager.getPov().heading + heading);
+    const towardEnd = held ? null : this.#navArrows.streetWalkToward(this.#panoManager.getPov().heading + heading);
     if (towardEnd === null || !this.canWalk()) return { moved: false, streetWalkToward: null };
     return { moved: Boolean(await this.moveAlongStreet(towardEnd)), streetWalkToward: towardEnd };
   }

@@ -359,6 +359,13 @@ describe('NavigationService', () => {
       expect(streetSweep.stepAlongStreet).toHaveBeenCalledWith(false);
     });
 
+    test('a held arrow key takes no street arrow, so a dead end is not searched over and over', async () => {
+      viewer.links = [];
+      navArrows.streetWalkToward.mockReturnValue(true);
+      await expect(nav.moveByArrowKey(0, true)).resolves.toEqual({ moved: false, streetWalkToward: null });
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
+    });
+
     test('with neither a link nor a street arrow that way an arrow key goes nowhere', async () => {
       viewer.links = [];
       await expect(nav.moveByArrowKey(0)).resolves.toEqual({ moved: false, streetWalkToward: null });

@@ -139,19 +139,27 @@ describe('Task geometry', () => {
       const toEnd = task.streetFrom(at, true);
       expect(metersBetween(toEnd.geometry.coordinates[0], onStreet)).toBeLessThan(0.5);
       expect(turf.length(toEnd, meters)).toBeCloseTo(40, 0);
-      expect(task.headingAlongStreet(at, true)).toBeCloseTo(90 + 11.3, 0);
+      expect(task.headingAlongStreet(at, true)).toBeCloseTo(90, 0);
 
       const toStart = task.streetFrom(at, false);
       expect(metersBetween(toStart.geometry.coordinates[0], onStreet)).toBeLessThan(0.5);
       expect(metersBetween(toStart.geometry.coordinates.at(-1), street[0])).toBeLessThan(0.5);
       expect(turf.length(toStart, meters)).toBeCloseTo(60, 0);
-      expect(task.headingAlongStreet(at, false)).toBeCloseTo(270 - 11.3, 0);
+      expect(task.headingAlongStreet(at, false)).toBeCloseTo(270, 0);
     });
 
     it('close to the start, the arrow back still points at the start, not across the street', () => {
       const street = straightStreet(START, 100);
       const task = new Task(feature(street), COVERAGE, false);
       expect(task.headingAlongStreet(standingAt(street, 5), false)).toBeCloseTo(270, 0);
+    });
+
+    it('from well off to one side the two arrows still point opposite ways, along the street', () => {
+      const street = straightStreet(START, 100);
+      const task = new Task(feature(street), COVERAGE, false);
+      const at = standingAt(street, 60, 40);
+      expect(task.headingAlongStreet(at, true)).toBeCloseTo(90, 0);
+      expect(task.headingAlongStreet(at, false)).toBeCloseTo(270, 0);
     });
 
     it('on a loop, whose ends are one point, each stretch still starts where they stand', () => {

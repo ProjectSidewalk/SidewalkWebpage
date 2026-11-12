@@ -122,9 +122,9 @@ describe('Explore KeyboardManager', () => {
 
     it('steps ahead or behind on the up and down arrows, logging nothing of its own for a link', async () => {
       press('ArrowUp');
-      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(0);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(0, false);
       press('ArrowDown');
-      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(180);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(180, false);
       await Promise.resolve();
       expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', expect.anything());
     });
@@ -135,6 +135,16 @@ describe('Explore KeyboardManager', () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', { toward: 'start', moved: true });
+    });
+
+    it('a step whose search throws is reported, not left as an unhandled rejection', async () => {
+      const reported = vi.spyOn(console, 'error').mockImplementation(() => {});
+      navigationService.moveByArrowKey.mockRejectedValueOnce(new Error('provider down'));
+      press('ArrowUp');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(reported).toHaveBeenCalledWith(expect.objectContaining({ message: 'provider down' }));
+      reported.mockRestore();
     });
 
     it.each([

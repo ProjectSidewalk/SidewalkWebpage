@@ -793,7 +793,9 @@ export class Task {
     const length = turf.length(stretch);
     if (length * 1000 < Task.MIN_STEP_ADVANCE_M) return null;
     const goalLoc = turf.along(stretch, Math.min(0.015, length)).geometry.coordinates;
-    return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
+    // From the labeler's place on the street, not where they stand: from off to one side, both ways would point in
+    // at the street and the two arrows would close on each other.
+    return (turf.bearing(stretch.geometry.coordinates[0], goalLoc) + 360) % 360;
   }
 
   /**
