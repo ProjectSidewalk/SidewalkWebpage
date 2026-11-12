@@ -11,8 +11,8 @@ import play.api.i18n.Messages
 object ToolLockup {
 
   /**
-   * The tool's name as the user reads it. "AccessScore" and "LabelMap" are wordmarks, written the same in every
-   * language; "Gallery" and "Reports" are ordinary words and are translated.
+   * The tool's name as the user reads it. "AccessScore" is a wordmark, the same in every language; the rest are
+   * translated, Label Map through the navbar's key so the header matches the link that led there.
    *
    * @param tool "accessscore", "gallery", "labelmap" or "reports".
    * @return The name in the request's language.
@@ -22,7 +22,7 @@ object ToolLockup {
   def name(tool: String)(using messages: Messages): String = tool match {
     case "accessscore" => "AccessScore"
     case "gallery"     => messages("gallery")
-    case "labelmap"    => "LabelMap"
+    case "labelmap"    => messages("navbar.labelmap")
     case "reports"     => messages("report.tool.name")
     case unknown       => throw noSuchTool(unknown)
   }

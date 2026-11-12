@@ -130,7 +130,7 @@ const config = (overrides = {}) => ({
 const SHELL = `
   <div class="spotlight__detail"></div>
   <div id="spotlight-map"></div>
-  <a id="spotlight-full-map" role="link">LabelMap</a>
+  <a id="spotlight-full-map" role="link">Label Map</a>
   <span class="spotlight-legend__swatch" data-label-type="CurbRamp"></span>
   <span class="spotlight-legend__swatch" data-label-type="Mystery"></span>
   <div id="spotlight-stats" hidden>

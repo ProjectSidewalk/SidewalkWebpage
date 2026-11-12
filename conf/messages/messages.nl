@@ -95,7 +95,7 @@ navbar.howto = Hoe te Labelen
 navbar.api = API
 navbar.about = Over ons
 navbar.tools = Hulpmiddelen
-navbar.labelmap = Label Kaart
+navbar.labelmap = Labelkaart
 navbar.accessscore = AccessScore
 navbar.leaderboard = Scoreboard
 navbar.stories = Verhalen
@@ -618,7 +618,7 @@ routebuilder.legend.pois = Nuttige plaatsen
 dashboard.routes.title = Mijn routes
 dashboard.routes.intro = Routes die je in RouteBuilder hebt gemaakt. Verken er een om erlangs te labelen, of deel de link met anderen.
 dashboard.routes.explore = Verkennen
-dashboard.routes.labelmap = Label Kaart
+dashboard.routes.labelmap = Labelkaart
 dashboard.routes.copy = Link kopiëren
 dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
@@ -666,7 +666,7 @@ share.meta.image.alt = Straatfoto met de gemarkeerde locatie: {0}
 
 # Openbare spotlight-/deelpagina voor een enkel label (#456).
 sharedlabel.nearby.title = Labels in de buurt
-sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie {0} voor de volledige kaart.
+sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie de {0} voor de volledige kaart.
 sharedlabel.view.this.label = Bekijk dit label
 sharedlabel.engage.title = Help stoepen in {0} te beoordelen
 sharedlabel.engage.explore = Vind toegankelijkheidsproblemen in {0}

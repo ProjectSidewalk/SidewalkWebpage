@@ -245,7 +245,7 @@ How to show one depends on where its color comes from:
   so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
   a button or link itself, since it would hide their focus ring too.
 
-**Tool logos.** AccessScore, Gallery, LabelMap and Reports each have a mark, drawn as one family from the Project
+**Tool logos.** AccessScore, Gallery, Label Map and Reports each have a mark, drawn as one family from the Project
 Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/logos/tools/`
 (`access-score.svg`, `gallery.svg`, `label-map.svg`, `reports.svg`), each on a 64-unit grid.
 
@@ -254,10 +254,11 @@ Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/l
   (`--text-tool-name`, Raleway ExtraBold) and spacing the same on all four pages.
 - **The name is also the page's `<h1>`**, except on a report, which has its own. In Gallery the lockup itself is the
   `<h1>` (its review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
-  assistive technology, so LabelMap and AccessScore pass `asHeading = false` and state the name in a visually hidden
+  assistive technology, so Label Map and AccessScore pass `asHeading = false` and state the name in a visually hidden
   `<h1>` ahead of the map (`views.ToolLockup.name`).
-- **"AccessScore" and "LabelMap" are wordmarks** and are written that way in every language. "Gallery" and "Reports"
-  are ordinary words and are translated (`gallery`, `report.tool.name`).
+- **"AccessScore" is a wordmark** and is written that way in every language. "Gallery", "Label Map" and "Reports"
+  are ordinary words and are translated (`gallery`, `navbar.labelmap`, `report.tool.name`). `LabelMap` as one word
+  is the code and API identifier only, never text a user reads.
 - **Drawn for light surfaces.** Their white outlines keep them readable on asphalt, but Gallery's frames and the
   other asphalt parts merge into it, and no dark variant has been drawn. Draw one before a mark goes on a dark
   surface. The navbar's Tools menu keeps its line icons, like every other entry in it.

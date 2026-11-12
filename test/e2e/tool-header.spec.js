@@ -16,7 +16,7 @@ const {PAGES} = require('./pages');
 const TOOLS = [
   {path: '/accessScore', name: 'AccessScore', mark: 'access-score', heading: 'outside'},
   {path: '/gallery', name: 'Gallery', mark: 'gallery', heading: 'lockup'},
-  {path: '/labelMap', name: 'LabelMap', mark: 'label-map', heading: 'outside'},
+  {path: '/labelMap', name: 'Label Map', mark: 'label-map', heading: 'outside'},
   {path: '/report/neighborhood/tyron-park', name: 'Reports', mark: 'reports', heading: 'own'},
 ];
 

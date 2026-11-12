@@ -661,7 +661,7 @@ share.meta.image.alt = Photo au niveau de la rue avec l''emplacement de l''étiq
 
 # Public single-label spotlight / share page (#456).
 sharedlabel.nearby.title = Étiquettes à proximité
-sharedlabel.nearby.caption = Un échantillon d''étiquettes d''accessibilité à proximité. Voir {0} pour la carte complète.
+sharedlabel.nearby.caption = Un échantillon d''étiquettes d''accessibilité à proximité. Voir la {0} pour la carte complète.
 sharedlabel.view.this.label = Voir cette étiquette
 sharedlabel.engage.title = Aidez à évaluer les trottoirs de {0}
 sharedlabel.engage.explore = Repérer des problèmes d''accessibilité à {0}

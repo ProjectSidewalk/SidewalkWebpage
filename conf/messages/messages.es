@@ -680,7 +680,7 @@ share.meta.image.alt = Foto a nivel de calle con la ubicación marcada: {0}
 
 # Página pública de detalle/compartir de una sola etiqueta (#456).
 sharedlabel.nearby.title = Etiquetas cercanas
-sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta {0} para ver el mapa completo.
+sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta el {0} para ver el mapa completo.
 sharedlabel.view.this.label = Ver esta etiqueta
 sharedlabel.engage.title = Ayuda a evaluar las aceras en {0}
 sharedlabel.engage.explore = Encuentra problemas de accesibilidad en {0}

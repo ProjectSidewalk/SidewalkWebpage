@@ -27,7 +27,7 @@ class ToolHeaderViewSpec extends SidewalkSpec with ViewSpecFixtures {
       names mustBe Map(
         "accessscore" -> "AccessScore",
         "gallery"     -> "Gallery",
-        "labelmap"    -> "LabelMap",
+        "labelmap"    -> "Label Map",
         "reports"     -> "Reports"
       )
 
@@ -57,12 +57,12 @@ class ToolHeaderViewSpec extends SidewalkSpec with ViewSpecFixtures {
       plain must include("<p class=\"ps-tool-header__name\">")
     }
 
-    "translate the ordinary words and keep the wordmarks as written" in {
+    "translate the ordinary words and keep the wordmark as written" in {
       val spanish: Messages = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("es")))
       nameIn(render("gallery")(using spanish)) mustBe "Galería"
       nameIn(render("reports")(using spanish)) mustBe "Informes"
       nameIn(render("accessscore")(using spanish)) mustBe "AccessScore"
-      nameIn(render("labelmap")(using spanish)) mustBe "LabelMap"
+      nameIn(render("labelmap")(using spanish)) mustBe "Mapa de etiquetas"
     }
 
     "refuse a tool it has no mark for" in {
