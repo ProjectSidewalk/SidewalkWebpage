@@ -169,6 +169,8 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
 
+The three sbt jobs each cache their compiled classes per branch, so a run only recompiles what changed (#5972).
+
 Parallel jobs:
 - **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in
   the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits

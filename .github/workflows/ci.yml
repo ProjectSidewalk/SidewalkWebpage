@@ -54,6 +54,16 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      - name: Cache compiled Scala
+        uses: actions/cache@v6
+        with:
+          path: |
+            target
+            project/target
+            !target/universal
+          key: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
+          restore-keys: sbt-target-backend-${{ hashFiles('build.sbt', 'project/**') }}-
+
       # Dummy env so any config evaluation during compile has values. Compilation does not touch the database.
       - name: Compile (blocking gate)
         run: sbt -v compile
@@ -261,6 +271,18 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
+      # Old coverage hits stay out of the cache, or they'd count toward the ratchet.
+      - name: Cache compiled Scala
+        uses: actions/cache@v6
+        with:
+          path: |
+            target
+            project/target
+            !target/universal
+            !target/scala-*/scoverage-data/scoverage.measurements.*
+          key: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
+          restore-keys: sbt-target-backend-tests-${{ hashFiles('build.sbt', 'project/**') }}-
+
       - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
@@ -444,6 +466,16 @@ jobs:
 
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
+
+      - name: Cache compiled Scala
+        uses: actions/cache@v6
+        with:
+          path: |
+            target
+            project/target
+            !target/universal
+          key: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-${{ github.sha }}
+          restore-keys: sbt-target-e2e-${{ hashFiles('build.sbt', 'project/**') }}-
 
       - name: Set up Node 26
         uses: actions/setup-node@v7
