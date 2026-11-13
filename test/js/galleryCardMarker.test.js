@@ -234,4 +234,43 @@ describe('a Gallery card\'s label marker', () => {
     expect(renderCard('/cropImage/CurbRamp/1', marker).getCropMarker()).toBe(marker);
     expect(renderCard('/cropImage/CurbRamp/1', null).getCropMarker()).toBeNull();
   });
+
+  describe('a signed crop that expired while the page was open (#5861)', () => {
+    const signed = (exp) => `/cropImage/CurbRamp/1?exp=${exp}&sig=c${exp}`;
+    const flush = async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    };
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('is re-signed once and loaded, and the expanded view gets the fresh URL', async () => {
+      const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ image_url: signed(2) }) }));
+      vi.stubGlobal('fetch', fetchMock);
+      const card = renderCard(signed(1), { x: 0.5, y: 0.62 });
+
+      const loaded = card.loadImage();
+      const img = document.querySelector('.static-gallery-image');
+      img.onerror(); // The old signature 403s.
+      await flush();
+      expect(fetchMock).toHaveBeenCalledWith('/cropImage/CurbRamp/1/metadata');
+      expect(img.getAttribute('src')).toBe(signed(2));
+      img.onload();
+      await expect(loaded).resolves.toBe(true);
+
+      expect(card.getStatus().imageSource).toBe('crop');
+      expect(card.getCropUrl()).toBe(signed(2));
+    });
+
+    it('falls back to the still when the crop cannot be re-signed', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })));
+      const card = renderCard(signed(1), { x: 0.5, y: 0.62 });
+
+      card.loadImage();
+      const img = document.querySelector('.static-gallery-image');
+      img.onerror();
+      await flush();
+
+      expect(img.getAttribute('src')).toBe('https://maps.example/still.jpg');
+      expect(card.getStatus().imageSource).toBe('api');
+    });
+  });
 });

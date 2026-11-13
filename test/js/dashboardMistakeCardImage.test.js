@@ -19,6 +19,9 @@ fakePanoOverlays();
 
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
+/** Lets the failed crop's re-sign request (#5861) answer. */
+const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
 
@@ -90,9 +93,23 @@ describe('the dashboard mistake card\'s image', () => {
   it('falls back to the Street View image when the crop\'s signed URL has expired', async () => {
     await renderGallery();
     photo().dispatchEvent(new Event('error'));
+    await settle();
 
     expect(photo().src).toBe(GSV_URL);
     expect(photo().dataset.udSource).toBe('api');
+  });
+
+  it('re-signs a failed signed crop once before falling back to the still (#5861)', async () => {
+    await renderGallery();
+    const fresh = '/cropImage/Obstacle/501?exp=2&sig=y';
+    window.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ image_url: fresh }) }));
+
+    photo().dispatchEvent(new Event('error'));
+    await settle();
+
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/Obstacle/501/metadata');
+    expect(photo().getAttribute('src')).toBe(fresh);
+    expect(photo().dataset.udSource).toBe('crop');
   });
 
   // getImageUrl returns None for any non-GSV pano source, and those labels are the ones this change newly gives a
@@ -101,6 +118,7 @@ describe('the dashboard mistake card\'s image', () => {
     mistakes = [mistake({ image_url: null })];
     await renderGallery();
     photo().dispatchEvent(new Event('error'));
+    await settle();
 
     expect(photo()).toBeNull();
   });
@@ -113,6 +131,8 @@ describe('the dashboard mistake card\'s image', () => {
 
     photo().dispatchEvent(new Event('error'));
 
+    await settle();
+
     expect(marker().style.left).toBe('25%');
     expect(marker().style.top).toBe('75%');
   });
@@ -120,7 +140,9 @@ describe('the dashboard mistake card\'s image', () => {
   it('drops the photo when the Street View image fails too, leaving the wrapper\'s gradient', async () => {
     await renderGallery();
     photo().dispatchEvent(new Event('error')); // Crop 404s; falls back to the API image.
+    await settle();
     photo().dispatchEvent(new Event('error')); // That fails as well.
+    await settle();
 
     expect(photo()).toBeNull();
     expect(document.querySelector('.ud-card-img')).not.toBeNull();
@@ -156,6 +178,8 @@ describe('the dashboard mistake card\'s image', () => {
     expect(marker().style.left).toBe('50%');
 
     photo().dispatchEvent(new Event('error'));
+
+    await settle();
 
     expect(marker().style.left).toBe('25%');
     expect(marker().style.top).toBe('75%');

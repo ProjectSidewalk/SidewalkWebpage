@@ -86,14 +86,10 @@ describe('PopupPanoManager fallback marker', () => {
   });
 
   describe('a signed crop that expired while the page was open (#5861)', () => {
-    const NOW_SEC = 1_800_000_000;
     const crop = (exp) => `/cropImage/CurbRamp/1?exp=${exp}&sig=c${exp}`;
     const flush = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
-
-    beforeEach(() => vi.useFakeTimers({ now: NOW_SEC * 1000, toFake: ['Date'] }));
-    afterEach(() => vi.useRealTimers());
 
     /** Answers the crop metadata endpoint with `freshUrl`, or a 404 when null. */
     const answerCropMetadata = (freshUrl) => {
@@ -102,24 +98,16 @@ describe('PopupPanoManager fallback marker', () => {
         : { ok: false, status: 404 }));
     };
 
-    test('is re-signed before it is shown', async () => {
-      answerCropMetadata(crop(NOW_SEC + 3600));
-      const manager = await createManager();
-      manager.setLabel(popupLabel(null));
-      await expect(manager.setPano('pano-gone', POV, crop(NOW_SEC - 60), true, null)).resolves.toBe(true);
-      expect(document.getElementById('pano-fallback-image').getAttribute('src')).toBe(crop(NOW_SEC + 3600));
-    });
-
     test('a crop that fails to load is re-signed once, then gives way to the not-available panel', async () => {
-      answerCropMetadata(crop(NOW_SEC + 7200));
+      answerCropMetadata(crop(2));
       const manager = await createManager();
       manager.setLabel(popupLabel(null));
-      await manager.setPano('pano-gone', POV, crop(NOW_SEC + 3600), true, null);
+      await manager.setPano('pano-gone', POV, crop(1), true, null);
       const image = document.getElementById('pano-fallback-image');
 
       image.dispatchEvent(new Event('error'));
       await flush();
-      expect(image.getAttribute('src')).toBe(crop(NOW_SEC + 7200));
+      expect(image.getAttribute('src')).toBe(crop(2));
 
       image.dispatchEvent(new Event('error'));
       await flush();
@@ -132,7 +120,7 @@ describe('PopupPanoManager fallback marker', () => {
       const manager = await createManager();
       manager.onFallbackLost = vi.fn();
       manager.setLabel(popupLabel(null));
-      await expect(manager.setPano('pano-gone', POV, crop(NOW_SEC + 3600), true, null)).resolves.toBe(true);
+      await expect(manager.setPano('pano-gone', POV, crop(1), true, null)).resolves.toBe(true);
 
       document.getElementById('pano-fallback-image').dispatchEvent(new Event('error'));
       await flush();
@@ -140,27 +128,25 @@ describe('PopupPanoManager fallback marker', () => {
       expect(manager.onFallbackLost).toHaveBeenCalledTimes(1);
     });
 
-    test('a superseded load\'s re-signed crop never reaches the label that replaced it', async () => {
-      // Label 1's crop re-sign and label 2's backup lookup both hang; label 1's answers first.
+    test('a re-signed crop that answers after the next label took over is dropped', async () => {
       const pending = {};
       window.fetch = vi.fn((url) => new Promise((resolve) => { pending[url] = resolve; }));
       const manager = await createManager();
       manager.setLabel({ ...popupLabel(null), labelId: 1 });
-      const first = manager.setPano('pano-1', POV, crop(NOW_SEC - 60), true, null);
+      const first = manager.setPano('pano-1', POV, crop(1), true, null);
       await flush();
       pending['/backupImage/pano-1/metadata']({ ok: false, status: 404 });
+      await expect(first).resolves.toBe(true);
+      document.getElementById('pano-fallback-image').dispatchEvent(new Event('error'));
       await flush();
+
       manager.setLabel({ ...popupLabel(null), labelId: 2 });
-      const second = manager.setPano('pano-2', POV, null, true, null);
+      manager.setPano('pano-2', POV, null, true, null);
+      const fresh = { ok: true, json: () => Promise.resolve({ image_url: crop(2) }) };
+      pending['/cropImage/CurbRamp/1/metadata'](fresh);
       await flush();
 
-      const freshFirst = { ok: true, json: () => Promise.resolve({ image_url: crop(NOW_SEC + 3600) }) };
-      pending['/cropImage/CurbRamp/1/metadata'](freshFirst);
-      await expect(first).resolves.toBe(false);
-      pending['/backupImage/pano-2/metadata']({ ok: false, status: 404 });
-
-      await expect(second).resolves.toBe(false);
-      expect(document.getElementById('pano-fallback-image').getAttribute('src')).not.toBe(crop(NOW_SEC + 3600));
+      expect(document.getElementById('pano-fallback-image').getAttribute('src')).not.toBe(crop(2));
     });
   });
 });

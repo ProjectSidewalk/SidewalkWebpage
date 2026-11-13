@@ -18,7 +18,9 @@ import { LabelMiniCard } from '../common/LabelMiniCard.js';
 import { util } from '../common/utilities.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
 import { effectText, signed } from './AccessScoreText.js';
-import '../common/utilitiesSidewalk.js';
+import {
+  fetchBackupImageMetadata, fetchCropImageMetadata, resignFailedImage,
+} from '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreIntersectionExplanation} AccessScoreIntersectionExplanation */
 /** @typedef {import('./AccessScoreClusterFeed.js').AccessScoreFeedCluster} AccessScoreFeedCluster */
 
@@ -172,8 +174,26 @@ export class AccessScoreCrossingCard {
       if (src) {
         figure.innerHTML = `<img class="acs-crossing-card__image" src="${esc(src)}" alt="" loading="lazy">
           <img class="acs-crossing-card__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`;
-        figure.querySelector('.acs-crossing-card__image').addEventListener('error', () => {
-          figure.querySelector('.acs-crossing-card__image').replaceWith(LabelMiniCard.placeholder(type));
+        const img = /** @type {HTMLImageElement} */ (figure.querySelector('.acs-crossing-card__image'));
+        img.addEventListener('error', () => {
+          // The feed's label JSON lasts the page's life, but its signed URL expires in about an hour (#5861).
+          const field = label.crop_url ? 'crop_url' : 'backup_image_url';
+          const resigning = resignFailedImage(img, () => (field === 'crop_url'
+            ? fetchCropImageMetadata(type, label.label_id)
+            : fetchBackupImageMetadata(label.pano_id)));
+          const showPlaceholder = () => img.replaceWith(LabelMiniCard.placeholder(type));
+          if (!resigning) {
+            showPlaceholder();
+            return;
+          }
+          resigning.then((fresh) => {
+            if (!fresh) {
+              showPlaceholder();
+              return;
+            }
+            this.#feed.rememberLabel({ ...label, [field]: fresh });
+            img.src = fresh;
+          });
         });
       } else {
         figure.appendChild(LabelMiniCard.placeholder(type));

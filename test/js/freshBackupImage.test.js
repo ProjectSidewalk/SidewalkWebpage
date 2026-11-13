@@ -1,18 +1,17 @@
 /**
  * Tests for the signed-URL helpers in frontend/js/common/utilitiesSidewalk.js (`signedUrlIsExpired`, `isSignedUrl`,
- * `fetchBackupImageMetadata`, `freshBackupImage`, `freshCropUrl`), which re-sign a `/backupImage` or `/cropImage` URL
- * a long-open page got at load time once its signature has expired (#5861).
+ * `freshBackupImage`, `resignFailedImage`), which re-sign a URL a long-open page got at load once it expires (#5861).
  *
- * `fetchBackupImageMetadata` keeps a good answer per pano for the module's life, so each test uses its own pano id.
+ * `freshBackupImage` keeps each pano's re-signed URL for the module's life, so each test uses its own pano id.
  */
 
 import { loadModules } from './loader.js';
 
-const { signedUrlIsExpired, isSignedUrl, fetchBackupImageMetadata, freshBackupImage, freshCropUrl, util } =
-  await loadModules('frontend/js/common/utilitiesSidewalk.js', 'frontend/js/common/utilities.js');
+const {
+  signedUrlIsExpired, isSignedUrl, freshBackupImage, resignFailedImage, SIGNED_URL_EXPIRY_MARGIN_SEC: MARGIN_SEC,
+} = await loadModules('frontend/js/common/utilitiesSidewalk.js');
 
 const NOW_SEC = 1_800_000_000;
-const MARGIN_SEC = util.misc.SIGNED_URL_EXPIRY_MARGIN_SEC;
 
 /** A signed backup URL for `panoId` that expires at `exp` (epoch seconds). */
 const signedUrl = (exp, panoId = 'abc123') => `/backupImage/${panoId}?exp=${exp}&sig=s${exp}`;
@@ -100,79 +99,47 @@ describe('re-signing', () => {
       expect(await freshBackupImage(backupImage(signedUrl(NOW_SEC - 60), 'p-throws'))).toBeNull();
     });
 
+    test('re-signs a pano once, reusing the fresh URL until it too nears expiry', async () => {
+      let exp = NOW_SEC + 3600;
+      const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ image_url: signedUrl(exp, 'p-memo') }) }));
+      vi.stubGlobal('fetch', fetchMock);
+      const data = backupImage(signedUrl(NOW_SEC - 60, 'p-memo'), 'p-memo');
+
+      await freshBackupImage(data);
+      expect((await freshBackupImage(data)).image_url).toBe(signedUrl(NOW_SEC + 3600, 'p-memo'));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      vi.setSystemTime((NOW_SEC + 3600) * 1000);
+      exp = NOW_SEC + 7200;
+      expect((await freshBackupImage(data)).image_url).toBe(signedUrl(NOW_SEC + 7200, 'p-memo'));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     test('passes null through', async () => {
       expect(await freshBackupImage(null)).toBeNull();
     });
   });
+});
 
-  describe('fetchBackupImageMetadata', () => {
-    test('concurrent and repeat calls for one pano share a request while its URL is good', async () => {
-      const fetchMock = jsonFetch({ pano_id: 'p-share', image_url: signedUrl(NOW_SEC + 3600, 'p-share') });
-      vi.stubGlobal('fetch', fetchMock);
+describe('resignFailedImage', () => {
+  const img = (src) => Object.assign(document.createElement('img'), { src });
 
-      const [a, b] = await Promise.all([fetchBackupImageMetadata('p-share'), fetchBackupImageMetadata('p-share')]);
-      const c = await fetchBackupImageMetadata('p-share');
-
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(b).toBe(a);
-      expect(c).toBe(a);
-    });
-
-    test('asks again once the held URL has expired', async () => {
-      let exp = NOW_SEC + 3600;
-      const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ image_url: signedUrl(exp, 'p-age') }) }));
-      vi.stubGlobal('fetch', fetchMock);
-
-      await fetchBackupImageMetadata('p-age');
-      vi.setSystemTime((NOW_SEC + 3600) * 1000);
-      exp = NOW_SEC + 7200;
-      const later = await fetchBackupImageMetadata('p-age');
-
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(later.image_url).toBe(signedUrl(NOW_SEC + 7200, 'p-age'));
-    });
-
-    test('refresh asks the server even while the held URL looks good', async () => {
-      const fetchMock = jsonFetch({ image_url: signedUrl(NOW_SEC + 3600, 'p-refresh') });
-      vi.stubGlobal('fetch', fetchMock);
-      await fetchBackupImageMetadata('p-refresh');
-      await fetchBackupImageMetadata('p-refresh', { refresh: true });
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    test('a failed request is not kept, so the next call tries again', async () => {
-      const fetchMock = vi.fn()
-        .mockResolvedValueOnce({ ok: false, status: 500 })
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ image_url: signedUrl(NOW_SEC + 3600, 'p-retry') }) });
-      vi.stubGlobal('fetch', fetchMock);
-
-      expect(await fetchBackupImageMetadata('p-retry')).toBeNull();
-      expect((await fetchBackupImageMetadata('p-retry')).image_url).toBe(signedUrl(NOW_SEC + 3600, 'p-retry'));
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
+  test('answers null at once, without a request, for an unsigned picture', () => {
+    const fetchMetadata = vi.fn();
+    expect(resignFailedImage(img('/images/crop.jpg'), fetchMetadata)).toBeNull();
+    expect(fetchMetadata).not.toHaveBeenCalled();
   });
 
-  describe('freshCropUrl', () => {
-    const cropUrl = (exp) => `/cropImage/CurbRamp/7?exp=${exp}&sig=c${exp}`;
+  test('gets a fresh URL for a signed picture once, then answers null at once', async () => {
+    const picture = img(signedUrl(NOW_SEC - 60));
+    const fetchMetadata = vi.fn(async () => ({ image_url: signedUrl(NOW_SEC + 3600) }));
 
-    test('returns a still-good crop URL, or a missing one, without a request', async () => {
-      const fetchMock = vi.fn();
-      vi.stubGlobal('fetch', fetchMock);
-      expect(await freshCropUrl(cropUrl(NOW_SEC + 3600), 'CurbRamp', 7)).toBe(cropUrl(NOW_SEC + 3600));
-      expect(await freshCropUrl(null, 'CurbRamp', 7)).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
+    await expect(resignFailedImage(picture, fetchMetadata)).resolves.toBe(signedUrl(NOW_SEC + 3600));
+    expect(resignFailedImage(picture, fetchMetadata)).toBeNull();
+    expect(fetchMetadata).toHaveBeenCalledTimes(1);
+  });
 
-    test('re-signs an expired crop URL from the crop metadata endpoint', async () => {
-      const fetchMock = jsonFetch({ label_id: 7, label_type: 'CurbRamp', image_url: cropUrl(NOW_SEC + 3600) });
-      vi.stubGlobal('fetch', fetchMock);
-      expect(await freshCropUrl(cropUrl(NOW_SEC - 60), 'CurbRamp', 7)).toBe(cropUrl(NOW_SEC + 3600));
-      expect(fetchMock).toHaveBeenCalledWith('/cropImage/CurbRamp/7/metadata');
-    });
-
-    test('returns null when an expired crop URL cannot be re-signed', async () => {
-      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })));
-      expect(await freshCropUrl(cropUrl(NOW_SEC - 60), 'CurbRamp', 7)).toBeNull();
-    });
+  test('resolves to null when the picture cannot be re-signed', async () => {
+    await expect(resignFailedImage(img(signedUrl(NOW_SEC - 60)), async () => null)).resolves.toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { validationReasons } from '../../common/validationReasons.js';
-import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
+import { buildBackupImageData, fetchCropImageMetadata, resignFailedImage } from '../../common/utilitiesSidewalk.js';
 import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
@@ -270,7 +270,7 @@ export class Card {
   /**
    * This function returns labelId property.
    *
-   * @returns {string}
+   * @returns {number}
    */
   getLabelId() {
     return this.#properties.label_id;
@@ -343,7 +343,8 @@ export class Card {
   }
 
   /**
-   * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
+   * Loads the image, preferring the crop. A crop that fails is re-signed and tried once more, since its signed URL may
+   * have expired while the page sat open (#5861); after that it falls back to GSV.
    * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
    */
   loadImage() {
@@ -367,7 +368,7 @@ export class Card {
           this.#showImage();
           resolve(true);
         };
-        img.onerror = () => {
+        const fallBack = () => {
           if (fallbackUrl) {
             // The crop failed; try the still, and place the marker and the credit for it.
             this.#useSource('api');
@@ -380,6 +381,22 @@ export class Card {
             this.#hideMissingImage();
             resolve(false);
           }
+        };
+        img.onerror = () => {
+          const resigning = this.#status.imageSource === 'crop'
+            && resignFailedImage(img, () => fetchCropImageMetadata(this.getLabelType(), this.getLabelId()));
+          if (!resigning) {
+            fallBack();
+            return;
+          }
+          resigning.then((fresh) => {
+            if (!fresh) {
+              fallBack();
+              return;
+            }
+            this.#cropUrl = fresh;
+            img.src = fresh;
+          });
         };
         img.src = primaryUrl;
       } else {

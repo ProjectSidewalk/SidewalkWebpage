@@ -13,7 +13,7 @@
  * Entries are keyed by the network URL the viewer would otherwise request, less its signature (`exp`, `sig`), so the
  * two agree without either knowing how the other builds it: `prefetchBackups` derives it from the pano's metadata the
  * same way the viewer does, and the viewer asks `resolve()` with the URL it was about to fetch. The signature is left
- * out because either side may have re-signed an expired URL (#5861), and a fresh signature names the same bytes.
+ * out because either side may have re-signed an expired URL (#5861).
  * Pannellum takes a `blob:` URL where it takes any other (its loader XHRs the URL to a Blob either way), so no change
  * to the viewer library is needed.
  *
@@ -68,11 +68,9 @@ export class PanoImageCache {
   }
 
   /**
-   * The cache key for a network URL: the URL without its signature parameters, so a re-signed URL still finds the
-   * bytes fetched under the old one.
+   * The cache key for a network URL: the URL less `exp` and `sig`, so a re-signed URL finds the old URL's bytes.
    * @param {string} url - The network URL, absolute or path-relative.
-   * @returns {string} The key; the URL itself when it doesn't parse, so a bad URL fails at its fetch, as it always
-   *     has, rather than here.
+   * @returns {string} The key; the URL itself when it doesn't parse, so a bad URL fails at its fetch, not here.
    */
   static keyFor(url) {
     try {
@@ -156,8 +154,7 @@ export class PanoImageCache {
    */
   async prefetchBackups(backupImages) {
     for (const backupImage of backupImages) {
-      // Re-signed the same way the viewer re-signs at load time (#5861). The two may end up with different
-      // signatures, which the cache key leaves out, so the prefetch is still a hit.
+      // Re-signed as the viewer re-signs at load (#5861); the key ignores the signature, so it's still a hit.
       const signed = await freshBackupImage(backupImage);
       if (signed) await this.prefetch(panoramaUrlFor(signed));
     }

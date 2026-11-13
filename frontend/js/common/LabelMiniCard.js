@@ -16,9 +16,7 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import {
-  fetchBackupImageMetadata, fetchCropImageMetadata, isSignedUrl, signedUrlIsExpired,
-} from './utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, fetchCropImageMetadata, resignFailedImage } from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -116,10 +114,8 @@ export class LabelMiniCard {
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;
-    // A URL already past its signature's life would only fetch a 403, so it is re-signed before it is requested.
-    const srcExpired = signedUrlIsExpired(src);
     const image = src
-      ? `<img class="lmc__image"${srcExpired ? '' : ` src="${esc(src)}"`} alt="" loading="lazy">`
+      ? `<img class="lmc__image" src="${esc(src)}" alt="" loading="lazy">`
       : LabelMiniCard.placeholder(type).outerHTML;
     // On the feature, as Gallery marks it: anywhere else it reads as a misplaced label (#5386). Only a crop has a
     // known position (#2660); the backup image is the whole pano and the placeholder already carries the icon.
@@ -177,61 +173,46 @@ export class LabelMiniCard {
     }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
     const imageEl = this.#els.image;
-    if (imageEl) {
-      imageEl.addEventListener('error', () => this.#onImageError(imageEl));
-      if (srcExpired) {
-        this.#loadFreshImage(imageEl).then((loading) => {
-          if (!loading) this.#showPlaceholder(imageEl);
-        });
-      }
-    }
+    imageEl?.addEventListener('error', () => this.#onImageError(imageEl));
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));
     }
   }
 
   /**
-   * Recovers a picture that failed to load. A signed URL is re-signed and tried once more, whatever the client's
-   * clock says, since a 403 on one most likely means its signature expired while the page sat open (#5861); anything
-   * else falls back to the type icon, as if it never had a picture, and its marker then has nothing to point at.
+   * Re-signs a failed signed picture and tries it once more, since its signature likely expired (#5861). Otherwise, or
+   * on a second failure, shows the type icon instead and drops the marker, which has nothing left to point at.
    * @param {HTMLImageElement} image - The picture that failed.
-   * @returns {Promise<void>}
    */
-  async #onImageError(image) {
-    if (!image.dataset.resigned && isSignedUrl(image.src) && await this.#loadFreshImage(image, true)) return;
-    this.#showPlaceholder(image);
-  }
-
-  /**
-   * Re-signs the picture's URL (the crop's, or the backup pano's when there is no crop) and loads it. Marks the
-   * picture so a second failure goes to the placeholder rather than round again.
-   * @param {HTMLImageElement} image - The picture to reload.
-   * @param {boolean} [refused=false] - Whether the server just refused the URL, so a held backup URL that the client's
-   *     clock still thinks good must not be handed back.
-   * @returns {Promise<boolean>} False when no fresh URL could be had. True once it is loading, or when a re-render
-   *     replaced the picture meanwhile (that render's picture looks after itself).
-   */
-  async #loadFreshImage(image, refused = false) {
-    image.dataset.resigned = 'true';
+  #onImageError(image) {
+    if (image !== this.#els.image) return;
     const label = this.#label;
     const field = label.crop_url ? 'crop_url' : 'backup_image_url';
-    const fresh = field === 'crop_url'
-      ? await fetchCropImageMetadata(label.label_type, label.label_id)
-      : await fetchBackupImageMetadata(label.pano_id, { refresh: refused });
-    if (image !== this.#els.image) return true;
-    if (!fresh?.image_url) return false;
-    label[field] = fresh.image_url;
-    this.#opts.onImageUrlRefresh({ ...label });
-    image.src = fresh.image_url;
-    return true;
+    const resigning = resignFailedImage(image, () => (field === 'crop_url'
+      ? fetchCropImageMetadata(label.label_type, label.label_id)
+      : fetchBackupImageMetadata(label.pano_id)));
+    if (!resigning) {
+      this.#showPlaceholder(image);
+      return;
+    }
+    resigning.then((fresh) => {
+      // A re-render meanwhile replaced the picture, and that render's picture looks after itself.
+      if (image !== this.#els.image) return;
+      if (!fresh) {
+        this.#showPlaceholder(image);
+        return;
+      }
+      label[field] = fresh;
+      this.#opts.onImageUrlRefresh({ ...label });
+      image.src = fresh;
+    });
   }
 
   /**
-   * Swaps the picture for the type icon and drops the marker that pointed into it, unless a re-render replaced it.
+   * Swaps the picture for the type icon and drops the marker that pointed into it.
    * @param {HTMLImageElement} image - The picture that failed.
    */
   #showPlaceholder(image) {
-    if (image !== this.#els.image) return;
     image.replaceWith(LabelMiniCard.placeholder(this.#label.label_type));
     this.#els.marker?.remove();
   }

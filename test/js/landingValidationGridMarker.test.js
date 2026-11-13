@@ -312,6 +312,23 @@ describe('filling the grid, voting, and swapping cards', () => {
     expect(cards()[0].querySelector('.lvg-card-photo').src).toContain('/cropImage/CurbRamp/2');
   });
 
+  test('a signed crop that fails is re-signed once before the billed still is tried (#5861)', async () => {
+    batches = [{ labelsOfType: [labelEntry(1, { cropUrl: '/cropImage/CurbRamp/1?exp=1&sig=old' })] }];
+    await renderGrid();
+    const fresh = '/cropImage/CurbRamp/1?exp=2&sig=new';
+    window.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ image_url: fresh }) }));
+    const photo = cards()[0].querySelector('.lvg-card-photo');
+
+    photo.dispatchEvent(new Event('error'));
+    await settle();
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/CurbRamp/1/metadata');
+    expect(photo.getAttribute('src')).toBe(fresh);
+    expect(cards()[0].dataset.imageSource).toBe('crop');
+
+    photo.dispatchEvent(new Event('error')); // The fresh URL fails too: on to the still.
+    expect(cards()[0].dataset.imageSource).toBe('api');
+  });
+
   test('the share chip logs which label was shared', async () => {
     batches = [{ labelsOfType: [labelEntry(7)] }];
     await renderGrid();

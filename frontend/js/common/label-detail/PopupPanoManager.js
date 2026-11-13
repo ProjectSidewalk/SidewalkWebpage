@@ -18,7 +18,7 @@ import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
 import {
-  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, freshCropUrl, isSignedUrl,
+  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, resignFailedImage,
 } from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
@@ -69,12 +69,9 @@ export class PopupPanoManager {
   #logo;
   #attribution;
   #cropUrl;
-  /** Whether this load's crop has already been re-signed after a failed load, so a second failure gives it up. */
-  #cropRetried = false;
 
   /**
-   * Called when the crop fallback, which setPano() already reported as shown, fails to load for good and gives way to
-   * the "imagery not available" panel, so the host can lock what it unlocked for an image there is no longer to see.
+   * Called when a crop setPano() reported as shown fails for good, so the host can relock what it unlocked.
    * @type {?Function}
    */
   onFallbackLost = null;
@@ -349,7 +346,7 @@ export class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
-    this.#cropRetried = false;
+    delete this.#fallbackImage.dataset.resigned; // One element serves every label; each gets its own retry.
     this.svHolder.style.visibility = 'hidden'; // Hide until we've finished rendering.
     this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
@@ -402,11 +399,6 @@ export class PopupPanoManager {
     // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     if (load !== this.#loadToken) return false;
-    // The crop's URL is signed like the backup's and expires with it (#5861). Held locally until the token check, so
-    // a superseded load's answer can't land in the newer label's #cropUrl.
-    const signedCropUrl = await freshCropUrl(this.#cropUrl, this.label?.label_type, this.label?.labelId);
-    if (load !== this.#loadToken) return false;
-    this.#cropUrl = signedCropUrl;
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
     this.#finishLoad(load, { showAttribution: cropShown, attribution: ownCopyAttribution });
@@ -511,9 +503,8 @@ export class PopupPanoManager {
   }
 
   /**
-   * Recovers a crop fallback that failed to load. A signed URL is re-signed and tried once more, since a 403 on one
-   * most likely means its signature expired, whatever the client's clock says (#5861); otherwise, or when that fails
-   * too, the "imagery not available" panel replaces the broken image.
+   * Re-signs a failed signed crop and tries it once more, since its signature likely expired (#5861); otherwise, or
+   * on a second failure, shows the "imagery not available" panel.
    * @returns {Promise<void>}
    */
   async #onFallbackImageError() {
@@ -521,17 +512,15 @@ export class PopupPanoManager {
     const failed = this.#fallbackImage.getAttribute('src');
     // An error for a crop this load no longer shows (a newer label's, or one already given up) is stale.
     if (!failed || failed !== this.#cropUrl) return;
-    if (!this.#cropRetried && isSignedUrl(failed) && this.label) {
-      this.#cropRetried = true;
-      const fresh = await fetchCropImageMetadata(this.label.label_type, this.label.labelId);
-      if (load !== this.#loadToken) return;
-      if (fresh?.image_url) {
-        this.#cropUrl = fresh.image_url;
-        this.#fallbackImage.src = fresh.image_url;
-        return;
-      }
-    }
+    const label = this.label;
+    const fresh = await resignFailedImage(this.#fallbackImage, () => fetchCropImageMetadata(label.label_type,
+      label.labelId));
     if (load !== this.#loadToken) return;
+    if (fresh) {
+      this.#cropUrl = fresh;
+      this.#fallbackImage.src = fresh;
+      return;
+    }
     this.#cropUrl = null;
     this.#attribution?.hide();
     this.#panoFailureCallback();

@@ -202,4 +202,20 @@ describe('AccessScoreCrossingCard', () => {
     const crops = [...el.querySelectorAll('.acs-crossing-card__crop')];
     expect(crops.map((c) => c.dataset.clusterId)).toEqual(['3']);
   });
+
+  test('a signed crop that fails is re-signed once, and the feed keeps the fresh URL (#5861)', async () => {
+    labels[10].crop_url = '/cropImage/NoCurbRamp/10?exp=1&sig=old';
+    const fresh = '/cropImage/NoCurbRamp/10?exp=2&sig=new';
+    window.fetch = vi.fn(async () => ({ok: true, json: async () => ({image_url: fresh})}));
+    feed.rememberLabel = vi.fn();
+    makeCard().show(crossing([cluster(1, 'NoCurbRamp', 3, 10)]));
+    await settle();
+
+    el.querySelector('.acs-crossing-card__image').dispatchEvent(new Event('error'));
+    await settle();
+
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/NoCurbRamp/10/metadata');
+    expect(el.querySelector('.acs-crossing-card__image').getAttribute('src')).toBe(fresh);
+    expect(feed.rememberLabel).toHaveBeenCalledWith(expect.objectContaining({label_id: 10, crop_url: fresh}));
+  });
 });

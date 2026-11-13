@@ -264,10 +264,10 @@ lacks a column Pannellum needs, and the body names which (#5183). The file is ch
 no query.
 
 `/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
-open longer holds URLs that 403. The client re-signs before using one near its `exp` (`freshBackupImage`,
-`freshCropUrl` in `utilitiesSidewalk.js`, from the two `/metadata` endpoints). `LabelMiniCard` and the label popup's
-crop fallback also re-sign once on any failed load of a signed URL, which covers a client clock running behind the
-server's; Pannellum's loads (Validate, the popup) rely on the margin alone (#5861).
+open longer holds URLs that 403. The client gets a fresh one from the two `/metadata` endpoints: a plain `<img>`
+re-signs once after a failed load (`resignFailedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
+popup) retries a failed load itself, its loads re-sign beforehand when the URL is within 10 minutes of its `exp`
+(`freshBackupImage`); a client clock running further behind than that still 403s there (#5861).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
