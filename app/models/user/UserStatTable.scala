@@ -1322,8 +1322,7 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0)
-                 + COALESCE(training_answers.cnt, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -1354,13 +1353,6 @@ class UserStatTable @Inject() (
           FROM voided_label_validation
           GROUP BY voided_label_validation.user_id
       ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
-      -- Training examples answered (#1445): kept out of label_validation so they can't vote, but still work done.
-      LEFT JOIN (
-          SELECT gold_example_response.user_id, COUNT(*) AS cnt
-          FROM gold_example_response
-          WHERE gold_example_response.validation_result IS NOT NULL
-          GROUP BY gold_example_response.user_id
-      ) AS training_answers ON user_stat.user_id = training_answers.user_id
       -- Label and validation counts. The verdict counts follow the accuracy rule (a label deleted from the popup
       -- after being judged incorrect still counts, #3591); the plain label counts are live labels only.
       LEFT JOIN (
