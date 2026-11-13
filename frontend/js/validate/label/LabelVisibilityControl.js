@@ -207,19 +207,19 @@ export class LabelVisibilityControl {
         // Don't focus the marker: a focused marker sends keys like Y and Enter to the card instead of the page.
         e.preventDefault();
         dragged = false;
-        const startX = e.clientX;
-        const startY = e.clientY;
         // On the window, since a drag that starts here can end anywhere.
         const onMove = (/** @type {MouseEvent} */ move) => {
-          if (dragged) return;
-          if (Math.hypot(move.clientX - startX, move.clientY - startY) <= LabelVisibilityControl.#CLICK_SLOP_PX) return;
+          if (Math.hypot(move.clientX - e.clientX, move.clientY - e.clientY) <= LabelVisibilityControl.#CLICK_SLOP_PX) {
+            return;
+          }
           dragged = true;
           this.hideLabelCard();
+          window.removeEventListener('mousemove', onMove);
         };
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', (up) => {
           window.removeEventListener('mousemove', onMove);
-          // No click follows a release off the marker, so clear the flag here or it eats the next screen-reader click.
+          // No click follows a release off the marker, and a stale flag would eat the next click that has no press.
           if (!(up.target instanceof Node && marker.contains(up.target))) dragged = false;
         }, { once: true });
       });
@@ -290,11 +290,10 @@ export class LabelVisibilityControl {
    * @param {boolean} [options.holdOpen] - Opened on load rather than by the user, so it stays up until something
    *     deliberate closes it (see openCardOnLoad).
    * @param {boolean} [options.pin] - Hold the card open like holdOpen, but logged as a normal open.
-   * @returns {boolean} False if there was no marker on screen, so the card stayed shut.
    */
   showLabelCard({ viaKeyboard = false, holdOpen = false, pin = false } = {}) {
     this.cancelScheduledCardHide();
-    if (!this.#anchorCard()) return false;
+    if (!this.#anchorCard()) return;
     if (holdOpen) this.#tracker.push('LabelCard_OpenedOnLoad');
     else if (!this.#cardVisible) this.#tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
     if (holdOpen || pin) this.#heldOpen = true;
@@ -303,7 +302,6 @@ export class LabelVisibilityControl {
     this.#cardVisible = true;
     this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
-    return true;
   }
 
   /**
@@ -354,12 +352,14 @@ export class LabelVisibilityControl {
 
   /** Pins the card open on a mouse click, or closes a held one. Not a toggle, since hover already opened the card. */
   toggleLabelCardPin() {
-    if (this.#heldOpen && this.#cardVisible) {
+    if (this.#heldOpen) {
       this.hideLabelCard();
       this.#tracker.push('Click_UnpinLabelCard');
-    } else if (this.showLabelCard({ pin: true })) {
-      this.#tracker.push('Click_PinLabelCard');
+      return;
     }
+    this.showLabelCard({ pin: true });
+    // Stays unheld when there was no marker on screen to pin the card to.
+    if (this.#heldOpen) this.#tracker.push('Click_PinLabelCard');
   }
 
   /**

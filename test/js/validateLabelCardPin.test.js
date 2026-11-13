@@ -1,7 +1,4 @@
-/**
- * Tests for pinning Validate's label card with a click on its marker (#4843), in LabelVisibilityControl.js and
- * PanoOverlay.js.
- */
+/** Pinning Validate's label card with a click on its marker (#4843): LabelVisibilityControl.js and PanoOverlay.js. */
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
@@ -124,15 +121,16 @@ describe('pinning the Validate label card', () => {
     expect(expanded()).toBe('false');
   });
 
-  it('a pan from the marker released elsewhere does not swallow the next bare click', () => {
+  it('a pan from the marker released elsewhere does not swallow the next click that has no press', () => {
     marker().dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 10, clientY: 10 }));
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: 30, clientY: 10 }));
     document.getElementById('view-control-layer')
       .dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 30, clientY: 10 }));
-    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); // A screen reader's press.
+    // A screen reader that simulates a mouse click sends detail 1 with no mousedown on the marker.
+    marker().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
 
-    expect(control.isCardVisible()).toBe(true);
-    expect(tracker.push).toHaveBeenLastCalledWith('MouseOver_Label');
+    expect(control.isCardHeldOpen()).toBe(true);
+    expect(tracker.push).toHaveBeenLastCalledWith('Click_PinLabelCard');
   });
 
   it('a press elsewhere on the pano still closes a pinned card at once', () => {

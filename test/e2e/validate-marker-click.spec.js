@@ -2,7 +2,7 @@
  * Validate's label marker with a real mouse (#4843): hover opens the card, a click pins it, a second click closes it,
  * and a drag is a pan. Uses the Maps stub or Pannellum backup, so nothing is billed.
  */
-const {test, expect, serveAnyPano, loadValidate} = require('./fixtures');
+const {test, expect, serveAnyPano, loadValidate, pastDoubleTapGuard} = require('./fixtures');
 
 // Past the 200 ms hover grace timer, so a check that the card stays up (or down) runs after the timer could fire.
 const PAST_HIDE_DELAY_MS = 600;
@@ -137,15 +137,4 @@ async function moveAway(page) {
   const far = corners.filter((p) => !inCard(p))
     .sort((a, b) => Math.hypot(b.x - marker.x, b.y - marker.y) - Math.hypot(a.x - marker.x, a.y - marker.y));
   await page.mouse.move(far[0].x, far[0].y);
-}
-
-/**
- * Waits out LabelContainer.VERDICT_GRACE_MS from the label appearing, inside which a verdict is a dropped double tap.
- * @param {import('@playwright/test').Page} page
- */
-async function pastDoubleTapGuard(page) {
-  await page.waitForFunction(() => {
-    const labelContainer = window.svv.labelContainer;
-    return Date.now() - labelContainer.getProperty('renderedTimestamp') > labelContainer.constructor.VERDICT_GRACE_MS;
-  });
 }
