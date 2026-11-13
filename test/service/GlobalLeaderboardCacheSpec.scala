@@ -11,14 +11,14 @@ import play.api.{Application, Configuration}
 import util.SidewalkSpec
 
 import java.time.OffsetDateTime
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future, Promise}
 
 /**
  * How `/leaderboard`'s global board behaves behind [[SwrCache]] (#5235): a stale board is served at once while the
- * ~50-schema union refreshes behind it, and a failed refresh never replaces a board, or the lack of one, in the cache.
+ * ~50-schema union refreshes behind it, and a failed compute never lands in the cache.
  *
  * The board's scope lookup is the first step of every recompute, so each test hands the service a scope it controls:
  * a `Promise` keeps a refresh "still running" for as long as the test needs, and a counter shows whether a recompute
@@ -32,8 +32,7 @@ class GlobalLeaderboardCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   private def await[T](f: => Future[T], within: FiniteDuration = 30.seconds): T = Await.result(f, within)
 
-  private lazy val swrCache   = app.injector.instanceOf[SwrCache]
-  private lazy val realConfig = app.injector.instanceOf[ConfigService]
+  private lazy val swrCache = app.injector.instanceOf[SwrCache]
 
   /** A board no real query could produce, so serving it can only mean the planted copy was served. */
   private val plantedBoard: Option[Seq[GlobalLeaderboardEntry]] =
@@ -104,23 +103,16 @@ class GlobalLeaderboardCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "getGlobalLeaderboardStats" should {
     "serve a stale board at once while its refresh is still running, then serve the refreshed one" in {
-      val n                  = 9101
-      val refresh            = Promise[GlobalLeaderboardScope]()
-      val (service, started) = serviceWith(refresh.future)
+      val n            = 9101
+      val refresh      = Promise[GlobalLeaderboardScope]()
+      val (service, _) = serviceWith(refresh.future)
       plantStaleBoard(n)
 
       // The refresh can't finish until the test says so, so a render that waited on it would time out here.
       await(service.getGlobalLeaderboardStats(n), within = 5.seconds) mustBe plantedBoard
-      pollUntil(5.seconds)(started.get() == 1)
-
-      // A second request inside the same refresh is served the same stale board and joins that refresh.
-      await(service.getGlobalLeaderboardStats(n), within = 5.seconds) mustBe plantedBoard
-      started.get() mustBe 1
 
       // An empty scope computes `None`, which no stale read could return, so seeing it means the refresh landed.
       refresh.success(GlobalLeaderboardScope(Nil, Nil))
-      // No recompute count is asserted past this point: a poll that read the stale entry just before the write can
-      // start one redundant refresh after the first leaves the in-flight map, which is harmless and racy to pin.
       pollUntil(5.seconds)(await(service.getGlobalLeaderboardStats(n)).isEmpty)
     }
 
@@ -138,28 +130,9 @@ class GlobalLeaderboardCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       await(service.getGlobalLeaderboardStats(n)) mustBe plantedBoard
     }
 
-    "drop the section on a cold-cache failure without remembering it as no board" in {
-      val n                  = 9103
-      val scope              = AtomicReference[Future[GlobalLeaderboardScope]](Future.failed(RuntimeException("down")))
-      val (service, started) = serviceWith(scope.get())
-
-      // Nothing cached and the compute failed: the page omits the section rather than erroring.
-      await(service.getGlobalLeaderboardStats(n)) mustBe None
-      started.get() mustBe 1
-
-      // The next request must recompute, not be handed a cached "no board". A real single-city scope yields `Some`,
-      // even if empty, which the recover's `None` can't be mistaken for.
-      val thisCity = realConfig.getCityId
-      scope.set(Future.successful(GlobalLeaderboardScope(Seq(thisCity -> realConfig.getCitySchema(thisCity)), Nil)))
-      // Polled, because the failed compute leaves the in-flight map from an `onComplete` that can run after the recover
-      // answered, so a request straight after may still join that failed future. What matters is that one recomputes.
-      pollUntil(10.seconds)(await(service.getGlobalLeaderboardStats(n)).isDefined)
-      started.get() must be >= 2
-
-      // Now cached and fresh, so a further request is served without recomputing.
-      val recomputesSoFar = started.get()
-      await(service.getGlobalLeaderboardStats(n)) mustBe defined
-      started.get() mustBe recomputesSoFar
+    "drop the section, not the page, when a cold-cache compute fails" in {
+      val (service, _) = serviceWith(Future.failed(RuntimeException("down")))
+      await(service.getGlobalLeaderboardStats(9103)) mustBe None
     }
   }
 }

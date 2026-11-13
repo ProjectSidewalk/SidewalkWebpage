@@ -285,10 +285,7 @@ case class AdminUserProfileData(
 object UserService {
 
   /**
-   * Cache key for the global board of `n` rows, shared with the spec that seeds it (#5235).
-   *
-   * The `v2-swr` suffix names the stored shape: [[SwrCache]] wraps the value in a timestamp and reads it back with an
-   * erased type, so the bare value the plain-expiry cache used to keep must never be found under this key.
+   * Cache key for the global board of `n` rows, shared with the spec that plants one (#5235).
    *
    * @param n How many rows the board holds.
    * @return  The key the board is cached under.
