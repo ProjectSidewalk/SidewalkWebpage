@@ -36,9 +36,8 @@ case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]
 object AiService {
 
   /**
-   * Tells the AI server's own "no imagery" 502 apart from the one its Apache sends while the server is down (a
-   * deploy, a handover, a reboot). Only the first means the label can never be assessed; the second clears up by the
-   * next run. The message must match the one in sidewalk-ai-api's main.py.
+   * Tells the AI server's own "no imagery" 502, after which the label can never be assessed, from the one its Apache
+   * sends while the server is down. The message must match the one in sidewalk-ai-api's main.py.
    * @param body The 502 response's body.
    * @return True when the AI server itself said it couldn't fetch the panorama.
    */
