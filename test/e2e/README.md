@@ -270,6 +270,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `explore-tutorial-labeling.spec.js` | Labels a curb ramp in Explore's tutorial and reads it back (#4777) |
 | `validate-interactions.spec.js` | Votes and undoes on a Validate mission by mouse and keyboard, and reads the votes back (#4948). Also Expert Validate as the admin (#5946), in the same file so its votes can't land between another test's count and its check |
 | `label-card-paging.spec.js` | Pages Gallery's open card to the first label; Prev switches off but keeps focus (#5135) |
+| `validate-marker-click.spec.js` | Hovers, clicks, drags and keys Validate's label marker to open, pin and close its card (#4843) |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-viewport-fetch.spec.js` | `/labelMap`'s viewport-scoped label feed: fetches by bbox, refetches only when the view leaves the fetched area (#5002) |
 | `label-card-drag.spec.js` | A drag on the label card's imagery ends when let go off the imagery (#5295) |
