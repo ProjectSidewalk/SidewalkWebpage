@@ -59,6 +59,11 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
       extends ConfigTable(app.injector.instanceOf[DatabaseConfigProvider]) {
     val attempts = AtomicInteger(0)
 
+    /**
+     * `real`, or the fault's error while this query on this schema still has failures left to give.
+     *
+     * @return The action to run for this attempt.
+     */
     private def faulty[T](schema: String, query: String)(real: => DBIO[T]): DBIO[T] = fault match {
       case Some(f) if f.schema == schema && f.query == query =>
         // Counted when the action is built, which is once per attempt: the fan-out rebuilds it to retry.
@@ -198,7 +203,7 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
     }
 
     "answer None, not fail, when nothing complete is cached and the compute fails" in {
-      // Nothing in this suite caches a bundle, so the cache is cold, and this service's own SwrCache has no backoff yet.
+      // Nothing in this suite caches a bundle, so the cache is cold; this service's own SwrCache has no backoff yet.
       val (service, _) = serviceWith(schemas = Some(_ => Future.failed(transient)))
       await(service.getAggregateStatsWithCurrentCity()) mustBe None
     }

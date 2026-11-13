@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.*
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, Promise}
 
 /**
  * The rules [[BoundedCityFanOut]] holds every cross-city total to (#5977): never more than `parallelism` cities in
@@ -64,13 +64,17 @@ class BoundedCityFanOutSpec extends SidewalkSpec with BeforeAndAfterAll {
     }
 
     "not let one slow city hold back the slots behind it" in {
-      // Unordered with parallelism 2: while city-1 is slow, the other slot keeps cycling through everyone else.
-      val done   = AtomicInteger(0)
-      val result = await(run(cities, parallelism = 2) { cityId =>
-        if (cityId == "city-1") Future { Thread.sleep(300); done.get } else Future { done.incrementAndGet(); 0 }
+      // Unordered with parallelism 2: city-1 holds one slot until every other city has gone through the second. An
+      // ordered stage would count city-2's finished-but-unemitted result against the limit and never start city-3, so
+      // city-1 would never be released and the run would time out.
+      val others    = cities.size - 1
+      val done      = AtomicInteger(0)
+      val othersRan = Promise[Unit]()
+      val result    = await(run(cities, parallelism = 2) { cityId =>
+        if (cityId == "city-1") othersRan.future.map(_ => cityId)
+        else Future { if (done.incrementAndGet() == others) othersRan.success(()); cityId }
       })
-      // By the time city-1 answered, all 19 others had finished in the second slot.
-      result.results.head mustBe ("city-1" -> 19)
+      result.results.map(_._1) mustBe cities
     }
 
     "retry transient failures and keep the city when a later attempt succeeds" in {

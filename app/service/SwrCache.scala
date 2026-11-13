@@ -106,8 +106,8 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    *
    * @param coldWait       How long a request that found nothing cached waits for the compute before giving up on it.
    * @param failureBackoff As in [[staleWhileRevalidate]].
-   * @return         `Some(value)` — cached, stale, or computed within `coldWait` — or `None` when the deadline passed
-   *                 first. The compute's failure is still the caller's, as in [[staleWhileRevalidate]].
+   * @return               `Some(value)` — cached, stale, or computed within `coldWait` — or `None` when the deadline
+   *                       passed first. The compute's failure is still the caller's, as in [[staleWhileRevalidate]].
    */
   def staleWhileRevalidateWithin[T](
       key: String,
@@ -203,8 +203,9 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
               }
             }
             // Part of the Future the callers get rather than a side callback, so the in-flight entry is gone and the
-            // backoff recorded by the time any caller sees the outcome. The callback can't run before the map write
-            // below, because it needs this same lock.
+            // backoff recorded by the time any caller sees the outcome. The callback runs on the pool, never inline on
+            // this thread (`synchronized` is reentrant, so an inline one would run before the map write below and
+            // leave the entry stuck); on another thread it waits on this lock until that write has happened.
             .transform { result =>
               val failedBefore: Boolean = synchronized {
                 val _      = refreshesInFlight.remove(key)
@@ -217,7 +218,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
               }
               result.failed.foreach { e =>
                 val message =
-                  s"Recompute of cached '$key' failed (next attempt allowed in $failureBackoff): ${e.getMessage}"
+                  s"Recompute of cached '$key' failed (next attempt allowed in ${failureBackoff.toSeconds} s): ${e.getMessage}"
                 // The stack trace only for the first failure in a row: an outage repeats the same one every backoff.
                 if (failedBefore) logger.warn(message) else logger.warn(message, e)
               }

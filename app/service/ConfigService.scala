@@ -25,6 +25,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
  * Which cities the by-name global leaderboard may read, split by what it may read them for (#3719).
@@ -1693,7 +1694,7 @@ class ConfigServiceImpl @Inject() (
           }
           val skippedSchemas = skipped.map { case (_, schema) => schema }
           // A schema with *some* of the columns is behind on evolutions — real drift, unlike a schema that is simply
-          // absent. availableCityIds already dropped those, so anything here is worth a warning.
+          // absent. availableCities already dropped those, so anything here is worth a warning.
           if (skipped.nonEmpty) {
             logger.warn(
               s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
@@ -2225,7 +2226,7 @@ class ConfigServiceImpl @Inject() (
         }
         (bundle.overall, ownSlice)
       })
-      .recover { case e: Exception =>
+      .recover { case NonFatal(e) =>
         // SwrCache has already logged the compute's failure; this only notes what the page does about it.
         logger.debug(s"Cross-city totals unavailable for the Leaderboard; omitting its bands: ${e.getMessage}")
         None

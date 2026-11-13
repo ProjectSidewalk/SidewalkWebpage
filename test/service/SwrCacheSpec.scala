@@ -148,7 +148,7 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually
   "a failed compute with a failure backoff" should {
     "refuse the next cold request at once, then compute again once the backoff ends" in {
       val key                          = freshKey()
-      val backoff                      = 300.millis
+      val backoff                      = 2.seconds
       val runs                         = AtomicInteger(0)
       val failure                      = IllegalStateException("db down")
       def compute: Future[Payload]     = { runs.incrementAndGet(); Future.failed(failure) }

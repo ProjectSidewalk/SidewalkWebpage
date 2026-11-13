@@ -61,7 +61,7 @@ object BoundedCityFanOut {
   /** `invalid_schema_name`: the schema itself is gone, the other way a schema can't answer. */
   val InvalidSchemaSqlState: String = "3F000"
 
-  /** SQLSTATEs that fail the fan-out without a retry: 57014 `query_canceled`, which is what a statement timeout raises. */
+  /** SQLSTATEs that fail the fan-out without a retry: 57014 `query_canceled`, what a statement timeout raises. */
   val NotRetriedSqlStates: Set[String] = Set("57014")
 
   /**
