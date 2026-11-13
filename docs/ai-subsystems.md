@@ -38,7 +38,8 @@ NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    training date and HuggingFace revision) goes in `label_ai_assessment` with the label type it was about, so a
    retyped label's assessment counts as stale (#3671). Where the city has AI validations on and estimated accuracy
    ≥ `ai-validation-min-accuracy` (0.92 everywhere today), a real `label_validation` is saved as the `SidewalkAI`
-   user; below that it becomes Unsure. An HTTP 502 saves a `label_ai_failure` row, which excludes the label for good.
+   user; below that it becomes Unsure. When the API answers that it can't fetch the panorama, a `label_ai_failure` row
+   excludes the label for good; any other error (e.g. the 502s while the AI server restarts) is retried the next night.
 4. Shown in the *Humans vs AI* admin dashboard (`/admin/humans-vs-ai`) and by the AI icon
    (`frontend/js/common/aiLabelIndicator.js`) in Gallery, Validate and LabelMap. The icon's "AI can make mistakes"
    tooltip moves onto the label card on Validate's marker, since the same hover opens it (`LabelCardView`, #5359).
