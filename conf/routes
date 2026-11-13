@@ -102,6 +102,7 @@ GET     /adminapi/newsEmailRecipients.csv               controllers.NewsEmailCon
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                           controllers.AdminController.getTagSeverityCounts
+GET     /adminapi/validatorReliability                  controllers.AdminController.getValidatorReliability
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])

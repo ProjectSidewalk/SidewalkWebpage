@@ -334,6 +334,7 @@ trait AdminService {
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
@@ -481,6 +482,8 @@ class AdminServiceImpl @Inject() (
         .toSeq
     }
   }
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]] =
+    db.run(userStatTable.validatorReliabilityScores)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
 

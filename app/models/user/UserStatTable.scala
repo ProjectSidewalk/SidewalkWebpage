@@ -497,13 +497,12 @@ class UserStatTable @Inject() (
    * @return One row per validator with at least one graded vote.
    */
   def validatorTallies: DBIO[Seq[ValidatorTally]] = {
-    val adminRoles = Role.ADMIN_ROLES.map(role => s"'${role.name}'").mkString(", ")
     sql"""
       WITH votes AS (
           SELECT label_validation.label_id, label_validation.user_id,
                  label_validation.validation_result::text AS vote,
                  COALESCE(user_role.role = '#${Role.Ai.name}', FALSE) AS is_ai,
-                 COALESCE(user_role.role IN (#$adminRoles), FALSE) AS is_admin
+                 COALESCE(user_role.role IN (#${Role.ADMIN_ROLES_SQL}), FALSE) AS is_admin
           FROM #${FilteredTables.verdictVotes()}
           LEFT JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
           WHERE label_validation.validation_result <> 'Unsure'
@@ -538,6 +537,8 @@ class UserStatTable @Inject() (
           SELECT gold_example_response.user_id, gold_example_response.validation_result::text,
                  COALESCE(user_role.role = '#${Role.Ai.name}', FALSE), 'Disagree'
           FROM gold_example_response
+          -- Only while the label is still pinned, so unpinning a bad example takes its grades back.
+          INNER JOIN gold_example ON gold_example_response.label_id = gold_example.label_id
           LEFT JOIN sidewalk_login.user_role ON gold_example_response.user_id = user_role.user_id
           WHERE gold_example_response.validation_result IN ('Agree', 'Disagree')
               AND #${FilteredTables.userCounts(None, "gold_example_response.user_id", Contributors.NotExcluded)}
@@ -547,6 +548,19 @@ class UserStatTable @Inject() (
       WHERE answer IS NOT NULL
       GROUP BY user_id""".as[ValidatorTally]
   }
+
+  /**
+   * Every scored signed-up person's reliability, for the admin chart. The AI is left out: its vote count would swamp
+   * the people's.
+   * @return One (graded, matched, reliability) per validator.
+   */
+  def validatorReliabilityScores: DBIO[Seq[(Int, Int, Double)]] =
+    sql"""
+      SELECT user_stat.validations_graded, user_stat.validations_matched, user_stat.validator_reliability
+      FROM user_stat
+      INNER JOIN sidewalk_login.user_role ON user_stat.user_id = user_role.user_id
+      WHERE user_stat.validator_reliability IS NOT NULL
+          AND user_role.role NOT IN ('#${Role.Ai.name}', '#${Role.Anonymous.name}')""".as[(Int, Int, Double)]
 
   /**
    * Recomputes every validator's tally and reliability (#5063), writing only the rows whose numbers moved.

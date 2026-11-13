@@ -98,29 +98,29 @@ const BY_DAY = {
   ],
 };
 
-/** /v3/api/userStats, cut down to what the page reads. */
-const USER_STATS = [
-  { validator_reliability: 0.95, validations_graded: 200, validations_matched: 190 },
-  { validator_reliability: 0.9, validations_graded: 100, validations_matched: 95 },
-  { validator_reliability: 0.72, validations_graded: 60, validations_matched: 45 },
-  { validator_reliability: 0.41, validations_graded: 40, validations_matched: 10 },
-  // Nothing graded, so no score and no place in the chart.
-  { validator_reliability: null, validations_graded: 0, validations_matched: 0 },
-];
+/** /adminapi/validatorReliability: one row per scored validator. */
+const RELIABILITY = {
+  validators: [
+    { validator_reliability: 0.95, validations_graded: 200, validations_matched: 190 },
+    { validator_reliability: 0.9, validations_graded: 100, validations_matched: 95 },
+    { validator_reliability: 0.72, validations_graded: 60, validations_matched: 45 },
+    { validator_reliability: 0.41, validations_graded: 40, validations_matched: 10 },
+  ],
+};
 
 const URLS = {
   statsUrl: '/v3/api/overallStats', tagsUrl: '/adminapi/labelTags', labelTypesUrl: '/v3/api/labelTypes',
   byDayUrl: '/v3/api/overallStatsByDay', tagSeverityUrl: '/adminapi/tagSeverity',
-  userStatsUrl: '/v3/api/userStats',
+  reliabilityUrl: '/adminapi/validatorReliability',
 };
 
 /**
  * Builds the page with the given answers (each defaulting to the fixtures above) and lets it load.
- * @param {object} [answers] - Bodies keyed `stats`, `tags`, `labelTypes`, `byDay`, `tagSeverity`, `userStats`.
+ * @param {object} [answers] - Bodies keyed `stats`, `tags`, `labelTypes`, `byDay`, `tagSeverity`, `reliability`.
  * @returns {Promise<import('vitest').Mock>} The fetch stub.
  */
 async function render({ stats = STATS, tags = TAGS, labelTypes = LABEL_TYPES, byDay = BY_DAY,
-  tagSeverity = TAG_SEVERITY, userStats = USER_STATS } = {}) {
+  tagSeverity = TAG_SEVERITY, reliability = RELIABILITY } = {}) {
   document.body.innerHTML = MARKUP;
   const fetch = routeFetch({
     [URLS.statsUrl]: stats,
@@ -129,7 +129,7 @@ async function render({ stats = STATS, tags = TAGS, labelTypes = LABEL_TYPES, by
     [URLS.tagsUrl]: tags,
     [URLS.labelTypesUrl]: labelTypes,
     [URLS.tagSeverityUrl]: tagSeverity,
-    [URLS.userStatsUrl]: userStats,
+    [URLS.reliabilityUrl]: reliability,
   });
   await new DataQualityPage(URLS).init();
   return fetch;
@@ -198,7 +198,7 @@ describe('Data Quality — KPIs and loading', () => {
     for (const id of ['kpi-total-labels', 'dq-status', 'dq-tag-severity']) document.getElementById(id).remove();
     routeFetch({ [URLS.statsUrl]: STATS, [URLS.byDayUrl]: BY_DAY, [URLS.tagsUrl]: TAGS,
       [URLS.labelTypesUrl]: LABEL_TYPES, [URLS.tagSeverityUrl]: TAG_SEVERITY,
-      [URLS.userStatsUrl]: USER_STATS });
+      [URLS.reliabilityUrl]: RELIABILITY });
     await new DataQualityPage(URLS).init();
     expect(console.error).not.toHaveBeenCalled();
     expect(rowTexts('dq-labels')).toHaveLength(4);
@@ -462,8 +462,16 @@ describe('Data Quality — validator reliability', () => {
   });
 
   test('says so when nobody has a score', async () => {
-    await render({ userStats: [USER_STATS.at(-1)] });
+    await render({ reliability: { validators: [] } });
     expect(text('dq-reliability-summary')).toBe('');
     expect(text('dq-reliability')).toBe('No validator has a score yet.');
+  });
+
+  test('a failed request costs only this section, not the rest of the page', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await render({ reliability: { status: 503 } });
+    expect(text('dq-reliability')).toBe('Could not load validator reliability.');
+    expect(document.getElementById('dq-status').classList.contains('error')).toBe(false);
+    expect(rowTexts('dq-labels').length).toBeGreaterThan(0);
   });
 });

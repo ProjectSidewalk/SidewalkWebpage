@@ -28,14 +28,14 @@ export class DataQualityPage {
   #labelTypesUrl;
   #byDayUrl;
   #tagSeverityUrl;
-  #userStatsUrl;
+  #reliabilityUrl;
   #order = [];           // Canonical label-type order (machine names) from /v3/api/labelTypes.
   #meta = new Map();     // name -> { color, icon, display }
   #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
   /**
    * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
-   *          tagSeverityUrl: string, userStatsUrl: string}} opts
+   *          tagSeverityUrl: string, reliabilityUrl: string}} opts
    */
   constructor(opts) {
     this.#statsUrl = opts.statsUrl;
@@ -43,15 +43,17 @@ export class DataQualityPage {
     this.#labelTypesUrl = opts.labelTypesUrl;
     this.#byDayUrl = opts.byDayUrl;
     this.#tagSeverityUrl = opts.tagSeverityUrl;
-    this.#userStatsUrl = opts.userStatsUrl;
+    this.#reliabilityUrl = opts.reliabilityUrl;
   }
 
   async init() {
+    // On its own, so the rest of the page neither waits on it nor goes blank if it fails.
+    const reliability = this.#loadReliability();
     try {
-      const [stats, tags, labelTypes, byDay, tagSeverity, userStats] = await Promise.all([
+      const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
         util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
         util.fetchJson(this.#labelTypesUrl), util.fetchJson(this.#byDayUrl),
-        util.fetchJson(this.#tagSeverityUrl), util.fetchJson(this.#userStatsUrl),
+        util.fetchJson(this.#tagSeverityUrl),
       ]);
 
       this.#buildMeta(labelTypes);
@@ -62,7 +64,6 @@ export class DataQualityPage {
       this.#renderCoverage(stats);
       this.#renderValidation('combined');
       this.#wireValidatorToggle();
-      this.#renderReliability(Array.isArray(userStats) ? userStats : []);
       this.#renderTags(Array.isArray(tags) ? tags : []);
       this.#renderTagSeverity((tagSeverity && tagSeverity.tag_severity) || []);
       this.#renderQualityOverTime(byDay);
@@ -71,6 +72,19 @@ export class DataQualityPage {
     } catch (err) {
       console.error('Data Quality page failed to load:', err);
       this.#setStatus('Could not load data quality metrics. Please try again.', true);
+    }
+    await reliability;
+  }
+
+  /** Fetches and draws the validator reliability section, saying so in the section itself if that fails. */
+  async #loadReliability() {
+    try {
+      const { validators } = await util.fetchJson(this.#reliabilityUrl);
+      this.#renderReliability(Array.isArray(validators) ? validators : []);
+    } catch (err) {
+      console.error('Validator reliability failed to load:', err);
+      const chart = document.getElementById('dq-reliability');
+      chart.innerHTML = '<p class="dq-empty">Could not load validator reliability.</p>';
     }
   }
 
@@ -230,11 +244,10 @@ export class DataQualityPage {
 
   /**
    * Validator reliability: how many validators fall in each score band, with the totals behind the scores.
-   * @param {Array<{validator_reliability: ?number, validations_graded: number, validations_matched: number}>} users
-   *   Rows from /v3/api/userStats.
+   * @param {Array<{validator_reliability: number, validations_graded: number, validations_matched: number}>} scored
+   *   The scored validators, from /adminapi/validatorReliability.
    */
-  #renderReliability(users) {
-    const scored = users.filter((u) => u.validator_reliability !== null && u.validator_reliability !== undefined);
+  #renderReliability(scored) {
     const summary = document.getElementById('dq-reliability-summary');
     const chart = document.getElementById('dq-reliability');
     if (!scored.length) {

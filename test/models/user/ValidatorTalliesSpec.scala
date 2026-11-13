@@ -66,6 +66,14 @@ class ValidatorTalliesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     sqlu"""INSERT INTO gold_example (label_id, reason, user_id)
            VALUES (${target._1}, (enum_range(NULL::validation_reason))[1], ${validators.head})"""
 
+  /** The third validator answering Agree to the label when it was served as a training example. */
+  private def trainingAnswer: DBIO[Int] =
+    sqlu"""INSERT INTO gold_example_response (label_id, user_id, mission_id, reason, validation_result, answered_at)
+           SELECT ${target._1}, ${validators(2)}, label_validation.mission_id,
+                  (enum_range(NULL::validation_reason))[1], 'Agree', now()
+           FROM label_validation
+           WHERE label_validation_id = $templateValidationId"""
+
   /** Each voter's (graded, matched), with (0, 0) for someone who has nothing graded. */
   private def tallies: DBIO[Map[String, (Int, Int)]] =
     userStatTable.validatorTallies.map(_.map(t => t.userId -> (t.graded, t.matched)).toMap.withDefaultValue((0, 0)))
@@ -131,17 +139,29 @@ class ValidatorTalliesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     }
 
     "grade votes on a training example, and answers given to it in training, against Disagree" in {
-      val trainingAnswer =
-        sqlu"""INSERT INTO gold_example_response (label_id, user_id, mission_id, reason, validation_result, answered_at)
-               SELECT ${target._1}, $v3, label_validation.mission_id, (enum_range(NULL::validation_reason))[1],
-                      'Agree', now()
-               FROM label_validation
-               WHERE label_validation_id = $templateValidationId"""
       val changes = tallyChanges(
         DBIO.successful(()),
         pinAsTrainingExample >> vote(v1, "Agree") >> vote(v2, "Disagree") >> trainingAnswer
       )
       changes.take(3) mustBe Seq((1, 0), (1, 1), (1, 0))
+    }
+
+    "not grade a training answer once its example is unpinned" in {
+      tallyChanges(DBIO.successful(()), trainingAnswer)(2) mustBe ((0, 0))
+    }
+  }
+
+  "validatorReliabilityScores" should {
+    "list a scored person, but not the AI" in {
+      val (asPerson, asAi) = runRolledBack(for {
+        _        <- vote(v1, "Agree") >> vote(v2, "Agree") >> vote(v3, "Agree")
+        _        <- userStatTable.updateValidatorReliability()
+        _        <- setRole(v1, Role.Registered)
+        asPerson <- userStatTable.validatorReliabilityScores
+        _        <- setRole(v1, Role.Ai)
+        asAi     <- userStatTable.validatorReliabilityScores
+      } yield (asPerson.size, asAi.size))
+      asAi mustBe asPerson - 1
     }
   }
 
@@ -164,8 +184,7 @@ class ValidatorTalliesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
       val stored = runRolledBack(for {
         _      <- vote(v1, "Agree") >> vote(v2, "Agree")
         _      <- userStatTable.updateValidatorReliability()
-        _      <- sqlu"DELETE FROM label_validation WHERE user_id = $v1"
-        _      <- sqlu"DELETE FROM gold_example_response WHERE user_id = $v1"
+        _      <- sqlu"UPDATE user_stat SET excluded = TRUE WHERE user_id = $v1"
         _      <- userStatTable.updateValidatorReliability()
         stored <- sql"""SELECT validations_graded, validations_matched, validator_reliability
                         FROM user_stat WHERE user_id = $v1""".as[(Int, Int, Option[Double])].head

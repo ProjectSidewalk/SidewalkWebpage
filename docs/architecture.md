@@ -69,7 +69,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
   refreshed by the nightly user stats job. `UserStatTable.validatorTallies` grades each Agree or Disagree vote against
   the first answer that exists (a training example's, then an admin's vote, then the majority of the other votes) and
   `ValidatorReliability` turns the graded and matched counts into the score. The AI's Disagree votes grade no one
-  until #5974. The formula is published on the User Stats API docs page.
+  until #5974. The formula is published on the User Stats API docs page, and the admin Data Quality page charts the
+  people's scores from `/adminapi/validatorReliability`.
 - **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
   `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
   turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a
