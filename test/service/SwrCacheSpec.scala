@@ -1,17 +1,16 @@
 package service
 
-import org.apache.pekko.actor.ActorSystem
 import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.cache.AsyncCacheApi
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.SidewalkSpec
 
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.*
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, Future, Promise}
 
 /**
  * What #5418 added to [[SwrCache]], against the app's real Play cache: `put`, which lets a job that has already
@@ -146,82 +145,51 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually
     }
   }
 
-  "a failed compute" should {
-    // A short backoff, so the tests can watch it end; the production default is SwrCache.FailureBackoff.
-    val backoff                        = 2.seconds
-    lazy val backingOffCache: SwrCache =
-      new SwrCache(app.injector.instanceOf[AsyncCacheApi], app.injector.instanceOf[ActorSystem])(using
-        app.injector.instanceOf[ExecutionContext]
-      ) {
-        override protected def failureBackoff: FiniteDuration = backoff
-      }
+  "a failed compute with a failure backoff" should {
+    "refuse the next cold request at once, then compute again once the backoff ends" in {
+      val key                          = freshKey()
+      val backoff                      = 300.millis
+      val runs                         = AtomicInteger(0)
+      val failure                      = IllegalStateException("db down")
+      def compute: Future[Payload]     = { runs.incrementAndGet(); Future.failed(failure) }
+      def serve(c: => Future[Payload]) = swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour, backoff)(c)
 
-    "fail the next cold request at once with the same error, then compute again once the backoff ends" in {
-      val key                      = freshKey()
-      val runs                     = AtomicInteger(0)
-      val failure                  = IllegalStateException("db down")
-      def compute: Future[Payload] = { runs.incrementAndGet(); Future.failed(failure) }
-
-      intercept[IllegalStateException](
-        await(backingOffCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(compute))
-      )
-      val repeated =
-        intercept[IllegalStateException](
-          await(backingOffCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(compute))
-        )
-      assert(repeated eq failure)
+      intercept[IllegalStateException](await(serve(compute)))
+      val refused = intercept[SwrCache.RecentlyFailedException](await(serve(compute)))
+      assert(refused.getCause eq failure)
+      refused.retryAfter must be <= backoff
       runs.get mustBe 1
 
-      Thread.sleep(backoff.toMillis + 100)
+      eventually(timeout(Span(5, Seconds)))(swrCache.isBackingOff(key, backoff) mustBe false)
       val recovered = Payload(7)
-      assert(
-        await(
-          backingOffCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(Future.successful(recovered))
-        ) eq recovered
-      )
+      assert(await(serve(Future.successful(recovered))) eq recovered)
     }
 
     "keep serving the cached value without starting refreshes during the backoff" in {
-      val key    = freshKey()
-      val seeded = Payload(8)
-      await(backingOffCache.put(key, seeded, 1.hour))
-      val runs = AtomicInteger(0)
-      // Zero freshness: every serve is stale and asks for a refresh, so only the backoff can hold one back.
+      val key     = freshKey()
+      val backoff = 1.minute
+      val seeded  = Payload(8)
+      await(swrCache.put(key, seeded, 1.hour))
+      val runs                     = AtomicInteger(0)
       def failing: Future[Payload] = { runs.incrementAndGet(); Future.failed(IllegalStateException("db down")) }
+      // Zero freshness: every serve is stale and asks for a refresh, so only the backoff can hold one back.
+      def serve() = await(swrCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour, backoff)(failing))
 
-      assert(await(backingOffCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour)(failing)) eq seeded)
-      eventually(runs.get mustBe 1)
-      // Let the failed refresh finish, so the next serves find its backoff rather than the refresh still in flight
-      // (which they would share, proving nothing). Well inside the two-second backoff.
-      Thread.sleep(200)
-      (1 to 5).foreach { _ =>
-        assert(await(backingOffCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour)(failing)) eq seeded)
-      }
+      assert(serve() eq seeded)
+      // Wait for the failed refresh to be recorded; until then a serve would share it, which proves nothing.
+      eventually(timeout(Span(5, Seconds)))(swrCache.isBackingOff(key, backoff) mustBe true)
+      (1 to 5).foreach(_ => assert(serve() eq seeded))
       runs.get mustBe 1
     }
 
-    "clear the backoff once a compute succeeds" in {
-      val key = freshKey()
-      intercept[IllegalStateException](
-        await(
-          backingOffCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(
-            Future.failed(IllegalStateException("x"))
-          )
-        )
-      )
-      Thread.sleep(backoff.toMillis + 100)
-      val first = Payload(9)
-      assert(
-        await(
-          backingOffCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour)(Future.successful(first))
-        ) eq first
-      )
-      // Stale on every serve: a second success must be allowed to start right away, with no backoff left behind.
-      val runs = AtomicInteger(0)
-      val _    = await(backingOffCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour) {
-        runs.incrementAndGet(); Future.successful(Payload(10))
-      })
-      eventually(runs.get mustBe 1)
+    "not hold back the next compute when no backoff is asked for" in {
+      val key                      = freshKey()
+      val runs                     = AtomicInteger(0)
+      def failing: Future[Payload] = { runs.incrementAndGet(); Future.failed(IllegalStateException("db down")) }
+
+      intercept[IllegalStateException](await(swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(failing)))
+      intercept[IllegalStateException](await(swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(failing)))
+      runs.get mustBe 2
     }
   }
 }

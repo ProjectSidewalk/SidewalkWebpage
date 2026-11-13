@@ -8,19 +8,24 @@ import play.api.cache.AsyncCacheApi
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import javax.inject.*
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
 object SwrCache {
 
   /**
-   * How long after a failed compute a key's next compute may start (#5977).
+   * What a cold request gets while its key is backing off after a failed compute (#5977): the compute was not run
+   * again, and `retryAfter` says when it may be.
    *
-   * Every caller of this cache is an expensive fan-out, and a failure usually means the database is struggling. Without
-   * a pause, each request served stale data (or finding nothing cached) would start the same fan-out again at once,
-   * adding load to exactly the thing that just failed. Short enough that a real recovery shows up within a minute.
+   * Its own type so a caller can answer "try again shortly" (an HTTP 503 with `Retry-After`) and log it quietly, where
+   * the compute's own failure, logged once by [[SwrCache]], is the one worth an error.
+   *
+   * @param key        The cache key that is backing off.
+   * @param retryAfter How long until a request may start the compute again.
+   * @param cause      The failure that started the backoff.
    */
-  val FailureBackoff: FiniteDuration = 1.minute
+  final class RecentlyFailedException(val key: String, val retryAfter: FiniteDuration, cause: Throwable)
+      extends RuntimeException(s"'$key' failed recently; retrying in $retryAfter: ${cause.getMessage}", cause)
 }
 
 /**
@@ -30,8 +35,10 @@ object SwrCache {
  * One instance serves every caller, so the in-flight map's lock is shared across services. It covers registering a
  * `Future`, never awaiting one — a `compute` that blocks before returning would stall every other service's cache.
  *
- * A failed compute never replaces the cached value, and for [[failureBackoff]] afterwards no new compute of that key
- * starts: a stale hit is served without a refresh, and a miss fails straight away with the same error (#5977).
+ * A failed compute never replaces the cached value. A caller can also pass a `failureBackoff`, for a compute expensive
+ * enough that rerunning it on every request after a failure would add load to whatever just failed: for that long no
+ * new compute of the key starts, so a stale hit is served without a refresh and a miss fails at once with a
+ * [[SwrCache.RecentlyFailedException]] (#5977). The default of zero retries on the next request.
  */
 @Singleton
 class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using val ec: ExecutionContext) {
@@ -43,11 +50,20 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
   /** In-flight cache recomputes by cache key, so concurrent refreshes of a key share one computation (#4600). */
   private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[?]]
 
-  /** A key's most recent failed compute, as (System.nanoTime when it failed, the error); cleared by a success. */
+  /**
+   * A key's most recent failed compute, as (System.nanoTime when it failed, the error); cleared by a success. Bounded
+   * by the number of keys, which callers keep finite (keys never carry free-form request input).
+   */
   private val recentFailures = scala.collection.mutable.Map.empty[String, (Long, Throwable)]
 
-  /** How long a failed compute blocks the next one; see [[SwrCache.FailureBackoff]]. Overridable for tests. */
-  protected def failureBackoff: FiniteDuration = SwrCache.FailureBackoff
+  /**
+   * Whether `key` is inside `failureBackoff` of its last failed compute. Lets a spec wait for a failed refresh to be
+   * recorded instead of guessing how long that takes.
+   *
+   * @return True while a compute of `key` would be refused.
+   */
+  private[service] def isBackingOff(key: String, failureBackoff: FiniteDuration): Boolean =
+    synchronized(backoffFailure(key, failureBackoff).isDefined)
 
   /**
    * Serves the cached value for `key` immediately — even when stale — while keeping it fresh in the background.
@@ -64,15 +80,19 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * @param key      Cache key; must uniquely identify the computation, including any parameters.
    * @param freshFor Age beyond which serving the cached value also triggers a background recompute.
    * @param maxAge   Hard cache-eviction bound; past this, a request blocks on recomputing.
+   * @param failureBackoff How long after a failed compute no new one starts; zero (the default) never holds one back.
    * @param compute  The expensive computation producing a fresh value.
    * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
    */
-  def staleWhileRevalidate[T](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
-      compute: => Future[T]
-  ): Future[T] =
-    serveCached(key, freshFor, maxAge)(compute).flatMap {
+  def staleWhileRevalidate[T](
+      key: String,
+      freshFor: FiniteDuration,
+      maxAge: FiniteDuration,
+      failureBackoff: FiniteDuration = Duration.Zero
+  )(compute: => Future[T]): Future[T] =
+    serveCached(key, freshFor, maxAge, failureBackoff)(compute).flatMap {
       case Some(cached) => Future.successful(cached)
-      case None         => refreshCachedValue(key, maxAge)(compute) // Nothing cached yet: wait for the compute.
+      case None => refreshCachedValue(key, maxAge, failureBackoff)(compute) // Nothing cached yet: wait for the compute.
     }
 
   /**
@@ -84,7 +104,8 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * computation to attach to. For a computation that can outlast the reverse proxy's timeout, that turns a `502` the
    * client can do nothing with into an answer it can act on.
    *
-   * @param coldWait How long a request that found nothing cached waits for the compute before giving up on it.
+   * @param coldWait       How long a request that found nothing cached waits for the compute before giving up on it.
+   * @param failureBackoff As in [[staleWhileRevalidate]].
    * @return         `Some(value)` — cached, stale, or computed within `coldWait` — or `None` when the deadline passed
    *                 first. The compute's failure is still the caller's, as in [[staleWhileRevalidate]].
    */
@@ -92,12 +113,13 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
       key: String,
       freshFor: FiniteDuration,
       maxAge: FiniteDuration,
-      coldWait: FiniteDuration
+      coldWait: FiniteDuration,
+      failureBackoff: FiniteDuration = Duration.Zero
   )(compute: => Future[T]): Future[Option[T]] =
-    serveCached(key, freshFor, maxAge)(compute).flatMap {
+    serveCached(key, freshFor, maxAge, failureBackoff)(compute).flatMap {
       case Some(cached) => Future.successful(Some(cached))
       case None         =>
-        val computation: Future[Option[T]] = refreshCachedValue(key, maxAge)(compute).map(Some(_))
+        val computation: Future[Option[T]] = refreshCachedValue(key, maxAge, failureBackoff)(compute).map(Some(_))
         val deadline: Future[Option[T]]    = after(coldWait, actorSystem.scheduler)(Future.successful(None))
         Future.firstCompletedOf(Seq(computation, deadline))
     }
@@ -126,13 +148,16 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    *
    * @return `Some(cached)` on a hit, `None` on a miss (nothing started; the caller decides how to wait).
    */
-  private def serveCached[T](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
-      compute: => Future[T]
-  ): Future[Option[T]] =
+  private def serveCached[T](
+      key: String,
+      freshFor: FiniteDuration,
+      maxAge: FiniteDuration,
+      failureBackoff: FiniteDuration
+  )(compute: => Future[T]): Future[Option[T]] =
     cacheApi.get[Timestamped[T]](key).map {
       case Some(cached) =>
         val ageSeconds = ChronoUnit.SECONDS.between(cached.computedAt, OffsetDateTime.now())
-        if (ageSeconds >= freshFor.toSeconds) { val _ = refreshCachedValue(key, maxAge)(compute) }
+        if (ageSeconds >= freshFor.toSeconds) { val _ = refreshCachedValue(key, maxAge, failureBackoff)(compute) }
         Some(cached.value)
       case None => None
     }
@@ -146,21 +171,22 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * mid-clustering would otherwise land afterwards and replace the post-clustering scores with pre-clustering ones
    * for the rest of the fresh window. The refresh's own callers still receive what it computed (#5418).
    *
-   * Within [[failureBackoff]] of this key's last failed compute, nothing is started and that failure is returned
-   * instead (#5977). A stale hit discards the result, so it simply goes unrefreshed until the backoff ends.
+   * Within `failureBackoff` of this key's last failed compute, nothing is started and a
+   * [[SwrCache.RecentlyFailedException]] is returned instead (#5977). A stale hit discards the result, so it simply
+   * goes unrefreshed until the backoff ends.
    *
    * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
    */
-  private def refreshCachedValue[T](key: String, maxAge: FiniteDuration)(compute: => Future[T]): Future[T] =
+  private def refreshCachedValue[T](key: String, maxAge: FiniteDuration, failureBackoff: FiniteDuration)(
+      compute: => Future[T]
+  ): Future[T] =
     synchronized {
-      val backingOff: Option[Throwable] = recentFailures.get(key).collect {
-        case (failedAt, error) if System.nanoTime() - failedAt < failureBackoff.toNanos => error
-      }
-      (refreshesInFlight.get(key), backingOff) match {
+      (refreshesInFlight.get(key), backoffFailure(key, failureBackoff)) match {
         // The cast is safe because a given key is only ever refreshed with one result type.
-        case (Some(inFlight), _) => inFlight.asInstanceOf[Future[T]]
-        case (None, Some(error)) => Future.failed(error)
-        case (None, None)        =>
+        case (Some(inFlight), _)                  => inFlight.asInstanceOf[Future[T]]
+        case (None, Some((remaining, lastError))) =>
+          Future.failed(SwrCache.RecentlyFailedException(key, remaining, lastError))
+        case (None, None) =>
           val startedAt = OffsetDateTime.now()
           // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
           // becomes a failed Future handled by the bookkeeping below, instead of escaping to a caller that could have
@@ -180,20 +206,36 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
             // backoff recorded by the time any caller sees the outcome. The callback can't run before the map write
             // below, because it needs this same lock.
             .transform { result =>
-              synchronized {
-                val _ = refreshesInFlight.remove(key)
+              val failedBefore: Boolean = synchronized {
+                val _      = refreshesInFlight.remove(key)
+                val before = recentFailures.contains(key)
                 result.fold(
                   e => recentFailures(key) = (System.nanoTime(), e),
                   _ => { val _ = recentFailures.remove(key) }
                 )
+                before
               }
-              result.failed.foreach(e =>
-                logger.warn(s"Recompute of cached '$key' failed; next attempt in $failureBackoff: ${e.getMessage}", e)
-              )
+              result.failed.foreach { e =>
+                val message =
+                  s"Recompute of cached '$key' failed (next attempt allowed in $failureBackoff): ${e.getMessage}"
+                // The stack trace only for the first failure in a row: an outage repeats the same one every backoff.
+                if (failedBefore) logger.warn(message) else logger.warn(message, e)
+              }
               result
             }
           refreshesInFlight(key) = computation
           computation
       }
+    }
+
+  /**
+   * The failure holding `key` back, if its last compute failed less than `failureBackoff` ago. Call under the lock.
+   *
+   * @return How long the backoff has left and the failure that started it, or None when a compute may start.
+   */
+  private def backoffFailure(key: String, failureBackoff: FiniteDuration): Option[(FiniteDuration, Throwable)] =
+    recentFailures.get(key).flatMap { case (failedAt, error) =>
+      val remainingNanos = failureBackoff.toNanos - (System.nanoTime() - failedAt)
+      Option.when(remainingNanos > 0)((Duration.fromNanos(remainingNanos), error))
     }
 }

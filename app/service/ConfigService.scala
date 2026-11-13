@@ -744,8 +744,34 @@ object ConfigService {
    */
   val CrossCityParallelism: Int = 6
 
-  /** How long a city's failed query waits before its single retry in a cross-city fan-out (#5977). */
+  /**
+   * How many times a city's query may run in a cross-city fan-out, retries included (#5977).
+   *
+   * Every city must answer for the total to stand, so a single blip anywhere costs the refresh. Three attempts, over
+   * a few seconds of jittered backoff, ride out a momentary connection refusal while ~60 pools grow at once.
+   */
+  val CrossCityMaxAttempts: Int = 3
+
+  /** Base delay before a city's first retry in a cross-city fan-out; later retries double it, with jitter (#5977). */
   val CrossCityRetryDelay: FiniteDuration = Duration(1, "second")
+
+  /**
+   * How long after a failed cross-city total no new compute of it starts (#5977).
+   *
+   * A failure usually means the database is struggling, and without a pause every request served stale data (or
+   * finding nothing cached) would start the same ~120-query fan-out again at once. Short enough that a recovery shows
+   * up within a minute.
+   */
+  val CrossCityFailureBackoff: FiniteDuration = Duration(1, "minute")
+
+  /**
+   * How many cities a cross-city total may leave out as not ready before the compute fails instead (#5977).
+   *
+   * Leaving out a schema that can't answer yet keeps one long-stalled deployment from blocking the totals forever. But
+   * a release whose queries read a new column makes *every* not-yet-migrated schema not ready at once, and caching
+   * that as the total would be the partial sum this exists to prevent; past this many, the last complete value stays.
+   */
+  val MaxNotReadyCities: Int = 2
 
   /** A city with activity within this many days is "active". */
   val ActiveWithinDays: Long = 30
@@ -1583,13 +1609,7 @@ class ConfigServiceImpl @Inject() (
     // Cached because the answer only changes when config or the schema list does, and it gates a per-page-load query.
     // The recover is deliberately outside, so a transient failure isn't memoized as "no cities" for the next hour.
     cacheApi.getOrElseUpdate[GlobalLeaderboardScope]("getGlobalLeaderboardScope", Duration(1, "hours")) {
-      val deployments: Seq[(String, String)] = config
-        .get[Seq[String]]("city-params.city-ids")
-        .filter(_ != "staging") // Not a real deployment.
-        .flatMap { cityId =>
-          try { Some(cityId -> getCitySchema(cityId)) }
-          catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
-        }
+      val deployments: Seq[(String, String)] = configuredDeployments
 
       // One metadata query rather than a per-city existence probe: schemas can sit at different evolution levels, and a
       // single missing column would otherwise fail the whole union at query time.
@@ -1666,11 +1686,7 @@ class ConfigServiceImpl @Inject() (
     // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
     // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
     cacheApi.getOrElseUpdate[SelfViewScope](cacheKey, Duration(1, "hours")) {
-      availableCityIds().flatMap { cityIds =>
-        val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
-          try { Some(cityId -> getCitySchema(cityId)) }
-          catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
-        }
+      availableCities().flatMap { deployments =>
         schemasWithColumns(required).map { ready =>
           val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
             ready.getOrElse(schema, false)
@@ -1767,63 +1783,100 @@ class ConfigServiceImpl @Inject() (
     db.run(sql"SELECT schema_name FROM information_schema.schemata".as[String]).map(_.toSet)
 
   /**
+   * Every configured deployment that can be queried, as (cityId, schema) in configured order.
+   *
+   * "staging" is not a real deployment and reuses zurich's schema, so it is never one of them; a city id with no
+   * db-schema entry can't be queried and is skipped.
+   *
+   * @return (cityId, schema) pairs.
+   */
+  private def configuredDeployments: Seq[(String, String)] = config
+    .get[Seq[String]]("city-params.city-ids")
+    .filter(_ != "staging")
+    .flatMap { cityId =>
+      try { Some(cityId -> getCitySchema(cityId)) }
+      catch { case _: Exception => None }
+    }
+
+  /** The configured cities last reported as having no readable schema, so the report is logged only when it changes. */
+  private val lastUnreadableCities = java.util.concurrent.atomic.AtomicReference(Set.empty[String])
+
+  /**
    * Resolves which configured cities have a readable schema in this database, for the cross-city fan-out queries.
    *
    * A schema that is simply absent is skipped, which is what lets a localhost DB holding a handful of schemas serve
-   * pages that fan out over the full configured city list. A failure to read the schema list fails the call instead
-   * of reading as "no cities", so a cached cross-city value is never replaced by one built on a partial list (#5977).
+   * pages that fan out over the full configured city list. Which cities those are is logged whenever the set changes,
+   * so a prod schema that disappears (a rename, a restore) leaves a trace. A failure to read the schema list fails the
+   * call instead of reading as "no cities", so a cached cross-city value is never replaced by one built on a partial
+   * list (#5977).
    *
-   * Each schema is listed once, under the first city configured with it: "staging" is not a real deployment and
-   * reuses zurich's schema, and counting a schema twice would double its numbers in any cross-city sum.
+   * Each schema is listed once, under the first city configured with it, so no cross-city sum can count one twice.
    *
-   * @return City ids from city-params.city-ids whose schema is readable, in configured order, one per schema.
+   * @return (cityId, schema) for every configured city whose schema is readable, in configured order.
    */
-  private def availableCityIds(): Future[Seq[String]] = {
-    val configured: Seq[(String, String)] = config
-      .get[Seq[String]]("city-params.city-ids")
-      .filter(_ != "staging")
-      .flatMap { cityId =>
-        try { Some(cityId -> getCitySchema(cityId)) }
-        catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
-      }
+  private def availableCities(): Future[Seq[(String, String)]] =
     readableSchemas().map { readable =>
-      configured
-        .filter { case (_, schema) => readable.contains(schema) }
-        .distinctBy { case (_, schema) => schema }
-        .map { case (cityId, _) => cityId }
+      val (present, absent) = configuredDeployments.partition { case (_, schema) => readable.contains(schema) }
+      val absentIds         = absent.map { case (cityId, _) => cityId }.toSet
+      if (lastUnreadableCities.getAndSet(absentIds) != absentIds && absentIds.nonEmpty) {
+        logger.info(
+          s"Cross-city reads skip ${absentIds.size} configured city(ies) with no readable schema here: " +
+            absent.map { case (cityId, schema) => s"$cityId ($schema)" }.mkString(", ")
+        )
+      }
+      present.distinctBy { case (_, schema) => schema }
     }
-  }
+
+  /**
+   * The ids of [[availableCities]], for callers that look each city up by id.
+   *
+   * @return City ids whose schema is readable, in configured order, one per schema.
+   */
+  private def availableCityIds(): Future[Seq[String]] = availableCities().map(_.map { case (cityId, _) => cityId })
 
   /**
    * Runs `query` for every available city through [[BoundedCityFanOut]], for a cross-city value that must be complete.
    *
-   * Cities whose schema can't answer this query yet are left out with a warning, and the caller counts only the
-   * cities in the result. The exception is this deployment's own schema: the app applies its own evolutions on start,
-   * so a shape error there means the query itself is wrong, and that fails the call rather than producing a total
-   * that silently leaves every city out.
+   * Up to [[ConfigService.MaxNotReadyCities]] cities whose schema can't answer this query yet are left out with a
+   * warning, and the caller counts only the cities in the result. More than that fails the call: it is what a release
+   * reading a new column looks like before most deployments have migrated, and the last complete value is the better
+   * answer then. This deployment's own schema is never allowed to be not ready: the app applies its own evolutions on
+   * start, so a shape error there means the query itself is wrong.
    *
    * @param label Human-readable name of the value, for the warning.
    * @param query One city's query, given the city id and its schema.
    * @return      Each answering city's result in configured order, or the failure that lost the total.
    */
   private def fanOutAcrossCities[A](label: String)(query: (String, String) => Future[A]): Future[Seq[(String, A)]] =
-    availableCityIds().flatMap { cityIds =>
+    availableCities().flatMap { cities =>
+      val schemaOf: Map[String, String] = cities.toMap
       BoundedCityFanOut
-        .run(cityIds, ConfigService.CrossCityParallelism, ConfigService.CrossCityRetryDelay) { cityId =>
-          query(cityId, getCitySchema(cityId))
-        }
+        .run(
+          cities.map { case (cityId, _) => cityId },
+          ConfigService.CrossCityParallelism,
+          ConfigService.CrossCityMaxAttempts,
+          ConfigService.CrossCityRetryDelay
+        )(cityId => query(cityId, schemaOf(cityId)))
         .flatMap { case FanOutResult(results, notReady) =>
           // Compared by schema, since the staging deployment's own city id is never in the list but its schema is.
-          val ownSchema = getCitySchema(getCityId)
-          notReady.find { case (cityId, _) => getCitySchema(cityId) == ownSchema } match {
-            case Some((_, error)) =>
+          val ownSchema   = getCitySchema(getCityId)
+          val describe    = notReady.map { case (cityId, e) => s"$cityId (${e.getMessage})" }.mkString("; ")
+          val ownNotReady = notReady.collectFirst { case (cityId, e) if schemaOf(cityId) == ownSchema => e }
+          (ownNotReady, notReady.size) match {
+            case (Some(error), _) =>
               Future.failed(IllegalStateException(s"Cross-city $label query failed on this city's own schema", error))
-            case None =>
-              if (notReady.nonEmpty) {
+            case (None, n) if n > ConfigService.MaxNotReadyCities =>
+              Future.failed(
+                IllegalStateException(
+                  s"Cross-city $label: $n city schema(s) can't answer it yet, more than the " +
+                    s"${ConfigService.MaxNotReadyCities} it may leave out (a release still rolling out?): $describe"
+                )
+              )
+            case (None, n) =>
+              if (n > 0) {
                 logger.warn(
-                  s"Cross-city $label leaving out ${notReady.size} city schema(s) that can't answer it yet " +
-                    s"(evolutions likely not yet applied there): " +
-                    notReady.map { case (cityId, e) => s"$cityId (${e.getMessage})" }.mkString("; ")
+                  s"Cross-city $label leaving out $n city schema(s) that can't answer it yet " +
+                    s"(evolutions likely not yet applied there): $describe"
                 )
               }
               Future.successful(results)
@@ -2040,7 +2093,8 @@ class ConfigServiceImpl @Inject() (
       .staleWhileRevalidate[CrossCityContributorCounts](
         "getCrossCityContributorCounts",
         ConfigService.CrossCityFreshFor,
-        ConfigService.CrossCityMaxAge
+        ConfigService.CrossCityMaxAge,
+        ConfigService.CrossCityFailureBackoff
       ) {
         // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
         // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
@@ -2160,12 +2214,17 @@ class ConfigServiceImpl @Inject() (
   def getAggregateStatsWithCurrentCity(): Future[Option[(AggregateStats, Option[CityImpact])]] =
     swrCache
       .staleWhileRevalidateWithin(
-        ConfigService.AggregateStatsCacheKey,
-        ConfigService.AggregateStatsFreshFor,
-        ConfigService.AggregateStatsMaxAge,
-        ConfigService.AggregateStatsColdWait
+        ConfigService.AggregateStatsCacheKey, ConfigService.AggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge,
+        ConfigService.AggregateStatsColdWait, ConfigService.CrossCityFailureBackoff
       )(computeAggregateStats())
-      .map(_.map(bundle => (bundle.overall, bundle.byCity.get(getCityId))))
+      .map(_.map { bundle =>
+        // Looked up by schema: the staging deployment's own city id is never a key, but its schema's city is.
+        val ownSchema = getCitySchema(getCityId)
+        val ownSlice  = bundle.byCity.collectFirst {
+          case (cityId, impact) if getCitySchema(cityId) == ownSchema => impact
+        }
+        (bundle.overall, ownSlice)
+      })
       .recover { case e: Exception =>
         // SwrCache has already logged the compute's failure; this only notes what the page does about it.
         logger.debug(s"Cross-city totals unavailable for the Leaderboard; omitting its bands: ${e.getMessage}")
@@ -2187,7 +2246,8 @@ class ConfigServiceImpl @Inject() (
     swrCache.staleWhileRevalidate(
       ConfigService.AggregateStatsCacheKey,
       ConfigService.AggregateStatsFreshFor,
-      ConfigService.AggregateStatsMaxAge
+      ConfigService.AggregateStatsMaxAge,
+      ConfigService.CrossCityFailureBackoff
     )(computeAggregateStats())
 
   /**
@@ -2242,7 +2302,8 @@ class ConfigServiceImpl @Inject() (
       .staleWhileRevalidate(
         s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
         ConfigService.AggregateStatsFreshFor,
-        ConfigService.AggregateStatsMaxAge
+        ConfigService.AggregateStatsMaxAge,
+        ConfigService.CrossCityFailureBackoff
       )(computeAggregateStatsByDay(filterLowQuality))
       .map { allDays =>
         allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))

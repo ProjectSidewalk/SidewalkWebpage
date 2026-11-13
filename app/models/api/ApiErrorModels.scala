@@ -97,6 +97,15 @@ object ApiError {
     ApiError(503, "STILL_COMPUTING", "Service Unavailable", detail)
 
   /**
+   * Creates a 503 for a value that can't be produced right now but should be shortly (#5977), such as cross-city totals
+   * whose last compute failed with nothing complete cached. The caller pairs it with a `Retry-After` header.
+   *
+   * @param detail Human-readable explanation, kept free of internal error text.
+   */
+  def temporarilyUnavailable(detail: String): ApiError =
+    ApiError(503, "TEMPORARILY_UNAVAILABLE", "Service Unavailable", detail)
+
+  /**
    * Creates a 404 problem detail for a missing resource.
    *
    * @param detail Human-readable explanation of what was not found.

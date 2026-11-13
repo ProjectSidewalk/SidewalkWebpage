@@ -6,10 +6,11 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{ApiService, ConfigService}
+import service.{ApiService, ConfigService, SwrCache}
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -130,10 +131,32 @@ class StatsApiController @Inject() (
         }
 
       }
-      .recover { case e: Exception =>
-        logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
-        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}"))
-      }
+      .recover(crossCityStatsUnavailable("aggregate statistics"))
+  }
+
+  /**
+   * The answer when cross-city totals can't be served (#5977): nothing complete is cached and the compute just failed,
+   * or failed recently enough that it is backing off.
+   *
+   * A `503` with `Retry-After`, because the totals are expected back once the database recovers. The body stays generic
+   * because the underlying error can name schemas and pool internals. `SwrCache` has already logged the compute's
+   * failure with its stack trace, so a request turned away during the backoff logs at debug only.
+   *
+   * @param what The statistics requested, for the message and the log.
+   * @return     A handler for the stats Future's failure.
+   */
+  private def crossCityStatsUnavailable(what: String): PartialFunction[Throwable, Result] = { case e: Exception =>
+    val retryAfter: FiniteDuration = e match {
+      case recent: SwrCache.RecentlyFailedException =>
+        logger.debug(s"Cross-city $what refused during backoff: ${recent.getMessage}")
+        recent.retryAfter
+      case other =>
+        logger.warn(s"Cross-city $what unavailable: ${other.getMessage}")
+        ConfigService.CrossCityFailureBackoff
+    }
+    ApiError
+      .toResult(ApiError.temporarilyUnavailable(s"The $what are temporarily unavailable. Please retry later."))
+      .withHeaders(RETRY_AFTER -> (retryAfter.toSeconds + 1).toString)
   }
 
   /**
@@ -240,13 +263,7 @@ class StatsApiController @Inject() (
             cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
             renderDailyStats(stats, filetype, "aggregateStatsByDay")
           }
-          .recover { case e: Exception =>
-            // Only reached when no complete series is cached and the compute failed (#5977).
-            logger.error(s"Failed to retrieve aggregate daily statistics: ${e.getMessage}", e)
-            ApiError.toResult(
-              ApiError.internalServerError(s"Failed to retrieve aggregate daily statistics: ${e.getMessage}")
-            )
-          }
+          .recover(crossCityStatsUnavailable("aggregate daily statistics"))
     }
   }
 }

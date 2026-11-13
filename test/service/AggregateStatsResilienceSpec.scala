@@ -2,6 +2,7 @@ package service
 
 import models.api.{AggregateStats, DailyLabelStat, DailyValidationStat}
 import models.utils.{ConfigTable, FunnelStatTable, VersionTable}
+import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.postgresql.util.{PSQLException, PSQLState}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -17,18 +18,20 @@ import util.SidewalkSpec
 import java.sql.SQLTransientConnectionException
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.*
+import scala.concurrent.{Await, Future, Promise}
 
 /**
  * The cross-city totals are complete or they are a failure, never a smaller number (#5977).
  *
- * The public totals (`/v3/api/aggregateStats`, the Leaderboard bands, `/cities`) once dropped any city whose query
- * failed and cached the shrunken sum as the real one. Each failure mode is reached here on purpose, through a
- * `ConfigTable` or schema list that fails on command, while every other query runs against the real database: a failed
- * schema list, a failed aggregate query, a failed contributor-id query, and a failed daily query must each fail the
- * compute. A schema that can't answer the queries yet is the one case left out deliberately, and it must leave the
- * totals exactly as they were without it.
+ * A cached partial sum is indistinguishable from the real total to everyone who reads it (`/v3/api/aggregateStats`, the
+ * Leaderboard bands, `/cities`). Each failure mode is reached here on purpose, through a `ConfigTable` or schema list
+ * that fails on command, while every other query runs against the real database: a failed schema list, a failed
+ * aggregate query, a failed contributor-id query, and a failed daily query must each fail the compute. A schema that
+ * can't answer the queries yet is the one case left out deliberately, and only up to a small limit.
+ *
+ * Results are compared by which cities they summed rather than by their totals, because the dev database is shared with
+ * a running app whose writes could land between two computes.
  */
 class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
@@ -47,7 +50,7 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
 
   /**
    * How one schema's queries should go wrong. `failures` is how many attempts fail before the query runs for real, so
-   * 1 is a blip the retry absorbs and 2 is a failure that survives it.
+   * anything below [[ConfigService.CrossCityMaxAttempts]] is absorbed by the retries.
    */
   private case class Fault(schema: String, query: String, error: () => Throwable, failures: Int = Int.MaxValue)
 
@@ -88,7 +91,8 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
         app.injector.instanceOf[FunnelStatTable],
         app.injector.instanceOf[VersionTable],
         app.injector.instanceOf[PanoDataService],
-        app.injector.instanceOf[SwrCache],
+        // Its own instance, so one test's in-flight compute or failure backoff can't answer for another's.
+        SwrCache(app.injector.instanceOf[AsyncCacheApi], app.injector.instanceOf[ActorSystem]),
         app.injector.instanceOf[AssetManifestService]
       ) {
     override protected def readableSchemas(): Future[Set[String]] =
@@ -105,6 +109,25 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
 
   private lazy val baseline = await(serviceWith()._1.computeAggregateStats())
 
+  /** Which cities a result summed, and how many it says it summed: what a partial total would get wrong. */
+  private def summed(bundle: AggregateStatsBundle): (Set[String], Int) =
+    (bundle.byCity.keySet, bundle.overall.numCities)
+
+  /**
+   * Configured schemas absent from this database, to present as readable so their real queries fail the way a schema
+   * behind on evolutions does.
+   */
+  private lazy val ghostSchemas: Seq[String] = {
+    val summedSchemas = baseline.byCity.keySet.map(realConfig.getCitySchema)
+    app.injector
+      .instanceOf[Configuration]
+      .get[Seq[String]]("city-params.city-ids")
+      .filter(_ != "staging")
+      .map(realConfig.getCitySchema)
+      .filterNot(summedSchemas.contains)
+      .distinct
+  }
+
   "computeAggregateStats" should {
     "count exactly the cities it summed, this city included" in {
       baseline.overall.numCities mustBe baseline.byCity.size
@@ -116,22 +139,23 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
       intercept[SQLTransientConnectionException](await(service.computeAggregateStats()))
     }
 
-    "fail when a city's aggregate query fails past its retry" in {
+    "fail when a city's aggregate query fails on every attempt" in {
       val (service, table) = serviceWith(Some(Fault(ownSchema, "aggregate", () => transient)))
       intercept[SQLTransientConnectionException](await(service.computeAggregateStats()))
-      table.attempts.get mustBe 2
+      table.attempts.get mustBe ConfigService.CrossCityMaxAttempts
     }
 
-    "fail when a city's contributor ids fail past their retry, instead of shrinking total_users" in {
+    "fail when a city's contributor ids fail on every attempt, instead of shrinking total_users" in {
       val (service, table) = serviceWith(Some(Fault(ownSchema, "contributors", () => transient)))
       intercept[SQLTransientConnectionException](await(service.computeAggregateStats()))
-      table.attempts.get mustBe 2
+      table.attempts.get mustBe ConfigService.CrossCityMaxAttempts
     }
 
-    "absorb a single failed attempt with the retry, giving the same totals" in {
-      val (service, table) = serviceWith(Some(Fault(ownSchema, "contributors", () => transient, failures = 1)))
-      await(service.computeAggregateStats()) mustBe baseline
-      table.attempts.get mustBe 2
+    "absorb failed attempts short of the limit with the retries, summing the same cities" in {
+      val blips            = ConfigService.CrossCityMaxAttempts - 1
+      val (service, table) = serviceWith(Some(Fault(ownSchema, "contributors", () => transient, failures = blips)))
+      summed(await(service.computeAggregateStats())) mustBe summed(baseline)
+      table.attempts.get mustBe ConfigService.CrossCityMaxAttempts
     }
 
     "fail when this city's own schema can't answer, since that means the query itself is wrong" in {
@@ -140,20 +164,20 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
       error.getMessage must include("own schema")
     }
 
-    "leave out another city whose schema can't answer, counting only what it summed" in {
-      // A configured city whose schema isn't in this database, presented as readable so its real queries run and fail
-      // the way a schema behind on evolutions does.
-      val summedSchemas = baseline.byCity.keySet.map(realConfig.getCitySchema)
-      val ghost         = app.injector
-        .instanceOf[Configuration]
-        .get[Seq[String]]("city-params.city-ids")
-        .filter(_ != "staging")
-        .map(realConfig.getCitySchema)
-        .find(schema => !summedSchemas.contains(schema))
-      assume(ghost.isDefined, "every configured city's schema is already summed in this database")
+    "leave out up to the limit of cities whose schema can't answer, counting only what it summed" in {
+      val ghosts = ghostSchemas.take(ConfigService.MaxNotReadyCities)
+      assume(ghosts.size == ConfigService.MaxNotReadyCities, "too few configured schemas are absent here")
 
-      val (service, _) = serviceWith(schemas = Some(_.map(_ + ghost.get)))
-      await(service.computeAggregateStats()) mustBe baseline
+      val (service, _) = serviceWith(schemas = Some(_.map(_ ++ ghosts)))
+      summed(await(service.computeAggregateStats())) mustBe summed(baseline)
+    }
+
+    "fail when more cities can't answer than the limit, as a release still rolling out looks" in {
+      val ghosts = ghostSchemas.take(ConfigService.MaxNotReadyCities + 1)
+      assume(ghosts.size == ConfigService.MaxNotReadyCities + 1, "too few configured schemas are absent here")
+
+      val (service, _) = serviceWith(schemas = Some(_.map(_ ++ ghosts)))
+      intercept[IllegalStateException](await(service.computeAggregateStats())).getMessage must include("can't answer")
     }
   }
 
@@ -161,13 +185,20 @@ class AggregateStatsResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
     "fail when a city's daily query fails past its retry" in {
       val (service, table) = serviceWith(Some(Fault(ownSchema, "dailyValidations", () => transient)))
       intercept[SQLTransientConnectionException](await(service.computeAggregateStatsByDay(filterLowQuality = false)))
-      table.attempts.get mustBe 2
+      table.attempts.get mustBe ConfigService.CrossCityMaxAttempts
     }
   }
 
   "getAggregateStatsWithCurrentCity" should {
+    "answer None after the cold wait when the compute is still running, instead of holding the page" in {
+      val (service, _) = serviceWith(schemas = Some(_ => Promise[Set[String]]().future)) // Never completes.
+      val started      = System.nanoTime()
+      await(service.getAggregateStatsWithCurrentCity()) mustBe None
+      (System.nanoTime() - started).nanos must be >= ConfigService.AggregateStatsColdWait
+    }
+
     "answer None, not fail, when nothing complete is cached and the compute fails" in {
-      // A fresh app's cache holds nothing under the bundle key, and nothing in this suite fills it.
+      // Nothing in this suite caches a bundle, so the cache is cold, and this service's own SwrCache has no backoff yet.
       val (service, _) = serviceWith(schemas = Some(_ => Future.failed(transient)))
       await(service.getAggregateStatsWithCurrentCity()) mustBe None
     }
