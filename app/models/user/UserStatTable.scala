@@ -504,8 +504,11 @@ class UserStatTable @Inject() (
                  COALESCE(user_role.role = '#${Role.Ai.name}', FALSE) AS is_ai,
                  COALESCE(user_role.role IN (#${Role.ADMIN_ROLES_SQL}), FALSE) AS is_admin
           FROM #${FilteredTables.verdictVotes()}
+          INNER JOIN label ON label_validation.label_id = label.label_id
           LEFT JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
           WHERE label_validation.validation_result <> 'Unsure'
+              AND label.tutorial = FALSE
+              AND #${FilteredTables.notTutorialStreet("label.street_edge_id")}
       ), label_counts AS (
           SELECT label_id,
                  COUNT(*) FILTER (WHERE vote = 'Agree') AS agrees,
@@ -537,7 +540,6 @@ class UserStatTable @Inject() (
           SELECT gold_example_response.user_id, gold_example_response.validation_result::text,
                  COALESCE(user_role.role = '#${Role.Ai.name}', FALSE), 'Disagree'
           FROM gold_example_response
-          -- Only while the label is still pinned, so unpinning a bad example takes its grades back.
           INNER JOIN gold_example ON gold_example_response.label_id = gold_example.label_id
           LEFT JOIN sidewalk_login.user_role ON gold_example_response.user_id = user_role.user_id
           WHERE gold_example_response.validation_result IN ('Agree', 'Disagree')
@@ -550,8 +552,7 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Every scored signed-up person's reliability, for the admin chart. The AI is left out: its vote count would swamp
-   * the people's.
+   * Every scored signed-up person's reliability, for the admin chart.
    * @return One (graded, matched, reliability) per validator.
    */
   def validatorReliabilityScores: DBIO[Seq[(Int, Int, Double)]] =

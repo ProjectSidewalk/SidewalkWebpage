@@ -111,6 +111,14 @@ class ValidatorTalliesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
       changes mustBe Seq((0, 0), (0, 0), (1, 0), (0, 0))
     }
 
+    "grade no votes on a tutorial label" in {
+      val changes = tallyChanges(
+        sqlu"UPDATE label SET tutorial = TRUE WHERE label_id = ${target._1}",
+        vote(v1, "Agree") >> vote(v2, "Agree") >> vote(v3, "Agree")
+      )
+      changes.take(3) mustBe Seq((0, 0), (0, 0), (0, 0))
+    }
+
     "take an admin's vote as the answer over the majority" in {
       val changes = tallyChanges(
         setRole(v1, Role.Administrator),

@@ -245,7 +245,7 @@
       <li>What the administrators who validated the label said.</li>
       <li>What most of the other validations of the label said.</li>
     </ol>
-    <p>A tie gives no answer, and unsure validations are never graded. Validations by excluded users and disagree validations by the AI validator are not used as answers.</p>
+    <p>A tie gives no answer, and unsure validations and validations of tutorial labels are never graded. Validations by excluded users and disagree validations by the AI validator are not used as answers.</p>
     <p><code>validator_reliability</code> is <code>(validations_matched + @models.user.ValidatorReliability.PriorVotes × c) / (validations_graded + @models.user.ValidatorReliability.PriorVotes)</code>, where <code>c</code> is the share of all graded validations in the city that matched. Every user is counted as if they had also given @models.user.ValidatorReliability.PriorVotes validations at the city's rate, so a user with few graded validations sits near the city's average, and the score approaches their own <code>validation_agreement</code> as they validate more.</p>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
