@@ -69,7 +69,7 @@
           <tr>
             <td><code>filterLowQuality</code></td>
             <td><code>boolean</code></td>
-            <td>When set to <code>true</code>, excludes data from low-quality contributors to provide more reliable statistics. User counts, audited distance, and label counts keep only high-quality contributors' work; each source's total validation count keeps only votes cast by high-quality contributors; and the per-label-type <code>validations</code> breakdowns and <code>ai_stats</code> keep only labels placed by high-quality contributors, filtering the labeler alone, so votes on those labels from any non-excluded contributor still count. Two statistics ignore it: the street totals by status (<code>km_explorable</code> and its siblings), which describe the street network, and <code>labels.avg_timestamp_last_100_labels</code>, which averages the 100 most recent labels from all non-excluded contributors. Default: <code>false</code> (includes all data).</td>
+            <td>When <code>true</code>, leaves out work from low-quality contributors. For <code>validations</code> and <code>ai_stats</code>, this means labels placed by low-quality contributors; votes on the remaining labels count no matter who cast them. Street totals (<code>km_explorable</code> and similar) and <code>labels.avg_timestamp_last_100_labels</code> are not affected. Default: <code>false</code>.</td>
           </tr>
           <tr>
             <td><code>filetype</code></td>
