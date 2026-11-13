@@ -69,7 +69,7 @@
           <tr>
             <td><code>filterLowQuality</code></td>
             <td><code>boolean</code></td>
-            <td>When set to <code>true</code>, excludes data from low-quality contributors to provide more reliable statistics. Default: <code>false</code> (includes all data).</td>
+            <td>When <code>true</code>, leaves out work from low-quality contributors. For <code>validations</code> and <code>ai_stats</code>, this means labels placed by low-quality contributors; votes on the remaining labels count no matter who cast them. Street totals (<code>km_explorable</code> and similar) and <code>labels.avg_timestamp_last_100_labels</code> are not affected. Default: <code>false</code>.</td>
           </tr>
           <tr>
             <td><code>filetype</code></td>
