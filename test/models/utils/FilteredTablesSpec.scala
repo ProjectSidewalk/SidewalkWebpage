@@ -11,8 +11,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
- * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back,
- * and are skipped on a database with no labels to borrow ids from (CI's).
+ * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back.
+ * They borrow a mission and pano from an existing label, so they need a schema with labels (CI's comes from
+ * `test/e2e/fixtures/ci-seed.sql`) and are skipped on one without.
  */
 class FilteredTablesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
@@ -198,6 +199,50 @@ class FilteredTablesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Roll
       street.get.labelCount mustBe 1
       street.get.auditCount mustBe 1
       street.get.userIds mustBe Seq(goodUser)
+    }
+  }
+
+  "/v3/api/overallStats" should {
+    "count the AI's agreement only on high-quality labelers' labels when filterLowQuality is set (#4245)" in {
+      // The query aggregates the whole schema, so each count is read before and after seeding and the delta compared.
+      def aiConcurs(filterLowQuality: Boolean): DBIO[Int] =
+        labelTable.getOverallStatsForApi(filterLowQuality, "2000-01-01", None).map { stats =>
+          stats.aiPerformance("Overall")("human_majority_vote").aiYesMajVoteConcurs
+        }
+      def setHighQuality(userId: String, highQuality: Boolean): DBIO[Int] =
+        sqlu"UPDATE user_stat SET high_quality = $highQuality WHERE user_id = $userId"
+      def setRole(userId: String, role: String): DBIO[Int] =
+        sqlu"INSERT INTO user_role (user_id, role) VALUES ($userId, CAST($role AS sidewalk_login.role))"
+
+      val (allBefore, hqBefore, allAfter, hqAfter) = runRolledBack(for {
+        allBefore    <- aiConcurs(filterLowQuality = false)
+        hqBefore     <- aiConcurs(filterLowQuality = true)
+        streetEdgeId <- insertStreet()
+        lowQuality   <- insertUser()
+        highQuality  <- insertUser()
+        human        <- insertUser()
+        ai           <- insertUser()
+        _            <- setHighQuality(lowQuality, highQuality = false)
+        _            <- setHighQuality(highQuality, highQuality = true)
+        _            <- setHighQuality(human, highQuality = true)
+        _            <- setRole(human, "Registered")
+        _            <- setRole(ai, "AI")
+        lowAudit     <- audit(streetEdgeId, lowQuality)
+        highAudit    <- audit(streetEdgeId, highQuality)
+        lowLabel     <- insertLabel(streetEdgeId, lowAudit, lowQuality)
+        highLabel    <- insertLabel(streetEdgeId, highAudit, highQuality)
+        _            <- DBIO.sequence(
+          for {
+            labelId <- Seq(lowLabel, highLabel)
+            voter   <- Seq(human, ai)
+          } yield vote(labelId, voter, "Obstacle")
+        )
+        allAfter <- aiConcurs(filterLowQuality = false)
+        hqAfter  <- aiConcurs(filterLowQuality = true)
+      } yield (allBefore, hqBefore, allAfter, hqAfter))
+
+      (allAfter - allBefore) mustBe 2
+      (hqAfter - hqBefore) mustBe 1
     }
   }
 }
