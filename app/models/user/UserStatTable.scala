@@ -503,12 +503,13 @@ class UserStatTable @Inject() (
                  label_validation.validation_result::text AS vote,
                  COALESCE(user_role.role = '#${Role.Ai.name}', FALSE) AS is_ai,
                  COALESCE(user_role.role IN (#${Role.ADMIN_ROLES_SQL}), FALSE) AS is_admin
-          FROM #${FilteredTables.verdictVotes()}
+          FROM label_validation
           INNER JOIN label ON label_validation.label_id = label.label_id
+          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           LEFT JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
           WHERE label_validation.validation_result <> 'Unsure'
-              AND label.tutorial = FALSE
-              AND #${FilteredTables.notTutorialStreet("label.street_edge_id")}
+              AND #${FilteredTables.isVerdictVote()}
+              AND #${FilteredTables.notTutorialLabel()}
       ), label_counts AS (
           SELECT label_id,
                  COUNT(*) FILTER (WHERE vote = 'Agree') AS agrees,
@@ -560,7 +561,7 @@ class UserStatTable @Inject() (
       SELECT user_stat.validations_graded, user_stat.validations_matched, user_stat.validator_reliability
       FROM user_stat
       INNER JOIN sidewalk_login.user_role ON user_stat.user_id = user_role.user_id
-      WHERE user_stat.validator_reliability IS NOT NULL
+      WHERE user_stat.validator_reliability IS NOT NULL AND NOT user_stat.excluded
           AND user_role.role NOT IN ('#${Role.Ai.name}', '#${Role.Anonymous.name}')""".as[(Int, Int, Double)]
 
   /**
@@ -591,16 +592,22 @@ class UserStatTable @Inject() (
         }
         Option.unless(unchanged)((userId, graded, matched, reliability))
       }
-      now = OffsetDateTime.now
-      updated <- DBIO.sequence(changed.map { case (userId, graded, matched, reliability) =>
-        userStats
-          .filter(_.userId === userId)
-          .map(u =>
-            (u.validationsGraded, u.validationsMatched, u.validatorReliability, u.validatorReliabilityUpdatedAt)
-          )
-          .update((graded, matched, reliability, Some(now)))
-      })
-    } yield updated.sum
+      // One statement for every changed row, so their locks are held for an instant rather than the whole loop.
+      rows = Json.stringify(Json.toJson(changed.map { case (userId, graded, matched, reliability) =>
+        Json.obj("user_id" -> userId, "graded" -> graded, "matched" -> matched, "reliability" -> reliability)
+      }))
+      updated <-
+        if (changed.isEmpty) DBIO.successful(0)
+        else sqlu"""
+          UPDATE user_stat
+          SET validations_graded = fresh.graded,
+              validations_matched = fresh.matched,
+              validator_reliability = fresh.reliability,
+              validator_reliability_updated_at = now()
+          FROM jsonb_to_recordset($rows::jsonb)
+              AS fresh(user_id TEXT, graded INT, matched INT, reliability DOUBLE PRECISION)
+          WHERE user_stat.user_id = fresh.user_id"""
+    } yield updated
   }.transactionally
 
   /**
@@ -1315,7 +1322,8 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0)
+                 + COALESCE(training_answers.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -1346,6 +1354,13 @@ class UserStatTable @Inject() (
           FROM voided_label_validation
           GROUP BY voided_label_validation.user_id
       ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
+      -- Training examples answered (#1445): kept out of label_validation so they can't vote, but still work done.
+      LEFT JOIN (
+          SELECT gold_example_response.user_id, COUNT(*) AS cnt
+          FROM gold_example_response
+          WHERE gold_example_response.validation_result IS NOT NULL
+          GROUP BY gold_example_response.user_id
+      ) AS training_answers ON user_stat.user_id = training_answers.user_id
       -- Label and validation counts. The verdict counts follow the accuracy rule (a label deleted from the popup
       -- after being judged incorrect still counts, #3591); the plain label counts are live labels only.
       LEFT JOIN (

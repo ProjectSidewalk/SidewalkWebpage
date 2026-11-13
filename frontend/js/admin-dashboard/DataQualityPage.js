@@ -76,8 +76,12 @@ export class DataQualityPage {
     await reliability;
   }
 
-  /** Fetches and draws the validator reliability section, saying so in the section itself if that fails. */
+  /**
+   * Fetches and draws the validator reliability section, saying so in the section itself if that fails.
+   * @returns {Promise<void>}
+   */
   async #loadReliability() {
+    if (!document.getElementById('dq-reliability')) return;
     try {
       const { validators } = await util.fetchJson(this.#reliabilityUrl);
       this.#renderReliability(Array.isArray(validators) ? validators : []);

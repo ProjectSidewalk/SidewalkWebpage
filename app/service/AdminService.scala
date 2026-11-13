@@ -906,7 +906,8 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
+   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time,
+   * except validator reliability, which is refreshed for everyone.
    * @param cutoffTime Only update users who have done any auditing since this cutoff time
    * @return The number of users whose stats were updated
    */

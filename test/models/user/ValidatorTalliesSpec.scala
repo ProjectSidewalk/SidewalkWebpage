@@ -1,5 +1,6 @@
 package models.user
 
+import models.utils.FilteredTables
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -22,8 +23,9 @@ class ValidatorTalliesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     run(
       sql"""SELECT label.label_id, label.user_id
             FROM label
+            INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
             INNER JOIN user_stat ON label.user_id = user_stat.user_id
-            WHERE label.deleted = FALSE AND label.tutorial = FALSE AND NOT user_stat.excluded
+            WHERE label.deleted = FALSE AND #${FilteredTables.notTutorialLabel()} AND NOT user_stat.excluded
                 AND NOT EXISTS (SELECT 1 FROM label_validation WHERE label_validation.label_id = label.label_id)
                 AND NOT EXISTS (SELECT 1 FROM gold_example WHERE gold_example.label_id = label.label_id)
             ORDER BY label.label_id
