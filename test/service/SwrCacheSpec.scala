@@ -1,5 +1,7 @@
 package service
 
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -20,7 +22,7 @@ import scala.concurrent.{Await, Future, Promise}
  * the suite shares one. The computes are `Promise`s the tests complete by hand, so "still running" and "finished" are
  * states the test controls rather than timing it hopes for.
  */
-class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -140,6 +142,54 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           Future.failed(IllegalStateException("db down"))
         )
       an[IllegalStateException] must be thrownBy await(boom)
+    }
+  }
+
+  "a failed compute with a failure backoff" should {
+    "refuse the next cold request at once, then compute again once the backoff ends" in {
+      val key                          = freshKey()
+      val backoff                      = 2.seconds
+      val runs                         = AtomicInteger(0)
+      val failure                      = IllegalStateException("db down")
+      def compute: Future[Payload]     = { runs.incrementAndGet(); Future.failed(failure) }
+      def serve(c: => Future[Payload]) = swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour, backoff)(c)
+
+      intercept[IllegalStateException](await(serve(compute)))
+      val refused = intercept[SwrCache.RecentlyFailedException](await(serve(compute)))
+      assert(refused.getCause eq failure)
+      refused.retryAfter must be <= backoff
+      runs.get mustBe 1
+
+      eventually(timeout(Span(5, Seconds)))(swrCache.isBackingOff(key, backoff) mustBe false)
+      val recovered = Payload(7)
+      assert(await(serve(Future.successful(recovered))) eq recovered)
+    }
+
+    "keep serving the cached value without starting refreshes during the backoff" in {
+      val key     = freshKey()
+      val backoff = 1.minute
+      val seeded  = Payload(8)
+      await(swrCache.put(key, seeded, 1.hour))
+      val runs                     = AtomicInteger(0)
+      def failing: Future[Payload] = { runs.incrementAndGet(); Future.failed(IllegalStateException("db down")) }
+      // Zero freshness: every serve is stale and asks for a refresh, so only the backoff can hold one back.
+      def serve() = await(swrCache.staleWhileRevalidate[Payload](key, Duration.Zero, 1.hour, backoff)(failing))
+
+      assert(serve() eq seeded)
+      // Wait for the failed refresh to be recorded; until then a serve would share it, which proves nothing.
+      eventually(timeout(Span(5, Seconds)))(swrCache.isBackingOff(key, backoff) mustBe true)
+      (1 to 5).foreach(_ => assert(serve() eq seeded))
+      runs.get mustBe 1
+    }
+
+    "not hold back the next compute when no backoff is asked for" in {
+      val key                      = freshKey()
+      val runs                     = AtomicInteger(0)
+      def failing: Future[Payload] = { runs.incrementAndGet(); Future.failed(IllegalStateException("db down")) }
+
+      intercept[IllegalStateException](await(swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(failing)))
+      intercept[IllegalStateException](await(swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour)(failing)))
+      runs.get mustBe 2
     }
   }
 }

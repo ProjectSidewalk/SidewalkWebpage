@@ -127,4 +127,26 @@ describe('aggregateStats fetch resilience', () => {
     expect(window.fetch).toHaveBeenCalledTimes(3);
     expect(document.getElementById(STATS_PARAGRAPH_ID).innerHTML).not.toContain('signal is aborted');
   }, 15000);
+
+  test('does not retry a 503, which says the server has no complete totals for about a minute (#5977)', async () => {
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 503, statusText: 'Service Unavailable' }));
+
+    readyCallback();
+
+    await waitFor(() => {
+      expect(document.getElementById(STATS_PARAGRAPH_ID).innerHTML).toContain('HTTP 503');
+    });
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('still retries other HTTP errors', async () => {
+    window.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error' })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(GOOD_FIXTURE) });
+
+    readyCallback();
+
+    await waitFor(() => expect(document.getElementById(STATS_PARAGRAPH_ID).innerHTML).toContain('18 cities'));
+    expect(window.fetch).toHaveBeenCalledTimes(2);
+  }, 15000);
 });

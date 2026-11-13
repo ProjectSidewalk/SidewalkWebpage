@@ -35,7 +35,8 @@ class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)
       key: String,
       freshFor: FiniteDuration,
       maxAge: FiniteDuration,
-      coldWait: FiniteDuration
+      coldWait: FiniteDuration,
+      failureBackoff: FiniteDuration
   )(compute: => Future[T]): Future[Option[T]] = Future.successful(None)
 }
 

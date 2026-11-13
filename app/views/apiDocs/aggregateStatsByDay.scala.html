@@ -114,6 +114,15 @@
         </tbody>
       </table>
     </div>
+
+    <h3 class="page-heading" id="error-responses">Error Responses <a href="#error-responses" class="permalink">#</a></h3>
+    <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+    <ul>
+      <li><strong><code>400 Bad Request</code>:</strong> A date is not in <code>YYYY-MM-DD</code> form, or <code>startDate</code> is after <code>endDate</code>.</li>
+      <li><strong><code>503 Service Unavailable</code>:</strong> The daily counts could not be gathered from every city just now (they are reported only when complete), and no complete earlier copy is cached. Wait <code>Retry-After</code> seconds and repeat the request; the body's <code>code</code> is <code>TEMPORARILY_UNAVAILABLE</code>.</li>
+    </ul>
+
+    @apiDocs.errorResponseBody()
   </div>
 
   <div class="page-section" id="quick-download-section">
