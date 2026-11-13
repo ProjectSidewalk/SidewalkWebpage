@@ -117,15 +117,14 @@ util.labelIconScale = function (radius) {
  * Callers should re-read this whenever --ui-scale changes; Explore caches it in its CanvasFrame, which its
  * scale-applying path refreshes.
  *
- * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @param {number} scale - The tool's UI scale.
  * @returns {number} Radius in logical px.
  */
 util.labelIconRadius = function (scale) {
-  const uiScale = scale ?? util.uiScale();
   // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
   // it is the drawn size the on-screen limit is about.
   const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
-  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
+  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / scale);
   return diameter / 2 + 1.5;
 };
 
@@ -141,14 +140,13 @@ util.labelIconRadius = function (scale) {
  * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
  * resolves the tie in favour of the icon drawn on top.
  *
- * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @param {number} scale - The tool's UI scale.
  * @returns {number} Half-width in logical px.
  */
 util.labelHitMargin = function (scale) {
-  const uiScale = scale ?? util.uiScale();
   // Half the drawn icon, so every point of the icon is inside the target.
-  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
-  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(scale));
+  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / scale);
 };
 
 /**
@@ -267,7 +265,6 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
 util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
   const { maxScale = 1.8, hMargin = 40, bottomReserve = 60 } = opts;
   const toolUI = document.querySelector('.tool-ui');
-  if (!toolUI) return 1;
 
   // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
   const styles = getComputedStyle(toolUI);
@@ -705,6 +702,18 @@ export function hasSession() {
 }
 
 util.hasSession = hasSession;
+
+/**
+ * Whether the server rendered this page for an admin. Only for picking a link's destination: the server still checks
+ * the role on every admin page and endpoint.
+ *
+ * @returns {boolean} What the navbar's data-viewer-admin says; false on the few pages rendered without a navbar.
+ */
+export function isAdmin() {
+  return document.getElementById('header')?.dataset.viewerAdmin === 'true';
+}
+
+util.isAdmin = isAdmin;
 
 /**
  * Runs fn once the page has finished loading and the main thread next goes idle.

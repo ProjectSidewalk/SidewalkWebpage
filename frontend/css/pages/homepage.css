@@ -62,7 +62,6 @@
   margin: 0 0 25px;
 }
 
-
 .section-subtitle {
   max-width: 450px;
   margin: auto;
@@ -163,7 +162,6 @@
   height: 100%;
 }
 
-
 /* Video banner */
 video#bgvid {
   min-width: 1100px;
@@ -237,7 +235,6 @@ video#bgvid {
   margin: auto;
   padding-top: 20px;
 }
-
 
 #instructionvideo {
   position: relative;

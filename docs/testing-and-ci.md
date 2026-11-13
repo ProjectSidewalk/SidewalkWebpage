@@ -14,7 +14,7 @@ discarded-`DBIO` data-integrity bug (#4228) — none of which have anything guar
 **Goal:** stand up a layered, best-practices test suite + GitHub Actions CI, delivered in **independently mergeable
 phases**, the first of which requires *zero tests to exist* so it can land immediately.
 
-**Non-goals (for now):** deep canvas/imagery E2E, high coverage targets, or rewriting the frontend to a module system.
+**Non-goals (for now):** imagery rendering E2E, high coverage targets, or rewriting the frontend to a module system.
 
 ## Test architecture — four layers (fat base, thin top)
 
@@ -27,7 +27,7 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
 - **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless
   Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a
   **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs
-  against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
+  against. **Landed with #4504**; interaction specs followed.
 
 ## Test database
 
@@ -126,9 +126,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
   `test/js/README.md`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
-  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
-  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
-  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, the env var contract check, plus
+  the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the
+  in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
   **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
   Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
   `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
@@ -168,6 +168,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   [`docs/upgrading-libraries.md`](upgrading-libraries.md) says which file a library belongs in.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
+
+On PRs, `backend-tests` and `e2e-smoke` restore cached compiled classes, so they only recompile what changed. `backend`
+always compiles from scratch, so the compile gate stays a full build, and saves the cache (#5972).
 
 Parallel jobs:
 - **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in
@@ -227,8 +230,10 @@ Parallel jobs:
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
-  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
-  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  `node tools/lint/check-spec-base.mjs`, `node tools/lint/check-env-contract.mjs` (the env vars `conf/` and
+  `logback.xml` read match the contract table in `docs/deployment-and-stages.md`, #5138), then `npm run
+  test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No `--max-warnings 0`: the one
+  `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
@@ -236,10 +241,12 @@ Parallel jobs:
   uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
-  half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when
-  either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`)
-  rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast
-  and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115 — on
+  every PR, then checks that the file log landed in `SIDEWALK_LOG_DIR` and nowhere under the stage dir (#5138); uploads
+  the Playwright report + `app.log` as an artifact when either half fails. CI installs Playwright on the runner directly
+  (`npx playwright install chromium`; no `--with-deps`, #5915) rather than using the local `docker/e2e` runner image — a
+  GitHub runner already has the toolchain, and the job is fast and stable as-is.
+  This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
   `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
   `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
   the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since
@@ -283,7 +290,11 @@ Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `
 `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another.
 [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs
 from both bots, so GitHub merges each once its required checks pass (#4395). Majors and Steward PRs with extra
-generated commits wait for a human.
+generated commits wait for a human. Steward's half runs every 6 hours, since its PRs come from a fork (#5944), and
+usually merges a green PR on the spot. To hold a bot PR, mark it a draft, or turn its auto-merge off; the workflow never
+turns it back on. A Steward PR is usually never in auto-merge, so hold one with a draft. A hold doesn't carry over when
+the bot replaces the PR with a newer one. A Steward PR the workflow can't merge fails each run until it's merged, closed
+or drafted.
 
 **Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl
 page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly.
@@ -314,7 +325,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 88 / 84 / 86 / 89 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 94 / 93 / 93 / 94 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)
@@ -339,9 +350,10 @@ time they were set. Measure with `make test-js args=--coverage`.
 
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
   covers the build files) auto-formats before pushing.
-- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
-  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual, except
-  labeling in Explore's tutorial (#4777) and voting on labels in Validate (#4948).
+- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and Google Maps, run on
+  every PR (`e2e-smoke`), plus interaction specs where jsdom falls short (layout, real clicks, Tab order). **A new
+  or changed interaction on a pano page always gets one**, since checking it by hand bills Google. Imagery
+  rendering stays manual.
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is

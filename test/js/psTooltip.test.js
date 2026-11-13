@@ -668,3 +668,193 @@ describe('psTooltip pinning (#5495)', () => {
     expect(isVisible()).toBe(false);
   });
 });
+
+describe('psTooltip hover and dismissal', () => {
+  const card = () => document.getElementById('ps-tooltip');
+  const isVisible = () => card()?.classList.contains('ps-tooltip--visible') ?? false;
+
+  test('a pointer that leaves the page within the hover delay opens nothing', () => {
+    vi.useFakeTimers();
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'too slow');
+    trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseleave'));
+    vi.runAllTimers();
+
+    expect(isVisible()).toBe(false);
+  });
+
+  test('the pointer leaving the page takes an open card down', () => {
+    open(addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'open'));
+    document.dispatchEvent(new MouseEvent('mouseleave'));
+
+    expect(isVisible()).toBe(false);
+  });
+
+  test('moving between a trigger\'s own children leaves its card up', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'steady');
+    trigger.innerHTML = '<span>icon</span>';
+    open(trigger);
+    trigger.querySelector('span').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+
+    expect(isVisible()).toBe(true);
+    expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+  });
+
+  test('focus moving to the page itself closes an open card', () => {
+    open(addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'open'));
+    document.dispatchEvent(new FocusEvent('focusin'));
+
+    expect(isVisible()).toBe(false);
+  });
+
+  test('Escape dismisses a hover card and leaves focus where it was (WCAG 1.4.13)', () => {
+    const other = document.createElement('input');
+    document.body.appendChild(other);
+    other.focus();
+    open(addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'dismiss me'));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(isVisible()).toBe(false);
+    expect(document.activeElement).toBe(other);
+  });
+
+  test('a style or class change that leaves the trigger visible does not re-place the card', async () => {
+    const trigger = addTrigger({ left: 0, top: 300, width: 40, height: 30 }, 'stays put');
+    open(trigger);
+    card().style.setProperty('--ps-tooltip-tail-left', '999px'); // Sentinel: a re-place would overwrite it.
+    trigger.classList.add('active');
+    await Promise.resolve();
+
+    expect(isVisible()).toBe(true);
+    expect(card().style.getPropertyValue('--ps-tooltip-tail-left')).toBe('999px');
+  });
+});
+
+describe('psTooltip ps-tooltip:show (copyToClipboard)', () => {
+  const card = () => document.getElementById('ps-tooltip');
+  const showEvent = () => new CustomEvent('ps-tooltip:show', { bubbles: true });
+
+  test('opens the trigger\'s card at once, with no hover delay', () => {
+    vi.useFakeTimers();
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Copied!');
+    trigger.dispatchEvent(showEvent());
+
+    expect(card().classList.contains('ps-tooltip--visible')).toBe(true);
+    expect(card().textContent).toBe('Copied!');
+  });
+
+  test('is ignored on an element with no tooltip', () => {
+    const plain = document.createElement('button');
+    document.body.appendChild(plain);
+    plain.dispatchEvent(showEvent());
+    document.dispatchEvent(showEvent());
+
+    expect(card()).toBeNull();
+  });
+
+  test('leaves a pinned card alone', () => {
+    const pinnable = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<a href="/x">x</a>',
+      { 'data-ps-tooltip-pinnable': '' });
+    const copy = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'Copied!');
+    pinnable.click();
+    copy.dispatchEvent(showEvent());
+
+    expect(card().classList.contains('ps-tooltip--pinned')).toBe(true);
+    expect(card().querySelector('a')).not.toBeNull();
+  });
+});
+
+describe('psTooltip edges', () => {
+  test('a right-placed trigger at the right edge opens on its left', () => {
+    const trigger = addTrigger(
+      { left: 900, top: 300, width: 60, height: 60 }, 'right', { 'data-ps-tooltip-placement': 'right' }
+    );
+    const card = open(trigger);
+
+    expect(card.classList.contains('ps-tooltip--beside-left')).toBe(true);
+    expect(card.style.left).toBe(`${900 - TRIGGER_GAP - CARD_WIDTH}px`);
+  });
+
+  test('the gap grows with the tools\' --ui-scale, and an unusable value counts as 1', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'scaled');
+    document.documentElement.style.setProperty('--ui-scale', '2');
+    try {
+      expect(open(trigger).style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP * 2}px`);
+      document.dispatchEvent(new FocusEvent('focusout'));
+      document.documentElement.style.setProperty('--ui-scale', '0');
+      expect(open(trigger).style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    } finally {
+      document.documentElement.style.removeProperty('--ui-scale');
+    }
+  });
+
+  test('an image that has already loaded doesn\'t move the card later', () => {
+    // An <img> with no source counts as complete, so nothing waits on it.
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img alt="">');
+    const card = open(trigger);
+    cardHeight = 200;
+    card.querySelector('img').dispatchEvent(new Event('load'));
+
+    expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+  });
+
+  test('an image landing after the card moved on to another trigger leaves the new card alone', () => {
+    const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
+    Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
+    try {
+      const first = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<img src="x.png">');
+      const img = open(first).querySelector('img');
+      const card = open(addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'second'));
+      img.dispatchEvent(new Event('load'));
+
+      expect(card.textContent).toBe('second');
+    } finally {
+      Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
+    }
+  });
+});
+
+describe('psTooltip pinning edges (#5495)', () => {
+  const card = () => document.getElementById('ps-tooltip');
+
+  test('a pinnable trigger with no label or popup role is named "Details" and gets no aria-expanded', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<a href="/x">x</a>',
+      { 'data-ps-tooltip-pinnable': '' });
+    trigger.click();
+    expect(card().getAttribute('aria-label')).toBe('Details');
+    expect(trigger.hasAttribute('aria-expanded')).toBe(false);
+
+    trigger.click();
+    expect(trigger.hasAttribute('aria-expanded')).toBe(false);
+  });
+
+  test('a pinnable trigger whose tooltip was taken away opens nothing when clicked', () => {
+    const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'x',
+      { 'data-ps-tooltip-pinnable': '' });
+    trigger.removeAttribute('data-ps-tooltip');
+    trigger.click();
+
+    expect(card()?.classList.contains('ps-tooltip--pinned') ?? false).toBe(false);
+  });
+
+  test('Tab between the links inside a pinned card is left to the browser', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 },
+      '<a id="one" href="/1">1</a><a id="two" href="/2">2</a>', { 'data-ps-tooltip-pinnable': '' });
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    document.getElementById('one').focus();
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    document.getElementById('one').dispatchEvent(tab);
+
+    expect(tab.defaultPrevented).toBe(false);
+    expect(card().classList.contains('ps-tooltip--pinned')).toBe(true);
+  });
+
+  test('a click aimed at the document rather than an element leaves a pinned card pinned', () => {
+    const trigger = addHtmlTrigger({ left: 400, top: 300, width: 100, height: 30 }, '<a href="/x">x</a>',
+      { 'data-ps-tooltip-pinnable': '' });
+    trigger.click();
+    document.dispatchEvent(new MouseEvent('click'));
+
+    expect(card().classList.contains('ps-tooltip--pinned')).toBe(true);
+  });
+});

@@ -80,8 +80,8 @@ export class PanoData {
       copyright: params.copyright || null,
       license: params.license || null,
       captureDate: params.captureDate,
-      linkedPanos: params.linkedPanos || [],
-      history: params.history || [],
+      linkedPanos: params.linkedPanos,
+      history: params.history,
       submitted: params.submitted || false,
     };
   }

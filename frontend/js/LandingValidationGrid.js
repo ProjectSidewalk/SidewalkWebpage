@@ -36,8 +36,9 @@ export class LandingValidationGrid {
   // css/components/landing-validation-grid.css. A layout breakpoint, so there's no backend value to source it from.
   static #NARROW_VISIBLE_CARDS = 3;
   // The server splits n across the 6 label types validatable from a static image (static_imagery_only — Signal
-  // needs a pan up its pole, so it's excluded server-side), so fetch sizes are multiples of 6: 2 per type up
-  // front (6 rendered + the rest pooled for replacements), 1 per type on refills.
+  // needs a pan up its pole, so it's excluded server-side), re-spreading a dry type's share, so multiples of 6 keep
+  // the split even where every type has labels: 2 per type up front (6 rendered + the rest pooled for replacements),
+  // 1 per type on refills.
   static #INITIAL_FETCH = 12;
   static #REFILL_FETCH = 6;
   // Refill the pool in the background once it runs this low, so replacements stay instant.

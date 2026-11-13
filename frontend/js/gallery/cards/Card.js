@@ -550,6 +550,18 @@ export class Card {
   }
 
   /**
+   * Adds or removes the AI badge, as a type change or its undo in the expanded view can flip it (#5925).
+   * @param {boolean} aiGenerated - Whether the label shows the AI badge.
+   */
+  setAiGenerated(aiGenerated) {
+    this.#properties.ai_generated = aiGenerated;
+    this.#markerWrapper.querySelector('.ai-icon-marker-card')?.remove();
+    if (aiGenerated) {
+      this.#markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
+    }
+  }
+
+  /**
    * Replaces the votes outright, since a type change counts only the new type's (#5853).
    * @param {{num_agree: number, num_disagree: number, num_unsure: number, user_validation: ?string,
    *     ai_validation: ?string}} votes - The label's votes as `/label/id/:id` serves them.

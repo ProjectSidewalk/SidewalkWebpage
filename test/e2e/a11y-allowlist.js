@@ -10,8 +10,8 @@
  *   known-and-scheduled failure from one nobody has looked at.
  *
  * Scope an allowlist entry as tightly as the violation allows — a bare `{rule}` silences that rule for the whole
- * page, hiding the next instance too. `selector` is matched as a substring of the node's target, so `.au-body`
- * covers `#main > .au-body`.
+ * page, hiding the next instance too. `selector` must match whole names in the node's target, so `.au-body` covers
+ * `#main > .au-body` but not `.au-body-title`.
  *
  * Keys are page paths, optionally with a ` [state]` suffix naming a forced render state
  * (`/v3/api-docs/rawLabels [feed error]`, from a11y-api-docs-states.spec.js). A page's healthy render and its
@@ -35,8 +35,19 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 /** The ` [state]` suffix an A11Y_ALLOWLIST key may carry. EXEMPT_PAGES keys never take one; a11y.spec.js says why. */
 const STATE_SUFFIX = / \[.*\]$/;
 
+/** State keys forced by specs other than a11y-api-docs-states.spec.js, so its stale-key check knows them too. */
+const OTHER_FORCED_STATES = {
+  galleryExpandedCard: '/gallery [expanded card]', // label-card-paging.spec.js (#5135).
+};
+
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
-const A11Y_ALLOWLIST = {};
+const A11Y_ALLOWLIST = {
+  // Only an untagged first card shows this, so a tagged one just flags it stale.
+  [OTHER_FORCED_STATES.galleryExpandedCard]: [
+    {rule: 'color-contrast', selector: '.label-detail__tags', issue: '#5917',
+      note: 'read-only tags are dimmed with opacity'},
+  ],
+};
 
 /**
  * Splits a page's axe violations into what its allowlist covers and what fails the gate.
@@ -55,7 +66,9 @@ function partitionViolations(path, violations) {
   const used = new Set();
   const covers = (entry, violation, node) => {
     if (entry.rule !== violation.id) return false;
-    return !entry.selector || node.target.join(' ').includes(entry.selector);
+    if (!entry.selector) return true;
+    const escaped = entry.selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`${escaped}(?![\\w-])`).test(node.target.join(' '));
   };
   const blocking = [];
   let allowedCount = 0;
@@ -89,4 +102,4 @@ function formatViolations(violations) {
 }
 
 module.exports =
-  {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations};
+  {EXEMPT_PAGES, A11Y_ALLOWLIST, OTHER_FORCED_STATES, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations};

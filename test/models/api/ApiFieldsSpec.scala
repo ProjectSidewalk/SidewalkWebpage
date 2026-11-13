@@ -41,7 +41,9 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
 
   test("a geometry-backed model's CSV carries its own columns on top of the shared fields") {
     StreetDataForApi.csvFields.size shouldBe StreetDataForApi.fields.size + 2
-    StreetDataForApi.csvHeader should endWith("start_point,end_point")
+    // The point columns keep their pre-#5431 positions; the grade fields come after them.
+    StreetDataForApi.csvHeader should include("osm_ways,start_point,end_point,mean_grade")
+    StreetDataForApi.csvHeader should endWith("dem_source")
     StreetDataForApi.fields.map(_.name) should not contain "start_point"
   }
 

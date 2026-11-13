@@ -375,6 +375,17 @@ describe('the recent-activity feed', () => {
     expect(showLabel).toHaveBeenLastCalledWith(11, 'AdminActivity');
   });
 
+  test('a thumbnail the server sent without its label id opens nothing', async () => {
+    const page = await load({ recent: { activity: [
+      { activity_type: 'label', username: 'ada', timestamp: minutesAgo(5), label_id: null, label_type: 'CurbRamp',
+        thumbnail_url: '/crops/CurbRamp/crop_11.png' },
+    ] } });
+    const showLabel = vi.fn();
+    page.setLabelPopup({ showLabel });
+    click('img.activity-feed-thumb');
+    expect(showLabel).not.toHaveBeenCalled();
+  });
+
   test('lets a label link navigate when the popup is not ready', async () => {
     await load({ recent: { activity: ITEMS } });
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });

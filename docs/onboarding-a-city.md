@@ -194,7 +194,10 @@ its default either way.
    comes straight back to this step.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
-   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
+   summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up. A partner's area that cuts across
+   regions (Beringen, #5950) goes in as `--study-area <geojson under db/>`: open the regions it touches, and after
+   the scan their streets outside it become `disabled`, which no rescan, reveal or Reopen undoes. To grow the area,
+   rerun `make disable-streets-outside-area` with a larger one; it puts those streets back as they were.
 8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
    cache, samples the elevation model registered for the city's country (`tools/city/street_gradient.py`, seconds for
    most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
@@ -264,9 +267,6 @@ its default either way.
 
 - **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
   on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
-- **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches
-  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-regions` later). The retired runbook's
-  hand recipe for it is in the wiki page history linked above, but it predates `street_edge.status`.
 
 ## Re-running, and doing it by hand
 
@@ -285,6 +285,7 @@ docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U sidewalk_<city> -d 
 make fill-new-schema                      # schema, tutorial region, regions to open
 make check-imagery id=<city-id> args="--<provider>"
 make hide-streets-without-imagery         # schema, onboarding/<city-id>/street_imagery_summary.csv
+make disable-streets-outside-area         # only for a study area: schema, onboarding/<city-id>/<area>.geojson
 make import-street-imagery                # schema, onboarding/<city-id>/street_imagery_summary.csv
 make export-street-gradient-input args="sidewalk_<city> <city-id> --structures onboarding/<city-id>/street_structures.csv"
 make street-gradient id=<city-id>         # or args="--dem-dir ..." for a country with no registered model

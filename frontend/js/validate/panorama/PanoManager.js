@@ -240,12 +240,12 @@ export class PanoManager {
   }
 
   /**
-   * Gets a specific property from the PanoManager.
-   * @param {string} key   - Property name.
-   * @returns {*} Value associated with this property or null.
+   * Reads a PanoManager property.
+   * @param {'panoLoaded'} key - Property name.
+   * @returns {boolean} Whether the current pano has finished loading.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
+    return this.#properties[key];
   }
 
   /**
@@ -259,7 +259,6 @@ export class PanoManager {
 
   /** Returns the viewer_type enum value for the currently active viewer: 'Pannellum' or 'Default'. */
   getActiveViewerName() {
-    if (!this.#activeViewer) return '';
     return this.#activeViewer === this.#pannellumViewer ? 'Pannellum' : 'Default';
   }
 

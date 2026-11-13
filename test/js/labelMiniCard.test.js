@@ -64,7 +64,7 @@ describe('LabelMiniCard', () => {
   });
 
   const mount = (data, opts = {}) => {
-    const card = new LabelMiniCard(data, {source: 'TestSurface', ...opts});
+    const card = new LabelMiniCard(data, {source: 'TestSurface', onOpen: vi.fn(), log: vi.fn(), ...opts});
     document.getElementById('host').appendChild(card.element);
     return card;
   };
@@ -153,8 +153,7 @@ describe('LabelMiniCard', () => {
   });
 
   test('a vote posts the static-crop validation payload, counts up at once, and ticks the badge', async () => {
-    const onVote = vi.fn();
-    const card = mount(label(), {onVote});
+    const card = mount(label());
     chip(card, 'Agree').click();
     // Optimistic: the count and the pressed state move before the server answers.
     expect(count(card, 'Agree')).toBe('3');
@@ -174,7 +173,6 @@ describe('LabelMiniCard', () => {
     expect(chip(card, 'Agree').querySelector('img').getAttribute('src'))
       .toBe('/assets/images/icons/validation/agree-filled.svg');
     expect(badges.recordValidation).toHaveBeenCalledTimes(1);
-    expect(onVote).toHaveBeenCalledWith('Agree', expect.objectContaining({num_agree: 3, user_validation: 'Agree'}));
   });
 
   test('the pressed chip clears the vote (undone), and switching chips is a redo', async () => {
@@ -202,8 +200,8 @@ describe('LabelMiniCard', () => {
 
   test('a refused vote rolls the counts back and says so', async () => {
     window.fetch = vi.fn(() => response(false));
-    const onVote = vi.fn();
-    const card = mount(label(), {onVote});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const card = mount(label());
     chip(card, 'Disagree').click();
     expect(count(card, 'Disagree')).toBe('2');
     await settle();
@@ -211,7 +209,7 @@ describe('LabelMiniCard', () => {
     expect(chip(card, 'Disagree').getAttribute('aria-pressed')).toBe('false');
     expect(chip(card, 'Disagree').disabled).toBe(false);
     expect(toast.show).toHaveBeenCalledTimes(1);
-    expect(onVote).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith('LabelMiniCard: vote failed', expect.any(Error));
   });
 
   test('update() re-renders from fresh JSON in place', () => {
@@ -229,6 +227,49 @@ describe('LabelMiniCard', () => {
     card.element.querySelector('.lmc__image').dispatchEvent(new Event('error'));
     expect(card.element.querySelector('.lmc__image')).toBeNull();
     expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
+  });
+
+  test('a vote held up while the host redraws the card can\'t be joined by a second one', async () => {
+    let answer;
+    window.fetch = vi.fn((url, options) => {
+      postedBodies.push(JSON.parse(options.body));
+      return new Promise((resolve) => { answer = resolve; });
+    });
+    const card = mount(label());
+    chip(card, 'Agree').click();
+    // A vote cast in the full label card meanwhile: the host hands the card fresh JSON, redrawing the chips enabled.
+    card.update(label({num_disagree: 4}));
+    chip(card, 'Disagree').click();
+    answer({ok: true, status: 200});
+    await settle();
+
+    expect(postedBodies.map((b) => b.validation_result)).toEqual(['Agree']);
+  });
+
+  test('a label JSON missing its counts, rating, tags and point of view still votes, sending nulls', async () => {
+    const card = mount(label({
+      user_validation: 'Agree', num_agree: undefined, severity: undefined, tags: undefined, canvas_x: undefined,
+      canvas_y: undefined, heading: undefined, pitch: undefined, zoom: undefined,
+    }));
+    expect(card.element.querySelector('.lmc__rating')).toBeNull();
+    expect(card.element.querySelector('.lmc__tags')).toBeNull();
+    chip(card, 'Disagree').click();
+    await settle();
+
+    expect(postedBodies[0]).toMatchObject({
+      severity: null, tags: [], canvas_x: null, canvas_y: null, heading: null, pitch: null, zoom: null, redone: true,
+    });
+    expect(count(card, 'Agree')).toBe('0');
+  });
+
+  test('a severity outside the type\'s scale shows no rating', () => {
+    const card = mount(label({severity: 7}));
+    expect(card.element.querySelector('.lmc__rating')).toBeNull();
+    expect(card.element.querySelector('.lmc__open').getAttribute('aria-label')).toBe('mini-card.open label=curb-ramp');
+  });
+
+  test('a placeholder for a crop not cut yet says it is coming', () => {
+    expect(LabelMiniCard.placeholder('Obstacle', 'coming').textContent.trim()).toBe('mini-card.image-coming');
   });
 
   describe('signed URLs that expire while the page is open (#5861)', () => {

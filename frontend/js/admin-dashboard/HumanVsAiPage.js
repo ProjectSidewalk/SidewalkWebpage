@@ -11,6 +11,7 @@
 
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class HumanVsAiPage {
   /** Below this many validated labels, an acceptance rate is too noisy to compare, so it's shown muted. */
@@ -89,16 +90,16 @@ export class HumanVsAiPage {
   #renderKpis(human, ai, humanVal, aiVal, tagger) {
     const totalLabels = (human.total || 0) + (ai.total || 0);
     const totalVals = (humanVal.total || 0) + (aiVal.total || 0);
-    this.#setText('kpi-ai-labels', (ai.total || 0).toLocaleString());
-    this.#setText('kpi-ai-labels-note', totalLabels
+    AdminShell.setText('kpi-ai-labels', (ai.total || 0).toLocaleString());
+    AdminShell.setText('kpi-ai-labels-note', totalLabels
       ? `${HumanVsAiPage.#pct(ai.total / totalLabels)} of ${totalLabels.toLocaleString()} labels`
       : 'no labels yet');
-    this.#setText('kpi-ai-validations', (aiVal.total || 0).toLocaleString());
-    this.#setText('kpi-ai-validations-note', totalVals
+    AdminShell.setText('kpi-ai-validations', (aiVal.total || 0).toLocaleString());
+    AdminShell.setText('kpi-ai-validations-note', totalVals
       ? `${HumanVsAiPage.#pct(aiVal.total / totalVals)} of ${totalVals.toLocaleString()} validations`
       : 'no validations yet');
-    this.#setText('kpi-ai-assessed', (tagger.labels_assessed || 0).toLocaleString());
-    this.#setText('kpi-ai-assessed-note', tagger.avg_confidence !== null && tagger.avg_confidence !== undefined
+    AdminShell.setText('kpi-ai-assessed', (tagger.labels_assessed || 0).toLocaleString());
+    AdminShell.setText('kpi-ai-assessed-note', tagger.avg_confidence !== null && tagger.avg_confidence !== undefined
       ? `avg confidence ${Math.round(tagger.avg_confidence * 100)}%`
       : 'no assessments yet');
   }
@@ -368,11 +369,6 @@ export class HumanVsAiPage {
   #toggle(id, show) {
     const el = document.getElementById(id);
     if (el) el.hidden = !show;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

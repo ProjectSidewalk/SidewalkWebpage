@@ -329,7 +329,7 @@ describe('A neighborhood mission\'s planned walk', () => {
       ['60 m away, inside the nearby test', 7],
     ])('keeping a jump target the plan enters at its far end, with its near end %s', async (_name, id) => {
       // The plan enters the street at its east end (the odd-degree rule can choose that); turning it toward the
-      // finished street's end would land the labeler where the minimap's connector does not point.
+      // finished street's end would undo that choice.
       FakeWalkPlanner.script = scriptSteps([1, id], { [id]: { reverse: true, jump: true, jumpM: 200 } });
       await load({ features: [feature(id)] });
 

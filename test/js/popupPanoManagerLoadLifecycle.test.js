@@ -24,6 +24,7 @@ function deferredViewer() {
     setPano: vi.fn(() => new Promise((resolve) => pending.push(resolve))),
     addListener: vi.fn(),
     getPanoId: () => 'pano-1',
+    getViewerType: () => 'gsv',
     resize: vi.fn(),
     setPov: vi.fn(),
     getPov: () => ({ ...POV }),
@@ -63,8 +64,19 @@ describe('PopupPanoManager load lifecycle', () => {
     ({ PopupPanoManager } = await loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
   });
 
-  const createManager = () => PopupPanoManager.create(svHolder, document.getElementById('button-holder'),
-    false, viewerType, 'token');
+  /**
+   * Builds a manager the way LabelDetail does, which hands over the label before any imagery is asked for.
+   * @returns {Promise<object>} The manager.
+   */
+  async function createManager() {
+    const manager = await PopupPanoManager.create(svHolder, document.getElementById('button-holder'), false,
+      viewerType, 'token');
+    manager.setLabel({
+      labelId: 1, label_type: 'CurbRamp', canvasX: 360, canvasY: 240, originalCanvasWidth: 720,
+      originalCanvasHeight: 480, pov: POV, streetEdgeId: 5, aiGenerated: false, cropMarker: null,
+    });
+    return manager;
+  }
 
   /** jsdom gives every element a 0x0 rect, so the deferred resize needs a laid-out holder to be exercised. */
   const giveHolderSize = () => {

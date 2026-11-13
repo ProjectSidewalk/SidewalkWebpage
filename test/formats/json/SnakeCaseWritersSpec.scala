@@ -3,6 +3,7 @@ package formats.json
 import formats.json.AdminFormats.given
 import formats.json.ClusterFormats.given
 import formats.json.ExploreFormats.{ExploreSession, given}
+import formats.json.HealthFormats.{FleetCityHealth, FleetHealth, HealthStatus, given}
 import formats.json.LabelFormats.given
 import formats.json.MissionFormats.given
 import formats.json.RouteBuilderFormats.given
@@ -146,10 +147,6 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
     check(POV(1.5, 2.5, 3.5), """{"heading":1.5,"pitch":2.5,"zoom":3.5}""")
     check(LocationXY(1, 2), """{"x":1,"y":2}""")
     check(
-      UserCount(1, "explore", "all", TimeInterval.values.head, true, false),
-      """{"count":1,"tool_used":"explore","role":"all","time_interval":"all_time","task_completed_only":true,"high_quality_only":false}"""
-    )
-    check(
       ContributionTimeStat(Some(1.5), "explore_total", TimeInterval.values.head),
       """{"time":1.5,"stat":"explore_total","time_interval":"all_time"}"""
     )
@@ -251,5 +248,23 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       """{"user_id":"u","username":"n","email":"e","role":"Registered","sign_in_count":1,"labels":2,"own_validated":3,"own_validated_agreed_pct":4.5,"others_validated":5,"others_validated_agreed_pct":6.5,"high_quality":true}"""
     )
     check(Team(1, "n", "d", true, false), """{"team_id":1,"name":"n","description":"d","open":true,"visible":false}""")
+    check(
+      HealthStatus("ok", Some("abc"), Some("v11.20.0-2-gabc"), false, Some("11.20.0"), Some(t), "seattle", "prod", t),
+      """{"status":"ok","git_sha":"abc","git_describe":"v11.20.0-2-gabc","git_dirty":false,"version":"11.20.0","version_released_at":"2026-09-29T12:30:00Z","city_id":"seattle","environment":"prod","app_started_at":"2026-09-29T12:30:00Z"}"""
+    )
+    check(
+      HealthStatus("error", None, None, true, None, None, "seattle", "test", t, Some("TimeoutException")),
+      """{"status":"error","git_dirty":true,"city_id":"seattle","environment":"test","app_started_at":"2026-09-29T12:30:00Z","error":"TimeoutException"}"""
+    )
+    check(
+      FleetHealth(
+        t,
+        "seattle",
+        Some("abc"),
+        Seq(FleetCityHealth("chicago", "Chicago, IL", "https://c", None, None, Some("ConnectException"))),
+        Seq("crowdstudy")
+      ),
+      """{"generated_at":"2026-09-29T12:30:00Z","this_city_id":"seattle","latest_git_sha":"abc","cities":[{"city_id":"chicago","city_name":"Chicago, IL","url":"https://c","error":"ConnectException"}],"not_deployed":["crowdstudy"]}"""
+    )
   }
 }

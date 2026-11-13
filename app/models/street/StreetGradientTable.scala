@@ -174,6 +174,58 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
     foreignKey("street_gradient_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
+/**
+ * The plain-SQL twin of [[StreetGradientTableDef.stats]], for a raw-SQL query that joins `street_gradient` in (#5431).
+ *
+ * Slick's projection can't be spliced into hand-written SQL, so the column list and its reader live here, beside the
+ * projection they mirror, and StreetGradientTableSpec reads one row both ways to hold the two together. Like the
+ * projection, it never names `profile_cm`, so a city-wide read stays free of the profile arrays.
+ */
+object StreetGradientStatsSql {
+
+  /**
+   * The statistics' columns, in [[read]]'s order, for a SELECT list.
+   *
+   * @param table The name (or alias) `street_gradient` goes by in the query.
+   */
+  def columns(table: String): String = Seq(
+    "street_edge_id", "quality", "confidence", "net_grade", "mean_grade", "max_grade", "meters_over_5pct_grade",
+    "meters_over_8pct_grade", "climb_m", "descent_m", "elev_start_m", "elev_end_m", "dem_source", "dem_resolution_m"
+  ).map(c => s"$table.$c").mkString(", ")
+
+  /**
+   * Reads [[columns]] off a result, consuming all of them either way.
+   *
+   * @return The statistics, or None where a LEFT JOIN found no row (every column null).
+   */
+  def read(r: slick.jdbc.PositionedResult): Option[StreetGradientStats] = {
+    val streetEdgeId   = r.nextIntOption()
+    val quality        = r.nextStringOption()
+    val confidence     = r.nextStringOption()
+    val netGrade       = r.nextDoubleOption()
+    val meanGrade      = r.nextDoubleOption()
+    val maxGrade       = r.nextDoubleOption()
+    val over5          = r.nextDoubleOption()
+    val over8          = r.nextDoubleOption()
+    val climbM         = r.nextDoubleOption()
+    val descentM       = r.nextDoubleOption()
+    val elevStartM     = r.nextDoubleOption()
+    val elevEndM       = r.nextDoubleOption()
+    val demSource      = r.nextStringOption()
+    val demResolutionM = r.nextDoubleOption()
+    for {
+      id         <- streetEdgeId
+      quality    <- quality
+      confidence <- confidence
+      demSource  <- demSource
+      resolution <- demResolutionM
+    } yield StreetGradientStats(
+      id, StreetGradientQuality.withName(quality), StreetGradientConfidence.withName(confidence), netGrade, meanGrade,
+      maxGrade, over5, over8, climbM, descentM, elevStartM, elevEndM, demSource, resolution
+    )
+  }
+}
+
 @ImplementedBy(classOf[StreetGradientTable]) trait StreetGradientTableRepository {}
 
 /**

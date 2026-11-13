@@ -87,7 +87,11 @@ export class Compass {
       this.update();
     });
     navigationService.onMoveStarted(() => this.click.hold('move'));
-    navigationService.onMoveFinished(() => this.click.release('move'));
+    navigationService.onMoveFinished(() => {
+      this.click.release('move');
+      // A failed move has no landing to redraw the message.
+      this.update();
+    });
     navigationService.onHeadingSettled(() => this.update());
     streetProgress.onLabelBeforeJumpChanged((armed) => {
       if (armed) this.showLabelBeforeJumpMessage();
@@ -294,12 +298,13 @@ export class Compass {
   update() {
     // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
     if (this.#config.isExploreAddressMode) return;
+    // Mid-move the position is the new pano's but the street's progress is not yet; the landing redraws (#5918).
+    if (this.#navigationService.isMoving()) return;
     if (!this.#streetProgress.isLabelBeforeJumpArmed() && !this.#config.isOnboarding) {
       if (this.#checkEnRoute()) {
         this.stopBlinking();
         this.setTurnMessage();
-      } else if (!this.#navigationService.isMoving()) {
-        // Only warn that the user is off-route if they're not mid-move. (#4174)
+      } else {
         this.blink();
         this.#setBackToRouteMessage();
       }

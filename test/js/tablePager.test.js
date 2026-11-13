@@ -37,7 +37,7 @@ function visibleRanks() {
 describe('TablePager', () => {
   test('opens on the server page and corrects button states the markup got wrong', () => {
     const { tbody, nav, prev, next } = buildTable(1, { prevDisabled: true, nextDisabled: true });
-    new TablePager(tbody, nav);
+    new TablePager(tbody, nav, () => {});
     expect(visibleRanks()).toEqual(['11', '12', '13', '14', '15', '16', '17', '18', '19', '20']);
     expect(prev.disabled).toBe(false);
     expect(next.disabled).toBe(false);
@@ -57,9 +57,26 @@ describe('TablePager', () => {
 
   test('moves keyboard focus to Previous when Next runs out', () => {
     const { tbody, nav, prev, next } = buildTable(1);
-    new TablePager(tbody, nav);
+    new TablePager(tbody, nav, () => {});
     next.focus();
     next.click();
     expect(document.activeElement).toBe(prev);
+  });
+
+  test('moves keyboard focus to Next when Previous runs out', () => {
+    const { tbody, nav, prev, next } = buildTable(1);
+    new TablePager(tbody, nav, () => {});
+    prev.focus();
+    prev.click();
+    expect(visibleRanks()[0]).toBe('1');
+    expect(document.activeElement).toBe(next);
+  });
+
+  test('leaves focus alone while the button pressed still leads somewhere', () => {
+    const { tbody, nav, next } = buildTable(0);
+    new TablePager(tbody, nav, () => {});
+    next.focus();
+    next.click();
+    expect(document.activeElement).toBe(next);
   });
 });

@@ -4,6 +4,7 @@ GET     /home                                           controllers.ApplicationC
 GET     /about                                          controllers.ApplicationController.about
 GET     /robots.txt                                     controllers.SeoController.robots
 GET     /sitemap.xml                                    controllers.SeoController.sitemap
+GET     /health                                         controllers.HealthController.health
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms
@@ -78,6 +79,7 @@ GET     /admin/humans-vs-ai                             controllers.AdminDashboa
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/partners                                 controllers.AdminDashboardController.partners
+GET     /admin/goldExamples                             controllers.AdminDashboardController.goldExamples
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/team/:teamId                             controllers.AdminDashboardController.team(teamId: Int)
@@ -86,6 +88,7 @@ GET     /admin/user/:username/manage                    controllers.UserDashboar
 GET     /admin/label/:labelId                           controllers.ShareController.adminLabel(labelId: Int)
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
+GET     /adminapi/fleetHealth                           controllers.AdminDashboardController.getFleetHealth
 GET     /adminapi/streetStatusTrend                     controllers.AdminDashboardController.getStreetStatusTrend(weeks: Int ?= service.StreetLifecycleService.DefaultTrendWeeks)
 PUT     /adminapi/streets/:streetEdgeId/reopen          controllers.AdminDashboardController.reopenStreet(streetEdgeId: Int)
 DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboardController.dismissReopenCandidate(streetEdgeId: Int)
@@ -140,6 +143,10 @@ PUT     /adminapi/partners/order                        controllers.PartnerContr
 PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
 PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
+# Known-answer examples of common mistakes, shown to new validators (#1445); pinned from /admin/label/:labelId.
+GET     /adminapi/goldExamples                          controllers.GoldExampleController.getGoldExamples
+POST    /adminapi/goldExamples                          controllers.GoldExampleController.pinGoldExample
+DELETE  /adminapi/goldExamples/:labelId                 controllers.GoldExampleController.unpinGoldExample(labelId: Int)
 # The "contact <city> directly" notice in the landing page's partners section (#5462), edited on the same admin page.
 GET     /adminapi/officialContact                       controllers.PartnerController.getOfficialContact
 PUT     /adminapi/officialContact                       controllers.PartnerController.updateOfficialContact

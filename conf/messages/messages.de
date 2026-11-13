@@ -76,6 +76,7 @@ city.name.zurich = Zürich
 city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Kalifornien
 state.name.alaska = Alaska
@@ -89,6 +90,7 @@ country.name.canada = Kanada
 country.name.india = Indien
 country.name.brazil = Brasilien
 country.name.france = Frankreich
+country.name.belgium = Belgien
 
 navbar.explore = Erkunden
 navbar.validate = Valideren
@@ -668,7 +670,7 @@ share.meta.image.alt = Straßenansicht mit markierter Position: {0}
 
 # Öffentliche Spotlight-/Teilen-Seite für ein einzelnes Label (#456).
 sharedlabel.nearby.title = Labels in der Nähe
-sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe {0} für die vollständige Karte.
+sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe die {0} für die vollständige Karte.
 sharedlabel.view.this.label = Dieses Label ansehen
 sharedlabel.engage.title = Hilf mit, die Gehwege in {0} zu bewerten
 sharedlabel.engage.explore = Barrierefreiheitsprobleme in {0} finden
@@ -943,6 +945,7 @@ error.home = Zurück zur Startseite
 
 # Nachbarschaftsberichte (#5876).
 report.seo.title = {0}: Nachbarschaftsbericht — Project Sidewalk
+report.tool.name = Berichte
 report.eyebrow = Nachbarschaftsbericht
 report.generated = Erstellt am {0}.
 report.latest.observation = Neueste Beschriftung: {0}.
@@ -1100,3 +1103,7 @@ report.worst.lede = {0,choice,1#1 Ort|1<{0} Orte} mit der schlechtesten Bewertun
 report.worst.count.label = {0,choice,1#1 Ort|1<{0} Orte}: {1}. Labels ansehen
 report.worst.nosidewalk = Fehlende Gehwege haben keine Bewertung und sind daher nicht auf dieser Karte. Schalten Sie „{0}“ in der Seitenleiste ein, um sie auf den anderen Karten als gestrichelte Linien zu sehen.
 report.toc.worst = Schlimmste Probleme
+report.stories.title = Erfahrungsberichte der Community
+report.stories.rule = Erfahrungsberichte, die Community-Mitglieder an Labels in diesem Viertel angehängt haben, neueste zuerst. Ein Bericht ist die Erfahrung einer Person; er ändert keine Zahl auf dieser Seite.
+report.stories.street = Zu dieser Straße
+report.stories.all = Alle Erfahrungsberichte der Community lesen

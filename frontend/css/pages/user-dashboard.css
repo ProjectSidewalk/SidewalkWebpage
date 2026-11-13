@@ -860,9 +860,6 @@
   margin-top: var(--space-xs);
 }
 
-/* The `hidden` attribute must win over display:flex, or the note stays open before "Add a note" is clicked. */
-.ud-card-note-wrap[hidden] { display: none; }
-
 .ud-card-note-submit {
   align-self: flex-start;
 }
@@ -979,9 +976,6 @@
 }
 
 .ud-see-all:hover { text-decoration: underline; }
-
-/* Beat the inline-block display so the `hidden` attribute actually hides the "See all" link until cards load. */
-.ud-see-all[hidden] { display: none; }
 
 /* ---- Contribution map ------------------------------------------------------------------------------------------ */
 
@@ -1929,11 +1923,6 @@
   flex-direction: column;
 }
 
-/* The list's display: flex would otherwise override the hidden attribute's UA display: none. */
-.ud-routes[hidden] {
-  display: none;
-}
-
 .ud-route-row {
   display: flex;
   flex-wrap: wrap;
@@ -2079,10 +2068,6 @@
   font: var(--text-small-regular);
 }
 
-/* `.ud-community-band` sets a `display` that outranks the UA's `[hidden] { display: none }` — so a band the
- * script hasn't filled in yet would render as a row of empty stat labels. */
-.ud-community-band[hidden] { display: none; }
-
 /* ---- Streets with newer imagery (#4896): the mapper's own streets whose audits the imagery has outrun. ---- */
 .ud-reaudit {
   list-style: none;
@@ -2100,12 +2085,6 @@
   gap: var(--space-sm);
   padding: 12px 0;
   border-bottom: 1px solid var(--color-neutral-200);
-}
-
-/* The row's own `display` beats the UA stylesheet's `[hidden] { display: none }`, so the rows waiting behind
-   "show more" need this to actually stay collapsed. */
-.ud-reaudit-row[hidden] {
-  display: none;
 }
 
 /* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */

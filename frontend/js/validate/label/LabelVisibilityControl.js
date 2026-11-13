@@ -379,7 +379,7 @@ export class LabelVisibilityControl {
   #anchorCard() {
     const marker = document.getElementById('validate-pano-marker');
     const layer = this.#controlLayer;
-    if (!marker || !layer || marker.offsetLeft < -1000) return false;
+    if (!marker || marker.offsetLeft < -1000) return false;
 
     const scale = parseFloat(getComputedStyle(this.#card).getPropertyValue('--ui-scale')) || 1;
     const radius = marker.offsetWidth / 2;
