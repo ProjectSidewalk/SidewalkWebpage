@@ -43,4 +43,42 @@ const nodeFor = (id) => ({
   spatialEdges: { cached: true, edges: [] },
 });
 
-export { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor };
+/**
+ * An Infra3d SDK whose viewer can do everything initialize() and the camera calls touch: moves answer from `nodes` by
+ * key (any key, if absent), events are recorded so a test can fire them, and the camera view is a plain object.
+ * Installs itself as the SDK's `infra3dapi` for the next create().
+ * @param {{nodes?: Record<string, object>}} [options]
+ * @returns {{manager: object, viewer: object, sdkViewer: object, emit: Function}} The SDK's manager, its viewer
+ *     wrapper and the mapillary-js-fork viewer inside it, and `emit(target, event, e)` to fire an SDK event.
+ */
+function fakeInfra3dSdk({ nodes = {} } = {}) {
+  const listeners = { viewer: {}, sdkViewer: {} };
+  const record = (target) => (event, fn) => { (listeners[target][event] ??= []).push(fn); };
+  const nodeAt = (key) => nodes[key] ?? nodeFor(key);
+  const sdkViewer = {
+    setFilter: vi.fn(async () => {}),
+    on: record('sdkViewer'),
+    moveToKey: vi.fn(async (key) => nodeAt(key)),
+    movePosition: vi.fn(async () => nodeAt('NEAR')),
+    activateComponent: vi.fn(),
+    deactivateComponent: vi.fn(),
+    resize: vi.fn(),
+    _navigator: { graphService: {}, _api: {} },
+    _container: { scene: { engine: { requestTexture: vi.fn() } } },
+  };
+  const viewer = {
+    _sdk_viewer: sdkViewer,
+    on: record('viewer'),
+    cameraView: { type: 'pano', lat: 0, lon: 0, fov: 60 },
+    getCameraView() { return this.cameraView; },
+    setCameraView: vi.fn(),
+  };
+  const manager = { initViewer: vi.fn(async () => viewer), setTokens: vi.fn() };
+  infra3dSdk.infra3dapi = { init: vi.fn(async () => manager) };
+  const emit = async (target, event, e) => {
+    await Promise.all((listeners[target][event] ?? []).map((fn) => fn(e)));
+  };
+  return { manager, viewer, sdkViewer, emit };
+}
+
+export { infra3dSdk, loadInfra3dViewer, jwtExpiringAt, nodeFor, fakeInfra3dSdk };

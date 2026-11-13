@@ -164,9 +164,9 @@ export class PanoViewer {
    * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
    * real measurement exists.
    *
-   * Measures the mount container, which every call site can treat as the render canvas because they all pass
-   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
-   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   * Measures the mount container, which stands in for the render canvas because no viewer draws its own toolbars
+   * inside it. One that did (Infra3D's topbar/toolbar/cockpit) would render into a shorter canvas than this, and
+   * would need to measure `canvasElem.querySelector('.' + canvasClass)`.
    *
    * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
    * @protected
@@ -299,10 +299,10 @@ export class PanoViewer {
    * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
    * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
    * @param {{lat: number, lng: number}} _latLng - The location the next move is expected to target.
-   * @param {Set<PanoData>} [_excludedPanos] - Panos the next move is expected to exclude.
+   * @param {Set<PanoData>} _excludedPanos - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
-  async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+  async preloadPanoNear(_latLng, _excludedPanos) {}
 
   /**
    * Starts downloading a pano the page expects to show soon, without moving to it, so the later setPano() finds it
@@ -312,6 +312,15 @@ export class PanoViewer {
    * @returns {void}
    */
   prefetchPano(_panoId) {}
+
+  /**
+   * Whether findPanoNear() can answer "nothing here" where setLocation() would still land on a pano. If so, callers
+   * must not act on an empty answer (ending a street, passing a point over).
+   * @returns {boolean}
+   */
+  findPanoNearCanMiss() {
+    return false;
+  }
 
   /**
    * Whether this provider can search for a pano by location, and so answer findPanoNear() with more than null.
@@ -434,7 +443,7 @@ export class PanoViewer {
    * @returns {Promise<Array<{panoId: string, heading: number, lat: number, lng: number}>>}
    */
   async getLinkedPanoPositions() {
-    const links = this.getLinkedPanos() || [];
+    const links = this.getLinkedPanos();
     const positioned = await Promise.all(links.map(async (link) => {
       if (Number.isFinite(link.lat) && Number.isFinite(link.lng)) return link;
       try {

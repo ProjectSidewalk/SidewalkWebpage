@@ -9,6 +9,18 @@
   padding: 0 5px 5px;
 }
 
+/* The tool header (#5958) opens the column at the same height as on the map panels, and whichever block follows drops
+   its own 40px of headroom (below). The 5px inset lines it up with the blocks beneath it. */
+.sidebar > .ps-tool-header {
+  padding-top: var(--tool-header-top);
+  margin-inline: 5px;
+}
+
+.ps-tool-header + .gallery-sort,
+.ps-tool-header + .gallery-filter-header {
+  padding-top: 0;
+}
+
 /* The admin-only "Sort by" (#2705), above the filter header. It takes the header's 40px of headroom, and the header
    then drops its own (below), so the column starts at the same distance from the navbar either way. */
 .gallery-sort {
@@ -86,12 +98,6 @@
   gap: 4px;
 }
 
-/* .button sets `display: inline-flex`, which outranks the browser's `[hidden] { display: none }`, so the button
-   would stay on screen while no filter is applied without this. */
-#clear-filters[hidden] {
-  display: none;
-}
-
 /* Mobile disclosure toggle standing in for the "Filter By" heading; shown only under the shell breakpoint. */
 .gallery-filter-toggle {
   display: none;
@@ -101,6 +107,19 @@
   /* Collapsed, the sections are display: none, so the column leaves no gap above the cards. */
   #card-filter {
     padding: 0 10px;
+  }
+
+  /* Stacked, the header is one compact row whose own rule separates it from the strip. */
+  .sidebar > .ps-tool-header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin: 0 10px;
+  }
+
+  /* The block after it keeps the stacked layout's own 8px, which the side-by-side rule above would zero. */
+  .ps-tool-header + .gallery-sort,
+  .ps-tool-header + .gallery-filter-header {
+    padding-top: 8px;
   }
 
   /* The 40px of map-aligned headroom is for the side-by-side layout; stacked, the strip hugs the navbar. */

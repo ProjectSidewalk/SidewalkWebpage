@@ -19,8 +19,8 @@ module.exports = defineConfig({
   // One CI retry absorbs one-off network flake (e.g. the api-docs previews fetch their style and tiles from Mapbox).
   retries: process.env.CI ? 1 : 0,
   // Fixed rather than the default half-the-cores: each worker carries its own Chromium, roughly a GB apiece on
-  // top of the dev app's JVM and Postgres.
-  workers: 2,
+  // top of the dev app's JVM and Postgres. CI's runners have room for 4.
+  workers: process.env.CI ? 4 : 2,
   reporter: process.env.CI ? [['list'], ['html', {open: 'never'}]] : 'list',
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:9000',
@@ -35,7 +35,8 @@ module.exports = defineConfig({
     // A project rather than a `--grep` on titles keeps CI's blocking/advisory split structural: rewording a test
     // cannot move it between the halves. No `dependencies` — nothing here needs a session, so the gate that blocks
     // merges does not ride on /signUp.
-    {name: 'a11y', testMatch: A11Y_SPECS, use: {...devices['Desktop Chrome']},
+    // Each test is a read-only page load and nearly all sit in one file, so they spread across workers within it.
+    {name: 'a11y', testMatch: A11Y_SPECS, use: {...devices['Desktop Chrome']}, fullyParallel: true,
       outputDir: 'test-results/a11y'},
     {name: 'chromium', testIgnore: A11Y_SPECS, use: {...devices['Desktop Chrome']},
       dependencies: ['setup'], outputDir: 'test-results/chromium'},

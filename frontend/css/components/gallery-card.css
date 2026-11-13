@@ -334,7 +334,6 @@ with respect to the image holder. This allows the validation menu to be placed o
   pointer-events: auto;
 }
 
-
 .card-validation-info {
   display: flex;
   align-items: center;

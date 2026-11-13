@@ -81,7 +81,29 @@ export class ReportPage {
     this.#wireSidewalkToggle();
     this.#wireColorBy();
     this.#wireWeights();
+    this.#wireStoryReadMore();
     this.#restoreScroll();
+  }
+
+  /** Gives each story clamped by its card's height a "Read more" toggle, so a long story keeps its row short. */
+  #wireStoryReadMore() {
+    const list = /** @type {?HTMLElement} */ (document.querySelector('.report-stories'));
+    if (!list) return;
+    for (const text of list.querySelectorAll('.report-story__text')) {
+      if (text.scrollHeight <= text.clientHeight + 1) continue;
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'report-story__read-more';
+      toggle.textContent = list.dataset.readMore ?? '';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.addEventListener('click', () => {
+        const expanded = text.classList.toggle('is-expanded');
+        toggle.textContent = (expanded ? list.dataset.readLess : list.dataset.readMore) ?? '';
+        toggle.setAttribute('aria-expanded', String(expanded));
+        this.#log(`Report_StoryReadMore_Expanded=${expanded}`);
+      });
+      text.after(toggle);
+    }
   }
 
   /** @returns {Promise<Record<string, any>>} `/v3/api/accessScoreConfig`'s answer, fetched once. */
@@ -252,6 +274,7 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Region`),
         onStreetHover: (streetId) => {
           lightRow(streetId);
           this.#regionMap?.lightStreet(streetId ?? selected);
@@ -308,6 +331,8 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         problems: this.#data.worst ?? [],
+        places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Worst`),
         onProblemHover: light,
         onProblemClick: (problem) => {
           this.#log(`Report_WorstMapClick_LabelType=${problem.labelType}`);

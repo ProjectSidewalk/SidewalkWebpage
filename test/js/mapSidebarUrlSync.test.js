@@ -38,6 +38,7 @@ function buildFixture() {
   const severityCells = [0, 1, 2, 3].map((severity) => `
         <div class="filter-sidebar__severity-cell">
           <button type="button" class="severity-button" data-severity="${severity}" aria-pressed="true">
+            <img class="severity-button__icon" data-selected-src="on.svg" data-unselected-src="off.svg" alt="">
             <span class="severity-button__label">sev ${severity}</span>
           </button>
         </div>`).join('');

@@ -58,13 +58,30 @@ function buildCard({ paging = true, asDialog = false } = {}) {
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           ${arrows}
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
@@ -174,6 +191,7 @@ function buildCard({ paging = true, asDialog = false } = {}) {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </${tag}>`;
   return document.getElementById('card');
@@ -342,6 +360,15 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(validations().map((v) => v.validation_result)).toEqual([result]);
     });
 
+    test('a key a page script sends to the document itself, with no element behind it, still votes', async () => {
+      await showLabel();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', bubbles: true, cancelable: true }));
+      await flush();
+
+      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+    });
+
     test('the key drives the card\'s own button, as a click a pointer did not make', async () => {
       // Going through the button rather than around it is what keeps one code path per action — the host's
       // handler and every disabled guard already on the control — and `detail: 0` is what still lets that
@@ -416,7 +443,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
       // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
       await showLabel();
-      nextArrow().disabled = true;
+      nextArrow().setAttribute('aria-disabled', 'true'); // How the hosts switch the arrows off (#5135).
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
@@ -678,13 +705,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
-      // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
-      // nothing else on the page can be typed at — the keys are still the card's.
+      // The comment Save disables while the next label's imagery loads, dropping focus to the body. The popup is
+      // modal, so the keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -700,7 +726,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
 
       press('KeyA');
       await flush();
@@ -720,8 +746,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
 
       // And the run continues: the next key still reaches the card.
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
       press('ArrowRight');
-      expect(nextArrow().disabled).toBe(false);
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {

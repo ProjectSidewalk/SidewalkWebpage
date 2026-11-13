@@ -11,7 +11,9 @@
     "location": "{{type}}: Foto anzeigen",
     "gesture-windows": "Strg + Scrollen zum Zoomen der Karte",
     "gesture-mac": "⌘ + Scrollen zum Zoomen der Karte",
-    "gesture-touch": "Karte mit zwei Fingern bewegen"
+    "gesture-touch": "Karte mit zwei Fingern bewegen",
+    "aligned": "Ausgerichtete Markierungen",
+    "aligned-note": "Jede Markierung auf ihrer Straßenseite, ungefähr an ihrer Stelle entlang der Straße: nicht am genauen Punkt."
   },
   "place": {
     "score": "Bewertung {{score}}",

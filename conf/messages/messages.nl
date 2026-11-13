@@ -75,6 +75,7 @@ city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Californië
 state.name.alaska = Alaska
@@ -86,6 +87,7 @@ country.name.new-zealand = Nieuw-Zeeland
 country.name.chile = Chili
 country.name.brazil = Brazilië
 country.name.france = Frankrijk
+country.name.belgium = België
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen
@@ -93,7 +95,7 @@ navbar.howto = Hoe te Labelen
 navbar.api = API
 navbar.about = Over ons
 navbar.tools = Hulpmiddelen
-navbar.labelmap = Label Kaart
+navbar.labelmap = Labelkaart
 navbar.accessscore = AccessScore
 navbar.leaderboard = Scoreboard
 navbar.stories = Verhalen
@@ -616,7 +618,7 @@ routebuilder.legend.pois = Nuttige plaatsen
 dashboard.routes.title = Mijn routes
 dashboard.routes.intro = Routes die je in RouteBuilder hebt gemaakt. Verken er een om erlangs te labelen, of deel de link met anderen.
 dashboard.routes.explore = Verkennen
-dashboard.routes.labelmap = Label Kaart
+dashboard.routes.labelmap = Labelkaart
 dashboard.routes.copy = Link kopiëren
 dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
@@ -664,7 +666,7 @@ share.meta.image.alt = Straatfoto met de gemarkeerde locatie: {0}
 
 # Openbare spotlight-/deelpagina voor een enkel label (#456).
 sharedlabel.nearby.title = Labels in de buurt
-sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie {0} voor de volledige kaart.
+sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie de {0} voor de volledige kaart.
 sharedlabel.view.this.label = Bekijk dit label
 sharedlabel.engage.title = Help stoepen in {0} te beoordelen
 sharedlabel.engage.explore = Vind toegankelijkheidsproblemen in {0}
@@ -939,6 +941,7 @@ error.home = Terug naar start
 
 # Buurtrapporten (#5876).
 report.seo.title = {0}: buurtrapport — Project Sidewalk
+report.tool.name = Rapporten
 report.eyebrow = Buurtrapport
 report.generated = Gegenereerd op {0}.
 report.latest.observation = Laatste label: {0}.
@@ -1096,3 +1099,7 @@ report.worst.lede = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoor
 report.worst.count.label = {0,choice,1#1 locatie|1<{0} locaties}: {1}. Bekijk de labels
 report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart. Zet "{0}" aan in de zijbalk om ze als stippellijnen op de andere kaarten te zien.
 report.toc.worst = Ergste problemen
+report.stories.title = Verhalen uit de community
+report.stories.rule = Verhalen die communityleden aan labels in deze buurt hebben toegevoegd, nieuwste eerst. Een verhaal is de ervaring van één persoon; het verandert geen enkel getal op deze pagina.
+report.stories.street = Naar deze straat
+report.stories.all = Alle verhalen uit de community lezen

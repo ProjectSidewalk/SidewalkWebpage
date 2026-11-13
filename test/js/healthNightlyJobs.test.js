@@ -155,6 +155,15 @@ describe('the nightly jobs panel', () => {
     expect(rows().map((r) => r[0])).toEqual(['Late', 'Mystery', 'Fine']);
   });
 
+  test('keeps two statuses it does not know in the server\'s order, both ahead of the rest', async () => {
+    await render([
+      job({ label: 'Fine', last_status: 'succeeded' }),
+      job({ label: 'Paused', last_status: 'paused' }),
+      job({ label: 'Quarantined', last_status: 'quarantined' }),
+    ]);
+    expect(rows().map((r) => r[0])).toEqual(['Paused', 'Quarantined', 'Fine']);
+  });
+
   test('shows a run its process died in as interrupted, in the bad tone, between abandoned and failed', async () => {
     await render([
       job({ label: 'Failed', last_status: 'failed' }),
@@ -557,6 +566,16 @@ describe('the table bloat panel', () => {
     const rows = [...document.querySelectorAll('#health-bloat tbody tr')];
     expect(rows.map((tr) => badgeTone(tr.cells[4]))).toEqual(['warn', 'bad', 'good', 'good', 'good']);
     expect(rows.map((tr) => tr.classList.contains('ac-row--flagged'))).toEqual([true, true, false, false, false]);
+  });
+
+  test('does not flag a high ratio that comes with no dead-row count', async () => {
+    await start(health({ table_bloat: [
+      { schema_name: 'sidewalk_seattle', rel_name: 'restored', live_tuples: 0, dead_tuples: null, dead_ratio: 0.9,
+        vacuum_age_seconds: 5 },
+    ] }));
+    const row = document.querySelector('#health-bloat tbody tr');
+    expect(badgeTone(row.cells[4])).toBe('good');
+    expect(row.classList.contains('ac-row--flagged')).toBe(false);
   });
 });
 

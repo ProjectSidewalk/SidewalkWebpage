@@ -132,20 +132,12 @@ export class Tracker {
     return this.#actions;
   }
 
+  /**
+   * @param {object} notes - The action's details.
+   * @returns {string} The details as the server stores them: `key:value` pairs, comma-separated.
+   */
   #notesToString(notes) {
-    if (!notes) {
-      return '';
-    }
-
-    let noteString = '';
-    for (const key in notes) {
-      if (noteString.length > 0) {
-        noteString += ',';
-      }
-      noteString += `${key}:${notes[key]}`;
-    }
-
-    return noteString;
+    return Object.entries(notes).map(([key, value]) => `${key}:${value}`).join(',');
   }
 
   /**

@@ -1,0 +1,61 @@
+@import models.report.{NeighborhoodReport, ReportLinks}
+@import views.html.apps.report as reportViews
+
+@*
+ * The lived-experience stories (#4054) on labels in this neighborhood (#5900), newest first. They follow the fixes as
+ * the human case beside the engineering one, and change no number. A photoless story shows the label's saved crop,
+ * never a billable Street View still. Rendered only when the region has one: no empty section to explain.
+ *
+ * @param report The computed report.
+ *@
+@(report: NeighborhoodReport)(using messages: Messages, assets: AssetsFinder)
+
+@dateLabel(dt: java.time.OffsetDateTime) = @{
+  dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    .withLocale(messages.lang.toLocale))
+}
+
+@if(report.stories.nonEmpty) {
+<section class="report-section report-stories-section" id="report-stories" aria-labelledby="report-stories-title">
+  <h2 class="report-section__title" id="report-stories-title">
+    @Messages("report.stories.title")
+    @reportViews.info(Messages("report.stories.rule"))
+  </h2>
+  <ol class="report-stories" data-read-more="@Messages("stories.page.read.more")" data-read-less="@Messages("stories.page.read.less")">
+    @for(story <- report.stories) {
+      <li class="report-story" data-story-id="@story.storyId">
+        @story.media.map { m =>
+          <img class="report-story__photo" src="@m.url" loading="lazy"
+               alt="@m.altText.getOrElse(Messages("stories.page.photo.alt"))">
+        }
+        @if(story.media.isEmpty) {
+          @story.labelImageUrl.map { url =>
+            <img class="report-story__photo" src="@url" loading="lazy"
+                 alt="@Messages("stories.page.label.image.alt", Messages(story.labelType.nameKey))">
+          }
+        }
+        <div class="report-story__body">
+          <blockquote class="report-story__text">@story.storyText</blockquote>
+          <p class="report-story__byline">
+            <img class="report-story__byline-icon" src='@assets.path("images/icons/user-feather.svg")' alt="">
+            <span class="report-story__author">@story.displayName.getOrElse(Messages("stories.page.anonymous"))</span>
+            ·
+            <time datetime="@story.createdAt.toInstant.toString">@dateLabel(story.createdAt)</time>
+          </p>
+          <p class="report-story__foot">
+            <span class="report-story__type">
+              <img src='@assets.path(story.labelType.smallIconSvgPath)' alt="" width="16" height="16">
+              @Messages(story.labelType.nameKey)
+            </span>
+            @report.sectionFor(story.labelId, story.streetEdgeId).map { anchor =>
+              <a class="report-story__street" href="#@anchor" data-report-event="Report_OpenStreet">@Messages("report.stories.street")</a>
+            }
+            <a class="report-story__label" href="@ReportLinks.story(story.labelId, story.storyId)" target="_blank" rel="noopener" data-report-event="Report_OpenStory">@Messages("stories.page.view.label")<span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span></a>
+          </p>
+        </div>
+      </li>
+    }
+  </ol>
+  <p class="report-stories__all"><a href="@ReportLinks.stories" data-report-event="Report_OpenStories">@Messages("report.stories.all")</a></p>
+</section>
+}

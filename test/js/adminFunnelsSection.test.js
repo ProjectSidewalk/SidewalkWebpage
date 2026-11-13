@@ -128,6 +128,17 @@ describe('the funnels', () => {
     expect(steps(0)[1]).toEqual({ label: 'shared_a_photo', bars: ['4 · 40%'] });
   });
 
+  test('draw a segment the server left out as zero, and a funnel with no steps as an empty block', async () => {
+    const partial = { ...CONTRIBUTION.segments };
+    delete partial.device_unknown;
+    await load({ '30d': answer('30d', { mapping: {}, contribution: { ...CONTRIBUTION, segments: partial } }) });
+    expect(titles()).toEqual(['Mapping funnel', 'Contribution funnel']);
+    expect(steps(0)).toEqual([]);
+
+    document.querySelector('[data-dim="device"]').click();
+    expect(steps(1)[1].bars).toEqual(['180 · 36%', '20 · 7%', '0 · 0%']);
+  });
+
   test('leave the date off when the server has none', async () => {
     await load({ '30d': { ...answer('30d'), computed_at: null } });
     expect(status()).toBe('');

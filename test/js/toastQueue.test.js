@@ -87,6 +87,16 @@ describe('Toast queueing', () => {
     expect(mountedMessages()).toEqual(['third']);
   });
 
+  it('frees the anchor once the live toast goes when the only one waiting was dismissed first', () => {
+    Toast.show({ message: 'first', reference: anchorA, duration: 1000 });
+    Toast.show({ message: 'cancelled', reference: anchorA, duration: 1000 }).dismiss();
+    elapse(1000);
+
+    expect(mounted()).toHaveLength(0);
+    Toast.show({ message: 'later', reference: anchorA, duration: 1000 });
+    expect(mountedMessages()).toEqual(['later']);
+  });
+
   it('releases the anchor when the only toast is dismissed early', () => {
     const first = Toast.show({ message: 'first', reference: anchorA, duration: 0 });
     first.dismiss();

@@ -222,7 +222,7 @@ class AccessScoreTeaneckSnapshotSpec extends AnyFunSuite with Matchers {
       withNoSidewalk.collect { case (_, cs) if p(cs) => AccessScoreCalculator.scoreStreet(cs) }
 
     val noSidewalks = group(cs => pooledShare(cs, "street has no sidewalks") >= threshold)
-    val otherSide   = group(cs => pooledShare(cs, "street has a sidewalk") >= threshold)
+    val otherSide   = group(cs => pooledShare(cs, "other side has a sidewalk") >= threshold)
     val untagged    = group(cs => noSidewalkClusters(cs).forall(_.tagCounts.isEmpty))
 
     noSidewalks.size should be >= 40

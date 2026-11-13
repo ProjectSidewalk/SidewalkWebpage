@@ -137,7 +137,6 @@
     "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
   },
   "right-ui": {
-    "opens-new-tab": "(se abre en una pestaña nueva)",
     "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
@@ -192,7 +191,6 @@
       "mission-progress": "Progreso de la misión",
       "legend-explored": "Explorado",
       "legend-ahead": "Ruta pendiente",
-      "legend-jump": "Salto a la siguiente calle",
       "legend-you": "Usted + dirección de vista",
       "legend-crumbs": "Círculos: lugares a los que puede ir con un clic",
       "legend-unseen": "Aún sin ver",
@@ -279,7 +277,7 @@
         "sand-gravel": "barro/arena/gra<tag-underline>v</tag-underline>a",
         "uncovered-manhole": "r<tag-underline>e</tag-underline>gistro sin tapa",
         "ends-abruptly": "termina <tag-underline>a</tag-underline>bruptamente",
-        "street-has-a-sidewalk": "la calle tiene una banqueta (<tag-underline>r</tag-underline>)",
+        "other-side-has-a-sidewalk": "el ot<tag-underline>r</tag-underline>o lado tiene una banqueta",
         "street-has-no-sidewalks": "la calle no <tag-underline>t</tag-underline>iene banquetas",
         "gravel-dirt-road": "camino <tag-underline>d</tag-underline>e tierra",
         "shared-pedestrian-car-space": "plataforma única (<tag-underline>e</tag-underline>)",

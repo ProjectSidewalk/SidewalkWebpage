@@ -123,6 +123,24 @@ describe('Compass', () => {
       listeners.headingSettled();
       expect(message.textContent).toContain('center-ui.compass.left');
     });
+
+    test('mid-move the message holds, since the street\'s progress lags the new position (#5918)', () => {
+      listeners.povChanged();
+      nav.moving = true;
+      task.headingAlongRoute.mockReturnValue(180);
+      listeners.povChanged();
+      expect(message.textContent).toContain('center-ui.compass.straight');
+
+      nav.moving = false;
+      listeners.headingSettled();
+      expect(message.textContent).toContain('center-ui.compass.u-turn');
+    });
+  });
+
+  test('a move that fails redraws the message, as no landing is coming to', () => {
+    task.headingAlongRoute.mockReturnValue(180);
+    listeners.moveFinished();
+    expect(message.textContent).toContain('center-ui.compass.u-turn');
   });
 
   describe('off the route', () => {

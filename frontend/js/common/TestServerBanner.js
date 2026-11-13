@@ -29,7 +29,7 @@ export class TestServerBanner {
     // The view's inline script already did this before first paint; repeated for a page without it (jsdom).
     if (this.#dismissedForever()) this.#banner.classList.add('ps-hidden');
 
-    this.#banner.querySelector('.test-server-banner-dont-show-again')?.addEventListener('click', () => {
+    this.#banner.querySelector('.test-server-banner-dont-show-again').addEventListener('click', () => {
       try {
         window.localStorage.setItem(this.#storageKey, 'true');
       } catch {
@@ -38,7 +38,7 @@ export class TestServerBanner {
       this.hide();
     });
 
-    this.#banner.querySelector('.test-server-banner-close')?.addEventListener('click', () => this.hide());
+    this.#banner.querySelector('.test-server-banner-close').addEventListener('click', () => this.hide());
 
     // Measure now, then again whenever the banner may reflow (fonts finish loading, text wraps at a new width).
     this.updateHeight();

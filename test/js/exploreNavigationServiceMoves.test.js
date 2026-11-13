@@ -45,8 +45,11 @@ describe('NavigationService', () => {
       setPov: vi.fn(),
     });
     panoStore = { getPanoData: (panoId) => ({ panoId }) };
-    streetSweep = { sweep: vi.fn(() => Promise.resolve({ outcome: 'landed', panoId: 'pano-next' })) };
-    navArrows = { show: vi.fn(), hide: vi.fn(), reset: vi.fn() };
+    streetSweep = {
+      sweep: vi.fn(() => Promise.resolve({ outcome: 'landed', panoId: 'pano-next' })),
+      stepAlongStreet: vi.fn(() => Promise.resolve('pano-next')),
+    };
+    navArrows = { show: vi.fn(), hide: vi.fn(), reset: vi.fn(), streetWalkToward: vi.fn(() => null) };
     keyboardLock = fakeGate();
     alertController = { showAlert: vi.fn() };
     mode = 'Walk';
@@ -120,6 +123,32 @@ describe('NavigationService', () => {
       vi.advanceTimersByTime(80);
       expect(settled).toHaveBeenCalledTimes(1);
       expect(settlingWhenTold).toBe(false);
+    });
+
+    test('a heading that pauses mid-turn and then moves on is settled again where it stops', () => {
+      const headings = [];
+      settled.mockImplementation(() => headings.push(viewer.heading));
+      viewer.heading = 150;
+      vi.advanceTimersByTime(240);
+      expect(headings).toEqual([150]);
+
+      viewer.heading = 320;
+      vi.advanceTimersByTime(240);
+      expect(headings).toEqual([150, 320]);
+
+      // Nothing more once it stays put, or after the time limit.
+      vi.advanceTimersByTime(3000);
+      expect(headings).toEqual([150, 320]);
+    });
+
+    test('a heading that only drifts a hair after settling is not settled again', () => {
+      viewer.heading = 150;
+      vi.advanceTimersByTime(240);
+      for (let tick = 0; tick < 12; tick++) {
+        viewer.heading += 0.03;
+        vi.advanceTimersByTime(80);
+      }
+      expect(settled).toHaveBeenCalledTimes(1);
     });
 
     test('a heading that never settles is let go after a second and a half', () => {
@@ -287,6 +316,66 @@ describe('NavigationService', () => {
       streetSweep.sweep.mockResolvedValueOnce({ outcome: 'walkedOut' });
       await expect(nav.moveForward()).resolves.toBeNull();
       expect(landed).toHaveBeenCalledTimes(1);
+    });
+
+    test('free exploration\'s step either way lands as a move, and says which pano', async () => {
+      const landed = vi.fn();
+      nav.onLanded(landed);
+      await expect(nav.moveAlongStreet(false)).resolves.toBe('pano-next');
+      expect(streetSweep.stepAlongStreet).toHaveBeenCalledWith(false);
+      expect(landed).toHaveBeenCalledTimes(1);
+    });
+
+    test('a step that finds nothing hands the controls back without a landing', async () => {
+      const landed = vi.fn();
+      nav.onLanded(landed);
+      streetSweep.stepAlongStreet.mockResolvedValueOnce(null);
+      await expect(nav.moveAlongStreet(true)).resolves.toBeNull();
+      expect(landed).not.toHaveBeenCalled();
+      expect(nav.canWalk()).toBe(true);
+      expect(keyboardLock.release).toHaveBeenCalledWith('move');
+    });
+
+    test('a step that throws hands the controls back and rethrows', async () => {
+      streetSweep.stepAlongStreet.mockRejectedValueOnce(new Error('provider down'));
+      await expect(nav.moveAlongStreet(true)).rejects.toThrow('provider down');
+      expect(nav.canWalk()).toBe(true);
+    });
+
+    test('an arrow key takes a link where one lies that way, and never asks about the street', async () => {
+      viewer.links = [{ panoId: 'pano-north', heading: 0 }];
+      viewer.heading = 0;
+      await expect(nav.moveByArrowKey(0)).resolves.toEqual({ moved: true, streetWalkToward: null });
+      expect(navArrows.streetWalkToward).not.toHaveBeenCalled();
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
+    });
+
+    test('with no link that way an arrow key takes the street arrow nearest it', async () => {
+      viewer.links = [];
+      viewer.heading = 30;
+      navArrows.streetWalkToward.mockReturnValue(false);
+      await expect(nav.moveByArrowKey(180)).resolves.toEqual({ moved: true, streetWalkToward: false });
+      expect(navArrows.streetWalkToward).toHaveBeenCalledWith(210);
+      expect(streetSweep.stepAlongStreet).toHaveBeenCalledWith(false);
+    });
+
+    test('a held arrow key takes no street arrow, so a dead end is not searched over and over', async () => {
+      viewer.links = [];
+      navArrows.streetWalkToward.mockReturnValue(true);
+      await expect(nav.moveByArrowKey(0, true)).resolves.toEqual({ moved: false, streetWalkToward: null });
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
+    });
+
+    test('with neither a link nor a street arrow that way an arrow key goes nowhere', async () => {
+      viewer.links = [];
+      await expect(nav.moveByArrowKey(0)).resolves.toEqual({ moved: false, streetWalkToward: null });
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
+    });
+
+    test('a step is refused while walking is held', async () => {
+      nav.walking.hold('popup');
+      await expect(nav.moveAlongStreet(true)).resolves.toBeUndefined();
+      expect(streetSweep.stepAlongStreet).not.toHaveBeenCalled();
     });
 
     test('to the next street, a switch that throws unlocks everything and rethrows', async () => {

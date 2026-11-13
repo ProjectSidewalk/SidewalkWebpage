@@ -36,9 +36,19 @@ async function loadPopupPanoManager() {
   return (await loadModules('frontend/js/common/label-detail/PopupPanoManager.js')).PopupPanoManager;
 }
 
-/** Builds a manager the way LabelDetail does, with a viewer type whose create() returns `viewer`. */
+/**
+ * Builds a manager the way LabelDetail does, with a viewer type whose create() returns `viewer`.
+ * @param {Function} PopupPanoManager - The class, freshly loaded.
+ * @param {object} viewer - What the viewer type builds.
+ * @returns {{manager: Promise<object>, viewerType: object}}
+ */
 function createManager(PopupPanoManager, viewer) {
-  document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
+  document.body.innerHTML = `
+    <div class="label-detail__pano-wrap">
+      <div id="sv-holder"></div>
+      <div class="label-detail__pano-loading" hidden></div>
+    </div>
+    <div id="button-holder"></div>`;
   const viewerType = { create: vi.fn(() => Promise.resolve(viewer)), preloadLibrary: () => Promise.resolve() };
   const manager = PopupPanoManager.create(
     document.getElementById('sv-holder'), document.getElementById('button-holder'), false, viewerType, 'token',
@@ -190,6 +200,11 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
     const viewer = fakeViewer(zoom);
     const { manager: created } = createManager(PopupPanoManager, viewer);
     const manager = await created;
+    // LabelDetail hands over the label before it asks for the imagery.
+    manager.setLabel({
+      labelId: 1, label_type: 'CurbRamp', canvasX: 360, canvasY: 240, originalCanvasWidth: 720,
+      originalCanvasHeight: 480, pov: { heading: 10, pitch: 0, zoom }, streetEdgeId: 5, aiGenerated: false,
+    });
     const shown = manager.setPano('pano-1', { heading: 10, pitch: 0, zoom }, null);
     await vi.runAllTimersAsync();
     await shown;
@@ -270,6 +285,14 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
     expect(manager.zoomOut()).toBe(false);
     expect(manager.zoomIn()).toBe(true);
     expect(viewer.getPov().zoom).toBe(1);
+  });
+
+  it('does nothing while the live viewer has no view to report', async () => {
+    const { manager, viewer } = await liveManager(2);
+    viewer.getPov = () => null;
+    expect(manager.zoomIn()).toBe(false);
+    expect(manager.zoomOut()).toBe(false);
+    expect(viewer.setPov).not.toHaveBeenCalled();
   });
 
   it('does nothing over the crop fallback, though the hidden live viewer is still there', async () => {
