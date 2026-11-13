@@ -2,10 +2,11 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.{AggregateStats, DailyLabelStat, DailyStatRecord, DailyValidationStat, LabelTypeStats}
+import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api.given
 import models.utils.*
+import org.apache.pekko.stream.Materializer
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
@@ -151,6 +152,14 @@ object CommonPageData {
  * @param kmExploredNoOverlap Kilometers of distinct streets with a completed audit task.
  */
 case class CityImpact(contributors: Int, totalLabels: Int, totalValidations: Int, kmExploredNoOverlap: Double)
+
+/**
+ * One cross-schema fan-out's output: the summed cross-city totals plus each city's own slice, keyed by city id.
+ *
+ * Cached as a unit so the Leaderboard's city hero and its community band come from the same computation, which is
+ * what guarantees every hero number is a strict subset of its cross-city counterpart (#4687).
+ */
+private[service] case class AggregateStatsBundle(overall: AggregateStats, byCity: Map[String, CityImpact])
 
 /**
  * One week's contribution volume for a city, for the Across Cities activity trends (#4329).
@@ -699,11 +708,44 @@ object ConfigService {
     else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
   }
 
+  /**
+   * Cache key of the cross-city totals bundle. It names the value's shape because [[SwrCache]] reads the cached value
+   * as `Timestamped[T]` and `T` erases, so nothing would catch a differently-shaped value stored under the same key.
+   */
+  val AggregateStatsCacheKey: String = "getAggregateStats:v2-bundle"
+
   /** Cached aggregate stats older than this trigger a background recompute when served (#4600). */
   val AggregateStatsFreshFor: FiniteDuration = Duration(5, "minutes")
 
-  /** How long cached aggregate stats may be served at all; past this, a request blocks on recomputing them. */
-  val AggregateStatsMaxAge: FiniteDuration = Duration(24, "hours")
+  /**
+   * How long cached aggregate stats may be served at all; past this, a request blocks on recomputing them.
+   *
+   * Long because the value is only ever replaced by a complete recompute (#5977): every serve past
+   * [[AggregateStatsFreshFor]] starts one, so this bound only matters while refreshes keep failing. These totals only
+   * grow, so a days-old complete value is off by a fraction of a percent, which is better than no numbers.
+   */
+  val AggregateStatsMaxAge: FiniteDuration = Duration(7, "days")
+
+  /**
+   * How long a Leaderboard load waits for the cross-city totals when nothing is cached (#5977).
+   *
+   * Only the first load after a JVM start finds the cache empty, and the bounded fan-out behind it can take longer than
+   * a page should wait. Past this the page renders without its cross-city band, and the compute keeps running to fill
+   * the cache for the next visitor.
+   */
+  val AggregateStatsColdWait: FiniteDuration = Duration(5, "seconds")
+
+  /**
+   * How many cities a cross-city fan-out queries at once (#5977).
+   *
+   * Each city's unit runs up to two queries, so this keeps a refresh to about a dozen of the pool's 25 connections,
+   * leaving the rest to Explore and Validate. It also limits how many new connections ~60 JVMs open on the shared
+   * Postgres at the moment their refreshes coincide.
+   */
+  val CrossCityParallelism: Int = 6
+
+  /** How long a city's failed query waits before its single retry in a cross-city fan-out (#5977). */
+  val CrossCityRetryDelay: FiniteDuration = Duration(1, "second")
 
   /** A city with activity within this many days is "active". */
   val ActiveWithinDays: Long = 30
@@ -1386,9 +1428,11 @@ trait ConfigService {
    *
    * Fetches statistics from all configured cities by querying their respective db schemas and aggregating the results.
    * Results are cached and may lag reality by roughly [[ConfigService.AggregateStatsFreshFor]]; stale data is served
-   * immediately while a background recompute refreshes it (#4600).
+   * immediately while a background recompute refreshes it (#4600). A recompute replaces the cached value only when
+   * every available city answered, so the totals are never a silent partial sum (#5977).
    *
-   * @return A Future containing aggregated statistics across all cities
+   * @return A Future containing aggregated statistics across all cities; failed when no complete value is cached and
+   *         the compute failed.
    */
   def getAggregateStats(): Future[AggregateStats]
 
@@ -1399,19 +1443,22 @@ trait ConfigService {
    * the totals summarize — not of a neighbouring one a background refresh landed in between. Costs no queries beyond
    * what [[getAggregateStats]] already runs, and carries the same staleness.
    *
-   * @return The cross-city aggregate, and this city's totals — None if its schema is unavailable or either of its
-   *         queries failed, in which case the caller should hide the band rather than render zeros.
+   * Never fails and never makes the page wait for a cold compute: when nothing complete is cached and the compute
+   * fails or outlasts [[ConfigService.AggregateStatsColdWait]], it returns None so the page renders without the bands
+   * instead of returning a 500 (#5977).
+   *
+   * @return The cross-city aggregate and this city's totals (None if this city's schema can't answer the queries),
+   *         or None when no complete aggregate is available yet.
    */
-  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])]
+  def getAggregateStatsWithCurrentCity(): Future[Option[(AggregateStats, Option[CityImpact])]]
 
   /**
    * Returns daily label and validation counts aggregated across all configured cities.
    *
-   * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
-   * Cities whose schemas do not exist in the current environment are silently skipped (same
-   * guard as getAggregateStats). The full-range result is cached like
-   * getAggregateStats (stale data served immediately, background refresh — #4600), and the
-   * requested date window is sliced from the cached per-day rows.
+   * Queries each city schema and sums counts by (date, labelType) across cities. Cities whose schemas do not exist in
+   * the current environment are skipped, and a city lost to a failed query fails the compute rather than shrinking the
+   * sums (same rules as getAggregateStats, #5977). The full-range result is cached like getAggregateStats (stale data
+   * served immediately, background refresh — #4600), and the requested date window is sliced from the cached rows.
    *
    * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
    * @param endDate          Inclusive end date; no upper bound if None.
@@ -1467,7 +1514,7 @@ class ConfigServiceImpl @Inject() (
     panoDataService: PanoDataService,
     swrCache: SwrCache,
     assetManifestService: AssetManifestService
-)(using val ec: ExecutionContext)
+)(using val ec: ExecutionContext, mat: Materializer)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
@@ -1708,29 +1755,81 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Resolves which configured cities actually exist in this database, for the cross-city fan-out queries.
+   * The schemas this deployment's database role can read (#5977).
    *
-   * A city whose schema-existence check fails or throws is treated as unavailable rather than failing the whole
-   * fan-out — this is what lets a localhost DB holding a handful of schemas serve pages that fan out over the full
-   * configured city list.
+   * One query for every city rather than a probe per city, so there is one place for it to fail and the failure is the
+   * caller's. `information_schema.schemata` lists only schemas the role holds a privilege on; `pg_namespace` would also
+   * list the ones it can't read, and every fan-out that included them would fail.
    *
-   * @param excludeStaging Whether to drop the "staging" pseudo-city (not a real deployment, as in
-   *                       CitiesApiController); every caller except the public aggregate stats does.
-   * @return               City ids from city-params.city-ids whose schema exists, in configured order.
+   * @return The readable schema names.
    */
-  private def availableCityIds(excludeStaging: Boolean = true): Future[Seq[String]] = {
-    val allCityIds        = config.get[Seq[String]]("city-params.city-ids")
-    val configuredCityIds = if (excludeStaging) allCityIds.filter(_ != "staging") else allCityIds
+  protected def readableSchemas(): Future[Set[String]] =
+    db.run(sql"SELECT schema_name FROM information_schema.schemata".as[String]).map(_.toSet)
 
-    val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-      try {
-        checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
-      } catch {
-        case _: Exception => Future.successful(cityId -> false)
+  /**
+   * Resolves which configured cities have a readable schema in this database, for the cross-city fan-out queries.
+   *
+   * A schema that is simply absent is skipped, which is what lets a localhost DB holding a handful of schemas serve
+   * pages that fan out over the full configured city list. A failure to read the schema list fails the call instead
+   * of reading as "no cities", so a cached cross-city value is never replaced by one built on a partial list (#5977).
+   *
+   * Each schema is listed once, under the first city configured with it: "staging" is not a real deployment and
+   * reuses zurich's schema, and counting a schema twice would double its numbers in any cross-city sum.
+   *
+   * @return City ids from city-params.city-ids whose schema is readable, in configured order, one per schema.
+   */
+  private def availableCityIds(): Future[Seq[String]] = {
+    val configured: Seq[(String, String)] = config
+      .get[Seq[String]]("city-params.city-ids")
+      .filter(_ != "staging")
+      .flatMap { cityId =>
+        try { Some(cityId -> getCitySchema(cityId)) }
+        catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
       }
+    readableSchemas().map { readable =>
+      configured
+        .filter { case (_, schema) => readable.contains(schema) }
+        .distinctBy { case (_, schema) => schema }
+        .map { case (cityId, _) => cityId }
     }
-    Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
+
+  /**
+   * Runs `query` for every available city through [[BoundedCityFanOut]], for a cross-city value that must be complete.
+   *
+   * Cities whose schema can't answer this query yet are left out with a warning, and the caller counts only the
+   * cities in the result. The exception is this deployment's own schema: the app applies its own evolutions on start,
+   * so a shape error there means the query itself is wrong, and that fails the call rather than producing a total
+   * that silently leaves every city out.
+   *
+   * @param label Human-readable name of the value, for the warning.
+   * @param query One city's query, given the city id and its schema.
+   * @return      Each answering city's result in configured order, or the failure that lost the total.
+   */
+  private def fanOutAcrossCities[A](label: String)(query: (String, String) => Future[A]): Future[Seq[(String, A)]] =
+    availableCityIds().flatMap { cityIds =>
+      BoundedCityFanOut
+        .run(cityIds, ConfigService.CrossCityParallelism, ConfigService.CrossCityRetryDelay) { cityId =>
+          query(cityId, getCitySchema(cityId))
+        }
+        .flatMap { case FanOutResult(results, notReady) =>
+          // Compared by schema, since the staging deployment's own city id is never in the list but its schema is.
+          val ownSchema = getCitySchema(getCityId)
+          notReady.find { case (cityId, _) => getCitySchema(cityId) == ownSchema } match {
+            case Some((_, error)) =>
+              Future.failed(IllegalStateException(s"Cross-city $label query failed on this city's own schema", error))
+            case None =>
+              if (notReady.nonEmpty) {
+                logger.warn(
+                  s"Cross-city $label leaving out ${notReady.size} city schema(s) that can't answer it yet " +
+                    s"(evolutions likely not yet applied there): " +
+                    notReady.map { case (cityId, e) => s"$cityId (${e.getMessage})" }.mkString("; ")
+                )
+              }
+              Future.successful(results)
+          }
+        }
+    }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
     swrCache.staleWhileRevalidate[Seq[CityScorecardWithFlags]](
@@ -1943,19 +2042,13 @@ class ConfigServiceImpl @Inject() (
         ConfigService.CrossCityFreshFor,
         ConfigService.CrossCityMaxAge
       ) {
-        availableCityIds().flatMap { availableCities =>
-          // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
-          // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
-          val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
-            val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-            idsF.failed.foreach(e =>
-              logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-            )
-            idsF
-          }
-          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            ConfigService.contributorCounts(perCity, aiIds.toSet)
-          }
+        // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
+        // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+        val perCityF = fanOutAcrossCities("contributor counts") { (_, schema) =>
+          db.run(configTable.getContributorUserIdsBySchema(schema))
+        }
+        perCityF.zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+          ConfigService.contributorCounts(perCity.map { case (_, ids) => ids }, aiIds.toSet)
         }
       }
       .map(Option(_))
@@ -2062,18 +2155,22 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  /**
-   * One cross-schema fan-out's output: the summed cross-city totals plus each city's own slice, keyed by city id.
-   *
-   * Cached as a unit so the Leaderboard's city hero and its community band come from the same computation, which is
-   * what guarantees every hero number is a strict subset of its cross-city counterpart (#4687).
-   */
-  private case class AggregateStatsBundle(overall: AggregateStats, byCity: Map[String, CityImpact])
-
   def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
 
-  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])] =
-    aggregateStatsBundle().map(bundle => (bundle.overall, bundle.byCity.get(getCityId)))
+  def getAggregateStatsWithCurrentCity(): Future[Option[(AggregateStats, Option[CityImpact])]] =
+    swrCache
+      .staleWhileRevalidateWithin(
+        ConfigService.AggregateStatsCacheKey,
+        ConfigService.AggregateStatsFreshFor,
+        ConfigService.AggregateStatsMaxAge,
+        ConfigService.AggregateStatsColdWait
+      )(computeAggregateStats())
+      .map(_.map(bundle => (bundle.overall, bundle.byCity.get(getCityId))))
+      .recover { case e: Exception =>
+        // SwrCache has already logged the compute's failure; this only notes what the page does about it.
+        logger.debug(s"Cross-city totals unavailable for the Leaderboard; omitting its bands: ${e.getMessage}")
+        None
+      }
 
   /**
    * The cached cross-schema fan-out that backs [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
@@ -2084,15 +2181,11 @@ class ConfigServiceImpl @Inject() (
    * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
    * after a JVM start (nothing cached yet) waits for the full computation.
    *
-   * The cache key names the value's shape because [[SwrCache.staleWhileRevalidate]] reads the cached value as
-   * `Timestamped[T]` and `T` erases, so nothing would catch a differently-shaped value stored under the same key by
-   * other code.
-   *
    * @return A Future containing the cross-city totals plus each city's own slice of them
    */
   private def aggregateStatsBundle(): Future[AggregateStatsBundle] =
     swrCache.staleWhileRevalidate(
-      "getAggregateStats:v2-bundle",
+      ConfigService.AggregateStatsCacheKey,
       ConfigService.AggregateStatsFreshFor,
       ConfigService.AggregateStatsMaxAge
     )(computeAggregateStats())
@@ -2100,87 +2193,40 @@ class ConfigServiceImpl @Inject() (
   /**
    * Runs the full cross-schema fan-out that computes aggregate statistics.
    *
-   * Uses direct database queries with cross-schema access to gather only the essential statistics from all configured
-   * cities. Filters out cities whose schemas don't exist in the current environment (so plays nice with localhost dev
-   * setups). Additionally, calculates deployment counts for cities, countries, and supported languages.
+   * All or nothing (#5977): every available city's totals and contributor ids, or a failure. A partial sum would be
+   * cached as if it were the real total, so a lost city fails the compute and [[SwrCache]] keeps serving the last
+   * complete value. A city whose schema can't answer these queries yet is left out deliberately, and `numCities` and
+   * `numCountries` count only the cities that were summed, so the result is always a consistent subset.
    *
    * @return A Future containing freshly computed aggregate statistics across all cities, plus the per-city slices
    */
-  private def computeAggregateStats(): Future[AggregateStatsBundle] = {
-    // The public aggregate counts every schema that exists, staging included.
-    availableCityIds(excludeStaging = false).flatMap { availableCities =>
-      if (availableCities.isEmpty) {
-        logger.warn("No cities with valid schemas found")
-        Future.successful(AggregateStatsBundle(emptyAggregateStats(0, 0, 0), Map.empty))
-      } else {
-        // Calculate deployment statistics.
-        val numCities    = availableCities.length
-        val numCountries = calculateNumCountries(availableCities)
-        val numLanguages = calculateNumLanguages()
+  private[service] def computeAggregateStats(): Future[AggregateStatsBundle] = {
+    // Both of a city's queries form one unit, so a city is either fully in the totals or (not ready) fully out.
+    fanOutAcrossCities("aggregate stats") { (_, schema) =>
+      db.run(configTable.getCityAggregateDataBySchema(schema))
+        .zip(db.run(configTable.getContributorUserIdsBySchema(schema)))
+    }.map { perCity =>
+      val cityIds = perCity.map { case (cityId, _) => cityId }
 
-        // Fetch essential statistics from available cities in parallel, tagged by city so the per-city slices the
-        // hero band needs survive the roll-up instead of being summed away (#4687).
-        val cityStatsFutures: Seq[Future[(String, Option[AggregateStats])]] = availableCities.map { cityId =>
-          getCityAggregateData(cityId).map(cityId -> _)
-        }
+      // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
+      // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
+      val totalUsers: Int = perCity.iterator.flatMap { case (_, (_, ids)) => ids }.toSet.size
 
-        // Contributor ids per live city. `None` marks a failed query, distinct from a city that genuinely has no
-        // contributors: a failure must drop that city from `byCity` entirely rather than publish a zero next to a
-        // six-figure label count, while both cases contribute nothing to the cross-city union.
-        val contributorIdsFut: Future[Seq[(String, Option[Set[String]])]] = Future.sequence(
-          availableCities.map { cityId =>
-            db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-              .map(ids => cityId -> Option(ids.toSet))
-              .recover { case e: Exception =>
-                logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-                cityId -> None
-              }
-          }
-        )
+      // Each city's own slice of the totals, so the Leaderboard's hero band survives the roll-up (#4687).
+      val byCity: Map[String, CityImpact] = perCity.map { case (cityId, (stats, ids)) =>
+        cityId -> CityImpact(ids.distinct.size, stats.totalLabels, stats.totalValidations, stats.kmExploredNoOverlap)
+      }.toMap
 
-        // Wait for all futures to complete and aggregate results.
-        Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
-          // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
-          // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
-          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
-
-          // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
-          val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
-            cityId -> ids.size
-          }.toMap
-          val byCity: Map[String, CityImpact] = cityStats.collect {
-            case (cityId, Some(stats)) if contributorCounts.contains(cityId) =>
-              cityId -> CityImpact(
-                contributorCounts(cityId),
-                stats.totalLabels,
-                stats.totalValidations,
-                stats.kmExploredNoOverlap
-              )
-          }.toMap
-
-          // Filter out failed requests and aggregate the successful ones.
-          val validCityStats = cityStats.flatMap { case (_, stats) => stats }
-
-          if (validCityStats.isEmpty) {
-            logger.warn("No valid city statistics found for aggregate calculation")
-            // Return empty aggregate stats if no cities provided data.
-            AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
-          } else {
-            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, totalUsers)
-            AggregateStatsBundle(overall, byCity)
-          }
-        }
-      }
+      val overall = aggregateCityData(
+        perCity.map { case (_, (stats, _)) => stats },
+        numCities = cityIds.size,
+        numCountries = calculateNumCountries(cityIds),
+        numLanguages = calculateNumLanguages(),
+        totalUsers = totalUsers
+      )
+      AggregateStatsBundle(overall, byCity)
     }
   }
-
-  /** Zeroed totals for the two paths where no city produced data, carrying whatever deployment counts are known. */
-  private def emptyAggregateStats(numCities: Int, numCountries: Int, numLanguages: Int): AggregateStats =
-    AggregateStats(
-      kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-      totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
-      byLabelType = Map.empty
-    )
 
   def getAggregateStatsByDay(
       startDate: Option[LocalDate],
@@ -2206,112 +2252,38 @@ class ConfigServiceImpl @Inject() (
   /**
    * Runs the full cross-schema fan-out that computes daily stats over the entire date range.
    *
-   * Queries each city schema in parallel and sums counts by (date, labelType) across cities. Cities whose schemas do
-   * not exist in the current environment are silently skipped (same guard as computeAggregateStats).
+   * Sums counts by (date, labelType) across cities. All or nothing, like [[computeAggregateStats]] and for the same
+   * reason (#5977): a city lost to a transient failure fails the compute, so the last complete series stays cached.
    *
    * @param filterLowQuality If true, restrict to high-quality users.
    * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities.
    */
-  private def computeAggregateStatsByDay(filterLowQuality: Boolean): Future[Seq[DailyStatRecord]] = {
-    val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
-
-    val schemaChecks = configuredCityIds.map { cityId =>
-      try {
-        val schema = getCitySchema(cityId)
-        checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
-      } catch {
-        case _: Exception => Future.successful(cityId -> false)
-      }
-    }
-
-    Future.sequence(schemaChecks).flatMap { results =>
-      val availableCities = results.collect { case (cityId, true) => cityId }
-
-      if (availableCities.isEmpty) {
-        Future.successful(Seq.empty)
-      } else {
-        val cityDataFutures = availableCities.map { cityId =>
-          val schema       = getCitySchema(cityId)
-          val labelsFuture = db
-            .run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
-            .recover { case e: Exception =>
-              logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
-              Seq.empty[DailyLabelStat]
-            }
-          val valsFuture = db
-            .run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality))
-            .recover { case e: Exception =>
-              logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
-              Seq.empty[DailyValidationStat]
-            }
-          for {
-            labels      <- labelsFuture
-            validations <- valsFuture
-          } yield DailyStatRecord.merge(labels, validations)
+  private[service] def computeAggregateStatsByDay(filterLowQuality: Boolean): Future[Seq[DailyStatRecord]] = {
+    fanOutAcrossCities("daily stats") { (_, schema) =>
+      db.run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
+        .zip(db.run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality)))
+        .map { case (labels, validations) => DailyStatRecord.merge(labels, validations) }
+    }.map { perCity =>
+      // Sum all numeric fields across cities, grouped by (date, labelType).
+      perCity
+        .flatMap { case (_, records) => records }
+        .groupBy(r => (r.date, r.labelType))
+        .map { case ((date, labelType), records) =>
+          DailyStatRecord(
+            date = date,
+            labelType = labelType,
+            humanLabels = records.map(_.humanLabels).sum,
+            aiLabels = records.map(_.aiLabels).sum,
+            humanValidationsAgree = records.map(_.humanValidationsAgree).sum,
+            humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
+            humanValidationsUnsure = records.map(_.humanValidationsUnsure).sum,
+            aiValidationsAgree = records.map(_.aiValidationsAgree).sum,
+            aiValidationsDisagree = records.map(_.aiValidationsDisagree).sum,
+            aiValidationsUnsure = records.map(_.aiValidationsUnsure).sum
+          )
         }
-
-        Future.sequence(cityDataFutures).map { cityResults =>
-          // Sum all numeric fields across cities, grouped by (date, labelType).
-          cityResults.flatten
-            .groupBy(r => (r.date, r.labelType))
-            .map { case ((date, labelType), records) =>
-              DailyStatRecord(
-                date = date,
-                labelType = labelType,
-                humanLabels = records.map(_.humanLabels).sum,
-                aiLabels = records.map(_.aiLabels).sum,
-                humanValidationsAgree = records.map(_.humanValidationsAgree).sum,
-                humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
-                humanValidationsUnsure = records.map(_.humanValidationsUnsure).sum,
-                aiValidationsAgree = records.map(_.aiValidationsAgree).sum,
-                aiValidationsDisagree = records.map(_.aiValidationsDisagree).sum,
-                aiValidationsUnsure = records.map(_.aiValidationsUnsure).sum
-              )
-            }
-            .toSeq
-            .sortBy(r => (r.date, r.labelType))
-        }
-      }
-    }
-  }
-
-  /**
-   * Fetches essential aggregate data for a specific city using direct database access.
-   * This method does NOT use caching since it's called from within a cached context.
-   *
-   * @param cityId The ID of the city to retrieve statistics for
-   * @return A Future containing optional aggregate data for the city
-   */
-  private def getCityAggregateData(cityId: String): Future[Option[AggregateStats]] = {
-    // Get the schema name.
-    val schemaResult =
-      try {
-        Some(getCitySchema(cityId))
-      } catch {
-        case e: Exception =>
-          logger.error(s"Failed to get schema for city $cityId: ${e.getMessage}", e)
-          None
-      }
-
-    schemaResult match {
-      case Some(schema) =>
-        try {
-          // Direct database query without additional caching.
-          db.run(configTable.getCityAggregateDataBySchema(schema))
-            .map(Some(_)) // Wrap successful result in Some
-            .recover { case e: Exception =>
-              // Log failures but don't propagate exceptions.
-              logger.warn(s"Failed to retrieve aggregate data for city $cityId from schema $schema: ${e.getMessage}")
-              None // Return None when query fails
-            }
-        } catch {
-          case e: Exception =>
-            // Handle exceptions during query preparation.
-            logger.error(s"Exception setting up aggregate data query for city $cityId: ${e.getMessage}", e)
-            Future.successful(None)
-        }
-      case None =>
-        Future.successful(None)
+        .toSeq
+        .sortBy(r => (r.date, r.labelType))
     }
   }
 
@@ -2410,24 +2382,6 @@ class ConfigServiceImpl @Inject() (
       numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
       byLabelType = labelTypeStatsMap.toMap
     )
-  }
-
-  /**
-   * Checks if a database schema exists.
-   *
-   * @param schemaName The name of the schema to check
-   * @return A Future containing true if the schema exists, false otherwise
-   */
-  private def checkSchemaExists(schemaName: String): Future[Boolean] = {
-    db.run(
-      sql"""
-        SELECT EXISTS(
-          SELECT 1
-          FROM information_schema.schemata
-          WHERE schema_name = $schemaName
-        )
-      """.as[Boolean].head
-    ).recover { case _ => false }
   }
 
   def getCityMapParams: Future[MapParams] =

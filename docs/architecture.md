@@ -82,6 +82,15 @@ The backend follows a consistent layering: **routes → Controller → Service �
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
   (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
+- **Cross-city totals** — a number summed over every city (`/v3/api/aggregateStats` and `aggregateStatsByDay`, the
+  Leaderboard's community bands, the Admin cross-city contributor count) is complete or it is a failure, never a
+  smaller number (#5977). `ConfigService.fanOutAcrossCities` lists the readable schemas in one query, queries a few
+  cities at a time through `BoundedCityFanOut`, retries a city's failed query once, and fails the whole compute if it
+  fails again, so `SwrCache` keeps serving the last complete value. `SwrCache` waits a minute after a failed compute
+  before starting another. A city whose schema can't answer the query yet (missing table or column, no privilege)
+  is left out with a warning, and the city count covers only the cities that were summed. A new cross-city total
+  goes through the same path: a `recover` that turns one city's failure into "skip it" lowers a public total by a
+  whole city and caches that.
 - **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
   separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
   lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,

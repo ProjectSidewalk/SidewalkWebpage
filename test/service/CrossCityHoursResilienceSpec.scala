@@ -1,6 +1,7 @@
 package service
 
 import models.utils.{ConfigTable, FunnelStatTable, VersionTable}
+import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -28,6 +29,8 @@ class CrossCityHoursResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private def await[T](f: => Future[T]): T = Await.result(f, 60.seconds)
+
+  private given Materializer = app.injector.instanceOf[Materializer]
 
   private val ghostId = "00000000-0000-0000-0000-000000000000"
 

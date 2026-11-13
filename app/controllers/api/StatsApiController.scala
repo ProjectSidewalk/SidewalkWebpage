@@ -234,10 +234,19 @@ class StatsApiController @Inject() (
     parseDateParams(startDate, endDate) match {
       case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
-        configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-          renderDailyStats(stats, filetype, "aggregateStatsByDay")
-        }
+        configService
+          .getAggregateStatsByDay(start, end, filterLowQuality)
+          .map { stats =>
+            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+            renderDailyStats(stats, filetype, "aggregateStatsByDay")
+          }
+          .recover { case e: Exception =>
+            // Only reached when no complete series is cached and the compute failed (#5977).
+            logger.error(s"Failed to retrieve aggregate daily statistics: ${e.getMessage}", e)
+            ApiError.toResult(
+              ApiError.internalServerError(s"Failed to retrieve aggregate daily statistics: ${e.getMessage}")
+            )
+          }
     }
   }
 }

@@ -5,6 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import forms.ChangePasswordForm
+import models.api.AggregateStats
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.{MeasurementSystem, NewsEmailOptOutSource, Role, SidewalkUserWithRole}
 import play.api.Configuration
@@ -13,7 +14,7 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
-import service.{AdminService, ConfigService, GlobalLeaderboardEntry, TeamBoard, UserService}
+import service.{AdminService, CityImpact, ConfigService, GlobalLeaderboardEntry, TeamBoard, UserService}
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
@@ -145,18 +146,21 @@ class UserDashboardController @Inject() (
     val myTeamF: Future[Option[TeamBoard]]                   =
       signedInUser.map(u => userService.getTeamBoard(u.userId)).getOrElse(Future.successful(None))
     for {
-      commonData          <- configService.getCommonPageData(request2Messages.lang)
-      (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
-      overall             <- userService.getLeaderboardStats(10)
-      weekly              <- userService.getLeaderboardStats(10, "weekly")
-      teams               <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing            <- signedInUser
+      commonData         <- configService.getCommonPageData(request2Messages.lang)
+      aggregateAndImpact <- configService.getAggregateStatsWithCurrentCity()
+      overall            <- userService.getLeaderboardStats(10)
+      weekly             <- userService.getLeaderboardStats(10, "weekly")
+      teams              <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing           <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       myTeam <- myTeamF
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
+      // Both bands read the same cached bundle, so with no complete bundle neither renders (#5977).
+      val aggregate: Option[AggregateStats] = aggregateAndImpact.map { case (stats, _) => stats }
+      val impact: Option[CityImpact]        = aggregateAndImpact.flatMap { case (_, cityImpact) => cityImpact }
       Ok(
         views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
           overall, weekly, teams, myTeam, standing, global)
