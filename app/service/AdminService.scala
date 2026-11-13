@@ -334,6 +334,7 @@ trait AdminService {
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
@@ -481,6 +482,8 @@ class AdminServiceImpl @Inject() (
         .toSeq
     }
   }
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]] =
+    db.run(userStatTable.validatorReliabilityScores)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
 
@@ -903,7 +906,8 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
+   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time,
+   * except validator reliability, which is refreshed for everyone.
    * @param cutoffTime Only update users who have done any auditing since this cutoff time
    * @return The number of users whose stats were updated
    */
@@ -913,6 +917,7 @@ class AdminServiceImpl @Inject() (
         _ad         <- userStatTable.updateAuditedDistance(cutoffTime)
         _lpm        <- userStatTable.updateLabelsPerMeter(cutoffTime)
         _a          <- userStatTable.updateAccuracy(Seq())
+        _vr         <- userStatTable.updateValidatorReliability()
         rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
       } yield rowsUpdated
     )

@@ -3167,10 +3167,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          ELSE 3
                          END AS human_mv,
                      CASE
-                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END)
-                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Disagree' THEN 1 END) THEN 1
-                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Disagree' THEN 1 END)
-                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END) THEN 2
+                         WHEN COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Agree' THEN 1 END)
+                             > COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Disagree' THEN 1 END) THEN 1
+                         WHEN COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Disagree' THEN 1 END)
+                             > COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Agree' THEN 1 END) THEN 2
                          ELSE 3
                          END AS admin_mv
               -- The same labels and votes as val_counts above.

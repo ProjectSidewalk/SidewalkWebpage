@@ -46,7 +46,8 @@ class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       infra3dAccess = false, measurementSystem = None)
 
   private val userStats = UserStat(1, subject.userId, 0d, None, highQuality = true, None, 0, None, excluded = false,
-    onLeaderboard = true, publicProfile = true)
+    onLeaderboard = true, publicProfile = true, validationsGraded = 0, validationsMatched = 0,
+    validatorReliability = None, validatorReliabilityUpdatedAt = None)
   private val adminData = AdminUserProfileData(None, userStats, Seq.empty)
 
   private val twoCities = Seq(

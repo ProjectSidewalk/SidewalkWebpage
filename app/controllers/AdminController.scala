@@ -100,6 +100,19 @@ class AdminController @Inject() (
     }
   }
 
+  /** Each scored validator's graded and matched vote counts and reliability, for the Data Quality page (#5063). */
+  def getValidatorReliability = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    adminService.getValidatorReliabilityScores.map { scores =>
+      Ok(Json.obj("validators" -> JsArray(scores.map { case (graded, matched, reliability) =>
+        Json.obj(
+          "validations_graded"    -> graded,
+          "validations_matched"   -> matched,
+          "validator_reliability" -> reliability
+        )
+      })))
+    }
+  }
+
   def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
