@@ -269,6 +269,12 @@ the network one, waiting a bounded time for a prefetch still in flight rather th
 lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
 no query.
 
+`/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
+open longer holds URLs that 403. The client gets a fresh one from the two `/metadata` endpoints: a plain `<img>`
+re-signs once after a failed load (`retrySignedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
+popup) retries a failed load itself, its loads re-sign beforehand when the URL is within 10 minutes of its `exp`
+(`freshBackupImage`); a client clock running further behind than that still 403s there (#5861).
+
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
 was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than

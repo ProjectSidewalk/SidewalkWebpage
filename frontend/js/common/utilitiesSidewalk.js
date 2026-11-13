@@ -918,3 +918,122 @@ export function buildBackupImageData(meta) {
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }
+
+/**
+ * Seconds before its `exp` that a signed URL counts as expired. Covers Pannellum's smaller-size retries reusing one
+ * URL for minutes on a slow link, and a client clock running behind; a fresh signature has an hour or more left.
+ */
+export const SIGNED_URL_EXPIRY_MARGIN_SEC = 600;
+
+/**
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {?URLSearchParams} Its query parameters, or null when the string isn't a URL.
+ */
+function queryParams(url) {
+  if (!url) return null;
+  try {
+    return new URL(url, window.location.origin).searchParams;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a URL carries a server signature (`sig`), so a failed load may mean it expired, whatever the clock says.
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {boolean}
+ */
+export function isSignedUrl(url) {
+  return Boolean(queryParams(url)?.get('sig'));
+}
+
+/**
+ * Whether a signed `/backupImage` or `/cropImage` URL has expired, or will within `SIGNED_URL_EXPIRY_MARGIN_SEC`. The
+ * server signs these for about an hour, but a page keeps the URLs it got at load for as long as it stays open (#5861).
+ * @param {?string} url - A URL carrying `exp=<epoch seconds>`, absolute or path-relative.
+ * @param {number} [nowMs=Date.now()] - The current time, for tests.
+ * @returns {boolean} True when `exp` is past or within the margin; false without a usable `exp`.
+ */
+export function signedUrlIsExpired(url, nowMs = Date.now()) {
+  const exp = Number(queryParams(url)?.get('exp'));
+  if (!exp) return false;
+  return exp * 1000 <= nowMs + SIGNED_URL_EXPIRY_MARGIN_SEC * 1000;
+}
+
+/**
+ * Fetches a pano's backup metadata, with a freshly signed `image_url`, from `/backupImage/:panoId/metadata`.
+ * @param {string} panoId
+ * @returns {Promise<?BackupImage>} The metadata, or null if the pano has no backup or the request failed.
+ */
+export function fetchBackupImageMetadata(panoId) {
+  return util.fetchJson(`/backupImage/${encodeURIComponent(panoId)}/metadata`).catch(() => null);
+}
+
+/**
+ * Fetches a label's crop metadata, with freshly signed URLs, from `/cropImage/:labelType/:labelId/metadata`.
+ * @param {string} labelType
+ * @param {number} labelId
+ * @returns {Promise<?{image_url: string, thumbnail_url: string, crop_marker: ?object}>} The metadata, or null if the
+ *     label has no crop or the request failed.
+ */
+export function fetchCropImageMetadata(labelType, labelId) {
+  const url = `/cropImage/${encodeURIComponent(labelType)}/${encodeURIComponent(labelId)}/metadata`;
+  return util.fetchJson(url).catch(() => null);
+}
+
+/**
+ * Retries a failed signed picture once with a fresh URL, since its signature likely expired (#5861); anything else
+ * goes straight to the caller's fallback.
+ * @param {HTMLImageElement} img - The picture that failed.
+ * @param {object} handlers
+ * @param {() => Promise<?{image_url: string}>} handlers.fetchMetadata - Fetches its metadata with a fresh `image_url`.
+ * @param {() => void} handlers.onGiveUp - The caller's fallback: at once for an unsigned or already-retried URL, else
+ *     when no fresh URL can be had.
+ * @param {(url: string) => void} [handlers.onFresh] - Called with the fresh URL as it loads, for the caller to keep.
+ * @param {() => boolean} [handlers.isCurrent] - False once the caller has moved on, so a late answer is dropped.
+ */
+export function retrySignedImage(img, { fetchMetadata, onGiveUp, onFresh = () => {}, isCurrent = () => true }) {
+  if (img.dataset.resigned || !isSignedUrl(img.src)) {
+    onGiveUp();
+    return;
+  }
+  img.dataset.resigned = 'true';
+  fetchMetadata().then((meta) => {
+    if (!isCurrent()) return;
+    if (!meta?.image_url) {
+      onGiveUp();
+      return;
+    }
+    onFresh(meta.image_url);
+    img.src = meta.image_url;
+  });
+}
+
+/**
+ * Re-signing requests by pano id. Labels keep their old URL, so without this every Validate prefetch pass and load
+ * would re-sign the same pano again; holding the request, not its answer, also covers a prefetch and load at once.
+ * @type {Map<string, Promise<?string>>}
+ */
+const backupResigns = new Map();
+
+/**
+ * Returns the backup pano with a usable signed URL, re-signing it only when its own nears expiry. Only `image_url` is
+ * replaced: the rest (e.g. the label's own attribution) is what the caller chose to show.
+ * @template {Record<string, any>} T
+ * @param {?T} backupImage - Backup pano metadata, e.g. a {@link BackupImage}.
+ * @returns {Promise<?T>} A copy with a fresh `image_url`, the same object while its own URL still loads, or null.
+ */
+export async function freshBackupImage(backupImage) {
+  if (!backupImage || !signedUrlIsExpired(backupImage.image_url)) return backupImage;
+  const panoId = backupImage.pano_id;
+  const held = backupResigns.get(panoId);
+  let url = held && await held;
+  if (!url || signedUrlIsExpired(url)) {
+    const request = fetchBackupImageMetadata(panoId).then((meta) => meta?.image_url ?? null);
+    backupResigns.set(panoId, request);
+    url = await request;
+  }
+  if (url) return { ...backupImage, image_url: url };
+  const pastExp = signedUrlIsExpired(backupImage.image_url, Date.now() - SIGNED_URL_EXPIRY_MARGIN_SEC * 1000);
+  return pastExp ? null : backupImage;
+}

@@ -271,4 +271,85 @@ describe('LabelMiniCard', () => {
   test('a placeholder for a crop not cut yet says it is coming', () => {
     expect(LabelMiniCard.placeholder('Obstacle', 'coming').textContent.trim()).toBe('mini-card.image-coming');
   });
+
+  describe('signed URLs that expire while the page is open (#5861)', () => {
+    const crop = (exp) => `/cropImage/CurbRamp/42?exp=${exp}&sig=c${exp}`;
+    const backup = (exp) => `/backupImage/pano-42?exp=${exp}&sig=b${exp}`;
+    let metadataRequests;
+
+    /** Answers the metadata endpoints with `freshUrl` (null: a 404), and records which were asked. */
+    const answerMetadata = (freshUrl) => {
+      metadataRequests = [];
+      window.fetch = vi.fn((url) => {
+        metadataRequests.push(url);
+        return Promise.resolve(freshUrl
+          ? { ok: true, status: 200, json: () => Promise.resolve({ image_url: freshUrl }) }
+          : { ok: false, status: 404 });
+      });
+    };
+    const fail = (card) => card.element.querySelector('.lmc__image').dispatchEvent(new Event('error'));
+
+    test('a failed crop is re-signed once, telling the host; a second failure gives up', async () => {
+      answerMetadata(crop(2));
+      const onImageUrlRefresh = vi.fn();
+      const card = mount(label({ crop_url: crop(1) }), { onImageUrlRefresh });
+      const image = card.element.querySelector('.lmc__image');
+
+      fail(card);
+      await settle();
+      expect(metadataRequests).toEqual(['/cropImage/CurbRamp/42/metadata']);
+      expect(image.getAttribute('src')).toBe(crop(2));
+      expect(onImageUrlRefresh).toHaveBeenCalledWith(42, 'crop_url', crop(2));
+
+      fail(card);
+      await settle();
+      expect(metadataRequests).toHaveLength(1);
+      expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
+    });
+
+    test('a backup image that fails is re-signed from the backup metadata', async () => {
+      answerMetadata(backup(2));
+      const card = mount(label({ crop_url: null, pano_id: 'pano-42', backup_image_url: backup(1) }));
+      fail(card);
+      await settle();
+      expect(metadataRequests).toEqual(['/backupImage/pano-42/metadata']);
+      expect(card.element.querySelector('.lmc__image').getAttribute('src')).toBe(backup(2));
+    });
+
+    test('a URL that cannot be re-signed falls back to the placeholder', async () => {
+      answerMetadata(null);
+      const card = mount(label({ crop_url: crop(1) }));
+      fail(card);
+      await settle();
+      expect(card.element.querySelector('.lmc__image')).toBeNull();
+      expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
+    });
+
+    test('a picture given up stays given up when a vote redraws the card', async () => {
+      answerMetadata(null);
+      const card = mount(label({ crop_url: crop(1) }));
+      fail(card);
+      await settle();
+      chip(card, 'Agree').click();
+      await settle();
+
+      expect(card.element.querySelector('.lmc__image')).toBeNull();
+      expect(metadataRequests.filter((u) => u.includes('/metadata'))).toHaveLength(1);
+    });
+
+    test('a re-render while re-signing leaves the new picture alone', async () => {
+      let answer;
+      window.fetch = vi.fn(() => new Promise((resolve) => { answer = resolve; }));
+      const card = mount(label({ crop_url: crop(1) }));
+      fail(card);
+      card.update(label({ crop_url: crop(3) }));
+      const current = card.element.querySelector('.lmc__image');
+
+      answer({ ok: false, status: 404 });
+      await settle();
+
+      expect(card.element.querySelector('.lmc__image')).toBe(current);
+      expect(current.getAttribute('src')).toBe(crop(3));
+    });
+  });
 });

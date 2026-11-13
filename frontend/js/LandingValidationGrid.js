@@ -12,7 +12,7 @@ import { createPanoAttribution } from './common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from './common/pano-viewer/PanoViewerLogo.js';
 import { ShareWidget } from './common/share/ShareWidget.js';
 import { util } from './common/utilities.js';
-import './common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from './common/utilitiesSidewalk.js';
 import '../css/components/landing-validation-grid.css';
 
 /**
@@ -189,9 +189,8 @@ export class LandingValidationGrid {
     img.alt = util.misc.labelTypeName(label.label_type);
     // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
     let creditImage = null;
-    img.addEventListener('error', () => {
-      // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
-      // whose every source fails is dead weight — swap it for a fresh label.
+    // A card whose every source fails is dead weight — swap it for a fresh label.
+    const fallBack = () => {
       if (card.dataset.imageSource === 'crop' && entry.gsvImageUrl) {
         card.dataset.imageSource = 'api';
         // The crop's recorded position describes the crop only; the still is the Explore frame again.
@@ -201,6 +200,18 @@ export class LandingValidationGrid {
       } else {
         this.#replaceCard(card);
       }
+    };
+    img.addEventListener('error', () => {
+      if (card.dataset.imageSource !== 'crop') {
+        fallBack();
+        return;
+      }
+      // A pooled label's signed crop can expire before it's shown (#5861): re-sign once before the billed still.
+      retrySignedImage(img, {
+        fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.label_id),
+        isCurrent: () => card.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     img.src = entry.cropUrl || entry.gsvImageUrl;
     imgWrap.appendChild(img);
