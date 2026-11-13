@@ -1,6 +1,6 @@
 /**
  * Tests for the signed-URL helpers in frontend/js/common/utilitiesSidewalk.js (`signedUrlIsExpired`, `isSignedUrl`,
- * `freshBackupImage`, `resignFailedImage`), which re-sign a URL a long-open page got at load once it expires (#5861).
+ * `freshBackupImage`, `retrySignedImage`), which re-sign a URL a long-open page got at load once it expires (#5861).
  *
  * `freshBackupImage` keeps each pano's re-signed URL for the module's life, so each test uses its own pano id.
  */
@@ -8,7 +8,7 @@
 import { loadModules } from './loader.js';
 
 const {
-  signedUrlIsExpired, isSignedUrl, freshBackupImage, resignFailedImage, SIGNED_URL_EXPIRY_MARGIN_SEC: MARGIN_SEC,
+  signedUrlIsExpired, isSignedUrl, freshBackupImage, retrySignedImage, SIGNED_URL_EXPIRY_MARGIN_SEC: MARGIN_SEC,
 } = await loadModules('frontend/js/common/utilitiesSidewalk.js');
 
 const NOW_SEC = 1_800_000_000;
@@ -84,7 +84,7 @@ describe('re-signing', () => {
 
       const result = await freshBackupImage(data);
 
-      expect(fetchMock).toHaveBeenCalledWith('/backupImage/p-resign/metadata');
+      expect(fetchMock).toHaveBeenCalledWith('/backupImage/p-resign/metadata', expect.anything());
       expect(result).toEqual({ ...data, image_url: freshUrl });
       expect(data.image_url).toBe(signedUrl(NOW_SEC - 60, 'p-resign')); // The caller's object is not mutated.
     });
@@ -115,31 +115,67 @@ describe('re-signing', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    test('keeps the old URL when re-signing fails before its actual exp, and drops it after', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 503 })));
+      const nearing = backupImage(signedUrl(NOW_SEC + 120, 'p-keep'), 'p-keep');
+      expect(await freshBackupImage(nearing)).toBe(nearing);
+      expect(await freshBackupImage(backupImage(signedUrl(NOW_SEC - 1, 'p-keep'), 'p-keep'))).toBeNull();
+    });
+
+    test('a prefetch and a load asking at once share one request', async () => {
+      const fetchMock = jsonFetch({ image_url: signedUrl(NOW_SEC + 3600, 'p-once') });
+      vi.stubGlobal('fetch', fetchMock);
+      const data = backupImage(signedUrl(NOW_SEC - 60, 'p-once'), 'p-once');
+      await Promise.all([freshBackupImage(data), freshBackupImage(data)]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     test('passes null through', async () => {
       expect(await freshBackupImage(null)).toBeNull();
     });
   });
 });
 
-describe('resignFailedImage', () => {
+describe('retrySignedImage', () => {
   const img = (src) => Object.assign(document.createElement('img'), { src });
+  const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
-  test('answers null at once, without a request, for an unsigned picture', () => {
+  test('gives up at once, without a request, on an unsigned picture', () => {
     const fetchMetadata = vi.fn();
-    expect(resignFailedImage(img('/images/crop.jpg'), fetchMetadata)).toBeNull();
+    const onGiveUp = vi.fn();
+    retrySignedImage(img('/images/crop.jpg'), { fetchMetadata, onGiveUp });
+    expect(onGiveUp).toHaveBeenCalledTimes(1);
     expect(fetchMetadata).not.toHaveBeenCalled();
   });
 
-  test('gets a fresh URL for a signed picture once, then answers null at once', async () => {
+  test('loads a fresh URL once and hands it over, then gives up at once on the next failure', async () => {
     const picture = img(signedUrl(NOW_SEC - 60));
-    const fetchMetadata = vi.fn(async () => ({ image_url: signedUrl(NOW_SEC + 3600) }));
+    const handlers = {
+      fetchMetadata: vi.fn(async () => ({ image_url: signedUrl(NOW_SEC + 3600) })), onGiveUp: vi.fn(), onFresh: vi.fn(),
+    };
+    retrySignedImage(picture, handlers);
+    await flush();
+    expect(picture.getAttribute('src')).toBe(signedUrl(NOW_SEC + 3600));
+    expect(handlers.onFresh).toHaveBeenCalledWith(signedUrl(NOW_SEC + 3600));
 
-    await expect(resignFailedImage(picture, fetchMetadata)).resolves.toBe(signedUrl(NOW_SEC + 3600));
-    expect(resignFailedImage(picture, fetchMetadata)).toBeNull();
-    expect(fetchMetadata).toHaveBeenCalledTimes(1);
+    retrySignedImage(picture, handlers);
+    expect(handlers.onGiveUp).toHaveBeenCalledTimes(1);
+    expect(handlers.fetchMetadata).toHaveBeenCalledTimes(1);
   });
 
-  test('resolves to null when the picture cannot be re-signed', async () => {
-    await expect(resignFailedImage(img(signedUrl(NOW_SEC - 60)), async () => null)).resolves.toBeNull();
+  test('gives up when no fresh URL can be had', async () => {
+    const onGiveUp = vi.fn();
+    retrySignedImage(img(signedUrl(NOW_SEC - 60)), { fetchMetadata: async () => null, onGiveUp });
+    await flush();
+    expect(onGiveUp).toHaveBeenCalledTimes(1);
+  });
+
+  test('drops an answer that comes after the caller has moved on', async () => {
+    const picture = img(signedUrl(NOW_SEC - 60));
+    const onGiveUp = vi.fn();
+    retrySignedImage(picture, { fetchMetadata: async () => null, onGiveUp, isCurrent: () => false });
+    await flush();
+    expect(onGiveUp).not.toHaveBeenCalled();
+    expect(picture.getAttribute('src')).toBe(signedUrl(NOW_SEC - 60));
   });
 });

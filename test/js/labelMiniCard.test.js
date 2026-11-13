@@ -299,7 +299,7 @@ describe('LabelMiniCard', () => {
       await settle();
       expect(metadataRequests).toEqual(['/cropImage/CurbRamp/42/metadata']);
       expect(image.getAttribute('src')).toBe(crop(2));
-      expect(onImageUrlRefresh).toHaveBeenCalledWith(expect.objectContaining({ crop_url: crop(2) }));
+      expect(onImageUrlRefresh).toHaveBeenCalledWith(42, 'crop_url', crop(2));
 
       fail(card);
       await settle();
@@ -323,6 +323,18 @@ describe('LabelMiniCard', () => {
       await settle();
       expect(card.element.querySelector('.lmc__image')).toBeNull();
       expect(card.element.querySelector('.lmc__placeholder')).not.toBeNull();
+    });
+
+    test('a picture given up stays given up when a vote redraws the card', async () => {
+      answerMetadata(null);
+      const card = mount(label({ crop_url: crop(1) }));
+      fail(card);
+      await settle();
+      chip(card, 'Agree').click();
+      await settle();
+
+      expect(card.element.querySelector('.lmc__image')).toBeNull();
+      expect(metadataRequests.filter((u) => u.includes('/metadata'))).toHaveLength(1);
     });
 
     test('a re-render while re-signing leaves the new picture alone', async () => {

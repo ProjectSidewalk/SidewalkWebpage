@@ -140,4 +140,15 @@ export class AccessScoreClusterFeed {
   rememberLabel(label) {
     this.#labelsById.set(label.label_id, Promise.resolve(label));
   }
+
+  /**
+   * Swaps a re-signed image URL into a held label (#5861), keeping whatever newer JSON a vote left there.
+   * @param {number} labelId - The label.
+   * @param {string} field - `crop_url` or `backup_image_url`.
+   * @param {string} url - The fresh URL.
+   */
+  rememberImageUrl(labelId, field, url) {
+    const held = this.#labelsById.get(labelId);
+    if (held) this.#labelsById.set(labelId, held.then((label) => ({ ...label, [field]: url })));
+  }
 }

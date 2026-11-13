@@ -16,7 +16,7 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import { fetchBackupImageMetadata, fetchCropImageMetadata, resignFailedImage } from './utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, fetchCropImageMetadata, retrySignedImage } from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -43,8 +43,8 @@ export class LabelMiniCard {
    * @param {Function} options.log - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
-   * @param {Function} [options.onImageUrlRefresh] - Called with a copy of the label after its picture's signed URL
-   *     was re-signed (#5861), so a host that caches the label JSON can keep the fresh URL for its next render.
+   * @param {(labelId: number, field: string, url: string) => void} [options.onImageUrlRefresh] - Called when the
+   *     picture's signed URL was re-signed (#5861), so a host that caches label JSON can keep it for the next render.
    */
   constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li',
     onImageUrlRefresh = () => {} }) {
@@ -188,33 +188,24 @@ export class LabelMiniCard {
     if (image !== this.#els.image) return;
     const label = this.#label;
     const field = label.crop_url ? 'crop_url' : 'backup_image_url';
-    const resigning = resignFailedImage(image, () => (field === 'crop_url'
-      ? fetchCropImageMetadata(label.label_type, label.label_id)
-      : fetchBackupImageMetadata(label.pano_id)));
-    if (!resigning) {
-      this.#showPlaceholder(image);
-      return;
-    }
-    resigning.then((fresh) => {
+    retrySignedImage(image, {
+      fetchMetadata: () => (field === 'crop_url'
+        ? fetchCropImageMetadata(label.label_type, label.label_id)
+        : fetchBackupImageMetadata(label.pano_id)),
       // A re-render meanwhile replaced the picture, and that render's picture looks after itself.
-      if (image !== this.#els.image) return;
-      if (!fresh) {
-        this.#showPlaceholder(image);
-        return;
-      }
-      label[field] = fresh;
-      this.#opts.onImageUrlRefresh({ ...label });
-      image.src = fresh;
+      isCurrent: () => image === this.#els.image,
+      onFresh: (url) => {
+        label[field] = url;
+        this.#opts.onImageUrlRefresh(label.label_id, field, url);
+      },
+      onGiveUp: () => {
+        // Dropped from the label too, so a vote's re-render doesn't bring the dead picture back.
+        label.crop_url = null;
+        label.backup_image_url = null;
+        image.replaceWith(LabelMiniCard.placeholder(label.label_type));
+        this.#els.marker?.remove();
+      },
     });
-  }
-
-  /**
-   * Swaps the picture for the type icon and drops the marker that pointed into it.
-   * @param {HTMLImageElement} image - The picture that failed.
-   */
-  #showPlaceholder(image) {
-    image.replaceWith(LabelMiniCard.placeholder(this.#label.label_type));
-    this.#els.marker?.remove();
   }
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */

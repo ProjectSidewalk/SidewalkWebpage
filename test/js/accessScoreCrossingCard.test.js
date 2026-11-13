@@ -203,19 +203,20 @@ describe('AccessScoreCrossingCard', () => {
     expect(crops.map((c) => c.dataset.clusterId)).toEqual(['3']);
   });
 
-  test('a signed crop that fails is re-signed once, and the feed keeps the fresh URL (#5861)', async () => {
-    labels[10].crop_url = '/cropImage/NoCurbRamp/10?exp=1&sig=old';
-    const fresh = '/cropImage/NoCurbRamp/10?exp=2&sig=new';
+  test('a failed signed crop is re-signed by the label\'s own type; the feed keeps only the URL (#5861)', async () => {
+    // Clustered before its type changed: the crop is filed under the label's type now.
+    labels[10] = {...labels[10], label_type: 'Obstacle', crop_url: '/cropImage/Obstacle/10?exp=1&sig=old'};
+    const fresh = '/cropImage/Obstacle/10?exp=2&sig=new';
     window.fetch = vi.fn(async () => ({ok: true, json: async () => ({image_url: fresh})}));
-    feed.rememberLabel = vi.fn();
+    feed.rememberImageUrl = vi.fn();
     makeCard().show(crossing([cluster(1, 'NoCurbRamp', 3, 10)]));
     await settle();
 
     el.querySelector('.acs-crossing-card__image').dispatchEvent(new Event('error'));
     await settle();
 
-    expect(window.fetch).toHaveBeenCalledWith('/cropImage/NoCurbRamp/10/metadata');
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/Obstacle/10/metadata', expect.anything());
     expect(el.querySelector('.acs-crossing-card__image').getAttribute('src')).toBe(fresh);
-    expect(feed.rememberLabel).toHaveBeenCalledWith(expect.objectContaining({label_id: 10, crop_url: fresh}));
+    expect(feed.rememberImageUrl).toHaveBeenCalledWith(10, 'crop_url', fresh);
   });
 });

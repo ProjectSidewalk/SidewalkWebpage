@@ -321,12 +321,28 @@ describe('filling the grid, voting, and swapping cards', () => {
 
     photo.dispatchEvent(new Event('error'));
     await settle();
-    expect(window.fetch).toHaveBeenCalledWith('/cropImage/CurbRamp/1/metadata');
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/CurbRamp/1/metadata', expect.anything());
     expect(photo.getAttribute('src')).toBe(fresh);
     expect(cards()[0].dataset.imageSource).toBe('crop');
 
     photo.dispatchEvent(new Event('error')); // The fresh URL fails too: on to the still.
     expect(cards()[0].dataset.imageSource).toBe('api');
+  });
+
+  test('a re-sign that answers after its card was swapped out does nothing', async () => {
+    batches = [{ labelsOfType: [labelEntry(1, { cropUrl: '/cropImage/CurbRamp/1?exp=1&sig=old' })] }];
+    await renderGrid();
+    let answer;
+    window.fetch = vi.fn(() => new Promise((resolve) => { answer = resolve; }));
+    const card = cards()[0];
+    card.querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    card.remove(); // Voted on and replaced meanwhile.
+
+    answer({ ok: false, status: 404 });
+    await settle();
+
+    expect(card.dataset.imageSource).toBe('crop'); // No billed still for a card nobody can see.
+    expect(window.fetch).toHaveBeenCalledTimes(1);
   });
 
   test('the share chip logs which label was shared', async () => {

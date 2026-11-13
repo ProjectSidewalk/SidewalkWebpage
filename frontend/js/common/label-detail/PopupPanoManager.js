@@ -18,7 +18,7 @@ import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
 import {
-  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, resignFailedImage,
+  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, retrySignedImage,
 } from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
@@ -505,26 +505,26 @@ export class PopupPanoManager {
   /**
    * Re-signs a failed signed crop and tries it once more, since its signature likely expired (#5861); otherwise, or
    * on a second failure, shows the "imagery not available" panel.
-   * @returns {Promise<void>}
    */
-  async #onFallbackImageError() {
+  #onFallbackImageError() {
     const load = this.#loadToken;
     const failed = this.#fallbackImage.getAttribute('src');
     // An error for a crop this load no longer shows (a newer label's, or one already given up) is stale.
     if (!failed || failed !== this.#cropUrl) return;
     const label = this.label;
-    const fresh = await resignFailedImage(this.#fallbackImage, () => fetchCropImageMetadata(label.label_type,
-      label.labelId));
-    if (load !== this.#loadToken) return;
-    if (fresh) {
-      this.#cropUrl = fresh;
-      this.#fallbackImage.src = fresh;
-      return;
-    }
-    this.#cropUrl = null;
-    this.#attribution?.hide();
-    this.#panoFailureCallback();
-    this.onFallbackLost?.();
+    retrySignedImage(this.#fallbackImage, {
+      fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.labelId),
+      isCurrent: () => load === this.#loadToken,
+      onFresh: (url) => {
+        this.#cropUrl = url;
+      },
+      onGiveUp: () => {
+        this.#cropUrl = null;
+        this.#attribution?.hide();
+        this.#panoFailureCallback();
+        this.onFallbackLost?.();
+      },
+    });
   }
 
   /**

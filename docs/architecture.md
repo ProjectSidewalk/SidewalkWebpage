@@ -265,7 +265,7 @@ no query.
 
 `/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
 open longer holds URLs that 403. The client gets a fresh one from the two `/metadata` endpoints: a plain `<img>`
-re-signs once after a failed load (`resignFailedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
+re-signs once after a failed load (`retrySignedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
 popup) retries a failed load itself, its loads re-sign beforehand when the URL is within 10 minutes of its `exp`
 (`freshBackupImage`); a client clock running further behind than that still 403s there (#5861).
 

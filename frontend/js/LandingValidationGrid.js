@@ -12,7 +12,7 @@ import { createPanoAttribution } from './common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from './common/pano-viewer/PanoViewerLogo.js';
 import { ShareWidget } from './common/share/ShareWidget.js';
 import { util } from './common/utilities.js';
-import { fetchCropImageMetadata, resignFailedImage } from './common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from './common/utilitiesSidewalk.js';
 import '../css/components/landing-validation-grid.css';
 
 /**
@@ -202,14 +202,16 @@ export class LandingValidationGrid {
       }
     };
     img.addEventListener('error', () => {
-      // A pooled label's signed crop can expire before it's shown (#5861): re-sign once before the billed still.
-      const resigning = card.dataset.imageSource === 'crop'
-        && resignFailedImage(img, () => fetchCropImageMetadata(label.label_type, label.label_id));
-      if (resigning) {
-        resigning.then((fresh) => (fresh ? img.setAttribute('src', fresh) : fallBack()));
-      } else {
+      if (card.dataset.imageSource !== 'crop') {
         fallBack();
+        return;
       }
+      // A pooled label's signed crop can expire before it's shown (#5861): re-sign once before the billed still.
+      retrySignedImage(img, {
+        fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.label_id),
+        isCurrent: () => card.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     img.src = entry.cropUrl || entry.gsvImageUrl;
     imgWrap.appendChild(img);

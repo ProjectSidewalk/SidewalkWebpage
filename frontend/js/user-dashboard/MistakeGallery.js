@@ -12,7 +12,7 @@ import i18next from 'i18next';
 import { createPanoAttribution } from '../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../common/utilities.js';
-import { fetchCropImageMetadata, resignFailedImage } from '../common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from '../common/utilitiesSidewalk.js';
 
 export class MistakeGallery {
   // Width:height of the card's photo box (.ud-card-img); crops and stills are cover-fitted into it.
@@ -427,13 +427,15 @@ export class MistakeGallery {
       onSourceChange(photo.dataset.udSource ?? null);
     };
     photo.addEventListener('error', () => {
-      const resigning = photo.dataset.udSource === 'crop'
-        && resignFailedImage(photo, () => fetchCropImageMetadata(m.label_type, m.label_id));
-      if (resigning) {
-        resigning.then((fresh) => (fresh ? photo.setAttribute('src', fresh) : fallBack()));
-      } else {
+      if (photo.dataset.udSource !== 'crop') {
         fallBack();
+        return;
       }
+      retrySignedImage(photo, {
+        fetchMetadata: () => fetchCropImageMetadata(m.label_type, m.label_id),
+        isCurrent: () => photo.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
     photo.src = m.crop_url || m.image_url;

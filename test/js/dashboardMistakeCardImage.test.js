@@ -107,7 +107,7 @@ describe('the dashboard mistake card\'s image', () => {
     photo().dispatchEvent(new Event('error'));
     await settle();
 
-    expect(window.fetch).toHaveBeenCalledWith('/cropImage/Obstacle/501/metadata');
+    expect(window.fetch).toHaveBeenCalledWith('/cropImage/Obstacle/501/metadata', expect.anything());
     expect(photo().getAttribute('src')).toBe(fresh);
     expect(photo().dataset.udSource).toBe('crop');
   });

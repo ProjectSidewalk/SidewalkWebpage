@@ -19,7 +19,7 @@ import { util } from '../common/utilities.js';
 import { AccessScoreClusterFeed } from './AccessScoreClusterFeed.js';
 import { effectText, signed } from './AccessScoreText.js';
 import {
-  fetchBackupImageMetadata, fetchCropImageMetadata, resignFailedImage,
+  fetchBackupImageMetadata, fetchCropImageMetadata, retrySignedImage,
 } from '../common/utilitiesSidewalk.js';
 /** @typedef {import('./AccessScoreModel.js').AccessScoreIntersectionExplanation} AccessScoreIntersectionExplanation */
 /** @typedef {import('./AccessScoreClusterFeed.js').AccessScoreFeedCluster} AccessScoreFeedCluster */
@@ -175,26 +175,17 @@ export class AccessScoreCrossingCard {
         figure.innerHTML = `<img class="acs-crossing-card__image" src="${esc(src)}" alt="" loading="lazy">
           <img class="acs-crossing-card__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`;
         const img = /** @type {HTMLImageElement} */ (figure.querySelector('.acs-crossing-card__image'));
-        img.addEventListener('error', () => {
-          // The feed's label JSON lasts the page's life, but its signed URL expires in about an hour (#5861).
-          const field = label.crop_url ? 'crop_url' : 'backup_image_url';
-          const resigning = resignFailedImage(img, () => (field === 'crop_url'
-            ? fetchCropImageMetadata(type, label.label_id)
-            : fetchBackupImageMetadata(label.pano_id)));
-          const showPlaceholder = () => img.replaceWith(LabelMiniCard.placeholder(type));
-          if (!resigning) {
-            showPlaceholder();
-            return;
-          }
-          resigning.then((fresh) => {
-            if (!fresh) {
-              showPlaceholder();
-              return;
-            }
-            this.#feed.rememberLabel({ ...label, [field]: fresh });
-            img.src = fresh;
-          });
-        });
+        // The feed's label JSON lasts the page's life, but its signed URL expires in about an hour (#5861).
+        const field = label.crop_url ? 'crop_url' : 'backup_image_url';
+        img.addEventListener('error', () => retrySignedImage(img, {
+          // The label's own type, which names its crop's folder; the cluster's can be from before a type change.
+          fetchMetadata: () => (field === 'crop_url'
+            ? fetchCropImageMetadata(label.label_type, label.label_id)
+            : fetchBackupImageMetadata(label.pano_id)),
+          isCurrent: () => img.isConnected,
+          onFresh: (url) => this.#feed.rememberImageUrl(label.label_id, field, url),
+          onGiveUp: () => img.replaceWith(LabelMiniCard.placeholder(type)),
+        }));
       } else {
         figure.appendChild(LabelMiniCard.placeholder(type));
       }
