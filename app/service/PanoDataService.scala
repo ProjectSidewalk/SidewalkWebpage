@@ -34,7 +34,7 @@ import service.PanoDataService.{
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
-import java.net.{SocketTimeoutException, URL}
+import java.net.SocketTimeoutException
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.Base64
@@ -664,6 +664,11 @@ trait PanoDataService {
   def cropFile(labelId: Int, labelType: String): File
   def cropExists(labelId: Int, labelType: LabelType): Boolean
   def cropUrl(labelId: Int, labelType: LabelType): Option[String]
+  def cropThumbnailUrl(labelId: Int, labelType: LabelType): Option[String]
+
+  /** The attribution owed for each pano's imagery, keyed by pano id; a pano with nothing to attribute is absent. */
+  def getAttributions(panoIds: Seq[String]): Future[Map[String, ImageryAttribution.Line]]
+
   def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
 
@@ -802,7 +807,6 @@ class PanoDataServiceImpl @Inject() (
         val imageExists: Boolean = imageStatus == "OK"
 
         if (imageExists || imageStatus == "ZERO_RESULTS") {
-          // Mark the expired status, has_backup, last_checked, and last_viewed columns in the db.
           val timestamp = OffsetDateTime.now
           val hasBackup = Some(backupExists(panoId))
           db.run(panoDataTable.updateExpiredStatus(panoId, !imageExists, hasBackup, timestamp))
@@ -937,11 +941,9 @@ class PanoDataServiceImpl @Inject() (
    * https://developers.google.com/maps/documentation/maps-static/get-api-key#dig-sig-manual
    */
   def signUrl(urlString: String): String = {
-    // Convert to Java URL for easy parsing of URL parts.
-    val url: URL = URL(urlString)
-
-    // Gets everything but URL protocol and host that we want to sign.
-    val resource: String = url.getPath() + '?' + url.getQuery()
+    // The signed part is everything after the host. Sliced rather than parsed: java.net.URI rejects characters a stored
+    // pano id can carry, and a throw here would fail the whole batch of lookups instead of only that pano's.
+    val resource: String = urlString.substring(urlString.indexOf('/', urlString.indexOf("://") + 3))
 
     // Get an HMAC-SHA1 Mac instance and initialize it with the HMAC-SHA1 key.
     val mac: Mac = Mac.getInstance("HmacSHA1")
@@ -1170,6 +1172,15 @@ class PanoDataServiceImpl @Inject() (
   def cropUrl(labelId: Int, labelType: LabelType): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
+
+  /** Returns a signed URL for a crop's thumbnail if a crop file exists for the given label, or None otherwise. */
+  def cropThumbnailUrl(labelId: Int, labelType: LabelType): Option[String] =
+    if (cropExists(labelId, labelType))
+      Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId/thumbnail"))
+    else None
+
+  def getAttributions(panoIds: Seq[String]): Future[Map[String, ImageryAttribution.Line]] =
+    db.run(panoDataTable.getAttributions(panoIds))
 
   /**
    * Moves a label's crop to the directory of its new type (#3671), since crops are filed by type. A missing source is

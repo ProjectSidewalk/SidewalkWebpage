@@ -6,6 +6,7 @@
 
 import { util } from '../common/utilities.js';
 import { MiniLineChart } from './MiniLineChart.js';
+import { AdminShell } from './AdminShell.js';
 
 export class ApiAnalyticsPage {
   #dataUrl;
@@ -27,7 +28,10 @@ export class ApiAnalyticsPage {
   async #load() {
     this.#setStatus('Loading API analytics…', false);
     try {
-      const data = await util.fetchJson(`${this.#dataUrl}?days=${this.#days}`);
+      const days = this.#days;
+      const data = await util.fetchJson(`${this.#dataUrl}?days=${days}`);
+      // A quick second range click can answer first; drop the older reply rather than draw it under the new range.
+      if (days !== this.#days) return;
       this.#data = data;
       this.#renderRangeCaptions(data);
       this.#renderKpis(data);
@@ -49,13 +53,13 @@ export class ApiAnalyticsPage {
     const total = d.total_calls || 0;
     const busiest = (d.endpoints || []).find((e) => (e.external || 0) > 0);
 
-    this.#setText('kpi-external-calls', extCalls.toLocaleString());
-    this.#setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
-    this.#setText('kpi-external-clients', (ext.unique_ips || 0).toLocaleString());
-    this.#setText('kpi-busiest', busiest ? ApiAnalyticsPage.#short(busiest.endpoint) : '—');
-    this.#setText('kpi-busiest-note', busiest ? `${(busiest.external || 0).toLocaleString()} external calls` : '');
-    this.#setText('kpi-pct-external', total ? ApiAnalyticsPage.#pct(extCalls / total) : '—');
-    this.#setText('kpi-pct-external-note', `${total.toLocaleString()} total calls`);
+    AdminShell.setText('kpi-external-calls', extCalls.toLocaleString());
+    AdminShell.setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
+    AdminShell.setText('kpi-external-clients', (ext.unique_ips || 0).toLocaleString());
+    AdminShell.setText('kpi-busiest', busiest ? ApiAnalyticsPage.#short(busiest.endpoint) : '—');
+    AdminShell.setText('kpi-busiest-note', busiest ? `${busiest.external.toLocaleString()} external calls` : '');
+    AdminShell.setText('kpi-pct-external', total ? ApiAnalyticsPage.#pct(extCalls / total) : '—');
+    AdminShell.setText('kpi-pct-external-note', `${total.toLocaleString()} total calls`);
   }
 
   /**
@@ -67,7 +71,7 @@ export class ApiAnalyticsPage {
   #renderTrend(d) {
     const el = document.getElementById('api-trend');
     if (!(d.total_calls > 0)) {
-      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(0, d.last_api_call)}</p>`;
+      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(d.last_api_call)}</p>`;
       return;
     }
     const monthly = this.#days === 0;
@@ -81,8 +85,10 @@ export class ApiAnalyticsPage {
     }
     const dataKeys = [...byBucket.keys()].sort();
     const keys = ApiAnalyticsPage.#axisKeys(dataKeys[0], monthly, this.#days);
+    // Only "All time" can come up one bucket short: all activity lands in the current month, so there's no second
+    // point to draw a line to yet.
     if (keys.length < 2) {
-      el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(d.total_calls || 0, d.last_api_call)}</p>`;
+      el.innerHTML = '<p class="dq-empty">Only one month of API activity so far; no trend to plot yet.</p>';
       return;
     }
     const at = (k) => byBucket.get(k) || { ext: 0, docs: 0 };
@@ -133,33 +139,25 @@ export class ApiAnalyticsPage {
   }
 
   /**
-   * Explains why the trend can't be drawn, naming the selected range and (when known) when activity last happened so
-   * the admin knows whether to widen the range or whether the API is simply unused.
+   * Explains an empty window, naming the selected range and (when known) when activity last happened so the admin
+   * knows whether to widen the range or whether the API is simply unused.
    *
-   * @param {number} total - Total calls in the current window.
    * @param {?string} lastApiCall - ISO date of the most recent call ever (window-independent), or null/undefined.
    * @returns {string} Human-readable empty-state message.
    */
-  #trendEmptyMsg(total, lastApiCall) {
+  #trendEmptyMsg(lastApiCall) {
+    if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
     const range = this.#days > 0 ? `in the past ${this.#days} days` : 'over all time';
-    if (total === 0) {
-      if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
-      const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
-      const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
-      return `No API calls ${range}. The last was on ${lastDate}${agoText}. `
-        + 'Try a longer range.';
-    }
-    // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
-    // there's no second point to draw a line to yet.
-    const unit = this.#days > 0 ? 'day' : 'month';
-    return `Only one ${unit} of API activity so far; no trend to plot yet.`;
+    const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
+    const agoText = ago === null ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
+    const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
+    return `No API calls ${range}. The last was on ${lastDate}${agoText}. Try a longer range.`;
   }
 
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */
   #renderRangeCaptions(d) {
     const label = `Date range: ${this.#rangeLabel(d)}`;
-    for (const id of ['api-trend-range', 'api-endpoints-range', 'api-formats-range']) this.#setText(id, label);
+    for (const id of ['api-trend-range', 'api-endpoints-range', 'api-formats-range']) AdminShell.setText(id, label);
   }
 
   /**
@@ -324,10 +322,10 @@ export class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
+        legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
-        else if (chart === 'formats') this.#renderFormats(this.#data);
+        else this.#renderFormats(this.#data);
       });
     });
   }
@@ -336,14 +334,8 @@ export class ApiAnalyticsPage {
     return `${Math.round((frac || 0) * 100)}%`;
   }
 
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('api-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

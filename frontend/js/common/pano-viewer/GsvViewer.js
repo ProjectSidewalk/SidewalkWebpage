@@ -3,12 +3,12 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 
+import * as turf from '@turf/turf';
 import { NoImageryError } from './NoImageryError.js';
 import { PanoData } from './PanoData.js';
 import { PanoViewer } from './PanoViewer.js';
 import { util } from '../utilities.js';
 import './panoUtilities.js';
-import '../utilitiesMath.js';
 
 export class GsvViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
@@ -81,17 +81,17 @@ export class GsvViewer extends PanoViewer {
   /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions]
+   * @param {Record<string, any>} panoOptions
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
     await google.maps.importLibrary('core');
     const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
     this.streetViewService = await new StreetViewService();
 
     // Set GSV panorama options.
-    const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const { defaultNavigation } = panoOptions;
     const defaults = {
       addressControl: false,
       clickToGo: defaultNavigation,
@@ -323,7 +323,16 @@ export class GsvViewer extends PanoViewer {
    * GsvViewer.isWithinSearchRadius({ lat: 47.61968, lng: -122.31007 }, { lat: 43.09179, lng: -76.17201 }, 25); // false
    */
   static isWithinSearchRadius(searched, found, radiusM) {
-    return util.math.haversine(searched, found) <= radiusM;
+    return GsvViewer.#distanceM(searched, found) <= radiusM;
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} a
+   * @param {{lat: number, lng: number}} b
+   * @returns {number} Metres between the two.
+   */
+  static #distanceM(a, b) {
+    return turf.distance([a.lng, a.lat], [b.lng, b.lat], { units: 'meters' });
   }
 
   /**
@@ -343,7 +352,7 @@ export class GsvViewer extends PanoViewer {
       this.#farPanosReported.add(panoId);
       this._fireDiagnostic('FarPanoRejected', {
         panoId,
-        distanceM: Math.round(util.math.haversine(searched, found)),
+        distanceM: Math.round(GsvViewer.#distanceM(searched, found)),
         radiusM,
         // Whether it is Google's own imagery or a user-contributed photosphere, which `source=outdoor` lets through and
         // which the #5114 answer was; it sizes the photosphere question (#5463). The contributor's name stays out.
@@ -492,8 +501,8 @@ export class GsvViewer extends PanoViewer {
 
   /**
    * Returns the stored pano data for either of the two tutorial panos.
-   * @param {string} pano - The pano ID/name of the wanted custom panorama.
-   * @returns {google.maps.StreetViewPanoramaData|undefined} The custom Street View panorama, if one matches.
+   * @param {string} pano - One of util.pano.TUTORIAL_PANO_IDS, which every caller checks first.
+   * @returns {google.maps.StreetViewPanoramaData} The custom Street View panorama.
    */
   #getCustomPanoData = (pano) => {
     // time, tiles.originHeading, and tiles.originPitch aren't in Google's types, but #updateCurrPanoData reads them.
@@ -522,28 +531,27 @@ export class GsvViewer extends PanoViewer {
         },
         time: [],
       });
-    } else if (pano === 'afterWalkTutorial') {
-      return /** @type {google.maps.StreetViewPanoramaData} */ ({
-        location: {
-          pano: 'afterWalkTutorial',
-          latLng: new google.maps.LatLng(38.94061618, -77.06768201),
-        },
-        links: [],
-        imageDate: '2014-05',
-        copyright: 'Imagery (c) 2010 Google',
-        tiles: {
-          tileSize: new google.maps.Size(1700, 850),
-          worldSize: new google.maps.Size(3400, 1700),
-          centerHeading: 344,
-          originHeading: 344,
-          originPitch: 0,
-          getTileUrl(_pano, zoom, tileX, tileY) {
-            return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
-          },
-        },
-        time: [],
-      });
     }
+    return /** @type {google.maps.StreetViewPanoramaData} */ ({
+      location: {
+        pano: 'afterWalkTutorial',
+        latLng: new google.maps.LatLng(38.94061618, -77.06768201),
+      },
+      links: [],
+      imageDate: '2014-05',
+      copyright: 'Imagery (c) 2010 Google',
+      tiles: {
+        tileSize: new google.maps.Size(1700, 850),
+        worldSize: new google.maps.Size(3400, 1700),
+        centerHeading: 344,
+        originHeading: 344,
+        originPitch: 0,
+        getTileUrl(_pano, zoom, tileX, tileY) {
+          return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
+        },
+      },
+      time: [],
+    });
   };
 
   getLinkedPanos = () => {
@@ -605,10 +613,10 @@ export class GsvViewer extends PanoViewer {
   /**
    * See PanoViewer.publicViewerLink().
    * @param {string} panoId
-   * @param {{heading?: number, pitch?: number}} [opts]
+   * @param {{heading?: number, pitch?: number}} opts
    * @returns {{url: string, i18nKey: string}}
    */
-  publicViewerLink(panoId, { heading, pitch } = {}) {
+  publicViewerLink(panoId, { heading, pitch }) {
     return {
       url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${panoId}&heading=${heading}&pitch=${pitch}`,
       i18nKey: 'common:pano-info.view-in-gsv',

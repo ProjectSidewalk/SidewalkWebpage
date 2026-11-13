@@ -7,8 +7,7 @@
  * findPanoNear() resolves null, so no minimap crumb is drawn there — and that each distinct far pano is reported once
  * through the `FarPanoRejected` diagnostic.
  *
- * Only Google's service is faked: as in panoViewerFindPanoNear.test.js, the real PanoViewer base and
- * util.math.haversine do the distance math.
+ * Only Google's service is faked: as in panoViewerFindPanoNear.test.js, the real PanoViewer base does the rest.
  */
 
 import * as turf from '@turf/turf';
@@ -164,6 +163,15 @@ describe('GsvViewer location searches hold replies to the radius', () => {
 
     await expect(viewer.findPanoNear(SEATTLE_QUERY)).resolves.toBeNull();
     expect(diagnostics.map((d) => d.details.google)).toEqual(['true']);
+  });
+
+  test('a far pano whose reply names no rights holder is not counted as Google imagery', async () => {
+    const { data } = reply('FAR', metersFromQuery(77));
+    delete data.copyright;
+    getPanorama.mockResolvedValue({ data });
+
+    await expect(viewer.findPanoNear(SEATTLE_QUERY)).resolves.toBeNull();
+    expect(diagnostics.map((d) => d.details.google)).toEqual(['false']);
   });
 
   test('a far first seed falls through to the next start-of-street point, like an empty one', async () => {

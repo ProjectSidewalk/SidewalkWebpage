@@ -26,6 +26,7 @@
   "surface-problems": "鋪面問題",
   "sign-up": "註冊",
   "close": "關閉",
+  "dont-show-again": "不再顯示",
   "cancel": "取消",
   "continue": "繼續",
   "delete": "刪除",
@@ -106,6 +107,7 @@
   "bad": "不良",
   "yes": "是",
   "no": "否",
+  "ai-generated-label": "AI 產生的標籤",
   "ai-generated-label-tooltip": "此標籤由 AI 產生。AI 可能會犯錯，請自行判斷其是否正確。",
   "tag": {
     "narrow": "狹窄",
@@ -146,7 +148,7 @@
     "sand/gravel": "泥/沙/礫石",
     "uncovered manhole": "人孔蓋開著",
     "ends abruptly": "突然地中斷",
-    "street has a sidewalk": "街道另一側有實體人行道",
+    "other side has a sidewalk": "街道另一側有實體人行道",
     "street has no sidewalks": "街道兩側皆無實體人行道",
     "gravel/dirt road": "碎石/泥土路",
     "shared pedestrian/car space": "人車共用空間",
@@ -207,11 +209,10 @@
     "view-in-panoramax": "在Panoramax街景圖裡查看",
     "city": "城市",
     "copy-to-clipboard": "複製到剪貼簿",
-    "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
+    "no-info": "無資訊",
+    "pano-url": "全景圖網址"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(在新分頁中開啟)"
-  },
+  "opens-new-tab": "(在新分頁中開啟)",
   "image-adjustments": {
     "button": "影像",
     "active-sr": "（已調整）",
@@ -250,7 +251,7 @@
       },
       "slide-2": {
         "title": "住宅前走道",
-        "description": "住宅前或周遭，供住戶進出的走道<b>不該</b>標記為「無路緣斜坡」。"
+        "description": "住宅前或周遭，供住戶進出的走道屬於私人範圍，不需要路緣斜坡。"
       },
       "slide-3": {
         "title": "非行人路徑的地點",
@@ -286,7 +287,7 @@
       },
       "slide-2": {
         "title": "正常的人行道鋪磚",
-        "description": "人行道上的鋪磚若無縫隙、裂縫或隆起、凹陷等問題，則不是鋪面問題。"
+        "description": "人行道鋪磚之間正常的小縫隙不算鋪面問題，只要沒有明顯的縫隙、裂縫或高低差。"
       },
       "slide-3": {
         "title": "不在人行道上",
@@ -344,13 +345,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "已複製！",
+    "failed": "複製失敗",
+    "section-link": "複製此段落的連結"
+  },
   "share": {
     "button": "分享",
     "heading": "分享此標註",
     "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
     "story-text": "「{{excerpt}}」——Project Sidewalk 上的社群故事",
     "copy-link": "複製連結",
-    "copied": "已複製！",
     "on-bluesky": "分享到 Bluesky",
     "on-x": "分享到 X",
     "on-facebook": "分享到 Facebook",
@@ -420,25 +425,28 @@
     "dismiss": "關閉",
     "wrong-type": {
       "text": "標籤類型錯誤",
-      "tooltip": "這裡確實有東西，但應該用不同的標籤類型來標記",
+      "tooltip": "這裡確實有東西，但應該用不同的標籤類型來標記。",
       "tooltip-curb-ramp": "有時，缺少的路緣坡道會被錯誤地標記為路緣坡道。",
       "tooltip-no-curb-ramp": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。",
       "tooltip-obstacle": "草屑和落葉等雜物應貼上「表面問題」標籤。",
-      "tooltip-surface-problem": "碎石路或草地不屬於人行道，應標示「禁止通行」標誌。",
+      "tooltip-surface-problem": "碎石路或草地不屬於人行道，應改為標記「無人行道」標籤。",
       "tooltip-no-sidewalk": "路面問題或障礙物可能被錯誤地標記為「無人行道」。"
     },
     "driveway": {
-      "text": "這是一條車道"
+      "text": "這是一條車道",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "這是人行道到車道的過渡段。",
-      "tooltip": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道"
+      "tooltip": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道。"
     },
     "residential-walkway": {
-      "text": "這是一條住宅人行道。"
+      "text": "這是一條住宅人行道。",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
-      "text": "這裡沒有人行道。"
+      "text": "這裡沒有人行道。",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "在這裡穿越並不安全。",
@@ -447,38 +455,47 @@
     "not-pedestrian-path": {
       "text": "這裡不是人行道。",
       "tooltip-obstacle": "如果沒有人行道，或物體不在人行道的行人專用區域內（如下圖所示），則無需添加「障礙物」標籤。",
-      "tooltip-surface-problem": "如果路面問題並非發生在人行道上，則不應標記為路面問題。"
+      "tooltip-surface-problem": "如果沒有人行道，或問題不在人行道的行人專用區域內，則無需添加「路面問題」標籤。"
     },
     "ample-space": {
       "text": "有足夠的空間避開這個物體",
       "tooltip": "在非常寬闊的人行道上，很容易避開的物體不應被標記為障礙物。"
     },
     "normal-tiles": {
-      "text": "這些是普通的人行道地磚。"
+      "text": "這些是普通的人行道地磚。",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
-      "text": "這裡有人行道。"
+      "text": "這裡有人行道。",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
-      "text": "這是交通中央隔離帶。"
+      "text": "這是交通中央隔離帶。",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
-      "text": "這裡沒有明顯的斑馬線。"
+      "text": "這裡沒有明顯的斑馬線。",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
-      "text": "這是車輛停車線。"
+      "text": "這是車輛停車線。",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
-      "text": "這是一個減速帶"
+      "text": "這是一個減速帶",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
-      "text": "這只是車輛的交通號誌。"
+      "text": "這只是車輛的交通號誌。",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
-      "text": "這是一個沒有燈光指示安全過馬路的標誌。"
+      "text": "這是一個沒有燈光指示安全過馬路的標誌。",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
-      "text": "這是一根沒有行人號誌或按鈕的電線桿"
+      "text": "這是一根沒有行人號誌或按鈕的電線桿",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "需要更好的圖片",

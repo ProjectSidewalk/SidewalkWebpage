@@ -7,6 +7,7 @@
 
 import i18next from 'i18next';
 import { util } from '../common/utilities.js';
+import { copyToClipboard } from '../common/copyToClipboard.js';
 
 export class SavedRoutesPanel {
   static STORAGE_KEY = 'rb-guest-routes';
@@ -16,7 +17,6 @@ export class SavedRoutesPanel {
 
   #isSignedIn;
   #formatMeta;
-  #setTemporaryTooltip;
   #onView;
   #panel;
   #list;
@@ -26,13 +26,11 @@ export class SavedRoutesPanel {
    * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (selects the routes source).
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
-   * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
    * @param {Function} opts.onView - Called with the route id when a card body is clicked (opens it in the editor).
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
     this.#formatMeta = opts.formatMeta;
-    this.#setTemporaryTooltip = opts.setTemporaryTooltip;
     this.#onView = opts.onView;
     this.#panel = document.getElementById('saved-routes-panel');
     this.#list = document.getElementById('saved-routes-list');
@@ -211,8 +209,7 @@ export class SavedRoutesPanel {
         const url = btn.dataset.slug
           ? `${window.location.origin}/r/${btn.dataset.slug}`
           : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
-        navigator.clipboard.writeText(url);
-        this.#setTemporaryTooltip(btn, i18next.t('copied-to-clipboard'));
+        copyToClipboard(btn, url);
         window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_Copy_RouteId=${btn.dataset.routeId}`);
       });
     });

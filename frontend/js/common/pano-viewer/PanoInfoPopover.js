@@ -7,6 +7,9 @@
 
 import i18next from 'i18next';
 import { util } from '../utilities.js';
+import { copyToClipboard } from '../copyToClipboard.js';
+import { newTabLink, newTabNote } from '../newTabNote.js';
+import { onLinkClick } from '../onLinkClick.js';
 /** @typedef {import('./MapillaryViewer.js').MapillaryViewer} MapillaryViewer */
 /** @typedef {import('./PanoViewer.js').PanoViewer} PanoViewer */
 
@@ -45,6 +48,8 @@ export class PanoInfoPopover {
   #labelId;
   /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
+  /** @type {((labelId: number) => void)|undefined} Optional — called when the Label ID link is clicked. */
+  #labelLinkLogging;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
 
@@ -62,11 +67,13 @@ export class PanoInfoPopover {
    * @param {() => void} infoLogging - Called when the info button is clicked
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
-   * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
-   * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
+   * @param {object} [label] - For pages showing a label; the Label ID and Labeled rows show only if given.
+   * @param {() => number|undefined} [label.id] - Returns the Label ID
+   * @param {() => Date} [label.date] - Returns the label's timestamp
+   * @param {(labelId: number) => void} [label.linkLogging] - Called with the label's id when its link is clicked
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
-    infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
+    infoLogging, clipboardLogging, viewPanoLogging, label = {}) {
     this.#popoverEl = document.getElementById('pano-info-popover');
     this.#panoViewer = panoViewer;
     this.#coords = coords;
@@ -80,8 +87,9 @@ export class PanoInfoPopover {
     this.#infoLogging = infoLogging;
     this.#clipboardLogging = clipboardLogging;
     this.#viewPanoLogging = viewPanoLogging;
-    this.#labelId = labelId;
-    this.#labelDate = labelDate;
+    this.#labelId = label.id;
+    this.#labelDate = label.date;
+    this.#labelLinkLogging = label.linkLogging;
 
     this.#init(container);
   }
@@ -91,11 +99,6 @@ export class PanoInfoPopover {
    * @param {HTMLElement} container - Element where the info button will be appended
    */
   #init(container) {
-    if (!this.#popoverEl) {
-      console.error('PanoInfoPopover: #pano-info-popover not found. Include @common.panoInfoPopover() in the view.');
-      return;
-    }
-
     // Create and append the info button to the provided container.
     this.#infoButton = document.createElement('img');
     this.#infoButton.id = 'pano-info-button';
@@ -120,9 +123,11 @@ export class PanoInfoPopover {
       }
     });
 
+    onLinkClick(this.#popoverEl.querySelector('.pano-info-popover__view-link'), () => this.#viewPanoLogging());
+
     // Explicit close button in the header.
-    const closeBtn = this.#popoverEl.querySelector('.pano-info-popover__close');
-    if (closeBtn) closeBtn.addEventListener('click', () => this.#popoverEl.hidePopover());
+    this.#popoverEl.querySelector('.pano-info-popover__close')
+      .addEventListener('click', () => this.#popoverEl.hidePopover());
 
     // Light-dismiss: close when clicking outside the popover (but not the trigger button).
     document.addEventListener('click', (e) => {
@@ -156,8 +161,7 @@ export class PanoInfoPopover {
    * @param {string} field - The data-optional-row attribute value
    */
   #showOptionalRow(field) {
-    const row = this.#popoverEl.querySelector(`[data-optional-row="${field}"]`);
-    if (row) row.classList.remove('pano-info-popover__row--hidden');
+    this.#popoverEl.querySelector(`[data-optional-row="${field}"]`).classList.remove('pano-info-popover__row--hidden');
   }
 
   /**
@@ -187,22 +191,33 @@ export class PanoInfoPopover {
   }
 
   /**
+   * Links the Label ID to the admin view for admins, where it can be pinned as a training example; else /label.
+   * @param {number} labelId - The label shown.
+   */
+  #setLabelLink(labelId) {
+    const link = newTabLink(`${util.isAdmin() ? '/admin/label' : '/label'}/${encodeURIComponent(labelId)}`,
+      String(labelId));
+    onLinkClick(link, () => this.#labelLinkLogging?.(labelId));
+    this.#popoverEl.querySelector('[data-field="label-id"]').replaceChildren(link);
+  }
+
+  /**
    * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
    */
   #updateVals() {
     const viewer = this.#panoViewer();
     this.#watchViewer(viewer);
 
-    const currCoords = this.#coords ? this.#coords() : null;
-    const currPanoId = this.#panoId ? this.#panoId() : null;
-    const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
-    const currRegionId = this.#regionId ? this.#regionId() : null;
-    const panoDate = this.#panoDate?.();
+    const currCoords = this.#coords();
+    const currPanoId = this.#panoId();
+    const currStreetEdgeId = this.#streetEdgeId();
+    const currRegionId = this.#regionId();
+    const panoDate = this.#panoDate();
     const currPanoDate = panoDate && !Number.isNaN(panoDate.getTime())
       ? panoDate.toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' })
       : null;
-    const currPanoAddress = this.#panoAddress ? this.#panoAddress() : null;
-    const currPov = this.#pov ? this.#pov() : { heading: 0, pitch: 0 };
+    const currPanoAddress = this.#panoAddress();
+    const currPov = this.#pov();
     const currLabelId = this.#labelId ? this.#labelId() : null;
     const labelDate = this.#labelDate?.();
     const currLabelDate = labelDate && !Number.isNaN(labelDate.getTime())
@@ -210,26 +225,29 @@ export class PanoInfoPopover {
       : null;
 
     /**
-     * Sets the text content of a value span identified by [data-field].
-     * @param {string} field - The data-field attribute value
-     * @param {string|number|boolean|null} val - The value to display
+     * How a value reads, on screen and in the copied text alike.
+     * @param {string} field - The pano-info field the value belongs to.
+     * @param {string|number|null|undefined} val - The value, or nothing when unknown.
+     * @returns {string} The text to show.
+     */
+    const shown = (field, val) => {
+      if (val === null || val === undefined) return i18next.t('common:pano-info.no-info');
+      if (field === 'latitude' || field === 'longitude') return `${Number(val).toFixed(8)}°`;
+      return String(val);
+    };
+    /**
+     * Fills the value span for a field.
+     * @param {string} field - The span's data-field.
+     * @param {string|number|null|undefined} val - The value, or nothing when unknown.
      */
     const setVal = (field, val) => {
-      const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);
-      if (!span) return;
-      if (val === null || val === undefined || val === false) {
-        span.textContent = 'No Info';
-      } else if (field === 'latitude' || field === 'longitude') {
-        span.textContent = `${Number(val).toFixed(8)}°`;
-      } else {
-        span.textContent = String(val);
-      }
+      this.#popoverEl.querySelector(`[data-field="${field}"]`).textContent = shown(field, val);
     };
 
     setVal('image-id', currPanoId);
     setVal('latitude', currCoords ? currCoords.lat : null);
     setVal('longitude', currCoords ? currCoords.lng : null);
-    if (currLabelId) setVal('label-id', currLabelId);
+    if (currLabelId) this.#setLabelLink(currLabelId);
     setVal('street-id', currStreetEdgeId);
     setVal('region-id', currRegionId);
     if (currLabelDate) setVal('label-date', currLabelDate);
@@ -248,17 +266,12 @@ export class PanoInfoPopover {
       pitch: currPov.pitch,
       center: /** @type {MapillaryViewer} */ (viewer).currCenter, // Only Mapillary tracks one; undefined elsewhere.
     });
-    if (viewLink) {
-      // Inline style, not the hidden attribute: .pano-info-popover__view-link sets display: block, which outranks
-      // the UA's [hidden] rule.
-      viewLink.style.display = link ? '' : 'none';
-      if (link) {
-        viewLink.onclick = this.#viewPanoLogging;
-        viewLink.href = link.url;
-        viewLink.textContent = i18next.t(link.i18nKey);
-      } else {
-        viewLink.removeAttribute('href');
-      }
+    viewLink.hidden = !link;
+    if (link) {
+      viewLink.href = link.url;
+      viewLink.replaceChildren(i18next.t(link.i18nKey), newTabNote());
+    } else {
+      viewLink.removeAttribute('href');
     }
 
     // Wire the clipboard button (reassign onclick to capture the latest values).
@@ -266,28 +279,23 @@ export class PanoInfoPopover {
     clipboardBtn.onclick = () => {
       this.#clipboardLogging();
 
-      let text = currPanoAddress
-        ? `${i18next.t('common:pano-info.pano-address')}: ${currPanoAddress}\n`
-        : '';
-      text += `${i18next.t('common:pano-info.city')}: ${window.cityName}\n`
-        + `${i18next.t('common:pano-info.latitude')}: ${currCoords ? currCoords.lat : ''}°\n`
-        + `${i18next.t('common:pano-info.longitude')}: ${currCoords ? currCoords.lng : ''}°\n`
-        + `${i18next.t('common:pano-info.image-id')}: ${currPanoId}\n`
-        + `${i18next.t('common:pano-info.street-id')}: ${currStreetEdgeId}\n`
-        + `${i18next.t('common:pano-info.region-id')}: ${currRegionId}\n`
-        + `${i18next.t('common:pano-info.pano-date')}: ${currPanoDate}\n`;
-      if (currLabelId) text += `${i18next.t('common:pano-info.label-id')}: ${currLabelId}\n`;
-      if (currLabelDate) text += `${i18next.t('common:pano-info.label-date')}: ${currLabelDate}\n`;
-      if (link) text += `Pano URL: ${link.url}`;
+      const line = (field, val) => `${i18next.t(`common:pano-info.${field}`)}: ${shown(field, val)}`;
+      const lines = [
+        ...(currPanoAddress ? [line('pano-address', currPanoAddress)] : []),
+        line('city', window.cityName),
+        line('latitude', currCoords ? currCoords.lat : null),
+        line('longitude', currCoords ? currCoords.lng : null),
+        line('image-id', currPanoId),
+        line('street-id', currStreetEdgeId),
+        line('region-id', currRegionId),
+        line('pano-date', currPanoDate),
+        ...(currLabelId ? [line('label-id', currLabelId)] : []),
+        ...(currLabelDate ? [line('label-date', currLabelDate)] : []),
+        ...(link ? [line('pano-url', link.url)] : []),
+      ];
+      const text = lines.join('\n');
 
-      navigator.clipboard.writeText(text);
-
-      // Briefly show the "copied" confirmation message.
-      const copied = this.#popoverEl.querySelector('.pano-info-popover__copied');
-      copied.hidden = false;
-      setTimeout(() => {
-        copied.hidden = true;
-      }, 1500);
+      copyToClipboard(clipboardBtn, text);
     };
   }
 }

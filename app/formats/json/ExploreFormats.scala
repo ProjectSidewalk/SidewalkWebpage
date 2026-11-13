@@ -84,11 +84,10 @@ object ExploreFormats {
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
       requestUpdatedStreetPriority: Boolean,
-      auditedDistanceM: Option[Double],
       // Which route_street row this task was served for, when auditing along a route. A route may traverse one
       // street twice (out-and-back), so street_edge_id alone can't say which traversal this is.
       routeStreetId: Option[Int],
-      // Free exploration only (#5733): the server unions these into the task's stored coverage.
+      // The server unions these into the task's stored coverage and credits the street from it (#5733, #5669).
       coveredRanges: Option[Seq[CoveredRange]] = None
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
@@ -156,6 +155,7 @@ object ExploreFormats {
    * and the pano the page should open at when the URL asked for one. `task` is None once the region is fully mapped.
    * @param routeResumed     Whether a walk already in progress was picked back up, so the page can say so.
    * @param routeUnavailable Whether a `?routeId=` named no live route and was dropped (#5156).
+   * @param streetUnavailable Whether a `?streetEdgeId=` named no street Explore can hand out and was dropped (#5824).
    * @param regionFinished   Whether the user had already finished the `?regionId=` they asked for, so `regionId` is
    *                         where they were moved instead (#5692).
    * @param startPov         A heading, pitch and zoom to open the pano at; only ever set alongside a pano or lat/lng.
@@ -172,6 +172,7 @@ object ExploreFormats {
       routeName: Option[String],
       routeResumed: Boolean,
       routeUnavailable: Boolean,
+      streetUnavailable: Boolean,
       regionFinished: Boolean,
       startLat: Option[Double],
       startLng: Option[Double],

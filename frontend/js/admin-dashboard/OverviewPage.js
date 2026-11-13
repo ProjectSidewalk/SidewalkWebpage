@@ -51,8 +51,8 @@ export class OverviewPage {
       this.#renderPulse(summary.last_activity);
     } catch (err) {
       console.error('Overview page failed to load:', err);
-      this.#setText('ov-pulse', 'Could not load the snapshot. Please try again.');
-      this.#setText('ov-status', 'Could not load the snapshot. Please try again.');
+      AdminShell.setText('ov-pulse', 'Could not load the snapshot. Please try again.');
+      AdminShell.setText('ov-status', 'Could not load the snapshot. Please try again.');
     }
   }
 
@@ -87,7 +87,7 @@ export class OverviewPage {
     this.#setCard('quality', this.#compact(s.total_labels),
       `labels · ${this.#compact(s.total_validations)} validations`, this.#num(s.total_labels));
 
-    // Contributors: distinct accounts that have produced any data.
+    // Contributors: people with a non-tutorial label or a vote.
     this.#setCard('contributors', this.#compact(s.contributors), 'contributing accounts', this.#num(s.contributors));
 
     // Activity: last-7-days pulse; the headline is labels, the sub adds validations and streets.
@@ -146,8 +146,7 @@ export class OverviewPage {
     const today = this.#startOfDay(new Date());
     for (const sp of specs) {
       const buckets = this.#weeklyBuckets(byDate, today, sp.get);
-      const host = document.getElementById(`ov-${sp.key}-spark`);
-      if (host) host.innerHTML = this.#sparkline(buckets.values);
+      document.getElementById(`ov-${sp.key}-spark`).innerHTML = this.#sparkline(buckets.values);
       this.#renderTrend(sp.key, buckets.thisWeek, buckets.priorWeek, sp.unit);
     }
   }
@@ -172,13 +171,12 @@ export class OverviewPage {
       }
       values.push(sum);
     }
-    return { values, thisWeek: values[values.length - 1], priorWeek: values[values.length - 2] || 0 };
+    return { values, thisWeek: values[values.length - 1], priorWeek: values[values.length - 2] };
   }
 
   /** Sets a card's trend line: a direction arrow, this-week total, and unit, colored by direction vs last week. */
   #renderTrend(key, thisWeek, priorWeek, unit) {
     const el = document.getElementById(`ov-${key}-trend`);
-    if (!el) return;
     const delta = thisWeek - priorWeek;
     const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '→';
@@ -192,36 +190,23 @@ export class OverviewPage {
    * stretch via vector-effect, and the last point is dotted so "now" is easy to find.
    *
    * @param {number[]} values - Weekly sums, oldest → newest.
-   * @returns {string} An <svg> string, or '' when there's too little data to draw.
+   * @returns {string} An <svg> string.
    */
   #sparkline(values) {
-    const present = values.filter((v) => v !== null && v !== undefined);
-    if (present.length < 2) return '';
     const W = 200;
     const H = 36;
     const pad = 3;
-    const max = Math.max(...present);
-    const min = Math.min(...present, 0);
+    const max = Math.max(...values);
+    const min = Math.min(...values, 0);
     const range = max - min || 1;
     const n = values.length;
     const x = (i) => pad + (i / (n - 1)) * (W - 2 * pad);
     const y = (v) => pad + (1 - (v - min) / range) * (H - 2 * pad);
-    let d = '';
-    let move = true;
-    values.forEach((v, i) => {
-      if (v === null || v === undefined) {
-        move = true;
-        return;
-      }
-      d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
-      move = false;
-    });
-    const lastV = values[n - 1];
-    const dot = lastV !== null && lastV !== undefined
-      ? `<circle class="ov-spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="2.4"/>`
-      : '';
+    const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const last = n - 1;
+    const dot = `<circle class="ov-spark-dot" cx="${x(last).toFixed(1)}" cy="${y(values[last]).toFixed(1)}" r="2.4"/>`;
     return `<svg class="ov-spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">`
-      + `<path class="ov-spark-line" d="${d.trim()}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
+      + `<path class="ov-spark-line" d="${d}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
   }
 
   // --- Needs attention --------------------------------------------------------------------------------------------
@@ -234,7 +219,6 @@ export class OverviewPage {
    */
   #renderAttention(s) {
     const el = document.getElementById('ov-attention');
-    if (!el) return;
     const items = [];
 
     if (s.labels_awaiting_validation > 0) {
@@ -249,7 +233,7 @@ export class OverviewPage {
     // row below reports the needs-re-audit subset separately.
     const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0);
     if (streetsLeft > 0) {
-      const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
+      const pctLeft = Math.round((streetsLeft / s.total_streets) * 100);
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
         html: `<strong>${this.#num(streetsLeft)}</strong> streets not yet audited (${pctLeft}% of all streets)` });
     }
@@ -290,7 +274,6 @@ export class OverviewPage {
    */
   #renderRecent(items) {
     const el = document.getElementById('ov-recent');
-    if (!el) return;
     if (!items.length) {
       el.innerHTML = '<p class="dq-empty">No recent activity.</p>';
       return;
@@ -336,7 +319,6 @@ export class OverviewPage {
    */
   #renderPulse(item) {
     const el = document.getElementById('ov-pulse');
-    if (!el) return;
     if (!item) {
       el.textContent = 'No recent activity.';
       return;
@@ -377,17 +359,9 @@ export class OverviewPage {
    */
   #setCard(key, value, sub, titleFull) {
     const valEl = document.getElementById(`ov-${key}-value`);
-    const subEl = document.getElementById(`ov-${key}-sub`);
-    if (valEl) {
-      valEl.textContent = value;
-      if (titleFull) valEl.title = titleFull;
-    }
-    if (subEl) subEl.textContent = sub;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    valEl.textContent = value;
+    if (titleFull) valEl.title = titleFull;
+    document.getElementById(`ov-${key}-sub`).textContent = sub;
   }
 
   /** Full number with thousands separators ("1,234,567"). */

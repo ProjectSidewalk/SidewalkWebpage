@@ -98,7 +98,7 @@ export class ReasonPopover {
       onPick: (id, viaKeyboard) => this.#request?.onPick(id, viaKeyboard),
       onOther: (viaKeyboard) => {
         this.#request?.onOther?.(viaKeyboard);
-        if (this.isOpen()) this.#position(); // The field can wrap onto a row of its own.
+        this.#position(); // The field can wrap onto a row of its own.
       },
       onSubmitOther: (text, viaKeyboard) => this.#request?.onSubmitOther(text, viaKeyboard),
       showKeys: window.matchMedia?.('(hover: hover)').matches ?? true,
@@ -127,9 +127,7 @@ export class ReasonPopover {
         this.#swallowEscapeKeyup = false;
       }
     }, { capture: true });
-    const reposition = () => {
-      if (this.isOpen()) this.#position();
-    };
+    const reposition = () => this.#position();
     window.addEventListener('resize', reposition);
     // Capture: a scrolling ancestor (the LabelMap popup, the Gallery grid) moves the anchor without a window scroll.
     window.addEventListener('scroll', reposition, { capture: true });
@@ -151,6 +149,11 @@ export class ReasonPopover {
   /** @returns {?HTMLElement} The element the open pop-up hangs off, or null. */
   get anchor() {
     return this.#request?.anchor ?? null;
+  }
+
+  /** @returns {boolean} Whether "Other…" holds typed words not yet saved, which paging away would lose. */
+  get hasUnsavedWords() {
+    return this.isOpen() && this.#chips.hasOtherDraft;
   }
 
   /** @returns {boolean} Whether focus is inside the pop-up, for a host deciding whether a key is its own. */
@@ -195,8 +198,7 @@ export class ReasonPopover {
     }
     request.host.classList.add('has-reason-popover');
     // The chips draw the prompt afresh on every render, so the dialog takes its name from the new one.
-    const prompt = this.#el.querySelector('.reason-chips__prompt');
-    if (prompt) this.#el.setAttribute('aria-labelledby', prompt.id);
+    this.#el.setAttribute('aria-labelledby', this.#el.querySelector('.reason-chips__prompt').id);
     this.#el.classList.toggle('reason-popover--disagree', request.vote === 'Disagree');
     this.#el.classList.toggle('reason-popover--unsure', request.vote === 'Unsure');
     // Set per open rather than once, in case the page's language resolved after the pop-up was built.
@@ -319,7 +321,7 @@ export class ReasonPopover {
   #syncFoot() {
     const empty = this.#savedEl.textContent === '' && this.#hintEl.textContent === '';
     this.#footEl.classList.toggle('reason-popover__foot--empty', empty);
-    if (this.isOpen()) this.#position();
+    this.#position();
   }
 
   /**
@@ -328,7 +330,6 @@ export class ReasonPopover {
    */
   #dismiss(via, viaKeyboard) {
     const request = this.#request;
-    if (!request) return;
     this.close();
     request.onDismiss?.(via, viaKeyboard);
   }
@@ -342,11 +343,12 @@ export class ReasonPopover {
   #onPointerDown = (e) => {
     const request = this.#request;
     if (!request) return;
-    const target = e.target instanceof Node ? e.target : null;
-    if (!target || this.#el.contains(target) || request.anchor.contains(target)) return;
+    // A pointer always lands on an element, never on text or the document itself.
+    const target = /** @type {Element} */ (e.target);
+    if (this.#el.contains(target) || request.anchor.contains(target)) return;
     // Another vote control on the same card: that control's handler decides what happens (a re-vote reopens, a
     // clear closes), and logging a dismissal as well would count one gesture twice.
-    const control = target instanceof Element ? target.closest('[data-reason-anchor]') : null;
+    const control = target.closest('[data-reason-anchor]');
     if (control && request.host.contains(control)) return;
     // Words typed into "Other…" and not yet saved outlast a stray click; Escape and the ✕ still close.
     if (this.#chips.hasOtherDraft) return;
@@ -392,10 +394,10 @@ export class ReasonPopover {
    */
   #bridgeTab(target, back) {
     const anchor = this.#request.anchor;
+    // Never empty: the close control stays enabled even while a pick saves.
     const inside = ReasonPopover.#tabbables(this.#el);
-    if (inside.length === 0) return false;
-    const page = ReasonPopover.#tabbables(this.#el.parentElement ?? document.body).filter((n) => !this.#el.contains(n));
-    // By document position rather than index: the anchor is disabled while a pick is saving, so it isn't in `page`.
+    const page = ReasonPopover.#tabbables(this.#el.parentElement).filter((n) => !this.#el.contains(n));
+    // By document position rather than index, so the anchor itself lands in neither list.
     const after = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
     const before = page.filter((n) => anchor.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING);
     if (!back && target === anchor) return ReasonPopover.#focusFirst(inside);
@@ -443,7 +445,7 @@ export class ReasonPopover {
    */
   #position() {
     const request = this.#request;
-    if (!request) return;
+    if (!request) return; // Resizes and scrolls reach here whether or not it is open.
     // A host re-rendered under it leaves nothing to point at, and its onPick would file a reason for a gone card.
     if (!request.anchor.isConnected || !request.host.isConnected) {
       this.close();

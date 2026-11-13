@@ -7,44 +7,22 @@
  */
 
 import { loadModules, mockModule } from './loader.js';
+import { composerMarkup, installDialogs } from './support/storyHarness.js';
 
 // Echo the key, with any interpolation appended so both halves are assertable.
 mockModule('i18next', () => ({ default: {
   t: (key, opts) => (opts && opts.labelType !== undefined ? `${key}[${opts.labelType}]` : key),
 } }));
 
-/** The elements StoryComposer's constructor looks up, in a <dialog> host. */
+/** @returns {HTMLDialogElement} A fresh copy of the composer dialog. */
 function setupDom() {
-  document.body.innerHTML = `
-        <dialog class="story-composer">
-            <h3 class="story-composer__title"></h3>
-            <p class="story-composer__intro"></p>
-            <textarea class="story-composer__text"></textarea>
-            <span class="story-composer__counter"></span>
-            <button type="button" class="story-composer__photo-attach"></button>
-            <input type="file" class="story-composer__photo-input">
-            <div class="story-composer__photo-preview" hidden>
-                <img class="story-composer__photo-thumb" alt="">
-                <button type="button" class="story-composer__photo-remove"></button>
-            </div>
-            <input class="story-composer__alt-input">
-            <div class="story-composer__check-row"><input type="radio" class="story-composer__name-anon"></div>
-            <div class="story-composer__check-row">
-                <input type="radio" class="story-composer__name-username">
-                <span class="story-composer__username-option"></span>
-            </div>
-            <p class="story-composer__privacy"></p>
-            <div class="story-composer__signin-cta"><button class="story-composer__signin-btn"></button></div>
-            <p class="story-composer__error"></p>
-            <button type="button" class="story-composer__cancel"></button>
-            <button type="button" class="story-composer__close"></button>
-            <button type="button" class="story-composer__submit"></button>
-        </dialog>`;
+  document.body.innerHTML = composerMarkup();
   return document.querySelector('.story-composer');
 }
 
 let StoryComposer;
 
+/** @returns {object} A composer on a fresh dialog. */
 function newComposer() {
   return new StoryComposer(setupDom(), {});
 }
@@ -54,7 +32,7 @@ const title = () => document.querySelector('.story-composer__title').textContent
 beforeEach(async () => {
   ({ StoryComposer } = await loadModules('frontend/js/common/label-detail/StoryComposer.js'));
   window.logWebpageActivity = vi.fn();
-  window.HTMLDialogElement.prototype.showModal = vi.fn(); // jsdom's is a no-op stub in some versions.
+  installDialogs();
 });
 
 describe("the story composer's dialog title", () => {

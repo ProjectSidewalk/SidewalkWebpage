@@ -32,7 +32,7 @@ mockModule('frontend/js/common/Toast.js', () => ({ Toast: toast }));
  * @param {boolean} [opts.paging=true] - Render the prev/next arrows, which the template emits only for a host that
  *     asked for them (`withPaging`).
  * @param {boolean} [opts.asDialog=false] - Mount the card in a <dialog>, the way LabelPopup's hosts do, rather
- *     than in the <div> the Gallery and the share page use.
+ *     than in the <div> Gallery and the share page use.
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
@@ -45,20 +45,36 @@ function buildCard({ paging = true, asDialog = false } = {}) {
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           ${arrows}
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false">Disagree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false">Unsure</button>
           </div>
-          <span class="label-detail__pan-hint" hidden></span>
         </div>
 
         <div class="label-detail__meta-row">
@@ -162,6 +178,7 @@ function buildCard({ paging = true, asDialog = false } = {}) {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </${tag}>`;
   return document.getElementById('card');
@@ -291,7 +308,7 @@ describe('the label card\'s open event (#5139)', () => {
   });
 
   test('a label shown from a meta object logs one open, and nothing else is logged', async () => {
-    // The Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
+    // Gallery's expanded view hands the card the data it already holds, so no fetch is involved.
     await showMeta();
 
     expect(window.logWebpageActivity.mock.calls).toEqual([['LabelDetail_Show_labelId=42_source=TestSource']]);

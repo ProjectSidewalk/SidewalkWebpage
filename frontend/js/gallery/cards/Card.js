@@ -8,7 +8,7 @@ import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { validationReasons } from '../../common/validationReasons.js';
-import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
+import { buildBackupImageData, fetchCropImageMetadata, retrySignedImage } from '../../common/utilitiesSidewalk.js';
 import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
@@ -33,10 +33,13 @@ export class Card {
 
   #params;
   #cropUrl;
+  /** Counts loadImage() calls, so a re-sign answering after a newer call has taken over the image is dropped. */
+  #loadAttempt = 0;
   #cropMarker;
   #gsvImageUrl;
   #tracker;
   #cardFilter;
+  /** @type {?string} */ #voteSource;
   #regionNames;
 
   #markerWrapper;
@@ -100,8 +103,12 @@ export class Card {
    * @param {Record<string, string>} regionNames - Region names for the location line, keyed by region id.
    * @param {Tracker} tracker - Logs the card's interactions.
    * @param {GalleryFilter} cardFilter - The sidebar, asked which tags are applied so those are shown first.
+   * @param {object} [options]
+   * @param {?string} [options.voteSource] - The source its votes are recorded under on a page other than Gallery,
+   *     since analyses key on it; Gallery's own two sources otherwise.
    */
-  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter) {
+  constructor({ label, cropUrl, gsvImageUrl, cropMarker = null }, regionNames, tracker, cardFilter, options = {}) {
+    this.#voteSource = options.voteSource ?? null;
     this.#params = label;
     this.#cropUrl = cropUrl;
     this.#cropMarker = cropMarker;
@@ -182,8 +189,7 @@ export class Card {
     const regionName = this.#regionNames[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
-      // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
-      // grid intact.
+      // "View on Label Map" uses. Same tab: Gallery keeps its filters in the URL, so Back returns to this grid intact.
       const location = document.createElement('a');
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
@@ -258,10 +264,15 @@ export class Card {
     this.validationMenu = new ValidationMenu(this, imageHolder, this.#tracker);
   }
 
+  /** @returns {?string} The source to record this card's votes under, when its page has its own. */
+  getVoteSource() {
+    return this.#voteSource;
+  }
+
   /**
    * This function returns labelId property.
    *
-   * @returns {string}
+   * @returns {number}
    */
   getLabelId() {
     return this.#properties.label_id;
@@ -288,10 +299,10 @@ export class Card {
    * Get a property.
    *
    * @param {string} propName - Property name.
-   * @returns {*} Property value if property name is valid. Otherwise false.
+   * @returns {*} Property value.
    */
   getProperty(propName) {
-    return (propName in this.#properties) ? this.#properties[propName] : false;
+    return this.#properties[propName];
   }
 
   /**
@@ -334,7 +345,8 @@ export class Card {
   }
 
   /**
-   * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
+   * Loads the image, preferring the crop. A crop that fails is re-signed and tried once more, since its signed URL may
+   * have expired while the page sat open (#5861); after that it falls back to GSV.
    * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
    */
   loadImage() {
@@ -353,12 +365,14 @@ export class Card {
         // The container asks again on every page and filter render, so a card whose last attempt fell back to the
         // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
         this.#useSource(this.#cropUrl ? 'crop' : 'api');
+        const attempt = ++this.#loadAttempt;
+        delete img.dataset.resigned; // Each attempt gets its own retry.
         img.onload = () => {
           this.#status.imageFetched = true;
           this.#showImage();
           resolve(true);
         };
-        img.onerror = () => {
+        const fallBack = () => {
           if (fallbackUrl) {
             // The crop failed; try the still, and place the marker and the credit for it.
             this.#useSource('api');
@@ -371,6 +385,23 @@ export class Card {
             this.#hideMissingImage();
             resolve(false);
           }
+        };
+        // A report card shows the crop's thumbnail (reportCards.js), so it re-signs to one.
+        const thumbnail = /\/thumbnail(\?|$)/.test(this.#cropUrl ?? '');
+        img.onerror = () => {
+          if (this.#status.imageSource !== 'crop') {
+            fallBack();
+            return;
+          }
+          retrySignedImage(img, {
+            fetchMetadata: () => fetchCropImageMetadata(this.getLabelType(), this.getLabelId())
+              .then((meta) => meta && { image_url: thumbnail ? meta.thumbnail_url : meta.image_url }),
+            isCurrent: () => attempt === this.#loadAttempt,
+            onFresh: (url) => {
+              this.#cropUrl = url;
+            },
+            onGiveUp: fallBack,
+          });
         };
         img.src = primaryUrl;
       } else {
@@ -498,29 +529,25 @@ export class Card {
 
   /**
    * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
-   * the Gallery's filter; the next load sorts that out.
+   * Gallery's filter; the next load sorts that out.
    * @param {string} labelType
    */
   updateLabelType(labelType) {
     if (labelType === this.getLabelType()) return;
     this.#properties.label_type = labelType;
     const labelTypeName = util.misc.labelTypeName(labelType);
-    const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     const iconPath = util.misc.getIconImagePaths(labelType).iconImagePath;
-    if (icon) icon.src = iconPath;
+    this.labelIcon.src = iconPath;
     const placeholderIcon = this.#placeholder?.querySelector('img');
     if (placeholderIcon) placeholderIcon.src = iconPath;
-    const header = this.#card.querySelector('.card-header__type');
-    if (header) header.textContent = labelTypeName;
-    const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));
-    if (image) image.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
+    this.#card.querySelector('.card-header__type').textContent = labelTypeName;
+    this.#panoImage.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
     // The severity block exists only for rated types; updateSeverityAndTags fills it if present.
-    const cardData = this.#card.querySelector('.card-data');
     let cardSeverity = this.#card.querySelector('.card-severity');
-    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity && cardData) {
+    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity) {
       cardSeverity = document.createElement('div');
       cardSeverity.className = 'card-severity';
-      cardData.prepend(cardSeverity);
+      this.#card.querySelector('.card-data').prepend(cardSeverity);
     } else if (!util.misc.labelTypeHasSeverity(labelType) && cardSeverity) {
       cardSeverity.remove();
     }
@@ -545,17 +572,30 @@ export class Card {
   }
 
   /**
-   * Set aspect of status.
-   *
-   * @param {string} key - Status name.
-   * @param {*} value - Status value.
+   * Adds or removes the AI badge, as a type change or its undo in the expanded view can flip it (#5925).
+   * @param {boolean} aiGenerated - Whether the label shows the AI badge.
    */
-  setStatus(key, value) {
-    if (key in this.#status) {
-      this.#status[key] = value;
-    } else {
-      throw new Error(`${this.constructor.name}: Illegal status name.`);
+  setAiGenerated(aiGenerated) {
+    this.#properties.ai_generated = aiGenerated;
+    this.#markerWrapper.querySelector('.ai-icon-marker-card')?.remove();
+    if (aiGenerated) {
+      this.#markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
     }
+  }
+
+  /**
+   * Replaces the votes outright, since a type change counts only the new type's (#5853).
+   * @param {{num_agree: number, num_disagree: number, num_unsure: number, user_validation: ?string,
+   *     ai_validation: ?string}} votes - The label's votes as `/label/id/:id` serves them.
+   */
+  setVotes(votes) {
+    const properties = this.#properties;
+    properties.val_counts = { Agree: votes.num_agree, Disagree: votes.num_disagree, Unsure: votes.num_unsure };
+    properties.user_validation = votes.user_validation ?? null;
+    properties.ai_validation = votes.ai_validation ?? null;
+    this.validationInfoDisplay.setAiValidation(properties.ai_validation);
+    this.validationInfoDisplay.updateValCounts(votes.num_agree, votes.num_disagree, properties.user_validation);
+    this.validationMenu.showValidationOnCard(properties.user_validation);
   }
 
   /**

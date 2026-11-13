@@ -2,7 +2,7 @@
  * Tests for the shared FilterSidebar controller (frontend/js/common/filter-sidebar/FilterSidebar.js, issue #4585).
  *
  * FilterSidebar is the host-agnostic half of the filter sidebar: it owns the controls and their interaction rules,
- * while hosts (LabelMap's MapSidebarFilter today, the Gallery next) apply the resulting state. These tests pin the
+ * while hosts (LabelMap's MapSidebarFilter today, Gallery next) apply the resulting state. These tests pin the
  * rules that the hosts depend on — what a click does to the DOM, what `getState()` reports, and what the change
  * descriptor carries — so the Gallery adoption can't silently redefine them.
  */
@@ -326,6 +326,16 @@ describe('FilterSidebar', () => {
 
       expect(onlyBtn('label-type', 'Obstacle').getAttribute('aria-label')).toBe('common:only: Obstacle');
     });
+
+    it('isolates one validation option, leaving every tag filter alone', () => {
+      const sidebar = build();
+      tagPill('CurbRamp').click();
+
+      onlyBtn('label-validations', 'incorrect').click();
+
+      expect(sidebar.getState().sections['label-validations']).toEqual(['incorrect']);
+      expect(sidebar.getState().tags.CurbRamp).toEqual(['curbramp-tag']);
+    });
   });
 
   describe('tags', () => {
@@ -353,10 +363,10 @@ describe('FilterSidebar', () => {
     });
 
     it('shows the partial glyph on a type that arrives already tagged', () => {
-      // The Gallery renders the URL's tags as applied, so the glyph has to say so from the first paint.
+      // Gallery renders the URL's tags as applied, so the glyph has to say so from the first paint.
       tagPill('CurbRamp').classList.add('tag-pill--active');
 
-      new FilterSidebar(root, {});
+      new FilterSidebar(root, { onChange: () => {} });
 
       expect(typeBox('CurbRamp').classList.contains('checkbox--partial')).toBe(true);
       expect(typeBox('Obstacle').classList.contains('checkbox--partial')).toBe(false);
@@ -383,6 +393,28 @@ describe('FilterSidebar', () => {
       toggle.click();
       expect(pills.hidden).toBe(true);
       expect(toggle.querySelector('img').src).toContain('down.svg');
+    });
+  });
+
+  describe('the admin-only filter', () => {
+    it('reports its change, though it has no section action to relabel', () => {
+      // As the admin dashboard's map renders it: a heading with no "Select all", and no "Only".
+      root.insertAdjacentHTML('beforeend', `
+        <section class="filter-sidebar__section" data-filter-section="admin">
+          <ul class="filter-sidebar__list">
+            <li class="filter-sidebar__item">
+              <input type="checkbox" id="not-admin-validated" data-filter-type="admin-validation" disabled>
+              <label for="not-admin-validated">Not validated by an admin</label>
+            </li>
+          </ul>
+        </section>`);
+      const sidebar = build();
+      root.querySelector('#not-admin-validated').click();
+
+      expect(changes).toEqual([
+        { kind: 'option', section: 'admin-validation', value: 'not-admin-validated', checked: true },
+      ]);
+      expect(sidebar.getState().sections['admin-validation']).toEqual(['not-admin-validated']);
     });
   });
 
@@ -446,6 +478,13 @@ describe('FilterSidebar', () => {
       expect(tagPill('CurbRamp').classList.contains('tag-pill--active')).toBe(true);
       expect(tagPill('Obstacle').classList.contains('tag-pill--active')).toBe(false);
       expect(sidebar.getState().tags.Obstacle).toEqual([]);
+    });
+
+    it('takes several tags for one type, activating whichever it renders', () => {
+      const sidebar = build();
+      sidebar.applyTags([{ labelType: 'CurbRamp', tag: 'gone-tag' }, { labelType: 'CurbRamp', tag: 'curbramp-tag' }]);
+
+      expect(sidebar.getState().tags.CurbRamp).toEqual(['curbramp-tag']);
     });
 
     it('does not fire onChange', () => {

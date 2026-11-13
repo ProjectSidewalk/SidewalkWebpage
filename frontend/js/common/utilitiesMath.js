@@ -26,30 +26,6 @@ export function toRadians(angleInDegree) {
 
 util.math.toRadians = toRadians;
 
-/**
- * This function takes two pairs of latlng positions and returns distance in meters.
- * http://rosettacode.org/wiki/Haversine_formula#JavaScript
- *
- * @param {{lat: number, lng: number}} latLng1
- * @param {{lat: number, lng: number}} latLng2
- * @returns {number} A distance in meters.
- */
-export function haversine(latLng1, latLng2) {
-  const lat1 = toRadians(latLng1.lat);
-  const lng1 = toRadians(latLng1.lng);
-  const lat2 = toRadians(latLng2.lat);
-  const lng2 = toRadians(latLng2.lng);
-  const R = 6372800; // Earth radius in m.
-  const dLat = lat2 - lat1;
-  const dLon = lng2 - lng1;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-    + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-  const c = 2 * Math.asin(Math.sqrt(a));
-  return R * c;
-}
-
-util.math.haversine = haversine;
-
 export function roundToTwentyFive(num) {
   return Math.round(num / 25) * 25;
 }
@@ -108,10 +84,6 @@ export function milesToKms(dist) {
   return dist * 1.60934;
 }
 
-function milesToFeet(dist) {
-  return dist * 5280;
-}
-
 export function kmsToMeters(dist) {
   return dist * 1000;
 }
@@ -120,31 +92,10 @@ export function kmsToMiles(dist) {
   return dist / 1.609344; // Exact: a mile is defined as 1609.344 m.
 }
 
-function kmsToFeet(dist) {
-  return dist * 3280.84;
-}
-
-function feetToMeters(dist) {
-  return dist / 3.28084;
-}
-
-function feetToMiles(dist) {
-  return dist / 5280;
-}
-
-function feetToKms(dist) {
-  return dist / 3280.84;
-}
-
 util.math.metersToMiles = metersToMiles;
 util.math.metersToKms = metersToKms;
 util.math.metersToFeet = metersToFeet;
 util.math.milesToMeters = milesToMeters;
 util.math.milesToKms = milesToKms;
-util.math.milesToFeet = milesToFeet;
 util.math.kmsToMeters = kmsToMeters;
 util.math.kmsToMiles = kmsToMiles;
-util.math.kmsToFeet = kmsToFeet;
-util.math.feetToMeters = feetToMeters;
-util.math.feetToMiles = feetToMiles;
-util.math.feetToKms = feetToKms;

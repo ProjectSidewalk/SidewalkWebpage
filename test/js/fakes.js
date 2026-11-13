@@ -119,7 +119,82 @@ export function mockLabelDetailCollaborators(getPanoManager) {
   mockModule('frontend/js/common/label-detail/PopupPanoManager.js',
     () => ({ PopupPanoManager: { create: async () => getPanoManager() } }));
   mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
-  mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
+  // The real popover appends its (i) trigger into the host span, which the card's Details chip forwards clicks to.
+  mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({
+    PanoInfoPopover: class {
+      /** @param {HTMLElement} host - The span the trigger goes in. */
+      constructor(host) { host.append(document.createElement('img')); }
+    },
+  }));
+}
+
+/**
+ * An in-memory `explore/data/Storage` TemporaryStorage, with its JSON round trip, so a suite can seed what a page
+ * remembers and read back what it saved.
+ * @param {object} [seed] - What is already remembered, by key.
+ * @returns {{get: (key: string) => any, set: (key: string, value: any) => void}} The storage.
+ */
+export function fakeStorage(seed = {}) {
+  const store = new Map(Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)]));
+  return {
+    get: (key) => (store.has(key) ? JSON.parse(store.get(key)) : null),
+    set: (key, value) => store.set(key, JSON.stringify(value)),
+  };
+}
+
+/**
+ * A CanvasRenderingContext2D that records every drawing call with the style in effect when it was made, for the
+ * minimap overlays (the fog, the progress ring, the route inset), which jsdom's canvas can neither draw nor read back.
+ * `calls` holds `{method, args, fillStyle, strokeStyle, lineWidth, op}` in order; `gradients` every radial gradient
+ * created, with the color stops it was given.
+ * @returns {object} The context.
+ */
+export function fakeCanvasCtx() {
+  const ctx = { calls: [], gradients: [], globalCompositeOperation: 'source-over' };
+  const methods = ['setTransform', 'fillRect', 'clearRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo',
+    'lineTo', 'arc', 'fill', 'stroke', 'save', 'restore', 'translate', 'rotate', 'setLineDash'];
+  for (const method of methods) {
+    ctx[method] = (...args) => {
+      ctx.calls.push({
+        method, args, fillStyle: ctx.fillStyle, strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth,
+        op: ctx.globalCompositeOperation,
+      });
+    };
+  }
+  ctx.createRadialGradient = (...args) => {
+    const gradient = { args, stops: [], addColorStop: (offset, color) => gradient.stops.push([offset, color]) };
+    ctx.gradients.push(gradient);
+    return gradient;
+  };
+  /**
+   * @param {string} method - A context method name.
+   * @returns {object[]} The recorded calls to it, oldest first.
+   */
+  ctx.callsTo = (method) => ctx.calls.filter((call) => call.method === method);
+  return ctx;
+}
+
+/**
+ * A canvas element as the minimap overlays use one: a context, a displayed size, and a bitmap size they set. A plain
+ * object, since jsdom's canvas has no 2D context.
+ * @param {number} [clientWidth] - Displayed width in CSS px; 0 stands for a canvas not laid out yet.
+ * @param {number} [clientHeight] - Displayed height in CSS px.
+ * @returns {object} The canvas, with its context at `ctx`.
+ */
+export function fakeCanvas(clientWidth = 200, clientHeight = 200) {
+  const ctx = fakeCanvasCtx();
+  return {
+    ctx,
+    clientWidth,
+    clientHeight,
+    width: 0,
+    height: 0,
+    getContext: () => ctx,
+    // Read when asked, so a test can resize the canvas between renders by setting clientWidth.
+    getBoundingClientRect() {
+      return { width: this.clientWidth, height: this.clientHeight };
+    },
+  };
 }
 
 /**
@@ -130,7 +205,10 @@ export const metricDistanceUtil = {
   isMetric: () => true,
   metersToLongDistance: (meters) => (meters || 0) / 1000,
   longDistanceToString: (km, precision = 0, withUnit = true) => {
-    const number = (km || 0).toLocaleString('en', { minimumFractionDigits: precision, maximumFractionDigits: precision });
+    const number = (km || 0).toLocaleString('en', {
+      minimumFractionDigits: precision,
+      maximumFractionDigits: precision,
+    });
     return withUnit ? `${number} km` : number;
   },
   fineDistanceToString: (meters, precision = 0) => `${(meters || 0).toFixed(precision)} m`,

@@ -198,7 +198,7 @@ export class MapDownloadControl {
         <a class="map-download-control__docs-link" href="/v3/api-docs/rawLabels" target="_blank" rel="noopener">
           <span data-i18n="labelmap:download.api-docs-link">Raw Labels API documentation</span>
           <span class="sr-only"
-                data-i18n="labelmap:download.opens-new-tab"> (opens in a new tab)</span>
+                data-i18n="common:opens-new-tab">(opens in a new tab)</span>
         </a>
       </div>
       <p class="sr-only" role="status"></p>`;
@@ -244,12 +244,10 @@ export class MapDownloadControl {
     this.#open = true;
     this.#button.setAttribute('aria-expanded', 'true');
 
-    // Defer listener registration so the click that opened the panel doesn't immediately close it. The guard covers
-    // a close that lands before the timer fires, which would otherwise leave a listener attached to a closed panel.
+    // Defer listener registration so the click that opened the panel doesn't immediately close it. Closing cancels
+    // the timer, so a close that lands first never leaves a listener attached to a closed panel.
     clearTimeout(this.#outsideClickTimer);
-    this.#outsideClickTimer = setTimeout(() => {
-      if (this.#open) document.addEventListener('click', this.#boundOutsideClick, true);
-    }, 0);
+    this.#outsideClickTimer = setTimeout(() => document.addEventListener('click', this.#boundOutsideClick, true), 0);
 
     const items = this.#focusableItems();
     (focusLast ? items.at(-1) : items[0])?.focus();

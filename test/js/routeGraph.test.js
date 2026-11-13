@@ -51,20 +51,6 @@ describe('RouteGraph', () => {
     ({ RouteGraph } = await loadModules('frontend/js/route-builder/RouteGraph.js'));
   });
 
-  describe('distance math', () => {
-    it('measures ~111 m for 0.001 degrees of latitude', () => {
-      const d = RouteGraph.distanceM([0, 0], [0, 0.001]);
-      expect(d).toBeGreaterThan(105);
-      expect(d).toBeLessThan(118);
-    });
-
-    it('sums segment lengths for a line', () => {
-      const len = RouteGraph.lineLengthM([A, B, D]); // bottom then right edge
-      expect(len).toBeGreaterThan(210);
-      expect(len).toBeLessThan(236);
-    });
-  });
-
   describe('route()', () => {
     it('finds the direct one-street path', () => {
       const graph = new RouteGraph(gridStreets());
@@ -194,6 +180,31 @@ describe('RouteGraph', () => {
       const graph = new RouteGraph(gridStreets());
       const result = graph.route({ lng: A[0], lat: A[1] }, { lng: A[0] + 0.00001, lat: A[1] });
       expect(result.error).toBe('no-path');
+    });
+  });
+
+  describe('building the graph', () => {
+    it('skips a street with fewer than two points, which has no line to walk', () => {
+      const graph = new RouteGraph([street(10, [A, B]), street(20, [C])]);
+      expect(graph.getFeature(20)).toBeUndefined();
+      expect(graph.snapToStreet({ lng: C[0], lat: C[1] }).streetId).toBe(10);
+    });
+
+    it('keeps a street whose two ends meet for snapping, but routes nothing through it', () => {
+      const loop = street(30, [A, [0.0005, 0.0005], [0.00001, 0]]);
+      const graph = new RouteGraph([loop]);
+      expect(graph.getFeature(30)).toBe(loop);
+      expect(graph.getLengthM(30)).toBeGreaterThan(100);
+      expect(graph.route({ lng: A[0], lat: A[1] }, { lng: 0.0005, lat: 0.0005 }).error).toBe('no-path');
+    });
+
+    it('reports a length of zero for a street it was never given', () => {
+      expect(new RouteGraph(gridStreets()).getLengthM(999)).toBe(0);
+    });
+
+    it('finds no path at all on an empty street network', () => {
+      const graph = new RouteGraph([]);
+      expect(graph.route({ lng: A[0], lat: A[1] }, { lng: B[0], lat: B[1] })).toEqual({ error: 'no-path' });
     });
   });
 

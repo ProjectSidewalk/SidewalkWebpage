@@ -59,6 +59,7 @@ case class CityInfo(
     countryId: String,
     cityNameShort: String,
     cityNameFormatted: String,
+    searchText: String,
     URL: String,
     visibility: String
 ) {
@@ -101,6 +102,8 @@ case class CommonPageData(
     // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
     volunteerEmail: String,
     volunteerSupervisor: String,
+    // Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out.
+    newsEmailPreChecked: Boolean,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html,
@@ -1432,11 +1435,17 @@ trait ConfigService {
   def getExcludedTags: DBIO[Seq[ExcludedTag]]
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
+
+  /** When this JVM started, which on prod is when this city instance was last deployed or restarted. */
+  def appStartTime: OffsetDateTime
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
   def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
+
+  /** Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out. */
+  def getNewsEmailPreChecked: Boolean
   def defaultPrivacyFlags: (Boolean, Boolean)
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
@@ -2468,13 +2477,16 @@ class ConfigServiceImpl @Inject() (
 
       val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
+      val countryName       = messagesApi(s"country.name.$countryId")(using lang)
+      val showsState        = currentCountryId == "usa" && stateId.isDefined && countryId == "usa"
       val cityNameFormatted =
-        if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
+        if (showsState)
           messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
-        else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
+        else messagesApi("city.state", cityName, countryName)(using lang)
+      // A name showing its state still gets the country, so searching the country finds it.
+      val searchText = (if (showsState) s"$cityNameFormatted $countryName" else cityNameFormatted).toLowerCase
 
-      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
+      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, searchText, cityURL, visibility)
     }
   }
 
@@ -2523,6 +2535,9 @@ class ConfigServiceImpl @Inject() (
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
 
+  def getNewsEmailPreChecked: Boolean =
+    config.get[Seq[String]]("news-email-opt-out-countries").contains(getCurrentCountryId)
+
   /**
    * The initial values for a new user's two privacy flags in this deployment.
    *
@@ -2556,7 +2571,7 @@ class ConfigServiceImpl @Inject() (
 
   // JVM boot time stands in for "when was this instance deployed": prod runs the staged binary as its own process, so
   // process start = deploy/restart. Under dev-mode `sbt ~run` it is the sbt JVM's start, which is close enough locally.
-  private val appStartTime: OffsetDateTime =
+  val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
   def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
@@ -2589,11 +2604,13 @@ class ConfigServiceImpl @Inject() (
       volunteerEmail: String          = config.get[String]("volunteer-email-address")
       volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
       supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
+      newsEmailPreChecked: Boolean    = getNewsEmailPreChecked
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
+        newsEmailPreChecked, assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson,
+        supportedLanguages)
     }
   }
 }

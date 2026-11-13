@@ -3,6 +3,8 @@ package controllers
 import controllers.helper.SubmissionSpecHelpers
 import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Assertion, BeforeAndAfterAll}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -35,6 +37,7 @@ class ExploreRouteRequestSpec
     extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
+    with Eventually
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
@@ -62,6 +65,16 @@ class ExploreRouteRequestSpec
 
   /** Reads one of the session's fields, as the client does; None when the server left it out. */
   private def pageParam(session: JsValue, name: String): Option[JsValue] = (session \ name).toOption
+
+  /** A street that isn't open but sits in an open region; cancels the case where the schema has none. */
+  private def unopenedStreetId(): Int = run(
+    sql"""SELECT street_edge.street_edge_id
+          FROM street_edge
+          INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+          INNER JOIN region ON street_edge_region.region_id = region.region_id
+          WHERE street_edge.status <> 'open' AND NOT region.deleted
+          LIMIT 1""".as[Int].headOption
+  ).getOrElse(cancel("No unopened street in an open region; nothing to exercise."))
 
   /** A street the connected schema actually has and serves for routing; cancels the case where there is none. */
   private def routableStreetId(session: Seq[Cookie]): Int = {
@@ -405,6 +418,7 @@ class ExploreRouteRequestSpec
 
       pageParam(visit, "region_id").map(_.as[Int]) mustBe Some(regionId)
       pageParam(visit, "region_finished") mustBe Some(JsBoolean(false))
+      pageParam(visit, "street_unavailable") mustBe Some(JsBoolean(false))
       (visit \ "task" \ "properties" \ "street_edge_id").asOpt[Int] mustBe Some(streetEdgeId)
       val missionId = (visit \ "mission" \ "mission_id").as[Int]
       val lengthGap = run(
@@ -415,4 +429,56 @@ class ExploreRouteRequestSpec
       lengthGap must be < 0.01
     }
   }
+
+  "GET /explore/session?streetEdgeId=<street Explore can't hand out>" should {
+    "drop a street that isn't open, say so, and log the id, rather than failing (#5824)" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+      val streetEdgeId = unopenedStreetId()
+
+      val visit = exploreSession(session, s"?streetEdgeId=$streetEdgeId")
+
+      pageParam(visit, "street_unavailable") mustBe Some(JsBoolean(true))
+      (visit \ "task" \ "properties" \ "street_edge_id").asOpt[Int] must not be Some(streetEdgeId)
+      val missionId = (visit \ "mission" \ "mission_id").as[Int]
+      // The visit's activity-log write is async, so poll for it.
+      eventually(timeout(Span(10, Seconds)), interval(Span(200, Millis))) {
+        run(
+          sql"""SELECT COUNT(*) FROM webpage_activity
+                WHERE user_id = (SELECT user_id FROM mission WHERE mission_id = $missionId)
+                  AND activity = ${s"Visit_Audit_UnresolvableStreetEdgeId=$streetEdgeId"}""".as[Int].head
+        ) mustBe 1
+      }
+    }
+
+    "leave the walk the user is already in running, as a bare /explore would" in {
+      val (session, routeId, userRouteId) = sessionWalkingARoute()
+
+      val visit = exploreSession(session, s"?streetEdgeId=${unopenedStreetId()}")
+
+      pageParam(visit, "street_unavailable") mustBe Some(JsBoolean(true))
+      walkPaused(userRouteId) mustBe false
+      pageParam(visit, "route_id").map(_.as[Int]) mustBe Some(routeId)
+    }
+
+    "drop an id that names no street and say so" in {
+      val session = freshAnonSession()
+      completeOnboarding(session)
+
+      pageParam(exploreSession(session, s"?streetEdgeId=${Int.MaxValue}"), "street_unavailable") mustBe
+        Some(JsBoolean(true))
+    }
+
+    "still start the tutorial for a user who hasn't done it, flagging the street for after it" in {
+      val session   = freshAnonSession()
+      val bootstrap = exploreBootstrap(session)
+      createdUserIds += bootstrap.userId
+
+      val visit = exploreSession(session, s"?streetEdgeId=${unopenedStreetId()}")
+
+      (visit \ "mission" \ "mission_type").asOpt[String] mustBe Some("auditOnboarding")
+      pageParam(visit, "street_unavailable") mustBe Some(JsBoolean(true))
+    }
+  }
+
 }

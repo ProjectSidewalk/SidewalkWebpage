@@ -45,7 +45,7 @@
 .lvg-card-img {
   position: relative;
 
-  /* Match the Explore canvas (720x480) so the label marker's percentage position lines up, like the Gallery. */
+  /* Match the Explore canvas (720x480) so the label marker's percentage position lines up, like Gallery. */
   aspect-ratio: 3 / 2;
   overflow: hidden;
   background: var(--color-neutral-100, #f0f0f0);

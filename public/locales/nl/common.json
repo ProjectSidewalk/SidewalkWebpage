@@ -27,6 +27,7 @@
   "surface-problems": "Oppervlakte problemen",
   "sign-up": "Een account maken",
   "close": "Sluiten",
+  "dont-show-again": "Laat niet opnieuw zien",
   "cancel": "Annuleren",
   "continue": "Doorgaan",
   "delete": "Verwijderen",
@@ -108,6 +109,7 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
+  "ai-generated-label": "Door AI gemaakt label",
   "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus beoordeel zelf of het klopt.",
   "tag": {
     "narrow": "smal",
@@ -148,7 +150,7 @@
     "sand/gravel": "modder/zand/grind",
     "uncovered manhole": "onbedekt mangat",
     "ends abruptly": "eindigt plotseling",
-    "street has a sidewalk": "straat heeft een trottoir",
+    "other side has a sidewalk": "andere kant heeft een trottoir",
     "street has no sidewalks": "straat heeft geen trottoir",
     "gravel/dirt road": "gavel/zand weg",
     "shared pedestrian/car space": "gedeeld voetganger/auto gebied",
@@ -209,11 +211,10 @@
     "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
     "copy-to-clipboard": "Kopiëren naar klembord",
-    "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
+    "no-info": "Geen informatie",
+    "pano-url": "Pano-URL"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(opent in een nieuw tabblad)"
-  },
+  "opens-new-tab": "(opent in een nieuw tabblad)",
   "image-adjustments": {
     "button": "Beeld",
     "active-sr": "(aangepast)",
@@ -252,7 +253,7 @@
       },
       "slide-2": {
         "title": "Residentiële looppaden",
-        "description": "Woonpaden mogen <b>niet</b> worden gelabeld als Ontbrekende Trottoir Oprit."
+        "description": "Woonpaden zijn privé en hebben geen trottoir opritten nodig."
       },
       "slide-3": {
         "title": "Niet op voetpad",
@@ -288,7 +289,7 @@
       },
       "slide-2": {
         "title": "Normale stoeptegels",
-        "description": "Normale stoeptegels (zonder kieren, scheuren of oneffenheden) zijn geen oppervlakteproblemen."
+        "description": "Normale kleine kieren tussen stoeptegels zijn geen oppervlakteproblemen, zolang er geen grote kieren, scheuren of hoogteverschillen zijn."
       },
       "slide-3": {
         "title": "Niet op voetpad",
@@ -346,13 +347,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Gekopieerd!",
+    "failed": "Kopiëren mislukt",
+    "section-link": "Link naar deze sectie kopiëren"
+  },
   "share": {
     "button": "Delen",
     "heading": "Deel dit label",
     "text": "Bekijk deze {{labelType}} op Project Sidewalk",
     "story-text": "‘{{excerpt}}’ – een verhaal uit de community op Project Sidewalk",
     "copy-link": "Link kopiëren",
-    "copied": "Gekopieerd!",
     "on-bluesky": "Delen op Bluesky",
     "on-x": "Delen op X",
     "on-facebook": "Delen op Facebook",
@@ -422,25 +427,28 @@
     "dismiss": "Sluiten",
     "wrong-type": {
       "text": "Dit is het verkeerde labeltype",
-      "tooltip": "Er is hier wel iets, maar het moet met een ander labeltype worden gemarkeerd",
+      "tooltip": "Er is hier wel iets, maar het moet met een ander labeltype worden gemarkeerd.",
       "tooltip-curb-ramp": "Soms wordt een ontbrekende trottoir oprit per ongeluk ten onrechte als trottoir oprit aangeduid.",
       "tooltip-no-curb-ramp": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt.",
       "tooltip-obstacle": "Gras en ander vuil, zoals bladeren, moeten worden gemarkeerd met een label 'Oppervlakteprobleem'.",
-      "tooltip-surface-problem": "Grind of gras wordt niet beschouwd als een trottoir en moet worden gemarkeerd met een bordje 'Geen trottoir'.",
+      "tooltip-surface-problem": "Grind of gras wordt niet beschouwd als een trottoir en moet in plaats daarvan worden gemarkeerd met een label 'Geen trottoir'.",
       "tooltip-no-sidewalk": "Problemen met het wegdek of obstakels kunnen ten onrechte worden aangemerkt als 'Geen trottoir'."
     },
     "driveway": {
-      "text": "Dit is een oprit."
+      "text": "Dit is een oprit.",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
     },
     "driveway-transition": {
       "text": "Dit is een overgang van trottoir naar oprit.",
-      "tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd"
+      "tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd."
     },
     "residential-walkway": {
-      "text": "Dit is een wandelpad in een woonwijk."
+      "text": "Dit is een wandelpad in een woonwijk.",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
     },
     "no-sidewalk-here": {
-      "text": "Er is hier geen trottoir."
+      "text": "Er is hier geen trottoir.",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
     },
     "unsafe-crossing": {
       "text": "Het is hier niet veilig om over te steken.",
@@ -449,38 +457,47 @@
     "not-pedestrian-path": {
       "text": "Dit is geen voetpad.",
       "tooltip-obstacle": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, zoals in de afbeelding hieronder, is een label met 'Obstakel' niet nodig.",
-      "tooltip-surface-problem": "Als een gemarkeerde oversteekplaats zich niet op een pad bevindt dat bedoeld is voor voetgangers, mag het niet als zodanig worden bestempeld."
+      "tooltip-surface-problem": "Als er geen trottoir is of als het probleem zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, is een label met 'Oppervlakteprobleem' niet nodig."
     },
     "ample-space": {
       "text": "Er is voldoende ruimte om dit object te ontwijken.",
       "tooltip": "Op zeer brede trottoirs mogen gemakkelijk te vermijden objecten <b>niet</b> als obstakels worden aangemerkt."
     },
     "normal-tiles": {
-      "text": "Dit zijn gewone stoeptegels."
+      "text": "Dit zijn gewone stoeptegels.",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
     },
     "sidewalk-here": {
-      "text": "Hier is een trottoir."
+      "text": "Hier is een trottoir.",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
     },
     "traffic-median": {
-      "text": "Dit is een middenberm voor verkeer."
+      "text": "Dit is een middenberm voor verkeer.",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
     },
     "no-visible-crosswalk": {
-      "text": "Er is hier geen zichtbaar zebrapad."
+      "text": "Er is hier geen zichtbaar zebrapad.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
     },
     "stop-line": {
-      "text": "Dit is een stoplijn voor auto's."
+      "text": "Dit is een stoplijn voor auto's.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
     },
     "speed-bump": {
-      "text": "Dit is een verkeersdrempel."
+      "text": "Dit is een verkeersdrempel.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
     },
     "vehicle-signal-only": {
-      "text": "Dit is slechts een verkeerslicht voor voertuigen."
+      "text": "Dit is slechts een verkeerslicht voor voertuigen.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
     },
     "sign-no-light": {
-      "text": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven."
+      "text": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
     },
     "pole-no-signal": {
-      "text": "Dit is een paal zonder verkeerslicht of -knop."
+      "text": "Dit is een paal zonder verkeerslicht of -knop.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
     },
     "better-image": {
       "text": "Een betere afbeelding nodig",

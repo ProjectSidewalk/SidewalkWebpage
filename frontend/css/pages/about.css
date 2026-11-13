@@ -14,12 +14,6 @@
   color: var(--color-link-200);
 }
 
-/* The `hidden` attribute must always win, even over author display rules like the pub cards' grid or the
-   show-all button's inline-flex. */
-#about-page [hidden] {
-  display: none !important;
-}
-
 .about-container {
   max-width: 1100px;
   margin: 0 auto;

@@ -1,7 +1,7 @@
 /**
  * Shared by the ps/ escaping rules: works out whether a value ends up as HTML (`innerHTML`, `insertAdjacentHTML`,
- * a tooltip attribute, or a helper that renders HTML), following it through variables, templates, `map().join()`
- * and same-file function calls. It can't follow a value returned from a function or stored on an object.
+ * a tooltip attribute, or a helper or option that renders HTML), following it through variables, templates,
+ * `map().join()` and same-file function calls. It can't follow a value returned from a function or stored on an object.
  */
 
 'use strict';
@@ -19,6 +19,9 @@ const MARKUP_HELPERS = new Map([
 
 /** Element properties whose assigned value is parsed as HTML. */
 const MARKUP_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
+
+/** Option keys whose value this codebase renders as HTML (`Toast.show({ messageHtml })`). */
+const MARKUP_OPTION_KEYS = new Set(['messageHtml']);
 
 /** Attributes this codebase renders as HTML rather than text. */
 const MARKUP_ATTRIBUTES = new Set(['data-ps-tooltip-html']);
@@ -85,6 +88,10 @@ function createMarkupFlow(sourceCode) {
         if (left.type === 'Identifier') return variableReachesMarkup(left, depth, seen);
         return false;
       }
+
+      case 'Property':
+        return parent.value === node && !parent.computed && parent.key.type === 'Identifier'
+          && MARKUP_OPTION_KEYS.has(parent.key.name);
 
       case 'VariableDeclarator':
         return parent.init === node && parent.id.type === 'Identifier'

@@ -14,17 +14,29 @@ import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 
 const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
 
+/** Keys a test pretends the locale file lacks, to see what a gap in a translation does. */
+const withheld = new Set();
+
 /** @returns {string|undefined} What the real English common.json holds at a `common:` key. */
 function lookup(key) {
   const [ns, rest] = key.split(':');
-  if (ns !== 'common') return undefined;
+  if (ns !== 'common' || withheld.has(key)) return undefined;
   return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), EN_COMMON);
 }
 
-// An i18next stand-in over the real English common.json, so `exists` answers like the real thing.
+/**
+ * @param {string} key - An i18next key.
+ * @returns {string} A `common:` key's English string with its `$t(...)` references filled in, as i18next does.
+ */
+function translate(key) {
+  const value = lookup(key);
+  return typeof value === 'string' ? value.replace(/\$t\(([^)]+)\)/g, (_, ref) => translate(ref)) : key;
+}
+
+// An i18next stand-in over the real English common.json, so `exists` and `t` answer like the real thing.
 mockModule('i18next', () => ({
   default: {
-    t: (key) => (typeof lookup(key) === 'string' ? lookup(key) : key),
+    t: translate,
     exists: (key) => typeof lookup(key) === 'string',
   },
 }));
@@ -43,6 +55,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   window.validationReasons = stamp; // A test may edit or drop the stamp; the next one gets the fixture back.
+  withheld.clear();
 });
 
 describe('validationReasons', () => {
@@ -72,12 +85,26 @@ describe('validationReasons', () => {
     expect(validationReasons.tooltip('wrong-type', 'CurbRamp'))
       .toBe(EN_COMMON['validation-reason']['wrong-type']['tooltip-curb-ramp']);
     expect(validationReasons.tooltip('wrong-type', 'Crosswalk')).toBe(EN_COMMON['validation-reason']['wrong-type'].tooltip);
-    expect(validationReasons.tooltip('driveway', 'CurbRamp')).toBeNull();
+  });
+
+  test('every stamped reason has a tooltip, and one shared with the tutorial reads its slide (#5845)', () => {
+    const missing = [];
+    for (const labelType of validationReasons.labelTypes()) {
+      for (const vote of ['Disagree', 'Unsure']) {
+        for (const id of validationReasons.idsFor(labelType, vote)) {
+          if (validationReasons.tooltip(id, labelType) === null) missing.push(`${labelType}/${vote}/${id}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+    expect(validationReasons.tooltip('driveway', 'CurbRamp'))
+      .toBe(EN_COMMON['mission-start-tutorial']['curb-ramp']['slide-2'].description);
   });
 
   test('an unknown id resolves to no text rather than a key, and leaves the list rather than joining it', () => {
     window.validationReasons.CurbRamp.Disagree.push('brand-new-reason');
     expect(validationReasons.text('brand-new-reason')).toBeNull();
+    expect(validationReasons.tooltip('brand-new-reason', 'CurbRamp')).toBeNull();
     expect(validationReasons.forLabel('CurbRamp', 'Disagree').map((r) => r.id))
       .toEqual(['wrong-type', 'driveway', 'driveway-transition']);
   });
@@ -275,5 +302,47 @@ describe('ReasonChips', () => {
     expect(document.activeElement).toBe(chipEls()[1]);
     chips.render({ labelType: 'Crosswalk', vote: 'Disagree', selected: 'stop-line' });
     expect(document.activeElement).toBe(chipEls()[2]);
+  });
+
+  test('"Other…" stays a button while a pick is saving, by click or by number key', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    chips.setBusy(true);
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(chips.pickByNumber(chipEls().length + 1)).toBe(true);
+
+    expect(onOther).not.toHaveBeenCalled();
+    expect(root.querySelector('.reason-chips__other-form')).toBeNull();
+  });
+
+  test('once "Other…" is a field, arrows wrap among the chips alone', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    const last = chipEls().at(-1);
+    last.focus();
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+    expect(document.activeElement).toBe(chipEls()[0]);
+  });
+
+  test('a reason the locale files give no tooltip is still offered, just without one', () => {
+    withheld.add('common:validation-reason.driveway.tooltip');
+    withheld.add('common:validation-reason.driveway.tooltip-curb-ramp');
+    chips.render({ labelType: 'CurbRamp', vote: 'Disagree' });
+    const driveway = chipEls().find((c) => c.dataset.reasonId === 'driveway');
+
+    expect(driveway.hasAttribute('data-ps-tooltip-html')).toBe(false);
+    expect(chipEls()[0].hasAttribute('data-ps-tooltip-html')).toBe(true);
+  });
+
+  test('ArrowLeft from the first chip wraps round to "Other…", and other keys are left to the page', () => {
+    chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
+    chipEls()[0].focus();
+    const letter = new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
+    chipEls()[0].dispatchEvent(letter);
+    expect(letter.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(chipEls()[0]);
+
+    chipEls()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(other());
   });
 });

@@ -84,6 +84,7 @@
   "done-editing-tags-label": "完成編輯標籤",
   "edit-failed": "無法儲存變更，請再試一次。",
   "edit-failed-short": "未儲存",
+  "edit-failed-previous": "無法儲存您對上一個標記的變更。",
   "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",
   "no-imagery-edit-disabled": "當此標記沒有可用的影像時，您無法評分、編輯或刪除它",
   "admin-only": "僅限管理員",
@@ -99,8 +100,7 @@
     "hint-shapefile": "適用於 ArcGIS、QGIS",
     "hint-geopackage": "開放 GIS 格式",
     "caveat": "此頁面連結中的部分篩選條件（多個區域、路線或 AI 檢核）無法套用於下載，因此檔案中的標記可能會多於上方顯示的數量。",
-    "api-docs-link": "原始標記 API 文件",
-    "opens-new-tab": "（在新分頁中開啟）"
+    "api-docs-link": "原始標記 API 文件"
   },
   "story": {
     "heading": "社群故事",
@@ -177,6 +177,8 @@
   "delete-label-confirm-admin": "確定要刪除這個標記嗎？系統會記錄您的「不同意」投票。",
   "delete-label-failed": "無法刪除標記，請再試一次。",
   "restore-label": "還原標記",
+  "previous-label": "上一個標記",
+  "next-label": "下一個標記",
   "restore-label-brief": "還原",
   "restore-label-failed": "無法還原標記，請再試一次。",
   "you-deleted-label": "您已刪除這個標記",

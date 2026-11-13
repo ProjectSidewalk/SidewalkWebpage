@@ -130,6 +130,19 @@ describe('i18next over our locale files', () => {
       expect(wrong).toEqual([]);
     });
 
+    test('every `$t(...)` reference names a key that exists', () => {
+      const dangling = [];
+      for (const namespace of NAMESPACES) {
+        for (const [key, value] of Object.entries(flatten(readLocale(language, namespace)))) {
+          for (const [, ref] of String(value).matchAll(/\$t\(([^),]+)/g)) {
+            // A reference built from a variable (`$t({{unit}})`) only has a key once the page fills it in.
+            if (!ref.includes('{{') && !page.i18next.exists(ref)) dangling.push(`${namespace}:${key} -> ${ref}`);
+          }
+        }
+      }
+      expect(dangling).toEqual([]);
+    });
+
     test('falls back to English for a string it does not have', () => {
       expect(page.i18next.t(`common:${WITHHELD}`)).toBe(readLocale('en', 'common')[WITHHELD]);
     });

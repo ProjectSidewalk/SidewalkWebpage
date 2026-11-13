@@ -1,11 +1,4 @@
-/**
- * Raw Labels Map Preview Generator.
- *
- * This script generates a live map preview of raw PS labels by fetching data directly from the Raw Labels API.
- *
- * @requires DOM element with id 'raw-labels-preview'
- * @requires mapbox-gl and js/api-docs/apiDocsMap.js
- */
+/** The /v3/api-docs/rawLabels preview: a live map of one region's labels, from the Raw Labels API. */
 
 import { geometryBounds } from '../common/geoBounds.js';
 import { util } from '../common/utilities.js';
@@ -15,8 +8,7 @@ import { ApiDocsTheme } from './apiDocsTheme.js';
 const LABELS_LAYER = 'raw-labels';
 const REGION_SOURCE = 'preview-region';
 
-// Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
-// against the dimmed basemap.
+// Our own choice, not a backend value: it stands apart from every label type color on the dimmed map.
 const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
 
 export let config = {
@@ -181,8 +173,7 @@ export const RawLabelsPreview = {
     // The legend lists only the types actually drawn, so it never advertises one this region has none of.
     const typesInData = [...new Set(labels.features.map((feature) => feature.properties.label_type))];
     const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
-    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo,
-      'No labels in this region');
+    ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo);
   },
 
   /**

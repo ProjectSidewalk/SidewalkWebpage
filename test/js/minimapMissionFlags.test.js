@@ -87,7 +87,7 @@ function makeTask({ furthestM = 0, missionStarts = {} } = {}) {
   const feature = turf.lineString([[START_LNG, LAT], [lngAt(STREET_LENGTH_M), LAT]]);
   const furthest = turf.point([lngAt(furthestM), LAT]);
   return {
-    getFeature: () => feature,
+    getGeoJSON: () => feature,
     getFurthestPointReached: () => furthest,
     getEndCoordinate: () => ({ lat: LAT, lng: lngAt(STREET_LENGTH_M) }),
     getMissionStart: (missionId) => missionStarts[missionId],

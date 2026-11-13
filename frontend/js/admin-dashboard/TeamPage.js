@@ -86,7 +86,7 @@ export class TeamPage {
    */
   #columns() {
     return [
-      { key: 'username', label: 'User', align: 'left', sort: (m) => (m.username || '').toLowerCase() },
+      { key: 'username', label: 'User', align: 'left', sort: (m) => m.username.toLowerCase() },
       { key: 'role', label: 'Role', align: 'left', sort: (m) => m.role || '' },
       { key: 'labels', label: 'Labels', align: 'right', sort: (m) => m.labels || 0 },
       { key: 'validations', label: 'Validations given', align: 'right', sort: (m) => m.validations || 0 },
@@ -104,15 +104,14 @@ export class TeamPage {
   }
 
   #sortedMembers() {
-    const cols = this.#columns();
-    const col = cols.find((c) => c.key === this.#sort.key && c.sort) || cols[0];
+    const col = this.#columns().find((c) => c.key === this.#sort.key);
     const dir = this.#sort.dir === 'asc' ? 1 : -1;
     return this.#members.slice().sort((a, b) => {
       const av = col.sort(a);
       const bv = col.sort(b);
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
-      return (a.username || '').localeCompare(b.username || '');
+      return a.username.localeCompare(b.username);
     });
   }
 

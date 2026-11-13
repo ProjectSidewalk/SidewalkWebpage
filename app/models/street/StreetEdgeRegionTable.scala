@@ -45,6 +45,19 @@ class StreetEdgeRegionTable @Inject() (
     _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
 
+  /**
+   * The region of a street Explore can hand out: open, not the tutorial's, and in a region that isn't deleted.
+   * @return The street's region, or None if there is no such street.
+   */
+  def getServedRegionFromStreetId(streetEdgeId: Int): DBIO[Option[Region]] = {
+    val servedRegion = for {
+      _ser <- streetEdgeRegionTable if _ser.streetEdgeId === streetEdgeId
+      _se  <- streetEdgeTable.streets if _ser.streetEdgeId === _se.streetEdgeId
+      _r   <- regionsWithoutDeleted if _ser.regionId === _r.regionId
+    } yield _r
+    servedRegion.result.headOption
+  }
+
   def getNonDeletedRegionFromStreetId(streetEdgeId: Int): DBIO[Option[Region]] = {
     streetEdgeRegionTable
       .filter(_.streetEdgeId === streetEdgeId)

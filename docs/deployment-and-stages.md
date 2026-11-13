@@ -5,11 +5,14 @@ each one, and the runtime shape of the servers. This is the production counterpa
 [`docs/dev-environment.md`](dev-environment.md) and the app-internal tour in [`docs/architecture.md`](architecture.md).
 
 > **Source & scope.** This document was written from an analysis (2026-07-01) of the **internal server-deployment
-> tooling maintained by UW CSE IT** — a separate ops repository, not part of this codebase. That repo remains the
-> source of truth for how the servers are actually run; this is a contributor-facing summary of the parts that affect
-> how you develop and ship. **Operational specifics that could aid an attacker are deliberately omitted** — hostnames,
-> port numbers, absolute server paths, internal DNS/auth tooling, and the operator control panel. If you need those,
-> ask UW CSE IT. Treat this file as explanatory, not as runbook.
+> tooling maintained by UW CSE IT** — the private ops repo
+> [`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools) (UW CSE credentials), not part of this
+> codebase. **Last verified against that repo: 2026-11-10.** It drifted within two months of the first snapshot, so
+> re-check and re-date this line whenever you read it against the ops repo. That repo remains the source of truth for
+> how the servers are actually run; this is a contributor-facing summary of the parts that affect how you develop and
+> ship. **Operational specifics that could aid an attacker are deliberately
+> omitted** — hostnames, port numbers, absolute server paths, internal DNS/auth tooling, and the operator control
+> panel. If you need those, ask UW CSE IT. Treat this file as explanatory, not as runbook.
 
 ---
 
@@ -216,11 +219,29 @@ Publishing this is what triggers the **prod** build and the rolling per-city res
 
 ### 8. Verify prod
 
-The build isn't instant and city instances come up one-by-one. Confirm the *new code* is live, not just that the
-server responds. Until an explicit version endpoint exists (**#4548**), the reliable check is **behavioral**: load a
-page whose behavior only the new code produces. (The `/anonSignUp` liveness probe is not sufficient — it passes even
-when a page like `/leaderboard` is crashing.) Also check the footer version and spot-check a few different cities,
-since they restart independently.
+The build isn't instant and city instances come up one-by-one, so confirm the *new code* is live in each city, not
+just that the server responds. The **Fleet** table on any prod city's `/admin/health` (Owner-only) does this for
+the whole fleet: it asks every city's `/health` and flags each row that is unreachable, reports a database error, or
+runs an older build than the most recently restarted instance. When every row is green and the build column shows
+the new tag, the new code is live everywhere. That proves the binary, not the pages: also load a page the release
+changed and check it behaves as the new code should (the #4545 hotfix would have passed every health check while
+`/leaderboard` crashed). Cities with no instance on a stage (`crowdstudy` on prod, `validation-study` on
+test, `staging` on both) are listed as absent, not down, from `city-params.not-deployed` in `cityparams.conf`;
+`sidewalk-server-tools` keeps the same list as `cities_excluded_prod` / `cities_excluded_test`.
+
+The same data is available per instance from **`GET /health`** (public, no session, JSON, never cached):
+
+```bash
+curl -s https://sidewalk-sea.cs.washington.edu/health
+# {"status":"ok","git_sha":"<full sha>","git_describe":"v11.20.0","git_dirty":false,"version":"11.20.0",
+#  "version_released_at":"...","city_id":"seattle-wa","environment":"prod","app_started_at":"..."}
+```
+
+`git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's
+commit: `git rev-parse v<X.Y.Z>`. Until it matches, that city is still on the old build. `status` is `"error"` with
+a 503 when the instance is up but can't reach its database. `version` is what the footer shows and comes from the
+`version` table, so it reflects step 4's evolution, not the deployed code; the two agree only when both steps were
+done.
 
 **Two independent gotchas, both learned from #4545:**
 - Merging to `master` alone does **not** deploy to prod — the **tag** (step 7) does.
@@ -228,15 +249,16 @@ since they restart independently.
 A hotfix that changes no schema *still* needs step 4 for the displayed version to update.
 
 > **Design note:** routing release-versioning through schema evolutions couples two unrelated concerns and duplicates
-> the version string across `build.sbt`, an evolution, and the git tag. Making the git tag / build metadata the single
-> source of truth (an `sbt-buildinfo`-backed `/version` endpoint) is tracked in **#4548**; follow that convention if it
-> lands.
+> the version string across `build.sbt`, an evolution, and the git tag. Whether to keep the `version` table at all now
+> that `/health` reports the build's git metadata is **#4552**.
 
 ### Rolling back a release
 
 Deploying an older tag rolls the **schema** back too: `autoApplyDowns=true` (`conf/application.conf`, no stage
 override) means each city instance runs the `Downs` of every evolution above the target version at startup,
-unattended. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
+unattended. CI runs the Downs of every evolution newer than the last release before it ships (#5839,
+[`evolutions.md`](evolutions.md) → "Downs have to work"), but on test data, so it can't rule out a conflict with
+real data. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
@@ -342,11 +364,11 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 A deploy builds the app essentially the same way you do locally, in this order:
 
 1. Install Python deps (`requirements.txt`) — needed by `label_clustering.py`, which the running app invokes
-   **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
-   fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
-   system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.12 and is installed by hand
-   into the 3.13 on whichever user account runs those scripts.
+   **in-band** during clustering. These must land in the `/usr/bin/python3.12` the app shells out to
+   (`ClusterService`), or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
+   That is Rocky 9's add-on `python3.12` package, installed beside the system Python, which stays untouched (#4396).
+   The out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` is only installed in the web
+   container.
 2. `npm ci`, then `npm run build` (**Vite**): every page's JS bundle (minified, with a sourcemap beside it that
    carries the sources, since `frontend/js/` itself is not served), the stylesheets (`frontend/css/` is not served
    either), and the manifest `views.ViteAssets` reads to link them.
@@ -374,6 +396,14 @@ that tree is destroyed by the next release — silently, because the database ro
 includes paths that merely climb out of the stage directory: `../media` lands in `target/universal/`, which
 `sbt clean` deletes just the same.
 
+**Every city of a stage can run from that one staged directory** (#5138): the app writes no pidfile
+(`play.server.pidfile.path` is `/dev/null`), its file log goes to `SIDEWALK_LOG_DIR`, and all it writes under its
+working directory is `api-downloads/`, where every download (single CSVs included) gets a randomly named folder that is
+swept only once nothing has written to it for two hours, so cities sharing it can't collide. Keeping a city from
+starting twice is the deployment daemon's job, not the pidfile's: the tooling deleted `RUNNING_PID` before every start
+anyway, and a second instance fails on its port. A per-city copy of the build existed only to hold that city's
+`RUNNING_PID` and `logs/`, and cost a host reboot one full copy per city, all at once.
+
 Everything users upload or that cannot be recreated therefore lives on storage the deploy never touches. The relative
 defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a path
 outside the build tree** via its environment variable (a variable that is set but blank is rejected too):
@@ -383,7 +413,7 @@ outside the build tree** via its environment variable (a variable that is set bu
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
 | `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-cut from pano imagery) | Error logged at boot |
-| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews and crop thumbnails (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
 every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
@@ -518,28 +548,40 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 
-Health checks treat an instance as up when an anonymous request to **`/anonSignUp`** returns a valid session cookie
-(`PLAY_SESSION`) — i.e. the app can boot into an anonymous session. This is the same anonymous-session trick used to
-exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
-return server errors are automatically restarted.
+The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers, 503 when it is
+up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a probe
+creates no user, session, or activity row, and it is never rate-limited. The body also names the build (`git_sha`),
+which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's call, with
+one thing to get right: a 503 from every city at once is the shared database, and restarting the instances won't
+help, so restart on no answer and alert on 503.
+
+Until the ops repo switches (#5138), the probe hits `/anonSignUp`, which mints a new anonymous account on every hit,
+including a `HEAD`, and is rate-limited per IP, so a probe from one host gets throttled into false alarms.
 
 ## Logs
 
 Each running city instance writes a **rolling file log** (configured in [`conf/logback.xml`](../conf/logback.xml)):
 
-- **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
-  `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
-  own `logs/` subdirectory**; the app also mirrors output to stdout.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
-  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
+- **File name:** `application-<SIDEWALK_CITY_ID>.log` — e.g. `application-newberg-or.log` — in `SIDEWALK_LOG_DIR`, **one
+  directory for every city of a stage**, outside the build and next to that stage's `container-<city>.log` files. It
+  must be an absolute path: logback takes a blank value as set and writes to the filesystem root, so a prod-mode start
+  logs an error for a blank, relative or in-build value (`PersistentMediaDirCheck`), and the e2e job checks that the log
+  lands there and nowhere under the build. Unset (local dev), it falls back to `logs/` under the app directory. The app
+  also mirrors every line to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap per city, so a stage's app logs
+  are bounded by 3 GB × cities and in practice far smaller (the busiest city writes a couple of MB a day). On each
+  rebuild the deploy tooling copies every `*.log` in that directory into `archives/` and empties it, app and container
+  logs alike, so the rolling files hold the history since the last deploy and the archives the rest. A `logs/` under the
+  app directory (dev) is deleted with the build instead.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
 Finding them on a server without hardcoding paths:
 
 ```bash
-# each instance's home dir + city id are on the running process's command line
+# the log dir is the process's SIDEWALK_LOG_DIR; the city id is on its command line
 pgrep -af 'java .*ProdServerStart'
+tr '\0' '\n' < /proc/<pid>/environ | grep SIDEWALK_LOG_DIR
 # or locate the files directly
 find / -name 'application-*.log' 2>/dev/null
 ```
@@ -584,22 +626,81 @@ CSE IT.
 ## Runtime configuration contract
 
 At runtime the app is configured almost entirely through **environment variables** (values are injected by the
-deployment tooling and, locally, by your `docker-compose.override.yml`). The variable **names** below are already
-part of this repo's own config files; the **values** are secrets and live only on the servers / in maintainer-held
-override files. This is the practical list to keep in sync when you add a new integration — a new secret has to be
-plumbed through both this app's config *and* the deployment tooling, or it will be missing in production.
+deployment tooling and, locally, by your `docker-compose.override.yml`). The variable **names** below are already part
+of this repo's own config files; the **values** are secrets and live only on the servers / in maintainer-held override
+files. Every optional substitution in `conf/` (a `${?…}` reference) is a requirement on the deployment side, which only
+learns about one from this table: a new secret has to be plumbed through both this app's config *and* the deployment
+tooling, or it will be missing in production. `tools/lint/check-env-contract.mjs` (`make lint`, a blocking CI step)
+fails when the names here and the references in `conf/` differ in either direction (every `${?…}`, plus every env var
+`conf/logback.xml` reads, since logback has no optional marker), so adding a variable means adding its row.
 
-| Group | Variables (names only) |
-|-------|------------------------|
-| **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
-| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
-| **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
-| **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
-| **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY` (unset or blank falls back to the browser key), `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
-| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
+"Unset" says what the app does when the deployment doesn't pass the variable. "Required" means a prod instance can't
+run without it, whether or not it fails fast. The clustering script's own environment (`INTERNAL_API_KEY`,
+`SIDEWALK_HTTP_PORT`) is set by the app when it launches the script, so the deployment passes neither.
 
-> If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
-> this repo and the deployment tooling in the IT ops repo.
+**Database and identity**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `DATABASE_URL` | JDBC URL of the city's Postgres database | Required; falls back to the dev container's address |
+| `DATABASE_USER` | The city's database role, whose default `search_path` selects its schema | Required; falls back to the dev role |
+| `DATABASE_PASSWORD` | That role's password | Required; falls back to the dev password |
+| `SIDEWALK_CITY_ID` | Which `cityparams.conf` entry this instance is | Required; the app refuses to start |
+| `SIDEWALK_LOG_DIR` | Absolute directory for the rolling file log, shared by every city of the stage ([Logs](#logs)) | `logs/` under the app directory, which the next deploy deletes |
+| `ENV_TYPE` | Stage: `prod`, `test`, or `local`; picks per-stage city params | Required on a deployed stage: `local` silently tells search engines not to index, sends analytics to the test property, and turns off the prod-only AI validation hand-off and SciStarter reporting |
+
+**App secrets**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `SIDEWALK_APPLICATION_SECRET` | Play's application secret (session signing, CSRF tokens) | Required; Play refuses to start in prod mode |
+| `SILHOUETTE_SIGNER_KEY` | Signs the authenticator cookie | Required; the app refuses to start |
+| `SILHOUETTE_CRYPTER_KEY` | Encrypts the authenticator cookie | Required; the app refuses to start |
+| `IMAGE_SIGNING_SECRET` | Signs time-limited image URLs (`/backupImage`, `/cropImage`) | Falls back to the application secret; set it in prod so the two can be rotated independently |
+| `INTERNAL_API_KEY` | Bearer token for server-to-server calls (clustering, the AI server's callbacks) | Required; clustering fails and every internal call is refused |
+| `SIDEWALK_AI_API_KEY` | Password the AI server checks on each request | Every AI validation and tag suggestion fails |
+
+**Media directories** (the [persistent-directories](#directories-that-must-survive-a-deploy) section says what each holds)
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `SIDEWALK_PANO_DIR` | Self-hosted pano store | Required; the app refuses to start in prod mode |
+| `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story media | Required; the app refuses to start in prod mode |
+| `SIDEWALK_IMAGES_DIR` | Label crops | Error logged at boot; crops written under the app directory |
+| `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews | Error logged at boot; previews written under the app directory |
+
+**Imagery and maps**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `GOOGLE_MAPS_API_KEY` | Browser-side Google Maps key | Required; the app fails when the pano service starts |
+| `GOOGLE_MAPS_SERVER_KEY` | Key for the server's own Google requests, which send no Referer (#5647) | Unset or blank falls back to the browser key |
+| `GOOGLE_MAPS_SECRET` | URL-signing secret for Street View Static requests | Required; the app fails when the pano service starts |
+| `MAPBOX_API_KEY` | Mapbox tiles and the route builder's geocoding | Required; every page fails to render (it's in the common page data) |
+| `MAPILLARY_ACCESS_TOKEN` | Mapillary Graph API token | On a Mapillary city every page fails to render (the common page data builds the imagery token); elsewhere imagery-age polling skips Mapillary |
+| `INFRA3D_CLIENT_ID_ZURICH`, `INFRA3D_CLIENT_SECRET_ZURICH` | Zurich's Infra3d OAuth client | Every Zurich page fails to render (the common page data builds the imagery token) |
+| `INFRA3D_CLIENT_ID_WINTERTHUR`, `INFRA3D_CLIENT_SECRET_WINTERTHUR` | Winterthur's Infra3d OAuth client | Every Winterthur page fails to render (same) |
+
+**Other integrations**
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `GEMINI_API_KEY` | Gemini vision, which analyzes canvas screenshots for the AI controller | Those requests fail |
+| `SCISTARTER_API_KEY` | Reports contributions to SciStarter | On prod, every Validate submission by a SciStarter user fails (the key is read before the request is sent) |
+| `GA_SERVICE_ACCOUNT_KEY` | Service-account JSON for the Google Analytics reader | Disables the admin traffic reporting |
+
+**Tunables** (defaults in `conf/application.conf`; the deployment passes none of these today)
+
+| Variable | Purpose | Unset |
+|----------|---------|-------|
+| `RATE_LIMIT_ENABLED` | `false` turns off every rate limit that lacks its own `enabled` flag (sign-in, sign-up, password, anon sign-up, speed limit, …) | On |
+| `STREET_IMAGERY_POLL_BATCH_SIZE` | Streets the nightly imagery-age poll checks | 500 |
+| `STREET_IMAGERY_POLL_NO_IMAGERY_BATCH_SIZE` | Extra `no_imagery` streets it re-checks for regained imagery | 25 |
+| `WALK_PLANNER_PRIORITY_TOLERANCE` | How far below the top priority a neighboring street may be and still be walked next | 0.15 |
+| `WALK_PLANNER_TINY_STREET_M` | Streets shorter than this (m) are walked as soon as they're adjacent | 20 |
+
+> The authoritative sources are `conf/application.conf` (+ the stage overlays) in this repo and the deployment
+> tooling in the IT ops repo. The ops repo still exports a few names nothing here reads any more; they're harmless.
 
 ## What this document intentionally does not cover
 
@@ -610,6 +711,6 @@ Maintainers who need those should consult the ops repo or contact UW CSE IT (**s
 
 ---
 
-*Provenance: derived from a point-in-time (2026-07-01) reading of UW CSE IT's internal Project Sidewalk deployment
-tooling by a maintainer. The ops repo is the source of truth and may have changed since; update this summary if you
-notice drift.*
+*Provenance: derived from a maintainer's reading of UW CSE IT's internal Project Sidewalk deployment tooling, last
+verified on the date at the top of this document. The ops repo is the source of truth and may have changed since;
+update this summary and that date if you notice drift.*

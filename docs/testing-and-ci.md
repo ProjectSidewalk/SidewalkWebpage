@@ -14,7 +14,7 @@ discarded-`DBIO` data-integrity bug (#4228) — none of which have anything guar
 **Goal:** stand up a layered, best-practices test suite + GitHub Actions CI, delivered in **independently mergeable
 phases**, the first of which requires *zero tests to exist* so it can land immediately.
 
-**Non-goals (for now):** deep canvas/imagery E2E, high coverage targets, or rewriting the frontend to a module system.
+**Non-goals (for now):** imagery rendering E2E, high coverage targets, or rewriting the frontend to a module system.
 
 ## Test architecture — four layers (fat base, thin top)
 
@@ -27,7 +27,7 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
 - **(d) Thin browser E2E** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless
   Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs on every PR as a
   **blocking step** and a **required status check** (`e2e-smoke`) — advisory until #5115 seeded the database it runs
-  against. **Landed with #4504** (page-load phase; interactions and flows are later phases).
+  against. **Landed with #4504**; interaction specs followed.
 
 ## Test database
 
@@ -80,8 +80,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `Role.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't
   tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what
   keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing.
-  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an
-  Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+  **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists`, and
+  after the role check an Infra3D access check, so a signed-in `sessionAs` account gets that access (never an
+  anonymous one, which is sent to sign in on those cities).
 - `util/SignedUpAccounts.scala` (#2285) — `signUpFreshUser()`, a registered account signed up through the real `/signUp`
   route (with a known password, `signUpPassword`), for specs that need a real sign-in or a password. It deletes every
   account it made in `afterAll`, across the login tables and the city's per-user tables; a spec that wrote other rows
@@ -111,6 +112,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`:
   every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public),
   plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
+  **`WithRoleSpec` + `RoleCheckRoutesSpec` + `StaleSessionSpec` (#5841)** — every role against each check in
+  `WithRole.scala`; each "own data" and signed-in-only route wired to its check with the URL's user id; and a garbage,
+  tampered, or expired session cookie counting as logged out.
   **`AssetManifestServiceSpec` + `AssetManifestWiringSpec` (#4893)** — the digest map behind `util.assetPath`: md5
   extraction, the build-generated asset inventory (non-empty, sorted, sentinels present), and that `main.scala.html`
   stamps `window.assetDigests` ahead of `utilities.js`. Every failure here is invisible in a browser — assets still load
@@ -122,9 +126,9 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   `await loadModules(...)` and hands fakes to its constructor, or declares them with `mockModule` / `useUtil`; see
   `test/js/README.md`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + the locale checks + the `frontend/css/` layout check + the
-  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, plus the evolutions lint and
-  ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022
-  migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
+  `frontend/js/` asset-path check, the JSDoc type check, the spec base-class check, the env var contract check, plus
+  the evolutions lint and ShellCheck below, each its own job) was rolled out under **#2487**, sequenced with the
+  in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are
   **now blocking** steps in the `frontend` job — ESLint (`frontend/js/` + `public/locales/` + `test/js/` + `test/e2e/`),
   Stylelint (`frontend/css/**/*.css`), HTMLHint (`app/views`), `tools/lint/check-locale-parity.mjs`,
   `tools/lint/check-css-layout.mjs` (#5030, #5651: a page's stylesheet is imported only by its page's modules, page
@@ -156,30 +160,25 @@ helpers. Formatting and coverage come from the **sbt-scalafmt** and **sbt-scover
   covered by mocking the network wrappers + `tmp_path`; the only exclusions are the `__main__` guards and one
   provably-unreachable loop branch (`# pragma: no branch`). Scoping is a bare `--cov` plus `source = ["scripts",
   "tools"]`, so the gate is always on and covers both arms — an uncovered *branch*, and a script nothing imports, which
-  `source` reports at 0%. Each half sets `COVERAGE_OMIT` to the script its interpreter can't import; unset, the gate
-  fails loudly rather than silently measuring less.
-- **Split by interpreter (#4396).** Each script is tested on the Python that runs it: `label_clustering.py` on
-  **`python3` (3.8)**, since the app shells out to it and prod's system Python is 3.8; the offline tooling
-  (`check_streets_for_imagery.py`, `onboard_city.py`, `osm_lineage.py`, `backfill_osm_lineage.py`, `street_gradient.py`)
-  on **`python3.13`**, since its libraries need ≥ 3.12. `make test-python` runs both halves (`test-python-app` /
-  `test-python-tools` for one). Each takes the whole directory minus the files the other owns, so a new test file runs
-  in both by default; one that only works on one gets an `--ignore` in the other.
-- Deps, all installed into the web container by the `Dockerfile`: `requirements.txt` (the in-band script's) into 3.8,
-  `requirements-offline-tools.txt` (the offline `check_streets` utility's) into 3.13, and `requirements-dev.txt`
-  (`pytest`, `pytest-cov`, environment-marked per interpreter) into both;
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says why the pins fall where they do.
+  `source` reports at 0%.
+- **One interpreter (#4396).** The container's `python3` is 3.12, the same minor as the `python3.12` prod's app shells
+  out to for `label_clustering.py`, so every script is tested on the Python that runs it.
+- Deps, all installed into the web container by the `Dockerfile`: `requirements-offline-tools.txt`, which includes the
+  in-band script's `requirements.txt`, and `requirements-dev.txt` (`pytest`, `pytest-cov`);
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md) says which file a library belongs in.
 
 ## CI — GitHub Actions (`.github/workflows/ci.yml`)
+
+On PRs, `backend-tests` and `e2e-smoke` restore cached compiled classes, so they only recompile what changed. `backend`
+always compiles from scratch, so the compile gate stays a full build, and saves the cache (#5972).
 
 Parallel jobs:
 - **evolutions-lint** — host bash; `bash db/scripts/lint-evolutions.sh` (also `make lint-evolutions`, and included in
   the `make lint` umbrella). Static checks on `conf/evolutions/default/*.sql`: a semicolon mid-`--`-comment (Play splits
   statements on every `;`, including ones inside comments, then executes the orphaned text — this broke evolution 325,
   see #4335/#4351) and missing `!Ups`/`!Downs` markers. **Blocking**, and a required status check — fast, deterministic,
-  no DB. (Forward *application* of new evolutions is already exercised by `backend-tests`, which boots the app and
-  auto-applies pending evolutions. A from-scratch up→down→up round-trip was prototyped and dropped: applying the full
-  history against the project `db` image re-inserts already-seeded `sidewalk_login` rows — a bespoke empty-login DB
-  would be needed, not worth it for an advisory check.)
+  no DB. A second step fails if an evolution already in the newest `v*` tag was edited. (Applying evolutions, and
+  rolling the new ones back, is `backend-tests`' job, below.)
 - **shell-lint** — host bash; `bash tools/lint/shellcheck.sh` (also `make shellcheck`, `files=<script>` to scope it, and
   included in `make lint`). Runs [ShellCheck](https://www.shellcheck.net/) over every tracked `.sh` file, from a
   Docker image pinned in `docker/shellcheck/Dockerfile` (never built; it's there so Dependabot
@@ -188,19 +187,14 @@ Parallel jobs:
   **Blocking**, and a required status check once promoted (#5589; a new job can only be made required after it's on
   `develop`, see the branch-protection note below). The scripts have no tests of their own: they are developer tools,
   and a test framework for them isn't worth the upkeep.
-- **route-lint** — `setup-python` (3.8, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a
+- **route-lint** — `setup-python` (3.12, stdlib only); `python3 tools/lint/check_route_reachability.py`. Fails if a
   `conf/routes` entry is unreachable because an earlier same-method route already matches all of its request paths —
   Play commits to the first path-pattern match and 400s on a typed-param mismatch rather than falling through, which is
   how a wildcard above a literal sibling silently broke `/label/tags` (#456). **Blocking**, and a required status check.
   The compiled-router counterpart is `RouteReachabilitySpec` in `backend-tests`, which also covers sub-router includes.
-- **python-tests** — a two-leg `setup-python` matrix (`fail-fast: false`) mirroring `make test-python`: **`Python tests
-  (in-band script)`** installs `requirements.txt` + `requirements-dev.txt` on **3.8**, **`Python tests (offline
-  tooling)`** installs `requirements-offline-tools.txt` + `requirements-dev.txt` on **3.13**, and each runs
-  `test/python` minus the other interpreter's file. No DB/network. `continue-on-error` is `${{ matrix.advisory }}`
-  rather than a job-level flag, so the two legs gate differently: the **in-band** leg is **blocking** and required,
-  because `label_clustering.py` is shelled out to by the running app; the **offline tooling** leg stays **advisory**,
-  because `check_streets_for_imagery.py` is an operator utility that never runs on the server. Note that `half` also
-  spells the check name — renaming a leg renames a required check, which branch protection then waits on forever.
+- **python-tests** — `setup-python` (3.12, the web container's and prod's minor) + `requirements-offline-tools.txt` +
+  `requirements-dev.txt`, then `pytest` over `test/python`, mirroring `make test-python`. No DB/network. **Blocking**,
+  and a required status check (`Python tests`), because `label_clustering.py` is shelled out to by the running app.
 - **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck`
   schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
   required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
@@ -215,21 +209,31 @@ Parallel jobs:
   suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
   the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and
   roughly half of `test/` ran nowhere. Suites run one at a time — see `Test / parallelExecution := false` in
-  `build.sbt`. Both spec steps run under **scoverage**, and a final `coverageReport` step enforces the
+  `build.sbt`. After the suite comes the **rollback gate** (#5839), `EvolutionsRoundTripSpec`, skipped when no
+  evolution is newer than the newest `v*` tag (`db/scripts/last-release.sh`). For each newer one, newest first, it
+  runs the Downs and the Ups in both orders, on the seeded city and on a `pg_dump` copy of it, and then rolls them all
+  back and forward again in one batch; what it asserts is in [`evolutions.md`](evolutions.md) → "Downs have to work".
+  It only covers what's new since the release because the committed template can't replay all history (see
+  `evolutions.md`, "It also breaks replay"). It needs `LAST_RELEASE_EVOLUTION` set and otherwise has no tests, since
+  it rolls back whatever database it's connected to, and the step fails unless exactly one test ran. The spec steps
+  run under
+  **scoverage**, and a final `coverageReport` step enforces the
   **statement-coverage ratchet** configured in `build.sbt` (#4743) — see "Coverage" below.
-- **backend** — `setup-java@v6` (temurin 17, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
+- **backend** — `setup-java@v6` (temurin 21, `cache: sbt`) + `sbt/setup-sbt@v1`; `sbt compile`, then `scalafmtCheckAll`
   and `scalafmtSbtCheck` (the build files: `build.sbt` and `project/*.scala`) as separate steps, each under `if:
   always()`. No database, because compiling never touches one — the DB-backed suites are `backend-tests` above. Dummy
   `SIDEWALK_APPLICATION_SECRET` and `INTERNAL_API_KEY` only, so config evaluation during the compile has values. All
   three steps are **blocking**, and the job is a required status check.
-- **frontend** — `setup-node` (Node 24, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
+- **frontend** — `setup-node` (Node 26, `cache: npm`); `npm ci` → `npm run build` (the asset build; the backend job runs
   the same two steps first, since the specs render views whose stylesheet tags come from the build's manifest) → the
   nine lint steps and the Vitest suite, all **blocking** and each `if: always()` so the build and every result report in
   one run: `npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js`, `npx stylelint
   'frontend/css/**/*.css'`, `npx htmlhint app/views`, `node tools/lint/check-locale-parity.mjs`, `node
   tools/lint/check-css-layout.mjs`, `node tools/lint/check-asset-paths.mjs`, `node tools/lint/check-js-types.mjs`,
-  `node tools/lint/check-spec-base.mjs`, then `npm run test:js:coverage`, which also enforces the JS coverage ratchet
-  (see "Coverage" below). No `--max-warnings 0`: the one `warn` rule, `max-len`, is advisory.
+  `node tools/lint/check-spec-base.mjs`, `node tools/lint/check-env-contract.mjs` (the env vars `conf/` and
+  `logback.xml` read match the contract table in `docs/deployment-and-stages.md`, #5138), then `npm run
+  test:js:coverage`, which also enforces the JS coverage ratchet (see "Coverage" below). No `--max-warnings 0`: the one
+  `warn` rule, `max-len`, is advisory.
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
@@ -237,10 +241,12 @@ Parallel jobs:
   uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
-  half, **both blocking** since #5115 — on every PR; uploads the Playwright report + `app.log` as an artifact when
-  either half fails. CI installs Playwright on the runner directly (`npx playwright install --with-deps chromium`)
-  rather than using the local `docker/e2e` runner image — a GitHub runner already has the toolchain, and the job is fast
-  and stable as-is. This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
+  half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115 — on
+  every PR, then checks that the file log landed in `SIDEWALK_LOG_DIR` and nowhere under the stage dir (#5138); uploads
+  the Playwright report + `app.log` as an artifact when either half fails. CI installs Playwright on the runner directly
+  (`npx playwright install chromium`; no `--with-deps`, #5915) rather than using the local `docker/e2e` runner image — a
+  GitHub runner already has the toolchain, and the job is fast and stable as-is.
+  This job also carries the **accessibility gate** (#5060): axe-core at WCAG 2.1 AA over
   `test/e2e/pages.js` — the page table it shares with the smoke suite, so coverage is opt-out — failing on any violation
   `a11y-allowlist.js` does not track. `a11y.spec.js` walks the table; `a11y-api-docs-states.spec.js` (#5122) covers what
   the table structurally can't, forcing each api-docs preview's error and empty renders by intercepting its feed, since
@@ -267,26 +273,28 @@ blocking once its tree is clean; a test job runs advisory until its run history 
 **`continue-on-error` belongs on the narrowest thing it should excuse.** A job carrying it reports its conclusion as
 `success` even when its steps fail, so an advisory job looks green in the checks list and adding it to branch protection
 enforces *nothing* until the flag comes off. Where only part of a job is advisory, put the flag on that step or on that
-matrix leg (`python-tests`' offline half, via `continue-on-error: ${{ matrix.advisory }}`); at job level it would excuse
-the blocking work sitting beside it, and a stale flag is invisible from the checks list.
+matrix leg; at job level it would excuse the blocking work sitting beside it, and a stale flag is invisible from the
+checks list.
 
 **Branch protection (`develop`, set 2026-06-29; extended 2026-09-01 with #4743).** The deterministic jobs are wired as
 **required status checks** so a red build can't merge (the failure that shipped the broken evolution 325): **`Backend
 (compile + scalafmt)`**, **`Frontend (build)`**, **`Route reachability lint`**, **`Evolutions lint`**, **`Backend tests
-(API, PostGIS)`**, **`Python tests (in-band script)`**, and **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115
-made both of its steps blocking). **`Shell script lint`** (#5589) is next in line, to be required once that job is on
-`develop`. Settings: `enforce_admins=true` (no admin bypass — it only ever blocks a *red* merge), **no required
-reviews** (maintainers self-merge; review stays a convention, not a gate — see [`CONTRIBUTING.md`](../CONTRIBUTING.md)),
-`strict=false` (no "branch up to date" churn). `Python tests (offline tooling)` is the one check deliberately **not**
-required: it stays advisory because it covers an operator utility that never runs on the server. Repo **auto-merge** is
-enabled (opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
+(API, PostGIS)`**, **`Python tests`**, **`E2E smoke (Playwright)`** (added 2026-09-02, once #5115 made both of its
+steps blocking) and **`Shell script lint`** (#5589). Settings: `enforce_admins=true` (no admin bypass — it only ever
+blocks a *red* merge), **no required reviews** (maintainers self-merge; review stays a convention, not a gate — see
+[`CONTRIBUTING.md`](../CONTRIBUTING.md)), `strict=false` (no "branch up to date" churn). Repo **auto-merge** is enabled
+(opt-in per PR: queue a merge that fires when checks pass; merges nothing on its own).
 
 **Dependency automation:** **Scala Steward** (VirtusLab's hosted instance, `.scala-steward.conf`) for sbt deps —
 Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, `docker`, and
 `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another.
 [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs
-from both bots, so GitHub merges each once its required checks pass (#4395). Majors, Dependabot's pip PRs (their only
-test leg is advisory) and Steward PRs with extra generated commits wait for a human.
+from both bots, so GitHub merges each once its required checks pass (#4395). Majors and Steward PRs with extra
+generated commits wait for a human. Steward's half runs every 6 hours, since its PRs come from a fork (#5944), and
+usually merges a green PR on the spot. To hold a bot PR, mark it a draft, or turn its auto-merge off; the workflow never
+turns it back on. A Steward PR is usually never in auto-merge, so hold one with a draft. A hold doesn't carry over when
+the bot replaces the PR with a newer one. A Steward PR the workflow can't merge fails each run until it's merged, closed
+or drafted.
 
 **Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl
 page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly.
@@ -296,7 +304,7 @@ can't read Scala, so the backend isn't scanned. Python is skipped too: the tools
 and flagged on the PR that causes them. It is **not a required check**.
 
 **Vulnerable dependencies (#5614):** the **`Dependency review`** job in `ci.yml` flags a PR that adds a dependency with
-a known vulnerability. It is **not a required check**, because some fixes can't install on the app's Python 3.8 (#4396).
+a known vulnerability. It is **not a required check**.
 
 ## Coverage
 
@@ -317,7 +325,7 @@ won't instrument a method over 3000 tree nodes, and under `-Werror` its warning 
 is split into private helpers (#5605).
 
 **JavaScript — Vitest (#5112).** The floors are `coverage.thresholds` in `vitest.config.mjs`, one per metric
-(statements, branches, functions, lines), each 1-2 points under CI's figure: 53.07 / 48.81 / 49.41 / 53.78 at the
+(statements, branches, functions, lines), each 1-2 points under CI's figure: 94 / 93 / 93 / 94 at the
 time they were set. Measure with `make test-js args=--coverage`.
 
 ## Phased rollout (each phase independently mergeable)
@@ -335,14 +343,17 @@ time they were set. Measure with `make test-js args=--coverage`.
 - **Phase 4 — coverage + E2E:** scoverage with a **low, ratcheting** threshold (start near current %, raise over time) —
   **landed with #4743**, see [Coverage](#coverage); Playwright thin smoke suite. **The E2E half landed with #4504**
   ([`test/e2e/`](../test/e2e), the `e2e-smoke` PR job, Mapbox stubbed via `page.route`); Explore/Validate followed with
-  the restricted GSV key and #5115's label seed; later phases add per-page interactions and a few end-to-end flows.
+  the restricted GSV key and #5115's label seed, then tutorial labeling with #4777; later phases add per-page
+  interactions and more end-to-end flows.
 
 ## Key decisions
 
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (`sbt scalafmtAll scalafmtSbt`, which also
   covers the build files) auto-formats before pushing.
-- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View
-  specs, run on every PR (`e2e-smoke`); deep canvas/imagery testing stays manual.
+- **E2E: thin** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and Google Maps, run on
+  every PR (`e2e-smoke`), plus interaction specs where jsdom falls short (layout, real clicks, Tab order). **A new
+  or changed interaction on a pano page always gets one**, since checking it by hand bills Google. Imagery
+  rendering stays manual.
 - **Test DB: the repo's own `db` image** under `docker compose`, not Testcontainers.
 - **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than
   pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is

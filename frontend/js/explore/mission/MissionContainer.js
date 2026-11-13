@@ -135,7 +135,7 @@ export class MissionContainer extends EventEmitter {
       // Snap the current location to the nearest point on the street, and use that as the mission start.
       const position = this.#panoManager.getPosition();
       const currPos = turf.point([position.lng, position.lat]);
-      const missionStart = turf.nearestPointOnLine(currTask.getFeature(), currPos).geometry.coordinates;
+      const missionStart = turf.nearestPointOnLine(currTask.getGeoJSON(), currPos).geometry.coordinates;
       currTask.setMissionStart(missionId, { lat: missionStart[1], lng: missionStart[0] });
     }
     this.trigger('MissionContainer:missionChanged', mission);

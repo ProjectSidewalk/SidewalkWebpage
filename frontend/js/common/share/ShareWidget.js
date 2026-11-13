@@ -1,4 +1,5 @@
 import i18next from 'i18next';
+import { copyToClipboard } from '../copyToClipboard.js';
 import '../../../css/components/share-widget.css';
 
 /**
@@ -22,14 +23,10 @@ export class ShareWidget {
   #trigger;
   /** @type {HTMLElement|null} The popover element, lazily built on first non-native open. */
   #popover = null;
-  /** @type {HTMLButtonElement|null} The Copy Link button, cached so its transient "Copied!" state can be reset. */
-  #copyButton = null;
   /** @type {boolean} Whether the popover is currently open. */
   #open = false;
   /** @type {{url: string, title: string, text: string}} The current share target. */
   #target = { url: '', title: '', text: '' };
-  /** @type {number|undefined} Timeout id for the transient "Copied!" state. */
-  #copyResetTimer;
   /** @type {?(() => Promise<void>)} Optional async step run before each activation; see the constructor. */
   #beforeOpen = null;
   /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
@@ -40,6 +37,8 @@ export class ShareWidget {
   #fitToViewport = false;
   /** @type {?(() => void)} Called after a user-initiated close; see the constructor. */
   #onDismiss = null;
+  /** @type {?number} The deferred listener registration, cancelled if the popover closes before it runs. */
+  #listenTimer = null;
 
   // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
   static #SHED_ORDER = ['x', 'bluesky'];
@@ -67,13 +66,13 @@ export class ShareWidget {
    */
   constructor(trigger, opts = {}) {
     this.#trigger = trigger;
-    this.#host = opts.host || trigger.parentElement || document.body;
+    this.#host = opts.host || trigger.parentElement;
     this.#beforeOpen = opts.beforeOpen || null;
     this.#fitToViewport = Boolean(opts.fitToViewport);
     this.#onDismiss = opts.onDismiss || null;
 
     // Read before the first open: #fitPopover rewrites this class, so the markup's choice has to be captured now.
-    this.#prefersBelow = Boolean(this.#host.classList?.contains('label-detail__share--below'));
+    this.#prefersBelow = this.#host.classList.contains('label-detail__share--below');
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
     this.#trigger.setAttribute('aria-expanded', 'false');
@@ -120,7 +119,7 @@ export class ShareWidget {
    * @param {string} target.text - Longer descriptive text (used by the native sheet, X, and the email body).
    */
   setTarget({ url, title, text }) {
-    this.#target = { url: url || '', title: title || '', text: text || '' };
+    this.#target = { url, title, text };
     if (this.#open) this.#closePopover(true, false);
   }
 
@@ -210,9 +209,6 @@ export class ShareWidget {
    * container — the label-detail popup's footer and the landing grid's cards both sit in one.
    */
   #fitPopover() {
-    const wrapper = this.#popover.parentElement;
-    if (!wrapper) return;
-
     // A previous open may have dropped some; start from the full menu and re-derive.
     for (const platform of ShareWidget.#SHED_ORDER) this.#setPlatformHidden(platform, false);
 
@@ -229,7 +225,7 @@ export class ShareWidget {
     const space = room();
     if (below && height() > space.below && height() <= space.above) below = false;
     else if (!below && height() > space.above && height() <= space.below) below = true;
-    wrapper.classList.toggle('label-detail__share--below', below);
+    this.#host.classList.toggle('label-detail__share--below', below);
 
     // Still too tall. Drop platforms rather than let the menu run off the screen, cheapest first: Copy link is what
     // most people came for, and email is the one that works without an account anywhere.
@@ -245,8 +241,7 @@ export class ShareWidget {
    * @param {boolean} hidden
    */
   #setPlatformHidden(platform, hidden) {
-    const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
-    if (item) item.hidden = hidden;
+    /** @type {HTMLElement} */ (this.#popover.querySelector(`[data-share-platform="${platform}"]`)).hidden = hidden;
   }
 
   /**
@@ -254,20 +249,19 @@ export class ShareWidget {
    */
   #openPopover() {
     if (!this.#popover) this.#buildPopover();
-    this.#resetCopyState();
     this.#popover.hidden = false;
     this.#open = true;
     this.#trigger.setAttribute('aria-expanded', 'true');
     if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
-    setTimeout(() => {
+    this.#listenTimer = setTimeout(() => {
+      this.#listenTimer = null;
       document.addEventListener('click', this.#boundOutsideClick, true);
       document.addEventListener('keydown', this.#boundKeydown, true);
     }, 0);
 
-    const firstItem = this.#popover.querySelector('[role="menuitem"]');
-    if (firstItem) firstItem.focus();
+    /** @type {HTMLElement} */ (this.#popover.querySelector('[role="menuitem"]')).focus();
   }
 
   /**
@@ -277,9 +271,11 @@ export class ShareWidget {
    *      closing us (close(), setTarget()), which it does not need telling about.
    */
   #closePopover(returnFocus = true, notifyHost = true) {
-    if (this.#popover) this.#popover.hidden = true;
+    this.#popover.hidden = true;
     this.#open = false;
     this.#trigger.setAttribute('aria-expanded', 'false');
+    clearTimeout(this.#listenTimer);
+    this.#listenTimer = null;
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (returnFocus) this.#trigger.focus();
@@ -307,9 +303,8 @@ export class ShareWidget {
     heading.textContent = t('share.heading');
     popover.appendChild(heading);
 
-    // Copy Link — mirrors the routeBuilder clipboard pattern with a transient "Copied!" confirmation.
-    this.#copyButton = this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'), () => this.#copyLink());
-    popover.appendChild(this.#copyButton);
+    popover.appendChild(this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'),
+      (e) => this.#copyLink(/** @type {HTMLButtonElement} */ (e.currentTarget))));
 
     // Bluesky's compose intent has no separate url param, so the permalink rides in the text. Posts cap at 300
     // graphemes and the composer opens in an over-limit state past that, so keep `share.text` short in every locale —
@@ -346,7 +341,7 @@ export class ShareWidget {
    * Builds a single popover action button.
    * @param {string} iconSvg - Inline SVG markup for the leading icon (static, trusted).
    * @param {string} label - Visible button label.
-   * @param {() => void} onClick - Click handler.
+   * @param {(e: MouseEvent) => void} onClick - Click handler.
    * @param {string} [platform] - Share platform the item opens, so #setPlatformHidden can find it.
    * @returns {HTMLButtonElement}
    */
@@ -372,26 +367,14 @@ export class ShareWidget {
   }
 
   /**
-   * Copies the current URL to the clipboard and flips the Copy Link button into a transient "Copied!" state.
+   * Copies the current URL to the clipboard, confirming on the Copy Link button itself.
+   * @param {HTMLButtonElement} button - The Copy Link button.
    */
-  #copyLink() {
-    navigator.clipboard.writeText(this.#target.url).then(() => {
-      this.#log('Share_CopyLink');
-      const labelEl = this.#copyButton.querySelector('.label-detail__share-item-label');
-      if (labelEl) labelEl.textContent = i18next.t('common:share.copied');
-      this.#copyButton.classList.add('is-copied');
-      clearTimeout(this.#copyResetTimer);
-      this.#copyResetTimer = setTimeout(() => this.#resetCopyState(), 1500);
-    }).catch((err) => console.error('Share: clipboard write failed', err));
-  }
-
-  /** Resets the Copy Link button back to its default label. */
-  #resetCopyState() {
-    clearTimeout(this.#copyResetTimer);
-    if (!this.#copyButton) return;
-    const labelEl = this.#copyButton.querySelector('.label-detail__share-item-label');
-    if (labelEl) labelEl.textContent = i18next.t('common:share.copy-link');
-    this.#copyButton.classList.remove('is-copied');
+  #copyLink(button) {
+    const labelEl = button.querySelector('.label-detail__share-item-label');
+    copyToClipboard(button, this.#target.url, { labelEl }).then((ok) => {
+      if (ok) this.#log('Share_CopyLink');
+    });
   }
 
   /**
@@ -440,8 +423,8 @@ export class ShareWidget {
       return;
     }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    // Copy link is never shed, so there is always at least one item.
     const items = [...this.#popover.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
-    if (items.length === 0) return;
     e.preventDefault();
 
     // When focus sits outside the menu (e.g. the user clicked elsewhere without closing), arrows re-enter at an end.

@@ -500,6 +500,18 @@ trait UserService {
 
   /** Saves the user's units for every city; None follows the site language. */
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
+
+  /** Opts the user out of project news by email, for every city (#5864); a repeat keeps the first time and reason. */
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int]
+
+  /** Records the user ticking the news box themselves, which subscribes them and is the proof of consent. */
+  def consentToNewsEmail(userId: String): Future[Int]
+
+  /** @return Where the user stands on project news by email, for every city. */
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus]
+
+  /** @return (user id, username, email) of everyone project news may be sent to, by email. */
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -512,6 +524,14 @@ trait UserService {
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+
+  /**
+   * Puts a user on a team of their own choosing. Only admins may put someone on a closed team, but a user an admin
+   * put on one can still re-save it (Settings posts the current team).
+   *
+   * @return Whether the user is on the team now; false if it's closed or doesn't exist.
+   */
+  def joinTeam(userId: String, teamId: Int): Future[Boolean]
   def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
@@ -711,6 +731,15 @@ class UserServiceImpl @Inject() (
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
     db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int] =
+    db.run(userSettingsTable.optOutOfNewsEmail(userId, source))
+
+  def consentToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.consentToNewsEmail(userId))
+
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
+
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
+
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -808,6 +837,13 @@ class UserServiceImpl @Inject() (
     }
     db.run(updateTeamAction)
   }
+
+  def joinTeam(userId: String, teamId: Int): Future[Boolean] =
+    db.run(teamTable.find(teamId).zip(userTeamTable.getTeam(userId))).flatMap {
+      case (Some(team), current) if team.open || current.exists(_.teamId == teamId) =>
+        setUserTeam(userId, teamId).map(_ => true)
+      case _ => Future.successful(false)
+    }
 
   def leaveTeam(userId: String): Future[Int] = {
     val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {

@@ -13,6 +13,7 @@
  */
 
 import { util } from '../common/utilities.js';
+import { AdminShell } from './AdminShell.js';
 
 export class FunnelsSection {
   /**
@@ -82,28 +83,24 @@ export class FunnelsSection {
   /** Wires the window selector (refetches) and the breakdown toggle (re-renders from cached data). */
   #wireControls() {
     const win = document.getElementById(this.#windowToggleId);
-    if (win) {
-      win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (this.#window === btn.dataset.window) return;
-        this.#window = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
-        this.#load();
-      }));
-    }
+    win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+      if (this.#window === btn.dataset.window) return;
+      this.#window = btn.dataset.window;
+      win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      this.#load();
+    }));
     const dim = document.getElementById(this.#dimToggleId);
-    if (dim) {
-      dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
-        if (this.#dim === btn.dataset.dim) return;
-        this.#dim = btn.dataset.dim;
-        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
-        this.#render();
-      }));
-    }
+    dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+      if (this.#dim === btn.dataset.dim) return;
+      this.#dim = btn.dataset.dim;
+      dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+      this.#render();
+    }));
   }
 
   /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
   async #load() {
-    this.#setText(this.#statusId, 'Loading funnels…');
+    AdminShell.setText(this.#statusId, 'Loading funnels…');
     try {
       const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
       this.#funnels = (data && data.funnels) || {};
@@ -111,24 +108,23 @@ export class FunnelsSection {
       this.#render();
     } catch (err) {
       console.error('Funnel load failed:', err);
-      this.#setText(this.#statusId, 'Could not load funnel data.');
+      AdminShell.setText(this.#statusId, 'Could not load funnel data.');
     }
   }
 
   /** Renders each available funnel (mapping, contribution) for the active breakdown dimension. */
   #render() {
     const host = document.getElementById(this.#hostId);
-    if (!host) return;
-    const segs = FunnelsSection.#DIMS[this.#dim] || FunnelsSection.#DIMS.all;
+    const segs = FunnelsSection.#DIMS[this.#dim];
     const types = FunnelsSection.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     if (!types.length) {
       host.innerHTML = '';
       // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
-      this.#setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
+      AdminShell.setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
       return;
     }
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
-    this.#setText(this.#statusId, this.#computedAt
+    AdminShell.setText(this.#statusId, this.#computedAt
       ? `Data as of ${this.#formatDate(this.#computedAt)}.`
       : '');
   }
@@ -141,14 +137,14 @@ export class FunnelsSection {
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
-    const meta = FunnelsSection.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+    const meta = FunnelsSection.#FUNNEL_META[funnelType];
     const steps = funnel.steps || [];
     const segments = funnel.segments || {};
     const palette = FunnelsSection.#SEG_COLORS;
 
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" `
-      + `style="background:${palette[i] || palette[0]}"></span>${util.escapeHTML(s.label)}</span>`).join('');
+      + `style="background:${palette[i]}"></span>${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
 
     const stepRows = steps.map((k, i) => {
@@ -166,7 +162,7 @@ export class FunnelsSection {
         return `
           <div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">
             <span class="ac-funnel-bar-fill"
-              style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
+              style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>
           </div>`;
       }).join('');
@@ -183,11 +179,6 @@ export class FunnelsSection {
         <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
         <div class="ac-funnel-panel">${legend}${stepRows}</div>
       </div>`;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
   }
 
   /** Full count with thousands separators, for tooltips. */

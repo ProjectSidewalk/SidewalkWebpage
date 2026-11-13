@@ -31,8 +31,9 @@ It chains every remaining setup step, pausing only where a human is required:
   6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch, or
      pass --tutorial-region and --regions).
   7. Runs the tools/city/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
-     holds the API keys and the python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery
-     streets, and imports the imagery-age summary into street_imagery.
+     holds the API keys and the geo libraries) against a freshly exported endpoints CSV, hides the no-imagery
+     streets, and imports the imagery-age summary into street_imagery. With --study-area, it then disables the open
+     regions' streets outside a partner's area (db/scripts/disable-streets-outside-area.sh).
   8. Samples the street gradient (#5223, docs/street-gradient.md): exports the streets with the build's
      bridge/tunnel flags (db/onboarding/<city-id>/street_structures.csv, so it needs no nightly osm_way cache),
      runs tools/city/street_gradient.py in the web container, and imports the result into street_gradient. A country
@@ -57,6 +58,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 """
 
 import argparse
+import csv
 import hashlib
 import re
 import sqlite3
@@ -370,11 +372,12 @@ def translation_todo(city_id, state, country, added=()):
     return lines
 
 
-def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
+def handoff_checklist(city_id, schema, prod_url, test_url, gradient, study_area_owed=None):
     """
     The steps outside this repo that stand between a finished local schema and a live city.
 
     Args:
+        study_area_owed: The --study-area path when step 7 put it off for want of a scan.
         gradient: How step 8 ended — ``sampled`` (the grades ride in the dump), ``no_source`` (the country has no
                   registered elevation model), ``no_structures`` (the build wrote no street_structures.csv),
                   ``skipped`` (--skip-gradient, or a --dump-only run of a schema with no rows), or ``unknown`` (the
@@ -408,8 +411,12 @@ def handoff_checklist(city_id, schema, prod_url, test_url, gradient):
             f'''  7. Street grades were NOT sampled: rerun `make onboard-city id={city_id}` without --skip-gradient
      (or --dump-only; either way it comes straight back to step 8) before handing the dump over, {backfill}.
      Until then the AccessScore carries no grade term.''')
+    owed = '' if study_area_owed is None else f'''
+  NOT YET: the study area ({study_area_owed}) waits for the imagery scan, so this dump opens all of every open
+  region. Once the scan can run, rerun `make onboard-city id={city_id} args="--study-area db/{study_area_owed}"`
+  and hand over that dump instead.'''
     return f'''
-Server handoff for {city_id}:
+Server handoff for {city_id}:{owed}
   1. Copy the dump to the server, renaming it to the convention every file there follows (the local name stays
      `{schema}-dump`, which is what `make import-dump` restores, and which a populated prod pull also uses):
        scp db/{schema}-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/{schema}-empty-dump
@@ -595,6 +602,20 @@ def schema_exists(schema):
     """Whether the schema is in the dev database — None when the database could not be asked at all."""
     answer = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'")
     return None if answer is None else bool(answer)
+
+
+def scan_imported(schema):
+    """Whether step 7's imagery scan has been imported into street_imagery."""
+    return db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
+                                                                                                                '0')
+
+
+def db_relative(path_text):
+    """``path_text`` as a path under db/, which the db container mounts at /opt; None for a path outside it."""
+    try:
+        return str(Path(path_text).resolve().relative_to((REPO_ROOT / 'db').resolve()))
+    except ValueError:
+        return None
 
 
 def street_count(schema):
@@ -873,8 +894,6 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
     log_hint = f'docker exec {WEB_CONTAINER} tail -50 {BOOT_LOG}'
     try:
         deadline = time.monotonic() + 30 * 60
-        # No `continue` in this loop: Python 3.8's compiler folds the jump into the preceding block's, so the
-        # tracer never reports the line and the 100% coverage gate fails on the 3.8 half of the suite.
         while time.monotonic() < deadline:
             if boot_answered():
                 applied, problem = evolution_state(schema)
@@ -929,14 +948,18 @@ def run_imagery_scan(schema, city_id, pano_type):
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
     tty = ['-t'] if sys.stdin.isatty() else []
-    subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/check_streets_for_imagery.py',
+    subprocess.run(docker_argv(WEB_CONTAINER, 'python3', 'tools/city/check_streets_for_imagery.py',
                                '--city-id', city_id, flag, flags=('-i', *tty)), check=True)
 
-    no_imagery = city_dir / 'streets_with_no_imagery.csv'
-    n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
-    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
+    summary = city_dir / 'street_imagery_summary.csv'
+    n_hidden = 0
+    if summary.exists():
+        with summary.open() as handle:
+            n_hidden = sum(1 for row in csv.DictReader(handle) if row['has_imagery'] == 'False')
+    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery (and reopening any the scan found imagery '
+          'on)...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
-              f'onboarding/{city_id}/streets_with_no_imagery.csv', check=True)
+              f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
     # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
     # summary is the only source of imagery-age data (#4348).
@@ -956,7 +979,7 @@ DEM_FLAGS_EXAMPLE = '--dem-dir db/onboarding/{city_id}/dem --dem-name <product> 
 def run_street_gradient(schema, city_id, sampler_args=()):
     """
     Fills street_gradient (#5223): exports the streets with the build's structure flags, samples the elevation model
-    in the web container (which holds the python3.13 deps), and imports the result.
+    in the web container (which holds the raster libraries), and imports the result.
 
     The build's street_structures.csv stands in for the osm_way cache, which is empty until the city's first nightly
     refresh; without it every bridge would be sampled as the ravine beneath it, so the step is skipped rather than
@@ -987,7 +1010,7 @@ def run_street_gradient(schema, city_id, sampler_args=()):
                 'Fix the cause and rerun; the rerun comes straight back to this step.')
     print('  Sampling the elevation model along every street (seconds for most cities, a minute or two for a '
           'large one)...')
-    sampler = subprocess.Popen(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/street_gradient.py',
+    sampler = subprocess.Popen(docker_argv(WEB_CONTAINER, 'python3', 'tools/city/street_gradient.py',
                                            '--city-id', city_id, *sampler_args, flags=('-i',)),
                                stderr=subprocess.PIPE, text=True)
     log = []
@@ -1241,6 +1264,10 @@ def main(argv=None):
                                           'two flags below (all three or none).')
     parser.add_argument('--dem-name', help='With --dem-dir: the source name to record, e.g. "inegi-mdt-5m".')
     parser.add_argument('--dem-resolution-m', help='With --dem-dir: the rasters\' resolution in meters.')
+    parser.add_argument('--study-area',
+                        help='Step 7: a GeoJSON under db/ of a partner\'s area that cuts across regions (e.g. '
+                             'db/onboarding/<city-id>/study_area.geojson). After the scan, the open regions\' '
+                             'streets outside it are disabled.')
     parser.add_argument('--dump-only', action='store_true',
                         help='Run only step 9 — the dump and the handoff — for a city QA\'d after its first dump.')
     parser.add_argument('--allow-running-apps', action='store_true',
@@ -1262,6 +1289,13 @@ def main(argv=None):
         parser.error('--dry-run drives no container and --dump-only does nothing else; pick one')
     if args.recreate and args.dump_only:
         parser.error('--recreate drops the schema and --dump-only dumps it; pick one')
+    study_area = None
+    if args.study_area:
+        if args.dump_only:
+            parser.error('--study-area is applied after the scan, which --dump-only skips; pick one')
+        study_area = db_relative(args.study_area)
+        if study_area is None or not (REPO_ROOT / 'db' / study_area).is_file():
+            parser.error(f'--study-area must name a file under {REPO_ROOT / "db"}, which the db container reads')
 
     if args.dump_only:
         exists = schema_exists(schema)
@@ -1467,11 +1501,21 @@ def main(argv=None):
     print('\nStep 7/9 — imagery scan (finds streets with no street-view imagery and hides them)...')
     if args.skip_scan:
         print('  Skipped (--skip-scan); a rerun without the flag picks it up.')
-    elif db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
-                                                                                                             '0'):
+    elif scan_imported(schema):
         print('  A scan was already imported into street_imagery; skipping.')
     else:
         run_imagery_scan(schema, city_id, pano_type)
+    study_area_owed = None
+    if study_area:
+        print(f'  Disabling the open streets outside the study area ({study_area})...')
+        # The scan skips disabled streets, so one disabled first would later be put back with no imagery verdict.
+        if not scan_imported(schema):
+            print('  Not yet: it waits for the scan. A rerun picks it up.')
+            study_area_owed = study_area
+        else:
+            run_or_exit(['/opt/scripts/disable-streets-outside-area.sh', schema, study_area],
+                        f'disable-streets-outside-area.sh failed on {schema}',
+                        'It runs in one transaction, so no street changed: fix the cause and rerun.')
 
     print('\nStep 8/9 — street gradient (samples an elevation model along every street)...')
     if args.skip_gradient:
@@ -1490,7 +1534,7 @@ def main(argv=None):
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
-{handoff_checklist(city_id, schema, prod_url, test_url, gradient)}
+{handoff_checklist(city_id, schema, prod_url, test_url, gradient, study_area_owed)}
 Still on a human: the translations listed under step 1; the donor's values the clone carried in the city's config row
 — `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared, as was any official contact);
 and the GA ids if step 2 was skipped. The `/onboard-city` skill walks through all of it.''')

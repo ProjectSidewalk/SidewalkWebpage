@@ -24,10 +24,10 @@
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
  * orientations with the layout viewport pinned to the device width (#4891).
  *
- * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
+ * Both are landing-state checks; labeling in the tutorial is in explore-tutorial-labeling.spec.js.
  */
 const {
-  test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE,
+  test, expect, stubMapbox, serveAnyPano, waitForAppReady, loadValidate, PHONE_DEVICE,
 } = require('./fixtures');
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
@@ -82,8 +82,7 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
   await page.evaluate(() => document.getElementById('validate-control-buttons-toggle').click());
   await expect(chevron).toHaveAttribute('aria-expanded', 'true');
   await expect(pill).toBeVisible();
-  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill, and
-  // dismissing it is pano interaction this suite stays out of.
+  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill.
   await page.evaluate(() => window.svv.imageAdjustmentsPopover.open());
   await expect(panel).toBeVisible();
   await expect(pill).toHaveAttribute('aria-expanded', 'true');
@@ -101,8 +100,7 @@ test('/validate enters and leaves immersive mode on F', async ({page, consoleErr
   // Under the mission-start tutorial the key is for the tutorial, like every other shortcut.
   await page.keyboard.press('f');
   await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
-  // Its Done is clicked from the page: the overlay covers the toggle, and the key is the route that stays out of pano
-  // interaction; it lands on the body, where KeyboardManager listens (#5560).
+  // Done is clicked from the page, as the overlay covers the toggle; the key reaches KeyboardManager (#5560).
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
   await page.keyboard.press('f');
   await expect(page.locator('body')).toHaveClass(/svv-immersive/);
@@ -113,21 +111,6 @@ test('/validate enters and leaves immersive mode on F', async ({page, consoleErr
   await expect(page.locator('html')).not.toHaveClass(/chromeless/);
   expect(consoleErrors).toEqual([]);
 });
-
-/**
- * Loads `/validate` or `/mobile` and settles it.
- * @param {import('@playwright/test').Page} page The test's page.
- * @param {string} path The page to load.
- * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
- */
-async function loadValidate(page, path) {
-  const response = await page.goto(path);
-  expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
-  await waitForAppReady(page);
-  const onMission = await waitForValidateTerminalState(page);
-  await page.waitForTimeout(1000);
-  return onMission;
-}
 
 /**
  * The viewer the current label belongs in: the Pannellum fallback for an expired pano with a backup image (every
@@ -164,25 +147,6 @@ async function expectPanoRendered(page, path, viewerType) {
   expect(state.viewerType, `${path} rendered its panorama with the wrong viewer`).toBe(viewerType);
 }
 
-/**
- * Waits for Validate to settle into either of its two legitimate end states. Terminal state is
- * path-dependent: the mission path hides #page-loading (visibility, not display); the no-mission path un-hides the
- * modal holder instead — and may hide the overlay too, when a mission was assigned but every label's imagery failed
- * (#4810), so the modal is checked first. Callers let the console assertion judge whichever ran.
- * @param {import('@playwright/test').Page} page The page under test.
- * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
- */
-async function waitForValidateTerminalState(page) {
-  const handle = await page.waitForFunction(() => {
-    const loading = document.querySelector('#page-loading');
-    const missionUiReady = loading && getComputedStyle(loading).visibility === 'hidden';
-    const modal = document.querySelector('#modal-mission-holder');
-    const noMissionShown = modal && !modal.classList.contains('ps-hidden');
-    return noMissionShown ? 'no-mission' : (missionUiReady ? 'mission' : false);
-  });
-  return (await handle.jsonValue()) === 'mission';
-}
-
 test.describe('/mobile', () => {
   // The suite's one phone profile, so a change of reference phone moves /mobile and the viewport specs together.
   test.use(PHONE_DEVICE);
@@ -200,9 +164,8 @@ test.describe('/mobile', () => {
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(expectedWidth);
     expect(consoleErrors).toEqual([]);
     // Same #4810 check the desktop test makes: /mobile shares LabelContainer#loadPanoForCurrentLabel and has no
-    // separate guard, so without this an empty pano area passes in both orientations. Expired-pano path only: the
-    // primary-viewer path doesn't differ by viewport, and the desktop test has it.
-    if (onMission) await expectPanoRendered(page, '/mobile', 'pannellum');
+    // separate guard, so without this an empty pano area passes in both orientations.
+    if (onMission) await expectPanoRendered(page, '/mobile', await expectedValidateViewer(page));
   }
 
   test('loads in portrait without console errors', async ({page, consoleErrors}) => {

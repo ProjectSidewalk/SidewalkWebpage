@@ -1,0 +1,30 @@
+{
+  "card": {
+    "cost": "Kostet {{points}} Punkte",
+    "cost-shared": "Kostet {{points}} Punkte, mit {{others}} weiteren",
+    "labels_one": "{{count}} Markierung",
+    "labels_other": "{{count}} Markierungen",
+    "more_one": "{{count}} weitere anzeigen",
+    "more_other": "{{count}} weitere anzeigen"
+  },
+  "map": {
+    "location": "{{type}}: Foto anzeigen",
+    "gesture-windows": "Strg + Scrollen zum Zoomen der Karte",
+    "gesture-mac": "⌘ + Scrollen zum Zoomen der Karte",
+    "gesture-touch": "Karte mit zwei Fingern bewegen",
+    "aligned": "Ausgerichtete Markierungen",
+    "aligned-note": "Jede Markierung auf ihrer Straßenseite, ungefähr an ihrer Stelle entlang der Straße: nicht am genauen Punkt."
+  },
+  "place": {
+    "score": "Bewertung {{score}}",
+    "street": "{{street}} · {{distance}} entfernt",
+    "unscored": "Die Straße ist noch nicht bewertet",
+    "unnamed": "Unbenannte Straße"
+  },
+  "worst": {
+    "close": "Schließen",
+    "unavailable": "Die Karte dieses Labels konnte nicht geladen werden.",
+    "loading": "Wird geladen…",
+    "rejected": "Alle Labels hier wurden als falsch markiert, nachdem die Scores dieses Berichts zuletzt berechnet wurden, daher gibt es keine Karte."
+  }
+}

@@ -192,6 +192,57 @@ describe('Task coverage in free exploration', () => {
   });
 });
 
+describe('Task state handed over by the task list', () => {
+  const street = straightStreet(STREET_START, STREET_LENGTH_M);
+  const REGION_OTHER_STREET = { exploreAddressMode: false, current: false, route: false };
+
+  let Task;
+
+  const makeTask = (geojson) => new Task(geojson, COVERAGE_RULE, false);
+
+  beforeEach(async () => {
+    ({ Task } = await loadModules('frontend/js/explore/task/Task.js'));
+  });
+
+  it('credits the walk up to the saved position on an open row from before coverage was tracked (#5669)', () => {
+    const stopped = standingAt(street, 60);
+    const task = makeTask(feature(street, {
+      audit_task_id: 77, completed: false, covered_ranges: null, current_lat: stopped.lat, current_lng: stopped.lng,
+    }));
+
+    expect(task.getCoveredRanges()).toEqual([[0, 60]]);
+
+    // Walked from the other end: the same 60 m, in the server's frame.
+    const reversed = makeTask(feature(street, {
+      audit_task_id: 78, completed: false, start_point_reversed: true,
+      current_lat: standingAt(street, 140).lat, current_lng: standingAt(street, 140).lng,
+    }));
+    expect(reversed.getCoveredRanges()).toEqual([[140, 200]]);
+  });
+
+  it('leaves a fresh street, and a row that stores its coverage, alone', () => {
+    expect(makeTask(feature(street, { covered_ranges: null })).getCoveredRanges()).toEqual([]);
+    const stored = makeTask(feature(street, {
+      audit_task_id: 79, completed: false, covered_ranges: [[20, 40]],
+      current_lat: standingAt(street, 60).lat, current_lng: standingAt(street, 60).lng,
+    }));
+    expect(stored.getCoveredRanges()).toEqual([[20, 40]]);
+  });
+
+  it('skips a street reported in an earlier session without drawing or counting it as walked (#5017)', () => {
+    const reported = makeTask(feature(street, { reported_no_imagery: true }));
+
+    expect(reported.isLeftToWalk()).toBe(false);
+    expect(reported.wasGivenUpOnImagery()).toBe(false);
+    expect(reported.minimapLines(REGION_OTHER_STREET).map((line) => line.kind)).toEqual(['other']);
+
+    const givenUp = makeTask(feature(street));
+    givenUp.giveUpOnImagery();
+    expect(givenUp.isLeftToWalk()).toBe(false);
+    expect(givenUp.minimapLines(REGION_OTHER_STREET).map((line) => line.kind)).toEqual(['completed']);
+  });
+});
+
 describe('TaskContainer walking streets in free exploration', () => {
   const street = straightStreet(STREET_START, STREET_LENGTH_M);
   // A cross street leaving our street's far end, heading north.

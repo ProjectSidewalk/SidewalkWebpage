@@ -16,10 +16,6 @@
   pointer-events: none;
 }
 
-#labelmap-loading[hidden] {
-  display: none;
-}
-
 .labelmap-loading__card {
   text-align: center;
   color: #ffffff;
@@ -57,7 +53,7 @@
 }
 
 /* What a page knows about the wait beyond the clock (MapLoadingOverlay.setStatus); kept narrow so a sentence wraps
-   under the spinner instead of widening the card. Nothing sets its display, so the UA's [hidden] rule hides it. */
+   under the spinner instead of widening the card. */
 .labelmap-loading__status {
   font: var(--text-body-regular);
   margin: 10px 0 0;
@@ -107,11 +103,12 @@
  */
 
 /* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
-   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder. */
+   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder; a panel on the right (the
+   AccessScore street panel) publishes --map-inset-right the same way. */
 .map-status-pill {
   position: absolute;
   top: 12px;
-  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px)) / 2);
+  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px) - var(--map-inset-right, 0px)) / 2);
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */
   transition: opacity var(--transition-medium);
@@ -159,10 +156,6 @@
   outline-offset: 2px;
 }
 
-.map-status-pill__close[hidden] {
-  display: none;
-}
-
 /* cross.svg is drawn dark, so it is painted as a mask in the pill's white. */
 .map-status-pill__close-icon {
   width: 14px;
@@ -173,10 +166,6 @@
 
 .map-status-pill--leaving {
   opacity: 0;
-}
-
-.map-status-pill[hidden] {
-  display: none;
 }
 
 /* Out-ranks Mapbox's same-specificity rule, so the override holds whichever stylesheet is linked last. */

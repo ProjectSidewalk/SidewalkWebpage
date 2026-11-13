@@ -16,8 +16,11 @@
   </div>
   <div id="labelmap-choropleth-container" class="choropleth-container">
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
+      @* The lockup in the panel shows this name, but the panel is hidden from assistive technology while collapsed, and
+         the page's only <h1> would go with it. Ahead of the map, so it is read before the map's own controls. *@
+      <h1 class="sr-only">@views.ToolLockup.name("labelmap")</h1>
       <div id="labelmap-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showOutdatedStreetFilter = true, showCounts = true)
+      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showOutdatedStreetFilter = true, showCounts = true, toolHeader = Some("labelmap"))
       @common.mapLoadingOverlay()
     </div>
   </div>

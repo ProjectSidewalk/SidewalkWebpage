@@ -226,21 +226,6 @@
   gap: clamp(10px, 1.2vw, 24px);
 }
 
-/* There is no specific intended function for hover/click on labels on the gallery page.
-We should allow the pointer events to pass through and behave the same way as they do on the background. */
-.label-icon-gallery, .icon-outline {
-  pointer-events: none;
-}
-
-/* Scoped to the card badge, not every .ai-icon-marker on the page: cqw against .gallery-card keeps it proportional
-   to the card, and the expanded view's marker has no size container to resolve against — it keeps main.css's size. */
-.ai-icon-marker-card {
-  width: clamp(12px, 3cqw, 16px);
-  height: clamp(12px, 3cqw, 16px);
-  top: -6px;
-  left: -5px;
-}
-
 /*
  * Phone / narrow layout: the filter column stacks above the cards (its sections behind a disclosure — see
  * filter.css) and the expanded view becomes a full-screen sheet. 768px is the shell breakpoint the dashboard

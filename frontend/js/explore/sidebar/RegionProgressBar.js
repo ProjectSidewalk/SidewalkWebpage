@@ -54,7 +54,7 @@ export class RegionProgressBar {
     // street's priority drops below 1 only on completion), so the community segment holds steady between street
     // completions instead of being dragged around — and ticking down — on every step as you audit.
     const allDistance = this.#taskContainer.getAllUsersCompletedTaskDistance();
-    const userCompletedDistance = (this.#taskContainer.getCompletedTasks() || [])
+    const userCompletedDistance = this.#taskContainer.getCompletedTasks()
       .reduce((sum, task) => sum + turf.length(task.getGeoJSON(), unit), 0);
 
     // On a user-defined route we only track this user's own contributions, so don't show community progress.

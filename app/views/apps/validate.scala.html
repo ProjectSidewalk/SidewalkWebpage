@@ -34,6 +34,18 @@
 
   @* ps-invisible until the mission start tutorial overlay is ready to cover it. *@
   <div class="tool-ui ps-invisible">
+    @* The training example's explanation (#1445, ModalGoldFeedback.js): a page-level modal like ConfirmDialog, so the
+       crop has room; inside .tool-ui so it scales with the tool. *@
+    <dialog id="svv-gold-feedback" class="gold-feedback" aria-labelledby="gold-feedback-heading" aria-describedby="gold-feedback-text">
+      <img id="gold-feedback-image" class="gold-feedback__image" alt="The label you just judged" data-i18n-alt="validate:gold-feedback.image-alt">
+      <div class="gold-feedback__body">
+        <span class="gold-feedback__eyebrow" data-i18n="validate:gold-feedback.eyebrow">Training example</span>
+        <h2 id="gold-feedback-heading" class="gold-feedback__heading"></h2>
+        <p id="gold-feedback-text" class="gold-feedback__text"></p>
+        <p id="gold-feedback-advice" class="gold-feedback__advice"></p>
+        <button type="button" id="gold-feedback-ok" class="button button--primary button--medium gold-feedback__ok" data-i18n="validate:gold-feedback.ok">Got it</button>
+      </div>
+    </dialog>
 
     @* JS clones these templates, adjusts the attributes and then appends to DOM. *@
     <template id="current-tag-template">

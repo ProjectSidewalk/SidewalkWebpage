@@ -38,7 +38,8 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
 - **City boundary.** `--place "<City, State, Country>"` geocodes the OSM admin boundary; check the report's
   "Boundary:" line names the right place. A partner file goes in with `--boundary-file`.
 - **Scope.** Whole city, or a phased launch opening some regions first (`onboard-city` asks; the imagery scan
-  covers everything either way).
+  covers everything either way). A partner's study area that cuts across neighborhoods still gets whole regions:
+  open the ones it touches and pass the area as `--study-area` (docs step 7).
 
 ## 2. Build and QA the streets
 
@@ -71,7 +72,7 @@ settled (merges and boundary edits done), so the list you review is the one that
 
 1. **List them** with `repr`, which shows stray, doubled and non-breaking spaces a plain listing hides:
    ```
-   docker exec projectsidewalk-web sh -c "cd /home && python3.13 -c \"import geopandas as gpd; \
+   docker exec projectsidewalk-web sh -c "cd /home && python3 -c \"import geopandas as gpd; \
    gpkg = 'db/onboarding/<city-id>/<city-id>_qa.gpkg'; \
    [print(r.region_id, repr(r.name)) for r in gpd.read_file(gpkg, layer='qgis_region').itertuples()]\""
    ```
@@ -165,6 +166,10 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   `/admin/partners`). Ask; don't guess.
 - **Optional flags** left unset on purpose: `private-profiles-by-default`, `global-leaderboard-excluded`,
   `ai-label-submission-enabled` (all false by default).
+- **A new country** also needs a call on `news-email-opt-out-countries` in `conf/application.conf` (#5864): the
+  sign-up form's project-news box starts checked only in countries listed there, whose email law is opt-out (CAN-SPAM
+  style). Leave a country off unless its law clearly allows newsletters without prior consent; the EU, UK, Switzerland,
+  Canada, New Zealand and Brazil all require it, and a pre-ticked box isn't consent there.
 - **GA.** If step 2 was skipped, `python3 tools/city/create_ga_properties.py <city-id>` fills both id maps later; new
   properties go inside the existing "Project Sidewalk - Prod/Test" accounts, never new accounts.
 - **Docs.** The City IDs row is added for you; `docs/dev-environment.md` is a convenience copy of `cityparams.conf`.

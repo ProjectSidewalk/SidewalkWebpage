@@ -10,15 +10,24 @@ import { NoImageryError } from '../../common/pano-viewer/NoImageryError.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 import { util } from '../../common/utilities.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
+import { Task } from '../task/Task.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../data/Form.js').Form} Form */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../panorama/PanoManager.js').PanoManager} PanoManager */
+/** @typedef {{panoId: string, lat: number, lng: number}} PanoHit */
+
+/**
+ * One searched point: the pano to land on there, or why there is none (`failure`: a NoImageryError when the point
+ * is empty, the provider's error when it went unanswered). `nothingFound` says the lookup found no pano at all;
+ * `excluded` is the panos it left out.
+ * @typedef {{currLoc: {lat: number, lng: number}, hit: ?PanoHit, nothingFound: boolean, failure: ?Error,
+ *   excluded: Set<import('../../common/pano-viewer/PanoData.js').PanoData>}} SearchedPoint
+ */
 /** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
 /** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
-/** @typedef {import('../task/Task.js').Task} Task */
 /** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
@@ -77,7 +86,7 @@ export class StreetSweep {
   }
 
   /**
-   * Told when imagery runs out near a street's end (or the whole street is in view), so it counts as walked.
+   * Told when imagery runs out on a street the labeler has seen enough of, so it counts as walked (#5669).
    * @param {(task: Task) => void} listener
    */
   onStreetWalkedOut(listener) {
@@ -114,12 +123,178 @@ export class StreetSweep {
    * @param {Task} task - The street the next sweep will walk.
    */
   preloadAhead(task) {
-    const excludedPanos = new Set(this.#stuckPanos);
-    const currentPano = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
-    if (currentPano) excludedPanos.add(currentPano);
+    const target = this.#computeMoveTarget(task);
+    this.#panoManager.panoViewer.preloadPanoNear(target.currLoc, this.#panosLeftOut(target, this.#stoodAt(task)));
+  }
 
-    const { currLoc } = this.#computeMoveTarget(task);
-    this.#panoManager.panoViewer.preloadPanoNear(currLoc, excludedPanos);
+  /**
+   * The pano the next sweep would land on, found without moving: the blue arrow and its crumb point here (#5918).
+   * @param {Task} task - The street the next sweep will walk.
+   * @returns {Promise<?PanoHit>} Null when no pano is ahead; rejects when the provider didn't answer.
+   */
+  async findLanding(task) {
+    const canMiss = this.#panoManager.panoViewer.findPanoNearCanMiss();
+    for await (const { hit, nothingFound, failure } of this.#searchAhead(task, this.#stoodAt(task))) {
+      if (hit) return hit;
+      // The sweep tries a move at a point the lookup may have missed, so where it lands from here is unknown.
+      if (nothingFound && canMiss) return null;
+      if (!(failure instanceof NoImageryError)) throw failure;
+    }
+    return null;
+  }
+
+  /**
+   * What the provider says at each point a sweep searches: the furthest point reached and on down the street, a
+   * DIST_INCREMENT apart. The sweep and findLanding both walk these, so the sweep lands where findLanding said (#5918).
+   * @param {Task} task - The street being walked.
+   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
+   * @returns {AsyncGenerator<SearchedPoint, void, void>}
+   */
+  async* #searchAhead(task, stoodAt) {
+    const viewer = this.#panoManager.panoViewer;
+    const target = this.#computeMoveTarget(task);
+    const excluded = this.#panosLeftOut(target, stoodAt);
+    let { currLoc, remainder } = target;
+    for (;;) {
+      const at = `${currLoc.lat},${currLoc.lng}`;
+      try {
+        // A viewer that can't search has not said the street is empty.
+        if (!viewer.supportsLocationSearch()) throw new Error('This viewer cannot search for a pano by location.');
+        const hit = await viewer.findPanoNear(currLoc, excluded);
+        if (!hit) {
+          const failure = new NoImageryError(`No pano near ${at}.`);
+          yield { currLoc, hit: null, nothingFound: true, failure, excluded };
+        } else if (target.lookingAhead && !task.advancesWalk(hit)) {
+          const failure = new NoImageryError(`The pano near ${at} leads no further down the street.`);
+          yield { currLoc, hit: null, nothingFound: false, failure, excluded };
+        } else {
+          yield { currLoc, hit, nothingFound: false, failure: null, excluded };
+        }
+      } catch (err) {
+        yield { currLoc, hit: null, nothingFound: false, failure: err, excluded };
+      }
+      if (turf.length(remainder) <= 0) return;
+      ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
+    }
+  }
+
+  /**
+   * Records the pano the labeler is leaving. A link-arrow click is a step of the walk too: forgotten, the next step
+   * can lead straight back (#5918).
+   */
+  rememberStanding() {
+    const task = this.#taskContainer.getCurrentTask();
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    if (task && standing) this.#stuckPanosFor(task).add(standing);
+  }
+
+  /**
+   * The stuck set for a walk, emptied first if it was another walk's: carried over, it hides panos near the new
+   * street's start (#4918), or leaves a route's return leg nothing to land on (#5008).
+   * @param {Task} task - The street being walked.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #stuckPanosFor(task) {
+    const traversalKey = StreetSweep.#traversalKeyFor(task);
+    if (traversalKey !== this.#stuckPanosTraversalKey) {
+      this.#stuckPanos.clear();
+      this.#stuckPanosTraversalKey = traversalKey;
+    }
+    return this.#stuckPanos;
+  }
+
+  /**
+   * Where the labeler stands or already stood on this walk. Another street's stuck set doesn't count.
+   * @param {Task} task - The street the next sweep will walk.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #stoodAt(task) {
+    const sameWalk = StreetSweep.#traversalKeyFor(task) === this.#stuckPanosTraversalKey;
+    const stoodAt = new Set(sameWalk ? this.#stuckPanos : []);
+    stoodAt.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
+    stoodAt.delete(undefined);
+    return stoodAt;
+  }
+
+  /**
+   * The panos a search won't land on: looking ahead, everywhere stood at on this walk; coming back to the street,
+   * only where the labeler stands, since the pano they left is the one to return to (#5918).
+   * @param {{lookingAhead: boolean}} target - The search's start, from #computeMoveTarget.
+   * @param {Set<import('../../common/pano-viewer/PanoData.js').PanoData>} stoodAt - Panos stood at on this walk.
+   * @returns {Set<import('../../common/pano-viewer/PanoData.js').PanoData>}
+   */
+  #panosLeftOut(target, stoodAt) {
+    if (target.lookingAhead) return stoodAt;
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    return new Set(standing ? [standing] : []);
+  }
+
+  /**
+   * The next search point down a street: one DIST_INCREMENT on, or the street's end if less remains.
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} remainder - The street from the last search point on.
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>}}
+   */
+  static #stepAlong(remainder) {
+    const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
+    const rest = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, Infinity));
+    return { currLoc: { lat: rest.geometry.coordinates[0][1], lng: rest.geometry.coordinates[0][0] }, remainder: rest };
+  }
+
+  /**
+   * Free exploration's step off a pano with no links (#5968): lands on the first pano down the street from where the
+   * labeler stands, toward either end. Not sweep(), which only leads on from the furthest point reached.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {Promise<?string>} The pano landed on; null when none turned up, which the labeler is told.
+   */
+  async stepAlongStreet(towardEnd) {
+    const task = this.#taskContainer.getCurrentTask();
+    const viewer = this.#panoManager.panoViewer;
+    const standing = this.#panoStore.getPanoData(this.#panoManager.getPanoId());
+    const excluded = new Set(standing ? [standing] : []);
+    const stretch = task.streetFrom(this.#panoManager.getPosition(), towardEnd);
+    const failures = [];
+    // Points in a row can name the same pano, and each try at one that won't load waits out its time limit.
+    const wontLoad = new Map();
+    let remainder = stretch;
+    while (turf.length(remainder) > 0) {
+      let currLoc;
+      ({ currLoc, remainder } = StreetSweep.#stepAlong(remainder));
+      let hit = null;
+      try {
+        hit = await viewer.findPanoNear(currLoc, excluded);
+        if (hit && wontLoad.has(hit.panoId)) {
+          throw wontLoad.get(hit.panoId);
+        } else if (hit && !Task.isStepDown(stretch, hit)) {
+          throw new NoImageryError(`The pano near ${currLoc.lat},${currLoc.lng} is no step this way.`);
+        } else if (hit) {
+          await this.#panoManager.setPanorama(hit.panoId);
+        } else if (viewer.findPanoNearCanMiss()) {
+          // The lookup can't be trusted to rule a point out, so the provider's own move decides. Where it lands
+          // stands, even off to one side: the labeler has moved, and calling that a miss would strand them there.
+          await this.#panoManager.setLocation(currLoc, excluded);
+        } else {
+          throw new NoImageryError(`No pano near ${currLoc.lat},${currLoc.lng}.`);
+        }
+      } catch (err) {
+        if (hit) wontLoad.set(hit.panoId, err);
+        failures.push(err);
+        continue;
+      }
+      NoImageryFlagGuard.reset();
+      return this.#panoManager.getPanoId();
+    }
+    this.#sayFreeExploreStopped(NoImageryError.allNoImagery(failures));
+    return null;
+  }
+
+  /**
+   * Tells a free-exploration labeler why a step found nothing.
+   * @param {boolean} streetLooksEmpty - Every point answered "no imagery", as against the provider not answering.
+   */
+  #sayFreeExploreStopped(streetLooksEmpty) {
+    const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
+    const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
+    this.#alertController.showAlert(i18next.t(key), type, false);
   }
 
   /**
@@ -144,7 +319,7 @@ export class StreetSweep {
   }
 
   /**
-   * Tries points ahead of the labeler, a DIST_INCREMENT apart, and lands on the first pano found.
+   * Lands on the first pano ahead that loads.
    * @param {Task} task - The street being walked.
    * @returns {Promise<{found: boolean, panoId?: ?string, streetLooksEmpty?: boolean}>} When nothing is found,
    *   `streetLooksEmpty` says whether every point answered "no imagery" (vs. the provider not answering).
@@ -152,48 +327,43 @@ export class StreetSweep {
   async #searchStreet(task) {
     // TODO show loading icon. Add when resolving issue #2403.
 
-    // Start a fresh stuck set on each street. Carried over, it hides panos near the new street's start and the street
-    // gets wrongly reported as having no imagery (#4918). A route that walks a street twice gets one set per pass,
-    // or the return leg has nothing left to land on (#5008).
-    const traversalKey = StreetSweep.#traversalKeyFor(task);
-    if (traversalKey !== this.#stuckPanosTraversalKey) {
-      this.#stuckPanos.clear();
-      this.#stuckPanosTraversalKey = traversalKey;
-    }
+    const stuckPanos = this.#stuckPanosFor(task);
 
     // The full street, not the remainder, so the points match every time and repeats cost nothing.
-    this.prefetchAlongStreet(task.getFeature());
+    this.prefetchAlongStreet(task.getGeoJSON());
 
-    let { currLoc, remainder } = this.#computeMoveTarget(task);
-
-    this.#stuckPanos.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
+    stuckPanos.add(this.#panoStore.getPanoData(this.#panoManager.getPanoId()));
 
     // Kept to tell an empty street from a provider that stopped answering (#4918).
     const searchFailures = [];
-    for (;;) {
-      let found = false;
+    // Points in a row can name the same pano, and each try at one that won't load waits out its time limit.
+    const wontLoad = new Map();
+    const viewer = this.#panoManager.panoViewer;
+    for await (const { currLoc, hit, nothingFound, failure, excluded } of this.#searchAhead(task, stuckPanos)) {
       try {
-        await this.#panoManager.setLocation(currLoc, this.#stuckPanos);
-        found = true;
+        if (hit && wontLoad.has(hit.panoId)) {
+          throw wontLoad.get(hit.panoId);
+        } else if (hit) {
+          await this.#panoManager.setPanorama(hit.panoId);
+        } else if (nothingFound && viewer.findPanoNearCanMiss()) {
+          // The lookup can't be trusted to rule a point out, so the provider's own move decides.
+          await this.#panoManager.setLocation(currLoc, excluded);
+        } else {
+          throw failure;
+        }
       } catch (err) {
+        // A pano that won't load is passed over like a point that didn't answer.
+        if (hit) wontLoad.set(hit.panoId, err);
         searchFailures.push(err);
+        continue;
       }
-
-      if (found) {
-        const panoId = this.#panoManager.getPanoId();
-        this.#stuckPanos.add(this.#panoStore.getPanoData(panoId));
-        // A landing ends any run of imagery failures (#4918).
-        NoImageryFlagGuard.reset();
-        return { found: true, panoId };
-      }
-
-      if (turf.length(remainder) <= 0) {
-        return { found: false, streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
-      }
-      const distIncrement = Math.min(StreetSweep.DIST_INCREMENT, turf.length(remainder));
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, Infinity));
-      currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+      const panoId = this.#panoManager.getPanoId();
+      stuckPanos.add(this.#panoStore.getPanoData(panoId));
+      // A landing ends any run of imagery failures (#4918).
+      NoImageryFlagGuard.reset();
+      return { found: true, panoId };
     }
+    return { found: false, streetLooksEmpty: NoImageryError.allNoImagery(searchFailures) };
   }
 
   /**
@@ -206,22 +376,13 @@ export class StreetSweep {
   async #concludeEmptySearch(task, streetLooksEmpty) {
     // Free exploration (#4451) has no street to finish or move on to, so just say why they can't go further.
     if (this.#config.isExploreAddressMode) {
-      const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
-      const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
-      this.#alertController.showAlert(i18next.t(key), type, false);
+      this.#sayFreeExploreStopped(streetLooksEmpty);
       return 'stopped';
     }
 
-    // Near the end (where they stand, or the furthest they got, #5350), the street counts as walked. Checked before
-    // the provider-failure case: a failed lookup at the far end shouldn't cost credit for work really done. "Near"
-    // matches what free exploration may leave unseen (StreetCoverage.MaxUncoveredM).
-    const nearEndM = this.#config.streetCoverage.max_uncovered_m;
-    const furthest = task.getFurthestPointReached().geometry.coordinates;
-    const nearEnd = task.isAtEnd(this.#panoManager.getPosition(), nearEndM)
-      || task.isAtEnd({ lat: furthest[1], lng: furthest[0] }, nearEndM);
-    const inView = !nearEnd && this.#isWholeStreetInView(task);
-    if (inView) this.#tracker.push('NoImagery_StreetInView');
-    if (nearEnd || inView) {
+    // Enough seen counts as walked, by the rule the server credits by and the imagery checker keeps streets open by
+    // (#5669). Checked before the provider-failure case: a failed lookup at the far end shouldn't cost real credit.
+    if (task.isCoveredEnough()) {
       this.#streetWalkedOutListeners.forEach((listener) => listener(task));
       return 'walkedOut';
     }
@@ -236,15 +397,7 @@ export class StreetSweep {
     // One give-up per street: a labeler left standing on one could otherwise report it again.
     if (task.wasGivenUpOnImagery()) return 'stopped';
 
-    // The street looks empty. A report is only evidence for the offline imagery checker (#4922), and a long run of
-    // them more likely means a broken session, so reporting stops at MAX_CONSECUTIVE_FLAGS; moving on continues.
-    const mayFlag = NoImageryFlagGuard.canFlag();
-    NoImageryFlagGuard.recordStreetGivenUp();
-    if (mayFlag) {
-      await util.misc.reportNoImagery(task, this.#missionContainer.getCurrentMission().getProperty('missionId'));
-    } else {
-      this.#tracker.push('NoImageryFlagLimitReached');
-    }
+    await this.#reportStreet(task);
 
     // A long run of empty streets more likely means a broken session than an empty region, so stop.
     if (!NoImageryFlagGuard.canAdvance()) {
@@ -256,18 +409,20 @@ export class StreetSweep {
       return 'stopped';
     }
 
+    // Only once they're really leaving: the flag reads as "done with this street" everywhere on the page (#4922).
+    this.#markGivenUp(task);
+    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler
+    // would walk out of this one's far end, which they now never reach.
+    if (this.#taskContainer.hasWalkPlan()) this.#taskContainer.planWalk('giveUp');
     // The street is left unfinished: finishing it would credit a full audit nobody did (#4922).
     const newTask = this.#taskContainer.nextTask(task);
 
-    // Only once they're really leaving: the flag reads as "done with this street" everywhere on the page (#4922).
-    task.giveUpOnImagery();
-    this.#taskContainer.renderTask(task);
-
     if (!newTask) return 'ranOut';
 
-    // Send what was logged here first, or the server would file it under the next street. A plain submit, not
-    // endTask(), which would credit a full audit (#4922).
-    await this.#form.submitData(task);
+    // Held as an armed jump until setCurrentTask lands on it: the submission awaited below is the window in which a
+    // priority refresh arrives, and a replan there could turn or reorder the street already chosen and prefetched.
+    this.#taskContainer.setNextTaskAfterJump(newTask);
+    await this.#submitGivenUp(task);
     this.#taskContainer.setCurrentTask(newTask);
     // Not awaited: naming the street takes a network call, and the move shouldn't wait on it.
     this.#stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), this.#config.mapboxApiKey);
@@ -276,22 +431,46 @@ export class StreetSweep {
   }
 
   /**
-   * Whether the whole street is in sight. Short streets often can't be walked at all, so seeing them counts (#5474).
+   * Files the street as missing imagery: evidence for the offline checker (#4922). A long run of reports more likely
+   * means a broken session, so reporting stops at MAX_CONSECUTIVE_FLAGS while moving on continues.
    * @param {Task} task
-   * @returns {boolean}
+   * @returns {Promise<void>}
    */
-  #isWholeStreetInView(task) {
-    const position = this.#panoManager.getPosition();
-    const here = turf.point([position.lng, position.lat]);
-    return task.getFeature().geometry.coordinates.every((coord) =>
-      turf.distance(here, turf.point(coord), { units: 'meters' }) <= PanoViewer.SEARCH_RADIUS_M);
+  async #reportStreet(task) {
+    const mayFlag = NoImageryFlagGuard.canFlag();
+    NoImageryFlagGuard.recordStreetGivenUp();
+    if (mayFlag) {
+      await util.misc.reportNoImagery(task, this.#missionContainer.getCurrentMission().getProperty('missionId'));
+    } else {
+      this.#tracker.push('NoImageryFlagLimitReached');
+    }
+  }
+
+  /**
+   * Marks the street as given up on, which reads as "done with this street" everywhere on the page (#4922).
+   * @param {Task} task
+   */
+  #markGivenUp(task) {
+    task.giveUpOnImagery();
+    this.#taskContainer.renderTask(task);
+  }
+
+  /**
+   * Sends what was logged on the street before the next one starts, or the server would file it under that one. Not
+   * endTask(), which would credit a full audit (#4922).
+   * @param {Task} task
+   * @returns {Promise<void>}
+   */
+  async #submitGivenUp(task) {
+    await this.#form.submitData(task);
   }
 
   /**
    * Where a sweep searches first: the furthest point reached, one step further if the labeler is already there (so
    * the search looks ahead, not around them). Off route, it stays put to bring them back.
    * @param {Task} task - The task whose street is being walked.
-   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>}}
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: GeoJSON.Feature<GeoJSON.LineString>,
+   *   lookingAhead: boolean}} `lookingAhead`: the labeler stands at the furthest point, so a landing must get past it.
    */
   #computeMoveTarget(task) {
     const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
@@ -303,12 +482,12 @@ export class StreetSweep {
     const distFromFurthest = turf.distance(
       turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
     );
-    if (distFromFurthest <= PanoViewer.SEARCH_RADIUS_M
-      && turf.length(remainder, { units: 'kilometers' }) > StreetSweep.DIST_INCREMENT) {
+    const lookingAhead = distFromFurthest <= PanoViewer.SEARCH_RADIUS_M;
+    if (lookingAhead && turf.length(remainder, { units: 'kilometers' }) > StreetSweep.DIST_INCREMENT) {
       remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, StreetSweep.DIST_INCREMENT, Infinity));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }
-    return { currLoc, remainder };
+    return { currLoc, remainder, lookingAhead };
   }
 
   /**

@@ -148,11 +148,14 @@ class ClusterServiceImpl @Inject() (
           logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
 
           // Run the clustering script for this region. Pass the internal key via the subprocess environment rather than
-          // an argv flag so it can't leak into the process table / `ps` output.
+          // an argv flag so it can't leak into the process table / `ps` output. The script calls back into this
+          // instance, and on a shared server every city has its own port, so hand it ours rather than rely on the
+          // deployment exporting it.
           val process = Process(
-            Seq("/usr/bin/python3", script.getAbsolutePath, "--region_id", regionId.toString),
+            Seq("/usr/bin/python3.12", script.getAbsolutePath, "--region_id", regionId.toString),
             None,
-            "INTERNAL_API_KEY" -> key
+            "INTERNAL_API_KEY"   -> key,
+            "SIDEWALK_HTTP_PORT" -> config.get[Int]("play.server.http.port").toString
           )
 
           // Capture stdout/stderr separately so a subprocess failure surfaces the Python error to Play's logger.

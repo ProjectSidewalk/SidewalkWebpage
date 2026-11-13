@@ -167,7 +167,6 @@ Other handy targets:
 | `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
 | `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
-| `make upgrade-dev-db` | Copy your Postgres 16 database into the Postgres 18 one. See [Moving your database to Postgres 18](#moving-your-database-to-postgres-18). |
 
 ---
 
@@ -225,7 +224,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
 | bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
-| juneau-ak | sidewalk_juneau_ak | | | |
+| juneau-ak | sidewalk_juneau_ak | | beringen-be | sidewalk_beringen_be |
 
 ---
 
@@ -270,10 +269,10 @@ The dev server hot-reloads, so you rarely restart it.
   renders; the production build `npm start` runs first is what clears old files out.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
-- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
-  is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
-  offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
-  [`tools/README.md`](../tools/README.md); upgrade notes in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container's `python3` is 3.12, the same minor
+  as the `python3.12` the app shells out to on prod for in-band clustering, and it holds every script's libraries. Run
+  scripts as `python3 tools/...`. Details in [`tools/README.md`](../tools/README.md); upgrade notes in
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -314,9 +313,9 @@ make compile
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Werror`, so a `[success]` is also warning-clean.
 
-Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
-so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
-directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the running `~ run` included.
+`sbt --client` uses the native thin client (`sbtn`), which the container's glibc is new enough for (#5268). A server
+belongs to one project directory, so each worktree gets its own; `sbt shutdownall` stops every one of them, the
+running `~ run` included.
 An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding ~1GB until you reboot.
 
 That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
@@ -472,6 +471,10 @@ curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
 curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
+A page that needs a registered account or an admin (the admin pages, role checks) needs a real sign-up instead. Make
+one through `/signUp`, then raise its role on the dev DB; `.claude/skills/create-registered-user-account/SKILL.md`
+has the commands. Test accounts on the local dev DB are always fine to make.
+
 ### Inspecting the database
 
 Each city lives in its own schema (`sidewalk_<city>`); authentication lives in `sidewalk_login`. For ad-hoc
@@ -514,22 +517,6 @@ Two more things to know before drawing conclusions from a query:
   Never infer a table's production size or existence from the local DB; when reasoning about query cost or indexes,
   treat those two, not `webpage_activity`, as the heavyweight logs.
 
-### Moving your database to Postgres 18
-
-Dev runs Postgres 18 (#3955) on a new data volume, `<project>_pgdata18` (`<project>` is your checkout folder,
-lowercased). The first `make dev` after this change starts an **empty** database; your cities are still in the old
-`<project>_pgdata` volume. To copy them over, stop `npm start` and run:
-
-```bash
-make upgrade-dev-db   # all=1 copies every database, not just sidewalk
-```
-
-It compares each city's label count when it's done, and takes a few minutes per large city. Or skip it and
-`make import-dump` the cities you need.
-
-Keep the old volume while you still use branches from before this change, since they start Postgres 16 on it. Then
-delete it with the `docker volume rm` line the script prints.
-
 ---
 
 ## Troubleshooting
@@ -544,7 +531,7 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). (The old Postgres 16 `<project>_pgdata` volume is meant to be dangling.) Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata18`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/18/docker/postgresql.conf`, set `listen_addresses = '*'`. |

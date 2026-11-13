@@ -208,7 +208,6 @@ export class MapStatusPill {
 
   /** Fades the pill out, then hides it; `hidden` itself can't animate. */
   #fadeOut() {
-    if (this.#el.hidden) return;
     this.#el.classList.add('map-status-pill--leaving');
     this.#fadeTimer = setTimeout(() => this.#hide(), MapStatusPill.FADE_MS);
   }

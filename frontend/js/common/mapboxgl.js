@@ -13,3 +13,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 mapboxgl.workerUrl = workerUrl;
 
 export default mapboxgl;
+
+// Map credit links open in a new tab (#5856). Mapbox rebuilds them and drops any `target`, so it's set on click.
+document.addEventListener('click', (e) => {
+  const link = e.target instanceof Element ? e.target.closest('.mapboxgl-ctrl-attrib a[href]') : null;
+  if (link instanceof HTMLAnchorElement) link.target = '_blank';
+}, true);

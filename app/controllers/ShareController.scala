@@ -18,6 +18,7 @@ import service.{
   AuthenticationService,
   ConfigService,
   CropService,
+  GoldExampleService,
   LabelService,
   PanoDataService,
   ShareImageCache,
@@ -58,7 +59,8 @@ class ShareController @Inject() (
     cropService: CropService,
     authenticationService: AuthenticationService,
     shareImageCache: ShareImageCache,
-    storyService: StoryService
+    storyService: StoryService,
+    goldExampleService: GoldExampleService
 )(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   given Configuration = config
@@ -137,6 +139,7 @@ class ShareController @Inject() (
                 .map(_.find(s => s.storyId == sid && !s.hidden))
             )
             .getOrElse(Future.successful(None))
+          goldExample <- if (isAdmin) goldExampleService.find(labelId) else Future.successful(None)
         } yield {
           val visitSuffix: String = linkedStory.map(s => s"_storyId=${s.storyId}").getOrElse("")
           val visitEvent: String  =
@@ -145,8 +148,8 @@ class ShareController @Inject() (
           val shareMeta: Html = buildShareMeta(commonData, meta, linkedStory)
           val title: String   = if (isAdmin) s"Sidewalk - Label $labelId" else shareTitle(meta)
           Ok(
-            views.html.apps
-              .sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta, isAdmin)
+            views.html.apps.sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta,
+              isAdmin, goldExample.map(_.reason.name))
           )
         }
     }
@@ -394,7 +397,7 @@ class ShareController @Inject() (
     val offY: Int    = (scaledH - SHARE_IMAGE_HEIGHT) / 2
     g.drawImage(base, -offX, -offY, scaledW, scaledH, null)
 
-    // The colored "small" icon variant is the same marker family the Gallery overlays on card photos, carrying the
+    // The colored "small" icon variant is the same marker family Gallery overlays on card photos, carrying the
     // label type's canonical color (the large `{name}.png` illustrations are grayscale).
     val iconFile: File = environment.getFile(s"public/${labelType.smallIconPath}")
     if (iconFile.exists()) {

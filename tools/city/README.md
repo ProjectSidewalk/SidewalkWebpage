@@ -1,8 +1,8 @@
 # City tools
 
 Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
-`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3.13` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.12), which is what their
+`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3` with
+[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (Python >= 3.12), which is what their
 `make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
 root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
@@ -15,7 +15,11 @@ root, so they run from any directory; unit tests live in [`test/python/`](../../
 | `maps_key_referrers.py` | `make onboard-city`, or by hand | Adds a city's hostnames to the Maps key's referrer list |
 | `street_gradient.py` | `make street-gradient` | Samples an elevation model along every street |
 | `osm_lineage.py` | (imported) | Matches streets to the OSM ways they lie on, by geometry (#5741); the build and the backfill both use it |
-| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage` |
+| `backfill_osm_lineage.py` | `make osm-lineage` | Positions a live city's streets on today's OSM ways, between `make export-osm-lineage-input` and `make import-osm-lineage`; `--dry-run` prints the request count first |
+| `overpass.py` | (imported; `--check` by hand) | How the two fetchers above talk to the public Overpass server without getting the network blocked: identity, small tiled requests, a day cache, 30 s-and-doubling retries, one exit code (75) for "stop and resume later" |
+
+The OSM fetches share one cache, `db/onboarding/osmnx-cache/<date>/`, which `overpass.py` keeps for a week: a rerun
+the same day re-reads what it fetched, a later one sees what OSM holds then.
 
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.
@@ -31,18 +35,20 @@ Standalone and manual — nothing in the app calls it.
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_SERVER_KEY (else GOOGLE_MAPS_API_KEY)
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
                                                                  # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
                                                                  # the tenant has several
-   python3.13 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
+   python3 tools/city/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
                                                                  # 360° pictures only
    ```
-   It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
-   lack imagery. It writes streets without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary
-   (presence + capture-date range) to `street_imagery_summary.csv`, both in the same dir.
-3. Run `make hide-streets-without-imagery` to mark those streets in the database.
+   It checks each street's endpoints, then samples points along the street, and keeps a street only if the panos it
+   found cover enough of it for a labeler's walk to finish (the rule under "Search radius" below). It writes streets
+   without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary (presence + capture-date range)
+   to `street_imagery_summary.csv`, both in the same dir.
+3. Run `make hide-streets-without-imagery` to apply the summary: streets without imagery are marked `no_imagery`,
+   and `no_imagery` streets the scan found imagery on are reopened, so a rescan corrects an earlier verdict either way.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
 second across all workers, default 10 — deliberately conservative; Google allows ~500/s).
@@ -121,9 +127,8 @@ counts toward a street's verdict:
   beyond the search radius of both the query point and the street's own centerline. The street half matters: a pano
   more than 25 m further down the same street is still imagery of it, and a point-only check hid six Teaneck streets
   that way. Explore's viewer makes the point half of that check (#5114) and gets the street half from sampling the
-  street every 10 m, so the two agree on which panos count as imagery at a point. Their street-level verdicts still
-  differ: the scan weighs endpoints and a failure fraction, while Explore needs only one point along the street to
-  work. Mapillary and Panoramax already filter to the box server-side, and Infra3d applies its radius client-side.
+  street every 10 m, so the two agree on which panos count as imagery at a point. Mapillary and Panoramax already
+  filter to the box server-side, and Infra3d applies its radius client-side.
 - **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline. The
   one exception is the answer to either of the street's two endpoint queries: it also counts if the pano lies within
   **25 m** of an endpoint. An endpoint is an intersection, and the nearest pano to one is often up the crossing street.
@@ -132,6 +137,20 @@ counts toward a street's verdict:
 
 Every distance is measured from the street's stored centerline. The walk samples points from a resampled copy, whose
 straight chords cut the corners of a bend.
+
+### The street-level verdict: the same coverage rule Explore credits a walk by
+
+Which panos count is only half of it; the other half is how much of the street they have to cover. The scan asks the
+question Explore asks of a labeler's walk (#5669): each counted pano covers **10 m** either side of itself, plus the
+stretch back to the previous counted pano when that hop is at most **50 m** (as far as Explore's sweep carries a
+labeler between panos and still counts the ground between as walked), and the street has imagery once what is left
+unseen is **at most half the street and at most 50 m**. The numbers are read from `conf/street-coverage.json`, the
+file the server credits a walk from (`models.audit.StreetCoverage`) and Explore ends a street by, so a street the scan
+keeps open is one a labeler can finish and a street it retires is one nobody could. A street with a hole of more than
+50 m in its imagery is retired even if both ends have pictures: Explore would hop the hole, but nobody could look at
+the sidewalk in it. The walk stops as soon as the verdict can't change: once enough is seen, or once not even imagery
+at every remaining point would be enough. The rule in force is written into every checkpoint row (`coverage_rule`), so
+a checkpoint from before a rule change is refused rather than resumed into (`load_processed`).
 
 Both numbers were measured, not picked (#5091). They come from the panos each street's walk actually visited, recorded
 with `--point-log` (below):
@@ -207,9 +226,8 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint_<provider>.csv`, so a re-run resumes
   where it left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir
   and the checkpoint is per provider, a scan can never resume another city's or another provider's results:
-  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. The final
-  no-imagery CSV is derived from the checkpoint at the end — its schema is unchanged, so
-  `make hide-streets-without-imagery` is unaffected. `failed_streets.csv` is rewritten every run (empty when nothing
+  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. Both output
+  CSVs are derived from the checkpoint at the end. `failed_streets.csv` is rewritten every run (empty when nothing
   failed), so a rerun with a fixed key clears it.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
   whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than

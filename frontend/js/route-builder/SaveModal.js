@@ -33,7 +33,7 @@ export class SaveModal {
    * @param {Function} opts.getCamera - Returns the current map camera pose, for restoring the view post-sign-in.
    * @param {Function} opts.onSaved - Called with the saved-route payload after a successful save.
    * @param {Function} opts.onClose - Called after the modal closes (e.g. to restore focus).
-   * @param {Function} [opts.onSignIn] - Called when the user leaves for the sign-in round-trip.
+   * @param {Function} opts.onSignIn - Called when the user leaves for the sign-in round-trip.
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
@@ -42,7 +42,7 @@ export class SaveModal {
     this.#getCamera = opts.getCamera;
     this.#onSaved = opts.onSaved;
     this.#onClose = opts.onClose;
-    this.#onSignIn = opts.onSignIn ?? (() => {});
+    this.#onSignIn = opts.onSignIn;
 
     this.#backdrop = document.getElementById('save-route-modal-backdrop');
     this.#nameInput = document.getElementById('route-name-input');
@@ -80,6 +80,11 @@ export class SaveModal {
     }
   }
 
+  /** @returns {boolean} Whether the dialog is showing. */
+  isOpen() {
+    return this.#backdrop.style.visibility === 'visible';
+  }
+
   /**
    * Opens the save modal with a name suggestion the user can overwrite.
    *
@@ -92,7 +97,7 @@ export class SaveModal {
     // maxlength doesn't apply to values set from JS, so the suggestion is clipped by hand.
     const suggestion = (prefillName ?? this.#getSuggestedName()).slice(0, this.#nameInput.maxLength);
     this.#nameInput.value = suggestion;
-    if (this.#descriptionInput) this.#descriptionInput.value = prefillDescription ?? '';
+    this.#descriptionInput.value = prefillDescription ?? '';
     this.#nameError.hidden = true;
     this.#submitting = false;
     this.#confirmButton.disabled = false;
@@ -128,7 +133,7 @@ export class SaveModal {
     try {
       sessionStorage.setItem(SaveModal.PENDING_ROUTE_KEY, JSON.stringify({
         name: this.#nameInput.value.trim(),
-        description: this.#descriptionInput?.value.trim() ?? '',
+        description: this.#descriptionInput.value.trim(),
         streets: this.#getStreetsPayload(),
         camera: this.#getCamera(), // So the post-sign-in reload comes back to the exact view the user left.
       }));
@@ -155,7 +160,7 @@ export class SaveModal {
     this.#confirmButton.disabled = true;
     if (!this.#isSignedIn) window.logWebpageActivity('RouteBuilder_Click=ContinueAsGuest');
     const name = this.#nameInput.value.trim();
-    const description = this.#descriptionInput?.value.trim() ?? '';
+    const description = this.#descriptionInput.value.trim();
 
     // "Continue without account" from a cookie-less visitor (#4643) makes this their first-ever write:
     // lazyIdentityFetch mints the anonymous session on an auth-shaped failure and retries once (#4442).

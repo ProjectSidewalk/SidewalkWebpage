@@ -1,8 +1,9 @@
 /**
  * Tests for the label card's keyboard shortcuts (frontend/js/common/label-detail/LabelDetail.js, #5194).
  *
- * Left/right page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on every host the
- * shared card has, which is why the shortcuts live in the controller rather than in one host's key manager.
+ * Left/right (and S, #5883) page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on
+ * every host the shared card has, which is why the shortcuts live in the controller rather than in one host's key
+ * manager.
  *
  * The listener is window-wide (the card is often the frontmost thing on the page with nothing inside it holding
  * focus, and the pano viewers stop arrow keys from propagating past `window` anyway), so the whole of the scope is
@@ -44,7 +45,7 @@ mockLabelDetailCollaborators(() => panoManager);
  * @param {boolean} [opts.paging=true] - Render the prev/next arrows, which the template emits only for a host that
  *     asked for them (`withPaging`).
  * @param {boolean} [opts.asDialog=false] - Mount the card in a <dialog>, the way LabelPopup's hosts do, rather
- *     than in the <div> the Gallery and the share page use.
+ *     than in the <div> Gallery and the share page use.
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
@@ -57,20 +58,36 @@ function buildCard({ paging = true, asDialog = false } = {}) {
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           ${arrows}
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false">Disagree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false">Unsure</button>
           </div>
-          <span class="label-detail__pan-hint" hidden></span>
         </div>
 
         <div class="label-detail__meta-row">
@@ -174,6 +191,7 @@ function buildCard({ paging = true, asDialog = false } = {}) {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </${tag}>`;
   return document.getElementById('card');
@@ -342,6 +360,15 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(validations().map((v) => v.validation_result)).toEqual([result]);
     });
 
+    test('a key a page script sends to the document itself, with no element behind it, still votes', async () => {
+      await showLabel();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', bubbles: true, cancelable: true }));
+      await flush();
+
+      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+    });
+
     test('the key drives the card\'s own button, as a click a pointer did not make', async () => {
       // Going through the button rather than around it is what keeps one code path per action — the host's
       // handler and every disabled guard already on the control — and `detail: 0` is what still lets that
@@ -382,36 +409,51 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
   });
 
-  describe('the arrow keys', () => {
-    test('left and right press the card\'s prev/next arrows', async () => {
+  describe('the paging keys', () => {
+    test.each([
+      ['ArrowLeft', 'prev'],
+      ['ArrowRight', 'next'],
+      ['KeyS', 'next'],
+    ])('%s presses the card\'s %s arrow', async (code, which) => {
+      // S sits between A and D, so a run of labels needs only the left hand, as on Validate (#5883).
       await showLabel();
-      const prev = vi.fn();
-      const next = vi.fn();
-      prevArrow().addEventListener('click', prev);
-      nextArrow().addEventListener('click', next);
+      const clicked = vi.fn();
+      (which === 'prev' ? prevArrow() : nextArrow()).addEventListener('click', clicked);
 
-      press('ArrowLeft');
-      press('ArrowRight');
+      press(code);
 
-      expect(prev).toHaveBeenCalledTimes(1);
-      expect(next).toHaveBeenCalledTimes(1);
-      expect(prev.mock.calls[0][0].detail).toBe(0);
+      expect(clicked).toHaveBeenCalledTimes(1);
+      expect(clicked.mock.calls[0][0].detail).toBe(0);
     });
 
-    test('a disabled arrow is left alone, and the key stays the page\'s to use', async () => {
-      // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
+    test('letters go by what is printed on the key, as on Validate (#5618)', async () => {
+      // On Colemak the printed S sits where QWERTY has D, and the printed R where QWERTY has S.
       await showLabel();
-      nextArrow().disabled = true;
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      press('KeyD', { key: 's' });
+      press('KeyS', { key: 'r' });
+      await flush();
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(validations()).toEqual([]);
+    });
+
+    test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
+      // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
+      await showLabel();
+      nextArrow().setAttribute('aria-disabled', 'true'); // How the hosts switch the arrows off (#5135).
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('an arrow still hidden waiting for its navigator is left alone too', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s leaves an arrow hidden until its navigator arrives', async (code) => {
       // LabelPopup hides both arrows until the host hands it a navigator, which on LabelMap arrives only
       // once the viewport's labels have loaded (#5068).
       await showLabel();
@@ -419,20 +461,42 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('a host with no arrows at all ignores them', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s does nothing on a host with no arrows at all', async (code) => {
       // The dashboard's popup and the share page render the card without paging.
       await mount({ paging: false });
       await showLabel();
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(event.defaultPrevented).toBe(false);
+    });
+
+    test('S waits while "Other…" holds words not yet saved, which paging would throw out', async () => {
+      await showLabel();
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+      press('KeyD');
+      await flush();
+      const other = document.querySelector('.reason-popover .reason-chips__chip--other');
+      other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+      const field = document.querySelector('.reason-popover .reason-chips__other-input');
+      field.value = 'blocked by a bin';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.reason-popover .reason-chips__other-save').focus();
+
+      press('KeyS');
+      expect(next).not.toHaveBeenCalled();
+
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      press('KeyS');
+      expect(next).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -503,7 +567,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
 
     test('a key pressed while the host has hidden the card', async () => {
-      // The Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
+      // Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
       // for itself through opts.isOpen — otherwise a stray "a" would vote on the last label it showed.
       await mount({ hosted: true });
       await showLabel();
@@ -641,13 +705,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
-      // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
-      // nothing else on the page can be typed at — the keys are still the card's.
+      // The comment Save disables while the next label's imagery loads, dropping focus to the body. The popup is
+      // modal, so the keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -663,7 +726,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
 
       press('KeyA');
       await flush();
@@ -683,8 +746,10 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
 
       // And the run continues: the next key still reaches the card.
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
       press('ArrowRight');
-      expect(nextArrow().disabled).toBe(false);
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {

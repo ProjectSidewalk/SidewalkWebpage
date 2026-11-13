@@ -6,7 +6,7 @@
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole,
   surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean,
-  basemap: play.api.libs.json.JsObject
+  basemap: play.api.libs.json.JsObject, walkPlanner: play.api.libs.json.JsValue
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -241,7 +241,7 @@
           </div>
           <a id="explore-sidebar__leaderboard-cta" class="explore-sidebar__see-all" href="/leaderboard" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.stats.leaderboard-cta">See the community leaderboard</span>
-            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -277,7 +277,7 @@
           </div>
           <a id="explore-sidebar__dashboard-cta" class="explore-sidebar__see-all" href="/dashboard#achievements" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.badges.dashboard-cta">Check out your dashboard</span>
-            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -454,16 +454,6 @@
         </section>
       </div>
       <div id="interaction-area-holder" onselectstart="return true;">
-        <div id="alert-holder" class="ps-hidden">
-          <div id="alert" role="status" aria-live="polite">
-            <svg id="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <p id="alert-message"></p>
-            <button id="alert-dont-show" type="button">@Messages("dont.show.again")</button>
-            <button id="alert-close" type="button" aria-label="@Messages("explore.alert.close")">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-        </div>
         <div id="street-view-holder">
           <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada" tabindex="0" role="img" data-i18n-tooltip="common:speed-limit-tooltip">
             <div class="speed-limit-holder">
@@ -900,6 +890,8 @@
        (StreetCoverage) so the client's coverage tracking and the server's completion check agree. *@
     "streetCoverage": @jsonForScript(models.audit.StreetCoverage.asJson),
     "basemap": @jsonForScript(basemap),
+    @* The walk planner's thresholds (#5526): domain values, so application.conf owns them (walk-planner.*). *@
+    "walkPlanner": @jsonForScript(walkPlanner),
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken"
   }</script>

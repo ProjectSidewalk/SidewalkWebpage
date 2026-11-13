@@ -6,6 +6,7 @@
  * @property {string} label_type
  * @property {number} street_edge_id - The street the cluster sits on.
  * @property {?number} intersection_id - The crossing a corner-type cluster scores toward; null for a segment's.
+ * @property {number[]} [coordinates] - The dot's `[lng, lat]`, from the feature's geometry, when the layer read it.
  * @property {?number} median_severity - The labels' median rating, 1–3, or null for an unrated type.
  * @property {number} agree_count
  * @property {number} disagree_count
@@ -42,6 +43,7 @@ export class AccessScoreClusterLayer {
   #tooltip;
   #tooltipHtml;
   #onSelect;
+  #onHover;
   #visible = true;
   /**
    * The last collection drawn, kept so a basemap swap can redraw it.
@@ -50,6 +52,8 @@ export class AccessScoreClusterLayer {
   #data = { type: 'FeatureCollection', features: [] };
   /** The dot under the pointer, as `{source, id}` for feature-state, or null. */
   #hovered = null;
+  /** Dots lit together from the street panel (a crossing's clusters), as `{source, id}` each. */
+  #highlighted = [];
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -58,12 +62,15 @@ export class AccessScoreClusterLayer {
    * @param {(props: AccessScoreClusterProps) => ?string} options.tooltipHtml - A cluster's `properties` in, its
    *   tooltip's HTML out, or null for no tooltip.
    * @param {(props: AccessScoreClusterProps) => void} options.onSelect - Called on a click, with its `properties`.
+   * @param {(props: ?AccessScoreClusterProps) => void} [options.onHover] - Called when the pointer lands on a dot,
+   *   with its `properties`, and with null when it leaves (#5748).
    */
-  constructor(map, { types, tooltipHtml, onSelect }) {
+  constructor(map, { types, tooltipHtml, onSelect, onHover = () => {} }) {
     this.#map = map;
     this.#types = types;
     this.#tooltipHtml = tooltipHtml;
     this.#onSelect = onSelect;
+    this.#onHover = onHover;
     this.#tooltip = new mapboxgl.Popup({
       closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'acs-tooltip', maxWidth: '280px',
     });
@@ -88,6 +95,30 @@ export class AccessScoreClusterLayer {
   }
 
   /**
+   * The clusters drawn, per type, in the shape `createNearbyLabelNavigator` tours (#5748): a nearby-cluster
+   * navigator reads this on every step, so it is the live collection, not a copy.
+   * @returns {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} Features by label type.
+   */
+  get sortedClusters() {
+    /** @type {Record<string, Array<GeoJSON.Feature<GeoJSON.Point>>>} */
+    const byType = Object.fromEntries(this.#types.map((type) => [type, []]));
+    for (const feature of this.#data.features || []) {
+      byType[feature.properties.label_type]?.push(/** @type {GeoJSON.Feature<GeoJSON.Point>} */ (feature));
+    }
+    return byType;
+  }
+
+  /**
+   * One drawn cluster's properties, as a click would hand them over, coordinates included.
+   * @param {number} clusterId - A `label_cluster_id`.
+   * @returns {?AccessScoreClusterProps} Null when the cluster is not among those drawn.
+   */
+  cluster(clusterId) {
+    const feature = (this.#data.features || []).find((f) => f.properties.label_cluster_id === clusterId);
+    return feature ? AccessScoreClusterLayer.#props(feature) : null;
+  }
+
+  /**
    * Rebuilds the sources and layers after a `map.setStyle`, with the last data and the visibility in force. The
    * pointer handlers are keyed by layer id and survive the swap, so they are not bound again.
    */
@@ -97,6 +128,7 @@ export class AccessScoreClusterLayer {
       if (this.#map.getSource(id)) this.#map.removeSource(id);
     }
     this.#hovered = null;
+    this.#highlighted = [];
     this.#tooltip.remove();
     // The ids are the same strings, so the handlers bound to `#layers` keep matching.
     for (const type of this.#types) this.#addLayer(type);
@@ -111,11 +143,44 @@ export class AccessScoreClusterLayer {
   setVisible(visible) {
     this.#visible = visible;
     this.#applyVisibility();
-    if (!visible) this.#clearHover();
+    if (!visible) {
+      this.#clearHover();
+      this.setHighlighted(null);
+    }
   }
 
   #applyVisibility() {
     for (const id of this.#layers) this.#map.setLayoutProperty(id, 'visibility', this.#visible ? 'visible' : 'none');
+  }
+
+  /**
+   * Lights a cluster's dot as the pointer would, for a hover that starts elsewhere (a tile in the street panel,
+   * #5748), or puts it out. The tooltip stays down: the pointer is not on the map. Does not report through `onHover`,
+   * which is for the pointer's own hovers.
+   * @param {?AccessScoreClusterProps} props - The cluster, or null to clear.
+   */
+  setHovered(props) {
+    if (this.#hovered) this.#map.setFeatureState(this.#hovered, { hover: false });
+    this.#hovered = null;
+    if (!props || !this.#visible) return;
+    this.#hovered = { source: AccessScoreClusterLayer.#layerId(props.label_type), id: props.label_cluster_id };
+    this.#map.setFeatureState(this.#hovered, { hover: true });
+  }
+
+  /**
+   * Lights several dots at once, as the panel's crossing dot does for a crossing's clusters (#5748), replacing the
+   * last such set; null or an empty list puts them out. Independent of the pointer's own hover.
+   * @param {?AccessScoreClusterProps[]} list - The clusters, or null to clear.
+   */
+  setHighlighted(list) {
+    for (const key of this.#highlighted) this.#map.setFeatureState(key, { hover: false });
+    this.#highlighted = [];
+    if (!list || !this.#visible) return;
+    for (const props of list) {
+      const key = { source: AccessScoreClusterLayer.#layerId(props.label_type), id: props.label_cluster_id };
+      this.#highlighted.push(key);
+      this.#map.setFeatureState(key, { hover: true });
+    }
   }
 
   /**
@@ -177,13 +242,15 @@ export class AccessScoreClusterLayer {
     this.#map.on('mousemove', this.#layers, (e) => {
       if (!this.#visible || !e.features.length) return;
       const feature = e.features[0];
+      const props = AccessScoreClusterLayer.#props(feature);
       if (this.#hovered?.id !== feature.id || this.#hovered?.source !== feature.layer.id) {
         this.#clearHover();
         this.#hovered = { source: feature.layer.id, id: feature.id };
         this.#map.setFeatureState(this.#hovered, { hover: true });
         this.#map.getCanvas().style.cursor = 'pointer';
+        this.#onHover(props);
       }
-      const html = this.#tooltipHtml(AccessScoreClusterLayer.#props(feature));
+      const html = this.#tooltipHtml(props);
       if (html) this.#tooltip.setLngLat(e.lngLat).setHTML(html).addTo(this.#map);
     });
     this.#map.on('mouseleave', this.#layers, () => this.#clearHover());
@@ -208,6 +275,8 @@ export class AccessScoreClusterLayer {
    */
   static #props(feature) {
     const props = { ...feature.properties };
+    // The dot's own position, for a host that ties a card to it (the cluster sheet's beacon and tail, #5748).
+    if (feature.geometry?.type === 'Point') props.coordinates = feature.geometry.coordinates;
     for (const key of ['label_ids', 'users', 'tag_counts']) {
       if (typeof props[key] === 'string') {
         try {
@@ -221,7 +290,10 @@ export class AccessScoreClusterLayer {
   }
 
   #clearHover() {
-    if (this.#hovered) this.#map.setFeatureState(this.#hovered, { hover: false });
+    if (this.#hovered) {
+      this.#map.setFeatureState(this.#hovered, { hover: false });
+      this.#onHover(null);
+    }
     this.#hovered = null;
     this.#tooltip.remove();
     this.#map.getCanvas().style.cursor = '';

@@ -39,7 +39,7 @@ export class MissionLiveMarker {
   /**
    * Reads, and removes, a marker a previous page life left behind.
    *
-   * @returns {?{missionId: ?number, ageSec: number, navType: string}} What that life recorded — the mission it was
+   * @returns {?{missionId: number, ageSec: number, navType: string}} What that life recorded — the mission it was
    *      on, how long ago it marked itself live, and how the browser says this page arrived (`reload`, `navigate`,
    *      `back_forward`; `unknown` where the Navigation Timing entry is missing) — or null when the last life ended
    *      with a pagehide, or never wrote a marker at all.
@@ -63,8 +63,8 @@ export class MissionLiveMarker {
     const [navigation] = performance.getEntriesByType?.('navigation') ?? [];
     const navType = /** @type {PerformanceNavigationTiming|undefined} */ (navigation)?.type ?? 'unknown';
     return {
-      missionId: marker.missionId ?? null,
-      ageSec: Math.max(0, Math.round((Date.now() - (marker.since ?? Date.now())) / 1000)),
+      missionId: marker.missionId,
+      ageSec: Math.max(0, Math.round((Date.now() - marker.since) / 1000)),
       navType,
     };
   }

@@ -27,7 +27,6 @@
   "street-count-in-region_one": "{{count}} calle en {{region}}",
   "street-count-in-region_other": "{{count}} calles en {{region}}",
   "see-all-routes_other": "Ver las {{count}} rutas en tu panel",
-  "copied-to-clipboard": "¡Copiado al portapapeles!",
   "street-count-across-regions": "{{streets}} calles en {{regions}} vecindarios",
   "region-and-more": "{{region}} + {{more}} más",
   "route-name-default": "Ruta en {{region}}",

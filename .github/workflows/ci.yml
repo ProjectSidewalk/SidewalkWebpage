@@ -1,25 +1,23 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
+# Every job blocks a merge except dependency-review.
 #
 #   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (`npm run build`) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks,
-#                      CSS layout, asset paths, JS types, spec base class) + the jsdom Vitest suite in test/js/, which
-#                      also enforces the JS coverage ratchet (#5112).
+#                      CSS layout, asset paths, JS types, spec base class, env var contract) + the jsdom Vitest suite in
+#                      test/js/, which also enforces the JS coverage ratchet (#5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql.
 #   - shell-lint:      ShellCheck over the repo's .sh files.
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one.
 #   - backend-tests:   the whole of test/ against a real Postgres+PostGIS. Boots the app, which auto-applies pending
-#                      evolutions, so it doubles as the forward-apply gate. Also carries the statement-coverage
-#                      ratchet (#4743).
+#                      evolutions, so it doubles as the forward-apply gate. Also the rollback gate (#5839) and the
+#                      statement-coverage ratchet (#4743).
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
 #                      core page in headless Chromium and fails on uncaught console/page errors; also carries the
 #                      axe-core accessibility gate (a11y.spec.js, #5060).
-#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
-#                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
-#                      an operator utility that never runs on the server).
-#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
-#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
+#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/, on the 3.12 the web container
+#                      and prod share.
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory).
 
 on:
   pull_request:
@@ -34,6 +32,11 @@ concurrency:
 permissions:
   contents: read
 
+# sbt's launcher defaults to a 1 GB heap, which the coverage-instrumented compile outgrew on Java 21 (#5895). The
+# runner has 16 GB, and the test JVM sbt forks sets its own heap in build.sbt.
+env:
+  SBT_OPTS: -Xmx3g
+
 jobs:
   backend:
     name: Backend (compile + scalafmt)
@@ -41,11 +44,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
@@ -57,6 +60,22 @@ jobs:
         env:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
+
+      # Compiled code only; the rest of target/ is gigabytes of copied static files. This job never restores it, so
+      # the compile gate stays a full build; the other sbt jobs restore it on PRs (#5972).
+      - name: Save compiled Scala
+        uses: actions/cache/save@v6
+        with:
+          path: &scala-cache-paths |
+            target/scala-*/zinc
+            target/scala-*/test-zinc
+            target/scala-*/classes/**/*.class
+            target/scala-*/classes/**/*.tasty
+            target/scala-*/test-classes/**/*.class
+            target/scala-*/test-classes/**/*.tasty
+            target/scala-*/scoverage-data/scoverage.coverage
+            project/target
+          key: &scala-cache-key scala-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**') }}
 
       # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
       # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
@@ -74,10 +93,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Node 24
+      - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
 
       # Not `npm install`: it would re-resolve the versions behind every blocking gate in this job on each run (#5152).
@@ -139,6 +158,11 @@ jobs:
         if: always()
         run: node tools/lint/check-spec-base.mjs
 
+      # The deploy learns which env vars to pass only from the deployment doc's contract table (#5138).
+      - name: Env var contract (blocking)
+        if: always()
+        run: node tools/lint/check-env-contract.mjs
+
       # The jsdom unit suite (test/js/), ending on the coverage ratchet in vitest.config.mjs (#5112).
       - name: Vitest unit tests (blocking)
         if: always()
@@ -155,6 +179,23 @@ jobs:
       # the file's executable bit, which git on some dev setups (core.fileMode=false) drops.
       - name: Lint evolution files
         run: bash db/scripts/lint-evolutions.sh
+
+      # Play hashes each evolution's text, so editing a released one, even a comment, makes every city run the Downs
+      # back to it and re-apply everything after it on the next deploy (#5839).
+      - name: Released evolutions are unchanged
+        run: |
+          set -euo pipefail
+          release=$(bash db/scripts/last-release.sh)
+          tag=${release% *}
+          released=${release#* }
+          changed=$(git diff --name-only "$tag" HEAD -- conf/evolutions/default/ \
+            | sed -n 's#^conf/evolutions/default/\([0-9]*\)\.sql$#\1#p' | awk -v max="$released" '$1 <= max')
+          if [ -n "$changed" ]; then
+            echo "::error::Evolutions already released in $tag were edited: $(echo $changed | tr ' ' ',')." \
+              "Put the change in a new evolution instead."
+            exit 1
+          fi
+          echo "No evolution up to $released (released in $tag) was edited."
 
   shell-lint:
     name: Shell script lint
@@ -173,10 +214,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
-          python-version: '3.8'
+          python-version: '3.12'
 
       # Fails if any conf/routes entry is unreachable because an earlier same-method route already matches all of its
       # request paths. Play commits to the first path-pattern match and 400s on a typed-param mismatch instead of
@@ -226,20 +267,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Set up Node 24
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: &scala-coverage-cache-key scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-${{ hashFiles('app/**', 'conf/**', 'test/**/*.scala') }}
+          restore-keys: scala-coverage-${{ hashFiles('build.sbt', 'project/*.*') }}-
+
+      - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
 
       - name: Install npm dependencies
@@ -304,10 +354,18 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
+      - name: Save compiled Scala
+        if: steps.scala-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-coverage-cache-key
+
       # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
       # street_edge.status and needs constraints from well past the template's evolution level. Shared with test/e2e:
       # one definition of the test city.
       - name: Seed the test city
+        id: seed
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
       # Keeps this job's media dirs identical to e2e-smoke's; the script's header says why they're needed at all.
@@ -319,17 +377,41 @@ jobs:
       - name: Run the backend suite
         run: sbt coverage test
 
+      # The rollback gate (#5839, docs/evolutions.md). After the suite because it churns the seeded data, but runs even
+      # when the suite fails. Needs `coverage`, or sbt recompiles and empties the ratchet's data. The second city is a
+      # copy of the first because the template can't replay to HEAD. The final grep catches a renamed spec or a lost
+      # env var, which would otherwise run zero tests and pass.
+      - name: Round-trip the evolutions newer than the last release
+        if: ${{ !cancelled() && steps.seed.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          release=$(bash db/scripts/last-release.sh)
+          released=${release#* }
+          head=$(ls conf/evolutions/default | sed 's#\.sql$##' | sort -n | tail -1)
+          if [ "$head" -le "$released" ]; then
+            echo "Nothing to check: no evolution past $released (released in ${release% *})."; exit 0
+          fi
+          docker compose exec -T db bash -c "set -o pipefail
+            pg_dump -U sidewalk -n sidewalk_teaneck sidewalk | sed 's/\bsidewalk_teaneck\b/sidewalk_rollback_twin/g' \
+              | psql -q -o /dev/null -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk"
+          LAST_RELEASE_EVOLUTION=$released sbt coverage "testOnly models.utils.EvolutionsRoundTripSpec" \
+            | tee roundtrip.log
+          grep -q 'Tests: succeeded 1, failed 0' roundtrip.log \
+            || { echo "::error::EvolutionsRoundTripSpec didn't run its test"; exit 1; }
+
       # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
       # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec
       # failure that actually needs fixing.
       #
       # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
-      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # data dir is empty, and the compiler deletes the measurements on every instrumented compile — so anything that
       # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
+          # Measurements are never cached, so finding them proves this run's specs ran under coverage.
           test -s target/scala-*/scoverage-data/scoverage.coverage \
+            && ls target/scala-*/scoverage-data/scoverage.measurements.* > /dev/null 2>&1 \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -387,20 +469,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: sbt
 
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Set up Node 24
+      - name: Restore compiled Scala
+        id: scala-cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: *scala-cache-paths
+          key: *scala-cache-key
+          restore-keys: scala-${{ hashFiles('build.sbt', 'project/*.*') }}-
+
+      - name: Set up Node 26
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
 
       - name: Install npm dependencies
@@ -411,8 +502,9 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      # No `--with-deps`: the runner has Chromium's libraries; it only adds fonts from a mirror that stalls (#5915).
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # DB bring-up + readiness + schema setup are copied verbatim from backend-tests; see the comments there
       # (especially why the readiness probe must stay on TCP via `-h 127.0.0.1`).
@@ -444,8 +536,6 @@ jobs:
       - name: Stage the app (prod-mode binary)
         run: sbt stage
 
-      # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
-      #
       # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
       # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
       # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
@@ -460,11 +550,15 @@ jobs:
       # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
       # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
       # specs build their own application and disable the module themselves.
+      # Started the way the deployment starts a city: from inside the stage dir, with the log dir outside the build.
       - name: Start the app
+        env:
+          SIDEWALK_LOG_DIR: ${{ github.workspace }}/ci-logs
         run: |
-          nohup target/universal/stage/bin/sidewalk-webpage \
+          cd target/universal/stage
+          nohup bin/sidewalk-webpage \
             -Dconfig.resource=application.ci.conf \
-            -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
+            -Dhttp.port=9000 > "$GITHUB_WORKSPACE/app.log" 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
@@ -478,7 +572,7 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
-      # Shared with backend-tests. Without a region /explore is a server error; without labels the Gallery,
+      # Shared with backend-tests. Without a region /explore is a server error; without labels Gallery,
       # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the
       # schema is already at HEAD.
       - name: Seed the test city
@@ -496,6 +590,13 @@ jobs:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
 
+      # Only the smoke half has admin specs, so it shares that half's condition: a red gate doesn't skip it.
+      - name: Create the e2e admin account
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: bash test/e2e/fixtures/ensure-admin.sh
+        env:
+          E2E_DB_ROLE: postgres
+
       # The condition runs this half even when the gate is red, but unlike `always()` skips it when the app never came
       # up, where every spec would otherwise time out against a dead server.
       - name: Run Playwright smoke suite
@@ -504,6 +605,16 @@ jobs:
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
+
+      # Proves the file log went where the deployment points it and nowhere under the build (#5138). Last, so a miss
+      # can't skip the seeding the smoke suite needs.
+      - name: Check where the app log landed
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: |
+          ls ci-logs/application-*.log
+          for stray in target/universal/stage/logs target/universal/stage/application.home_IS_UNDEFINED; do
+            if [ -e "$stray" ]; then echo "Stray log folder: $stray"; exit 1; fi
+          done
 
       - name: Upload Playwright report + app log
         if: failure()
@@ -514,64 +625,34 @@ jobs:
             playwright-report/
             test-results/
             app.log
+            ci-logs/
           retention-days: 7
 
   python-tests:
-    name: Python tests (${{ matrix.half }})
+    # The job's name is a required check; renaming it means updating branch protection in the same breath.
+    name: Python tests
     runs-on: ubuntu-latest
-    # Per leg, not per job: the in-band half gates merges because the running app shells out to label_clustering.py,
-    # while the offline half only covers an operator utility that never runs on the server.
-    continue-on-error: ${{ matrix.advisory }}
-    strategy:
-      fail-fast: false
-      # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
-      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
-      # new test file runs in both rather than in neither.
-      # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
-      # renames the check, which branch protection then waits forever for. Update both together.
-      matrix:
-        include:
-          - half: in-band script
-            advisory: false
-            python: '3.8'
-            requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: >-
-              test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
-              --ignore=test/python/test_osm_lineage.py --ignore=test/python/test_backfill_osm_lineage.py
-            coverage-omit: tools/city/check_streets_for_imagery.py
-            coverage-omit-2: tools/city/onboard_city.py
-            coverage-omit-3: tools/city/street_gradient.py
-            coverage-omit-4: tools/city/osm_lineage.py
-            coverage-omit-5: tools/city/backfill_osm_lineage.py
-          - half: offline tooling
-            advisory: true
-            python: '3.13'
-            requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
-            pytest-args: test/python --ignore=test/python/test_label_clustering.py
-            coverage-omit: scripts/label_clustering.py
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python }}
+      # Matches the web container's python3 and prod's python3.12 (#4396).
+      - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements*.txt
 
-      # The pure-logic unit tests need no DB and no network, only this half's runtime deps plus pytest.
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest.
+      # Prod installs requirements.txt with Rocky 9's python3.12-pip, so a Dependabot bump has to resolve with that pip,
+      # not only the runner's newest one. The image's pip is newer than this, so passing here covers it too.
       - name: Install dependencies
-        run: pip install ${{ matrix.requirements }}
+        run: |
+          pip install pip==23.2.1
+          pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 
       - name: Run pytest
-        run: pytest ${{ matrix['pytest-args'] }}
-        env:
-          COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
-          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
-          COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
-          COVERAGE_OMIT4: ${{ matrix['coverage-omit-4'] }}
-          COVERAGE_OMIT5: ${{ matrix['coverage-omit-5'] }}
+        run: pytest
 
   dependency-review:
     name: Dependency review

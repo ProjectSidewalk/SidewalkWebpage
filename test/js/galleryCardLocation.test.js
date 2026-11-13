@@ -79,6 +79,8 @@ describe('a Gallery card\'s location line', () => {
     // The accessible name leads with the visible text, per WCAG 2.5.3.
     expect(locationLine().getAttribute('aria-label')).toBe('Herrick Park: labelmap:open-label-on-labelmap');
 
+    // jsdom can't follow the link and says so on the console; the logging is what's under test here.
+    locationLine().addEventListener('click', (e) => e.preventDefault());
     locationLine().click();
 
     expect(tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });

@@ -6,7 +6,11 @@
  * and that the cities map wires the selector its popup template actually uses.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+
+// The cities popup formats its distance stat, which needs the i18next formatter this file mocks away.
+useUtil(metricDistanceUtil);
 
 mockModule('i18next', () => ({ default: {
   t: (key, opts) => (key === 'common:format-number' ? String(opts.val) : key),

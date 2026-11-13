@@ -58,7 +58,7 @@ class AiSubmissionOverwriteSpec
   private var maxMissionId: Int   = 0
   private var maxAuditTaskId: Int = 0
 
-  /** A point on a street in a live region, found once; cancels the case when the schema has none. */
+  /** A point on a non-tutorial street in a live region, found once; cancels the case when the schema has none. */
   private lazy val streetPoint: Option[(Double, Double)] =
     run(sql"""SELECT ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)),
                      ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5))
@@ -66,6 +66,7 @@ class AiSubmissionOverwriteSpec
               INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
               INNER JOIN region ON street_edge_region.region_id = region.region_id
               WHERE region.deleted = FALSE AND street_edge.status = 'open'
+                AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               ORDER BY street_edge.street_edge_id
               LIMIT 1""".as[(Double, Double)]).headOption
 

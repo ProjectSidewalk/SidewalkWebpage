@@ -33,7 +33,8 @@ const OTHER_PAGE = 'http://localhost/dashboard';
  * @param {string} [opts.attrs] - Extra attributes on the link (target, download, …).
  * @param {boolean} [opts.saveOk=true] - Whether the simulated save succeeds.
  * @param {boolean} [opts.dirty=true] - Whether the watched form has unsaved edits.
- * @returns {Object} The link, the recorded prompts/navigations/logs, and the beforeunload handler the guard added.
+ * @returns {Object} The link, the guard, the recorded prompts/navigations/logs, and the beforeunload handler it
+ *     added to the window.
  */
 async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, dirty = true } = {}) {
   const record = { prompts: [], navigations: [], logs: [], saves: 0 };
@@ -60,7 +61,7 @@ async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = 
   const { UnsavedChangesGuard } = await loadModules('frontend/js/common/UnsavedChangesGuard.js');
 
   doc.body.innerHTML = `<a id="link" href="${href}" ${attrs}>go</a>`;
-  new UnsavedChangesGuard({
+  const guard = new UnsavedChangesGuard({
     win: fakeWindow,
     doc,
     isDirty: () => dirty,
@@ -70,7 +71,7 @@ async function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = 
     },
     onChoice: (choice) => record.logs.push(`Click_module=UnsavedSettings_choice=${choice}`),
   });
-  return { link: doc.getElementById('link'), record, beforeUnload };
+  return { link: doc.getElementById('link'), record, beforeUnload, guard };
 }
 
 /**
@@ -143,6 +144,13 @@ describe('UnsavedChangesGuard', () => {
     const { link, record } = await setUp({ dirty: false });
 
     expect(await click(link)).toBe(true);
+    expect(record.prompts).toHaveLength(0);
+  });
+
+  it('lets a page that navigates on its own leave at once when nothing is unsaved', async () => {
+    const { guard, record } = await setUp({ dirty: false });
+
+    expect(await guard.allowLeave()).toBe(true);
     expect(record.prompts).toHaveLength(0);
   });
 

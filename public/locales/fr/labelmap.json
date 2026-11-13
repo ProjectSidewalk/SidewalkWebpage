@@ -90,6 +90,7 @@
   "done-editing-tags-label": "Terminer la modification des tags",
   "edit-failed": "Votre modification n'a pas pu être enregistrée. Veuillez réessayer.",
   "edit-failed-short": "Non enregistré",
+  "edit-failed-previous": "Votre modification de l'étiquette précédente n'a pas pu être enregistrée.",
   "no-imagery-disabled": "Vous ne pouvez pas valider ni commenter quand aucune image n'est disponible pour cette étiquette",
   "no-imagery-edit-disabled": "Vous ne pouvez pas évaluer, modifier ni supprimer cette étiquette quand aucune image n'est disponible",
   "admin-only": "Réservé aux administrateurs",
@@ -107,8 +108,7 @@
     "hint-shapefile": "Pour ArcGIS, QGIS",
     "hint-geopackage": "Format SIG ouvert",
     "caveat": "Certains filtres du lien de cette page (plusieurs quartiers, itinéraires ou validation par IA) ne peuvent pas s'appliquer aux téléchargements ; le fichier peut donc contenir plus d'étiquettes que le nombre ci-dessus.",
-    "api-docs-link": "Documentation de l'API des étiquettes brutes",
-    "opens-new-tab": " (s'ouvre dans un nouvel onglet)"
+    "api-docs-link": "Documentation de l'API des étiquettes brutes"
   },
   "story": {
     "heading": "Témoignages de la communauté",
@@ -185,6 +185,8 @@
   "delete-label-confirm-admin": "Voulez-vous vraiment supprimer cette étiquette ? Votre vote « Pas d'accord » y sera enregistré.",
   "delete-label-failed": "L'étiquette n'a pas pu être supprimée. Veuillez réessayer.",
   "restore-label": "Restaurer l'étiquette",
+  "previous-label": "Étiquette précédente",
+  "next-label": "Étiquette suivante",
   "restore-label-brief": "Restaurer",
   "restore-label-failed": "L'étiquette n'a pas pu être restaurée. Veuillez réessayer.",
   "you-deleted-label": "Vous avez supprimé cette étiquette",

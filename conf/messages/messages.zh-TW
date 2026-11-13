@@ -65,7 +65,6 @@ test.server.warning.message = <strong>您正在使用測試伺服器。</strong>
 test.server.warning.label = 測試伺服器通知
 test.server.warning.close = 關閉通知
 dont.show.again = 不再顯示
-explore.alert.close = 關閉
 
 press.key = 點擊 「{0}」 鍵
 press.keys = 點擊 「{0}」 鍵
@@ -129,6 +128,7 @@ city.name.newport-ky = 紐波特
 city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
 city.name.juneau-ak = 朱諾
+city.name.beringen-be = 貝靈恩
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -165,6 +165,7 @@ country.name.india = 印度
 country.name.chile = 智利
 country.name.brazil = 巴西
 country.name.france = 法國
+country.name.belgium = 比利時
 
 navbar.explore = 探索
 navbar.validate = 檢核
@@ -225,6 +226,7 @@ seo.title.welcome = 歡迎 — Project Sidewalk
 seo.title.forgot.password = 找回密碼 — Project Sidewalk
 seo.title.reset.password = 重設密碼 — Project Sidewalk
 seo.title.service.hours = 志工資訊 — Project Sidewalk
+seo.title.unsubscribe = 取消訂閱 — Project Sidewalk
 seo.title.time.check = 時間檢查 — Project Sidewalk
 seo.title.about = 關於我們 — Project Sidewalk
 seo.description.default = 透過虛擬探索，協助繪製並評估{0}的人行道。提供路緣斜坡、障礙物與鋪面問題的開放資料，打造更無障礙的世界。
@@ -277,46 +279,45 @@ about.impact.newberg.body = 在居民完成當地人行道測繪後，市議會�
 about.impact.zurich.place = 瑞士蘇黎世
 about.impact.zurich.body = 蘇黎世將 Project Sidewalk 資料發布於市府開放資料平台，此部署並獲得瑞士 Smart City Hub 公民科學類獎項。
 about.impact.schools.place = 美國各地的教室
-about.impact.schools.body = 學生透過 Project Sidewalk 學習資料科學與公民倡議——從紐澤西州 Oradell 的女童軍向市議會發表成果，到<a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">麻州 Waltham 的中學生獲得州級公民教育表彰</a>。
-about.impact.more = 想了解更多？我們的姊妹網站 <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> 提供新聞、資源與指南，協助您在社區運用 Project Sidewalk。
+about.impact.schools.body = 學生透過 Project Sidewalk 學習資料科學與公民倡議——從紐澤西州 Oradell 的女童軍向市議會發表成果，到<a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/" target="_blank" rel="noopener">麻州 Waltham 的中學生獲得州級公民教育表彰</a>。
+about.impact.more = 想了解更多？我們的姊妹網站 <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a> 提供新聞、資源與指南，協助您在社區運用 Project Sidewalk。
 about.where.title = 我們的足跡
 about.where.body = 從西雅圖、墨西哥城到蘇黎世，志工們一條街一條街地將 <span data-live-stat="num_countries">{1}</span> 個國家的 <span data-live-stat="num_cities">{0}</span> 個城市納入無障礙地圖。
-about.where.links = <a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/">將 Project Sidewalk 帶到您的城市</a>。
+about.where.links = <a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">將 Project Sidewalk 帶到您的城市</a>。
 about.history.title = 我們的歷史
-about.history.2012 = Project Sidewalk 由 Jon E. Froehlich 教授與博士生 Kotaro Hara 在 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 發起，早期獲得 <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> 與<a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">美國國家科學基金會</a>支持。
+about.history.2012 = Project Sidewalk 由 Jon E. Froehlich 教授與博士生 Kotaro Hara 在 <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> 發起，早期獲得 <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> 與<a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">美國國家科學基金會</a>支持。
 about.history.2017 = 第一個城市級部署於華盛頓特區啟動，由博士生 Manaswi Saha 與研究科學家 Mikey Saugstad 主導；同年實驗室遷至華盛頓大學 Paul G. Allen 電腦科學與工程學院。
 about.history.2019 = 華盛頓特區的先導研究證明線上群眾外包可以用來繪製整座城市的人行道，並獲得 CHI 2019 最佳論文獎。
-about.history.2021 = <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">美國國家科學基金會「智慧與互聯社區」補助</a>深化了我們與伊利諾大學芝加哥分校及 Easterseals 的合作，拓展部署、教育計畫與姊妹網站 <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>。
+about.history.2021 = <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">美國國家科學基金會「智慧與互聯社區」補助</a>深化了我們與伊利諾大學芝加哥分校及 Easterseals 的合作，拓展部署、教育計畫與姊妹網站 <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>。
 about.history.today.label = 今天
 about.history.today = Project Sidewalk 已在全球 <span data-live-stat="num_cities">{0}</span> 個城市運行，原生翻譯為 {1} 種語言，由數以千計的志工共同推動。
 about.team.title = 團隊
-about.team.intro = Project Sidewalk 是大學研究專案，由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 的 Jon E. Froehlich 教授與伊利諾大學芝加哥分校的 Yochai Eisenberg 教授共同主持，首席工程師為 Mikey Saugstad，多年來已有上百位學生與合作者參與貢獻。
+about.team.intro = Project Sidewalk 是大學研究專案，由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> 的 Jon E. Froehlich 教授與伊利諾大學芝加哥分校的 Yochai Eisenberg 教授共同主持，首席工程師為 Mikey Saugstad，多年來已有上百位學生與合作者參與貢獻。
 about.team.current.title = 現任團隊
 about.team.past.title = 歷任主持成員
-about.team.past.kotarohara = 以博士生身分與 Froehlich 教授共同創立 Project Sidewalk，開創了專案背後的群眾外包與電腦視覺方法——詳見他的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">博士論文</a>。
+about.team.past.kotarohara = 以博士生身分與 Froehlich 教授共同創立 Project Sidewalk，開創了專案背後的群眾外包與電腦視覺方法——詳見他的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf" target="_blank" rel="noopener">博士論文</a>。
 about.team.past.davidjacobs = 擔任開啟 Project Sidewalk 的最初 NSF 補助與首個 Google Faculty Research Award 的共同主持人，引導專案早期的電腦視覺研究。
-about.team.past.manaswisaha = 協助帶領在華盛頓特區的首次大規模部署，並設計了理解城市無障礙資料的工具——詳見她的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">博士論文</a>。
+about.team.past.manaswisaha = 協助帶領在華盛頓特區的首次大規模部署，並設計了理解城市無障礙資料的工具——詳見她的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf" target="_blank" rel="noopener">博士論文</a>。
 about.team.contributors.title = 貢獻者
 about.team.contributors.intro = 已有超過 {0} 位夥伴為 Project Sidewalk 貢獻程式碼、設計與想法，其中包括 {1} 位從高中生到博士生的各級學生。我們的使命之一，是透過體驗式學習，協助資訊與設計領域的學生投入具社會影響力的專案。
-about.team.contributors = ……以及世界各地的合作組織與成千上萬的志願地圖繪製者——詳見<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">專案頁面</a>。
+about.team.contributors = ……以及世界各地的合作組織與成千上萬的志願地圖繪製者——詳見<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">專案頁面</a>。
 about.pubs.title = 相關論文
-about.pubs.intro = Project Sidewalk 的研究發表於頂尖的人機互動與無障礙領域學術會議。若您在研究中使用我們的資料或工具，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。
-about.pubs.fallback = 在 Makeability Lab 網站上瀏覽<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">所有 Project Sidewalk 論文</a>。
+about.pubs.intro = Project Sidewalk 的研究發表於頂尖的人機互動與無障礙領域學術會議。若您在研究中使用我們的資料或工具，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292" target="_blank" rel="noopener">CHI 2019 論文</a>。
+about.pubs.fallback = 在 Makeability Lab 網站上瀏覽<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/" target="_blank" rel="noopener">所有 Project Sidewalk 論文</a>。
 about.pubs.showAll = 顯示全部 {0} 篇論文
 about.pubs.cite.title = 如何引用 Project Sidewalk
 about.pubs.cite.plain = 引用格式
 about.pubs.cite.copy = 複製
-about.pubs.cite.copied = 已複製
 about.data.title = 開放資料與開放原始碼
-about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有——所有資料均以 CC0 授權發布；詳情與引用指南請參閱 <a href="/api">API 文件</a>。我們的<a href="https://github.com/ProjectSidewalk/SidewalkWebpage">程式碼也完全開源</a>。
+about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有——所有資料均以 CC0 授權發布；詳情與引用指南請參閱 <a href="/api">API 文件</a>。我們的<a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">程式碼也完全開源</a>。
 about.partners.title = 社區夥伴
 about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
-about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/">了解如何在您的社區使用 Project Sidewalk</a>。
+about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">了解如何在您的社區使用 Project Sidewalk</a>。
 about.funding.title = 研究經費
 about.funding.body = Project Sidewalk 是由研究經費支持的學術研究，主要由美國國家科學基金會（NSF）資助，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
 about.cta.title = 與我們一起繪製每一條人行道
 about.cta.city = 將 Project Sidewalk 帶到您的城市
-about.contact.body = 有問題、想法或媒體詢問嗎？歡迎來信 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>、在 <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> 開立 issue，或在 <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> 與 <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a> 追蹤我們。
+about.contact.body = 有問題、想法或媒體詢問嗎？歡迎來信 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>、在 <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">GitHub</a> 開立 issue，或在 <a href="https://www.linkedin.com/company/project-sidewalk/" target="_blank" rel="noopener">LinkedIn</a> 與 <a href="https://bsky.app/profile/projectsidewalk.bsky.social" target="_blank" rel="noopener">Bluesky</a> 追蹤我們。
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
@@ -363,7 +364,7 @@ landing.partners.official.contact = Project Sidewalk 是一項研究工具。如
 landing.partners.logo.alt = {0} 標誌
 landing.partners.created.by = 用 {0} 打造 Project Sidewalk 的團隊
 landing.partners.created.heart = 愛
-landing.partners.created.credits = …並由 <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>、<a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> 與 <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a> 等長期合作夥伴，以及超過 100 位學生貢獻者和全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
+landing.partners.created.credits = …並由 <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>、<a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> 與 <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a> 等長期合作夥伴，以及超過 100 位學生貢獻者和全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
 landing.partners.creator.makeability.alt = Makeability 實驗室標誌
 landing.partners.creator.uw.alt = 華盛頓大學 Paul G. Allen 電腦科學與工程學院標誌
 landing.partners.creator.uic.alt = 伊利諾大學芝加哥分校殘疾與人類發展研究所標誌
@@ -387,8 +388,8 @@ footer.api = 應用程式介面(API)
 footer.connect = 相關連結
 footer.email = Email我們
 footer.funding = 我們由以下單位贊助
-footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
-footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
+footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： {1}
 
 audit.tutorial.complete.1 = 你做到了！
@@ -461,6 +462,7 @@ authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">�
 authenticate.confirm.password = 確認密碼
 authenticate.service.hours.title = 您是否有打畫將您於Project Sidewalk所做的工作計入社區/志工服務時間？
 authenticate.terms = 您同意我們的<a target="_blank" href="/terms">使用條款和隱私政策</a>
+authenticate.news.email = 不定期寄送 Project Sidewalk 的最新消息給我
 authenticate.signup = 註冊
 authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-in">請登入</a>
 
@@ -576,6 +578,13 @@ reset.pw.email.hello = {0}您好,
 reset.pw.email.reset.title = 請重設您的Project Sidewalk密碼
 reset.pw.email.send.link = 傳送電子郵件
 reset.pw.email.reset.pw.sent = 重設密碼的電子郵件已寄出。
+unsubscribe.confirm.title = 要取消訂閱 Project Sidewalk 的消息嗎？
+unsubscribe.confirm.intro = 您帳戶的電子郵件將不再收到專案的消息與更新。與您帳戶有關的郵件（例如重設密碼）仍會寄送。
+unsubscribe.confirm.submit = 取消訂閱
+unsubscribe.done.title = 已取消訂閱
+unsubscribe.done.intro = 我們不會再寄送專案消息給您。改變主意了嗎？可在<a href="{0}">設定</a>中重新開啟。
+unsubscribe.invalid.title = 此連結無效
+unsubscribe.invalid.intro = 取消訂閱連結可能在複製時被截斷。您也可以在<a href="{0}">設定</a>中管理電子郵件，或來信 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>。
 reset.pw.email.send.failed = 目前無法寄送電子郵件，請稍後再試。
 reset.pw.email.reset.request.message = 您最近要求重設Project Sidewalk密碼，點擊以下連結以重設密碼：
 reset.pw.email.reset.not.requested = 如果您沒有要求重設密碼，請忽略此訊息，或發送電子郵件通知我們。
@@ -614,7 +623,7 @@ dashboard.team.name = 隊名
 dashboard.team.description = 團隊描述（可選）
 dashboard.team.button = 創建團隊
 
-labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
+labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm" target="_blank" rel="noopener">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
 labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供「清空的地板或地面空間」。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或其他輔助器具使用者行經時會造成顛簸或不舒適的鋪面。如果鋪面上存有某種狀況會使用路人難以或無法通行，則應將它標記為鋪面問題。對於涵蓋大幅面積或是連續性的鋪面問題，建議您在問題開始的那一端設置一個鋪面問題標籤，並於每隔幾公尺處持續設置標籤，一直到問題結束為止。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
@@ -892,6 +901,9 @@ dashboard.settings.service.hours = 志工服務時數
 dashboard.settings.service.hours.toggle = 報名社區服務時數
 dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。
 dashboard.settings.service.hours.link = 服務時數如何運作
+dashboard.settings.news.email = 電子郵件更新
+dashboard.settings.news.email.toggle = 寄送 Project Sidewalk 的最新消息給我
+dashboard.settings.news.email.help = 不定期的專案消息，每封都附有取消訂閱連結。與您帳戶有關的郵件（例如重設密碼）一律會寄送。
 dashboard.settings.team = 團隊
 dashboard.settings.team.label = 您的團隊
 dashboard.settings.team.help = 加入團隊或班級，一起標記並出現在團隊排行榜上。
@@ -1004,3 +1016,168 @@ error.500.id = 錯誤代碼：{0}
 error.500.report = 如果這種情況持續發生，請{0}並附上上方的錯誤代碼，以便我們調查。
 error.500.report.link = 告訴我們
 error.home = 返回首頁
+
+# 社區報告 (#5876).
+report.seo.title = {0}：社區報告 — Project Sidewalk
+report.tool.name = 報告
+report.eyebrow = 社區報告
+report.generated = 產生於 {0}。
+report.latest.observation = 最新標記：{0}。
+report.print = 列印或另存為 PDF
+report.copy.link = 複製連結
+report.count = {0}
+report.coverage.screened.label = 已篩檢街道
+report.coverage.screened.value = {1} {2} 中的 {0}
+report.coverage.screened.detail = 佔可探索街道的 {0}%
+report.coverage.observations.label = 標記
+report.coverage.observations.detail = 自 {1} 起，來自 {0} 人
+report.coverage.observations.none = 尚無紀錄
+report.coverage.reviewed.label = 已審查
+report.coverage.reviewed.detail = 至少一位審查者檢查過
+report.coverage.confirmed.label = 已確認
+report.coverage.confirmed.detail = 同意的審查者多於不同意者
+report.coverage.imagery.label = 影像年份中位數
+report.coverage.imagery.detail = {0}% 超過 {1} 年
+report.coverage.imagery.none = 沒有影像日期紀錄
+report.coverage.excluded = 有 {0} 個標記在審查中被判定為不正確，未計入本頁的任何統計。
+report.headline.label = 主要發現
+report.headline.evidence = 查看這 {0} 個地點
+report.headline.noalternate = {0,choice,1#幾乎每個缺少的路緣坡道|1<約每 {0} 個缺少的路緣坡道就有 1 個}都無法繞行。
+report.headline.concentration = 僅 {0} 條街道就占了評等最差地點的 {1}%。
+report.headline.worst = 有 {0} 個地點被評為最差等級，分布於 {1} 條街道。
+report.headline.none = 這裡的 {0} 個地點都未被評為最差等級。
+report.streets.title = 街段（分數由低至高）
+report.street.unnamed = 未命名街道（{0}）
+report.street.score = 分數 {0}
+report.street.length = 已探索 {0} {1}
+report.rule.label = 這份清單的運作方式。
+report.rule.text = 分數來自 AccessScore，範圍為 0 到 100，越低代表越難通行。街段是兩個路口之間的一段街道，大約一個街廓。街段依沿線發現的情況評分，路口依該處發現的情況評分，不論是從哪條街道標記的。街段的分數是其街廓與兩端路口的平均，三者權重相同。每個街段分開列出，因此同一條街道可能出現不只一次。街段須已探索、長度至少 {0} 公尺，且沿線有至少 {1} 個地點或完全沒有地點，才會列入排名。
+report.punch.title = 最值得優先改善的項目
+report.fix.map = {0} 上該地點的地圖
+report.fix.photo = 照片：{0}
+report.fix.lede = 每張卡片上方的 + 數字，是修好那一處後，該街段分數（滿分 100）會提高的分數。
+report.fix.raise = 修好它會讓這個街段的分數提高 {2} 分，從 {0} 到 {1}。
+report.places.near = 附近
+report.place.school = 學校
+report.place.health = 醫療院所
+report.place.library = 圖書館
+report.place.grocery = 超市
+report.place.transit = 大眾運輸站
+report.place.park = 公園
+report.place.community = 社區中心
+report.place.government = 政府機關
+report.fix.why.noalternate = 它影響這麼大，是因為附近沒有其他緣石坡道時，AccessScore 會更重地計算缺少的坡道：需要坡道的人無法繞過這個轉角。
+report.fix.why.corner = 它影響這麼大，是因為它在轉角：街段分數中，兩端的每個轉角與中間整個街廓的權重相同，而這個轉角也會拉低在此交會的每條街。
+report.fix.why.worst = 它影響這麼大，是因為它被評為最嚴重，而 {0} 上沒有其他發現比它更拉低分數。
+report.fix.why.costliest = 在 {0} 上的所有發現中，就其類型與評分而言，這一處最拉低分數。
+report.punch.none = 目前還沒有符合條件的地點：這份清單需要評等為最差或次差，且有審查者同意的地點。
+report.punch.rule = 挑選方式：依序查看已排名的街段，每條街道選出最影響其街段分數的一個地點，也就是少了它之後分數會上升最多的地點。地點須至少影響 {0} 分，評等為最差或次差（或屬於沒有評等的類型），並有一個該評等的標記獲得審查者同意且無人反對。同一街段沿線缺少人行道在此算作一個地點，因為多一個或少一個圖釘很少改變分數。問題很多的街段可能沒有任何單一地點達到此影響，因此可能不會出現。
+report.rating = 評等 {0}／{1}（{1} 為最差）
+report.inventory.title = 依類型列出的觀察
+report.inventory.problems = 問題
+report.inventory.features = 無障礙設施
+report.inventory.neutral = 其他標籤
+report.inventory.none = 這裡尚未記錄任何標記。
+report.inventory.type = 類型
+report.inventory.observed = 標記
+report.inventory.worst.short = 最差評分
+report.inventory.worst.problems = 最嚴重
+report.inventory.worst.features = 品質差
+report.inventory.worst.neutral = 最嚴重
+report.inventory.confirmed = 確認正確
+report.inventory.define.locations = 不同的地點。同一處設施上的多個標籤只算一次，這也是 AccessScore 計算的單位。
+report.inventory.define.observed = 此處的所有標籤，不含驗證者否決的標籤。
+report.inventory.define.worst = 獲得最差評分的標籤：問題為最嚴重，設施（如路緣坡道）為品質差。
+report.inventory.define.confirmed = 同意票多於反對票的標籤。
+report.inventory.tags = 最常見的標記
+report.inventory.unrated = 未評等
+report.inventory.ratings.title = 各類型的評分分布
+report.inventory.ratings.lede = 各評分的標籤數，以該類型標籤的比例呈現。問題依嚴重度評分，由低到高；緣石坡道等設施依品質評分，由好到差。
+report.scale.severity = 嚴重度
+report.scale.quality = 品質
+report.scale.severity.1 = 低
+report.scale.severity.2 = 中
+report.scale.severity.3 = 高
+report.scale.quality.1 = 好
+report.scale.quality.2 = 尚可
+report.scale.quality.3 = 差
+report.inventory.note = 一個地點是一處位置：多人對同一設施的標記算作一個，這也是 AccessScore 計算的單位。破折號表示該類型沒有評等或不計分。
+report.deeper.title = 深入了解
+report.deeper.labelmap = 在地圖上查看所有標籤
+report.deeper.gallery = 在圖庫中瀏覽照片
+report.deeper.accessscore = 查看此社區的 AccessScore
+report.deeper.explore = 協助篩檢這裡的更多街道
+report.beta.badge = 測試版
+report.beta.note = 這份報告是新推出的，版面與文字可能還會調整。請告訴我們哪些內容有用，或哪裡看起來有誤：
+report.provenance.title = 關於本報告
+report.provenance.generated = 產生時間
+report.provenance.version = 應用程式版本
+report.provenance.data = 資料
+report.provenance.csv = 本報告計入的標記（CSV）
+report.provenance.reviewers = 審查者皆為真人：本頁不將 AI 驗證者的投票計為審查者，但這些投票仍會影響標籤是否被標記為不正確。
+report.coverage.unclustered = 有 {0} 個標記不屬於任何地點，因此不影響分數。這些標記是在 AccessScore 上次更新後新增的，或來自其工作未計入評分的人員。
+report.score.label = 社區 AccessScore
+report.score.value = {0} / 100
+report.score.detail = 越低代表越難通行。
+report.score.none = 尚未評分
+report.score.none.detail = AccessScore 會在社區有 {0}% 的街道完成探索後給予分數。目前為 {1}%。
+report.headline.nosidewalk = 在這裡已探索的 {1} 條街道中，有 {0} 條的部分路段缺少人行道。
+report.streets.title.sofar = 目前的街段（分數由低至高）
+report.streets.sofar = 僅探索了 {0}%，因此可能會變動。
+report.streets.none.unranked = 這裡還沒有街段具備足夠資料可供 AccessScore 排名。
+report.street.block = 街廓 {0}
+report.street.crossings = 路口 {0}
+report.street.slope = 坡度扣 {0} 分
+report.street.length.partial = 已探索 {0} / {1} {2}
+report.street.road = 此街道已探索的 {0} 個街段之一；合計在已探索的 {2} {3} 中得分 {1}。
+report.street.between = 介於 {0} 與 {1} 之間
+report.street.near = 靠近 {0}
+report.streets.more = 顯示其他 {0} 個街段
+report.count.locations = {0} 個地點
+report.rule.docs = AccessScore 的計算方式
+report.photo.cost = 使這條街道扣 {0} 分
+report.inventory.locations = 地點
+report.inventory.unscored = 不計分
+report.provenance.scored = AccessScore 更新時間
+report.provenance.csv.streets = 街道分數（CSV）
+report.provenance.csv.locations = 分數背後的地點（CSV）
+report.computing.title = 這份報告仍在準備中
+report.computing.body = AccessScore 正在計算這座城市的分數，更新後約需一兩分鐘。報告使用相同的分數，因此必須等待計算完成。
+report.computing.retry = 再試一次
+report.map.street.label = {0} 的地圖
+report.map.region.label = {0} 的街道地圖
+report.map.color.title = 街道著色依據
+report.map.color.score = AccessScore
+report.map.color.slope = 最大坡度
+report.weights.title = 權重
+report.weights.help = 每種問題或特徵的計分比重。調整後，本頁會以 AccessScore 的公式重新計算。
+report.weights.reset = 重設權重
+report.weights.custom = 自訂權重：這些分數並非 AccessScore 發布的分數。
+report.map.sidewalks.absent = 標記為無人行道
+report.map.sidewalks.present = 可能有人行道
+report.map.sidewalks.help = 以街道兩側取代中心線：可能有人行道的一側使用該街道本身的顏色，被標記為缺少的一側以虛線表示。由標記推斷，這不是實地調查：此處顯示人行道，表示沒有人將其標記為缺少。
+report.map.sidewalks = 人行道（推斷）
+report.map.title = 地圖上
+report.streets.score.label = AccessScore {0}
+report.sidebar.label = 報告設定
+report.toc.details = 逐一街段
+report.details.order = 分數最低的 {0} 個街段，由低到高排列，順序與上方清單相同。
+report.toc.streets = 所有街段
+report.toc.summary = 摘要
+report.toc.title = 本頁內容
+report.provenance.rules = 這些數字的計算方式
+report.punch.rule.short = 每條街道上，修復後最能提高所在街段分數的一個地點。完整規則請見「關於這份報告」。
+report.rule.short = AccessScore 的分數，範圍 0 到 100，越低代表越難通行。「關於這份報告」說明計算方式。
+report.worst.title = 最嚴重的問題在哪裡
+report.worst.rule = 每個在其類型量表中被評為最差等級的地點：問題為高嚴重度，路緣坡道等設施為差。地點的評分是其標籤的中位數，也就是其分數所用的評分，因此這些數量可能少於下方表格中被評為最差的標籤數。
+report.worst.none = 這裡沒有任何地點被評為其量表的最差等級。
+report.worst.none.sofar = 這裡目前還沒有任何地點被評為其量表的最差等級。
+report.worst.map.label = {0} 最嚴重問題的地圖
+report.worst.lede = {0} 個被評為最差的地點，依類型：
+report.worst.count.label = {0} 個地點：{1}。查看標籤
+report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。在側邊欄開啟「{0}」，即可在其他地圖上以虛線查看。
+report.toc.worst = 最嚴重的問題
+report.stories.title = 社群故事
+report.stories.rule = 社群成員附加在這個街區標籤上的故事，最新的在前。一則故事是一個人的經歷；它不會改變本頁的任何數字。
+report.stories.street = 查看這條街
+report.stories.all = 閱讀所有社群故事

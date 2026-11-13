@@ -1,0 +1,30 @@
+{
+  "card": {
+    "cost": "Cuesta {{points}} puntos",
+    "cost-shared": "Cuesta {{points}} puntos, con {{others}} más",
+    "labels_one": "{{count}} etiqueta",
+    "labels_other": "{{count}} etiquetas",
+    "more_one": "Mostrar {{count}} más",
+    "more_other": "Mostrar {{count}} más"
+  },
+  "map": {
+    "location": "{{type}}: mostrar su foto",
+    "gesture-windows": "Usa Ctrl + desplazamiento para acercar el mapa",
+    "gesture-mac": "Usa ⌘ + desplazamiento para acercar el mapa",
+    "gesture-touch": "Usa dos dedos para mover el mapa",
+    "aligned": "Etiquetas alineadas",
+    "aligned-note": "Cada etiqueta en su lado de la calle, aproximadamente en su punto a lo largo de ella: no en su lugar exacto."
+  },
+  "place": {
+    "score": "Puntuación {{score}}",
+    "street": "{{street}} · a {{distance}}",
+    "unscored": "Su calle aún no tiene puntuación",
+    "unnamed": "Calle sin nombre"
+  },
+  "worst": {
+    "close": "Cerrar",
+    "unavailable": "No se pudo cargar la tarjeta de esta etiqueta.",
+    "loading": "Cargando…",
+    "rejected": "Todas las etiquetas de este lugar se marcaron como incorrectas después del último cálculo de las puntuaciones de este informe, así que no hay tarjeta que mostrar."
+  }
+}
