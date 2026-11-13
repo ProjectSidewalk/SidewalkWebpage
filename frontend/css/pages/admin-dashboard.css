@@ -1808,9 +1808,10 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-size: 0.7em;
 }
 
-
-.ac-num {
+/* Scoped to .ps-table so it outranks main.css's `.ps-table td { text-align: left }`. */
+.ps-table td.ac-num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--color-neutral-900);
 }
@@ -2127,18 +2128,24 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-cell-delta--down { color: #c0392b; }
 .ac-cell-delta--flat { color: var(--color-neutral-700); }
 
-/* AI output reported beside the human count it accompanies, on a tile and in a table cell (#4931). Deliberately
-   quieter than the delta chips: it qualifies the number above it rather than competing with it, and it is dotted-
-   underlined because it carries its own tooltip explaining the split. */
+/* Caption text that qualifies a number rather than competing with it: AI output beside the human count it
+   accompanies (#4931), and what a headline card counts (#5828), visible rather than a tooltip so touch and keyboard
+   readers get it too. The AI line is dotted-underlined because it carries its own tooltip explaining the split. */
 .ac-hero-ai,
-.ac-cell-ai {
+.ac-cell-ai,
+.ac-hero-def,
+.ac-hero-note {
   display: block;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
+.ac-hero-note { margin: 0; }
+
+.ac-hero-def,
+.ac-hero-ai { margin-top: 2px; }
+
 .ac-hero-ai {
-  margin-top: 2px;
   text-decoration: underline dotted;
   text-underline-offset: 2px;
 }
@@ -2561,8 +2568,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-weight: 600;
 }
 
-.stories-queue-chip[hidden] { display: none; }
-
 .stories-queue-thumb {
   display: block;
   width: 120px;
@@ -2888,11 +2893,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-top: var(--space-md);
 }
 
-/* .button's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
-.partners-cancel-edit[hidden] {
-  display: none;
-}
-
 /* The sentence the landing page will show (#5462), set off from the form so it reads as output, not a label. */
 .official-contact-preview {
   font: var(--text-small-regular);
@@ -2966,4 +2966,47 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ---- Gold Examples page (#1445) --------------------------------------------------------------------------------- */
+
+.gold-examples-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-sm) 0;
+}
+
+/* Eight columns in the content width: only the reason may wrap. */
+.gold-examples-table td {
+  white-space: nowrap;
+}
+
+.gold-examples-table .gold-examples-reason {
+  white-space: normal;
+  min-width: 150px;
+}
+
+/* The crop is 3:2; the neutral backing shows where a crop is missing. */
+.gold-examples-thumb {
+  display: block;
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+}
+
+.gold-examples-thumb--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-600);
+}
+
+/* Under the id, to keep the row in the content width. */
+.gold-examples-type {
+  display: block;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }

@@ -34,8 +34,7 @@ trait MissionService {
    * user who hasn't finished the tutorial.
    *
    * @param revisitStreetId A requested street; if the user already explored it, it counts as distance left (#5692).
-   * @return None when no mission can be sized: a route walk whose streets sum to zero length (#5167), or a region
-   *         with no distance left to assign. Callers decide what the session falls back to.
+   * @return None when the region has no distance left to assign; callers decide what the session falls back to.
    */
   def resumeOrCreateNewAuditMission(
       userId: String,
@@ -236,13 +235,9 @@ class MissionServiceImpl @Inject() (
                     DBIO.successful(Some(incompleteMission))
                   case _ =>
                     routeTable.getRouteDistance(userRoute.get.routeId).flatMap { routeDistance =>
-                      if (routeDistance > 0) {
-                        missionTable
-                          .createNextAuditMission(userId, routeDistance, regionId.get, Some(userRoute.get.userRouteId))
-                          .map(Some(_))
-                      } else {
-                        DBIO.successful(None)
-                      }
+                      missionTable
+                        .createNextAuditMission(userId, routeDistance, regionId.get, Some(userRoute.get.userRouteId))
+                        .map(Some(_))
                     }
                 }
             } else {

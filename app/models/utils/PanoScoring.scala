@@ -1,10 +1,6 @@
 package models.utils
 
-import play.api.libs.json.{JsError, JsSuccess, Json, Reads, Writes}
-
-import java.io.InputStream
-import scala.io.Source
-import scala.util.Using
+import play.api.libs.json.{Json, Reads, Writes}
 
 /**
  * The provider-specific half of the pano ranking: what each provider's fleet can be expected to deliver.
@@ -62,15 +58,7 @@ object PanoScoring {
   private given paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
 
   /** The parsed scoring parameters. Throws if the resource is missing or does not match the expected shape. */
-  lazy val params: PanoScoringParams = {
-    val stream: InputStream = Option(getClass.getResourceAsStream(ResourcePath))
-      .getOrElse(throw IllegalStateException(s"$ResourcePath is missing from the classpath"))
-    val raw: String = Using.resource(stream)(Source.fromInputStream(_, "UTF-8").mkString)
-    Json.parse(raw).validate[PanoScoringParams] match {
-      case JsSuccess(parsed, _) => parsed
-      case JsError(errors)      => throw IllegalStateException(s"$ResourcePath is malformed: $errors")
-    }
-  }
+  lazy val params: PanoScoringParams = JsonResource.load[PanoScoringParams](ResourcePath)
 
   /** Compact JSON of [[params]], for stamping into a page so the pano viewers can read it back. */
   lazy val json: String = Json.stringify(Json.toJson(params))

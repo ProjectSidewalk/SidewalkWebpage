@@ -2,7 +2,7 @@
  * Tests the imagery credit on a dashboard "recent mistakes" card (frontend/js/user-dashboard/MistakeGallery.js, #5254).
  *
  * The card shows the label's saved crop, which is our own copy of the provider's image, so it has to credit that
- * provider the same way the Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
+ * provider the same way Gallery and landing cards do. The real overlays are loaded instead of fake ones, since
  * the whole point is checking that the card hooks them up.
  */
 
@@ -13,6 +13,9 @@ mockModule('i18next', () => ({ default: { t: (key) => key } }));
 // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
 window.ResizeObserver = class { observe() {} disconnect() {} };
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
+
+/** Lets the failed crop's re-sign request (#5861) answer. */
+const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -44,7 +47,7 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
   async function renderGallery(opts = {}) {
     document.body.innerHTML = '<div id="ud-mistakes"></div>';
-    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', ...opts });
+    const gallery = new MistakeGallery(document.getElementById('ud-mistakes'), { userId: 'ada', limit: 6, ...opts });
     await gallery.render();
   }
 
@@ -104,6 +107,8 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
     photo().dispatchEvent(new Event('error'));
 
+    await settle();
+
     expect(photo().src).toContain(GSV_URL);
     expect(logo().style.display).toBe('none');
   });
@@ -126,6 +131,8 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     expect(logo().style.display).toBe('flex');
 
     photo().dispatchEvent(new Event('error'));
+
+    await settle();
 
     expect(photo()).toBeNull();
     expect(logo().style.display).toBe('none');

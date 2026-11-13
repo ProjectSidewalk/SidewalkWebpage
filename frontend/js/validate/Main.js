@@ -23,6 +23,8 @@ import { MobileValidationMenu } from './menu/MobileValidationMenu.js';
 import { UndoValidation } from './menu/UndoValidation.js';
 import { MissionContainer } from './mission/MissionContainer.js';
 import { ModalMission } from './modal/ModalMission.js';
+import { ModalGoldFeedback } from './modal/ModalGoldFeedback.js';
+/** @typedef {import('./modal/ModalGoldFeedback.js').GoldFeedbackUi} GoldFeedbackUi */
 import { ModalMissionComplete } from './modal/ModalMissionComplete.js';
 import { ModalNoNewMission } from './modal/ModalNoNewMission.js';
 import { PanoControlMenu } from './panorama/PanoControlMenu.js';
@@ -116,6 +118,7 @@ import './util/throttle.js';
  * @property {ValidationMenuUi} validationMenu
  * @property {{undoButton: HTMLButtonElement}} undoValidation
  * @property {ModalMissionUi} modalMission
+ * @property {GoldFeedbackUi} goldFeedback
  * @property {Record<string, HTMLElement>} modalMissionComplete
  * @property {{upperMenuTitle: HTMLElement, upperMenuIcon: ?HTMLImageElement, zoomInButton: HTMLElement,
  *     zoomOutButton: HTMLElement, admin: AdminInfoUi}} status
@@ -126,6 +129,8 @@ import './util/throttle.js';
  * The console and e2e handle start.js puts on `window.svv`: the few live objects a test or a developer inspects.
  * @typedef {object} ValidateHandle
  * @property {Record<string, any>} validateParams
+ * @property {ModalNoNewMission} modalNoNewMission - Its isShowing() says whether Validate hit a dead end, which the
+ *     mission modal's CSS can't: on the phone the same modal also briefs each mission.
  * @property {LabelContainer} [labelContainer]
  * @property {PanoManager} [panoManager]
  * @property {PanoImageAdjustmentsPopover} [imageAdjustmentsPopover] - Desktop only.
@@ -228,11 +233,12 @@ export class Main {
     const tracker = new Tracker();
     // The dead end still logs its visit, and the exit flush is the Form's; there is no mission for it to compile.
     new Form(this.#param.dataStoreUrl, this.#config, tracker);
-    new ModalNoNewMission(this.#ui.modalMission, new Gate(), tracker).show();
+    const modalNoNewMission = new ModalNoNewMission(this.#ui.modalMission, new Gate(), tracker);
+    modalNoNewMission.show();
     // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
     // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
     this.#revealTool();
-    return Promise.resolve({ validateParams: this.#config.validateParams });
+    return Promise.resolve({ validateParams: this.#config.validateParams, modalNoNewMission });
   }
 
   /** Takes down the loading overlay and shows the tool under it. */
@@ -295,6 +301,14 @@ export class Main {
         missionTitle: byId('modal-mission-header'),
         instruction: byId('modal-mission-instruction'),
         closeButton: /** @type {HTMLButtonElement} */ (byId('modal-mission-close-button')),
+      },
+      goldFeedback: {
+        panel: /** @type {HTMLDialogElement} */ (byId('svv-gold-feedback')),
+        image: /** @type {HTMLImageElement} */ (byId('gold-feedback-image')),
+        heading: byId('gold-feedback-heading'),
+        text: byId('gold-feedback-text'),
+        advice: byId('gold-feedback-advice'),
+        okButton: /** @type {HTMLButtonElement} */ (byId('gold-feedback-ok')),
       },
       modalMissionComplete: {
         agreeCount: byId('modal-mission-complete-agree-count'),
@@ -410,14 +424,16 @@ export class Main {
       statusField, modalMission, modalMissionComplete, missionLiveMarker, tracker,
     );
 
+    const reasonButtonInfo = buildReasonButtonInfo();
+    const modalGoldFeedback = new ModalGoldFeedback(ui.goldFeedback, keyboardLock, tracker);
+
     // Nothing renders yet: what describes a label subscribes to the container first, then the first label is drawn.
     const labelContainer = new LabelContainer(labels, labelType, ui, config, panoManager, panoLoadingStatus,
-      modalMissionComplete, modalNoNewMission, missionContainer, tracker);
+      modalMissionComplete, modalNoNewMission, missionContainer, tracker, modalGoldFeedback);
 
     labelVisibilityControl = new LabelVisibilityControl(ui.viewer, config, labelContainer, panoManager, tracker);
     const labelCard = labelVisibilityControl.getLabelCard();
 
-    const reasonButtonInfo = buildReasonButtonInfo();
     const validationMenu = util.isMobile()
       ? new MobileValidationMenu(ui.validationMenu, reasonButtonInfo, labelContainer, tracker)
       : new DesktopValidationMenu(
@@ -429,7 +445,7 @@ export class Main {
     );
 
     if (config.adminVersion) {
-      const adminInfo = new AdminInfo(ui.status.admin);
+      const adminInfo = new AdminInfo(ui.status.admin, tracker);
       labelContainer.onLabelReady((label) => adminInfo.updateAdminInfo(label));
     }
 
@@ -571,8 +587,11 @@ export class Main {
         () => tracker.push('PanoInfoButton_Click'),
         () => tracker.push('PanoInfoCopyToClipboard_Click'),
         () => tracker.push('PanoInfoViewInPano_Click'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
-        () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
+        {
+          id: () => labelContainer.getCurrentLabel().getAuditProperty('labelId'),
+          date: () => labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'),
+          linkLogging: (labelId) => tracker.push('PanoInfoLabelLink_Click', { labelId }),
+        },
       );
     }
 
@@ -595,6 +614,7 @@ export class Main {
 
     return {
       validateParams: config.validateParams,
+      modalNoNewMission,
       labelContainer,
       panoManager,
       ...(imageAdjustmentsPopover ? { imageAdjustmentsPopover } : {}),

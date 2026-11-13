@@ -32,16 +32,16 @@ export class StoriesSection {
    * @param {?HTMLDialogElement} [opts.composerDialog] - The dashboard's `.story-composer` dialog; without it, rows
    *     render without an Edit control (editing stays available on the label card).
    * @param {string} [opts.currUsername] - The story owner's username, for the composer's post-as options.
-   * @param {string} [opts.storiesUrl] - Endpoint listing the stories; defaults to the signed-in user's own.
-   * @param {(storyId: number) => string} [opts.storyUrlFor] - URL a story is edited (PUT) and deleted (DELETE) at;
-   *     defaults to the owner's own-story routes. An admin's dashboard view points both at the /adminapi routes.
+   * @param {string} opts.storiesUrl - Endpoint listing the stories.
+   * @param {(storyId: number) => string} opts.storyUrlFor - URL a story is edited (PUT) and deleted (DELETE) at. An
+   *     admin's dashboard view points both at the /adminapi routes.
    */
   constructor(container, opts) {
     this.#container = container;
     this.#labelPopup = opts.labelPopup || null;
-    this.#storiesUrl = opts.storiesUrl || '/userapi/stories/mine';
-    this.#storyUrlFor = opts.storyUrlFor || ((storyId) => `/userapi/stories/${storyId}`);
-    if (opts.composerDialog && typeof StoryComposer !== 'undefined') {
+    this.#storiesUrl = opts.storiesUrl;
+    this.#storyUrlFor = opts.storyUrlFor;
+    if (opts.composerDialog) {
       this.#composer = new StoryComposer(opts.composerDialog, {
         currUsername: opts.currUsername,
         omitDashboardLink: true, // The privacy note's "from your dashboard" link would point at this very page.

@@ -87,7 +87,11 @@ export class Compass {
       this.update();
     });
     navigationService.onMoveStarted(() => this.click.hold('move'));
-    navigationService.onMoveFinished(() => this.click.release('move'));
+    navigationService.onMoveFinished(() => {
+      this.click.release('move');
+      // A failed move has no landing to redraw the message.
+      this.update();
+    });
     navigationService.onHeadingSettled(() => this.update());
     streetProgress.onLabelBeforeJumpChanged((armed) => {
       if (armed) this.showLabelBeforeJumpMessage();
@@ -233,7 +237,6 @@ export class Compass {
         return this.#directionIcons.leftTurn;
       case 'u-turn':
         return this.#directionIcons.uTurn;
-      default:
     }
   }
 
@@ -295,12 +298,13 @@ export class Compass {
   update() {
     // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
     if (this.#config.isExploreAddressMode) return;
+    // Mid-move the position is the new pano's but the street's progress is not yet; the landing redraws (#5918).
+    if (this.#navigationService.isMoving()) return;
     if (!this.#streetProgress.isLabelBeforeJumpArmed() && !this.#config.isOnboarding) {
       if (this.#checkEnRoute()) {
         this.stopBlinking();
         this.setTurnMessage();
-      } else if (!this.#navigationService.isMoving()) {
-        // Only warn that the user is off-route if they're not mid-move. (#4174)
+      } else {
         this.blink();
         this.#setBackToRouteMessage();
       }
@@ -309,25 +313,16 @@ export class Compass {
 
   /**
    * Mapping from an angle to a direction.
-   * @param {number} angle
-   * @returns {string|undefined}
+   * @param {number} angle - Degrees the user needs to rotate, normalized to [0, 360).
+   * @returns {string}
    */
   #angleToDirection(angle) {
-    if (angle < 20 || angle > 340) {
-      return 'straight';
-    } else if (angle >= 20 && angle < 45) {
-      return 'slight-left';
-    } else if (angle <= 340 && angle > 315) {
-      return 'slight-right';
-    } else if (angle >= 45 && angle < 150) {
-      return 'left';
-    } else if (angle <= 315 && angle > 210) {
-      return 'right';
-    } else if (angle <= 210 && angle >= 150) {
-      return 'u-turn';
-    } else {
-      console.debug('It shouldn\'t reach here.');
-    }
+    if (angle < 20 || angle > 340) return 'straight';
+    if (angle < 45) return 'slight-left';
+    if (angle > 315) return 'slight-right';
+    if (angle < 150) return 'left';
+    if (angle > 210) return 'right';
+    return 'u-turn';
   }
 
   /**
@@ -349,7 +344,6 @@ export class Compass {
         return i18next.t('center-ui.compass.left');
       case 'u-turn':
         return i18next.t('center-ui.compass.u-turn');
-      default:
     }
   }
 

@@ -29,7 +29,7 @@ Google bills per SKU with a monthly free cap per SKU, then a per-1,000 rate (pri
 | **Dynamic Street View** | Instantiating a `google.maps.StreetViewPanorama` — `GsvViewer.initialize()`, i.e. every Explore, Validate, mobile-Validate, Gallery card, LabelMap popup and admin pano. **The tutorial's custom, locally tiled panos count too**; the SKU is per panorama object, not per tile. | 5,000 | $14 |
 | **Dynamic Maps** | Instantiating a `google.maps.Map`. **Nothing in the app does**: the Explore minimap was the only one, and it is MapLibre GL over OpenStreetMap tiles since #5429; every other map is Mapbox. A non-zero line here means something new is building a Google map. | 10,000 | $7 |
 | **Street View Static** | Server-signed stills: Gallery, story cards and admin/user-profile label previews (browser key); share images and AI analysis (server key). | 10,000 | $7 |
-| **Street View Metadata** | `PanoDataService` / `ImageryFreshnessService` polling; the frontend's `StreetViewService.getPanorama` | unlimited | free |
+| **Street View Metadata** | `PanoDataService` / `ImageryFreshnessService` polling; the AI-guidance endpoint check (`PanoDataService.getGsvImageUrlsForStreet`, 2 per request); the frontend's `StreetViewService.getPanorama` | unlimited | free |
 
 Loading the Maps JS API script itself is not a SKU. Dynamic Street View is the one that matters: it is the most
 expensive SKU we touch and it fires on the pages people spend all their time on.

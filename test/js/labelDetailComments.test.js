@@ -34,19 +34,35 @@ function buildCard() {
   document.body.innerHTML = `
       <div id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false">Disagree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false">Unsure</button>
           </div>
-          <span class="label-detail__pan-hint" hidden></span>
         </div>
 
         <div class="label-detail__meta-row">
@@ -146,6 +162,7 @@ function buildCard() {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </div>`;
   return document.getElementById('card');
@@ -212,6 +229,7 @@ describe('the validator comment box (#5015)', () => {
   let setPano;
   let confirmResult;
   let lazyIdentityFetch;
+  let onComments;
 
   /** Drains the microtask queue that the card's promise chains spread work across. */
   const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
@@ -244,6 +262,7 @@ describe('the validator comment box (#5015)', () => {
 
   beforeEach(async () => {
     card = buildCard();
+    onComments = vi.fn();
 
     window.logWebpageActivity = vi.fn();
     // Comment saves go through util.lazyIdentityFetch (#4442), not window.fetch.
@@ -289,6 +308,7 @@ describe('the validator comment box (#5015)', () => {
       currUsername: 'tester',
       panoOverlaySource: 'test',
       voteColumnSource: 'test',
+      onComments,
     });
   });
 
@@ -300,12 +320,21 @@ describe('the validator comment box (#5015)', () => {
     ])('a %s vote opens it asking %s', async (vote, key) => {
       // All three votes carry a comment (#5015): Disagree/Unsure ask for the reasoning behind the dispute,
       // Agree invites an optional note.
-      await showLabel({ user_validation: vote });
+      await showLabel({ user_validation: vote, label_type: 'Other' });
       await resolveImagery();
 
       expect(boxOpen()).toBe(true);
       expect(input().placeholder).toBe(key);
       expect(q('.label-detail__comment-row label').textContent).toBe(key);
+    });
+
+    test('a standing Disagree on a type with reasons opens it too, since no pop-up is asking (#5475)', async () => {
+      await showLabel({ user_validation: 'Disagree', comments: [] });
+      await resolveImagery();
+
+      expect(boxOpen()).toBe(true);
+      expect(q('.label-detail__comment-row label').textContent).toBe('labelmap:why-disagree');
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
     });
 
     test('no vote leaves it closed', async () => {
@@ -317,19 +346,31 @@ describe('the validator comment box (#5015)', () => {
     });
   });
 
-  describe('a vote that moves takes its comment with it', () => {
-    test('changing your vote drops the comment and reopens the box on the new prompt', async () => {
+  describe('a vote that moves takes only what no longer fits', () => {
+    test('changing your vote keeps typed words, under the new vote', async () => {
       await showLabel({ user_validation: 'Disagree', comments: [comment('because of the snow', true)] });
       await resolveImagery();
-      expect(q('.label-detail__validator-comments').textContent).toContain('because of the snow');
 
-      // The server deletes the comment on a changed vote; the list has to say so without a reload.
+      // Typed words describe the label, so the server keeps them across a vote change (#5475); the chip follows.
       card.querySelector('.label-detail__vote--agree').click();
       await flush();
 
-      expect(q('.label-detail__validator-comments').textContent).not.toContain('because of the snow');
-      expect(boxOpen()).toBe(true);
-      expect(input().placeholder).toBe('labelmap:why-agree');
+      expect(q('.label-detail__validator-comments').textContent).toContain('because of the snow');
+      expect(q('.label-detail__comment-vote--agree')).not.toBeNull();
+      expect(q('.label-detail__comment-vote--disagree')).toBeNull();
+      expect(q('.label-detail__comment-confirmation').textContent).not.toBe('labelmap:comment-cleared');
+    });
+
+    test('changing your vote drops a canned reason the new vote doesn\'t offer', async () => {
+      await showLabel({
+        user_validation: 'Disagree', comments: [comment('This is a driveway', true, { reason: 'driveway' })],
+      });
+      await resolveImagery();
+
+      card.querySelector('.label-detail__vote--unsure').click();
+      await flush();
+
+      expect(q('.label-detail__validator-comments').textContent).not.toContain('This is a driveway');
       expect(q('.label-detail__comment-confirmation').textContent).toBe('labelmap:comment-cleared');
     });
 
@@ -348,7 +389,7 @@ describe('the validator comment box (#5015)', () => {
     test('leaves someone else\'s comment alone', async () => {
       await showLabel({ user_validation: 'Disagree', comments: [comment('theirs', false), comment('mine', true)] });
       await resolveImagery();
-      card.querySelector('.label-detail__vote--agree').click();
+      card.querySelector('.label-detail__vote--disagree').click(); // A clear, which drops even typed words.
       await flush();
 
       const list = q('.label-detail__validator-comments').textContent;
@@ -359,7 +400,7 @@ describe('the validator comment box (#5015)', () => {
 
   describe('the compose box yields to the comment it would overwrite', () => {
     test('stays open when the voter has not commented yet', async () => {
-      await showLabel({ comments: [comment('someone else said this', false)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('someone else said this', false)] });
       await resolveImagery();
 
       expect(boxOpen()).toBe(true);
@@ -512,7 +553,7 @@ describe('the validator comment box (#5015)', () => {
     });
 
     test('Delete removes the comment and reopens the box', async () => {
-      await showLabel({ comments: [comment('regrettable', true)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('regrettable', true)] });
       await resolveImagery();
       deleteBtn().click();
       await flush();
@@ -534,15 +575,67 @@ describe('the validator comment box (#5015)', () => {
       expect(q('.label-detail__validator-comments').textContent).toContain('kept');
     });
 
+    test('paging away while the delete is being confirmed deletes nothing', async () => {
+      // The label is read before the confirm, so a confirm answered on the next card can't delete that one's comment.
+      const answer = deferred();
+      confirmDialog.confirm = vi.fn(() => answer.promise);
+      await showLabel({ comments: [comment('first card', true)] });
+      await resolveImagery();
+      deleteBtn().click();
+      await showLabel({ label_id: 43, comments: [comment('next card', true)] });
+      panoManager.label = { labelId: 43, label_type: 'Obstacle' };
+      answer.resolve(true);
+      await flush();
+
+      expect(window.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/labelmap/comment/'), expect.anything());
+      expect(q('.label-detail__validator-comments').textContent).toContain('next card');
+    });
+
+    test('paging away while the delete is in flight leaves the next card alone', async () => {
+      const reply = deferred();
+      window.fetch = vi.fn((url) => (String(url).includes('/labelmap/comment/') ? reply.promise
+        : Promise.resolve({ ok: true, json: async () => [] })));
+      await showLabel({ comments: [comment('first card', true)] });
+      await resolveImagery();
+      deleteBtn().click();
+      await flush();
+      await showLabel({ label_id: 43, comments: [comment('next card', true)] });
+      reply.resolve({ ok: true, status: 200, json: async () => ({ deleted: 1 }) });
+      await flush();
+
+      expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
+      expect(q('.label-detail__validator-comments').textContent).toContain('next card');
+      expect(status().textContent).toBe('');
+      // Gallery's small card for the first label still learns its comment is gone.
+      expect(onComments).toHaveBeenLastCalledWith(expect.objectContaining({ label_id: 42, comments: [] }));
+    });
+
     test('Delete moves focus into the reopened box rather than dropping it', async () => {
       // The button that had focus is destroyed by the re-render, so without this focus falls to the document
       // and a keyboard or screen-reader user loses their place mid-card.
-      await showLabel({ comments: [comment('regrettable', true)] });
+      await showLabel({ user_validation: 'Agree', comments: [comment('regrettable', true)] });
       await resolveImagery();
       deleteBtn().click();
       await flush();
 
       expect(document.activeElement).toBe(input());
+    });
+
+    test('Delete of the only comment, with no vote behind it, keeps the section up until the next label', async () => {
+      // Comments from before a cleared vote took its comment with it can have no vote, so the box stays shut and
+      // the emptied section is the only place left for focus and the "deleted" note.
+      await showLabel({ user_validation: null, comments: [comment('orphaned', true, { validation: null })] });
+      await resolveImagery();
+      deleteBtn().click();
+      await flush();
+
+      expect(boxOpen()).toBe(false);
+      expect(q('.label-detail__comments-section').hidden).toBe(false);
+      expect(document.activeElement).toBe(q('.label-detail__comments-title'));
+      expect(status().closest('[hidden]')).toBeNull();
+
+      await showLabel({ user_validation: null, comments: [] });
+      expect(q('.label-detail__comments-section').hidden).toBe(true);
     });
   });
 
@@ -577,6 +670,7 @@ describe('the validator comment box (#5015)', () => {
     });
 
     test('a save that fails says so, in the failure colour', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
       useUtil({ lazyIdentityFetch: vi.fn(async () => ({ ok: false, status: 500 })) });
       await showLabel({ user_validation: 'Agree' });
       await resolveImagery();
@@ -586,10 +680,12 @@ describe('the validator comment box (#5015)', () => {
 
       expect(status().textContent).toBe('labelmap:comment-save-failed');
       expect(status().classList.contains('is-error')).toBe(true);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('a delete that fails says so instead of looking like a no-op', async () => {
       // They confirmed a destructive action in a modal; silence is indistinguishable from it having worked.
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
       window.fetch = vi.fn(async () => ({ ok: false, status: 500 }));
       await showLabel({ comments: [comment('still here', true)] });
       await resolveImagery();
@@ -599,12 +695,14 @@ describe('the validator comment box (#5015)', () => {
       expect(q('.label-detail__validator-comments').textContent).toContain('still here');
       expect(status().textContent).toBe('labelmap:comment-delete-failed');
       expect(status().classList.contains('is-error')).toBe(true);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('a removal holds on screen longer than a save, and a failure longer still', async () => {
       // A save is a second opinion on the comment that just appeared below it; a removal reports an absence,
       // which gives the reader nothing to check it against. So the tiers have to stay ordered.
       vi.spyOn(window, 'setTimeout');
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       /** The hold the flash was scheduled with, found by running pending timers until one hides the region. */
       const holdMs = () => {
@@ -639,6 +737,7 @@ describe('the validator comment box (#5015)', () => {
       expect(saved).toBeGreaterThan(0);
       expect(removed).toBeGreaterThan(saved);
       expect(failed).toBeGreaterThan(removed);
+      expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
     });
 
     test('the message does not outlive the label it was about', async () => {

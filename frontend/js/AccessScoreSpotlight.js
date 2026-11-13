@@ -446,17 +446,17 @@ export class AccessScoreSpotlight {
     if (this.#unit === 'streets') {
       // Length says how much sidewalk the score speaks for.
       sub.textContent = i18next.t('common:access-score-spotlight.street-sub',
-        { region: row.region_name, length: util.longDistanceToString(row.length_m / 1000, 1) });
+        { region: row.region_name, length: util.metersToLongDistanceString(row.length_m, 1) });
     } else if (kind === 'pending') {
       sub.textContent = i18next.t('common:access-score-spotlight.region-sub-pending', {
-        length: util.longDistanceToString(row.total_distance_m / 1000, 1),
+        length: util.metersToLongDistanceString(row.total_distance_m, 1),
         percent: Math.round(row.completion_rate * 100),
       });
     } else {
       // How big the neighborhood is and how much was found in it: a 74 over nine miles and hundreds of clusters is a
       // different claim from a 74 over half a mile.
       sub.textContent = i18next.t('common:access-score-spotlight.region-sub', {
-        length: util.longDistanceToString(row.total_distance_m / 1000, 1),
+        length: util.metersToLongDistanceString(row.total_distance_m, 1),
         clusters: row.cluster_count.toLocaleString(i18next.language),
       });
     }

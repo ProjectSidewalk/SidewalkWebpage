@@ -5,12 +5,10 @@
 
 import * as turf from '@turf/turf';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { util } from '../../common/utilities.js';
-import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
 
 /**
- * Free exploration's street-credit rule (#5733), as the backend (StreetCoverage) states it.
+ * The street-credit rule (#5733, #5669), as the backend (StreetCoverage) states it.
  * @typedef {object} StreetCoverage
  * @property {number} pano_window_m - Meters either side of a pano that count as seen.
  * @property {number} max_hop_m - The longest hop between on-street panos that still counts as walked.
@@ -26,12 +24,21 @@ export class Task {
   // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
   // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
   static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
+  // How far past the furthest point reached (m) a pano must sit for the walk to step to it. Imagery that turns off
+  // the street gets nowhere, and stepping onto it sends the labeler back and forth (#5918). Kept under the spacing
+  // of the densest imagery, so no usable pano is skipped.
+  static MIN_STEP_ADVANCE_M = 2;
   // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
   // compass's on-route check, and picking up the next street all use it.
   static CLOSE_TO_ROUTE_KM = 0.05;
 
   #streetCoverage;
   #geojson;
+
+  // This street's step in a neighborhood mission's planned walk (#5526), and whether the minimap previews it as one
+  // of the next streets. Kept off #properties, which get serialized: both change on every replan and are never saved.
+  #plannedPosition = null;
+  #plannedAhead = false;
 
   /** @type {GeoJSON.Feature<GeoJSON.Point>} */
   #furthestPoint;
@@ -44,10 +51,11 @@ export class Task {
   #missionStarts = {};
   #status = {
     isComplete: false,
-    // Set when an imagery sweep ran out here and moved the labeler on, either in this session or earlier in this
-    // walk of the route (the server reports the latter as reported_no_imagery). Deliberately not isComplete: that
-    // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
+    // Set when this session gave the street up for lack of imagery. Deliberately not isComplete: that flag is
+    // submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
     givenUpOnImagery: false,
+    // Reported in an earlier session (#5017): skipped like a give-up, but that session's progress was already banked.
+    reportedNoImagery: false,
     // Set when the server hands this street back as unfinished work rather than as a fresh street (#5370). Anything
     // that would restart the street — flipping its direction, restamping task_start, drawing it as untouched — has to
     // leave such a task alone, or the labeler re-walks and re-labels what they already did.
@@ -81,7 +89,7 @@ export class Task {
 
   /**
    * @param {GeoJSON.Feature<GeoJSON.LineString>} geojson
-   * @param {StreetCoverage} streetCoverage - Free exploration's credit rule, for recordVisit and isCoveredEnough.
+   * @param {StreetCoverage} streetCoverage - The credit rule, for recordVisit and isCoveredEnough.
    * @param {boolean} tutorialTask
    * @param {{lat: number, lng: number}} [currentLatLng] - The user's current lat/lng to use if resuming.
    */
@@ -123,7 +131,7 @@ export class Task {
       this.#status.isComplete = true;
     }
     if (this.#geojson.properties.reported_no_imagery) {
-      this.#status.givenUpOnImagery = true;
+      this.#status.reportedNoImagery = true;
     }
     // An audit_task row that isn't complete is work in progress: this street was left part-walked (#5370).
     if (this.#geojson.properties.audit_task_id && !this.#geojson.properties.completed) {
@@ -136,9 +144,18 @@ export class Task {
       this.setMissionStart(currMissionId, { lat: currMissionStart.lat, lng: currMissionStart.lng });
     }
     // Clipped to turf's length: the server's can run a few decimeters longer, which the minimap slicing can't take.
-    this.#coveredRanges = Array.isArray(this.#geojson.properties.covered_ranges)
-      ? Task.mergeRanges(this.#geojson.properties.covered_ranges, this.lineDistance({ units: 'meters' }))
-      : [];
+    const lengthM = this.lineDistance({ units: 'meters' });
+    if (Array.isArray(this.#geojson.properties.covered_ranges)) {
+      this.#coveredRanges = Task.mergeRanges(this.#geojson.properties.covered_ranges, lengthM);
+    } else if (this.#status.resumed) {
+      // An open row from before coverage was tracked (#5669): the walk from the start to where they stopped is
+      // credited, or the rest alone would fail the rule and file the street as imagery-less.
+      const { current_lat: lat, current_lng: lng } = this.#geojson.properties;
+      const walkedM = this.getDistanceFromStart({ lat, lng }, { units: 'meters' });
+      /** @type {[number, number]} */
+      const walked = this.#properties.startPointReversed ? [lengthM - walkedM, lengthM] : [0, walkedM];
+      this.#coveredRanges = Task.mergeRanges([walked], lengthM);
+    }
     // After the direction, never before it: reversing re-seeds the furthest point from the new first coordinate, so a
     // saved position applied first would be thrown away and the walked stretch measured from the wrong end.
     if (currentLatLng) {
@@ -159,12 +176,10 @@ export class Task {
    * @param {{lat: number, lng: number}} currentLatLng - User's current position
    */
   setStreetEdgeDirection(currentLatLng) {
-    const lat1 = this.#geojson.geometry.coordinates[0][1];
-    const lng1 = this.#geojson.geometry.coordinates[0][0];
-    const lat2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][1];
-    const lng2 = this.#geojson.geometry.coordinates[this.#geojson.geometry.coordinates.length - 1][0];
-    const d1 = util.math.haversine({ lat: lat1, lng: lng1 }, currentLatLng);
-    const d2 = util.math.haversine({ lat: lat2, lng: lng2 }, currentLatLng);
+    const coords = this.#geojson.geometry.coordinates;
+    const here = turf.point([currentLatLng.lng, currentLatLng.lat]);
+    const d1 = turf.distance(coords[0], here, { units: 'meters' });
+    const d2 = turf.distance(coords[coords.length - 1], here, { units: 'meters' });
 
     // If current position is closer to the end point than the start point, reverse the street direction.
     if (d2 < d1) {
@@ -219,8 +234,11 @@ export class Task {
     return this.#coordinatesToSegments(coordinates);
   }
 
+  /**
+   * @param {{lat: number, lng: number}} currentLatLng - Where the labeler stands.
+   * @returns {boolean} Whether that is further along the street than the furthest point so far.
+   */
   #hasAdvanced(currentLatLng) {
-    if (typeof this.#furthestPoint === 'undefined') return false;
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
     const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
     const distanceAtTheFurthestPoint = this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest });
@@ -251,15 +269,6 @@ export class Task {
 
   /**
    * Get the GeoJSON representation of the street.
-   * @returns {?GeoJSON.Feature<GeoJSON.LineString>}
-   */
-  getFeature() {
-    return this.#geojson ? this.#geojson : null;
-  }
-
-  /**
-   * Get the GeoJSON representation of the street.
-   * TODO why do we have both this and getFeature()? Can the geojson be null ever? During initialization maybe..?
    * @returns {GeoJSON.Feature<GeoJSON.LineString>}
    */
   getGeoJSON() {
@@ -293,6 +302,17 @@ export class Task {
   }
 
   /**
+   * Where a walk enters this street: its start, or on a part-walked street (#5370) where the labeler left it, since
+   * the walked part is never walked again.
+   * @returns {{lat: number, lng: number}}
+   */
+  getEntryCoordinate() {
+    if (!this.isResumed()) return this.getStartCoordinate();
+    const [lng, lat] = this.#furthestPoint.geometry.coordinates;
+    return { lat, lng };
+  }
+
+  /**
    * Returns the street edge id of the current task.
    */
   getStreetEdgeId() {
@@ -316,6 +336,37 @@ export class Task {
   }
 
   /**
+   * Stamps this street's step in the neighborhood mission's planned walk, which nextTask follows the way it follows a
+   * route's saved order (#5526). Kept apart from getWalkOrder: the stuck-pano set and the crumbs memo key on a route's
+   * order, which names a walk for good, while a planned position changes on every replan.
+   *
+   * @param {?number} position - The step index in the plan, or null to take the street out of the plan.
+   */
+  setPlannedPosition(position) {
+    this.#plannedPosition = position;
+  }
+
+  /** @returns {?number} This street's step in the current planned walk, or null when it is not in one. */
+  getPlannedPosition() {
+    return this.#plannedPosition;
+  }
+
+  /**
+   * Marks whether the minimap previews this street as one of the next few of the planned walk. WalkPlanLayer decides;
+   * the task only remembers it so minimapLines can draw the street as the path ahead.
+   *
+   * @param {boolean} plannedAhead - True to draw the street as the route ahead, false for quiet context.
+   */
+  setPlannedAhead(plannedAhead) {
+    this.#plannedAhead = plannedAhead;
+  }
+
+  /** @returns {boolean} Whether the minimap is previewing this street as part of the planned walk ahead. */
+  isPlannedAhead() {
+    return this.#plannedAhead;
+  }
+
+  /**
    * Returns an integer in the range 0 to n-1, where larger n means higher priority.
    *
    * Explanation:
@@ -331,11 +382,22 @@ export class Task {
   }
 
   /**
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there advances the walk: on-street, MIN_STEP_ADVANCE_M past the furthest point.
+   */
+  advancesWalk(latLng) {
+    const meters = { units: /** @type {const} */ ('meters') };
+    // Past the on-street bound a pano can't move the furthest point, so every search from it would start over.
+    const point = turf.point([latLng.lng, latLng.lat]);
+    if (turf.pointToLineDistance(point, this.#geojson, meters) >= Task.ON_STREET_MAX_DISTANCE_M) return false;
+    return this.getDistanceFromStart(latLng, meters) - this.getAuditedDistance(meters) >= Task.MIN_STEP_ADVANCE_M;
+  }
+
+  /**
    * @param {{units: import('@turf/turf').Units}} [units={units: 'kilometers'}] - The distance unit
    * @returns {number}
    */
   getAuditedDistance(units = { units: 'kilometers' }) {
-    if (typeof this.#furthestPoint === 'undefined') return 0;
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
     const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
     return this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest }, units);
@@ -420,7 +482,7 @@ export class Task {
   }
 
   /**
-   * Mirrors the server's StreetCoverage.coveredEnough, so the minimap can show the street as done the moment it is.
+   * Mirrors the server's StreetCoverage.coveredEnough, so the street ends and is drawn done the moment it counts.
    * @returns {boolean}
    */
   isCoveredEnough() {
@@ -481,20 +543,18 @@ export class Task {
    *
    * @param {{lat: number, lng: number}} latLng - The user's current location
    * @param {number} [threshold=10] - Distance threshold in meters
-   * @returns {boolean} false if the task has no geometry yet.
+   * @returns {boolean}
    */
   isAtEnd(latLng, threshold = 10) {
-    if (!this.#geojson) return false;
     const coords = this.#geojson.geometry.coordinates;
-    const end = { lat: coords[coords.length - 1][1], lng: coords[coords.length - 1][0] };
     const streetLengthM = this.lineDistance({ units: 'meters' });
     const effectiveThreshold = streetLengthM > 0
       ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
       : threshold;
-    const distToEnd = util.math.haversine(latLng, end);
+    const point = turf.point([latLng.lng, latLng.lat]);
+    const distToEnd = turf.distance(point, coords[coords.length - 1], { units: 'meters' });
     if (distToEnd < effectiveThreshold) return true;
     if (distToEnd >= threshold) return false;
-    const point = turf.point([latLng.lng, latLng.lat]);
     return turf.pointToLineDistance(point, this.#geojson, { units: 'meters' }) < Task.ON_STREET_MAX_DISTANCE_M
       && this.getDistanceFromStart(latLng, { units: 'meters' }) >= streetLengthM - effectiveThreshold;
   }
@@ -520,6 +580,11 @@ export class Task {
    */
   wasGivenUpOnImagery() {
     return this.#status.givenUpOnImagery;
+  }
+
+  /** @returns {boolean} Whether the labeler still has something to do here. */
+  isLeftToWalk() {
+    return !this.#status.isComplete && !this.#status.givenUpOnImagery && !this.#status.reportedNoImagery;
   }
 
   /**
@@ -663,13 +728,14 @@ export class Task {
       // street the branch above draws the same split with the route styling.
       return [
         { kind: 'completed', coordinates: this.#getPointsOnAuditedSegments() },
-        { kind: 'other', coordinates: this.#getPointsOnUnauditedSegments() },
+        { kind: this.#plannedAhead ? 'remaining' : 'other', coordinates: this.#getPointsOnUnauditedSegments() },
       ];
     }
     // On a route every street ahead is part of the planned path, so it is painted as route-to-walk (dashed, with
     // chevrons, over a white casing), the same as the current street's remaining half and RouteBuilder, so the whole
-    // route reads as one arrowed path. A region audit has no planned path, so its other streets stay quiet context.
-    return wholeStreet(route ? 'remaining' : 'other');
+    // route reads as one arrowed path. A neighborhood mission's planned walk gets the same treatment only for the next
+    // few streets WalkPlanLayer previews (#5526), since chevrons on the whole region would bury the path ahead.
+    return wholeStreet(route || this.#plannedAhead ? 'remaining' : 'other');
   }
 
   /**
@@ -693,7 +759,54 @@ export class Task {
     const remainder = this.unwalkedRemainder();
     const distIncrement = Math.min(0.015, turf.length(remainder));
     const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
-    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latLng.lng, goalLoc[1] - latLng.lat)) + 360) % 360);
+    return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
+  }
+
+  /**
+   * The street from where a position falls on it to one of its ends, whatever has been walked: free exploration
+   * steps along a street either way (#5968), where unwalkedRemainder() only leads on from the furthest point.
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>} Starts at the position's nearest point on the street.
+   */
+  streetFrom(latLng, towardEnd) {
+    const here = turf.nearestPointOnLine(this.#geojson, turf.point([latLng.lng, latLng.lat]));
+    const length = turf.length(this.#geojson);
+    const at = Math.min(Math.max(here.properties.location, 0), length);
+    // Cut by distance along the street, not between two points: on a loop the ends are one point, and two points on
+    // one segment come back in the order named.
+    const [from, to] = towardEnd ? [at, length] : [0, at];
+    if (to - from <= 0) return turf.lineString([here.geometry.coordinates, here.geometry.coordinates]);
+    const stretch = turf.lineSliceAlong(this.#geojson, from, to);
+    if (!towardEnd) stretch.geometry.coordinates.reverse();
+    return stretch;
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {?number} Degrees clockwise from true north to 15 m down the street that way (its end if nearer); null
+   *   when too little street is left that way for any pano to count as a step down it.
+   */
+  headingAlongStreet(latLng, towardEnd) {
+    const stretch = this.streetFrom(latLng, towardEnd);
+    const length = turf.length(stretch);
+    if (length * 1000 < Task.MIN_STEP_ADVANCE_M) return null;
+    const goalLoc = turf.along(stretch, Math.min(0.015, length)).geometry.coordinates;
+    // From the labeler's place on the street, not where they stand: from off to one side, both ways would point in
+    // at the street and the two arrows would close on each other.
+    return (turf.bearing(stretch.geometry.coordinates[0], goalLoc) + 360) % 360;
+  }
+
+  /**
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} stretch - From streetFrom().
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there goes down the stretch: MIN_STEP_ADVANCE_M or more from its start. A pano
+   *   behind or beside the start falls on the start itself.
+   */
+  static isStepDown(stretch, latLng) {
+    const snapped = turf.nearestPointOnLine(stretch, turf.point([latLng.lng, latLng.lat]), { units: 'meters' });
+    return snapped.properties.location >= Task.MIN_STEP_ADVANCE_M;
   }
 
   /**

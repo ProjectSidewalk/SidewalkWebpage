@@ -8,8 +8,8 @@ function UtilitiesMisc(JSON) {
   // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,
   // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
   // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
-  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
-  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  /** @type {Array<Record<string, any>>} */
+  const labelTypes = window.labelTypes;
   const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
   self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
@@ -55,6 +55,12 @@ function UtilitiesMisc(JSON) {
   }
 
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
+  /**
+   * A mode's keyboard shortcut and, for a label type, its tags' shortcuts and translated names.
+   * @param {string} category - A label type name, or 'Walk'.
+   * @returns {{id: string, keyChar: string, tagInfo?: Record<string, {keyChar: string, text: string}>}|undefined}
+   *   The entry, or undefined for a mode with none.
+   */
   function getLabelDescriptions(category) {
     const descriptions = {
       Walk: {
@@ -301,9 +307,9 @@ function UtilitiesMisc(JSON) {
             keyChar: 'A',
             text: i18next.t('center-ui.context-menu.tag.ends-abruptly'),
           },
-          'street has a sidewalk': {
+          'other side has a sidewalk': {
             keyChar: 'R',
-            text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk'),
+            text: i18next.t('center-ui.context-menu.tag.other-side-has-a-sidewalk'),
           },
           'street has no sidewalks': {
             keyChar: 'T',
@@ -453,7 +459,7 @@ function UtilitiesMisc(JSON) {
         keyChar: 'B',
       },
     };
-    return category ? descriptions[category] : descriptions;
+    return descriptions[category];
   }
 
   /**
@@ -782,7 +788,37 @@ function UtilitiesMisc(JSON) {
     return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
   }
 
+  /**
+   * Ties a vote to the tally it changed: the gained vote's icon pops and its count rises, a lost vote's count dips.
+   * Under prefers-reduced-motion each of those blinks instead. Shared by the Gallery cards and the label detail card
+   * so a vote reads the same on both. Decoration only (the icon's state and the new counts are the record), so a
+   * browser without the Web Animations API just skips it.
+   *
+   * @example
+   *   util.misc.animateVoteChange({ Agree: { icon, count }, Disagree: { icon, count } }, 'Disagree', 'Agree');
+   *
+   * @param {Record<string, {icon: ?Element, count: ?Element}>} els - Each vote's icon and count, keyed by vote.
+   * @param {?string} previous - The viewer's vote before, or null.
+   * @param {?string} current - The viewer's vote now, or null once cleared.
+   */
+  function animateVoteChange(els, previous, current) {
+    if (previous === current) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const blink = [{ opacity: 1 }, { opacity: 0.25 }, { opacity: 1 }];
+    const pop = [{ transform: 'scale(1)' }, { transform: 'scale(1.5) rotate(-10deg)', offset: 0.4 },
+      { transform: 'scale(1)' }];
+    const rise = [{ transform: 'translateY(0)' }, { transform: 'translateY(-35%)' }, { transform: 'translateY(0)' }];
+    const dip = [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(30%)', opacity: 0.4 },
+      { transform: 'translateY(0)', opacity: 1 }];
+    const gained = current ? els[current] : null;
+    gained?.icon?.animate?.(reduceMotion ? blink : pop, { duration: 550, easing: 'ease-in-out' });
+    gained?.count?.animate?.(reduceMotion ? blink : rise, { duration: 400, delay: 100, easing: 'ease-in-out' });
+    const lost = previous ? els[previous] : null;
+    lost?.count?.animate?.(reduceMotion ? blink : dip, { duration: 400, easing: 'ease-in-out' });
+  }
+
   self.labelMarkerFraction = labelMarkerFraction;
+  self.animateVoteChange = animateVoteChange;
   self.getIconImagePaths = getIconImagePaths;
   self.labelTypeName = labelTypeName;
   self.getLabelDescriptions = getLabelDescriptions;
@@ -881,4 +917,123 @@ export function buildBackupImageData(meta) {
     address: pd.address,
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
+}
+
+/**
+ * Seconds before its `exp` that a signed URL counts as expired. Covers Pannellum's smaller-size retries reusing one
+ * URL for minutes on a slow link, and a client clock running behind; a fresh signature has an hour or more left.
+ */
+export const SIGNED_URL_EXPIRY_MARGIN_SEC = 600;
+
+/**
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {?URLSearchParams} Its query parameters, or null when the string isn't a URL.
+ */
+function queryParams(url) {
+  if (!url) return null;
+  try {
+    return new URL(url, window.location.origin).searchParams;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a URL carries a server signature (`sig`), so a failed load may mean it expired, whatever the clock says.
+ * @param {?string} url - Absolute or path-relative.
+ * @returns {boolean}
+ */
+export function isSignedUrl(url) {
+  return Boolean(queryParams(url)?.get('sig'));
+}
+
+/**
+ * Whether a signed `/backupImage` or `/cropImage` URL has expired, or will within `SIGNED_URL_EXPIRY_MARGIN_SEC`. The
+ * server signs these for about an hour, but a page keeps the URLs it got at load for as long as it stays open (#5861).
+ * @param {?string} url - A URL carrying `exp=<epoch seconds>`, absolute or path-relative.
+ * @param {number} [nowMs=Date.now()] - The current time, for tests.
+ * @returns {boolean} True when `exp` is past or within the margin; false without a usable `exp`.
+ */
+export function signedUrlIsExpired(url, nowMs = Date.now()) {
+  const exp = Number(queryParams(url)?.get('exp'));
+  if (!exp) return false;
+  return exp * 1000 <= nowMs + SIGNED_URL_EXPIRY_MARGIN_SEC * 1000;
+}
+
+/**
+ * Fetches a pano's backup metadata, with a freshly signed `image_url`, from `/backupImage/:panoId/metadata`.
+ * @param {string} panoId
+ * @returns {Promise<?BackupImage>} The metadata, or null if the pano has no backup or the request failed.
+ */
+export function fetchBackupImageMetadata(panoId) {
+  return util.fetchJson(`/backupImage/${encodeURIComponent(panoId)}/metadata`).catch(() => null);
+}
+
+/**
+ * Fetches a label's crop metadata, with freshly signed URLs, from `/cropImage/:labelType/:labelId/metadata`.
+ * @param {string} labelType
+ * @param {number} labelId
+ * @returns {Promise<?{image_url: string, thumbnail_url: string, crop_marker: ?object}>} The metadata, or null if the
+ *     label has no crop or the request failed.
+ */
+export function fetchCropImageMetadata(labelType, labelId) {
+  const url = `/cropImage/${encodeURIComponent(labelType)}/${encodeURIComponent(labelId)}/metadata`;
+  return util.fetchJson(url).catch(() => null);
+}
+
+/**
+ * Retries a failed signed picture once with a fresh URL, since its signature likely expired (#5861); anything else
+ * goes straight to the caller's fallback.
+ * @param {HTMLImageElement} img - The picture that failed.
+ * @param {object} handlers
+ * @param {() => Promise<?{image_url: string}>} handlers.fetchMetadata - Fetches its metadata with a fresh `image_url`.
+ * @param {() => void} handlers.onGiveUp - The caller's fallback: at once for an unsigned or already-retried URL, else
+ *     when no fresh URL can be had.
+ * @param {(url: string) => void} [handlers.onFresh] - Called with the fresh URL as it loads, for the caller to keep.
+ * @param {() => boolean} [handlers.isCurrent] - False once the caller has moved on, so a late answer is dropped.
+ */
+export function retrySignedImage(img, { fetchMetadata, onGiveUp, onFresh = () => {}, isCurrent = () => true }) {
+  if (img.dataset.resigned || !isSignedUrl(img.src)) {
+    onGiveUp();
+    return;
+  }
+  img.dataset.resigned = 'true';
+  fetchMetadata().then((meta) => {
+    if (!isCurrent()) return;
+    if (!meta?.image_url) {
+      onGiveUp();
+      return;
+    }
+    onFresh(meta.image_url);
+    img.src = meta.image_url;
+  });
+}
+
+/**
+ * Re-signing requests by pano id. Labels keep their old URL, so without this every Validate prefetch pass and load
+ * would re-sign the same pano again; holding the request, not its answer, also covers a prefetch and load at once.
+ * @type {Map<string, Promise<?string>>}
+ */
+const backupResigns = new Map();
+
+/**
+ * Returns the backup pano with a usable signed URL, re-signing it only when its own nears expiry. Only `image_url` is
+ * replaced: the rest (e.g. the label's own attribution) is what the caller chose to show.
+ * @template {Record<string, any>} T
+ * @param {?T} backupImage - Backup pano metadata, e.g. a {@link BackupImage}.
+ * @returns {Promise<?T>} A copy with a fresh `image_url`, the same object while its own URL still loads, or null.
+ */
+export async function freshBackupImage(backupImage) {
+  if (!backupImage || !signedUrlIsExpired(backupImage.image_url)) return backupImage;
+  const panoId = backupImage.pano_id;
+  const held = backupResigns.get(panoId);
+  let url = held && await held;
+  if (!url || signedUrlIsExpired(url)) {
+    const request = fetchBackupImageMetadata(panoId).then((meta) => meta?.image_url ?? null);
+    backupResigns.set(panoId, request);
+    url = await request;
+  }
+  if (url) return { ...backupImage, image_url: url };
+  const pastExp = signedUrlIsExpired(backupImage.image_url, Date.now() - SIGNED_URL_EXPIRY_MARGIN_SEC * 1000);
+  return pastExp ? null : backupImage;
 }

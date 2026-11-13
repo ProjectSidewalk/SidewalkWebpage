@@ -190,6 +190,19 @@ class LabelValidationTable @Inject() (
       .result
   }
 
+  /**
+   * The user's current vote on the label as the given type, locked for the rest of the transaction (#5475). Both the
+   * vote path and a comment whose reason must match the vote take this lock before touching the comment, so the two
+   * serialize. A vote change deletes and re-inserts the row, so a comment that waited on one finds no row ("no vote").
+   */
+  def lockValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
+      .forUpdate
+      .result
+      .headOption
+  }
+
   /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
   def getValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
     validations
@@ -198,13 +211,14 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
-  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
-  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations
-      .filter(x => x.labelId === labelId && x.userId === userId)
-      .sortBy(_.labelValidationId.desc)
-      .result
-      .headOption
+  /**
+   * The user's most recent vote on the label, of any type: the one a redo replaces. Locked, as `lockValidation`.
+   * Read again after the lock, because a row that a concurrent change deletes while this waits is skipped, not
+   * replaced by the row it inserted, so the locking read alone could return an older vote.
+   */
+  def lockNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    val votes = validations.filter(x => x.labelId === labelId && x.userId === userId)
+    votes.forUpdate.result.flatMap(_ => votes.sortBy(_.labelValidationId.desc).result.headOption)
   }
 
   /**

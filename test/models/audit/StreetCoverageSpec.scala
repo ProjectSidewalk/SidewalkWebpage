@@ -4,10 +4,27 @@ import play.api.libs.json.{JsError, JsSuccess, Json}
 import util.SidewalkSpec
 
 /**
- * The arithmetic behind free exploration's street credit (#5733), pinned because the client (Task.mergeRanges,
- * isCoveredEnough) and the one-off backfill each have a copy of it that must agree with this one.
+ * The arithmetic behind a street's credit (#5733, #5669), pinned because the client (Task.mergeRanges,
+ * isCoveredEnough), the imagery checker (check_streets_for_imagery.py) and the one-off backfill each have a copy of it
+ * that must agree with this one, and the numbers all of them read from conf/street-coverage.json.
  */
 class StreetCoverageSpec extends SidewalkSpec {
+
+  "StreetCoverage.rule" should {
+    "be the numbers in conf/street-coverage.json, served to the page under the client's names" in {
+      val file = Json.parse(getClass.getResourceAsStream("/street-coverage.json"))
+      StreetCoverage.MaxUncoveredM mustBe (file \ "maxUncoveredM").as[Double]
+      StreetCoverage.MinCoveredFrac mustBe (file \ "minCoveredFrac").as[Double]
+      StreetCoverage.PanoWindowM mustBe (file \ "panoWindowM").as[Double]
+      StreetCoverage.MaxHopM mustBe (file \ "maxHopM").as[Double]
+      StreetCoverage.asJson mustBe Json.obj(
+        "max_uncovered_m"  -> StreetCoverage.MaxUncoveredM,
+        "min_covered_frac" -> StreetCoverage.MinCoveredFrac,
+        "pano_window_m"    -> StreetCoverage.PanoWindowM,
+        "max_hop_m"        -> StreetCoverage.MaxHopM
+      )
+    }
+  }
 
   "StreetCoverage.merge" should {
     "clip to the street and drop what clipping empties" in {

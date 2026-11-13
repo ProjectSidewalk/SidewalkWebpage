@@ -9,7 +9,7 @@
 import { loadModules, mockModule } from './loader.js';
 
 mockModule('i18next', () => ({ default: {
-  t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+  t: (key) => (key === 'common:opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
 } }));
 
 /** The one string the overlay translates: the new-tab cue on the licence link. */
@@ -87,6 +87,23 @@ describe('createPanoAttribution', () => {
     overlay.show(MAPILLARY);
     overlay.hide();
     expect(el().hidden).toBe(true);
+  });
+
+  it('names a licence that has no URL as plain text, with nothing to click', () => {
+    overlay.show({ ...MAPILLARY, license_url: null });
+
+    expect(el().textContent).toBe('© jacobwhall · Mapillary · CC BY-SA 4.0');
+    expect(el().querySelector('a')).toBeNull();
+  });
+
+  it('leaves the provider off the card-sized line, where the source logo already names it', () => {
+    const card = document.createElement('div');
+    container.appendChild(card);
+    createPanoAttribution(card, { compact: true }).show(MAPILLARY);
+
+    const line = card.querySelector('.pano-attribution');
+    expect(line.classList).toContain('pano-attribution--compact');
+    expect(line.textContent).toBe(`© jacobwhall · CC BY-SA 4.0 ${NEW_TAB_CUE}`);
   });
 
   it('replaces the previous line rather than appending to it', () => {

@@ -38,6 +38,7 @@ export class MobileValidationMenu {
     labelContainer.onLabelReady((label) => this.resetMenu(label));
   }
 
+  /** Wires every button and text box in the menu to the verdict it casts or the reason it records. */
   #init() {
     const menuUI = this.#menuUI;
 
@@ -148,6 +149,11 @@ export class MobileValidationMenu {
     });
   }
 
+  /**
+   * Shows the menu as it should be for a label coming on screen: blank for a new one, or as the validator left it
+   * for one they came back to with Undo.
+   * @param {Label} label - The label now current.
+   */
   resetMenu(label) {
     const menuUI = this.#menuUI;
     const prevValResult = label.getProperty('validationResult');
@@ -195,7 +201,7 @@ export class MobileValidationMenu {
 
       if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
-      else if (prevValResult === 'Unsure') this.#setUnsureView();
+      else this.#setUnsureView();
     }
   }
 
@@ -238,13 +244,7 @@ export class MobileValidationMenu {
         reasonButton.innerHTML = buttonInfo.buttonText;
 
         reasonButton.removeAttribute('data-ps-tooltip-html');
-        if (buttonInfo.tooltipImage) {
-          util.getImage(buttonInfo.tooltipImage).then((img) => {
-            MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
-          });
-        } else {
-          MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText);
-        }
+        MobileValidationMenu.#addTooltip(reasonButton, buttonInfo.tooltipText, buttonInfo.tooltipImage);
 
         reasonButton.classList.add('defaultOption');
         reasonButton.style.display = 'flex';
@@ -324,7 +324,7 @@ export class MobileValidationMenu {
       menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       this.#labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      this.#reasonButton(id)?.classList.add('is-chosen');
+      this.#reasonButton(id).classList.add('is-chosen');
     }
   }
 
@@ -332,11 +332,7 @@ export class MobileValidationMenu {
   /**
    * Records the reason chosen for an unsure verdict.
    *
-   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
-   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
-   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
-   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
-   * picked for the label it lands on.
+   * Guarded for the reason given on `#setDisagreeReason`.
    *
    * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
    */
@@ -351,10 +347,11 @@ export class MobileValidationMenu {
       menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
       this.#labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      this.#reasonButton(id)?.classList.add('is-chosen');
+      this.#reasonButton(id).classList.add('is-chosen');
     }
   }
 
+  /** Keeps what was typed in both reason boxes on the current label, so an Undo can put it back. */
   saveValidationState() {
     const menuUI = this.#menuUI;
     const currLabel = this.#labelContainer.getCurrentLabel();
@@ -379,14 +376,18 @@ export class MobileValidationMenu {
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
 
-    // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
+    // Fill in the comment based on the disagree options they picked or one of the free form text boxes. A canned
+    // reason also travels as its id (#5475), so it is stored as one rather than only as the text shown.
     let comment = '';
+    let reasonId = null;
+    const reasons = this.#reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))];
     if (action === 'Disagree') {
       const disagreeReason = currLabel.getProperty('disagreeOption');
       if (disagreeReason === 'other') {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
         comment = this.#reasonButton(disagreeReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[disagreeReason].reasonId;
       }
     } else if (action === 'Unsure') {
       const unsureReason = currLabel.getProperty('unsureOption');
@@ -394,9 +395,11 @@ export class MobileValidationMenu {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
         comment = this.#reasonButton(unsureReason).innerHTML.replace('<br>', ' ');
+        reasonId = reasons[unsureReason].reasonId;
       }
     }
     currLabel.setProperty('comment', comment);
+    currLabel.setProperty('reasonId', reasonId);
 
     // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
@@ -423,8 +426,7 @@ export class MobileValidationMenu {
       Agree: 'validate-yes-button', Disagree: 'validate-no-button', Unsure: 'validate-unsure-button',
     };
     const button = document.getElementById(buttonIds[action]);
-    const icon = button?.querySelector('.validate-page-button__icon');
-    if (!icon) return;
+    const icon = button.querySelector('.validate-page-button__icon');
 
     // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
     document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());

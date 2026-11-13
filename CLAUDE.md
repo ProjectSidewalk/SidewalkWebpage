@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.9 +
-Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
+Play 3.0 (Java 21) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Vite bundles
 per page (no framework, no transpile), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
@@ -55,16 +55,17 @@ file, and this table says which doc to read first:
 - Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference. Exact
   dependency versions live only in the manifests (`build.sbt`, `package.json`, `requirements*.txt`); docs name major
   versions at most, and `docs/upgrading-libraries.md` holds the upgrade notes.
-- Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
-  checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
-  state; don't extend it into pano interaction.
+- Never cause a billable Google pano or map: Google bills every `StreetViewPanorama` and `Map` created, local tiles
+  or not. Never browser-test a page that builds a pano (Explore and its tutorial, Validate, the `label-detail` card)
+  outside `test/e2e/`, which stubs Google Maps. A new or changed interaction on one gets a spec there; hand the
+  developer a checklist only for what a spec can't reach (`test/e2e/README.md` → "Pano pages").
 
 ## Before a change is done
 
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Werror` is on, so
   a success is warning-clean. It can't run in a checkout whose app is up (`~ run` holds sbt); it says so and stops.
 - **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, JS types, spec
-  base class, evolutions lint, ShellCheck; all blocking CI gates), or scope it with
+  base class, env var contract, evolutions lint, ShellCheck; all blocking CI gates), or scope it with
   `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the mechanical fixes. The tree is
   lint-clean, so any finding is from your change.
 - **Shell scripts:** `make shellcheck` (or `files=<script>` for one). Silence a finding only with a
@@ -79,6 +80,8 @@ file, and this table says which doc to read first:
 
 - **ES2022.** As you touch code, modernize it: constructor functions → `class` with `#private` fields (defer a
   refactor that would ripple through many callers). Build HTML with template literals, never `+` concatenation.
+- **Don't engineer for the deploy's edge** (a tab on the old client, a row from before a new column). Note it in
+  the PR and move on; fix it only if it leaves a wrong durable record or breaks the page for everyone.
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".
@@ -128,8 +131,10 @@ share images and the API's `icon_url` fields only.
   at http://localhost:9000; `WebFetch` can't reach it, so use `curl`.
 - Public pages and the public API work without a session. Explore, Validate, dashboards and most saves need one:
   `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"` once (it makes an account), then
-  pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
-  (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
+  pass `-b /tmp/sidewalk_cookies.txt`. Running a worktree's branch (`make qa-worktree wt=<name>`):
+  `docs/dev-environment.md`.
+- On the local dev DB you may always make test accounts, admins included, whenever testing needs one; no need to ask.
+  Recipe: the `create-registered-user-account` skill.
 - Other sessions share :9000 and the test DB. If a command says another checkout holds :9000, rerun with `wait=1` or
   message the holder it names; never `force=1` without the developer's OK.
 - Inspect the DB read-only: `docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "…"` (never

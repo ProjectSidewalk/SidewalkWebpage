@@ -7,6 +7,7 @@
 
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class ContributorsPage {
   /** Accuracy buckets (upper bounds, percent) for the contributor-accuracy distribution. */
@@ -70,14 +71,14 @@ export class ContributorsPage {
 
   #renderKpis(labelers) {
     const highQ = labelers.filter((u) => u.high_quality).length;
-    const totalLabels = labelers.reduce((s, u) => s + (u.labels || 0), 0);
-    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
+    const totalLabels = labelers.reduce((s, u) => s + u.labels, 0);
+    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? u.labels : 0), 0);
 
-    this.#setText('kpi-contributors', labelers.length.toLocaleString());
-    this.#setText('kpi-high-quality', highQ.toLocaleString());
-    this.#setText('kpi-low-quality', (labelers.length - highQ).toLocaleString());
-    this.#setText('kpi-labels-high-quality', totalLabels ? ContributorsPage.#pct(labelsHighQ / totalLabels) : '—');
-    this.#setText(
+    AdminShell.setText('kpi-contributors', labelers.length.toLocaleString());
+    AdminShell.setText('kpi-high-quality', highQ.toLocaleString());
+    AdminShell.setText('kpi-low-quality', (labelers.length - highQ).toLocaleString());
+    AdminShell.setText('kpi-labels-high-quality', totalLabels ? ContributorsPage.#pct(labelsHighQ / totalLabels) : '—');
+    AdminShell.setText(
       'kpi-labels-high-quality-note', `${labelsHighQ.toLocaleString()} of ${totalLabels.toLocaleString()} labels`,
     );
   }
@@ -94,8 +95,8 @@ export class ContributorsPage {
 
   /** Stacked bar of how many labels come from high- vs low-quality contributors. */
   #renderLabelSource(labelers) {
-    const high = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
-    const low = labelers.reduce((s, u) => s + (!u.high_quality ? (u.labels || 0) : 0), 0);
+    const high = labelers.reduce((s, u) => s + (u.high_quality ? u.labels : 0), 0);
+    const low = labelers.reduce((s, u) => s + (!u.high_quality ? u.labels : 0), 0);
     document.getElementById('contrib-label-source').innerHTML = ContributorsPage.#stackedBar([
       { label: 'From high-quality users', value: high, cls: 'contrib-seg--high' },
       { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' },
@@ -173,7 +174,7 @@ export class ContributorsPage {
   /** Stacked bar of labels by the contributor's account role, largest share first. */
   #renderLabelSourceByRole(labelers) {
     const byRole = new Map();
-    for (const u of labelers) byRole.set(u.role, (byRole.get(u.role) || 0) + (u.labels || 0));
+    for (const u of labelers) byRole.set(u.role, (byRole.get(u.role) || 0) + u.labels);
     const segments = [...byRole.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([role, value]) => ({ label: role, value, color: ContributorsPage.#ROLE_COLORS[role] || '#999999' }));
@@ -183,15 +184,13 @@ export class ContributorsPage {
   /** Histogram of contributors by the agreement rate of their own labels (only those with validated labels). */
   #renderAccuracy(labelers) {
     const rated = labelers.filter((u) => (u.own_validated || 0) > 0);
-    // own_validated_agreed_pct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
-    const maxVal = rated.reduce((m, u) => Math.max(m, u.own_validated_agreed_pct || 0), 0);
-    const factor = maxVal <= 1 ? 100 : 1;
+    const factor = ContributorsPage.#pctFactor(rated, 'own_validated_agreed_pct');
 
     const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
     for (const u of rated) {
       const acc = (u.own_validated_agreed_pct || 0) * factor;
-      const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max);
-      counts[idx >= 0 ? idx : counts.length - 1]++;
+      // An agreement rate is at most 100%, which the top bucket's ceiling sits just above, so one always matches.
+      counts[ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max)]++;
     }
     const max = Math.max(1, ...counts);
     const el = document.getElementById('contrib-accuracy');
@@ -268,10 +267,10 @@ export class ContributorsPage {
       </table>`;
   }
 
-  /** Canonical label-type color via util.misc, with a grey fallback for unknown/odd types. */
+  /** Canonical label-type color via util.misc, with a grey fallback for a type the page was not told about. */
   static #typeColor(labelType) {
     try {
-      return util.misc.getLabelColors(labelType) || '#999999';
+      return util.misc.getLabelColors(labelType);
     } catch {
       return '#999999';
     }
@@ -393,14 +392,8 @@ export class ContributorsPage {
     return `${Math.round((frac || 0) * 100)}%`;
   }
 
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('contrib-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

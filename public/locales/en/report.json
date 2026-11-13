@@ -1,0 +1,30 @@
+{
+  "card": {
+    "cost": "Costs {{points}} points",
+    "cost-shared": "Costs {{points}} points, with {{others}} more",
+    "labels_one": "{{count}} label",
+    "labels_other": "{{count}} labels",
+    "more_one": "Show {{count}} more",
+    "more_other": "Show {{count}} more"
+  },
+  "map": {
+    "location": "{{type}}: show its photo",
+    "gesture-windows": "Use Ctrl + scroll to zoom the map",
+    "gesture-mac": "Use ⌘ + scroll to zoom the map",
+    "gesture-touch": "Use two fingers to move the map",
+    "aligned": "Aligned labels",
+    "aligned-note": "Each label on its side of the street, at about its point along it: not its exact spot."
+  },
+  "place": {
+    "score": "Score {{score}}",
+    "street": "{{street}} · {{distance}} away",
+    "unscored": "Its street isn't scored yet",
+    "unnamed": "Unnamed street"
+  },
+  "worst": {
+    "close": "Close",
+    "unavailable": "Couldn't load this label's card.",
+    "loading": "Loading…",
+    "rejected": "Every label here was marked incorrect after this report's scores were last computed, so there's no card to show."
+  }
+}

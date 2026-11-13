@@ -17,6 +17,10 @@ if (typeof document !== 'undefined') {
   // copy of what LabelType serializes, and LabelTypeSpec fails if the two diverge.
   const fixture = path.resolve(import.meta.dirname, '..', 'resources', 'label-types-stamp.json');
   window.labelTypes = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+  // The canned-reason catalog every page is served (#5475), the same way; ValidationReasonSpec holds the fixture to
+  // what ValidationReason stamps.
+  const reasons = path.resolve(import.meta.dirname, '..', 'resources', 'validation-reasons-stamp.json');
+  window.validationReasons = JSON.parse(fs.readFileSync(reasons, 'utf8'));
 
   // jsdom ships the Popover API's stylesheet (a closed `[popover]` is `display: none`) without the API, and refuses
   // to focus anything not displayed. The suites model a browser without the API, where no such rule exists.

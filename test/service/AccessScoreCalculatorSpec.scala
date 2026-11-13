@@ -113,7 +113,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("a lone NoSidewalk cluster scores the same through scoreCluster and scoreByType") {
-    val c = noSidewalk(labelCount = 2, "street has a sidewalk", tagged = 2)
+    val c = noSidewalk(labelCount = 2, "other side has a sidewalk", tagged = 2)
     AccessScoreCalculator.scoreCluster(c) shouldBe (noSidewalkTerm(c) +- eps)
     AccessScoreCalculator.scoreCluster(c) shouldBe (-2.0 / 3 + 1.0 +- eps)
   }
@@ -150,14 +150,14 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("the mutually exclusive sidewalk tags cancel when a street's labels split exactly in half") {
     noSidewalkTerm(
       noSidewalk(labelCount = 2, "street has no sidewalks", tagged = 2),
-      noSidewalk(labelCount = 2, "street has a sidewalk", tagged = 2)
+      noSidewalk(labelCount = 2, "other side has a sidewalk", tagged = 2)
     ) shouldBe (-4.0 / 3 +- eps)
   }
 
   test("NoSidewalk streets order by what labelers recorded: no sidewalks < untagged < a sidewalk on the other side") {
     val full        = Seq.fill(3)(noSidewalk())
     val noSidewalks = Seq.fill(3)(noSidewalk(tag = "street has no sidewalks", tagged = 1))
-    val otherSide   = Seq.fill(3)(noSidewalk(tag = "street has a sidewalk", tagged = 1))
+    val otherSide   = Seq.fill(3)(noSidewalk(tag = "other side has a sidewalk", tagged = 1))
     val endsHere    = full :+ noSidewalk(tag = "ends abruptly", tagged = 1)
 
     AccessScoreCalculator.scoreStreet(noSidewalks) should be < AccessScoreCalculator.scoreStreet(full)
@@ -173,7 +173,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.tagAdjustments.collect { case (("NoSidewalk", tag), delta) => tag -> delta } shouldBe Map(
       "ends abruptly"               -> -1.0,
       "street has no sidewalks"     -> -1.0,
-      "street has a sidewalk"       -> +1.0,
+      "other side has a sidewalk"   -> +1.0,
       "gravel/dirt road"            -> -0.25,
       "shared pedestrian/car space" -> +0.25,
       "covered walkway"             -> +0.5,
@@ -541,5 +541,22 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("every slope statistic has a distinct API name") {
     val names = AccessScoreCalculator.slopeStatistics.map(AccessScoreCalculator.slopeStatisticName)
     names shouldBe Seq("mean_grade", "max_grade", "meters_over_limit")
+  }
+
+  test("headlineFromClusters rebuilds a street's headline from its clusters, slope and scored ends") {
+    val block   = Seq(cluster("Obstacle", Some(3)), noSidewalk())
+    val start   = Seq(cluster("NoCurbRamp", Some(3)))
+    val end     = Seq(cluster("CurbRamp", Some(1)))
+    val segment = AccessScoreCalculator.segmentScoreWithSlope(
+      AccessScoreCalculator.scoreByType(block, Some(150.0)),
+      Some(AccessScoreCalculator.SlopeInput(Some(0.1), Some(0.1), None, None, None, approximate = false)),
+      150.0
+    )
+    val expected = AccessScoreCalculator.headlineScore(
+      Some(segment),
+      Seq(AccessScoreCalculator.scoreStreet(start), AccessScoreCalculator.scoreStreet(end))
+    )
+    AccessScoreCalculator.headlineFromClusters(block, 150.0, -1.0, Seq(start, end)) shouldBe (expected.get +- eps)
+    AccessScoreCalculator.headlineFromClusters(Seq.empty, 150.0, 0.0, Seq.empty) shouldBe 0.5
   }
 }

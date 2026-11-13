@@ -8,7 +8,7 @@ import models.utils.MyPostgresProfile.api.given
 import models.utils.*
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /** The AI server rejected our password, so no request in this run can succeed. */
 class AiApiAuthException(message: String) extends Exception(message)
@@ -30,6 +31,18 @@ case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]
 
   /** @return True when the schema already carried every row, so the run was a no-op. */
   def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
+}
+
+object AiService {
+
+  /**
+   * Tells the AI server's own "no imagery" 502, after which the label can never be assessed, from the one its Apache
+   * sends while the server is down. The message must match the one in sidewalk-ai-api's main.py.
+   * @param body The 502 response's body.
+   * @return True when the AI server itself said it couldn't fetch the panorama.
+   */
+  def panoFetchFailed(body: String): Boolean =
+    Try((Json.parse(body) \ "error").asOpt[String]).toOption.flatten.contains("Failed to fetch panorama")
 }
 
 @ImplementedBy(classOf[AiServiceImpl])
@@ -237,14 +250,28 @@ class AiServiceImpl @Inject() (
     val url: String                      = s"https://${SIDEWALK_AI_API_HOSTNAME}/process"
     val labelId: Int                     = labelData.labelId
 
-    // Create form data for the multipart request.
-    val formData = Map(
+    // Create form data for the request. The pano's rig pitch and roll (degrees, as stored) let the API centre its
+    // crop on what the labeler clicked rather than on the stored pixel, which carries the rig-tilt error of #4784
+    // (#5788). The API treats them as optional (NaN counts as unknown), but rejects infinite values and any beyond
+    // +/-30 degrees with a 400 (MAX_POSE_DEG in sidewalk-ai-api's main.py; keep the two in step), which would leave
+    // the label unassessed on every nightly run. Such poses are bad data, so they're dropped and the label is assessed
+    // uncorrected, as before.
+    // `coord_frame` says which frame x/y are in: human labels are placed in the gravity-levelled viewer frame
+    // ("level"), which is what the API corrects; a label whose pano_x/pano_y are already image-frame pixels (the AI
+    // labeler's submissions, or labels placed after a #4784 fix at the source) must be sent as "rig" so it is not
+    // corrected twice. AI-labeler submissions never reach this call today (submitAiLabelData doesn't call the AI API,
+    // and getLabelsToValidateWithAi excludes the AI role); choosing the frame per label belongs with #5790.
+    val maxPoseDeg: Double              = 30.0
+    def validPose(deg: Double): Boolean = !deg.isNaN && !deg.isInfinite && math.abs(deg) <= maxPoseDeg
+    val formData                        = Map(
       "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
-      "city"        -> cityId
-    )
+      "city"        -> cityId,
+      "coord_frame" -> "level"
+    ) ++ labelData.panoData.cameraPitch.filter(validPose).map(p => "camera_pitch" -> p.toString) ++
+      labelData.panoData.cameraRoll.filter(validPose).map(r => "camera_roll" -> r.toString)
 
     // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)
@@ -302,7 +329,7 @@ class AiServiceImpl @Inject() (
                 )
               )
             )
-          } else if (response.status == 502) {
+          } else if (response.status == 502 && AiService.panoFetchFailed(response.body)) {
             // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
             // imagery is likely expired. Check expiration (panoExists records it) then record a failure row so we stop
             // retrying this label. Sequenced with flatMap rather than Await so we don't block a pool thread on the call.

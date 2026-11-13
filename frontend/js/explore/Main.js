@@ -51,6 +51,7 @@ import { ForwardCrumbs } from './navigation/ForwardCrumbs.js';
 import { Minimap } from './navigation/Minimap.js';
 import { MinimapLegend } from './navigation/MinimapLegend.js';
 import { MinimapMissionProgress } from './navigation/MinimapMissionProgress.js';
+import { WalkPlanLayer } from './navigation/WalkPlanLayer.js';
 import { NavigationService } from './navigation/NavigationService.js';
 import { StreetSweep } from './navigation/StreetSweep.js';
 import { ObservedArea } from './navigation/ObservedArea.js';
@@ -93,8 +94,10 @@ import '../common/utilitiesSidewalk.js';
  * @property {boolean} makeCrops - Whether a placed label's imagery is cropped and uploaded.
  * @property {import('./label/Label.js').LatLngEstimation} latLngEstimation - The label lat/lng estimator's
  *   constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
- * @property {import('./task/Task.js').StreetCoverage} streetCoverage - Free exploration's street-credit rule
+ * @property {import('./task/Task.js').StreetCoverage} streetCoverage - The street-credit rule (StreetCoverage.asJson)
  *   (#5733), owned by the backend (StreetCoverage).
+ * @property {{priorityTolerance: number, tinyStreetM: number}} walkPlanner - The walk planner's thresholds (#5526),
+ *   owned by the backend (walk-planner.* in application.conf) and read by TaskContainer.planWalk.
  * @property {string} mapboxApiKey
  * @property {import('./navigation/Minimap.js').MinimapBasemap} basemap - The minimap's tile and glyph URLs.
  * @property {string} countryId - The city's country, for the speed limit sign.
@@ -197,8 +200,11 @@ import '../common/utilitiesSidewalk.js';
  */
 
 export class Main {
-  // sessionStorage key for an unresolvable-?routeId= notice waiting out the tutorial (#5156).
-  static #ROUTE_UNAVAILABLE_KEY = 'sidewalk.routeUnavailable';
+  // sessionStorage keys, by session flag, for a dropped-link notice waiting out the tutorial (#5156, #5824).
+  static #PARKED_NOTICE_KEYS = {
+    route_unavailable: 'sidewalk.routeUnavailable',
+    street_unavailable: 'sidewalk.streetUnavailable',
+  };
 
   #params;
 
@@ -267,6 +273,7 @@ export class Main {
       makeCrops: params.makeCrops,
       latLngEstimation: params.latLngEstimation,
       streetCoverage: params.streetCoverage,
+      walkPlanner: params.walkPlanner,
       mapboxApiKey: params.mapboxApiKey,
       basemap: params.basemap,
       countryId: params.countryId,
@@ -352,8 +359,7 @@ export class Main {
     }
     const currLatLng = panoManager.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
-    // The drop-in pano is the first one seen of its street (#5733).
-    if (config.isExploreAddressMode) newTask.recordVisit(currLatLng);
+    newTask.recordVisit(currLatLng);
     minimap.setMinimapLocation(currLatLng);
     const peg = new Peg(minimap, panoManager);
 
@@ -391,12 +397,24 @@ export class Main {
       labelContainer, labelModes, navArrows, keyboardLock, alertController);
     const streetProgress = new StreetProgress(config, regionModel, missionModel, missionContainer, taskContainer,
       panoManager, navigationService, streetSweep, jumpAlert, tracker);
+    navigationService.onMoveStarted(() => streetSweep.rememberStanding());
+    streetProgress.onLabelBeforeJumpChanged((armed) => navArrows.setWalkEnded(armed));
     navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
     navArrows.onRouteForwardClick(() => {
       tracker.push('Click_RouteForwardArrow');
       navigationService.moveForward()
         .then(() => tracker.push('RouteForwardArrow_Success'))
         .catch(() => tracker.push('RouteForwardArrow_PanoNotAvailable'));
+    });
+    navArrows.onStreetWalkClick((towardEnd) => {
+      const notes = { toward: towardEnd ? 'end' : 'start' };
+      tracker.push('Click_StreetWalkArrow', notes);
+      navigationService.moveAlongStreet(towardEnd)
+        .then((panoId) => {
+          if (panoId) tracker.push('StreetWalkArrow_Success', notes);
+          else if (panoId === null) tracker.push('StreetWalkArrow_PanoNotAvailable', notes);
+        })
+        .catch(() => tracker.push('StreetWalkArrow_PanoNotAvailable', notes));
     });
     navArrows.reset();
     const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, streetProgress,
@@ -418,15 +436,21 @@ export class Main {
       routeOverview, navigationService, regionModel, tracker);
     new MinimapLegend(ui.minimap, labelContainer, tracker);
     const forwardCrumbs = new ForwardCrumbs(config, panoManager, taskContainer, compass, minimap, observedArea,
-      navigationService, navArrows, tracker);
+      navigationService, streetSweep, navArrows, tracker);
+    streetProgress.onLabelBeforeJumpChanged((armed) => forwardCrumbs.setWalkEnded(armed));
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
-    // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked.
+    const walkPlanLayer = new WalkPlanLayer(taskContainer, missionContainer);
+    // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked and
+    // the planned streets previewed ahead (#5526), since at street zoom the preview is mostly off screen.
     minimap.setOverviewStreets(() => {
       if (regionModel.isRoute) return taskContainer.getTasks();
       const tasks = (missionContainer.getCurrentMission()?.getRoute() ?? []).slice();
       const current = taskContainer.getCurrentTask();
       if (current && !tasks.includes(current)) tasks.push(current);
+      for (const task of walkPlanLayer.getPreviewedTasks()) {
+        if (!tasks.includes(task)) tasks.push(task);
+      }
       return tasks;
     });
 
@@ -517,7 +541,7 @@ export class Main {
 
     // Last, so no shortcut acts before the tool is wired.
     const keyboard = new KeyboardManager(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl,
-      panoManager, compass, immersiveMode, tracker);
+      panoManager, compass, streetProgress, immersiveMode, tracker);
 
     this.#modules = {
       tracker, keyboardLock, alertController, regionModel, missionModel, panoManager, navArrows, minimap,
@@ -608,19 +632,20 @@ export class Main {
   }
 
   /**
-   * Holds an unresolvable-?routeId= notice (#5156) over the tutorial, which is where a first-time visitor following
-   * a stale share link lands.
+   * Holds an unresolvable-?routeId= (#5156) or ?streetEdgeId= (#5824) notice over the tutorial, which is where a
+   * first-time visitor following a stale share link lands.
    *
    * Saying it now would be saying it into the tutorial intro and then throwing it away: onboarding takes over the
-   * whole session and ends by reloading a bare /explore, which carries no trace of the route that was asked for.
+   * whole session and ends by reloading a bare /explore, which carries no trace of the link that was followed.
    * Waiting is also what a *valid* route does here — its walk is set up, suppressed for the tutorial's sake (#4816),
    * and picked up on that same reload. sessionStorage rather than a field because of that reload; per tab, so a
    * notice never outlives the browsing session that earned it.
    */
-  #parkRouteUnavailableNotice() {
-    if (!this.#session.route_unavailable) return;
+  #parkUnavailableNotices() {
     try {
-      window.sessionStorage.setItem(Main.#ROUTE_UNAVAILABLE_KEY, '1');
+      for (const [flag, key] of Object.entries(Main.#PARKED_NOTICE_KEYS)) {
+        if (this.#session[flag]) window.sessionStorage.setItem(key, '1');
+      }
     } catch {
       // Storage throws outright in some privacy modes. A notice that can't cross the reload is lost; it must never
       // be the thing that breaks Explore.
@@ -628,21 +653,24 @@ export class Main {
   }
 
   /**
-   * Whether this load owes the user the unresolvable-?routeId= notice — this visit's own, or one held over the
-   * tutorial by [[#parkRouteUnavailableNotice]]. Consumed as it is read, so it shows once.
+   * Whether this load owes the user an unresolvable-link notice — this visit's own, or one held over the tutorial by
+   * [[#parkUnavailableNotices]]. Consumed as it is read, so it shows once.
    *
-   * A held notice is dropped once a route has resolved: the user asked again and got one, so the earlier failure is
-   * news about a route they have already moved past — and reporting it would take the place of the resume toast,
-   * which belongs to the route they are actually in.
+   * A held route notice is dropped once a route has resolved: the user asked again and got one, so the earlier
+   * failure is news about a route they have already moved past — and reporting it would take the place of the resume
+   * toast, which belongs to the route they are actually in.
    *
+   * @param {'route_unavailable'|'street_unavailable'} flag - The session flag the notice is for.
    * @returns {boolean} True when the toast should be shown.
    */
-  #takeRouteUnavailableNotice() {
-    const asked = Boolean(this.#session.route_unavailable);
+  #takeUnavailableNotice(flag) {
+    const asked = Boolean(this.#session[flag]);
+    const key = Main.#PARKED_NOTICE_KEYS[flag];
     try {
-      const parked = window.sessionStorage.getItem(Main.#ROUTE_UNAVAILABLE_KEY) === '1';
-      if (parked) window.sessionStorage.removeItem(Main.#ROUTE_UNAVAILABLE_KEY);
-      return asked || (parked && !this.#session.route_id);
+      const parked = window.sessionStorage.getItem(key) === '1';
+      if (parked) window.sessionStorage.removeItem(key);
+      const stillOwed = flag !== 'route_unavailable' || !this.#session.route_id;
+      return asked || (parked && stillOwed);
     } catch {
       return asked;
     }
@@ -650,7 +678,7 @@ export class Main {
 
   /**
    * Skip the onboarding tutorial from the intro: mark the onboarding mission skipped/complete, submit, and reload into
-   * a real Explore mission. Mirrors how the onboarding itself ends on skip.
+   * a real Explore mission, the same way the finished onboarding ends.
    */
   #skipTutorial() {
     const { tracker, missionContainer, form } = this.#modules;
@@ -709,7 +737,7 @@ export class Main {
     m.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
-    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getFeature());
+    m.streetSweep.prefetchAlongStreet(m.taskContainer.getCurrentTask().getGeoJSON());
   }
 
   // This is a callback function that is executed after every loading process is done.
@@ -742,7 +770,7 @@ export class Main {
 
     const mission = m.missionContainer.getCurrentMission();
     if (mission.getProperty('missionType') === 'auditOnboarding') {
-      this.#parkRouteUnavailableNotice();
+      this.#parkUnavailableNotices();
       this.#startTutorialIntro();
     } else {
       this.#calculateAndSetTasksMissionsOffset();
@@ -805,17 +833,22 @@ export class Main {
     }, this.#config.language);
 
     // Toasts for a visit that resumed something (#4833) or didn't go where the URL asked: a route that couldn't
-    // open (#5156), or a neighborhood already done (#5692). They wait for the mission-start screen to close so
-    // they aren't hidden under it, and only one shows; "didn't go where asked" wins over a resume note. `Toast`
-    // queues the re-audit notice (#4895) behind whichever one shows.
+    // open (#5156), a street that couldn't be handed out (#5824), or a neighborhood already done (#5692). They wait
+    // for the mission-start screen to close so they aren't hidden under it, and only one shows; "didn't go where
+    // asked" wins over a resume note. `Toast` queues the re-audit notice (#4895) behind whichever one shows.
     const toastOnDone = (event, options) => {
       document.addEventListener('ps:mission-start-tutorial:done', () => {
         m.tracker.push(event);
         Toast.show({ reference: document.getElementById('pano'), dark: true, duration: 10000, ...options });
       }, { once: true });
     };
-    if (this.#takeRouteUnavailableNotice()) {
+    // Both are taken up front so a held notice is consumed even when the other one is the toast that shows.
+    const routeUnavailable = this.#takeUnavailableNotice('route_unavailable');
+    const streetUnavailable = this.#takeUnavailableNotice('street_unavailable');
+    if (routeUnavailable) {
       toastOnDone('RouteUnavailableToast_Shown', { message: i18next.t('right-ui.route-unavailable.message') });
+    } else if (streetUnavailable) {
+      toastOnDone('StreetUnavailableToast_Shown', { message: i18next.t('right-ui.street-unavailable.message') });
     } else if (this.#session.region_finished) {
       toastOnDone('RegionFinishedToast_Shown', {
         message: i18next.t('right-ui.region-finished.message', { regionName: currentRegion.getProperty('name') }),

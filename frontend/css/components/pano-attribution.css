@@ -5,7 +5,7 @@
 
    Mounted by PanoAttribution.js (the pano-viewer and pano-credit bundles) inside a positioned pano container. This
    file is the look; each host positions the pill where its own overlays leave room (label-detail.css,
-   validate/svv-panorama.css, gallery/cards.css, landing-validation-grid.css). */
+   validate/svv-panorama.css, gallery-card.css, landing-validation-grid.css). */
 .pano-attribution {
   position: absolute;
   max-width: calc(100% - 20px);
@@ -20,7 +20,8 @@
   pointer-events: none; /* Never intercepts a drag on the imagery beneath it… */
 }
 
-.pano-attribution a {
+/* :any-link outranks a page's own link color (.report-page a), which would paint the licence blue on the dark pill. */
+.pano-attribution a:any-link {
   color: inherit;
   text-decoration: underline;
   pointer-events: auto; /* …except on the licence link itself. */
@@ -43,4 +44,3 @@
   text-overflow: clip;
 }
 
-.pano-attribution[hidden] { display: none; }

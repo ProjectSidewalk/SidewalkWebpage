@@ -155,11 +155,34 @@ describe('ShareWidget', () => {
       expect(document.activeElement).not.toBe(trigger);
     });
 
+    test('a popover closed straight after opening leaves no page-wide Escape handler behind', async () => {
+      buildWidget();
+      trigger.click();
+      trigger.click();
+      await flushPromises();
+
+      // A stray handler would stop Escape on its way down, so the page's own Escape handling would never hear it.
+      const heard = vi.fn();
+      document.body.addEventListener('keydown', heard);
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      document.body.removeEventListener('keydown', heard);
+      expect(heard).toHaveBeenCalledTimes(1);
+    });
+
     test('setTarget closes an open popover so items cannot point at a stale target', () => {
       const widget = buildWidget();
       trigger.click();
       widget.setTarget({ ...TARGET, url: 'https://sidewalk-test.example.org/label/456' });
       expect(popover().hidden).toBe(true);
+    });
+
+    test('a click inside the menu but off its items (on its heading) keeps it open', async () => {
+      buildWidget();
+      trigger.click();
+      await flushPromises();
+
+      popover().querySelector('.label-detail__share-heading').click();
+      expect(popover().hidden).toBe(false);
     });
   });
 
@@ -209,6 +232,14 @@ describe('ShareWidget', () => {
       press('ArrowDown');
       expect(document.activeElement).toBe(items[0]);
     });
+
+    test('any other key is left to the page', async () => {
+      const items = await openMenu();
+      const event = new KeyboardEvent('keydown', { key: 'a', cancelable: true });
+      document.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(items[0]);
+    });
   });
 
   describe('share actions', () => {
@@ -223,13 +254,32 @@ describe('ShareWidget', () => {
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
       expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_CopyLink');
-      const copyButton = item('share.copied');
+      const copyButton = item('copy.copied');
       expect(copyButton.classList.contains('is-copied')).toBe(true);
 
       vi.advanceTimersByTime(1500);
       expect(copyButton.querySelector('.label-detail__share-item-label').textContent)
         .toBe('share.copy-link');
       expect(copyButton.classList.contains('is-copied')).toBe(false);
+    });
+
+    test('a copy the browser refuses is not logged as a share', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      navigator.clipboard.writeText.mockRejectedValue(new Error('denied'));
+      buildWidget();
+      trigger.click();
+      item('share.copy-link').click();
+      await flushPromises();
+
+      expect(warn).toHaveBeenCalledWith('Copy to clipboard failed.', expect.any(Error));
+      expect(window.logWebpageActivity).not.toHaveBeenCalledWith('Share_CopyLink');
+    });
+
+    test('still opens on a page whose activity logger never came up', () => {
+      delete window.logWebpageActivity;
+      buildWidget();
+      trigger.click();
+      expect(popover().hidden).toBe(false);
     });
 
     test('X opens a tweet intent with the encoded URL and text, then closes', () => {
@@ -367,6 +417,13 @@ describe('ShareWidget', () => {
       place({ top: 600, bottom: 620, viewport: 800, popoverHeight: 330 });
       trigger.click();
       expect(wrapper().classList.contains('label-detail__share--below')).toBe(false);
+    });
+
+    test('flips down when there is no room above but there is below', () => {
+      buildWidget({ fitToViewport: true });
+      place({ top: 100, bottom: 120, viewport: 800, popoverHeight: 330 });
+      trigger.click();
+      expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
     });
 
     test('keeps the preference when neither side fits, so the choice stays predictable', () => {

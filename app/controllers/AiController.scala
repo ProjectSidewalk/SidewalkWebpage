@@ -7,6 +7,7 @@ import play.api.libs.json.*
 import play.api.libs.ws.*
 import play.api.mvc.*
 import play.api.{Configuration, Logger}
+import service.AiLabelsConflict
 
 import java.util.Base64
 import javax.inject.*
@@ -34,7 +35,12 @@ class AiController @Inject() (
   }
 
   /**
-   * Parse and process the submitted AI-generated label.
+   * Parse and process the labels the auto-labeler found on one pano.
+   *
+   * Answers 409 when the pano already holds live AI labels of the submission's type and `overwrite` isn't set, naming
+   * the pano and the count so the caller learns it would have duplicated them. Nothing is written in that case.
+   * @return 200 on success, 400 on an invalid payload or a city without AI submission, 401 without the internal key,
+   *         409 on a refused duplicate, 500 on a failed write (nothing from it is kept).
    */
   def submitAiLabel = Action.async(parse.json) { implicit request =>
     // Server-to-server write: authenticate the trusted caller (the auto-labeler) with the internal API key before
@@ -52,9 +58,20 @@ class AiController @Inject() (
             exploreService
               .submitAiLabelData(submission)
               .map(_ => Ok("success!"))
-              .recover { case e =>
-                logger.error("AI label submission failed; nothing from it was saved.", e)
-                InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save AI label data."))
+              .recover {
+                case conflict @ AiLabelsConflict(panoId, labelType, existingCount) =>
+                  Conflict(
+                    Json.obj(
+                      "status"               -> "Error",
+                      "message"              -> s"${conflict.getMessage}; resend with overwrite=true to replace them.",
+                      "pano_id"              -> panoId,
+                      "label_type"           -> labelType.name,
+                      "existing_label_count" -> existingCount
+                    )
+                  )
+                case e =>
+                  logger.error("AI label submission failed; nothing from it was saved.", e)
+                  InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save AI label data."))
               }
           } else {
             Future.successful(BadRequest("AI label submission is not enabled for this city."))

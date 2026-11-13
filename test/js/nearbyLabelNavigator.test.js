@@ -31,6 +31,20 @@ describe('createNearbyLabelNavigator', () => {
   // Five labels along a street: 1..4 clustered 111m apart, 5 further down the block.
   const LINE = { CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0], [4, 0.003, 0], [5, 0.01, 0]] };
 
+  test('idKey names the property that identifies a feature, for touring AccessScore clusters (#5748)', async () => {
+    const sortedLabels = {
+      CurbRamp: [[1, 0, 0], [2, 0.001, 0]].map(([id, lng, lat]) => ({
+        properties: { label_cluster_id: id }, geometry: { coordinates: [lng, lat] },
+      })),
+    };
+    const nav = (await loadFactory())({ sortedLabels }, { idKey: 'label_cluster_id' });
+    expect(nav.getCoords(1)).toEqual([0, 0]);
+    expect(nav.hasNext(1)).toBe(true);
+    expect(nav.next(1)).toBe(2);
+    expect(nav.next(2)).toBeNull();
+    expect(nav.prev(2)).toBe(1);
+  });
+
   test('next() tours nearest-first without revisiting, and returns null when exhausted', async () => {
     const nav = (await loadFactory())(mapDataWith(LINE));
     expect(nav.next(1)).toBe(2);
@@ -50,6 +64,16 @@ describe('createNearbyLabelNavigator', () => {
     expect(nav.prev(3)).toBe(2);
     expect(nav.prev(2)).toBe(1);
     expect(nav.prev(1)).toBeNull();
+  });
+
+  test('hasPrev() on a label the user stepped back to counts only the labels before it', async () => {
+    const nav = (await loadFactory())(mapDataWith(LINE));
+    nav.next(1); // -> 2
+    nav.next(2); // -> 3
+    nav.prev(3); // back to 2; the trail now ends at 2 itself
+    expect(nav.hasPrev(2)).toBe(true);
+    nav.prev(2); // back to 1
+    expect(nav.hasPrev(1)).toBe(false);
   });
 
   test('next() after prev() returns to the abandoned label (back/forward semantics)', async () => {

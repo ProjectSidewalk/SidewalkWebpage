@@ -19,7 +19,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * The Gallery's controller, including its review-list mode (#5444).
+ * Gallery's controller, including its review-list mode (#5444).
  */
 object GalleryController {
 
@@ -56,6 +56,8 @@ class GalleryController @Inject() (
    * @param neighborhoods Old name for `regions`, still read so existing links keep working.
    * @param labelIds      A comma-separated review list (#5444). When it names at least one label, the page shows
    *                      exactly those labels in that order and every other filter above is ignored.
+   * @param labelIdsTotal How long the list was before a linking page cut it to fit a URL, so the over-the-cap notice
+   *                      counts what the reader asked for rather than what the URL could hold; 0 when not cut.
    * @param sort          A [[GallerySort]] name (#2705). Only an admin gets the control, so for anyone else, and for
    *                      a name the enum doesn't have, the page is in its random order.
    */
@@ -68,6 +70,7 @@ class GalleryController @Inject() (
       aiValidationOptions: String,
       neighborhoods: String,
       labelIds: String,
+      labelIdsTotal: Int,
       sort: String
   ): Action[AnyContent] =
     cc.securityService.UserAwareAction { implicit request =>
@@ -127,7 +130,7 @@ class GalleryController @Inject() (
         val labelIdList: Seq[Int]  = requestedIds.take(GalleryController.MaxLabelIds)
         // The cap has to be visible on the page: a review list is a completeness promise, and silently serving the
         // first 500 of 600 tells the reviewer they have seen everything when they have not.
-        val idsOverCap: Int = requestedIds.size - labelIdList.size
+        val idsOverCap: Int = math.max(requestedIds.size, labelIdsTotal) - labelIdList.size
 
         // Log visit to Gallery async. A review list logs its length, not its ids: it can be 500 of them, and the
         // question the log answers is how often list mode is used, not on what.
@@ -149,7 +152,7 @@ class GalleryController @Inject() (
    * Returns labels of specified type, severities, and tags.
    *
    * A read-only POST (the filter payload is JSON, hence not a GET), so it is user-aware rather than secured (#4643):
-   * the Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
+   * Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
    * the "already validated by you"/"your own label" checks match nothing, same as a brand-new anonymous account.
    */
   def getLabels: Action[JsValue] = cc.securityService.UserAwareAction(parse.json) { implicit request =>
@@ -158,7 +161,7 @@ class GalleryController @Inject() (
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         val n: Int = submission.n
-        // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
+        // An empty set of types means "every type", which is what the landing grid and Gallery's default ask for.
         val labelTypes: Set[LabelType] = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.withNameOption).toSet
         val loadedLabels: Set[Int]     = submission.loadedLabels.toSet
         val valOptions: Set[String]    = submission.validationOptions.getOrElse(Seq()).toSet
@@ -194,9 +197,10 @@ class GalleryController @Inject() (
                     panoDataService.backupImageUrl(l.panoId),
                     currUsername = request.identity.map(_.username)
                   ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
-                  "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                  "cropMarker"  -> markers.get(l.labelId),
-                  "gsvImageUrl" ->
+                  "cropUrl"      -> panoDataService.cropUrl(l.labelId, l.labelType),
+                  "thumbnailUrl" -> panoDataService.cropThumbnailUrl(l.labelId, l.labelType),
+                  "cropMarker"   -> markers.get(l.labelId),
+                  "gsvImageUrl"  ->
                     panoDataService.getBrowserImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
                       l.canvasWidth, l.canvasHeight)
                 )

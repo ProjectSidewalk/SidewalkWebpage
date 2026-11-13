@@ -122,6 +122,7 @@ class ImageController @Inject() (
    * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
    *
    * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
+   * Every refusal is a 404 (the viewer only reads `res.ok`) whose body names the cause (#5183).
    */
   def getBackupImageMetadata(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
@@ -130,10 +131,12 @@ class ImageController @Inject() (
       Future.successful(BadRequest(s"Invalid pano ID: $panoId"))
     } else {
       panoDataService.getLocalBackupImage(panoId).map {
-        case Some(p) =>
+        case Right(p) =>
           val url = signingService.signedUrl(s"/backupImage/$panoId")
           Ok(LabelFormats.localBackupImagePayload(p, url))
-        case None => NotFound(s"No backup image found for pano: $panoId")
+        case Left(reason) =>
+          logger.info(reason)
+          NotFound(reason)
       }
     }
   }
@@ -217,7 +220,10 @@ class ImageController @Inject() (
         case None            => Future.successful(BadRequest(invalidLabelTypeMessage(labelType)))
         case Some(None)      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
         case Some(Some(url)) =>
-          cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
+          val thumbnailUrl = signingService.signedUrl(s"/cropImage/$labelType/$labelId/thumbnail")
+          cropService
+            .cropMarker(labelId)
+            .map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, thumbnailUrl, m)))
       }
     }
   }
@@ -245,6 +251,30 @@ class ImageController @Inject() (
           Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
         } else {
           Future.successful(NotFound("Crop image not found"))
+        }
+    }
+  }
+
+  /**
+   * Serves a crop's thumbnail, for a page that shows many crops at once. Gated like the crop itself, since it is the
+   * same imagery.
+   *
+   * @param labelType The label's type, which names its crop's directory.
+   * @param labelId   The label.
+   * @return `Ok` with an `image/jpeg`, or `NotFound` if the label has no usable crop.
+   */
+  def serveCropThumbnail(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
+    val earlyReject =
+      if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
+      else if (!LabelType.labelTypeNames.contains(labelType)) Some(BadRequest(invalidLabelTypeMessage(labelType)))
+      else verifySignature(request, s"/cropImage/$labelType/$labelId/thumbnail")
+
+    earlyReject match {
+      case Some(result) => Future.successful(result)
+      case None         =>
+        cropService.cropThumbnail(labelId, LabelType.withName(labelType)).map {
+          case Some(file) => Ok.sendFile(file, inline = true).as("image/jpeg")
+          case None       => NotFound("Crop image not found")
         }
     }
   }

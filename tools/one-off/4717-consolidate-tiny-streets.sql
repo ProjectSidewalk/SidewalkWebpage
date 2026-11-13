@@ -13,9 +13,9 @@
 --      ways between intersections, and heals what a region border cut), whatever their way ids or lengths. Two
 --      exceptions, as in the pipeline: a street that genuinely crosses a region border, with 30 m (-v border_m=) or
 --      more on each side and neither side running along the border (within -v rider_m= of the other side's
---      region), stays cut; and once a joined street runs through a junction, the streets still ending there stay
---      cut (the pipeline's end-to-end joins happen before its tiny-segment merges, so they never see that junction
---      as a dead end).
+--      region), stays cut; and once a joined street runs through a junction, in this run or an earlier one, the
+--      streets still ending there stay cut (the pipeline's end-to-end joins happen before its tiny-segment merges, so
+--      they never see that junction as a dead end).
 --   3. In a city without OSM way ids (the Infra3d cities carry -1 everywhere, and the ids never mattered there), a
 --      street under 20 m at an intersection joins the neighbour that continues it most nearly straight, if that
 --      bends less than -v straight_deg= (45).
@@ -40,7 +40,7 @@
 --   * The survivor keeps its id and its direction; the sliver is added at one end, so its start/end points change
 --     and its street_gradient row and OSM way positions go stale. Run sidewalk-server-tools/street-gradient-backfill.sh
 --     and osm-lineage-backfill.sh afterwards: both pick up changed geometry. The survivor moves region only if most
---     of it now lies in another live one.
+--     of it now lies in another region whose state matches its status (open in a live one, closed in a deleted one).
 --   * Labels move to the survivor, and their distance from the centre line (which left/right comes from) is
 --     re-measured for every label on the survivor, since its line changed.
 --   * Audits, route stops, issues, clusters, comments and places move to the survivor. A completed audit stays
@@ -209,6 +209,20 @@ WHERE NOT is_loop AND NOT active
 
 -- An end at a junction a joined street now runs through: not a dead end, whatever touch says is left there.
 CREATE TEMP TABLE blocked_end (id INTEGER NOT NULL, at_end TEXT NOT NULL, PRIMARY KEY (id, at_end)) ON COMMIT DROP;
+-- touch only sees street ends, so a street that already runs through a junction (one an earlier run joined, say) is
+-- invisible there and the two cross streets ending at it would look like one road. Their ends start out blocked.
+-- The degree pre-filter is wide enough for the same 1 m up to about 60 degrees of latitude.
+INSERT INTO blocked_end (id, at_end)
+SELECT edge.id, street_end.at_end
+FROM edge
+CROSS JOIN LATERAL (VALUES ('start', edge.start_pt), ('end', edge.end_pt)) AS street_end (at_end, pt)
+WHERE EXISTS (SELECT FROM edge AS through
+              WHERE through.id <> edge.id
+                AND ST_DWithin(through.geom, street_end.pt::geometry, :touch_m / 55000.0)
+                AND ST_DWithin(through.geom::geography, street_end.pt, :touch_m)
+                AND NOT ST_DWithin(through.start_pt, street_end.pt, :touch_m)
+                AND NOT ST_DWithin(through.end_pt, street_end.pt, :touch_m));
+ANALYZE blocked_end;
 
 -- For rule 2's "runs along the border" test.
 CREATE TEMP TABLE region_buffer ON COMMIT DROP AS
@@ -249,7 +263,8 @@ BEGIN
     FROM queue JOIN edge ON edge.id = queue.id
     WHERE queue.position = next_position AND edge.pending;
     IF NOT FOUND THEN
-      EXIT WHEN next_position > (SELECT max(position) FROM queue);
+      -- An empty queue has no max, and a NULL here would never stop the loop.
+      EXIT WHEN next_position > coalesce((SELECT max(position) FROM queue), 0);
       CONTINUE; -- Joined onto something, or settled, since it was queued.
     END IF;
 
@@ -502,8 +517,8 @@ WHERE street_edge_id IN (SELECT drop_id FROM final_merge) OR street_edge_id IN (
 CREATE TEMP TABLE label_move ON COMMIT DROP AS
 SELECT label.label_id, label.street_edge_id AS from_id, final_merge.survivor_id AS to_id
 FROM label JOIN final_merge ON final_merge.drop_id = label.street_edge_id;
--- 5. A survivor whose line now lies mostly in another live region moves there, so border joins land on the right
---    side. A deleted region would hide the street, so only live ones count.
+-- 5. A survivor whose line now lies mostly in another region moves there, so border joins land on the right side.
+--    The region must match its status: reveals and hides find streets by region (#5953).
 CREATE TEMP TABLE region_move ON COMMIT DROP AS
 SELECT street_edge_region.street_edge_id, street_edge_region.region_id AS from_region_id,
        best.region_id AS to_region_id
@@ -511,7 +526,9 @@ FROM street_edge_region
 JOIN edge ON edge.id = street_edge_region.street_edge_id
 CROSS JOIN LATERAL (
   SELECT region.region_id FROM region
-  WHERE region.geom && edge.geom AND NOT region.deleted
+  WHERE ST_Intersects(region.geom, edge.geom)
+    AND (edge.status NOT IN ('open', 'closed') OR region.deleted = (edge.status = 'closed'))
+    AND ST_Length(ST_Intersection(edge.geom, region.geom)::geography) >= 1
   ORDER BY ST_Length(ST_Intersection(edge.geom, region.geom)::geography) DESC, region.region_id
   LIMIT 1
 ) AS best

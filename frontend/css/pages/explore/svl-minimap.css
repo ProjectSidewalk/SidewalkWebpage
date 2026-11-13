@@ -63,11 +63,6 @@
   display: none;
 }
 
-/* Its display would otherwise override the hidden attribute it starts with, covering a working map. */
-#minimap-unavailable-message[hidden] {
-  display: none;
-}
-
 #minimap-unavailable-message {
   position: absolute;
   inset: 0;
@@ -556,7 +551,6 @@
   box-shadow: 0 0 0 calc(3px * var(--ui-scale, 1)) color-mix(in srgb, var(--crumb-color) 45%, transparent);
 }
 
-
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. The marker
    centers it on the location and it rotates about that center, so the dot stays planted while the triangle swings to
    --peg-heading (#4639). */
@@ -739,7 +733,7 @@
 }
 
 /* Recenter: a lone button 6px above the zoom column (3 x 18px buttons, 2px gaps, 10px up), so it reads as its own
-   control and rounds on all corners. .ps-icon-button's display: flex would override its hidden attribute. */
+   control and rounds on all corners. */
 #minimap-recenter {
   position: absolute;
   right: calc(4px * var(--ui-scale));
@@ -748,10 +742,6 @@
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
   border-radius: calc(7px * var(--ui-scale, 1));
-}
-
-#minimap-recenter[hidden] {
-  display: none;
 }
 
 #minimap-recenter .ps-icon-button-icon {

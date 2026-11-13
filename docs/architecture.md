@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.9 + Play Framework 3.0 (Java 21).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript ES modules, bundled per page by Vite (no transpilation), with no framework:
   native DOM and CSS on the `main.css` design tokens.
@@ -58,12 +58,32 @@ The backend follows a consistent layering: **routes → Controller → Service �
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
-  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
-  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
-  password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
-  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking, and project news by
+  email, #5864) and `user_account_state` holds what the site records about them (having finished the Explore tutorial,
+  and when a password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both
+  only get a row once there's something to store (#3720). Per-city stats and privacy flags stay in each city's
+  `user_stat` table.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Validator reliability (#5063)** — `user_stat.validator_reliability` is the weight to give a user's validations,
+  refreshed by the nightly user stats job. `UserStatTable.validatorTallies` grades each Agree or Disagree vote against
+  the first answer that exists (a training example's, then an admin's vote, then the majority of the other votes) and
+  `ValidatorReliability` turns the graded and matched counts into the score. The AI's Disagree votes grade no one
+  until #5974. The formula is published on the User Stats API docs page, and the admin Data Quality page charts the
+  people's scores from `/adminapi/validatorReliability`.
+- **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
+  `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
+  turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a
+  bounce, or a spam complaint. `news_email_consented_at` is when the user ticked the box themselves, the proof of
+  consent EU-style rules ask for; the backfill never overrides it, the sync must never re-subscribe a `complaint`, and
+  a future email-change flow should clear a `bounce`. The sign-up box starts checked only in the opt-out-law countries
+  in `news-email-opt-out-countries`, since a pre-ticked box isn't consent elsewhere. The unsubscribe link is
+  `/unsubscribe?token=`, the user id signed by `NewsEmailTokenService` with the app secret (shared by every city, so
+  a link verifies anywhere); its GET only confirms, and its `nocsrf` POST opts out and is what `List-Unsubscribe-Post`
+  points at. Admin → Management exports the send list (`Role.NEWS_EMAIL_ROLES` accounts not opted out, each with its
+  unsubscribe link); the mailing service never holds the list of record. Accounts from before the box that first
+  signed up in a consent-law country were opted out by `tools/one-off/5864-opt-out-consent-country-signups.sql`,
+  stamped at their sign-up time, so ticking the Settings box is their consent. Password resets are never opt-out-able.
 - **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
@@ -84,17 +104,22 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
 and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
-inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
-proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission walks
+(#5526), is walks that make sense on the ground: routes that end at intersections rather than at an
 arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
   `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
-  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
+  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all. The
+  assignment does have to agree with the street's status: reveals, hides and the imagery scan find streets by it, so
+  anything that refiles a street keeps an open one in a live region and a closed one in a hidden region (#5953).
   Historically the city build cut streets at region borders so the two coincided; the current build heals the short
   pieces those cuts leave (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and
   `tools/one-off/4717-consolidate-tiny-streets.sql` applies the same rules to a city built before it, joining the
-  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets.
+  short pieces back onto their neighbours. A longer piece cut off at a border is simply two streets. A check
+  constraint (evolution 422, #5691) keeps every street that isn't `disabled` at least 1 m long. Disabled streets can
+  still be shorter, and queries that read every status (the intersection rebuild, route distances) can meet one, so a
+  route must include at least one street that isn't disabled.
 - **A street knows every OSM way it lies on, and where (#5741).** `osm_way_street_edge` holds one row per street-way
   pair: the stretch of the street the way covers, the stretch of the way that is (fractions along each line in its own
   direction) and `same_direction`, since OSM's `sidewalk:left` / `:right` follow the way's drawn direction while our
@@ -124,18 +149,44 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
   are actually in, and going by the street alone would drop a label placed just across a border from its mission's
   region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
-- **Free exploration credits streets by coverage, not by reaching the end.** The `?lat&lng` drop-in (#4451) has no
-  route or direction, so the client credits each pano to whichever loaded street it is on, switching tasks as the
-  labeler wanders (`TaskContainer.recordExploreMove`), and keeps per task the stretches seen: 10 m either side of
-  each on-street pano plus the stretch between neighbours under 50 m apart (`Task.recordVisit`). The server unions
-  each submission into `audit_task.covered_ranges` on the user's own open task for that street (found by user,
-  street and mission, never by the posted id), derives `audited_distance_m` from the total, and completes the task
-  once what is left unseen is at most half the street and at most 50 m (`StreetCoverage`, fitted to real walks
-  fleet-wide). A street the user already has an up-to-date audit of takes no new task, so it is never counted
-  twice; one flagged for re-audit gets one, as in a regular mission. Everything downstream reads
-  `audit_task.completed` as usual. `start_offset_m` marks these rows and
-  keeps them out of the regular-mission resume paths, though the region task list still returns their coverage so a
-  reload redraws a part-walked street. Sessions from before #5733 are credited by a one-off backfill.
+- **A street is credited by coverage, not by reaching its end.** Every Explore walk keeps per task the stretches of
+  the street its panos covered: 10 m either side of each on-street pano plus the stretch between neighbours under 50 m
+  apart (`Task.recordVisit`, on every landing). The server unions each submission into `audit_task.covered_ranges`,
+  derives `audited_distance_m` from the total, and completes the task once what is left unseen is at most half the
+  street and at most 50 m (`StreetCoverage`, fitted to real walks fleet-wide), never from the client's completed flag.
+  The numbers live in `conf/street-coverage.json` because three things must agree on them (#5669): the client ends a
+  street by the same rule, the server credits it, and the imagery checker (`tools/city/check_streets_for_imagery.py`)
+  keeps a street open only if a walk could finish it. So a regular mission's street ends, credited, once the labeler
+  reaches its end having seen enough of it; if the imagery runs out first, it is credited when enough was seen, else
+  reported as missing imagery and left unfinished (`StreetProgress`, `StreetSweep`): a hole of more than 50 m is a
+  stretch nobody could look at, so the street waits for better imagery. A report is evidence for the checker, not a
+  verdict (#4922); it only stops the neighborhood handing that street back to the labeler who bounced off it
+  (`selectANewTaskInARegion`, `reported_no_imagery` on the region task list, #5017), until the street has imagery
+  newer than the report. A region down to such streets is skipped by region assignment and sizes no mission
+  (`getRegionsWithNothingLeftToPick`, `getUnauditedDistance`), though its progress still reads as unfinished.
+  The `?lat&lng` drop-in (#4451) has no route or direction, so there the client credits each pano to whichever
+  loaded street it is on, switching tasks as the labeler wanders (`TaskContainer.recordExploreMove`), and the
+  server finds the task by user, street and mission, never by the posted id. A street the user already has an
+  up-to-date audit of takes no new task, so it is never counted twice; one flagged for re-audit gets one, as in a
+  regular mission. Everything downstream reads `audit_task.completed` as usual. `start_offset_m` marks drop-in rows
+  and keeps them out of the regular-mission resume paths, though the region task list still returns their coverage
+  so a reload redraws a part-walked street. Sessions from before #5733 are credited by a one-off backfill.
+- **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
+  region's unwalked streets to `WalkPlanner` (`frontend/js/common/`), stamps each task with its planned position and
+  direction, and `nextTask` follows that order the way it follows a route's saved one. It replans when a street is
+  given up for lack of imagery and when another labeler's audit changes the priority of a previewed street or which
+  streets are in the top priority tier; a replan asked for while a jump is armed waits until the jump lands.
+  `WalkPlanLayer` previews the next few streets on the minimap, up to the first jump. The planner is deterministic,
+  so a reload resuming the same street replans the same remaining walk. If planning fails, the greedy rule takes over.
+  - *Why the client, and what would move it.* The next-street choice was already client-side (the greedy rule), the
+    client holds every street with its live priority and gets priority deltas on every task POST, and both consumers
+    (the next-street pick and the minimap preview) are on the client, so a server plan would add a table, an
+    endpoint and an invalidation story for no consumer. The server's part is the first street of a session and the
+    thresholds (`walk-planner.*` in `application.conf`, env-overridable per deployment), which reach the page as its
+    `walkPlanner` data. Move the planning itself only for a need a client can't meet: coordinating several labelers
+    in one region (reservations, which the planner would consume as excluded streets), a plan that must survive a
+    device switch, or a planned route shown outside Explore. `WalkPlanner` has no DOM or map dependency, so such a
+    port would be a transcription.
 
 ### Media storage
 
@@ -167,7 +218,7 @@ A pano's `pano_data.width`/`height` never change: Google re-renders pixels, neve
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
 
-Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+Crops are the image Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
 dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
@@ -186,7 +237,7 @@ says (the centre, unless the window shifted off a pole) — and the files look a
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
 against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
 on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
-the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet, photo strip and street panel) — take it from the
 row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
 image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
 must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
@@ -201,11 +252,28 @@ width on demand, caching it under the crop store (#5256). A phone asks for 8192 
 native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
 For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
 pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
-steps down to a smaller width on that refusal. A pool with no room refuses every width alike, so a foreground load
+steps down to a smaller width on that refusal. The ladder stops at once on a WebGL context the browser has lost, which
+a GPU driver reset leaves behind and Pannellum reports as a size limit of 0px: no width renders on it, so a smaller
+copy would only cost the server a cut. A pano that fails at its last rung, or on a lost context, takes the Pannellum
+instance down with it, and the next pano opens a fresh one; a pano whose context died under an instance that was
+showing gets that fresh instance itself, once, since the browser may be handing out working contexts again (#5939).
+Loads on one viewer run one at a time, and a rung Pannellum never reports on (an image that downloaded but did not
+decode) is given up after a watchdog, so one such pano cannot hold the ones behind it. A pool with no room refuses
+every width alike, so a foreground load
 that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
 nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
+
+`/backupImage/:panoId/metadata` answers 404 whether the file is missing, the `pano_data` row is missing, or the row
+lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
+no query.
+
+`/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
+open longer holds URLs that 403. The client gets a fresh one from the two `/metadata` endpoints: a plain `<img>`
+re-signs once after a failed load (`retrySignedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
+popup) retries a failed load itself, its loads re-sign beforehand when the URL is within 10 minutes of its `exp`
+(`freshBackupImage`); a client clock running further behind than that still 403s there (#5861).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -254,6 +322,10 @@ generation, OSM way refresh, AI validations, and auth-token cleanup. The schedul
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
 
+The imagery-age poll's rotation (`StreetImageryTable.streetsToPoll` and `noImageryStreetsToPoll`) keys on
+`street_imagery.polled_at`, which only the poll's `upsertFromPoll` writes (#5403): the labeling harvest bumps
+`updated_at` too, so keying on it starved never-polled streets.
+
 Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
 and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
 a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
@@ -264,10 +336,8 @@ its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418):
 computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
 opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
 endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
-background; the AccessScore tool retries on that header and says so under its spinner. The admin Across Cities
-page's `/adminapi/cityScorecards` keeps the same contract over its per-JVM cross-city caches
-(`ConfigService.CrossCityColdWait`, #5432), and both pages retry through the one helper,
-`frontend/js/common/FetchWithRetry.js`.
+background; the AccessScore tool retries on that header and says so under its spinner. `/adminapi/cityScorecards`
+does the same for Across Cities (`ConfigService.CrossCityColdWait`, #5432); both pages retry via `FetchWithRetry.js`.
 
 The **minimap basemap refresh** (#5716) keeps each city's own copy of the minimap's OpenStreetMap tiles.
 `BasemapService` runs the `pmtiles` tool to copy the regions' area, plus 2 km, out of Protomaps' daily world file: a few
@@ -293,10 +363,14 @@ that found nothing to do, since the absence of a log line is not something anyon
 the roster, flagging any job that is overdue, failed, interrupted, or has never run. The wrapper is strictly
 subordinate to the job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 It also logs each run's outcome and duration, so the log alone can tell a job still working from one that died.
+
 Only the process that opened a run can close it, so a process that dies mid-run (a deploy, a crash) would leave the
 row `running` forever; `OrphanedJobRunSweep` closes those at the next boot as `interrupted` (#5236), taking every run
 that started before this JVM did. That rule rests on each stage running one process per city schema. A run that hangs
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
+
+The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
+`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -341,8 +415,10 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
-- **File downloads** (shapefile, GeoPackage, zipped CSVs) are each built in their own folder under `api-downloads/`
-  and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
+- **File downloads** (shapefile, GeoPackage, zipped and single CSVs) are each built in their own folder under
+  `api-downloads/` and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a
+  later download (#4133). The folder names are random and the sweep is age-based, so every city started from one
+  staged build can share its `api-downloads/` (#5138).
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
@@ -385,6 +461,73 @@ local testing (a curl without the header 401s the same either way) and cost `/ai
 (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
 `/clusteringResults`, `/ai/submitLabelsOnPano`.
 
+### Neighborhood reports (`/report/neighborhood/:slug`)
+
+A report ties a map, which says where something is, to photos, which show what it is (#3889, #5876): one public,
+responsive page per region. Its address is the region's name (`ReportSlug`: lowercased, accents dropped, the id appended
+only where two regions share a name), computed from current names rather than stored; an id URL redirects to it. The title, numbers and full street list are server-rendered, so they survive a failed
+script; the maps and cards are drawn by `frontend/js/report/`. Its rule is that no number appears without a way to see
+the labels it counts, so every count links to those labels through Gallery's `?labelIds=` review list, or to its
+filters past that list's cap (`ReportLinks`). It builds no pano, and its maps are MapLibre over the city's PMTiles, so
+viewing one costs no billable Google or Mapbox call. A card's image is its crop's thumbnail or a placeholder, never the
+Gallery's Street View still.
+
+The report's scores are AccessScore's, and they must agree with what the tool, the Spotlight and the API say about the
+same place. `ReportService` reads the city's `getFullCityScores` cache rather than scoring anything itself, and the same
+public data backs every figure: the street scores, the label clusters ("locations") and the raw labels, each linked as a
+CSV. While that cache is cold after a deploy the page answers 503 with a `Retry-After` rather than an inferred number.
+`AccessScoreSpotlight` holds the bars for what gets ranked (`regionQualifies`, `stretchIsRanked`, `stretchScore`), so the
+report and the Spotlight can't disagree about them. The page ranks explored street segments, roughly blocks: the unit
+AccessScore scores and the map colors, so a section never holds parts its number doesn't describe. Each is named by the
+streets at its ends ("between X and Y") and shown beside its whole road's score. Every ranked segment is in the list and
+on the map; the lowest `NeighborhoodReport.DetailSize` (20) get a section, and the fixes take at most one per road.
+Important places (#5311) within `ReportPlace.NearMeters` of a segment, by the place's nearest street, are named beside
+it, drawn on its maps and on its fix; they change no number, which is #5315's question. Every live map carries its own
+"Places" switch in a corner (`ReportPlacesToggle`, #5900) rather than one sidebar switch, since a map of the whole
+neighborhood and a map of one block needn't agree; a street section remembers its answer across its map's comings and
+goings. A street map carries a second switch, off by default, that lines its labels up along the street (#5888): each
+marker moves to the foot of its position on its own edge's centerline, offset a fixed number of screen pixels to the
+side `label_point.street_side` (#2886) recorded for it, with markers that would overlap on one side pushed apart along
+it. The side is the majority among the cluster's counted labels on that edge (`ReportRules.sideOf`, so the client never
+derives it); a location with no side, or at a crossing, stays where it is. It is a way of drawing only (the geometry is
+`ReportLabelAlignment`, pure functions; nothing stored or scored changes) and its switch says so, since a line of
+markers implies more precision than the data has. A fix's cost is how far the segment's score would rise without that location, computed by re-running `AccessScoreCalculator` over its real inputs;
+`ReportEvidence` assigns a location to a block or a crossing exactly as the engine does, including crossing locations
+labeled from streets outside the region. The rules live in `models/report/NeighborhoodReport.scala` as pure code.
+Reviewers are people: AI votes aren't counted as reviewers, though they do feed the `correct` verdict that leaves a label
+out. Photos come from `/cropImage/:type/:id/thumbnail`,
+because a page of full-size crops weighs around 100 MB.
+
+`ReportPage` decides when each piece exists, since a region can have fifty streets and a browser about 16 WebGL contexts:
+a street's map and cards start as its section nears the viewport, and at most `MAX_LIVE_MAPS` maps live at once, given to
+the near sections closest to it. Each `ReportStreetSection` keeps one source of what's lit, whichever side the pointer is
+on: hover a Gallery `Card` and its map icon and elevation-profile pin light, with the photo's view wedge drawn, and hover
+an icon and its card lights. Under the map sits `AccessScoreElevationProfile`, fed by `stitchProfile`, which joins a
+stretch's per-edge `/v3/api/streetGrade` answers end to end. For print, a small SVG sketch stands in for each canvas.
+Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend says so.
+
+Below the segment list, a worst-problems map (#5889) puts a dot, in its type's label color, on every location whose
+rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
+Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
+switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
+and a dot opens its label's Gallery card in a popup. Its places wear the unscored grey disc, since color on that map
+means a label type. It prints as the counts alone.
+
+After the fixes, when the region has any, come the community's stories (#4054, #5900): the newest
+`ReportService.StoriesListSize` visible stories on labels in the region (`StoryTable.getVisibleForCity` scoped by
+region), each as the person chose to be named, with their photo or the label's saved crop (never a Street View still),
+leading to the label's card at that story and to the street's section when it has one. They are the human case beside
+the engineering one and change no number.
+
+A reader can try their own weights, with the same "Adjust the weights" panel as the AccessScore tool
+(`AccessScoreWeightsPanel`, markup in `views/common/accessScoreWeights.scala.html`). Letting go of a slider reloads
+the report with the weights in the tool's own `w` and `gs` parameters, and the server scores the whole report under
+them: `AccessScoreWeights.reweight` rebuilds every cached street and crossing score from the per-type counts each
+row already carries (the same arithmetic as the tool's client-side reweighting, with no database read), and fixes,
+card costs and the street order all follow. The page never shows numbers from two weightings at once. Custom weights
+must not pass for AccessScore's own, so a stamp stays in the header and in print, and every score links to the tool
+under the same weights.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
@@ -424,7 +567,16 @@ loaded by the corresponding Twirl view:
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission.
+  path already resumes the user's own open drop-in mission. Free exploration draws only the provider's link
+  arrows, since there is no route to point along, except on a pano with no links at all (providers return some
+  reachable panos that way): there `NavArrows` draws a plain arrow each way down the current street, and a click
+  searches down the street from where the labeler stands for the next pano that way
+  (`StreetSweep.stepAlongStreet`, #5968). It reads the street's whole geometry, not the unwalked remainder the
+  mission walk uses, so both directions work wherever the labeler has been. At an end of the street only the arrow
+  back down it is drawn, and a viewer that can't search by location gets none. The up and down arrow keys take the
+  street arrow nearest the way they step, as they would a link.
+  The order in which a neighborhood mission walks its
+  streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
@@ -435,6 +587,9 @@ loaded by the corresponding Twirl view:
   it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  A validator's first missions each carry a training example an admin pinned (#1445), explained by
+  `ModalGoldFeedback` when their vote on it isn't Disagree; the queue doc's "Training examples" has the rules,
+  and the answer is filed in `gold_example_response`, never as a vote.
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
   hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
@@ -497,7 +652,8 @@ loaded by the corresponding Twirl view:
   query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
   is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
   hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
-  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  worse than a refused one. A linking page whose list is far over the cap (the Neighborhood Report's pooled items)
+  sends only the first 500 ids plus `labelIdsTotal=<n>`, which the notice counts instead, so the URL stays short. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
@@ -552,8 +708,32 @@ loaded by the corresponding Twirl view:
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
   raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
   every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
-  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
-  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  per histogram bin, since a symbol's image can't read feature-state, #5311), the street panel
+  (`AccessScoreStreetPanel.js`, #5748: what a click on a street or a place opens, a drawer on the map's right that
+  says why the street scores what it does in figures, every explanation in words behind an "i" — the block and its
+  two crossings drawn in their score colors, the block as its elevation profile where the city has one with the
+  problems along it pinned where they are (`AccessScoreElevationProfile` markers), a signed effect bar per label type
+  totaled over the block and its scored crossings with grade among them — and backs it with the evidence, one
+  `LabelMiniCard` tile per cluster along the block and at each crossing, costliest first, each wearing what that
+  cluster costs or earns under the current weights (`AccessScoreModel#clusterTerm`, exact for a per-cluster
+  type since the engine scores a cluster from its median rating and tag counts); a row hovered keeps only its type's
+  tiles, uncapped, and pressed pins that; a tile lights its dot on the map; a street end with no crossing names the
+  street the road continues as, a button that selects it, or says dead end; a crossing's dot, hovered or focused, lights that crossing's clusters and opens the crossing card
+  (`AccessScoreCrossingCard.js`: a Mapbox inset of the intersection, built once and recentered since Mapbox bills
+  the map load, never a Street View pano, with the crossing's clusters on it, the corner types' effects and the
+  crops of its costliest clusters as pictures only, the votable tiles being just below), and pressed flies the map
+  to the crossing; the panel owns the map's right padding as the drawer owns the left and the dock the bottom, each
+  through `ps-map/mapPadding.js`, which keeps the padding the map is heading for so no owner eases to another's
+  half-way value or cuts short a fly-to; the
+  dock folds to its bar while it is open, and a place's panel is its nearest street's headed by the place; a region
+  keeps a Mapbox popup), the clusters' shared cache (`AccessScoreClusterFeed.js`: a region's `/v3/api/labelClusters`
+  feed and the `/label/id` JSON behind each picture, fetched once for the panel and the photo strip), the cluster
+  sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop cards, the sheet as many
+  cards wide as the cluster has up to the window's width, and tied to its dot as LabelMap's card is to its label
+  through the shared `ps-map/labelSpotlight.js`: a beacon on the dot, the camera parking it in the free gutter
+  beside the sheet, between the drawers, and a tail from sheet to dot, with prev and next arrows that tour the
+  clusters on the map through the same `ps-map/nearbyLabelNavigator.js` LabelMap's card uses, nearest unvisited
+  next and the trail back), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
   intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
@@ -566,8 +746,8 @@ loaded by the corresponding Twirl view:
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
-  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band, the
+  panel and the popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
 - **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
@@ -601,6 +781,9 @@ loaded by the corresponding Twirl view:
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
   where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
+  Each mouse/pen press on the pano holder captures the pointer, so a drag ends wherever it is let go
+  (`test/e2e/label-card-drag.spec.js`): Infra3D only hears a release on its own canvas, and a disabled button over
+  the imagery would swallow `mouseup` (#5295, #5294).
   Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
@@ -754,11 +937,11 @@ what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validatio
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
 find and run it: `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`,
 `ClusterService` resolves the script against the app root rather than the process working directory (a staged app
-runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installable on the `python3` the
-app invokes. Don't add libraries to `requirements.txt` that have dropped 3.8.
+runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installed into the `python3.12`
+the app invokes (the deploy does that).
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%) — one CI
-run per interpreter, the in-band leg blocking and the offline-tooling leg advisory. See
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%, a blocking
+CI check). See
 [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
@@ -781,8 +964,33 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
 
 `main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
-`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
-stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. The stamp is
+required: `utilitiesSidewalk.js` reads it when it loads, so a page without it fails at once.
+
+The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
+enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for
+a Disagree and an Unsure vote, in menu order; `main.scala.html` stamps it as `window.validationReasons`, and
+`frontend/js/common/validationReasons.js` is the one frontend reader. Validate's menus, the label detail card and the
+Gallery cards all render their reasons from it, with each reason's text and tooltip in the locale files under its id
+(`common:validation-reason.<id>`), so the stamp stays language-free. On the label card and the Gallery cards the
+question is asked by the reason pop-up (`ReasonPopover.js`, mobile Validate's notched panel generalised): it hangs
+off whichever control cast the vote once the server has it, offers the reasons as `ReasonChips` (whose "Other…"
+turns into a text field and Save in place, for a typed reason), and leaves on a pick or a save, Escape, its close
+control, a click outside (unless "Other…" holds unsaved words), or the next vote, never on mouse-leave. It shows in
+the top layer but sits inside the host's `<dialog>` when there is one, since a modal (the LabelMap card) leaves
+everything outside it inert. There is no separate way back: the next Disagree or Unsure asks again (clicking the
+standing vote clears it, so a second click recasts it). The card's comment box holds still while the pop-up is up,
+then behaves as it does for an Agree: shut over a saved reason, open with the vote's prompt after a dismissal.
+A pick is stored as the validator's comment on the label with the id in
+`validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
+marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
+semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
+the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
+on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
+new vote), and dropped, with the vote and text kept, on the Validate batch. Changing a vote from a card keeps the
+validator's typed words, which describe the label rather than the vote, under the new vote, and archives a canned
+reason the new vote doesn't offer; clearing a vote, or Validate's redo (an undo and a fresh vote), still takes the
+comment with it.
 
 ## Where to go next
 

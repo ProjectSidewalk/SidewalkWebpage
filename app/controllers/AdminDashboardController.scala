@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import formats.json.HealthFormats.fleetHealthWrites
 import formats.json.UserFormats.given
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
@@ -9,6 +10,7 @@ import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
 import service.{
   ConfigService,
+  FleetHealthService,
   HealthService,
   ImageryFreshnessReportService,
   LabelService,
@@ -32,6 +34,7 @@ class AdminDashboardController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     healthService: HealthService,
+    fleetHealthService: FleetHealthService,
     streetLifecycleService: StreetLifecycleService,
     imageryFreshnessReportService: ImageryFreshnessReportService,
     streetService: StreetService,
@@ -286,6 +289,11 @@ class AdminDashboardController @Inject() (
     healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
   }
 
+  /** Every city's `/health` for the Health dashboard's fleet table (#4548); unlogged, like [[getDbHealth]]. */
+  def getFleetHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
+    fleetHealthService.getFleetHealth.map(data => Ok(Json.toJson(data)))
+  }
+
   /**
    * The Street Status page's trend endpoint: what changed over the last `weeks` weeks, as snake_case JSON (#4928).
    *
@@ -388,6 +396,14 @@ class AdminDashboardController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Partners")
       Ok(views.html.admin.dashboard.partners(commonData, request.identity))
+    }
+  }
+
+  /** The training examples new validators are shown (#1445), and how they have done on each. */
+  def goldExamples = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_GoldExamples")
+      Ok(views.html.admin.dashboard.goldExamples(commonData, request.identity))
     }
   }
 

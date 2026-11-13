@@ -213,7 +213,6 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
         "current_mission_start"           -> JsNull,
         "last_priority_update_time"       -> now,
         "request_updated_street_priority" -> false,
-        "audited_distance_m"              -> 0.0,
         "route_street_id"                 -> JsNull
       ),
       "labels"       -> JsArray(labels),

@@ -1,11 +1,9 @@
 /**
- * A JSON fetch with the retry a cold server asks for (#5418), shared by the AccessScore tool's whole-city score feeds
- * and the admin Across Cities page's scorecards (#5432).
+ * A JSON fetch with the retry a cold server asks for, used by AccessScore (#5418) and Across Cities (#5432).
  *
- * Both endpoints are cached per JVM, and a request that finds the cache empty gets a `503` with a `Retry-After` once
- * the computation has outlasted the request budget — the server keeps computing, so the client that comes back when
- * told finds the value. The same shape covers a `502`/`503`/`504` from the reverse proxy in front
- * of a slow or restarting backend. Nothing else is retried: a `4xx` means the request itself is wrong, and a network
+ * Both endpoints cache per JVM; a request that finds the cache empty gets a `503` with a `Retry-After` once the compute
+ * outlasts the request budget, and the server keeps computing so the retry finds the value. A proxy `502`/`503`/`504`
+ * from a slow or restarting backend is retried too. Nothing else is: a `4xx` means the request is wrong, and a network
  * failure is the page's error card, not a wait.
  */
 export class FetchWithRetry {

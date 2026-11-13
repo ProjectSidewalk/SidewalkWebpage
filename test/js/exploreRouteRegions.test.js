@@ -73,6 +73,8 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
       isComplete: () => false,
       getMissionStart: () => null,
       getAuditedDistance: () => 0.9,
+      getCoveredDistanceM: () => 900,
+      getCoveredRanges: () => [[0, 900]],
       lineDistance: () => 1,
       setProperty: vi.fn(),
     };
@@ -128,6 +130,8 @@ describe('TaskContainer.updateTaskPriorities', () => {
   /** A loaded task, remembering what priority it was set to. */
   const makeTask = (streetEdgeId) => ({
     getStreetEdgeId: () => streetEdgeId,
+    getStreetPriority: () => 1,
+    isPlannedAhead: () => false,
     setProperty: vi.fn(),
   });
 

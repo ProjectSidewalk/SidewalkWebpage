@@ -9,6 +9,8 @@
 
 import { loadModules, mockModule, unmockModule } from './loader.js';
 
+mockModule('i18next', () => ({ default: { t: (key) => key } }));
+
 const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
 
 // jsdom implements neither AbortSignal.timeout() nor CSS.escape(), both of which the module calls and both of which
@@ -140,9 +142,9 @@ describe('AboutPage', () => {
       <div id="about-pubs-list"></div>
       <button id="about-pubs-show-all" hidden data-label-template="Show all {0} publications"></button>
       <div id="about-cite" hidden>
-        <button class="about-cite-copy" data-copy-target="about-cite-plain" data-copied-label="Copied">Copy</button>
+        <button class="about-cite-copy" data-copy-target="about-cite-plain">Copy</button>
         <p id="about-cite-plain"></p>
-        <button class="about-cite-copy" data-copy-target="about-cite-bibtex" data-copied-label="Copied">Copy</button>
+        <button class="about-cite-copy" data-copy-target="about-cite-bibtex">Copy</button>
         <pre id="about-cite-bibtex"></pre>
       </div>
       <ul id="about-funding-grants" hidden></ul>`;
@@ -796,7 +798,7 @@ describe('AboutPage', () => {
       bibtexButton.click();
       await Promise.resolve();
       expect(writeText).toHaveBeenCalledWith(DETAIL.bibtex);
-      expect(bibtexButton.textContent).toBe('Copied');
+      expect(bibtexButton.textContent).toBe('common:copy.copied');
     });
 
     test('stays hidden when the cited paper is not in the project list', async () => {
@@ -856,6 +858,49 @@ describe('AboutPage', () => {
 
       expect(document.getElementById('about-funding-grants').hidden).toBe(true);
     });
+  });
+
+  test('opens every link from the ML API in a new tab, so following one does not leave the page', async () => {
+    stubFetch({
+      '/people/?format=json': page([
+        personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
+        personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', lead_project_role: 'Student Lead', is_active: false,
+          end_date: '2016-12-31' }),
+        personRow({ urlName: 'chuli', name: 'Chu Li', is_active: false, end_date: '2024-12-31' }),
+      ]),
+      // Before the list's key, which the detail URL would otherwise match too.
+      '/publications/605/': { citation_html: 'Saha, M. <a href="https://doi.org/10.1145/3290605.3300292">doi</a>',
+        bibtex: '@inproceedings{x}' },
+      '/publications/': page([{ title: 'Paper', date: '2025-01-01', year: 2025, forum_name: 'CHI',
+        authors: [{ name: 'Jon E. Froehlich' }], thumbnail: 'https://example.org/t.png',
+        pdf_url: 'https://example.org/paper.pdf', official_url: 'https://doi.org/10.1145/3290605.3300292',
+        arxiv_url: '', code_repo_url: '', forum_url: '', award: null, id: 605 }]),
+      '/grants/': page([{ title: 'Grant', start_date: '2019-01-01', grant_id: '1', grant_url: 'https://nsf.gov/a',
+        sponsor: { name: 'NSF' } }]),
+    });
+    await loadModules('frontend/js/pages/about.js');
+    await hydrate();
+
+    const links = [...document.querySelectorAll('#about-team-live a, #about-pubs-list a, #about-cite a, '
+      + '#about-funding-grants a')];
+    // Current member, past lead, contributor; thumbnail, title, two pills; citation; grant.
+    expect(links).toHaveLength(9);
+    links.forEach((link) => {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener');
+    });
+  });
+
+  test('leaves a link with no usable ML API URL in this tab, since it only points back at the page', async () => {
+    const row = personRow({ urlName: 'nourl', name: 'No Url', lead_project_role: 'PI' });
+    row.person.url = 'javascript:alert(1)';
+    stubFetch({ '/people/?format=json': page([row]), '/publications/': page([]), '/grants/': page([]) });
+    await loadModules('frontend/js/pages/about.js');
+    await hydrate();
+
+    const link = document.querySelector('#about-team-current a');
+    expect(link.getAttribute('href')).toBe('#');
+    expect(link.hasAttribute('target')).toBe(false);
   });
 
   describe('section nav', () => {
@@ -1023,6 +1068,324 @@ describe('AboutPage', () => {
 
       expect(document.getElementById('about-team-live').hidden).toBe(true);
       expect(document.querySelectorAll('.about-pub')).toHaveLength(1);
+    });
+  });
+
+  describe('caching the ML API', () => {
+    const PEOPLE_URL = `${ML_API}/projects/sidewalk/people/?format=json`;
+    const ROSTER = page([personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' })]);
+
+    /**
+     * @param {import('vitest').Mock} fetchMock - The fetch stub.
+     * @returns {string[]} The roster URLs requested over the network.
+     */
+    const rosterRequests = (fetchMock) => fetchMock.mock.calls.map(([url]) => url).filter((url) => url === PEOPLE_URL);
+
+    test('a repeat visit within the hour draws the roster from the cache, not the network', async () => {
+      localStorage.setItem(`psAboutMlApi:${PEOPLE_URL}`, JSON.stringify({ t: Date.now(), d: ROSTER }));
+      const fetchMock = stubFetch(EMPTY_SECTIONS);
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(rosterRequests(fetchMock)).toEqual([]);
+      expect(document.querySelector('#about-team-current .about-team-name').textContent).toBe('Jon E. Froehlich');
+    });
+
+    test('an hour-old or unreadable cache entry is fetched afresh and replaced', async () => {
+      for (const stale of [JSON.stringify({ t: Date.now() - 2 * 60 * 60 * 1000, d: page([]) }), '{not json']) {
+        localStorage.setItem(`psAboutMlApi:${PEOPLE_URL}`, stale);
+        const fetchMock = stubFetch({ '/people/?format=json': ROSTER, ...EMPTY_SECTIONS });
+        await loadModules('frontend/js/pages/about.js');
+        await hydrate();
+
+        expect(rosterRequests(fetchMock)).toEqual([PEOPLE_URL]);
+        expect(JSON.parse(localStorage.getItem(`psAboutMlApi:${PEOPLE_URL}`)).d).toEqual(ROSTER);
+      }
+    });
+
+    test('an error reply keeps the server-rendered roster and is never cached', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('fetch', vi.fn(async (url) => (url.includes('/people/')
+        ? { ok: false, status: 502, json: async () => ({}) }
+        : { ok: true, status: 200, json: async () => page([]) })));
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.getElementById('about-team-live').hidden).toBe(true);
+      expect(localStorage.getItem(`psAboutMlApi:${PEOPLE_URL}`)).toBeNull();
+      expect(warn).toHaveBeenCalledWith('About page: team hydration failed.', expect.objectContaining({
+        message: `HTTP 502 for ${PEOPLE_URL}`,
+      }));
+    });
+
+    test('with storage full, reclaims this page\'s expired entries and caches on the retry', async () => {
+      const old = Date.now() - 2 * 60 * 60 * 1000;
+      localStorage.setItem('psAboutMlApi:https://example.org/expired', JSON.stringify({ t: old, d: {} }));
+      localStorage.setItem('psAboutMlApi:https://example.org/garbled', '{not json');
+      localStorage.setItem('psAboutMlApi:https://example.org/empty', 'null');
+      localStorage.setItem('psAboutMlApi:https://example.org/fresh', JSON.stringify({ t: Date.now(), d: {} }));
+      localStorage.setItem('someOtherFeature', JSON.stringify({ t: old }));
+      const setItem = vi.spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(() => { throw new DOMException('full', 'QuotaExceededError'); });
+      stubFetch({ '/people/?format=json': ROSTER, ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(setItem).toHaveBeenCalled();
+      const keys = Object.keys(localStorage);
+      expect(keys).not.toContain('psAboutMlApi:https://example.org/expired');
+      expect(keys).not.toContain('psAboutMlApi:https://example.org/garbled');
+      expect(keys).not.toContain('psAboutMlApi:https://example.org/empty');
+      expect(keys).toContain('psAboutMlApi:https://example.org/fresh');
+      // Only this page's own entries are its to reclaim.
+      expect(keys).toContain('someOtherFeature');
+      expect(document.querySelector('#about-team-current .about-team-name').textContent).toBe('Jon E. Froehlich');
+    });
+
+    test('with storage unusable altogether, the page still renders from the network', async () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('denied'); });
+      stubFetch({ '/people/?format=json': ROSTER, ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.getElementById('about-team-live').hidden).toBe(false);
+    });
+  });
+
+  describe('roster edge cases', () => {
+    test('a past lead\'s stints listed newest first still span their first start to their last end', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
+          personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', lead_project_role: 'Student Lead', is_active: false,
+            start_date: '2015-06-01', end_date: '2017-12-31', position_title: 'PhD Student' }),
+          personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', is_active: false, start_date: '2012-01-01',
+            end_date: '2014-12-31', position_title: 'Undergrad' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.querySelector('#about-team-past .about-team-role').textContent).toBe('Student Lead, 2012–2017');
+    });
+
+    test('a past lead whose later stint was left open shows only the year they started', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
+          personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', lead_project_role: 'Student Lead', is_active: false,
+            start_date: '2012-01-01', end_date: '2014-12-31' }),
+          personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', is_active: false, start_date: '2016-01-01',
+            end_date: null }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.querySelector('#about-team-past .about-team-role').textContent).toBe('Student Lead, 2012');
+    });
+
+    test('past leads of the same rank are listed oldest first', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
+          personRow({ urlName: 'later', name: 'Later Lead', lead_project_role: 'Student Lead', is_active: false,
+            start_date: '2018-01-01', end_date: '2020-01-01' }),
+          personRow({ urlName: 'earlier', name: 'Earlier Lead', lead_project_role: 'Student Lead', is_active: false,
+            start_date: '2012-01-01', end_date: '2016-01-01' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect([...document.querySelectorAll('#about-team-past .about-team-name')].map((el) => el.textContent))
+        .toEqual(['Earlier Lead', 'Later Lead']);
+    });
+
+    test('a member with no headshot gets the project logo, and one with no profile link stays in this tab',
+      async () => {
+        const row = personRow({ urlName: 'nophoto', name: 'No Photo' });
+        row.person.thumbnail = null;
+        row.person.url = null;
+        stubFetch({ '/people/?format=json': page([row]), ...EMPTY_SECTIONS });
+        await loadModules('frontend/js/pages/about.js');
+        await hydrate();
+
+        expect(document.querySelector('#about-team-current .about-team-photo').getAttribute('src'))
+          .toContain('ProjectSidewalkLogo_NoText_100x100.png');
+        expect(document.querySelector('#about-team-current a').getAttribute('href')).toBe('#');
+      });
+
+    test('a contributor blurb with no template to fill is left as the server wrote it', async () => {
+      const intro = document.getElementById('about-team-contributors-intro');
+      delete intro.dataset.labelTemplate;
+      const rows = [...Array(30)].map((_, i) => personRow({ urlName: `p${i}`, name: `P ${i}`,
+        position_title: 'Undergrad', is_active: i === 0 }));
+      stubFetch({ '/people/?format=json': page(rows), ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(intro.textContent).toBe('More than 140 people, including 128 students.');
+      expect(document.getElementById('about-team-live').hidden).toBe(false);
+    });
+  });
+
+  describe('citation block edge cases', () => {
+    const CITED = {
+      id: 605, title: 'Project Sidewalk', date: '2019-05-01', year: 2019, forum_name: 'CHI', authors: [],
+      thumbnail: '', pdf_url: '', arxiv_url: '', code_repo_url: '', forum_url: '', award: null,
+      official_url: 'https://doi.org/10.1145/3290605.3300292',
+    };
+
+    test('a page without the block never asks for the paper\'s details', async () => {
+      document.getElementById('about-cite').remove();
+      const fetchMock = stubFetch({ '/projects/sidewalk/publications/': page([CITED]), '/people/': page([]),
+        '/grants/': page([]) });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.querySelectorAll('.about-pub')).toHaveLength(1);
+      expect(fetchMock.mock.calls.some(([url]) => url.includes('/publications/605/'))).toBe(false);
+    });
+
+    test('stays hidden when the paper\'s details lack the citation or the BibTeX', async () => {
+      for (const detail of [{ bibtex: '@x{}' }, { citation_html: 'Saha, M.' }]) {
+        document.getElementById('about-cite').hidden = true;
+        stubFetch({ '/projects/sidewalk/publications/': page([CITED]), '/publications/605/': detail,
+          '/people/': page([]), '/grants/': page([]) });
+        localStorage.clear();
+        await loadModules('frontend/js/pages/about.js');
+        await hydrate();
+
+        expect(document.getElementById('about-cite').hidden).toBe(true);
+      }
+    });
+  });
+
+  describe('click logging on hydrated links', () => {
+    /** Stops a clicked link from navigating, which jsdom can't do. */
+    const stayOnPage = (e) => e.preventDefault();
+
+    beforeEach(() => document.addEventListener('click', stayOnPage));
+    afterEach(() => document.removeEventListener('click', stayOnPage));
+
+    test('a team member, publication, or grant link logs which kind it was; other clicks there log nothing',
+      async () => {
+        stubFetch({
+          '/people/?format=json': page([personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich' })]),
+          '/publications/': page([{ title: 'Paper', date: '2025-01-01', year: 2025, forum_name: 'CHI', authors: [],
+            thumbnail: '', pdf_url: 'https://example.org/p.pdf', official_url: '', arxiv_url: '', code_repo_url: '',
+            forum_url: '', award: null }]),
+          '/grants/': page([{ title: 'Grant', start_date: '2020-01-01', grant_id: '1', grant_url: 'https://nsf.gov/a',
+            sponsor: { name: 'NSF' } }]),
+        });
+        await loadModules('frontend/js/pages/about.js');
+        await hydrate();
+
+        document.querySelector('#about-team-current a').click();
+        document.querySelector('.about-pub h3 a').click();
+        document.querySelector('#about-funding-grants a').click();
+        document.querySelector('#about-team-current .about-team-member').click();
+        expect(window.logWebpageActivity.mock.calls.map(([activity]) => activity)).toEqual([
+          'Click_module=AboutPage_target=team_member',
+          'Click_module=AboutPage_target=publication',
+          'Click_module=AboutPage_target=grant',
+        ]);
+      });
+
+    test('the page\'s own calls to action each log which one was clicked', async () => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <a id="about-hero-explore-link" href="/explore">Explore</a>
+        <a id="about-cta-city-link" href="/cities">Cities</a>`);
+      stubFetch({ '/people/?format=json': page([]), ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      document.getElementById('about-hero-explore-link').click();
+      document.getElementById('about-cta-city-link').click();
+      expect(window.logWebpageActivity.mock.calls.map(([activity]) => activity)).toEqual([
+        'Click_module=AboutPage_target=hero_explore',
+        'Click_module=AboutPage_target=cta_city',
+      ]);
+    });
+
+    test('a click before the activity logger exists is simply not logged', async () => {
+      stubFetch({ '/people/?format=json': page([personRow()]), ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+      delete window.logWebpageActivity;
+
+      expect(() => document.querySelector('#about-team-current a').click()).not.toThrow();
+    });
+  });
+
+  describe('section nav edge cases', () => {
+    beforeEach(() => {
+      stubFetch({});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    test('a page with a single section gets no nav', async () => {
+      document.body.innerHTML = `
+        <main id="about-page">
+          <section id="about-how"><h2>How it works</h2></section>
+          <nav id="about-toc" hidden><ol id="about-toc-list"></ol></nav>
+        </main>`;
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.getElementById('about-toc').hidden).toBe(true);
+      expect(document.getElementById('about-toc-list').children).toHaveLength(0);
+    });
+
+    test('without IntersectionObserver the nav still links every section, just without marking one', async () => {
+      vi.stubGlobal('IntersectionObserver', undefined);
+      document.body.innerHTML = `
+        <main id="about-page">
+          <section id="about-how"><h2>How it works</h2></section>
+          <section id="about-team"><h2>The team</h2></section>
+          <div id="about-deployment-map"></div>
+          <nav id="about-toc" hidden><ol id="about-toc-list"></ol></nav>
+        </main>`;
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      expect(document.querySelectorAll('.about-toc-link')).toHaveLength(2);
+      expect(document.getElementById('about-toc').classList.contains('about-toc--out-of-range')).toBe(false);
+      expect(FakeIntersectionObserver.instances).toEqual([]);
+    });
+
+    test('a click in the nav that misses every link logs nothing', async () => {
+      document.body.innerHTML = `
+        <main id="about-page">
+          <section id="about-how"><h2>How it works</h2></section>
+          <section id="about-team"><h2>The team</h2></section>
+          <nav id="about-toc" hidden><ol id="about-toc-list"></ol></nav>
+        </main>`;
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      document.getElementById('about-toc-list').click();
+      expect(window.logWebpageActivity).not.toHaveBeenCalled();
+    });
+
+    test('the deployment map stays unbuilt while only scrolling past it at a distance', async () => {
+      const createPSMap = vi.fn(() => Promise.resolve([{}]));
+      mockModule('frontend/js/ps-map/createPSMap.js', () => ({ createPSMap }));
+      document.body.innerHTML = '<main id="about-page"><div id="about-deployment-map"></div></main>';
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      const observer = FakeIntersectionObserver.instances
+        .find((o) => o.targets.some((t) => t.id === 'about-deployment-map'));
+      observer.trigger([]);
+      await settle();
+      expect(observer.disconnected).toBe(false);
+      expect(createPSMap).not.toHaveBeenCalled();
+      unmockModule('frontend/js/ps-map/createPSMap.js');
     });
   });
 });

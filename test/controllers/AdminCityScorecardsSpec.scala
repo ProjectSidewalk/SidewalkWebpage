@@ -20,11 +20,9 @@ import scala.concurrent.Future
 /**
  * The Across Cities endpoint, `GET /adminapi/cityScorecards` (#4329), on a warm and on a cold cross-city cache.
  *
- * On a cold JVM its fan-outs to every city schema can outlast Apache's 60 s proxy timeout, which the page saw as a
- * `502` (#5432). The contract pinned here is the one the AccessScore endpoints already keep (#5418): when a read the
- * page needs has not finished within its bound, the answer is `503` + `Retry-After` with a `STILL_COMPUTING` problem
- * body, which the page's retry helper waits out. The cache is replaced by one that reports chosen keys as still
- * computing, so no fan-out runs for them and the assertions hold regardless of how fast the database is.
+ * On a cold JVM its fan-outs can outlast Apache's 60 s proxy timeout (#5432), so a read the page needs that hasn't
+ * finished in time answers `503` + `Retry-After` with a `STILL_COMPUTING` body. The cache is swapped for one that
+ * reports chosen keys as cold, so no fan-out runs for them and the assertions don't depend on database speed.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
@@ -43,12 +41,13 @@ class AdminCityScorecardsSpec extends SidewalkSpec with RoleSession with GuiceOn
   private lazy val cache                     = app.injector.instanceOf[SwrCache].asInstanceOf[ColdSwrCache]
   private lazy val ownerCookies: Seq[Cookie] = sessionAs(Role.Owner)
 
-  /** The cache keys of the reads the page cannot render without, plus labeling speed, which it can. */
+  /** The cache keys of the reads the page cannot render without, plus the two it can render without. */
   private val requiredKeys = Seq(
     "getCityScorecards", "getCrossCityWeeklyTrend_all", "getCrossCityDailyTrend_30", "getCrossCityActivitySummary",
     "getCrossCityStoryStats"
   )
-  private val labelingSpeedKey = "getCrossCityLabelingSpeed"
+  private val labelingSpeedKey     = "getCrossCityLabelingSpeed"
+  private val contributorCountsKey = "getCrossCityContributorCounts"
 
   private def get(cookies: Seq[Cookie] = ownerCookies): Future[Result] =
     route(app, FakeRequest(GET, "/adminapi/cityScorecards").withCookies(cookies*)).get
@@ -96,8 +95,6 @@ class AdminCityScorecardsSpec extends SidewalkSpec with RoleSession with GuiceOn
     }
 
     "serve the page without labeling speeds when only that read is still computing" in {
-      // The interaction-table scan is the likeliest to outlast the wait alone; the page shows a missing speed as
-      // unknown, so refusing the whole page for it would only slow every retry down to the slowest metric.
       withCold(labelingSpeedKey) {
         val resp = get()
         status(resp) mustBe OK
@@ -108,6 +105,16 @@ class AdminCityScorecardsSpec extends SidewalkSpec with RoleSession with GuiceOn
           .value
           .forall(city => (city \ "seconds_per_100m").toOption.forall(_ == JsNull)) mustBe
           true
+      }
+    }
+
+    "serve the page without the deduped user counts when only that read is still computing" in {
+      withCold(contributorCountsKey) {
+        val resp = get()
+        status(resp) mustBe OK
+        val json = contentAsJson(resp)
+        mustBeFullAnswer(json)
+        (json \ "summary" \ "total_users").toOption.forall(_ == JsNull) mustBe true
       }
     }
 

@@ -8,6 +8,7 @@ import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.{ApiError, ApiModelUtils}
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
+import models.street.StreetPriorityRecalc
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -99,6 +100,19 @@ class AdminController @Inject() (
     }
   }
 
+  /** Each scored validator's graded and matched vote counts and reliability, for the Data Quality page (#5063). */
+  def getValidatorReliability = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    adminService.getValidatorReliabilityScores.map { scores =>
+      Ok(Json.obj("validators" -> JsArray(scores.map { case (graded, matched, reliability) =>
+        Json.obj(
+          "validations_graded"    -> graded,
+          "validations_matched"   -> matched,
+          "validator_reliability" -> reliability
+        )
+      })))
+    }
+  }
+
   def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
@@ -139,16 +153,17 @@ class AdminController @Inject() (
     adminService.getActivityByDay.map { series =>
       Ok(Json.obj("series" -> JsArray(series.map { r =>
         Json.obj(
-          "date"               -> r.date.toString,
-          "labels"             -> r.labels,
-          "validations"        -> r.validations,
-          "audits"             -> r.audits,
-          "missions"           -> r.missions,
-          "signins_registered" -> r.signinsRegistered,
-          "signins_anon"       -> r.signinsAnon,
-          "active_registered"  -> r.activeRegistered,
-          "active_anon"        -> r.activeAnon,
-          "new_users"          -> r.newUsers
+          "date"                -> r.date.toString,
+          "labels"              -> r.labels,
+          "validations"         -> r.validations,
+          "audits"              -> r.audits,
+          "explored_distance_m" -> r.exploredDistanceM,
+          "missions"            -> r.missions,
+          "signins_registered"  -> r.signinsRegistered,
+          "signins_anon"        -> r.signinsAnon,
+          "active_registered"   -> r.activeRegistered,
+          "active_anon"         -> r.activeAnon,
+          "new_users"           -> r.newUsers
         )
       })))
     }
@@ -458,7 +473,7 @@ class AdminController @Inject() (
    * Builds the best available preview-image URL for a recent-activity item, or None when it has no label to preview.
    *
    * Prefers a saved label crop (the actual cropped label view) when one exists on disk; otherwise falls back to a
-   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors the Gallery's
+   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors Gallery's
    * crop-then-GSV image strategy.
    *
    * @param item     The recent-activity item.
@@ -586,9 +601,9 @@ class AdminController @Inject() (
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
           "reaudit_streets"            -> s.reauditStreets,
-          "total_distance_mi"          -> s.totalDistanceMi,
-          "audited_distance_mi"        -> s.auditedDistanceMi,
-          "reaudit_distance_mi"        -> s.reauditDistanceMi,
+          "total_distance_m"           -> s.totalDistanceM,
+          "audited_distance_m"         -> s.auditedDistanceM,
+          "reaudit_distance_m"         -> s.reauditDistanceM,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,
@@ -668,11 +683,10 @@ class AdminController @Inject() (
    * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
    * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
    *
-   * Every read behind it is a per-JVM cache over a fan-out to every city schema, so on a cold JVM the response can't
-   * wait for them all: past Apache's 60 s proxy timeout the page would get a `502` (#5432). Each read waits at most
-   * [[service.ConfigService.CrossCityColdWait]] instead, and when one the page needs is still computing this answers
-   * `503` + `Retry-After` with a `STILL_COMPUTING` problem body, the contract the AccessScore endpoints use (#5418),
-   * while the fan-outs keep running and fill the cache for the retry.
+   * Each read fans out to every city schema behind a per-JVM cache, so on a cold JVM waiting for them all would pass
+   * Apache's 60 s proxy timeout (#5432). Each waits at most [[service.ConfigService.CrossCityColdWait]] instead; if one
+   * the page needs is still computing, this answers the AccessScore endpoints' `503` + `Retry-After` (#5418) while the
+   * fan-outs keep filling the cache for the retry.
    */
   def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -696,10 +710,8 @@ class AdminController @Inject() (
       None
     }
     val windowSummaryF = required(configService.getCrossCityActivitySummary())
-    // Labeling speed is the one fan-out that scans the interaction tables, so it is the likeliest to outlast the cold
-    // wait on its own. Refusing the page for it would make every retry wait on the slowest metric, and the page already
-    // shows a city missing from this map as unknown. Story stats stay required: an empty map would render as "no
-    // stories", which the page must never claim falsely.
+    // Labeling speed scans the interaction tables, so it's the likeliest read to outlast the cold wait; the page shows
+    // a missing speed as unknown, so it's optional. Story stats stay required: an empty map would claim "no stories".
     val labelingSpeedF = configService
       .getCrossCityLabelingSpeed()
       .map(_.getOrElse {
@@ -707,6 +719,8 @@ class AdminController @Inject() (
         Map.empty[String, Double]
       })
     val storyStatsF = required(configService.getCrossCityStoryStats())
+    // People active in several cities count once here, unlike a sum of each city's contributors. Optional, like speed.
+    val contributorCountsF = configService.getCrossCityContributorCounts()
 
     // Every future above is already running, so the waits overlap and the response is bounded by the longest one.
     (for {
@@ -717,6 +731,7 @@ class AdminController @Inject() (
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
+      contributors  <- contributorCountsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -756,27 +771,20 @@ class AdminController @Inject() (
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),
-          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
+          "summary" -> crossCitySummaryJson(scorecards, cityInfoById, contributors)
         )
       )
     }).recover { case StillComputing =>
-      ApiError
-        .toResult(
-          ApiError.stillComputing(
-            "Cross-city figures are still being computed. Retry after the number of seconds in the Retry-After header."
-          )
-        )
-        .withHeaders(RETRY_AFTER -> ApiError.StillComputingRetryAfterSeconds.toString)
+      ApiError.stillComputingResult(
+        "Cross-city figures are still being computed. Retry after the number of seconds in the Retry-After header."
+      )
     }
   }
 
   /** A bounded cross-city read whose fan-out outlasted its cold wait (#5432); `getCityScorecards` answers 503. */
   private case object StillComputing extends Exception with NoStackTrace
 
-  /**
-   * Fails with [[StillComputing]] when a bounded cross-city read answers None, so the page's required reads sit in one
-   * `for` and a single `.recover` turns whichever is still computing into the 503, leaving the JSON body as it was.
-   */
+  /** Fails with [[StillComputing]] on None, so one `.recover` turns any still-computing required read into the 503. */
   private def required[T](f: Future[Option[T]]): Future[T] =
     f.flatMap(_.fold(Future.failed[T](StillComputing))(Future.successful))
 
@@ -831,6 +839,9 @@ class AdminController @Inject() (
       "total_km"          -> sc.totalKm,
       "audited_km"        -> sc.auditedKm,
       "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+      "walked_km"         -> sc.walkedKm,
+      "mapped_km"         -> sc.mappedKm,
+      "reaudit_km"        -> ConfigService.reauditKm(sc),
       // Data + quality lens.
       "total_labels"             -> sc.totalLabels,
       "ai_labels"                -> sc.aiLabels,
@@ -987,36 +998,45 @@ class AdminController @Inject() (
     })
 
   /**
-   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
-   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
+   * The page's headline totals, summed from the cities shown so they match the table, except `total_users` and
+   * `multi_city_users`, which count each person once across those cities. The anomaly thresholds ride along so the
    * page can flag the "needs attention" items.
    *
-   * @return The summary block.
+   * @param contributorCounts People who contributed across the cities; None if they couldn't be read.
+   * @return                  The summary block.
    */
-  private def crossCitySummaryJson(scorecards: Seq[CityScorecard], cityInfoById: Map[String, CityInfo]): JsObject = {
-    val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-    val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
-    val totalContributors = scorecards.map(_.activeContributors).sum
-    val totalKm           = scorecards.map(_.auditedKm).sum
-    val totalLabels       = scorecards.map(_.totalLabels).sum
-    val totalValidations  = scorecards.map(_.totalValidations).sum
-    val sumAgree          = scorecards.map(_.validationsAgree).sum
-    val sumDisagree       = scorecards.map(_.validationsDisagree).sum
-    val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+  private def crossCitySummaryJson(
+      scorecards: Seq[CityScorecard],
+      cityInfoById: Map[String, CityInfo],
+      contributorCounts: Option[CrossCityContributorCounts]
+  ): JsObject = {
+    val numCountries     = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+    val numLanguages     = config.get[Seq[String]]("play.i18n.langs").size
+    val totalLabels      = scorecards.map(_.totalLabels).sum
+    val totalValidations = scorecards.map(_.totalValidations).sum
+    val sumAgree         = scorecards.map(_.validationsAgree).sum
+    val sumDisagree      = scorecards.map(_.validationsDisagree).sum
+    val globalAgreement  = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
     Json.obj(
-      "num_cities"                -> scorecards.length,
-      "num_countries"             -> numCountries,
-      "num_languages"             -> numLanguages,
-      "total_users"               -> totalContributors,
-      "total_km"                  -> totalKm,
-      "total_labels"              -> totalLabels,
-      "total_validations"         -> totalValidations,
-      "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
-      "global_agreement"          -> globalAgreement,
-      "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
-      "active_within_days"        -> ConfigService.ActiveWithinDays,
-      "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-      "low_traction_contributors" -> ConfigService.LowTractionContributors
+      "num_cities"                     -> scorecards.length,
+      "num_countries"                  -> numCountries,
+      "num_languages"                  -> numLanguages,
+      "total_users"                    -> contributorCounts.map(_.distinct),
+      "multi_city_users"               -> contributorCounts.map(_.multiCity),
+      "total_walked_km"                -> scorecards.map(_.walkedKm).sum,
+      "total_mapped_km"                -> scorecards.map(_.mappedKm).sum,
+      "total_current_km"               -> scorecards.map(_.auditedKm).sum,
+      "total_reaudit_km"               -> scorecards.map(ConfigService.reauditKm).sum,
+      "total_labels"                   -> totalLabels,
+      "total_validations"              -> totalValidations,
+      "total_datapoints"               -> (totalLabels.toLong + totalValidations.toLong),
+      "global_agreement"               -> globalAgreement,
+      "median_disagreement_rate"       -> ConfigService.medianDisagreementRate(scorecards),
+      "active_within_days"             -> ConfigService.ActiveWithinDays,
+      "wrapped_up_coverage"            -> ConfigService.WrappedUpCoverage,
+      "low_traction_contributors"      -> ConfigService.LowTractionContributors,
+      "reaudit_backlog_share"          -> ConfigService.ReauditBacklogShare,
+      "min_mapped_km_for_reaudit_flag" -> ConfigService.MinMappedKmForReauditFlag
     )
   }
 
@@ -1156,10 +1176,10 @@ class AdminController @Inject() (
   }
 
   /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
-  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+  private def runStreetPriorityRecalc(): Future[StreetPriorityRecalc] =
     jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
       streetService.recalculateStreetPriority
-    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+    )(RecalculateStreetPriorityActor.runDetails(_, None))
 
   /** Recalculates street priority without making the caller wait, since it rewrites every street. */
   private def recalculateStreetPriorityInBackground(): Unit =
@@ -1450,7 +1470,7 @@ class AdminController @Inject() (
       .toSeq
       .sortBy { case (thread, _) => thread.getName }
       .foreach { case (thread, frames) =>
-        val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
+        val cpuSeconds = threadCpu.getThreadCpuTime(thread.threadId()) / 1e9
         info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
         frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
       }

@@ -1,5 +1,5 @@
 /**
- * Logs information from the Gallery.
+ * Logs information from Gallery.
  */
 
 /** @typedef {import('./Form.js').Form} Form */
@@ -60,13 +60,10 @@ export class Tracker {
   /**
    * Convert notes object to string.
    *
-   * @param {*} notes - Notes object.
+   * @param {object} notes - Notes object.
+   * @returns {string} The notes as comma-separated `key:value` pairs.
    */
   #notesToString(notes) {
-    if (!notes) {
-      return '';
-    }
-
     let noteString = '';
     for (const key in notes) {
       if (noteString.length > 0) {

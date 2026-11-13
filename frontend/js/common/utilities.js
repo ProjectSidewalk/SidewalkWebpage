@@ -117,15 +117,14 @@ util.labelIconScale = function (radius) {
  * Callers should re-read this whenever --ui-scale changes; Explore caches it in its CanvasFrame, which its
  * scale-applying path refreshes.
  *
- * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @param {number} scale - The tool's UI scale.
  * @returns {number} Radius in logical px.
  */
 util.labelIconRadius = function (scale) {
-  const uiScale = scale ?? util.uiScale();
   // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
   // it is the drawn size the on-screen limit is about.
   const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
-  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
+  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / scale);
   return diameter / 2 + 1.5;
 };
 
@@ -141,14 +140,13 @@ util.labelIconRadius = function (scale) {
  * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
  * resolves the tie in favour of the icon drawn on top.
  *
- * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @param {number} scale - The tool's UI scale.
  * @returns {number} Half-width in logical px.
  */
 util.labelHitMargin = function (scale) {
-  const uiScale = scale ?? util.uiScale();
   // Half the drawn icon, so every point of the icon is inside the target.
-  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
-  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(scale));
+  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / scale);
 };
 
 /**
@@ -267,7 +265,6 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
 util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
   const { maxScale = 1.8, hMargin = 40, bottomReserve = 60 } = opts;
   const toolUI = document.querySelector('.tool-ui');
-  if (!toolUI) return 1;
 
   // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
   const styles = getComputedStyle(toolUI);
@@ -428,10 +425,45 @@ util.distanceToString = (meters) =>
  *
  * @param {number} km - The distance in kilometers. Always canonical: the formatter converts.
  * @param {number} [precision=0] - Decimal places to show.
+ * @param {boolean} [withUnit=true] - False for the bare number, where a column header or axis title names the unit.
+ * @returns {string} The distance converted, rounded, and localized.
+ */
+util.longDistanceToString = (km, precision = 0, withUnit = true) =>
+  i18next.services.formatter.format(km || 0,
+    `distance(style: large; precision: ${precision}${withUnit ? '' : '; unit: false'})`, i18next.language, {});
+
+/**
+ * Renders a short distance exactly rather than rounded to the nearest 25, e.g. "1.5 m" or "5 ft".
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
  * @returns {string} The distance converted, rounded, and localized, with its unit.
  */
-util.longDistanceToString = (km, precision = 0) =>
-  i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
+util.fineDistanceToString = (meters, precision = 0) => i18next.services.formatter.format(
+  meters || 0, `distance(style: fine; precision: ${precision})`, i18next.language, {});
+
+/**
+ * A distance in meters as a plain number in this reader's long unit (km or mi), for plotting on a chart's axis. The
+ * same conversion the `distance` formatter makes, so a plotted point and its label agree.
+ *
+ * @param {number} meters - The distance in meters.
+ * @returns {number} The distance in km or mi.
+ */
+util.metersToLongDistance = (meters) => {
+  const km = (meters || 0) / 1000;
+  return util.isMetric() ? km : util.math.kmsToMiles(km);
+};
+
+/**
+ * The same as `util.longDistanceToString`, for a distance in meters.
+ *
+ * @param {number} meters - The distance in meters.
+ * @param {number} [precision=0] - Decimal places to show.
+ * @param {boolean} [withUnit=true] - False for the bare number.
+ * @returns {string} The distance converted, rounded, and localized.
+ */
+util.metersToLongDistanceString = (meters, precision = 0, withUnit = true) =>
+  util.longDistanceToString((meters || 0) / 1000, precision, withUnit);
 
 /**
  * The calendar year and month of a month, date or timestamp string, as the reader would name it.
@@ -670,6 +702,18 @@ export function hasSession() {
 }
 
 util.hasSession = hasSession;
+
+/**
+ * Whether the server rendered this page for an admin. Only for picking a link's destination: the server still checks
+ * the role on every admin page and endpoint.
+ *
+ * @returns {boolean} What the navbar's data-viewer-admin says; false on the few pages rendered without a navbar.
+ */
+export function isAdmin() {
+  return document.getElementById('header')?.dataset.viewerAdmin === 'true';
+}
+
+util.isAdmin = isAdmin;
 
 /**
  * Runs fn once the page has finished loading and the main thread next goes idle.

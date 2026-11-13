@@ -120,6 +120,20 @@ class RouteRegionsSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
       run(routeTable.countKnownStreets(Set(streetA, streetB))) mustBe 2
       run(routeTable.countKnownStreets(Set(streetA, Int.MaxValue))) mustBe 1
     }
+
+    "count only the streets that aren't disabled as live" in {
+      val picked = streetsInTwoRegions()
+      assume(picked.isDefined, "the connected DB has routable streets in fewer than two regions")
+      val ((streetA, _), (streetB, _)) = picked.get
+      runRolledBack(for {
+        _     <- sqlu"UPDATE street_edge SET status = 'disabled' WHERE street_edge_id = $streetB"
+        live  <- routeTable.countLiveStreets(Set(streetA, streetB))
+        known <- routeTable.countKnownStreets(Set(streetA, streetB))
+      } yield {
+        live mustBe 1
+        known mustBe 2
+      })
+    }
   }
 
   "getLabelsFromUserInRegions" should {

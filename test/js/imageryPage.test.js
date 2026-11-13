@@ -12,8 +12,11 @@
  * a reader who noticed it and found no explanation would reasonably conclude one of them is a bug.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules, mockModule, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
 import { FakeLngLatBounds } from './lngLatBoundsStub.js';
+
+useUtil(metricDistanceUtil);
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
@@ -106,6 +109,7 @@ const street = (overrides = {}) => ({
   last_audit_date: null,
   median_newest_capture: null,
   imagery_updated_at: null,
+  polled_at: null,
   length_m: 1609.34,
   ...overrides,
 });
@@ -115,12 +119,13 @@ const CITY = [
   street({ street_edge_id: 1, priority: 1 }),
   street({ street_edge_id: 2, priority: 0.667, outdated_good_count: 1, outdated: true,
     last_audit_date: '2021-05-04', median_newest_capture: '2025-06-01',
-    imagery_updated_at: '2026-08-15T00:45:00Z' }),
+    imagery_updated_at: '2026-08-15T00:45:00Z', polled_at: '2026-08-15T00:45:00Z' }),
   street({ street_edge_id: 3, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10',
-    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z' }),
+    median_newest_capture: '2025-01-01', imagery_updated_at: '2026-02-01T00:45:00Z',
+    polled_at: '2026-02-01T00:45:00Z' }),
   street({ street_edge_id: 4, region_id: 11, region_name: 'Downtown', priority: 0.333, fresh_good_count: 2,
     last_audit_date: '2026-07-01', median_newest_capture: '2026-07-20',
-    imagery_updated_at: '2024-03-01T00:45:00Z' }),
+    imagery_updated_at: '2024-03-01T00:45:00Z', polled_at: '2024-03-01T00:45:00Z' }),
 ];
 
 /** GeoJSON for the given street ids, in the shape /v3/api/streets serves. */
@@ -160,8 +165,10 @@ const report = (overrides = {}) => ({
 });
 
 /** Renders the page against canned responses and waits for the map's load event. */
-async function renderPage({ streets = CITY, features, pipeline = report(), failStreets = false } = {}) {
-  document.body.innerHTML = MARKUP;
+async function renderPage({
+  streets = CITY, features, pipeline = report(), failStreets = false, markup = MARKUP,
+} = {}) {
+  document.body.innerHTML = markup;
   charts.length = 0;
   const mapState = stubMapbox();
   window.fetch = vi.fn((url) => {
@@ -200,7 +207,7 @@ describe('ImageryPage KPIs', () => {
     // Street 2 is the only one carrying `outdated`; the tier count would agree here, and the case below is the one
     // where they diverge.
     expect(text('kpi-needs-reaudit')).toBe('1');
-    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi with newer imagery');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.6 km with newer imagery');
   });
 
   test('counts never-audited streets out of every routable street', async () => {
@@ -209,29 +216,37 @@ describe('ImageryPage KPIs', () => {
     expect(text('kpi-unaudited-note')).toBe('of 4 routable streets');
   });
 
-  test('reports how much of the audited city the rotation has actually reached', async () => {
+  test('reports how much of the city the rotation has actually reached, and how far back it goes', async () => {
     await renderPage();
-    // Three streets have been audited; all three carry a polled capture date.
-    expect(text('kpi-rotation')).toBe('100%');
-    expect(text('kpi-rotation-note')).toContain('3 of 3 audited streets');
+    // Three of the four routable streets carry a poll stamp; the oldest is 2024-03-01T00:45Z, 902 whole days before
+    // the pinned clock.
+    expect(text('kpi-rotation')).toBe('75%');
+    expect(text('kpi-rotation-note')).toContain('3 of 4 routable streets polled at least once');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 902 days ago');
   });
 
-  test('reports an unmeasured audited street as unmeasured rather than as up to date', async () => {
+  test('counts a street as polled by its poll stamp, not by whether the poll found dated imagery', async () => {
     await renderPage({
       streets: [
-        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01' }),
+        // A conclusive poll that attributed nothing dated: polled, with no median.
+        street({ street_edge_id: 1, fresh_good_count: 1, last_audit_date: '2026-01-01',
+          polled_at: '2026-08-10T00:45:00Z' }),
+        // A harvest-only record: an imagery timestamp, but never polled.
         street({ street_edge_id: 2, fresh_good_count: 1, last_audit_date: '2026-01-01',
-          median_newest_capture: '2026-02-02' }),
+          imagery_updated_at: '2026-08-19T00:45:00Z' }),
       ],
       features: geojson([1, 2]),
     });
     expect(text('kpi-rotation')).toBe('50%');
+    expect(text('kpi-rotation-note')).toContain('1 of 2 routable streets');
+    expect(text('kpi-rotation-note')).toContain('oldest poll 10 days ago');
   });
 
-  test('renders the rotation share as an em dash rather than 0% when nothing has been audited', async () => {
+  test('says no street has been polled rather than inventing an oldest poll', async () => {
     await renderPage({ streets: [street({ street_edge_id: 1 })], features: geojson([1]) });
     expect(text('kpi-rotation')).toBe('0%');
-    expect(text('kpi-rotation-note')).toContain('0 of 0 audited streets');
+    expect(text('kpi-rotation-note'))
+      .toContain('0 of 1 routable streets polled at least once; no street has been polled yet');
   });
 
   test('reports the last poll from the pipeline report', async () => {
@@ -317,11 +332,11 @@ describe('ImageryPage legend', () => {
     expect(shares).toContainEqual(['Needs re-audit', '0%']);
   });
 
-  test('carries each tier\u2019s mileage so the work has a size, not just a count', async () => {
+  test('carries each tier\u2019s distance so the work has a size, not just a count', async () => {
     await renderPage();
-    const miles = [...document.querySelectorAll('#imagery-legend tbody tr')]
+    const distances = [...document.querySelectorAll('#imagery-legend tbody tr')]
       .map((row) => row.querySelectorAll('td')[5].textContent.trim());
-    expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
+    expect(distances).toEqual(['1.6', '1.6', '1.6', '1.6']);
   });
 
   test('gives every tier its own swatch class, so the legend reads the same palette the map does', async () => {
@@ -397,7 +412,7 @@ describe('ImageryPage tables', () => {
     expect(rows[0].cells[1].textContent).toBe('0.722');
     expect(rows[0].cells[2].textContent).toBe('1');
     expect(rows[0].cells[3].textContent).toBe('1');
-    expect(rows[0].cells[4].textContent).toBe('1.0');
+    expect(rows[0].cells[4].textContent).toBe('1.6');
     expect(rows[1].cells[0].textContent).toBe('Downtown');
   });
 
@@ -474,6 +489,21 @@ describe('ImageryPage brushing', () => {
     expect(highlighted.map((tr) => tr.cells[0].textContent)).toEqual(['Downtown']);
   });
 
+  test('a street hovered on the map brushes its region, and a street clicked there pins it', async () => {
+    const { mapState } = await renderPage();
+    const fire = (event, e) => mapState.handlers.find((h) => h.event === event).handler(e);
+    const downtownStreet = { id: 4, properties: { street_edge_id: 4, region_id: '11', priority: 0.333 } };
+
+    fire('mousemove', { features: [downtownStreet], lngLat: { lng: -122.3, lat: 47.6 } });
+    const downtown = () => regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
+    expect(downtown().classList.contains('is-highlighted')).toBe(true);
+    fire('mouseleave', {});
+    expect(downtown().classList.contains('is-highlighted')).toBe(false);
+
+    fire('click', { features: [downtownStreet] });
+    expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
+  });
+
   test('does not narrow the street queue on hover, only on a pin', async () => {
     await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')
@@ -490,7 +520,7 @@ describe('ImageryPage rotation roll-up', () => {
     await renderPage();
     expect(rollupRow('Routable streets').cells[1].textContent).toBe('4');
     expect(rollupRow('With any imagery record').cells[1].textContent).toBe('3');
-    expect(rollupRow('With a polled capture date').cells[1].textContent).toBe('3');
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('3');
     expect(rollupRow('Audited and polled').cells[2].textContent).toContain('100% of audited streets');
   });
 
@@ -523,6 +553,20 @@ describe('ImageryPage rotation roll-up', () => {
     });
     // The second instant is 2026-01-01T22:00Z — earlier — but sorts later as a string.
     expect(rollupRow('Oldest imagery record').cells[1].textContent).toBe('2026-01-02');
+  });
+
+  test('counts a conclusive poll that found nothing, and not a harvest-only record, as polled', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, last_audit_date: '2026-01-01', polled_at: '2026-08-01T00:45:00Z',
+          imagery_updated_at: '2026-08-01T00:45:00Z' }),
+        street({ street_edge_id: 2, last_audit_date: '2026-01-01', imagery_updated_at: '2026-08-01T00:45:00Z' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    expect(rollupRow('Polled at least once').cells[1].textContent).toBe('1');
+    expect(rollupRow('Audited and polled').cells[2].textContent).toContain('50% of audited streets');
+    expect(rollupRow('With any imagery record').cells[1].textContent).toBe('2');
   });
 });
 
@@ -630,5 +674,74 @@ describe('ImageryPage join', () => {
     await renderPage();
     const tierCells = streetRows().map((tr) => tr.cells[3].textContent);
     expect(tierCells).toEqual(['Not yet audited', 'Needs re-audit', 'Audited once', 'Audited 2+ times']);
+  });
+});
+
+describe('ImageryPage edge cases (#5840)', () => {
+  test('a poll with no hours or counts recorded shows a dash and says it has no counts', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: null }] }),
+    });
+    expect(text('kpi-last-poll')).toBe('—');
+    expect(text('kpi-last-poll-note')).toBe('no counts recorded for that run');
+  });
+
+  test('a poll that recorded what it polled but not what it selected counts the selection as zero', async () => {
+    await renderPage({
+      pipeline: report({ jobs: [{ job_name: POLL, last_status: 'succeeded', hours_since_last_run: 3,
+        last_details: { streets_polled: 7 } }] }),
+    });
+    expect(text('kpi-last-poll-note')).toBe('7 of 0 selected streets refreshed');
+  });
+
+  test('a report with no jobs or nights reads as a poll that never ran and a stalled rotation', async () => {
+    const pipeline = report();
+    delete pipeline.jobs;
+    delete pipeline.run_days;
+    await renderPage({ pipeline });
+    expect(text('kpi-last-poll')).toBe('never');
+    expect(text('imagery-rotation')).toContain('the rotation is stalled');
+  });
+
+  test('a rotation with no batch size on the report still projects a full pass', async () => {
+    await renderPage({ pipeline: report({ poll_batch_size: null }) });
+    expect(text('imagery-rotation')).toContain('at 400 streets a night (batch size 0)');
+  });
+
+  test('a street with no length counts toward the tier and the re-audit KPI but adds no distance', async () => {
+    const streets = [street({ street_edge_id: 1, outdated_good_count: 1, outdated: true, length_m: null }),
+      street({ street_edge_id: 2, outdated_good_count: 1, outdated: true, length_m: 1000 })];
+    await renderPage({ streets, features: geojson([1, 2]) });
+    expect(text('kpi-needs-reaudit')).toBe('2');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.0 km with newer imagery');
+  });
+
+  test('the freshness chart reads its bars as streets, singular for one', async () => {
+    await renderPage();
+    const chart = charts.find((c) => c.host?.id === 'imagery-freshness-chart');
+    expect([chart.options.valueFormat(1), chart.options.valueFormat(3)]).toEqual(['1 street', '3 streets']);
+  });
+
+  test('a priority payload with no streets list, or a streets payload with no features, is not an error', async () => {
+    await renderPage({ streets: null });
+    expect(text('imagery-status')).toContain('no routable streets');
+
+    await renderPage({ features: { type: 'FeatureCollection' } });
+    expect(text('imagery-status')).toContain('No geometry matched');
+  });
+
+  test('a page missing its optional notes still loads its tables', async () => {
+    const strip = (ids) => ids.reduce((html, id) => html.replace(new RegExp(`<(\\w+)[^>]*id="${id}"[^>]*></\\1>`), ''),
+      MARKUP);
+    await renderPage({ markup: strip(['imagery-priority-note', 'imagery-region-note', 'imagery-street-intro',
+      'imagery-street-note', 'imagery-freshness-note', 'imagery-status']) });
+    expect(regionRows()).toHaveLength(2);
+    regionRows()[0].click();
+    expect(streetRows().length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('#imagery-legend tbody tr').length).toBeGreaterThan(0);
+
+    await renderPage({ markup: strip(['imagery-legend']) });
+    expect(text('imagery-priority-note')).toBe('');
+    expect(regionRows()).toHaveLength(2);
   });
 });

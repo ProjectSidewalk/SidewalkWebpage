@@ -226,55 +226,6 @@ pre > code {
   color: var(--color-neutral-900);
 }
 
-.page-nav-subitem.level-h1 {
-  font: var(--text-caption-medium);
-  padding-left: var(--space-xl);
-}
-
-.page-nav-subitem.level-h2 {
-  padding-left: calc(var(--space-xl) + 10px);
-}
-
-.page-nav-subitem.level-h3 {
-  padding-left: calc(var(--space-xl) + 20px);
-}
-
-.page-nav-subitem.is-active {
-  color: var(--color-link-200);
-  background-color: var(--color-blue-300);
-  font: var(--text-caption-medium);
-}
-
-/* ---- Accordion Menu ---- */
-
-.page-nav-accordion {
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  padding: var(--space-sm) var(--space-md);
-  color: var(--color-neutral-700);
-  text-decoration: none;
-  font: var(--text-small-regular);
-}
-
-.page-nav-submenu {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height var(--transition-medium);
-}
-
-.accordion-arrow {
-  margin-left: var(--space-sm);
-  transition: transform var(--transition-medium);
-  pointer-events: none;
-}
-
-.page-nav-accordion[aria-expanded="true"] .accordion-arrow {
-  transform: rotate(180deg);
-}
-
 /* ---- Sidebar Toggle ---- */
 
 /*
@@ -316,9 +267,7 @@ pre > code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-sidebar-toggle-icon,
-  .accordion-arrow,
-  .page-nav-submenu {
+  .page-sidebar-toggle-icon {
     transition: none;
   }
 }

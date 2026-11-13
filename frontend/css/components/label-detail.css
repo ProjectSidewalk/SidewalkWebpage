@@ -10,10 +10,6 @@
  * Scoped under `.label-detail` so nothing here leaks into the pages that host the card.
  */
 
-/* Many of the card's elements carry their own display: flex/inline-flex, which would beat the UA stylesheet's
-   `[hidden] { display: none }` regardless of specificity. One guard so every hidden-toggled element actually hides. */
-.label-detail [hidden] { display: none !important; }
-
 .label-detail {
   box-sizing: border-box;
   width: 650px;
@@ -123,7 +119,7 @@ dialog.label-detail[open]::backdrop {
   height: 14px;
 }
 
-/* Delete (#3591): grey at rest, a muted red only on hover. The [hidden] rule beats display: inline-flex. */
+/* Delete (#3591): grey at rest, a muted red only on hover. */
 .label-detail__delete {
   display: inline-flex;
   align-items: center;
@@ -138,10 +134,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-700);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.label-detail__delete[hidden] {
-  display: none;
 }
 
 .label-detail__delete:not([aria-disabled="true"]):hover {
@@ -168,14 +160,9 @@ dialog.label-detail[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* The imagery greys out but keeps its marker, so there's something to judge a Restore by; the notice takes the pan
-   hint's spot. */
+/* The imagery greys out but keeps its marker, so there's something to judge a Restore by. */
 .label-detail--deleted .label-detail__pano {
   filter: grayscale(1) brightness(0.8);
-}
-
-.label-detail--deleted .label-detail__pan-hint {
-  display: none;
 }
 
 .label-detail__deleted-notice {
@@ -193,10 +180,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-white);
   font: var(--text-caption-medium);
   white-space: nowrap;
-}
-
-.label-detail__deleted-notice[hidden] {
-  display: none;
 }
 
 .label-detail__restore {
@@ -335,31 +318,6 @@ dialog.label-detail[open]::backdrop {
 /* The AI-generated badge keeps its own hover tooltip; it's a tiny corner target, so panning is barely affected. */
 .label-detail__marker .admin-ai-icon-marker { pointer-events: auto; }
 
-/* One-time "pannable" hint chip over the imagery; LabelDetail toggles is-visible briefly on first open. Sits at
-   the top of the image, clear of the hover validation overlay at the bottom. */
-.label-detail__pan-hint {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 6; /* Above the validation ring (5), below the info popover (10). */
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 65%);
-  color: var(--color-neutral-white);
-  font: var(--text-caption-medium);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 400ms ease;
-}
-
-.label-detail__pan-hint.is-visible { opacity: 1; }
-
-@media (prefers-reduced-motion: reduce) {
-  .label-detail__pan-hint { transition: none; }
-}
-
 /* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links).
    4.5px puts the 26px pill's center on the source logo's optical line opposite it — 17.5px above the pano's bottom
    edge (PanoViewerLogo's 2px clearance plus the 15.5px its own art centers on) — so the two read as one credit. */
@@ -495,10 +453,6 @@ dialog.label-detail[open]::backdrop {
   transition: opacity 120ms ease;
 }
 
-/* display: inline-flex above outranks the UA's [hidden] rule, and this panel is not always a .label-detail
-   descendant, so it can't lean on the !important guard at the top of this file. */
-.pano-not-avail__cta[hidden] { display: none; }
-
 .pano-not-avail__cta:hover { opacity: 0.9; }
 
 .pano-not-avail__cta:focus-visible {
@@ -507,8 +461,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 /* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons.
-   Hidden outright on the viewer's own label (#5047); the card-wide `.label-detail [hidden]` guard at the top of
-   this file is what makes that stick against the display: flex below. */
+   Hidden outright on the viewer's own label (#5047). */
 .label-detail__pano-overlay {
   position: absolute;
   left: 0;
@@ -523,7 +476,8 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail__pano-wrap:hover .label-detail__pano-overlay,
-.label-detail__pano-overlay:focus-within {
+.label-detail__pano-overlay:focus-within,
+.label-detail.has-reason-popover .label-detail__pano-overlay {
   opacity: 1;
   pointer-events: auto;
 }
@@ -547,7 +501,7 @@ dialog.label-detail[open]::backdrop {
   outline: 2px solid var(--color-link-100);
   outline-offset: -2px;
 }
-.label-detail__pano-overlay-button[disabled] { cursor: wait; }
+.label-detail__pano-overlay-button[aria-disabled="true"] { cursor: wait; }
 
 .label-detail__pano-overlay-button--agree    { background: var(--color-pine-500); }
 .label-detail__pano-overlay-button--disagree { background: #eb734d; }
@@ -572,7 +526,7 @@ dialog.label-detail[open]::backdrop {
   color: rgb(0 0 0 / 40%);
 }
 .label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.78; }
-.label-detail--readonly .label-detail__vote[disabled] { cursor: default; }
+.label-detail--readonly .label-detail__vote[aria-disabled="true"] { cursor: default; }
 
 .label-detail--readonly .label-detail__comment-input:disabled {
   background: #f5f5f5;
@@ -684,7 +638,6 @@ button.label-detail__meta-cell:focus-visible {
 /* The lone action at the row's right edge, apart from the fact cluster. */
 .label-detail__meta-cell--details { margin-left: auto; }
 
-
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. The (i) is the "value" of
    the Details: control; the size hook main.css's `#pano-info-button` rule exposes fits it to the text line. */
 .label-detail__info-button-host {
@@ -696,7 +649,7 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
 
 /* Wrapping is keyed to the columns' own width, not the viewport's: three hosts size this card independently of
-   the window (the 650px modal, the Gallery's 52vw expanded view, the share page's grid track), and a translated
+   the window (the 650px modal, Gallery's 52vw expanded view, the share page's grid track), and a translated
    "Disagree" widens the two fixed columns well past their English measurement. Since neither of those can shrink,
    the zero basis + floor on tags below breaks the line exactly when they stop fitting — whatever the host, width,
    or language. */
@@ -726,7 +679,6 @@ button.label-detail__meta-cell:focus-visible {
   min-width: 120px;
 }
 
-
 /* Vote counts, display only (Figma "LabelMap-Redesign" frame 537:17); voting lives on the pano's hover overlay. */
 .label-detail__vote-display {
   display: flex;
@@ -749,9 +701,8 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Icon size and row gap match the severity faces (24px icons, 5px gap) so the word rows under the two
-   columns align perfectly. Positioned so the keyboard-vote echo below can anchor on the icon. */
+   columns align perfectly. */
 .label-detail__vote-top {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 1px;
@@ -770,10 +721,10 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 4px;
 }
 
-.label-detail__vote[disabled] {
-  cursor: wait;
-  opacity: 0.5;
-}
+.label-detail__vote[aria-disabled="true"] { cursor: wait; }
+
+/* Fade the contents, not the button, so the focus ring stays readable. */
+.label-detail__vote[aria-disabled="true"] > * { opacity: 0.5; }
 
 .label-detail__vote-icon {
   width: calc(24px * var(--ui-scale, 1));
@@ -784,61 +735,6 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__vote-count {
   font-variant-numeric: tabular-nums;
-}
-
-/* Keyboard-vote echo (#5194). A shortcut casts a vote with no control under the cursor to watch, so the vote that
-   landed is echoed as a ghost of its own icon drifting off the tally it just incremented — upward for agree and
-   unsure, downward for disagree, so the motion carries the verdict's direction. Decoration only: the filled icon
-   and the new count underneath are the state, and LabelDetail skips the whole thing under prefers-reduced-motion.
-   Mounted in the icon row, whose first child is the icon, so the ghost starts exactly over what it copies. */
-.label-detail__vote-pop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: calc(24px * var(--ui-scale, 1));
-  height: calc(24px * var(--ui-scale, 1));
-  pointer-events: none;
-  opacity: 0;
-  animation: label-detail-vote-rise 700ms ease-out forwards;
-}
-
-.label-detail__vote-pop--disagree {
-  animation-name: label-detail-vote-fall;
-}
-
-/* Fades in over the first quarter so the ghost reads as leaving the icon rather than appearing beside it. */
-@keyframes label-detail-vote-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.85);
-  }
-
-  25% {
-    opacity: 1;
-    transform: translateY(calc(-6px * var(--ui-scale, 1))) scale(1.1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(calc(-26px * var(--ui-scale, 1))) scale(1.1);
-  }
-}
-
-@keyframes label-detail-vote-fall {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.85);
-  }
-
-  25% {
-    opacity: 1;
-    transform: translateY(calc(6px * var(--ui-scale, 1))) scale(1.1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(calc(26px * var(--ui-scale, 1))) scale(1.1);
-  }
 }
 
 /* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. Content-sized
@@ -1026,17 +922,13 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: -2px;
 }
 
-/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save.
-   The explicit [hidden] rule is required: a `display` here would otherwise beat the UA stylesheet's `[hidden]` and
-   leave an empty line holding space whenever there is nothing to announce. */
+/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save. */
 .label-detail__comment-confirmation {
   display: block;
   margin-bottom: 6px;
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
 }
-
-.label-detail__comment-confirmation[hidden] { display: none; }
 
 /* A failed save or delete is the one outcome the reader has to act on, so it doesn't wear the success green. */
 .label-detail__comment-confirmation.is-error { color: var(--color-orange-700); }
@@ -1277,15 +1169,17 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__paging svg { display: block; }
 
-.label-detail__paging:hover {
+.label-detail__paging:not([aria-disabled="true"]):hover {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
 }
 
-.label-detail__paging:disabled {
+/* Arrows switch off with aria-disabled so the one just pressed keeps keyboard focus (#5135). */
+.label-detail__paging[aria-disabled="true"] {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
+  cursor: not-allowed; /* The pointer cursor above outranks main.css's rule. */
 }
 
 .label-detail__paging:focus-visible {
@@ -1295,7 +1189,7 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
 
-/* "k of N" position in the Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
+/* "k of N" position in Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
    far through a fixed review list you are is the point of the mode, and a hover-revealed counter would not say. */
 .label-detail__position {
   position: absolute;
@@ -1317,7 +1211,7 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Touch and narrow viewports ──────────────────────────────────────── */
 
 /* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible
-   ([hidden] and :disabled states still win), and the sub-44px targets grow: the paging chips outright, the
+   ([hidden] and switched-off states still win), and the sub-44px targets grow: the paging chips outright, the
    close button via padding (its svg fills the 24px content box that remains).
    The vote overlay is deliberately NOT among them: it is a full-width 56px bar pinned to the bottom of the
    pano, so revealing it permanently would cover a quarter of a phone-sized image, kill drag-to-look across
@@ -1341,7 +1235,6 @@ button.label-detail__meta-cell:focus-visible {
     padding: 10px;
   }
 }
-
 
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
@@ -1406,10 +1299,8 @@ button.label-detail__meta-cell:focus-visible {
   }
 }
 
-
 /* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
-   the share pill. Hidden until LabelDetail fills the href (hosts opt in) — explicit so the attribute beats
-   display: inline-flex. */
+   the share pill. Hidden until LabelDetail fills the href (hosts opt in). */
 .label-detail__labelmap-link,
 .label-detail__explore-link {
   display: inline-flex;
@@ -1494,8 +1385,6 @@ button.label-detail__meta-cell:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.label-detail__stories-count[hidden] { display: none; }
-
 /* Outline CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green already
    means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. Rounded rect
    rather than a round pill, so it reads as a button and not as one of the tags a few rows up — see share-widget.css
@@ -1521,8 +1410,6 @@ button.label-detail__meta-cell:focus-visible {
   height: 15px;
   display: block;
 }
-
-.label-detail__story-share[hidden] { display: none; }
 
 .label-detail__story-share:hover { background: var(--color-neutral-100); }
 
@@ -1829,8 +1716,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   color: var(--color-asphalt-400);
 }
 
-.story-composer__photo-attach[hidden] { display: none; }
-
 .story-composer__photo-icon {
   width: 16px;
   height: 16px;
@@ -1852,8 +1737,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   gap: 12px;
   align-items: flex-start;
 }
-
-.story-composer__photo-preview[hidden] { display: none; }
 
 .story-composer__photo-thumb {
   width: 120px;
@@ -1889,8 +1772,6 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   font-weight: 400;
   font-size: 13px;
 }
-
-.story-composer__check-row[hidden] { display: none; }
 
 .story-composer__check-row input { margin-top: 2px; }
 

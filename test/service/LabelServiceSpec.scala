@@ -55,38 +55,39 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       .result
   )
 
+  /** A minimal label for the pure helpers, which read only its id and type. */
+  private def label(id: Int, labelType: LabelType = LabelType.CurbRamp): LabelValidationMetadata = {
+    import models.label.{LabelValidationInfo, LatLng, LocationXY, POV}
+    LabelValidationMetadata(
+      id,
+      labelType,
+      s"pano$id",
+      PanoSource.Gsv,
+      false,
+      "",
+      OffsetDateTime.now,
+      LatLng(0, 0),
+      POV(0, 0, 1),
+      LocationXY(0, 0),
+      720,
+      480,
+      None,
+      None,
+      1,
+      1,
+      None,
+      LabelValidationInfo(0, 0, 0, None, None, None),
+      Seq.empty,
+      None,
+      None,
+      None,
+      false
+    )
+  }
+
   // The walk keeps the first n viewable labels of a batch, and the imagery check hands them back crop-first, so
   // without the restore a sorted page served the batch's cropped labels in place of its top-ranked ones.
   "LabelServiceImpl.restoreBatchOrder" should {
-    def label(id: Int): LabelValidationMetadata = {
-      import models.label.{LabelValidationInfo, LatLng, LocationXY, POV}
-      LabelValidationMetadata(
-        id,
-        LabelType.CurbRamp,
-        s"pano$id",
-        PanoSource.Gsv,
-        false,
-        "",
-        OffsetDateTime.now,
-        LatLng(0, 0),
-        POV(0, 0, 1),
-        LocationXY(0, 0),
-        720,
-        480,
-        None,
-        None,
-        1,
-        1,
-        None,
-        LabelValidationInfo(0, 0, 0, None, None, None),
-        Seq.empty,
-        None,
-        None,
-        None,
-        false
-      )
-    }
-
     "keep the batch's order whatever order the check answered in" in {
       val batch    = Seq(label(1), label(2), label(3), label(4))
       val viewable = Seq(label(4), label(2)) // crop-first, as checkImageryBatch returns it
@@ -95,6 +96,90 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
 
     "drop what the check dropped" in {
       LabelServiceImpl.restoreBatchOrder(Seq(label(1), label(2)), Seq.empty).map(_.labelId) mustBe empty
+    }
+  }
+
+  "LabelServiceImpl.spreadAcrossTypes" should {
+    import LabelType.*
+    val nine: Seq[LabelType] =
+      Seq(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, NoSidewalk, Crosswalk, Signal, Occlusion, Other)
+
+    "ask for exactly n, the remainder going to the first types" in {
+      val quotas = LabelServiceImpl.spreadAcrossTypes(nine, 30)
+      quotas.map(_._2).sum mustBe 30
+      quotas.map(_._2) mustBe Seq(4, 4, 4, 3, 3, 3, 3, 3, 3)
+    }
+
+    "give the whole request to a single remaining type" in {
+      LabelServiceImpl.spreadAcrossTypes(Seq(CurbRamp), 23) mustBe Seq(CurbRamp -> 23)
+    }
+
+    "ask only the first n types when n is smaller than the type count" in {
+      LabelServiceImpl.spreadAcrossTypes(nine, 2) mustBe Seq(CurbRamp -> 1, NoCurbRamp -> 1)
+    }
+
+    "ask nothing for no types or no labels" in {
+      LabelServiceImpl.spreadAcrossTypes(Seq.empty, 30) mustBe empty
+      LabelServiceImpl.spreadAcrossTypes(nine, 0) mustBe empty
+    }
+  }
+
+  "LabelServiceImpl.fillAcrossTypes" should {
+    import LabelType.*
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    /**
+     * A fake per-type fetch over a fixed stock of label ids, honouring the count and the excluded set as the real
+     * query does, and recording every call so a test can see what each round asked for.
+     */
+    class FakeStock(stock: Map[LabelType, Seq[Int]]) {
+      val calls = scala.collection.mutable.ArrayBuffer.empty[(LabelType, Int, Set[Int])]
+      def fetch(t: LabelType, count: Int, excluded: Set[Int]): scala.concurrent.Future[Seq[LabelValidationMetadata]] =
+        synchronized {
+          calls += ((t, count, excluded))
+          scala.concurrent.Future.successful(
+            stock.getOrElse(t, Seq.empty).filterNot(excluded).take(count).map(id => label(id, t))
+          )
+        }
+    }
+
+    "fill the page from the one type that has labels when the others are scarce (#5929)" in {
+      val fake   = FakeStock(Map(CurbRamp -> (1 to 100), Obstacle -> Seq(201), Signal -> Seq.empty))
+      val labels = await(LabelServiceImpl.fillAcrossTypes(Set(CurbRamp, Obstacle, Signal), 30, Set.empty)(fake.fetch))
+
+      labels must have size 30
+      labels.map(_.labelId).distinct must have size 30
+      labels.map(_.labelId) must contain(201)
+    }
+
+    "never re-ask a type that ran dry, and exclude earlier rounds' picks from the next" in {
+      val fake = FakeStock(Map(CurbRamp -> (1 to 100), Obstacle -> Seq(201)))
+      await(LabelServiceImpl.fillAcrossTypes(Set(CurbRamp, Obstacle), 10, Set(1))(fake.fetch))
+
+      fake.calls.count(_._1 == Obstacle) mustBe 1
+      val curbRampCalls = fake.calls.filter(_._1 == CurbRamp).toSeq
+      curbRampCalls must have size 2
+      curbRampCalls.head._3 mustBe Set(1)
+      // Round 2 excludes the client's labels plus everything round 1 found, the obstacle included.
+      curbRampCalls(1)._3 must contain allOf (1, 201)
+      curbRampCalls(1)._3.size mustBe 1 + curbRampCalls.head._2 + 1
+    }
+
+    "end with what it has once every type is spent" in {
+      val fake   = FakeStock(Map(CurbRamp -> Seq(1, 2), Obstacle -> Seq(3)))
+      val labels = await(LabelServiceImpl.fillAcrossTypes(Set(CurbRamp, Obstacle, Signal), 30, Set.empty)(fake.fetch))
+
+      labels.map(_.labelId).sorted mustBe Seq(1, 2, 3)
+      fake.calls.size mustBe 3
+    }
+
+    "take one round when every type fills its share" in {
+      val fake   = FakeStock(Map(CurbRamp -> (1 to 50), Obstacle -> (101 to 150), Signal -> (201 to 250)))
+      val labels = await(LabelServiceImpl.fillAcrossTypes(Set(CurbRamp, Obstacle, Signal), 30, Set.empty)(fake.fetch))
+
+      labels must have size 30
+      fake.calls.size mustBe 3
+      fake.calls.map(_._2).toSeq mustBe Seq(10, 10, 10)
     }
   }
 
@@ -242,7 +327,7 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
       // for, and none is dropped for being out of order.
       val returned = run(labelTable.getGalleryLabelsByIdQuery(viewer, servedIds.reverse, userId).result).map(_._1)
       returned.toSet mustBe servedIds.toSet
-      // A fanned-out join would show up here as a label appearing twice, which the Gallery would page through twice.
+      // A fanned-out join would show up here as a label appearing twice, which Gallery would page through twice.
       returned.distinct.size mustBe returned.size
     }
 

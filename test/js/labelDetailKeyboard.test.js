@@ -1,8 +1,9 @@
 /**
  * Tests for the label card's keyboard shortcuts (frontend/js/common/label-detail/LabelDetail.js, #5194).
  *
- * Left/right page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on every host the
- * shared card has, which is why the shortcuts live in the controller rather than in one host's key manager.
+ * Left/right (and S, #5883) page to the previous/next label and A/Y, D/N, U cast agree, disagree and unsure — on
+ * every host the shared card has, which is why the shortcuts live in the controller rather than in one host's key
+ * manager.
  *
  * The listener is window-wide (the card is often the frontmost thing on the page with nothing inside it holding
  * focus, and the pano viewers stop arrow keys from propagating past `window` anyway), so the whole of the scope is
@@ -20,8 +21,7 @@
  * The shortcuts press the card's own buttons rather than reaching past them, so a hidden or disabled control means
  * the key does nothing here and is left for the page to handle (the arrows still scroll). The click they fire
  * carries `detail: 0`, the shape a browser gives a button activated with Enter or Space, which is how the handlers
- * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
- * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
+ * keep logging the keyboard apart from the mouse.
  *
  * The pano manager and the card's flourishes (badges, stories, the info popover, the hide toggle) are stand-ins:
  * the real ones want a viewer and page markup, and none is what a shortcut exercises.
@@ -45,7 +45,7 @@ mockLabelDetailCollaborators(() => panoManager);
  * @param {boolean} [opts.paging=true] - Render the prev/next arrows, which the template emits only for a host that
  *     asked for them (`withPaging`).
  * @param {boolean} [opts.asDialog=false] - Mount the card in a <dialog>, the way LabelPopup's hosts do, rather
- *     than in the <div> the Gallery and the share page use.
+ *     than in the <div> Gallery and the share page use.
  * @returns {HTMLElement} The card root, mounted in the document.
  */
 function buildCard({ paging = true, asDialog = false } = {}) {
@@ -58,20 +58,36 @@ function buildCard({ paging = true, asDialog = false } = {}) {
       <button type="button" id="outside">Somewhere else on the page</button>
       <${tag} id="card" class="label-detail">
         <header class="label-detail__header">
-          <h2 class="label-detail__title"></h2>
+          <h2 class="label-detail__title">
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
+            </button>
+          </h2>
+          <button type="button" class="label-detail__delete" hidden></button>
           <span class="label-detail__own-badge" role="img" hidden></span>
+          <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </header>
+        <div class="label-type-popover" popover hidden>
+          <p class="label-type-popover__hint" hidden></p>
+          <div class="label-type-popover__chips"></div>
+        </div>
 
         <div class="label-detail__pano-wrap">
           ${arrows}
           <div class="label-detail__pano"></div>
+          <div class="label-detail__deleted-notice" role="status" hidden>
+            <span class="label-detail__deleted-notice-text"></span>
+            <button type="button" class="label-detail__restore" hidden></button>
+          </div>
           <button type="button" class="label-detail__hide-label"></button>
           <div class="label-detail__pano-overlay" role="group">
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false">Agree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false">Disagree</button>
             <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false">Unsure</button>
           </div>
-          <span class="label-detail__pan-hint" hidden></span>
         </div>
 
         <div class="label-detail__meta-row">
@@ -175,6 +191,7 @@ function buildCard({ paging = true, asDialog = false } = {}) {
         <div class="label-detail__footer">
           <a class="label-detail__explore-link" hidden></a>
           <a class="label-detail__labelmap-link" hidden></a>
+          <div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div>
         </div>
       </${tag}>`;
   return document.getElementById('card');
@@ -243,7 +260,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
   const overlayButton = (result) => q(`.label-detail__pano-overlay-button--${result}`);
   const prevArrow = () => q('.label-detail__paging--prev');
   const nextArrow = () => q('.label-detail__paging--next');
-  const echo = () => q('.label-detail__vote-pop');
 
   /** The bodies of the validations posted so far, newest last. */
   const validations = () => post.mock.calls
@@ -344,6 +360,15 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       expect(validations().map((v) => v.validation_result)).toEqual([result]);
     });
 
+    test('a key a page script sends to the document itself, with no element behind it, still votes', async () => {
+      await showLabel();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', bubbles: true, cancelable: true }));
+      await flush();
+
+      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+    });
+
     test('the key drives the card\'s own button, as a click a pointer did not make', async () => {
       // Going through the button rather than around it is what keeps one code path per action — the host's
       // handler and every disabled guard already on the control — and `detail: 0` is what still lets that
@@ -384,36 +409,51 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
   });
 
-  describe('the arrow keys', () => {
-    test('left and right press the card\'s prev/next arrows', async () => {
+  describe('the paging keys', () => {
+    test.each([
+      ['ArrowLeft', 'prev'],
+      ['ArrowRight', 'next'],
+      ['KeyS', 'next'],
+    ])('%s presses the card\'s %s arrow', async (code, which) => {
+      // S sits between A and D, so a run of labels needs only the left hand, as on Validate (#5883).
       await showLabel();
-      const prev = vi.fn();
-      const next = vi.fn();
-      prevArrow().addEventListener('click', prev);
-      nextArrow().addEventListener('click', next);
+      const clicked = vi.fn();
+      (which === 'prev' ? prevArrow() : nextArrow()).addEventListener('click', clicked);
 
-      press('ArrowLeft');
-      press('ArrowRight');
+      press(code);
 
-      expect(prev).toHaveBeenCalledTimes(1);
-      expect(next).toHaveBeenCalledTimes(1);
-      expect(prev.mock.calls[0][0].detail).toBe(0);
+      expect(clicked).toHaveBeenCalledTimes(1);
+      expect(clicked.mock.calls[0][0].detail).toBe(0);
     });
 
-    test('a disabled arrow is left alone, and the key stays the page\'s to use', async () => {
-      // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
+    test('letters go by what is printed on the key, as on Validate (#5618)', async () => {
+      // On Colemak the printed S sits where QWERTY has D, and the printed R where QWERTY has S.
       await showLabel();
-      nextArrow().disabled = true;
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      press('KeyD', { key: 's' });
+      press('KeyS', { key: 'r' });
+      await flush();
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(validations()).toEqual([]);
+    });
+
+    test.each(['ArrowRight', 'KeyS'])('%s leaves a disabled next arrow alone, for the page to use', async (code) => {
+      // Nothing to page to, so nothing to swallow: the arrow keys have to keep scrolling the host page.
+      await showLabel();
+      nextArrow().setAttribute('aria-disabled', 'true'); // How the hosts switch the arrows off (#5135).
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('an arrow still hidden waiting for its navigator is left alone too', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s leaves an arrow hidden until its navigator arrives', async (code) => {
       // LabelPopup hides both arrows until the host hands it a navigator, which on LabelMap arrives only
       // once the viewport's labels have loaded (#5068).
       await showLabel();
@@ -421,27 +461,49 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       const next = vi.fn();
       nextArrow().addEventListener('click', next);
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(next).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
     });
 
-    test('a host with no arrows at all ignores them', async () => {
+    test.each(['ArrowRight', 'KeyS'])('%s does nothing on a host with no arrows at all', async (code) => {
       // The dashboard's popup and the share page render the card without paging.
       await mount({ paging: false });
       await showLabel();
 
-      const event = press('ArrowRight');
+      const event = press(code);
 
       expect(event.defaultPrevented).toBe(false);
+    });
+
+    test('S waits while "Other…" holds words not yet saved, which paging would throw out', async () => {
+      await showLabel();
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
+      press('KeyD');
+      await flush();
+      const other = document.querySelector('.reason-popover .reason-chips__chip--other');
+      other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+      const field = document.querySelector('.reason-popover .reason-chips__other-input');
+      field.value = 'blocked by a bin';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.reason-popover .reason-chips__other-save').focus();
+
+      press('KeyS');
+      expect(next).not.toHaveBeenCalled();
+
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      press('KeyS');
+      expect(next).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('what the card refuses to claim', () => {
     test('a key typed into the comment box', async () => {
       // The comment box is inside the card, so "a" has to stay an "a" and the arrows have to move the caret.
-      await showLabel({ user_validation: 'Disagree', num_disagree: 1 });
+      await showLabel({ user_validation: 'Agree', num_agree: 1 });
       const prev = vi.fn();
       prevArrow().addEventListener('click', prev);
       q('.label-detail__comment-input').focus();
@@ -505,7 +567,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
 
     test('a key pressed while the host has hidden the card', async () => {
-      // The Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
+      // Gallery's expanded view hides its panel with CSS rather than closing a <dialog>, so it answers
       // for itself through opts.isOpen — otherwise a stray "a" would vote on the last label it showed.
       await mount({ hosted: true });
       await showLabel();
@@ -555,91 +617,74 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     });
   });
 
-  describe('the vote echo (#5194)', () => {
+  describe('the vote pop (#5475)', () => {
+    // Every vote gets it, pointer or keyboard, cast or cleared, as a Gallery card's does. jsdom has no Web
+    // Animations API, so a spy stands in for `animate` on every element and the calls say which tallies moved.
+    let animate;
+    beforeEach(() => {
+      animate = vi.fn();
+      HTMLElement.prototype.animate = animate;
+    });
+    afterEach(() => {
+      delete HTMLElement.prototype.animate;
+    });
+    const movedElements = () => animate.mock.instances;
+
     test.each([
-      ['KeyA', 'Agree', 'agree'],
-      ['KeyD', 'Disagree', 'disagree'],
-      ['KeyU', 'Unsure', 'unsure'],
-    ])('%s drops a ghost of the %s icon on that vote\'s tally', async (code, action, variant) => {
-      await showLabel();
-
-      press(code);
-      await flush();
-
-      // Mounted on the icon row, so it starts exactly over the icon it copies; the variant class is what
-      // sends agree and unsure up and disagree down.
-      expect(echo().parentElement).toBe(q(`.label-detail__vote--${variant} .label-detail__vote-top`));
-      expect(echo().classList.contains(`label-detail__vote-pop--${variant}`)).toBe(true);
-      // The filled, non-AI icon: the ghost stands for the verdict just cast, not for the icon's own state.
-      expect(echo().getAttribute('src')).toBe(`/assets/images/icons/validation/${variant}-filled.svg`);
-      // Decoration — the vote it reports is already carried by aria-pressed and the count beside it.
-      expect(echo().getAttribute('aria-hidden')).toBe('true');
-      expect(echo().alt).toBe('');
-    });
-
-    test('a pointer click gets none of it', async () => {
-      // Clicking leaves the pressed button under the cursor, which is feedback enough.
-      await showLabel();
-
-      overlayButton('agree').dispatchEvent(
+      ['a click', () => overlayButton('unsure').dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
-      );
+      )],
+      ['a shortcut', () => press('KeyU')],
+    ])('%s pops the icon it gained and moves the counts it changed', async (_how, vote) => {
+      await showLabel({ user_validation: 'Agree', num_agree: 1 });
+
+      vote();
       await flush();
 
-      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
-      expect(echo()).toBeNull();
+      // The unsure hand and its count rise; the agree count it took the vote from dips.
+      expect(movedElements()).toEqual([
+        q('.label-detail__vote--unsure .label-detail__vote-icon'),
+        q('.label-detail__vote--unsure .label-detail__vote-count'),
+        q('.label-detail__vote--agree .label-detail__vote-count'),
+      ]);
     });
 
-    test('clearing a vote gets none of it either', async () => {
-      // A rising icon says "counted"; it would read as the opposite of what clearing does.
+    test('clearing a vote dips its count and pops nothing', async () => {
       await showLabel({ user_validation: 'Agree', num_agree: 1 });
 
       press('KeyA');
       await flush();
 
       expect(validations()[0].undone).toBe(true);
-      expect(echo()).toBeNull();
+      expect(movedElements()).toEqual([q('.label-detail__vote--agree .label-detail__vote-count')]);
     });
 
-    test('prefers-reduced-motion skips it entirely', async () => {
-      // Skipped rather than slowed: it is an optional flourish, the way Confetti and StorySection treat theirs.
-      vi.stubGlobal('matchMedia', () => ({ matches: true }));
-      await showLabel();
-
-      press('KeyA');
-      await flush();
-
-      expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
-      expect(echo()).toBeNull();
-    });
-
-    test('paging away takes the echo with it, so it cannot report a vote on the next label', async () => {
-      // The tally rows are cached once and reused for every label the card shows, so an echo still in flight
-      // when the reader pages would go on rising over a label they never voted on — the one thing this
-      // affordance must never say. Well within reach: the animation runs 700ms and the arrow keys are how
-      // the run moves.
+    test('paging away cancels a pop still running, so it cannot report a vote on the next label', async () => {
+      // The icon and count elements are cached once and reused for every label the card shows.
       await showLabel({ label_id: 100 });
       press('KeyA');
       await flush();
-      expect(echo()).not.toBeNull();
+      const cancel = vi.fn();
+      const icon = q('.label-detail__vote--agree .label-detail__vote-icon');
+      const count = q('.label-detail__vote--agree .label-detail__vote-count');
+      icon.getAnimations = () => [{ cancel }];
+      count.getAnimations = () => [{ cancel }];
 
       await showLabel({ label_id: 101 });
 
-      expect(echo()).toBeNull();
+      expect(cancel).toHaveBeenCalledTimes(2);
     });
 
-    test('it takes itself back out of the markup', async () => {
-      // On a timer rather than animationend: closing the card mid-flight cancels the animation instead of
-      // ending it, and a node left behind on every such vote would accumulate.
+    test('a vote the server refused moves nothing', async () => {
       await showLabel();
+      post.mockImplementation(async () => ({ ok: false, status: 500, json: async () => ({}) }));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       press('KeyA');
       await flush();
-      expect(echo()).not.toBeNull();
 
-      await new Promise((resolve) => { setTimeout(resolve, 800); });
-
-      expect(echo()).toBeNull();
+      expect(animate).not.toHaveBeenCalled();
+      console.error.mockRestore();
     });
   });
 
@@ -660,13 +705,12 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     }
 
     test('focus dropped to the body under an open popup still belongs to the card', async () => {
-      // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
-      // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
-      // nothing else on the page can be typed at — the keys are still the card's.
+      // The comment Save disables while the next label's imagery loads, dropping focus to the body. The popup is
+      // modal, so the keys still belong to the card.
       await mount({ asDialog: true });
       card.setAttribute('open', '');
       await showLabel();
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
       expect(document.activeElement).toBe(document.body);
 
       press('KeyA');
@@ -682,7 +726,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       card.setAttribute('open', '');
       await showLabel();
       q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
-      dropFocusToBody(nextArrow());
+      dropFocusToBody(q('.label-detail__comment-submit'));
 
       press('KeyA');
       await flush();
@@ -695,15 +739,17 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // A/D/U or arrow into a typed character and end the paging run.
       await showLabel({ user_validation: null });
 
-      press('KeyD');
+      press('KeyA');
       await flush();
 
       expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
       expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
 
       // And the run continues: the next key still reaches the card.
+      const next = vi.fn();
+      nextArrow().addEventListener('click', next);
       press('ArrowRight');
-      expect(nextArrow().disabled).toBe(false);
+      expect(next).toHaveBeenCalledTimes(1);
     });
 
     test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {
@@ -711,7 +757,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
       // those paths and not the other makes which keys work depend on how the last vote was cast.
       await showLabel({ user_validation: null });
 
-      overlayButton('disagree').dispatchEvent(
+      overlayButton('agree').dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
       );
       await flush();

@@ -24,6 +24,7 @@ export class AcrossCitiesPage {
   /** Human-friendly label + severity for each anomaly flag key the endpoints can emit (scorecard or traffic). */
   static #ANOMALY = {
     high_disagreement: { label: 'High disagreement', sev: 'warn' },
+    reaudit_backlog: { label: 'Re-audit backlog', sev: 'info' },
     traffic_spike: { label: 'Traffic spike', sev: 'info' },
     traffic_drop: { label: 'Traffic drop', sev: 'warn' },
   };
@@ -125,7 +126,8 @@ export class AcrossCitiesPage {
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
-  #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
+  #funnelWindow = '30d'; // '30d' | '90d' | 'all': the window last asked for.
+  #shownFunnelWindow = '30d'; // The window whose numbers are on screen.
   #funnelDim = 'all';    // 'all' | 'role' | 'device'.
 
   /**
@@ -188,26 +190,24 @@ export class AcrossCitiesPage {
       }
     } catch (err) {
       console.error('Across Cities page failed to load:', err);
-      this.#setText('ac-pulse', 'Could not load city data. Please try again.');
-      this.#setText('ac-status', 'Could not load city data. Please try again.');
-      this.#setText('ac-stories-summary', 'Could not load story counts.');
+      AdminShell.setText('ac-pulse', 'Could not load city data. Please try again.');
+      AdminShell.setText('ac-status', 'Could not load city data. Please try again.');
+      AdminShell.setText('ac-stories-summary', 'Could not load story counts.');
     }
   }
 
   /**
-   * Fetches the scorecards, waiting out a server whose cross-city caches are still cold (#5432): it answers `503`
-   * with a `Retry-After` rather than hold the request past the proxy's timeout, and keeps computing for the retry.
+   * Fetches the scorecards, retrying while the server's cross-city caches are cold (#5432).
    *
-   * The pulse line says so, because a retry can sit for up to the server's 45 s cold wait with nothing else moving on
-   * the page. The wording never claims the server is computing: the same path covers the proxy's own `502`/`503`
-   * while the backend restarts mid-deploy.
+   * The pulse line shows the wait, since a retry can take up to 45 s with nothing else moving. Its wording doesn't
+   * claim the server is computing, because a proxy `502`/`503` mid-deploy takes the same path.
    *
    * @returns {Promise<any>} The scorecards payload, as the endpoint returns it.
    */
   #fetchScorecards() {
     return FetchWithRetry.fetchJsonWithRetry(this.#scorecardsUrl, {
       onWait: (_attempt, seconds) => {
-        this.#setText('ac-pulse', `Still gathering figures from every city; trying again in ${seconds} s…`);
+        AdminShell.setText('ac-pulse', `Still gathering figures from every city; trying again in ${seconds} s…`);
       },
     });
   }
@@ -231,15 +231,19 @@ export class AcrossCitiesPage {
   /** Fills the project-wide "hero" stat band from the summary block. */
   #renderHero() {
     const s = this.#summary;
-    this.#setText('hero-cities', this.#num(s.num_cities));
-    this.#setText('hero-countries', this.#num(s.num_countries));
-    this.#setText('hero-languages', this.#num(s.num_languages));
-    this.#setText('hero-users', this.#num(s.total_users));
-    this.#setText('hero-distance', `${this.#num(Math.round(s.total_km || 0))} km`);
-    this.#setText('hero-labels', this.#num(s.total_labels));
-    this.#setText('hero-validations', this.#num(s.total_validations));
-    this.#setText('hero-datapoints', this.#num(s.total_datapoints));
-    this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
+    AdminShell.setText('hero-cities', this.#num(s.num_cities));
+    AdminShell.setText('hero-countries', this.#num(s.num_countries));
+    AdminShell.setText('hero-languages', this.#num(s.num_languages));
+    AdminShell.setText('hero-users', typeof s.total_users === 'number' ? this.#num(s.total_users) : '—');
+    AdminShell.setText('hero-multi-city', typeof s.multi_city_users === 'number' ? this.#num(s.multi_city_users) : '—');
+    AdminShell.setText('hero-walked', util.longDistanceToString(s.total_walked_km));
+    AdminShell.setText('hero-mapped', util.longDistanceToString(s.total_mapped_km));
+    AdminShell.setText('hero-current', util.longDistanceToString(s.total_current_km));
+    AdminShell.setText('hero-reaudit', util.longDistanceToString(s.total_reaudit_km));
+    AdminShell.setText('hero-labels', this.#num(s.total_labels));
+    AdminShell.setText('hero-validations', this.#num(s.total_validations));
+    AdminShell.setText('hero-datapoints', this.#num(s.total_datapoints));
+    AdminShell.setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
   }
 
   /**
@@ -256,9 +260,9 @@ export class AcrossCitiesPage {
    */
   #joinActivityWindows() {
     for (const c of this.#cities) {
-      const w = this.#windowByCity[c.city_id] || null;
+      const w = this.#windowByCity[c.city_id] || {};
       c.activity_window = w;
-      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+      c.activity_7d = (w.labels_7d || 0) + (w.validations_7d || 0);
     }
   }
 
@@ -278,9 +282,9 @@ export class AcrossCitiesPage {
     // comparing a partial today against a full yesterday would nearly always read as a drop.
     const today = this.#dailyTrend.length ? this.#dailyTrend[this.#dailyTrend.length - 1] : null;
     if (today) {
-      this.#setText('now-labels-today', this.#num(today.labels));
-      this.#setText('now-validations-today', this.#num(today.validations));
-      this.#setText('now-contributors-today', this.#num(today.contributors));
+      AdminShell.setText('now-labels-today', this.#num(today.labels));
+      AdminShell.setText('now-validations-today', this.#num(today.validations));
+      AdminShell.setText('now-contributors-today', this.#num(today.contributors));
       this.#renderAiNote('now-labels-today-ai', today.ai_labels, today.labels, 'labels', 'today');
       this.#renderAiNote('now-validations-today-ai', today.ai_validations, today.validations, 'validations', 'today');
       this.#renderAnonNote('now-contributors-today-anon', today.anon_sessions, 'today');
@@ -291,9 +295,9 @@ export class AcrossCitiesPage {
     // the calendar-day series would disagree with the delta, and per-day distinct users can't be summed).
     const ws = this.#windowSummary;
     if (ws) {
-      this.#setText('now-labels-7d', this.#num(ws.labels_7d));
-      this.#setText('now-validations-7d', this.#num(ws.validations_7d));
-      this.#setText('now-contributors-7d', this.#num(ws.contributors_7d));
+      AdminShell.setText('now-labels-7d', this.#num(ws.labels_7d));
+      AdminShell.setText('now-validations-7d', this.#num(ws.validations_7d));
+      AdminShell.setText('now-contributors-7d', this.#num(ws.contributors_7d));
       this.#renderDelta('now-labels-7d-delta', ws.labels_7d, ws.labels_prior_7d);
       this.#renderDelta('now-validations-7d-delta', ws.validations_7d, ws.validations_prior_7d);
       this.#renderDelta('now-contributors-7d-delta', ws.contributors_7d, ws.contributors_prior_7d);
@@ -308,18 +312,18 @@ export class AcrossCitiesPage {
     // these tiles can never disagree with the table's rows or its row-count status line (the scorecard's own 7d
     // fields sit on a slightly different basis — see #joinActivityWindows).
     const activeCount = this.#cities.filter((c) => c.activity_7d > 0).length;
-    this.#setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
+    AdminShell.setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
     const top = this.#cities.reduce((best, c) =>
       ((c.activity_window?.labels_7d ?? 0) > (best?.activity_window?.labels_7d ?? 0) ? c : best), null);
     if ((top?.activity_window?.labels_7d ?? 0) > 0) {
-      this.#setText('now-top-city', top.city_name || top.city_id);
-      this.#setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
+      AdminShell.setText('now-top-city', top.city_name || top.city_id);
+      AdminShell.setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
     }
 
     // New contributors: the all-time weekly series' last point is the current (partial) Pacific calendar week — the
     // only series that knows each person's true first-activity week, hence the calendar-week (not rolling) basis.
     const week = this.#allTimeTrend.length ? this.#allTimeTrend[this.#allTimeTrend.length - 1] : null;
-    if (week) this.#setText('now-new-contributors', this.#num(week.new_users));
+    if (week) AdminShell.setText('now-new-contributors', this.#num(week.new_users));
   }
 
   /**
@@ -479,7 +483,7 @@ export class AcrossCitiesPage {
    * @returns {string} The cell's markup.
    */
   #weekCell(city, metric, showDelta = true) {
-    const { current, prior, ai } = this.#metricCounts(city.activity_window || {}, metric);
+    const { current, prior, ai } = this.#metricCounts(city.activity_window, metric);
     // A city with no activity in either window gets the bare count, since "→ 0%" is noise.
     const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
     const delta = d
@@ -508,7 +512,7 @@ export class AcrossCitiesPage {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
     if (!this.#mapboxToken || !citiesGeo || !Array.isArray(citiesGeo.cities)) {
-      this.#setText('ac-map-status', 'Map unavailable.');
+      AdminShell.setText('ac-map-status', 'Map unavailable.');
       host.style.display = 'none';
       return;
     }
@@ -537,7 +541,7 @@ export class AcrossCitiesPage {
       });
     }
     if (!features.length) {
-      this.#setText('ac-map-status', 'No city locations available.');
+      AdminShell.setText('ac-map-status', 'No city locations available.');
       host.style.display = 'none';
       return;
     }
@@ -548,14 +552,22 @@ export class AcrossCitiesPage {
     }
 
     mapboxgl.accessToken = this.#mapboxToken;
-    this.#map = new mapboxgl.Map({
-      container: 'ac-cities-map',
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-30, 28],
-      zoom: 1.2,
-      minZoom: 1,
-      projection: 'mercator',
-    });
+    try {
+      this.#map = new mapboxgl.Map({
+        container: 'ac-cities-map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-30, 28],
+        zoom: 1.2,
+        minZoom: 1,
+        projection: 'mercator',
+      });
+    } catch (err) {
+      // Mapbox throws when the browser has no WebGL; left to init's catch, that would blank every section after this.
+      console.warn('Across Cities map failed to start:', err);
+      AdminShell.setText('ac-map-status', 'Map unavailable.');
+      host.style.display = 'none';
+      return;
+    }
     this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
 
@@ -659,16 +671,16 @@ export class AcrossCitiesPage {
     }
     el.innerHTML = items.map((it) => {
       const name = util.escapeHTML(it.city.city_name || it.city.city_id);
-      const rawHref = it.href || it.city.url;
-      const href = rawHref ? util.escapeHTML(rawHref) : '#';
+      const href = it.href || it.city.url;
+      // Without a URL there is nowhere to go, so the item is plain text rather than a link to the top of this page.
+      const tag = href ? 'a' : 'div';
       return [
-        `<a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
-        ` href="${href}"`,
-        rawHref ? ' target="_blank" rel="noopener">' : '>',
+        `<${tag} class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
+        href ? ` href="${util.escapeHTML(href)}" target="_blank" rel="noopener">` : '>',
         '<span class="ov-attention-dot" aria-hidden="true"></span>',
         `<span class="ov-attention-text"><strong>${name}</strong> — ${util.escapeHTML(it.reason)}</span>`,
         `<span class="ov-attention-go">${util.escapeHTML(it.label)} →</span>`,
-        '</a>',
+        `</${tag}>`,
       ].join('');
     }).join('');
   }
@@ -693,6 +705,11 @@ export class AcrossCitiesPage {
       case 'high_disagreement':
         return `${this.#pct(c.validation_disagreement_rate)} of human validations disagree `
           + `(median ${this.#pct(this.#summary.median_disagreement_rate)})`;
+      case 'reaudit_backlog':
+        return `${util.longDistanceToString(c.reaudit_km)} of ${util.longDistanceToString(c.mapped_km)} mapped `
+          + `(${this.#pct(c.mapped_km ? c.reaudit_km / c.mapped_km : 0)}) has newer imagery than its audits; `
+          + `flagged at ≥${this.#pct(this.#summary.reaudit_backlog_share)} of mapped, `
+          + `once ≥${util.longDistanceToString(this.#summary.min_mapped_km_for_reaudit_flag)} is mapped`;
       default:
         return flag;
     }
@@ -760,12 +777,12 @@ export class AcrossCitiesPage {
       e.active_users += w.active_users || 0;
       m.set(w.week_start, e);
     }
-    return [...m.values()].sort((a, b) => (a.week_start < b.week_start ? -1 : a.week_start > b.week_start ? 1 : 0));
+    return [...m.values()].sort((a, b) => a.week_start.localeCompare(b.week_start));
   }
 
   /** Draws the three over-time line charts for the currently selected range. */
   #drawTrends() {
-    const series = this.#trendSeries[this.#trendRange] || [];
+    const series = this.#trendSeries[this.#trendRange];
     // Multi-year x-axes carry the year; within 12 weeks "Jun 9" is unambiguous.
     const fmt = this.#trendRange === 'all' ? AcrossCitiesPage.#shortDateYear : AcrossCitiesPage.#shortDate;
     const cats = series.map((w) => fmt(w.week_start));
@@ -885,7 +902,6 @@ export class AcrossCitiesPage {
    */
   #wireSorting(tableId, render) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort');
@@ -913,7 +929,7 @@ export class AcrossCitiesPage {
     if (!tbody) return;
     if (!this.#cities.length) {
       tbody.innerHTML = '<tr><td colspan="8" class="dq-empty">No cities to show.</td></tr>';
-      this.#setText('ac-status', '');
+      AdminShell.setText('ac-status', '');
       return;
     }
     const state = this.#sortState['ac-table'];
@@ -942,7 +958,7 @@ export class AcrossCitiesPage {
         </tr>`;
     }).join('');
     this.#markSortedHeader('ac-table');
-    this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
+    AdminShell.setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
   }
 
   /**
@@ -957,7 +973,7 @@ export class AcrossCitiesPage {
   #sortedCities(key, dirStr, list) {
     const dir = dirStr === 'asc' ? 1 : -1;
     const val = (c) => {
-      if (key === 'city_name') return (c.city_name || c.city_id || '').toLowerCase();
+      if (key === 'city_name') return (c.city_name || c.city_id).toLowerCase();
       if (key === 'lifecycle') {
         const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
         return lc ? lc.rank : 99;
@@ -966,13 +982,15 @@ export class AcrossCitiesPage {
       if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
       if (key.includes('.')) {
         const [outer, inner] = key.split('.');
-        return (c[outer] && c[outer][inner]) ?? 0;
+        return c[outer][inner] ?? 0;
       }
       return c[key] ?? 0;
     };
     return (list || this.#cities).slice().sort((a, b) => {
       const va = val(a);
       const vb = val(b);
+      // Code-point order would put "Évora" after "zurich".
+      if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * dir;
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;
@@ -987,7 +1005,6 @@ export class AcrossCitiesPage {
    */
   #markSortedHeader(tableId) {
     const state = this.#sortState[tableId];
-    if (!state) return;
     document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       const key = th.getAttribute('data-sort');
       th.classList.toggle('ac-sorted', key === state.key);
@@ -1014,8 +1031,10 @@ export class AcrossCitiesPage {
         <td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">
           ${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>
         <td class="ac-num" title="${this.#num(c.streets_remaining)}"> ${this.#compact(c.streets_remaining)}</td>
-        <td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>
-        <td class="ac-num">${this.#km(c.km_remaining)}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.audited_km))} / ${util.escapeHTML(this.#km(c.total_km))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.km_remaining))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.mapped_km))}</td>
+        <td class="ac-num">${util.escapeHTML(this.#km(c.reaudit_km))}</td>
       </tr>`,
     ).join('');
   }
@@ -1039,7 +1058,7 @@ export class AcrossCitiesPage {
     const active = this.#cities.filter((c) => c.activity_7d > 0);
     if (!active.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="dq-empty">No city recorded activity in the past 7 days.</td></tr>';
-      this.#setText('ac-top-status', '');
+      AdminShell.setText('ac-top-status', '');
       return;
     }
     const state = this.#sortState['ac-top-table'];
@@ -1060,7 +1079,7 @@ export class AcrossCitiesPage {
           <td class="ac-spark-cell">${this.#sparkline((c.weekly_trend || []).map((wk) => wk.labels || 0))}</td>
         </tr>`).join('');
     this.#markSortedHeader('ac-top-table');
-    this.#setText('ac-top-status', active.length > rows.length
+    AdminShell.setText('ac-top-status', active.length > rows.length
       ? `Top ${rows.length} of ${this.#num(active.length)} cities active in the past 7 days.`
       : `${this.#num(active.length)} ${active.length === 1 ? 'city' : 'cities'} active in the past 7 days.`);
   }
@@ -1099,7 +1118,7 @@ export class AcrossCitiesPage {
    * to an "unavailable" note; the rest of the page is already rendered and untouched.
    */
   async #loadTraffic() {
-    this.#setText('ac-traffic-status', 'Loading traffic…');
+    AdminShell.setText('ac-traffic-status', 'Loading traffic…');
     try {
       const data = await util.fetchJson(this.#trafficUrl);
       if (!data || data.available === false) {
@@ -1122,7 +1141,7 @@ export class AcrossCitiesPage {
   #setTrafficUnavailable() {
     const wrap = document.getElementById('ac-traffic-wrap');
     if (wrap) wrap.style.display = 'none';
-    this.#setText('ac-traffic-status', 'Traffic data unavailable.');
+    AdminShell.setText('ac-traffic-status', 'Traffic data unavailable.');
   }
 
   /** Fills the traffic table: one row per city with GA data, sessions-first, anomaly-flagged rows highlighted. */
@@ -1134,7 +1153,7 @@ export class AcrossCitiesPage {
     const withTraffic = this.#cities.filter((c) => c.traffic);
     if (!withTraffic.length) {
       tbody.innerHTML = '<tr><td colspan="9" class="dq-empty">No traffic data to show.</td></tr>';
-      this.#setText('ac-traffic-status', '');
+      AdminShell.setText('ac-traffic-status', '');
       return;
     }
     const state = this.#sortState['ac-traffic-table'];
@@ -1178,7 +1197,7 @@ export class AcrossCitiesPage {
       : `${this.#num(withTraffic.length)} ${withTraffic.length === 1 ? 'city' : 'cities'}.`];
     // A city with no GA property is steady state; one the fetch couldn't reach is worth saying out loud.
     if (failed) parts.push(`${this.#num(failed)} could not be fetched this round.`);
-    this.#setText('ac-traffic-status', parts.join(' '));
+    AdminShell.setText('ac-traffic-status', parts.join(' '));
   }
 
   /**
@@ -1261,7 +1280,7 @@ export class AcrossCitiesPage {
     if (legendEl) {
       legendEl.innerHTML = present.map(([key, name]) => `
         <span class="ac-legend-item">
-          <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
+          <span class="ac-legend-swatch" style="background:${util.misc.getLabelColors(key)}"></span>
           ${util.escapeHTML(name)}
         </span>`).join('');
     }
@@ -1282,7 +1301,7 @@ export class AcrossCitiesPage {
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
           tips.push(tip);
           return `<span class="ac-stack-seg" data-ps-tooltip="${util.escapeHTML(tip)}"
-            style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
+            style="width:${(share * 100).toFixed(2)}%;background:${util.misc.getLabelColors(key)}"></span>`;
         }).join('');
       }
       return `
@@ -1412,7 +1431,7 @@ export class AcrossCitiesPage {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#funnelWindow === btn.dataset.window) return;
         this.#funnelWindow = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+        this.#markFunnelWindow(this.#funnelWindow);
         this.#loadFunnels();
       }));
     }
@@ -1427,16 +1446,31 @@ export class AcrossCitiesPage {
     }
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
+  /** @param {string} timeWindow - The `data-window` of the button to mark active. */
+  #markFunnelWindow(timeWindow) {
+    document.querySelectorAll('#ac-funnel-window .ac-toggle-btn')
+      .forEach((b) => b.classList.toggle('is-active', b.dataset.window === timeWindow));
+  }
+
+  /**
+   * Fetches and renders the funnels for the current window. A stale response is dropped and a failure puts the
+   * highlight back on the shown window, so a button never labels another window's numbers.
+   */
   async #loadFunnels() {
-    this.#setText('ac-funnel-status', 'Loading funnels…');
+    const timeWindow = this.#funnelWindow;
+    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+      if (timeWindow !== this.#funnelWindow) return;
       this.#funnels = (data && data.funnels) || {};
+      this.#shownFunnelWindow = timeWindow;
       this.#renderFunnels();
     } catch (err) {
+      if (timeWindow !== this.#funnelWindow) return;
       console.error('Funnel load failed:', err);
-      this.#setText('ac-funnel-status', 'Could not load funnel data.');
+      this.#funnelWindow = this.#shownFunnelWindow;
+      this.#markFunnelWindow(this.#shownFunnelWindow);
+      AdminShell.setText('ac-funnel-status', 'Could not load funnel data.');
     }
   }
 
@@ -1444,11 +1478,11 @@ export class AcrossCitiesPage {
   #renderFunnels() {
     const host = document.getElementById('ac-funnels');
     if (!host) return;
-    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim] || AcrossCitiesPage.#FUNNEL_DIMS.all;
+    const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim];
     const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
     const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
-    this.#setText(
+    AdminShell.setText(
       'ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.',
     );
   }
@@ -1461,7 +1495,7 @@ export class AcrossCitiesPage {
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
-    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
+    const meta = AcrossCitiesPage.#FUNNEL_META[funnelType];
     const steps = funnel.steps || [];
     const cities = funnel.cities || [];
     return `
@@ -1546,7 +1580,7 @@ export class AcrossCitiesPage {
     const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item">`
-      + `<span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>`
+      + `<span class="ac-funnel-swatch" style="background:${palette[i]}"></span>`
       + `${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
     const stepRows = steps.map((k, i) => {
@@ -1563,7 +1597,7 @@ export class AcrossCitiesPage {
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `<div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
-          + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
+          + `style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
       }).join('');
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
@@ -1726,7 +1760,7 @@ export class AcrossCitiesPage {
    * costs one card, and the three can't drift apart in content.
    *
    * @param {Record<string, any>} d - A `over_time_daily` entry.
-   * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
+   * @param {string} emphasisKey - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
    *   'contributors'), whose line the card leans on.
    * @returns {string} The card's markup.
    */
@@ -1736,7 +1770,7 @@ export class AcrossCitiesPage {
       card = this.#buildDayTip(d);
       this.#dayTipCards.set(d.day, card);
     }
-    return emphasisKey ? card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`) : card;
+    return card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`);
   }
 
   /**
@@ -1801,7 +1835,7 @@ export class AcrossCitiesPage {
    */
   #cityTipHtml(city, metric) {
     this.#tipLinkCount = 0; // Counted per card, so the pin hint only goes on a card that has links to pin for.
-    const w = city.activity_window || {};
+    const w = city.activity_window;
     const { current, prior, ai } = this.#metricCounts(w, metric);
     const heading = { labels: 'labels', validations: 'validations', contributors: 'contributors' }[metric]
       ?? 'labels + validations';
@@ -1871,19 +1905,7 @@ export class AcrossCitiesPage {
       + `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
   }
 
-  /** Canonical label-type color via the shared helper, with a gray fallback. */
-  #color(labelType) {
-    const c = util.misc.getLabelColors(labelType);
-    if (c) return c;
-    return '#b3b3b3';
-  }
-
   // --- Helpers ----------------------------------------------------------------------------------------------------
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
 
   #setHtml(id, html) {
     const el = document.getElementById(id);
@@ -1898,15 +1920,19 @@ export class AcrossCitiesPage {
   /** Compact number ("1.2M", "317k", "842"). */
   #compact(n) {
     const v = n ?? 0;
-    if (v >= 1e6) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    // From 999,500 up, the "k" form would round to "1000k".
+    if (v >= 999_500) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
     if (v >= 1e4) return `${Math.round(v / 1e3)}k`;
     return v.toLocaleString();
   }
 
-  /** Kilometers with one decimal under 100, else whole ("0.4", "12.7", "1,240"). */
-  #km(n) {
-    const v = n ?? 0;
-    return v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString();
+  /**
+   * @param {?number} km - A distance in km.
+   * @returns {string} The bare number in the reader's unit, with one decimal under 100 ("0.4", "12.7", "1,240").
+   */
+  #km(km) {
+    const v = km ?? 0;
+    return util.longDistanceToString(v, util.metersToLongDistance(v * 1000) < 100 ? 1 : 0, false);
   }
 
   /** Percentage with no decimals ("47%"). */
@@ -1917,8 +1943,9 @@ export class AcrossCitiesPage {
   /** Human duration from seconds ("8s", "2.4 min", "1.3 h"). */
   #duration(seconds) {
     const s = seconds || 0;
-    if (s < 60) return `${Math.round(s)}s`;
-    if (s < 3600) return `${(s / 60).toFixed(1)} min`;
+    // Each cutoff sits where the smaller unit would round up to the next one ("60s", "60.0 min").
+    if (s < 59.5) return `${Math.round(s)}s`;
+    if (s < 3597) return `${(s / 60).toFixed(1)} min`;
     return `${(s / 3600).toFixed(1)} h`;
   }
 

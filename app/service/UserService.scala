@@ -285,6 +285,14 @@ case class AdminUserProfileData(
 object UserService {
 
   /**
+   * Cache key for the global board of `n` rows, shared with the spec that plants one (#5235).
+   *
+   * @param n How many rows the board holds.
+   * @return  The key the board is cached under.
+   */
+  private[service] def globalLeaderboardCacheKey(n: Int): String = s"getGlobalLeaderboardStats_$n:v2-swr"
+
+  /**
    * Minimum cohort size for showing a numeric rank/percentile in "your standing". Below this, the UI reframes to a
    * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
    */
@@ -500,6 +508,18 @@ trait UserService {
 
   /** Saves the user's units for every city; None follows the site language. */
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
+
+  /** Opts the user out of project news by email, for every city (#5864); a repeat keeps the first time and reason. */
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int]
+
+  /** Records the user ticking the news box themselves, which subscribes them and is the proof of consent. */
+  def consentToNewsEmail(userId: String): Future[Int]
+
+  /** @return Where the user stands on project news by email, for every city. */
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus]
+
+  /** @return (user id, username, email) of everyone project news may be sent to, by email. */
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -512,6 +532,14 @@ trait UserService {
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+
+  /**
+   * Puts a user on a team of their own choosing. Only admins may put someone on a closed team, but a user an admin
+   * put on one can still re-save it (Settings posts the current team).
+   *
+   * @return Whether the user is on the team now; false if it's closed or doesn't exist.
+   */
+  def joinTeam(userId: String, teamId: Int): Future[Boolean]
   def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
@@ -612,7 +640,8 @@ class UserServiceImpl @Inject() (
     userUtmTable: UserUtmTable,
     userSettingsTable: UserSettingsTable,
     configService: ConfigService,
-    cacheApi: AsyncCacheApi
+    cacheApi: AsyncCacheApi,
+    swrCache: SwrCache
 )(using ec: ExecutionContext)
     extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -711,6 +740,15 @@ class UserServiceImpl @Inject() (
   def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
     db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
+  def optOutOfNewsEmail(userId: String, source: NewsEmailOptOutSource): Future[Int] =
+    db.run(userSettingsTable.optOutOfNewsEmail(userId, source))
+
+  def consentToNewsEmail(userId: String): Future[Int] = db.run(userSettingsTable.consentToNewsEmail(userId))
+
+  def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
+
+  def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
+
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -808,6 +846,13 @@ class UserServiceImpl @Inject() (
     }
     db.run(updateTeamAction)
   }
+
+  def joinTeam(userId: String, teamId: Int): Future[Boolean] =
+    db.run(teamTable.find(teamId).zip(userTeamTable.getTeam(userId))).flatMap {
+      case (Some(team), current) if team.open || current.exists(_.teamId == teamId) =>
+        setUserTeam(userId, teamId).map(_ => true)
+      case _ => Future.successful(false)
+    }
 
   def leaveTeam(userId: String): Future[Int] = {
     val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {
@@ -908,14 +953,13 @@ class UserServiceImpl @Inject() (
   }
 
   def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
-    // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
-    // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
-    // all-time, so it barely moves between refreshes. The recover sits outside the cache so a transient DB failure
-    // isn't stored as a successful "no board" for the next 10 minutes.
-    cacheApi
-      .getOrElseUpdate[Option[Seq[GlobalLeaderboardEntry]]](
-        s"getGlobalLeaderboardStats_$n",
-        Duration(10, "minutes")
+    // SWR, not expiry: an expired entry makes the next request pay for the ~50-schema union before the page renders,
+    // on a connection Explore and Validate share (#4600, #5235). The board is all-time, so a stale copy is nearly free.
+    swrCache
+      .staleWhileRevalidate[Option[Seq[GlobalLeaderboardEntry]]](
+        UserService.globalLeaderboardCacheKey(n),
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge
       ) {
         configService.getGlobalLeaderboardScope.flatMap { scope =>
           if (scope.cities.isEmpty) {
@@ -941,7 +985,7 @@ class UserServiceImpl @Inject() (
         }
       }
       .recover { case e: Exception =>
-        // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+        // Outside the cache so a transient failure isn't cached as a real "no board"; the section drops, not the page.
         logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
         None
       }

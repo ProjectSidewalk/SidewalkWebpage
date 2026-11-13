@@ -51,6 +51,14 @@ export class Canvas {
 
   #ctx;
   #hoverCardHideTimer = null;
+
+  /** The cursor over the pano by what the pointer is doing there. */
+  #cursors = {
+    OpenHand: `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`,
+    ClosedHand: `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`,
+    Pointer: 'pointer',
+  };
+
   #shareWidget = null;
   #shareUrl = null;
   // The pano the labels were last filtered for, so a re-render only re-filters once the pano changes.
@@ -231,23 +239,10 @@ export class Canvas {
 
   /**
    * Sets the cursor over the street view image.
-   * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
+   * @param {'OpenHand'|'ClosedHand'|'Pointer'} type
    */
   #setViewControlLayerCursor(type) {
-    const layer = this.#streetviewUi.viewControlLayer;
-    switch (type) {
-      case 'OpenHand':
-        layer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
-        break;
-      case 'ClosedHand':
-        layer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
-        break;
-      case 'Pointer':
-        layer.style.cursor = 'pointer';
-        break;
-      default:
-        layer.style.cursor = 'default';
-    }
+    this.#streetviewUi.viewControlLayer.style.cursor = this.#cursors[type];
   }
 
   /**

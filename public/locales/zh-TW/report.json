@@ -1,0 +1,28 @@
+{
+  "card": {
+    "cost": "扣 {{points}} 分",
+    "cost-shared": "扣 {{points}} 分，另有 {{others}} 處",
+    "labels_other": "{{count}} 個標籤",
+    "more_other": "再顯示 {{count}} 個"
+  },
+  "map": {
+    "location": "{{type}}：顯示照片",
+    "gesture-windows": "使用 Ctrl + 捲動來縮放地圖",
+    "gesture-mac": "使用 ⌘ + 捲動來縮放地圖",
+    "gesture-touch": "使用兩指移動地圖",
+    "aligned": "對齊標籤",
+    "aligned-note": "每個標籤顯示在其所屬的街道側，位置約略沿街排列，並非精確地點。"
+  },
+  "place": {
+    "score": "分數 {{score}}",
+    "street": "{{street}} · 距離 {{distance}}",
+    "unscored": "這條街尚未評分",
+    "unnamed": "未命名街道"
+  },
+  "worst": {
+    "close": "關閉",
+    "unavailable": "無法載入此標籤的卡片。",
+    "loading": "載入中…",
+    "rejected": "此處的所有標籤在本報告分數上次計算後都被標記為不正確，因此沒有可顯示的卡片。"
+  }
+}

@@ -5,7 +5,7 @@ import models.user.{SidewalkUser, SidewalkUserTableDef}
 import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -195,6 +195,11 @@ trait StreetFixtures { this: GuiceOneAppPerSuite & RolledBackDb =>
     sqlu"""INSERT INTO street_edge_issue (street_edge_issue_id, street_edge_id, issue, user_id, ip_address, timestamp)
            VALUES ((SELECT COALESCE(MAX(street_edge_issue_id), 0) + 1 FROM street_edge_issue),
                    $streetEdgeId, CAST('PanoNotAvailable' AS street_edge_issue_type), $userId, '0.0.0.0', $timestamp)"""
+
+  /** Records a street's newest imagery as the nightly poll would, so audits and reports from before it read as stale. */
+  protected def setNewestImagery(streetEdgeId: Int, medianNewestCapture: LocalDate): DBIO[Int] =
+    sqlu"""INSERT INTO street_imagery (street_edge_id, median_newest_capture, n_panos, data_source, updated_at)
+           VALUES ($streetEdgeId, $medianNewestCapture, 1, CAST('imagery_poll' AS street_imagery_source), now())"""
 
   /** Flips one audit's imagery-freshness flag, the way the nightly sync does. */
   protected def setOutdatedFlag(auditTaskId: Int, outdated: Boolean): DBIO[Int] =

@@ -17,7 +17,9 @@ import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
-import '../utilitiesSidewalk.js';
+import {
+  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, retrySignedImage,
+} from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
   // panoViewer always points at the active viewer (primary or Pannellum). Callers should query it through this
@@ -51,7 +53,7 @@ export class PopupPanoManager {
   static #MIN_ZOOM = 1;
   static #MAX_ZOOM = 3;
   #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
-  #loadingEl; // Host-rendered overlay (.label-detail__pano-loading); absent on a host that doesn't include it.
+  #loadingEl; // The card's "Loading imagery" overlay (.label-detail__pano-loading), a sibling of the holder.
   // Identifies the newest setPano() call. Its late work — the deferred resize/POV, the reveal, the fallback panel —
   // all mutates one shared holder, so an abandoned load reaching those steps would paint over the label that
   // replaced it. LabelDetail guards its own async tail the same way, on #currentLabelMeta.
@@ -67,15 +69,21 @@ export class PopupPanoManager {
   #logo;
   #attribution;
   #cropUrl;
+
+  /**
+   * Called when a crop setPano() reported as shown fails for good, so the host can relock what it unlocked.
+   * @type {?Function}
+   */
+  onFallbackLost = null;
   #labelsHidden = false;
 
   /**
    * A label type's canonical marker icon, from util.misc's central label-type registry.
    * @param {string} labelType
-   * @returns {?string} The icon URL, or null for types without one.
+   * @returns {string} The icon URL.
    */
   #iconFor(labelType) {
-    return util.misc.getIconImagePaths(labelType)?.iconImagePath ?? null;
+    return util.misc.getIconImagePaths(labelType).iconImagePath;
   }
 
   /**
@@ -134,7 +142,7 @@ export class PopupPanoManager {
     this.#buttonHolder = buttonHolder;
     this.svHolder = svHolder;
     this.svHolder.classList.add('admin-panorama');
-    this.#loadingEl = svHolder.parentElement?.querySelector('.label-detail__pano-loading') ?? null;
+    this.#loadingEl = svHolder.parentElement.querySelector('.label-detail__pano-loading');
 
     // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative
     const position = getComputedStyle(this.svHolder).position;
@@ -191,10 +199,20 @@ export class PopupPanoManager {
       display: 'none',
       pointerEvents: 'none',
     }, 'icon-outline label-marker');
+    this.#fallbackImage.addEventListener('error', () => this.#onFallbackImageError());
     this.#fallbackPanzoomWrap.append(this.#fallbackImage);
     this.#fallbackContainer.append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
 
     this.svHolder.append(this.#panoCanvas, this.#pannellumCanvas, this.#fallbackContainer, this.#panoNotAvailable);
+
+    // Capturing the pointer sends a drag's release to the imagery wherever it is let go. Infra3D only listens on its
+    // own canvas, and a disabled button over the imagery would swallow mouseup (#5295, #5294). Touch viewers end on
+    // touchend; links and buttons keep their own click.
+    this.svHolder.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' || e.button !== 0 || !(e.target instanceof Element)) return;
+      if (e.target.closest('a, button')) return;
+      e.target.setPointerCapture(e.pointerId);
+    }, true);
 
     // Initialize panzoom on the wrapper.
     this.#fallbackPanzoom = panzoom(this.#fallbackPanzoomWrap, {
@@ -306,20 +324,6 @@ export class PopupPanoManager {
   }
 
   /**
-   * Fetches backup image metadata from the backend for Pannellum fallback.
-   * @param {string} panoId
-   * @returns {Promise<object|null>} The metadata, or null if none exists.
-   */
-  async #fetchBackupImageMetadata(panoId) {
-    try {
-      const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
-      return res.ok ? await res.json() : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
    *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
    *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
@@ -342,8 +346,9 @@ export class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
+    delete this.#fallbackImage.dataset.resigned; // One element serves every label; each gets its own retry.
     this.svHolder.style.visibility = 'hidden'; // Hide until we've finished rendering.
-    if (this.#loadingEl) this.#loadingEl.hidden = false;
+    this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
     this.#resetFallbackTransform();
 
@@ -360,12 +365,16 @@ export class PopupPanoManager {
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
-        if (!backupImage) backupImage = await this.#fetchBackupImageMetadata(panoId);
+        if (!backupImage) backupImage = await fetchBackupImageMetadata(panoId);
       }
     } else if (!backupImage) {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
-      backupImage = await this.#fetchBackupImageMetadata(panoId);
+      backupImage = await fetchBackupImageMetadata(panoId);
     }
+    // A label payload from page load can carry a URL whose signature has since expired (#5861).
+    backupImage = await freshBackupImage(backupImage);
+    // A newer label took over during the requests above; its own load owns the viewer now.
+    if (load !== this.#loadToken) return false;
     const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.
@@ -376,10 +385,14 @@ export class PopupPanoManager {
         this.#finishLoad(load, { showAttribution: true, attribution: ownCopyAttribution });
         return true;
       } catch (err) {
+        // The pano area belongs to the newest load. Loads on the viewer run one at a time, so this one's failure
+        // can arrive after its successor has put the Pannellum canvas up and begun loading into it; hiding the
+        // canvas now would leave that label with a marker over an empty pano area.
+        if (load !== this.#loadToken) return false;
         console.error('PannellumViewer failed to load; falling back to crop:', err);
         this.#teardownPannellum();
       }
-    } else {
+    } else if (load === this.#loadToken) {
       this.#teardownPannellum();
     }
 
@@ -405,9 +418,9 @@ export class PopupPanoManager {
    */
   #finishLoad(load, { showAttribution = false, attribution = null } = {}) {
     if (load !== this.#loadToken) return;
-    if (showAttribution) this.#attribution?.show(attribution);
-    else this.#attribution?.hide();
-    if (this.#loadingEl) this.#loadingEl.hidden = true;
+    if (showAttribution) this.#attribution.show(attribution);
+    else this.#attribution.hide();
+    this.#loadingEl.hidden = true;
     if (!this.svHolder.dataset.closedDuringLoad) this.svHolder.style.visibility = 'visible';
   }
 
@@ -418,7 +431,7 @@ export class PopupPanoManager {
   #teardownPannellum() {
     this.#pannellumCanvas.style.display = 'none';
     this.panoViewer = this.#primaryViewer;
-    if (this.#logo) this.#logo.showPrimaryLogo();
+    this.#logo.showPrimaryLogo();
   }
 
   /**
@@ -447,9 +460,9 @@ export class PopupPanoManager {
       });
     }
     this.panoViewer = this.#pannellumViewer;
-    if (this.#logo) this.#logo.showSourceLogo();
+    this.#logo.showSourceLogo();
 
-    if (this.label) this.renderLabel(this.label);
+    this.renderLabel(this.label);
   }
 
   /**
@@ -483,9 +496,34 @@ export class PopupPanoManager {
           this.panoViewer.resize();
           this.panoViewer.setPov(targetPov);
         }
-        if (this.label) this.renderLabel(this.label);
+        this.renderLabel(this.label);
         resolve();
       }, 250);
+    });
+  }
+
+  /**
+   * Re-signs a failed signed crop and tries it once more, since its signature likely expired (#5861); otherwise, or
+   * on a second failure, shows the "imagery not available" panel.
+   */
+  #onFallbackImageError() {
+    const load = this.#loadToken;
+    const failed = this.#fallbackImage.getAttribute('src');
+    // An error for a crop this load no longer shows (a newer label's, or one already given up) is stale.
+    if (!failed || failed !== this.#cropUrl) return;
+    const label = this.label;
+    retrySignedImage(this.#fallbackImage, {
+      fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.labelId),
+      isCurrent: () => load === this.#loadToken,
+      onFresh: (url) => {
+        this.#cropUrl = url;
+      },
+      onGiveUp: () => {
+        this.#cropUrl = null;
+        this.#attribution?.hide();
+        this.#panoFailureCallback();
+        this.onFallbackLost?.();
+      },
     });
   }
 
@@ -500,15 +538,10 @@ export class PopupPanoManager {
       this.#fallbackImage.src = this.#cropUrl;
       this.#fallbackContainer.style.display = 'block';
       // Position the label icon on the fallback image.
-      const fallbackIcon = this.label && this.#iconFor(this.label.label_type);
-      if (fallbackIcon) {
-        this.#fallbackMarker.style.setProperty('--label-icon', `url(${fallbackIcon})`);
-        this.#fallbackMarker.style.setProperty('--label-color', util.misc.getLabelColors(this.label.label_type));
-        this.#fallbackMarker.style.display = 'block';
-        this.#updateFallbackMarkerPosition();
-      } else {
-        this.#fallbackMarker.style.display = 'none';
-      }
+      this.#fallbackMarker.style.setProperty('--label-icon', `url(${this.#iconFor(this.label.label_type)})`);
+      this.#fallbackMarker.style.setProperty('--label-color', util.misc.getLabelColors(this.label.label_type));
+      this.#fallbackMarker.style.display = 'block';
+      this.#updateFallbackMarkerPosition();
       this.#panoNotAvailable.style.display = 'none';
       this.#buttonHolder.style.display = '';
     } else {
@@ -520,7 +553,7 @@ export class PopupPanoManager {
       // rather than promising a destination this device can't reach.
       const exploreStreet = this.#panoNotAvailable.querySelector('#explore-street');
       exploreStreet.hidden = util.isMobile();
-      if (this.label) exploreStreet.setAttribute('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
+      exploreStreet.setAttribute('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
       this.#panoNotAvailable.style.display = 'flex';
       this.#buttonHolder.style.display = 'none';
     }
@@ -539,7 +572,6 @@ export class PopupPanoManager {
    * @param {string} labelType
    */
   setLabelType(labelType) {
-    if (!this.label) return;
     this.label.label_type = labelType;
     const icon = this.#iconFor(labelType);
     const color = util.misc.getLabelColors(labelType);
@@ -547,15 +579,26 @@ export class PopupPanoManager {
       marker.setIcon(icon);
       marker.marker_.style.setProperty('--label-color', color);
     }
-    if (icon) this.#fallbackMarker.style.setProperty('--label-icon', `url(${icon})`);
+    this.#fallbackMarker.style.setProperty('--label-icon', `url(${icon})`);
     this.#fallbackMarker.style.setProperty('--label-color', color);
+  }
+
+  /**
+   * Adds or removes the AI badge on the pano markers, as a type change or its undo can flip it (#5925).
+   * @param {boolean} aiGenerated - Whether the label shows the AI badge.
+   */
+  setAiGenerated(aiGenerated) {
+    this.label.aiGenerated = aiGenerated;
+    for (const { marker } of this.#labelMarkers) {
+      marker.marker_.querySelector('.admin-ai-icon-marker')?.remove();
+      if (aiGenerated) marker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
+    }
   }
 
   /**
    * Resets the fallback image's zoom/pan back to the identity transform.
    */
   #resetFallbackTransform() {
-    if (!this.#fallbackPanzoom) return;
     this.#fallbackPanzoom.zoomAbs(0, 0, 1);
     this.#fallbackPanzoom.moveTo(0, 0);
   }
@@ -564,7 +607,7 @@ export class PopupPanoManager {
    * Repositions the fallback marker to track the current panzoom transform of the fallback image.
    */
   #updateFallbackMarkerPosition() {
-    if (!this.label || !this.#fallbackPanzoom) return;
+    // Panzoom reports every transform, including the reset each load starts with; the marker only matters on a crop.
     if (this.#fallbackMarker.style.display === 'none') return;
 
     const W = this.#fallbackContainer.clientWidth;
@@ -609,7 +652,7 @@ export class PopupPanoManager {
       panoId: this.panoViewer.getPanoId(),
       marker: panoMarker,
     });
-    if (label.aiGenerated) this.#attachAiIndicatorToMarker(panoMarker);
+    if (label.aiGenerated) panoMarker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
   }
 
   /**
@@ -622,16 +665,6 @@ export class PopupPanoManager {
     this.#labelsHidden = hidden;
     const markers = this.#labelMarkers.map((entry) => entry.marker.marker_).concat(this.#fallbackMarker);
     for (const marker of markers) marker.classList.toggle(LabelVisibilityToggle.HIDDEN_CLASS, hidden);
-  }
-
-  /**
-   * Adds the AI-generated indicator (and its tooltip) to a marker if it doesn't already have one.
-   * @param {PanoMarker} panoMarker
-   */
-  #attachAiIndicatorToMarker(panoMarker) {
-    if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
-      panoMarker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
-    }
   }
 
   /**
@@ -677,7 +710,7 @@ export class PopupPanoManager {
   }
 
   /**
-   * Steps the imagery one zoom level in, for the Gallery's Z shortcut (#5142).
+   * Steps the imagery one zoom level in, for Gallery's Z shortcut (#5142).
    * @returns {boolean} Whether the view changed: false at the top step, or when no pano is on screen.
    */
   zoomIn() {
@@ -685,7 +718,7 @@ export class PopupPanoManager {
   }
 
   /**
-   * Steps the imagery one zoom level out, for the Gallery's Shift+Z shortcut (#5142).
+   * Steps the imagery one zoom level out, for Gallery's Shift+Z shortcut (#5142).
    * @returns {boolean} Whether the view changed: false at the bottom step, or when no pano is on screen.
    */
   zoomOut() {

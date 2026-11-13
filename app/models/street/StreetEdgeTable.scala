@@ -51,6 +51,7 @@ case class StreetEdge(
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
+// CHECK in the DB: geom is at least 1 m long unless the street is disabled (#5691).
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id", O.PrimaryKey)
   def geom                          = column[LineString]("geom")
@@ -347,10 +348,13 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
              COALESCE(a.audit_count, 0) > 0 AND COALESCE(a.up_to_date_audit_count, 0) = 0 as outdated,
              l.first_label_date,
              l.last_label_date,
+             -- The slope statistics (#5431), never the profile arrays; all null for a street not yet sampled.
+             #${StreetGradientStatsSql.columns("street_gradient")},
              s.geom
       FROM filtered_streets s
       LEFT JOIN audit_counts a ON s.street_edge_id = a.street_edge_id
       LEFT JOIN label_stats l ON s.street_edge_id = l.street_edge_id
+      LEFT JOIN street_gradient ON s.street_edge_id = street_gradient.street_edge_id
       WHERE """)
       .concat(SqlFragments.allOf(countFilters))
 
@@ -376,6 +380,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         outdated = r.nextBoolean(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
+        gradient = StreetGradientStatsSql.read(r),
         geometry = r.nextGeometry[LineString]()
       )
     }

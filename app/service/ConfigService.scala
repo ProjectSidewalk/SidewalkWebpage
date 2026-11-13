@@ -59,6 +59,7 @@ case class CityInfo(
     countryId: String,
     cityNameShort: String,
     cityNameFormatted: String,
+    searchText: String,
     URL: String,
     visibility: String
 ) {
@@ -101,6 +102,8 @@ case class CommonPageData(
     // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
     volunteerEmail: String,
     volunteerSupervisor: String,
+    // Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out.
+    newsEmailPreChecked: Boolean,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html,
@@ -483,6 +486,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
  * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param walkedKm                Length of every completed audit on a counted street, repeats and outdated imagery
+ *                                included, in km: effort rather than coverage.
+ * @param mappedKm                Distinct audited length on any imagery, in km. `mappedKm - auditedKm` is the length
+ *                                whose every audit predates newer imagery (the re-audit backlog, #4384).
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
@@ -524,6 +531,8 @@ case class CityScorecard(
     coverage: Double,
     totalKm: Double,
     auditedKm: Double,
+    walkedKm: Double,
+    mappedKm: Double,
     totalLabels: Int,
     aiLabels: Int,
     labelsWithSeverity: Int,
@@ -559,10 +568,18 @@ case class CityScorecard(
  * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
  *
  * @param scorecard The per-city metrics.
- * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
- *                  "needs attention" panel.
+ * @param anomalies Zero or more flag keys: "high_disagreement", "reaudit_backlog". The page turns these into a "needs
+ *                  attention" panel; stalled and low-coverage cities come from [[ConfigService.lifecycle]] instead.
  */
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
+
+/**
+ * People who contributed across the cities the Across Cities page shows, staging and AI accounts excluded (#5828).
+ *
+ * @param distinct  Each person counted once, wherever they contributed.
+ * @param multiCity Those who contributed in two or more cities.
+ */
+case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
 
 /**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
@@ -694,15 +711,15 @@ object ConfigService {
   /**
    * Age beyond which a cross-city read is refreshed in the background when served (#4931).
    *
-   * One `/admin/across-cities` request triggers five of these reads (plus two more on their own longer clocks:
+   * One `/admin/across-cities` request triggers six of these reads (plus two more on their own longer clocks:
    * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
    * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
    * expiring cache is that **no request ever waits on that fan-out once it is cached**: past this age the cached copy
    * is still served immediately and the refresh runs behind it, whereas an expiring entry makes whichever request
    * arrives first pay for the whole thing while holding pool connections that Explore and Validate share. With nothing
-   * cached at all, a request waits at most [[CrossCityColdWait]] (#5432). (Coalescing concurrent
-   * callers is not the difference — Caffeine's `get(key, mappingFunction)` under `getOrElseUpdate` is already atomic
-   * per key. `refreshCachedValue` keeps that property for background refreshes.)
+   * cached, a request waits at most [[CrossCityColdWait]] (#5432). (Coalescing concurrent callers is not the
+   * difference — Caffeine's `get(key, mappingFunction)` under `getOrElseUpdate` is already atomic per key.
+   * `refreshCachedValue` keeps that property for background refreshes.)
    */
   val CrossCityFreshFor: FiniteDuration = Duration(10, "minutes")
 
@@ -716,15 +733,11 @@ object ConfigService {
   val CrossCityMaxAge: FiniteDuration = Duration(2, "hours")
 
   /**
-   * How long a request that finds a cross-city read uncached waits for its fan-out before the page is told to retry
-   * (#5432).
+   * How long a request that finds a cross-city read uncached waits for its fan-out before the page is told to retry.
    *
-   * Under the 60 seconds the production reverse proxy (Apache `ProxyTimeout`) gives a request, with margin for the
-   * response to leave the JVM: past the proxy's limit the page gets a `502` and nothing it can act on, while the
-   * fan-out finishes unobserved. The cache is per JVM, so after a deploy, or on a stage nobody opened within
-   * [[CrossCityMaxAge]], every one of these reads is cold at once. The page starts its reads in parallel, so this
-   * bounds the whole response rather than adding up per read. Lower the proxy's timeout and this has to follow, as
-   * `AccessScoreService.FullCityColdWait` does.
+   * Kept under Apache's 60 s `ProxyTimeout`, past which the page gets a `502` it can't act on (#5432). After a deploy
+   * every one of these per-JVM reads is cold at once, but the page starts them in parallel, so this bounds the whole
+   * response. Lower the proxy's timeout and this has to follow, as `AccessScoreService.FullCityColdWait` does.
    */
   val CrossCityColdWait: FiniteDuration = Duration(45, "seconds")
 
@@ -1018,6 +1031,38 @@ object ConfigService {
   /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
   val DisagreementMedianMultiple: Double = 1.5
 
+  /** A city whose re-audit backlog is at least this share of its mapped km is flagged "reaudit_backlog". */
+  val ReauditBacklogShare: Double = 0.40
+
+  /** A city with less mapped km than this is never flagged "reaudit_backlog" (a few stale streets aren't a trend). */
+  val MinMappedKmForReauditFlag: Double = 10.0
+
+  /**
+   * The length of a city's mapped streets whose every audit predates newer imagery, in km. Clamped at 0 because the
+   * two sums are computed separately and floating-point error could leave a city with no backlog slightly negative.
+   */
+  def reauditKm(sc: CityScorecard): Double = math.max(0.0, sc.mappedKm - sc.auditedKm)
+
+  /**
+   * Whether a city's re-audit backlog is big enough to flag "reaudit_backlog": at least [[ReauditBacklogShare]] of
+   * its mapped km, and only once it has [[MinMappedKmForReauditFlag]] mapped.
+   */
+  def hasReauditBacklog(sc: CityScorecard): Boolean =
+    sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
+
+  /**
+   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
+   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   *
+   * @param perCity One city's contributor `user_id`s per element.
+   * @param aiIds   The AI accounts' `user_id`s.
+   * @return        Each person counted once, and those in two or more cities.
+   */
+  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+    CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+  }
+
   /**
    * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
    * very differently from one that never took off:
@@ -1231,6 +1276,20 @@ trait ConfigService {
   def getCrossCityStoryStats(): Future[Option[Map[String, Option[CityStoryStats]]]]
 
   /**
+   * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once, and how
+   * many of them contributed in two or more (#5828).
+   *
+   * Same population as each scorecard's `activeContributors` (staging and AI accounts excluded), deduped by the global
+   * `user_id`, and cached on the page's own [[ConfigService.CrossCityFreshFor]] clock. A refresh where any city's read
+   * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
+   * count is cached.
+   *
+   * @return A Future of the contributor counts, or None if they couldn't be read for every city or nothing was cached
+   *         and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
+   */
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]]
+
+  /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
    *
    * Same expensive interaction-table scan as [[getCrossCityLabelingSpeed]] but for this deployment's schema only,
@@ -1393,11 +1452,17 @@ trait ConfigService {
   def getExcludedTags: DBIO[Seq[ExcludedTag]]
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
+
+  /** When this JVM started, which on prod is when this city instance was last deployed or restarted. */
+  def appStartTime: OffsetDateTime
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
   def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
+
+  /** Whether the sign-up form's project-news box starts checked here (#5864): only where email law is opt-out. */
+  def getNewsEmailPreChecked: Boolean
   def defaultPrivacyFlags: (Boolean, Boolean)
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
@@ -1894,6 +1959,34 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]] = {
+    swrCache
+      .staleWhileRevalidateWithin[CrossCityContributorCounts](
+        "getCrossCityContributorCounts",
+        ConfigService.CrossCityFreshFor,
+        ConfigService.CrossCityMaxAge,
+        ConfigService.CrossCityColdWait
+      ) {
+        availableCityIds().flatMap { availableCities =>
+          // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
+          // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+          val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
+            val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+            idsF.failed
+              .foreach(e => logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}"))
+            idsF
+          }
+          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+            ConfigService.contributorCounts(perCity, aiIds.toSet)
+          }
+        }
+      }
+      .recover { case e: Exception =>
+        logger.warn(s"Cross-city contributor counts unavailable: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
@@ -1963,9 +2056,10 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
-   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
-   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   * Attaches anomaly flags to each scorecard, using the full set for the relative (median-based) check (#4329): a
+   * "high_disagreement" data-quality flag, and "reaudit_backlog" when much of a city's mapped length has newer imagery
+   * than its audits. The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here.
    *
    * @param scorecards All gathered per-city scorecards.
    * @return           Each scorecard paired with its data-quality flags.
@@ -1983,6 +2077,8 @@ class ConfigServiceImpl @Inject() (
       ) {
         flags += "high_disagreement"
       }
+
+      if (ConfigService.hasReauditBacklog(sc)) flags += "reaudit_backlog"
 
       CityScorecardWithFlags(sc, flags.toSeq)
     }
@@ -2403,13 +2499,16 @@ class ConfigServiceImpl @Inject() (
 
       val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
+      val countryName       = messagesApi(s"country.name.$countryId")(using lang)
+      val showsState        = currentCountryId == "usa" && stateId.isDefined && countryId == "usa"
       val cityNameFormatted =
-        if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
+        if (showsState)
           messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
-        else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
+        else messagesApi("city.state", cityName, countryName)(using lang)
+      // A name showing its state still gets the country, so searching the country finds it.
+      val searchText = (if (showsState) s"$cityNameFormatted $countryName" else cityNameFormatted).toLowerCase
 
-      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
+      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, searchText, cityURL, visibility)
     }
   }
 
@@ -2458,6 +2557,9 @@ class ConfigServiceImpl @Inject() (
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
 
+  def getNewsEmailPreChecked: Boolean =
+    config.get[Seq[String]]("news-email-opt-out-countries").contains(getCurrentCountryId)
+
   /**
    * The initial values for a new user's two privacy flags in this deployment.
    *
@@ -2491,7 +2593,7 @@ class ConfigServiceImpl @Inject() (
 
   // JVM boot time stands in for "when was this instance deployed": prod runs the staged binary as its own process, so
   // process start = deploy/restart. Under dev-mode `sbt ~run` it is the sbt JVM's start, which is close enough locally.
-  private val appStartTime: OffsetDateTime =
+  val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
   def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
@@ -2524,11 +2626,13 @@ class ConfigServiceImpl @Inject() (
       volunteerEmail: String          = config.get[String]("volunteer-email-address")
       volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
       supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
+      newsEmailPreChecked: Boolean    = getNewsEmailPreChecked
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
+        newsEmailPreChecked, assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson,
+        supportedLanguages)
     }
   }
 }

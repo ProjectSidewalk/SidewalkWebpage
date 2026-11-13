@@ -71,15 +71,15 @@ export class StreetStatusMap {
 
   /**
    * @param {string} containerId - ID of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
-   *          onRegionHoverEnd?: () => void}} opts
+   * @param {{mapboxToken: string, onRegionClick: (id: number) => void, onRegionHover: (id: number) => void,
+   *          onRegionHoverEnd: () => void}} opts
    */
   constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
-    this.#onRegionClick = opts.onRegionClick || (() => {});
-    this.#onRegionHover = opts.onRegionHover || (() => {});
-    this.#onRegionHoverEnd = opts.onRegionHoverEnd || (() => {});
+    this.#onRegionClick = opts.onRegionClick;
+    this.#onRegionHover = opts.onRegionHover;
+    this.#onRegionHoverEnd = opts.onRegionHoverEnd;
   }
 
   /**

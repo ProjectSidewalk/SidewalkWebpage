@@ -1,9 +1,12 @@
 /**
- * Decides when a street is done and what comes next: after each landing it ends a street that's been walked, hands
- * over the next one or asks the labeler to finish here before a jump, makes the jump, and says when streets run out.
+ * Decides when a street is done and what comes next: after each landing it credits the pano to the street, ends a
+ * street that's been walked, hands over the next one or asks the labeler to finish here before a jump, makes the
+ * jump, and says when streets run out.
  */
 
 import { TaskContainer } from './TaskContainer.js';
+import { ForwardCrumbs } from '../navigation/ForwardCrumbs.js';
+import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
 /** @typedef {import('../Main.js').ExploreConfig} ExploreConfig */
 /** @typedef {import('../alert/JumpAlert.js').JumpAlert} JumpAlert */
 /** @typedef {import('../mission/Mission.js').Mission} Mission */
@@ -17,7 +20,11 @@ import { TaskContainer } from './TaskContainer.js';
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class StreetProgress {
-  static #END_OF_STREET_THRESHOLD = 25; // How close to a street's end counts as done (meters).
+  /**
+   * How near its end a landing must be to walk a street out (meters): the search radius, since from any nearer the
+   * next search would find panos of the street beyond. Credit is the coverage rule's call, not this (#4640).
+   */
+  static #END_OF_STREET_THRESHOLD = PanoViewer.SEARCH_RADIUS_M;
 
   #config;
   #regionModel;
@@ -52,7 +59,8 @@ export class StreetProgress {
    * @param {TaskContainer} taskContainer - The streets being walked.
    * @param {PanoManager} panoManager - Where the labeler stands, and which way they face after a jump.
    * @param {NavigationService} navigationService - Whose landings may end a street, and which makes the jump.
-   * @param {StreetSweep} streetSweep - Says when a street runs out of imagery near its end, or the streets run out.
+   * @param {StreetSweep} streetSweep - Says when a street walked out of imagery or the streets ran out; files a
+   *   street seen too little of.
    * @param {JumpAlert} jumpAlert - The tip shown after a jump.
    * @param {Tracker} tracker
    */
@@ -120,8 +128,11 @@ export class StreetProgress {
     const landed = await this.#navigationService.moveToNextStreet(() => {
       const mission = this.#missionJump || this.#missionContainer.getCurrentMission();
       const currentTask = this.#taskContainer.getCurrentTask();
-      this.#taskContainer.endTask(currentTask);
-      mission.pushATaskToTheRoute(currentTask);
+      // A street given up on when the prompt went up was reported then; finishing it now would credit it (#4922).
+      if (!currentTask.wasGivenUpOnImagery()) {
+        this.#taskContainer.endTask(currentTask);
+        mission.pushATaskToTheRoute(currentTask);
+      }
       this.#setLabelBeforeJumpState(false);
 
       const task = this.#taskContainer.getNextTaskAfterJump() || this.#taskContainer.nextTask(currentTask);
@@ -136,7 +147,7 @@ export class StreetProgress {
     this.#jumpAlert.onClickJumpMessage();
   }
 
-  /** Ends the street if the labeler reached its end, updates progress, and preloads the next move. */
+  /** Credits the pano to its street, ends the street at its end, updates progress, and preloads the next move. */
   #afterLanding() {
     const position = this.#panoManager.getPosition();
     const region = this.#regionModel.currentRegion();
@@ -148,9 +159,13 @@ export class StreetProgress {
         this.#taskContainer.recordExploreMove(position);
       } else if (!this.#config.isOnboarding && this.#taskContainer.tasksLoaded()) {
         const task = this.#taskContainer.getCurrentTask();
-        if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD)) {
-          // On a route's short last street, 25 m can end the route well before its last pano (#4640), so wait until
-          // most of it is walked; running out of imagery ends it otherwise.
+        if (task) task.recordVisit(position);
+        // Reaching the end alone doesn't end a street (#5669): a short street's first pano can already be within the
+        // threshold, and a hopped hole leaves the end reached with most of it unseen. Walking on finds the rest, or
+        // the search runs out and the sweep reports the street.
+        if (task && task.isAtEnd(position, StreetProgress.#END_OF_STREET_THRESHOLD) && task.isCoveredEnough()) {
+          // On a route's short last street, the end threshold can end the route well before its last pano (#4640),
+          // so wait until most of it is walked; running out of imagery ends it otherwise.
           const finalRouteStreet = this.#regionModel.isRoute && !this.#taskContainer.nextTask(task);
           const streetLen = task.lineDistance({ units: 'meters' });
           const walkedMostOfStreet = streetLen > 0
@@ -160,6 +175,7 @@ export class StreetProgress {
           }
         }
         this.#taskContainer.updateCurrentTask();
+        this.#endStreetIfNothingAhead(this.#taskContainer.getCurrentTask());
       }
       this.#missionModel.updateMissionProgress(currentMission, region);
     } finally {
@@ -168,7 +184,42 @@ export class StreetProgress {
   }
 
   /**
-   * Ends a street. A joining next street is handed over now; otherwise the labeler is asked to finish here first.
+   * Ends a walked street on arrival at its last pano, sparing a step forward that goes nowhere (#5918). Left to
+   * that step when a link still leads on, the street isn't seen enough (the step reports it), or the lookup fails.
+   * @param {?Task} task - The street being walked.
+   * @returns {Promise<void>}
+   */
+  async #endStreetIfNothingAhead(task) {
+    if (!task || this.#labelBeforeJumpArmed || !task.isCoveredEnough()) return;
+    let panoId;
+    try {
+      // "No pano ahead" has to be an answer the provider can be held to.
+      if (this.#panoManager.panoViewer.findPanoNearCanMiss()) return;
+      panoId = this.#panoManager.getPanoId();
+      const links = this.#panoManager.panoViewer.getLinkedPanos();
+      const routeHeading = task.headingAlongRoute(this.#panoManager.getPosition());
+      if (ForwardCrumbs.stepLinkIndex(links, routeHeading) !== -1) return;
+      if (await this.#streetSweep.findLanding(task)) return;
+    } catch {
+      return;
+    }
+    // The lookup takes a moment: the labeler may have moved on, or be mid-move, which ends the street itself.
+    if (this.#navigationService.isMoving()) return;
+    if (this.#panoManager.getPanoId() !== panoId || this.#taskContainer.getCurrentTask() !== task) return;
+    try {
+      const mission = this.#missionContainer.getCurrentMission();
+      this.#endStreet(task, mission);
+      // The landing's own progress update and preload ran before the street ended.
+      this.#missionModel.updateMissionProgress(mission, this.#regionModel.currentRegion());
+      this.#preloadNextMove();
+    } catch (err) {
+      console.error('Could not end the street on its last pano:', err);
+    }
+  }
+
+  /**
+   * Ends a street the labeler has seen enough of. A joining next street is handed over now; otherwise the labeler is
+   * asked to finish here first.
    * @param {Task} task - The street being ended.
    * @param {Mission} mission - The mission it's filed under.
    */
@@ -177,8 +228,7 @@ export class StreetProgress {
 
     this.#missionJump = mission;
     const nextTask = this.#taskContainer.nextTask(task);
-    const connected = nextTask
-      && task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
+    const connected = Boolean(nextTask) && this.#continuesInto(task, nextTask);
 
     // Before a jump, or at the very end, this is their last chance to label here, so ask first.
     if (this.#regionModel.isRouteOrRegionComplete() || !connected) {
@@ -189,16 +239,39 @@ export class StreetProgress {
       } else {
         if (!connected) this.#taskContainer.setNextTaskAfterJump(nextTask);
         this.#panoManager.panoViewer.clearPrefetchCache();
-        this.#streetSweep.prefetchAlongStreet(nextTask.getFeature());
+        this.#streetSweep.prefetchAlongStreet(nextTask.getGeoJSON());
       }
 
       this.#tracker.push('LabelBeforeJump_ShowMsg');
       this.#setLabelBeforeJumpState(true);
     } else {
-      this.#taskContainer.endTask(task);
-      mission.pushATaskToTheRoute(task);
+      if (!task.wasGivenUpOnImagery()) {
+        this.#taskContainer.endTask(task);
+        mission.pushATaskToTheRoute(task);
+      }
       this.#taskContainer.setCurrentTask(nextTask);
+      // The pano at the junction shows the next street's start too; the first landing on it is a window further on.
+      nextTask.recordVisit(this.#panoManager.getPosition());
     }
+  }
+
+  /**
+   * Whether finishing `task` carries the labeler straight onto `nextTask` with no jump.
+   *
+   * On a planned walk (#5526) the plan fixed which end of `nextTask` is its start, so only that end (or, for a
+   * part-walked street, where the labeler left it) counts: accepting its far end as well, as isConnectedTo does, would
+   * switch seamlessly onto a street that begins a block away, and the first move would teleport the labeler there
+   * unannounced.
+   *
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street chosen to follow it.
+   * @returns {boolean}
+   */
+  #continuesInto(task, nextTask) {
+    if (!this.#taskContainer.hasWalkPlan()) {
+      return task.isConnectedTo(nextTask, TaskContainer.CONNECTED_TASK_KM, { units: 'kilometers' });
+    }
+    return !TaskContainer.isJump(task, nextTask);
   }
 
   /** The last street had no imagery, so the route or region is done where the labeler stands. */

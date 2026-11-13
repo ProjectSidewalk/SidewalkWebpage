@@ -87,8 +87,8 @@ row.querySelector('.region-name').innerHTML = `<b>${util.escapeHTML(label)}</b>`
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
 the **`data-ps-tooltip-html` attribute**, which `psTooltip.js` renders as HTML (cleaned of script first, but a missed
-escape still shows as markup). Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`, and the
-onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
+escape still shows as markup). Helpers count too: `AlertController.showAlert`, `Toast`'s `messageHtml` option,
+`PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`, `alert` /
 `confirm`, a share sheet, and any other attribute, `title` and the plain `data-ps-tooltip` included.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
@@ -151,8 +151,12 @@ nested `$t(...)` references, and i18next's plural suffixes compose with them.
 
 **Rendering a distance is the `distance` formatter's job** (`AppManager._addDistanceFormatter`):
 `{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Params are `style`
-(`small` → m/ft to the nearest 25; `fine` → m/ft to the whole unit, for elevations; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
-with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call it from outside a string.
+(`small` → m/ft to the nearest 25; `fine` → m/ft unrounded, for elevations and short streets; `large` → km/mi), `precision` (`fine` and `large`), and `unit: false` for a bare number; separate several
+with `;`. `util.distanceToString(meters)`, `util.fineDistanceToString(meters, precision)`,
+`util.longDistanceToString(km, precision, withUnit)` and `util.metersToLongDistanceString(meters, precision, withUnit)`
+call it from outside a string; pass `withUnit = false` where a column header already names the unit
+(`util.unitWords().unitAbbr`). A chart plotting distances converts with `util.metersToLongDistance(meters)`, the same
+conversion, so its points and labels agree.
 
 **Its input must be canonical** — meters for `small`, km for `large`. Values that arrive already converted
 (`/userapi/basicStats` converts server-side; turf measurements are taken in `util.turfDistanceUnits()` so they can be

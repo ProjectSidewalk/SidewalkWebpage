@@ -10,6 +10,7 @@
 import i18next from 'i18next';
 import { LabelDetail } from '../../common/label-detail/LabelDetail.js';
 import { PopupPanoManager } from '../../common/label-detail/PopupPanoManager.js';
+import { closeReasonPopover } from '../../common/ReasonPopover.js';
 /** @typedef {import('../cards/Card.js').Card} Card */
 /** @typedef {import('../cards/CardContainer.js').CardContainer} CardContainer */
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
@@ -93,10 +94,14 @@ export class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
-    // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
-    if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
-    if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key or S shortcut (#5194, #5883),
+    // or Enter or Space on the focused arrow; both are logged as shortcuts. A switched-off arrow ignores every click.
+    this.leftArrow?.addEventListener('click', (e) => {
+      if (this.leftArrow.getAttribute('aria-disabled') !== 'true') this.previousLabel(e.detail === 0);
+    });
+    this.rightArrow?.addEventListener('click', (e) => {
+      if (this.rightArrow.getAttribute('aria-disabled') !== 'true') this.nextLabel(e.detail === 0);
+    });
 
     // Wire close button.
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
@@ -131,7 +136,7 @@ export class ExpandedView {
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
-    if (this.leftArrow) this.leftArrow.disabled = true;
+    this.leftArrow?.setAttribute('aria-disabled', 'true');
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -186,23 +191,29 @@ export class ExpandedView {
   }
 
   /**
-   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card. Looked up
+   * by id, like #handleDelete, since a quick A then S pages on before the vote lands (#5883).
+   * @param {?('Agree'|'Disagree'|'Unsure')} action - The vote now on record, or null when it was cleared.
+   * @param {{label_id: number}} meta - The metadata of the label voted on.
    */
-  #handleVote = (action) => {
-    if (this.refCard) {
-      this.refCard.updateUserValidation(action);
-    }
+  #handleVote = (action, meta) => {
+    this.#cardContainer.findCardByLabelId(meta.label_id)?.updateUserValidation(action);
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card.
-   * @param {{label_type: string, severity: ?number, tags: string[]}} meta - The label's metadata as it now stands.
+   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card, including the votes, which a
+   * type change swaps for the new type's (#5853). Looked up by id, like #handleDelete.
+   * @param {Record<string, any>} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
-    if (this.refCard) {
-      this.refCard.updateLabelType(meta.label_type);
-      this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
+    const card = this.#cardContainer.findCardByLabelId(meta.label_id);
+    if (!card) return;
+    const typeChanged = card.getLabelType() !== meta.label_type;
+    card.updateLabelType(meta.label_type);
+    card.updateSeverityAndTags(meta.severity, meta.tags);
+    if (typeChanged) {
+      card.setVotes(meta);
+      card.setAiGenerated(meta.ai_generated);
     }
   };
 
@@ -224,13 +235,16 @@ export class ExpandedView {
     const card = this.#cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
-    card.updateUserValidation(meta.user_validation ?? null);
+    // An admin's delete files a Disagree but leaves their comment; a restore clears that vote the same way.
+    card.updateUserValidation(meta.user_validation ?? null, { dropOwnComment: false });
   };
 
   /**
    * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
    */
   #openExpandedView() {
+    // A grid card's pop-up would otherwise float over the view opening on top of its card.
+    closeReasonPopover();
     // Clear the close-guard so the in-flight pano load is allowed to show once this card's load completes.
     const panoEl = this.#root.querySelector('.label-detail__pano');
     if (panoEl) delete panoEl.dataset.closedDuringLoad;
@@ -250,6 +264,10 @@ export class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
+    this.labelDetail?.saveOpenEdits();
+    // Hiding by visibility leaves the pop-up's host connected, so it wouldn't notice; one holding an "Other…" draft
+    // even outlasts the click on ✕.
+    closeReasonPopover();
     this.#root.style.visibility = 'hidden';
     LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
@@ -303,8 +321,6 @@ export class ExpandedView {
    * @param {number} index - The index of the card to update to.
    */
   #updateExpandedViewCardByIndex(index) {
-    if (this.leftArrow) this.leftArrow.disabled = false;
-    if (this.rightArrow) this.rightArrow.disabled = false;
     this.cardIndex = index;
     this.refCard = this.#cardContainer.getCardByIndex(this.cardIndex);
 
@@ -315,17 +331,15 @@ export class ExpandedView {
       return;
     }
 
+    // `aria-disabled` so the arrow just pressed keeps focus (#5135).
+    const cards = this.#cardContainer;
+    const onLastCard = cards.isLastPage()
+      && index === (cards.getCurrentPage() - 1) * cards.getCardsPerPage() + cards.getCurrentPageCards().length - 1;
+    this.leftArrow?.setAttribute('aria-disabled', String(index === 0));
+    this.rightArrow?.setAttribute('aria-disabled', String(onLastCard));
+
     this.#openExpandedView();
     this.#updatePosition(index);
-
-    if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
-
-    if (this.#cardContainer.isLastPage()) {
-      const page = this.#cardContainer.getCurrentPage();
-      const lastCardIndex
-        = (page - 1) * this.#cardContainer.getCardsPerPage() + this.#cardContainer.getCurrentPageCards().length - 1;
-      if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
-    }
   }
 
   /**

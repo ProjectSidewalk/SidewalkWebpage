@@ -47,9 +47,9 @@ VALUES (18, 'https://njogis-newjersey.opendata.arcgis.com/datasets/764362ac87254
         FALSE)
 ON CONFLICT (region_id) DO NOTHING;
 
--- The template's own street 1 stays out of the region: it is the tutorial street, which region completion excludes,
--- so a region holding only it counts as vacuously complete for everyone and is never assigned -- the same 500 as
--- having no region at all.
+-- Street 1 is the tutorial street. Region completion excludes it, so a region holding only it is complete for
+-- everyone and never assigned (the same 500 as no region). It joins the region beside the real streets instead, as
+-- in every real city: the label card's query needs a region, and the tutorial-labeling spec reads through it.
 INSERT INTO sidewalk_teaneck.street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
 VALUES
   (479, ST_GeomFromText('LINESTRING(-73.99309 40.90276,-73.9922537 40.9038259)', 4326),
@@ -67,6 +67,13 @@ SELECT s.street_edge_id, 18
 FROM (VALUES (479), (842), (1141), (1334)) AS s(street_edge_id)
 WHERE NOT EXISTS (
   SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = s.street_edge_id
+);
+
+INSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)
+SELECT config.tutorial_street_edge_id, 18
+FROM sidewalk_teaneck.config
+WHERE NOT EXISTS (
+  SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = config.tutorial_street_edge_id
 );
 
 -- Every street needs an OSM way, because /v3/api/rawLabels and the label-clusters API both INNER JOIN
@@ -150,7 +157,7 @@ VALUES
    FALSE, NULL, '2020-01-01 00:00:00+00', FALSE),
   -- A LABELED Mapillary pano due for a check, so the nightly sweep's sampling query sees a non-gsv
   -- source. Real, from Richmond -- the one city on Mapillary imagery. Expired and unbacked, so it
-  -- stays out of the Gallery; Validate and Explore already filter it out on the city's pano source.
+  -- stays out of Gallery; Validate and Explore already filter it out on the city's pano source.
   ('1050859256685844', 'mapillary', '2024-09', 11000, 5500, 11000, 5500,
    37.539015301397, -77.441233369283, 35.915695572831, 2.9712443964874025, 2.10982137066022, 'HKocen',
    TRUE, '2020-01-01 00:00:00+00', '2020-01-01 00:00:00+00', FALSE)
@@ -190,7 +197,7 @@ ON CONFLICT (audit_task_id) DO NOTHING;
 -- rest cover the forks the share, gallery and edit specs read. `correct` stays NULL, so all still need validating.
 --
 -- The two NoSidewalk labels have no crop, as prod has none for them either: still validatable (Validate reads the
--- backup panorama, not crops), just absent from the Gallery -- which is what that state means in production.
+-- backup panorama, not crops), just absent from Gallery -- which is what that state means in production.
 INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type,
                                     street_edge_id, temporary_label_id, time_created, deleted, tutorial,
                                     severity, tags)

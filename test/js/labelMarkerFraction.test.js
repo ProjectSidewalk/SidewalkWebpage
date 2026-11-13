@@ -88,6 +88,15 @@ describe('labelMarkerFraction', () => {
       expect(assumed.y).toBeCloseTo(recorded.y, 10);
     });
 
+    // A 4:3 crop in a 3:2 box loses its top and bottom instead, since the box shows only the middle
+    // (4/3) / (3/2) = 8/9 of its height.
+    it('re-expresses a recorded position in a box wider than the crop', () => {
+      const { x, y } = labelMarkerFraction('crop', { x: 0.25, y: 0.25, width: 960, height: 720 }, 180, 120,
+        { boxAspect: 3 / 2 });
+      expect(x).toBeCloseTo(0.25, 10);
+      expect(y).toBeCloseTo(0.5 - 0.25 * (9 / 8), 10);
+    });
+
     it('is the identity for a 3:2 image in a 3:2 box', () => {
       expect(labelMarkerFraction('crop', { x: 0.25, y: 0.75, width: 1440, height: 960 }, 180, 360,
         { boxAspect: 3 / 2 })).toEqual({ x: 0.25, y: 0.75 });

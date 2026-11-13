@@ -12,7 +12,7 @@ import { createPanoAttribution } from './common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from './common/pano-viewer/PanoViewerLogo.js';
 import { ShareWidget } from './common/share/ShareWidget.js';
 import { util } from './common/utilities.js';
-import './common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from './common/utilitiesSidewalk.js';
 import '../css/components/landing-validation-grid.css';
 
 /**
@@ -36,8 +36,9 @@ export class LandingValidationGrid {
   // css/components/landing-validation-grid.css. A layout breakpoint, so there's no backend value to source it from.
   static #NARROW_VISIBLE_CARDS = 3;
   // The server splits n across the 6 label types validatable from a static image (static_imagery_only — Signal
-  // needs a pan up its pole, so it's excluded server-side), so fetch sizes are multiples of 6: 2 per type up
-  // front (6 rendered + the rest pooled for replacements), 1 per type on refills.
+  // needs a pan up its pole, so it's excluded server-side), re-spreading a dry type's share, so multiples of 6 keep
+  // the split even where every type has labels: 2 per type up front (6 rendered + the rest pooled for replacements),
+  // 1 per type on refills.
   static #INITIAL_FETCH = 12;
   static #REFILL_FETCH = 6;
   // Refill the pool in the background once it runs this low, so replacements stay instant.
@@ -49,7 +50,6 @@ export class LandingValidationGrid {
   #loadedLabelIds = new Set();
   #pool = [];
   #fetching = false;
-  #firstLoadLogged = false;
 
   /**
    * @param {HTMLElement} sectionEl - The #landing-validation-container section (rendered with `hidden`).
@@ -83,10 +83,7 @@ export class LandingValidationGrid {
 
     const count = this.#grid.querySelectorAll('.lvg-card').length;
     if (count === 0) this.#section.hidden = true;
-    if (!this.#firstLoadLogged) {
-      this.#firstLoadLogged = true;
-      window.logWebpageActivity(`View_module=LandingValidationGrid_labelCount=${count}`);
-    }
+    window.logWebpageActivity(`View_module=LandingValidationGrid_labelCount=${count}`);
   }
 
   /**
@@ -192,9 +189,8 @@ export class LandingValidationGrid {
     img.alt = util.misc.labelTypeName(label.label_type);
     // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
     let creditImage = null;
-    img.addEventListener('error', () => {
-      // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
-      // whose every source fails is dead weight — swap it for a fresh label.
+    // A card whose every source fails is dead weight — swap it for a fresh label.
+    const fallBack = () => {
       if (card.dataset.imageSource === 'crop' && entry.gsvImageUrl) {
         card.dataset.imageSource = 'api';
         // The crop's recorded position describes the crop only; the still is the Explore frame again.
@@ -204,6 +200,18 @@ export class LandingValidationGrid {
       } else {
         this.#replaceCard(card);
       }
+    };
+    img.addEventListener('error', () => {
+      if (card.dataset.imageSource !== 'crop') {
+        fallBack();
+        return;
+      }
+      // A pooled label's signed crop can expire before it's shown (#5861): re-sign once before the billed still.
+      retrySignedImage(img, {
+        fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.label_id),
+        isCurrent: () => card.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     img.src = entry.cropUrl || entry.gsvImageUrl;
     imgWrap.appendChild(img);
@@ -375,7 +383,7 @@ export class LandingValidationGrid {
     });
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
-    // Mirror the Gallery's static-image validation payload: canvas_* describe where the label sits within the
+    // Mirror Gallery's static-image validation payload: canvas_* describe where the label sits within the
     // rendered image. Off the same fraction the marker is drawn from, so the two can't disagree (#2660).
     const img = card.querySelector('.lvg-card-photo');
     const { x: fracX, y: fracY } = LandingValidationGrid.#markerFraction(entry, card.dataset.imageSource);

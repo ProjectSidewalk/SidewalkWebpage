@@ -334,14 +334,9 @@ class AccessScoreApiController @Inject() (
    * names no cause: the cache is cold after a deploy, but also after the value aged out or a compute failed.
    */
   private def scoresStillComputing: Result =
-    ApiError
-      .toResult(
-        ApiError.stillComputing(
-          "This city's AccessScores are still being computed. Retry after the number of seconds in the Retry-After " +
-            "header."
-        )
-      )
-      .withHeaders(RETRY_AFTER -> AccessScoreApiController.StillComputingRetryAfterSeconds.toString)
+    ApiError.stillComputingResult(
+      "This city's AccessScores are still being computed. Retry after the number of seconds in the Retry-After header."
+    )
 
   /**
    * Resolves the v3 geo-filters to a single bounding box to score within, plus the region id to post-filter results by.
@@ -393,7 +388,4 @@ object AccessScoreApiController {
 
   /** The `scope` value that turns the Spotlight into a cross-city ranking. */
   val CitiesScope: String = "cities"
-
-  /** What a `503` for a still-computing full-city score tells the client to wait (#5418); see the shared constant. */
-  val StillComputingRetryAfterSeconds: Int = ApiError.StillComputingRetryAfterSeconds
 }

@@ -8,7 +8,7 @@
  * `isResumed()` guard, and each guard is a place where over-reaching would break a fresh street instead — so the
  * fresh-street behavior is pinned beside every one of them.
  *
- * Real turf and the real `util.math.haversine` for the geometry cases: the questions are about distance
+ * Real turf for the geometry cases: the questions are about distance
  * along real street geometry, and a stub that got it slightly wrong would pass for the wrong reason.
  */
 
@@ -153,6 +153,7 @@ describe('TaskContainer handing out a part-walked street', () => {
     isComplete: () => false,
     isConnectedTo: () => false,
     wasGivenUpOnImagery: () => false,
+    isLeftToWalk: () => true,
     isResumed: () => resumed,
     cameFromTaskList: () => fromTaskList,
     getProperty: () => null,
@@ -288,15 +289,22 @@ describe('TaskContainer.fetchTasks', () => {
             current_lat: stopped[1],
           }),
           feature(freshStreet, { street_edge_id: 2, completed: false }),
+          feature(straightStreet([-77.06, 38.96], STREET_LENGTH_M), {
+            street_edge_id: 4, completed: false, reported_no_imagery: true,
+          }),
         ],
       }),
     }));
 
     const regionModel = { isRoute: false, currentRegion: () => ({ getRegionId: () => 5 }) };
-    // The page's own street, which fetchTasks skips by id.
-    const initialTask = new Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
-    container = new TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {}, fakeTracker());
+    container = makeContainer(Task, TaskContainer, regionModel);
   });
+
+  /** A container born with the page's own street, which fetchTasks skips by id. */
+  const makeContainer = (Task, TaskContainer, regionModel) => {
+    const initialTask = new Task(feature(straightStreet([-77.1, 38.8], 50), { street_edge_id: 3 }), {}, false);
+    return new TaskContainer(initialTask, { streetCoverage: {} }, regionModel, {}, {}, {}, fakeTracker());
+  };
 
   it('seeds an open task at its saved position and a fresh one at its own start', async () => {
     await container.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() });
@@ -312,5 +320,26 @@ describe('TaskContainer.fetchTasks', () => {
     // nothing about it should read as walked.
     expect(fresh.isResumed()).toBe(false);
     expect(fresh.getFurthestPointReached().geometry.coordinates).toEqual(freshStreet[0]);
+  });
+
+  it('skips a street the labeler reported in an earlier session, without crediting it (#5017)', async () => {
+    await container.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() });
+
+    const reported = container.getTasks().find((task) => task.getStreetEdgeId() === 4);
+    expect(reported.isLeftToWalk()).toBe(false);
+    expect(container.getUnwalkedTasks()).not.toContain(reported);
+    expect(container.getWalkedTasks()).not.toContain(reported);
+  });
+
+  it("counts a route's reported street as this walk's give-up (#5008)", async () => {
+    const { Task, TaskContainer } = await loadModules('frontend/js/explore/task/Task.js',
+      'frontend/js/explore/task/TaskContainer.js');
+    const onRoute = makeContainer(Task, TaskContainer, { isRoute: true });
+
+    await onRoute.fetchTasks({ getProperty: () => 7, pushATaskToTheRoute: vi.fn() });
+
+    const reported = onRoute.getTasks().find((task) => task.getStreetEdgeId() === 4);
+    expect(reported.wasGivenUpOnImagery()).toBe(true);
+    expect(onRoute.getWalkedTasks()).toContain(reported);
   });
 });

@@ -90,6 +90,7 @@
   "done-editing-tags-label": "Bearbeiten der Tags beenden",
   "edit-failed": "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
   "edit-failed-short": "Nicht gespeichert",
+  "edit-failed-previous": "Ihre Änderung an der vorherigen Beschriftung konnte nicht gespeichert werden.",
   "no-imagery-disabled": "Sie können nicht validieren oder kommentieren, wenn für diese Beschriftung keine Bilddaten verfügbar sind",
   "no-imagery-edit-disabled": "Sie können diese Beschriftung nicht bewerten, bearbeiten oder löschen, wenn keine Bilddaten verfügbar sind",
   "admin-only": "Nur Admin",
@@ -107,8 +108,7 @@
     "hint-shapefile": "Für ArcGIS, QGIS",
     "hint-geopackage": "Offenes GIS-Format",
     "caveat": "Einige Filter aus dem Link dieser Seite (mehrere Regionen, Routen oder KI-Validierung) können auf Downloads nicht angewendet werden, daher kann die Datei mehr Beschriftungen enthalten als oben angegeben.",
-    "api-docs-link": "Dokumentation der Raw-Labels-API",
-    "opens-new-tab": " (wird in einem neuen Tab geöffnet)"
+    "api-docs-link": "Dokumentation der Raw-Labels-API"
   },
   "story": {
     "heading": "Erfahrungsberichte",
@@ -179,13 +179,14 @@
   },
   "edit-type-changed": "Geändert zu {{labelType}}",
   "edit-undo": "Rückgängig",
-  "edit-conflict-short": "Etikettentyp anderswo geändert",
   "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand.",
   "delete-label": "Beschriftung löschen",
   "delete-label-confirm": "Möchten Sie diese Beschriftung wirklich löschen?",
   "delete-label-confirm-admin": "Möchten Sie diese Beschriftung wirklich löschen? Ihre Bewertung „Nicht einverstanden“ wird dazu gespeichert.",
   "delete-label-failed": "Die Beschriftung konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
   "restore-label": "Beschriftung wiederherstellen",
+  "previous-label": "Vorherige Beschriftung",
+  "next-label": "Nächste Beschriftung",
   "restore-label-brief": "Wiederherstellen",
   "restore-label-failed": "Die Beschriftung konnte nicht wiederhergestellt werden. Bitte versuchen Sie es erneut.",
   "you-deleted-label": "Sie haben diese Beschriftung gelöscht",

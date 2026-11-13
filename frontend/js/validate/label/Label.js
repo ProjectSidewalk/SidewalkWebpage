@@ -43,6 +43,9 @@ export class Label {
     aiGenerated: false,
     expired: false,
     backupImage: null,
+    // Set when the label is in the mission as a training example (#1445): the reason the tool explains on a miss.
+    goldReason: null,
+    goldCropUrl: null,
   };
 
   // These properties are set through validating labels. In this object, canvas properties and
@@ -67,6 +70,7 @@ export class Label {
     unsureOption: undefined,
     unsureReasonTextBox: '',
     comment: undefined,
+    reasonId: undefined, // The canned reason `comment` is, when it is one (#5475).
     zoom: undefined,
     isMobile: undefined,
   };
@@ -86,64 +90,59 @@ export class Label {
   }
 
   /**
-   * Initializes a label from metadata (if parameters are passed in).
+   * Initializes a label from the metadata the backend sent for it.
    * @param {Record<string, any>} params - Label metadata from the backend.
    */
   #init(params) {
-    if (params) {
-      if ('lat' in params) this.setAuditProperty('lat', params.lat);
-      if ('lng' in params) this.setAuditProperty('lng', params.lng);
-      if ('camera_lat' in params) this.setAuditProperty('cameraLat', params.camera_lat);
-      if ('camera_lng' in params) this.setAuditProperty('cameraLng', params.camera_lng);
-      if ('canvas_x' in params) this.setAuditProperty('canvasX', params.canvas_x);
-      if ('canvas_y' in params) this.setAuditProperty('canvasY', params.canvas_y);
-      if ('canvas_width' in params) this.setAuditProperty('canvasWidth', params.canvas_width);
-      if ('canvas_height' in params) this.setAuditProperty('canvasHeight', params.canvas_height);
-      if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
-      if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
-      if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', new Date(params.label_timestamp));
-      if ('heading' in params) this.setAuditProperty('heading', params.heading);
-      if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
-      if ('label_type' in params) {
-        this.setAuditProperty('labelType', params.label_type);
-        this.setProperty('oldLabelType', params.label_type);
-        this.setProperty('newLabelType', params.label_type);
-      }
-      if ('pitch' in params) this.setAuditProperty('pitch', params.pitch);
-      if ('zoom' in params) this.setAuditProperty('zoom', params.zoom);
-      if ('severity' in params) {
-        this.setAuditProperty('severity', params.severity);
-        this.setProperty('oldSeverity', params.severity);
-        this.setProperty('newSeverity', params.severity);
-      }
-      if ('description' in params) this.setAuditProperty('description', params.description);
-      if ('street_edge_id' in params) this.setAuditProperty('streetEdgeId', params.street_edge_id);
-      if ('max_speed' in params) this.setAuditProperty('maxSpeed', params.max_speed);
-      if ('region_id' in params) this.setAuditProperty('regionId', params.region_id);
-      if ('tags' in params) {
-        this.setAuditProperty('tags', params.tags);
-        this.setProperty('oldTags', params.tags);
-        this.setProperty('newTags', [...params.tags]); // Copy tags to newTags.
-      }
-      if ('ai_tags' in params) this.setAuditProperty('aiTags', params.ai_tags);
-      if ('ai_tags_not_present' in params) this.setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
-      if ('ai_generated' in params) this.setAuditProperty('aiGenerated', params.ai_generated);
-      // The nightly imagery sweep's verdict: true means the provider has dropped this pano, so the backup is the
-      // imagery to show and asking the provider first is a wasted round trip (#5561).
-      if ('expired' in params) this.setAuditProperty('expired', params.expired === true);
-      this.setAuditProperty('backupImage', buildBackupImageData(params));
-      // Properties only used on the Admin version of Validate.
-      if ('admin_data' in params && params.admin_data !== null) {
-        if ('username' in params.admin_data) this.#adminProperties.username = params.admin_data.username;
-        if ('previous_validations' in params.admin_data) {
-          this.#adminProperties.previousValidations = [];
-          for (const prevVal of params.admin_data.previous_validations) {
-            this.#adminProperties.previousValidations.push(prevVal);
-          }
-        }
-      }
-      this.setAuditProperty('isMobile', util.isMobile());
+    if ('lat' in params) this.setAuditProperty('lat', params.lat);
+    if ('lng' in params) this.setAuditProperty('lng', params.lng);
+    if ('camera_lat' in params) this.setAuditProperty('cameraLat', params.camera_lat);
+    if ('camera_lng' in params) this.setAuditProperty('cameraLng', params.camera_lng);
+    if ('canvas_x' in params) this.setAuditProperty('canvasX', params.canvas_x);
+    if ('canvas_y' in params) this.setAuditProperty('canvasY', params.canvas_y);
+    if ('canvas_width' in params) this.setAuditProperty('canvasWidth', params.canvas_width);
+    if ('canvas_height' in params) this.setAuditProperty('canvasHeight', params.canvas_height);
+    if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
+    if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
+    if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', new Date(params.label_timestamp));
+    if ('heading' in params) this.setAuditProperty('heading', params.heading);
+    if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
+    if ('label_type' in params) {
+      this.setAuditProperty('labelType', params.label_type);
+      this.setProperty('oldLabelType', params.label_type);
+      this.setProperty('newLabelType', params.label_type);
     }
+    if ('pitch' in params) this.setAuditProperty('pitch', params.pitch);
+    if ('zoom' in params) this.setAuditProperty('zoom', params.zoom);
+    if ('severity' in params) {
+      this.setAuditProperty('severity', params.severity);
+      this.setProperty('oldSeverity', params.severity);
+      this.setProperty('newSeverity', params.severity);
+    }
+    if ('description' in params) this.setAuditProperty('description', params.description);
+    if ('street_edge_id' in params) this.setAuditProperty('streetEdgeId', params.street_edge_id);
+    if ('max_speed' in params) this.setAuditProperty('maxSpeed', params.max_speed);
+    if ('region_id' in params) this.setAuditProperty('regionId', params.region_id);
+    if ('tags' in params) {
+      this.setAuditProperty('tags', params.tags);
+      this.setProperty('oldTags', params.tags);
+      this.setProperty('newTags', [...params.tags]); // Copy tags to newTags.
+    }
+    if ('ai_tags' in params) this.setAuditProperty('aiTags', params.ai_tags);
+    if ('ai_tags_not_present' in params) this.setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
+    if ('ai_generated' in params) this.setAuditProperty('aiGenerated', params.ai_generated);
+    // The nightly imagery sweep's verdict: true means the provider has dropped this pano, so the backup is the
+    // imagery to show and asking the provider first is a wasted round trip (#5561).
+    if ('expired' in params) this.setAuditProperty('expired', params.expired === true);
+    if ('gold_reason' in params) this.setAuditProperty('goldReason', params.gold_reason ?? null);
+    if ('gold_crop_url' in params) this.setAuditProperty('goldCropUrl', params.gold_crop_url ?? null);
+    this.setAuditProperty('backupImage', buildBackupImageData(params));
+    // Properties only used on the Admin version of Validate.
+    if (params.admin_data) {
+      this.#adminProperties.username = params.admin_data.username;
+      this.#adminProperties.previousValidations = [...params.admin_data.previous_validations];
+    }
+    this.setAuditProperty('isMobile', util.isMobile());
   }
 
   /**
@@ -190,7 +189,7 @@ export class Label {
    * @returns {*} Value associated with this key.
    */
   getAuditProperty(key) {
-    return key in this.#auditProperties ? this.#auditProperties[key] : null;
+    return this.#auditProperties[key];
   }
 
   /**
@@ -199,7 +198,7 @@ export class Label {
    * @returns {*|null} Value associated with this key.
    */
   getAdminProperty(key) {
-    return key in this.#adminProperties ? this.#adminProperties[key] : null;
+    return this.#adminProperties[key];
   }
 
   /**
@@ -241,7 +240,7 @@ export class Label {
    * @returns {*} Value associated with this key.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
+    return this.#properties[key];
   }
 
   /**
@@ -269,6 +268,7 @@ export class Label {
     if (!comment) return null;
     return {
       comment,
+      reason: this.getProperty('reasonId') ?? null,
       label_id: this.getAuditProperty('labelId'),
       pano_id: this.getAuditProperty('panoId'),
       heading: this.getProperty('heading'),
@@ -311,8 +311,6 @@ export class Label {
     this.setProperty('zoom', userPov.zoom);
     this.setProperty('isMobile', util.isMobile());
     this.setProperty('comment', comment);
-    if (['Agree', 'Disagree', 'Unsure'].includes(validationResult)) {
-      this.setProperty('validationResult', validationResult);
-    }
+    this.setProperty('validationResult', validationResult);
   }
 }

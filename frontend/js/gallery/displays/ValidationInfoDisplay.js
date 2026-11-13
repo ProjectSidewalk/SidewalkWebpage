@@ -9,6 +9,8 @@ export class ValidationInfoDisplay {
   #aiValidation;
   #userValidation;
   #lockReason = null;
+  /** @type {Record<string, {icon: HTMLImageElement, count: HTMLElement}>} Each thumb and its count, by vote. */
+  #voteTallies = {};
 
   /**
    * @param {HTMLElement} container - The DOM element that contains the display.
@@ -45,8 +47,10 @@ export class ValidationInfoDisplay {
     disagreeCountContainer.className = 'validation-info-count-container';
 
     // Build the agree/disagree icons. There is a `-ai` variant of each icon.
-    agreeCountContainer.appendChild(this.#makeVoteIcon('Agree'));
-    disagreeCountContainer.appendChild(this.#makeVoteIcon('Disagree'));
+    const agreeIcon = this.#makeVoteIcon('Agree');
+    const disagreeIcon = this.#makeVoteIcon('Disagree');
+    agreeCountContainer.appendChild(agreeIcon);
+    disagreeCountContainer.appendChild(disagreeIcon);
 
     // Create the agree and disagree count text elements.
     this.agreeText = document.createElement('div');
@@ -58,6 +62,10 @@ export class ValidationInfoDisplay {
     disagreeCountContainer.append(this.disagreeText);
 
     this.updateValCounts(this.agreeCount, this.disagreeCount);
+    this.#voteTallies = {
+      Agree: { icon: agreeIcon, count: this.agreeText },
+      Disagree: { icon: disagreeIcon, count: this.disagreeText },
+    };
 
     this.agreeContainer.append(agreeCountContainer);
     this.disagreeContainer.append(disagreeCountContainer);
@@ -104,9 +112,28 @@ export class ValidationInfoDisplay {
    * @param {boolean} filled - Whether the icon should show its filled variant.
    */
   setVoteIconFilled(action, filled) {
-    const container = action === 'Agree' ? this.agreeContainer : this.disagreeContainer;
-    const icon = /** @type {?HTMLImageElement} */ (container?.querySelector('.validation-info-image'));
-    if (icon) icon.src = this.#voteIconSrc(action, filled);
+    this.#voteTallies[action].icon.src = this.#voteIconSrc(action, filled);
+  }
+
+  /**
+   * Swaps the AI's vote, which a type change replaces with the new type's (#5853).
+   * @param {?string} aiValidation - 'Agree', 'Disagree', or null when the AI hasn't voted.
+   */
+  setAiValidation(aiValidation) {
+    this.#aiValidation = aiValidation;
+    for (const action of Object.keys(this.#voteTallies)) this.setVoteIconFilled(action, false);
+    this.#renderTooltips();
+  }
+
+  /**
+   * Ties a vote cast on this card to the count it changed (util.misc.animateVoteChange). The thumb stays outline,
+   * since the filled icon matches a voted card's band and would vanish.
+   *
+   * @param {?string} previous - The viewer's vote before, or null.
+   * @param {?string} current - The viewer's vote now, or null once cleared.
+   */
+  animateVoteChange(previous, current) {
+    util.misc.animateVoteChange(this.#voteTallies, previous, current);
   }
 
   /**

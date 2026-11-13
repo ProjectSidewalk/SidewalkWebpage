@@ -58,17 +58,11 @@ export function toggleLabelLayer(labelType, visible, map, mapData) {
 
 /**
  * Builds and applies Mapbox filter expressions to all label layers based on the current filter state in mapData.
- * @param {HTMLInputElement|string|null} checkbox - The validation checkbox that was clicked, or null (or a string,
- *      which is ignored) if the update was triggered by something else (e.g., a severity toggle).
  * @param {mapboxgl.Map} map - The Mapbox map object.
  * @param {MapLayerTracker} mapData - The layer tracker containing current filter state.
  * @param {boolean} highQualityFilter - Whether to apply the high-quality user filter.
  */
-export function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
-  if (checkbox && typeof checkbox === 'object') {
-    mapData[checkbox.id] = checkbox.checked;
-  }
-
+export function filterLabelLayers(map, mapData, highQualityFilter) {
   // Build severity sub-filter: show labels whose severity matches any enabled toggle.
   /** @type {Array<any>} */
   const sevFilter = ['any'];

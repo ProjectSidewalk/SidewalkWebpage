@@ -9,7 +9,10 @@
  * Timers are faked so a 30 s wait runs in milliseconds. Runs under jsdom.
  */
 
-import { loadModules } from './loader.js';
+import { loadModules, useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <div id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>

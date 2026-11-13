@@ -411,4 +411,33 @@ class AccessScoreSpotlightSpec extends AnyFunSuite with Matchers {
     val rows = (1 to 20).map(i => regionRow(i, s"Region $i", None, i / 100.0))
     AccessScoreSpotlight.nearest(rows, minCompletion = 0.8, n = 5) should have size 5
   }
+
+  test(
+    "stretchScore weighs by length, falls back to a plain mean with no length, and has nothing to say with no edges"
+  ) {
+    AccessScoreSpotlight.stretchScore(Seq((0.2, 300.0), (0.6, 100.0))).get shouldBe 0.3 +- 1e-12
+    AccessScoreSpotlight.stretchScore(Seq((0.2, 0.0), (0.6, 0.0))).get shouldBe 0.4 +- 1e-12
+    AccessScoreSpotlight.stretchScore(Seq.empty) shouldBe None
+  }
+
+  test("stretchIsRanked states the bars the snapshot query applies") {
+    AccessScoreSpotlight.stretchIsRanked(100.0, 1, 3, Some(0.2)) shouldBe true
+    AccessScoreSpotlight.stretchIsRanked(100.0, 1, 0, Some(0.2)) shouldBe true
+    AccessScoreSpotlight.stretchIsRanked(99.9, 1, 3, Some(0.2)) shouldBe false
+    AccessScoreSpotlight.stretchIsRanked(100.0, 1, 2, Some(0.2)) shouldBe false
+    AccessScoreSpotlight.stretchIsRanked(100.0, 0, 3, Some(0.2)) shouldBe false
+    AccessScoreSpotlight.stretchIsRanked(100.0, 1, 3, None) shouldBe false
+  }
+
+  test("completionQualifies compares the rounded percent, so it can't disagree with the percent a page prints") {
+    AccessScoreSpotlight.completionQualifies(0.796) shouldBe true
+    AccessScoreSpotlight.completionQualifies(0.794) shouldBe false
+  }
+
+  test("completionRate reads a region with no streets as complete and one with no row as unexplored") {
+    AccessScoreSpotlight.completionRate(Some(NamedRegionCompletion(1, "A", 200.0, 50.0))) shouldBe 0.25
+    AccessScoreSpotlight.completionRate(Some(NamedRegionCompletion(1, "A", 0.0, 0.0))) shouldBe 1.0
+    AccessScoreSpotlight.completionRate(Some(NamedRegionCompletion(1, "A", 100.0, 150.0))) shouldBe 1.0
+    AccessScoreSpotlight.completionRate(None) shouldBe 0.0
+  }
 }

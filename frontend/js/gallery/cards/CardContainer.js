@@ -20,6 +20,7 @@
 
 import i18next from 'i18next';
 import { util } from '../../common/utilities.js';
+import { closeReasonPopover } from '../../common/ReasonPopover.js';
 import { Card } from './Card.js';
 import { CardBucket } from './CardBucket.js';
 import { isSorted } from './cardOrder.js';
@@ -73,11 +74,12 @@ export class CardContainer {
   // Keep track of labels we have loaded already as to not grab the same label from the backend.
   #loadedLabelIds = new Set();
 
-  // The position each loaded label arrived at, across fetches, for sorted mode (#2705). Fetch order is the server's
-  // order (every fetch returns the next ranked labels, and the cache is emptied whenever that stops being true), and
-  // it is what the cards are paged by rather than their own severity or votes: those change under the admin as they
-  // vote or edit in the expanded view, and re-deriving the order from them moved cards between pages mid-review.
-  /** @type {Map<string, number>} Keyed as Card.getLabelId() types its answer. */
+  // The position each loaded label arrived at, across fetches; cards are paged in this order. In a sorted order
+  // (#2705) it is the server's ranking (every fetch returns the next ranked labels, and the cache is emptied whenever
+  // that stops being true), used rather than the cards' own severity or votes because those change under the admin as
+  // they vote or edit, which moved cards between pages mid-review. In the random order, whose cache survives filter
+  // changes, it only keeps pages stable as more cards load.
+  /** @type {Map<number, number>} Keyed as Card.getLabelId() types its answer. */
   #fetchOrder = new Map();
 
   // Current labels being displayed of current type based off filters.
@@ -143,7 +145,6 @@ export class CardContainer {
       this.#tracker.push('NextPageClick', null, null);
     });
     uiCardContainer.prevPage.addEventListener('click', () => {
-      if (this.#currentPage <= 1) return;
       this.prevPage();
       this.#tracker.push('PrevPageClick', null, null);
     });
@@ -157,8 +158,8 @@ export class CardContainer {
     // Grab first batch of labels to show.
     if (this.#listMode) {
       // The server already applied the only selection there is (the id list) and returned it in order, so the cards
-      // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters and regroup by type,
-      // which is exactly the ordering the list exists to avoid.
+      // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters, which a review list
+      // doesn't have.
       this.fetchLabels(
         [], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined, this.#listLabelIds,
         undefined,
@@ -211,22 +212,17 @@ export class CardContainer {
     uiCardContainer.holder.addEventListener('click', (event) => {
       const target = event.target.closest(cardClickSelector);
       if (!target) return;
-      // If the user clicks on the image body in the card, just use the provided id.
-      // If they click the AI icon or the no-image placeholder, use the image id from the same card.
-      // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
-      // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
-      // the correct form).
+      // The image carries the card's id itself. The AI icon and the no-image placeholder sit beside it in the same
+      // image holder (see Card), so they borrow its id. The "+n" pill lives down in the tags, whose container is
+      // named by the bare label id instead.
       let cardId;
-      if (target.classList.contains('ai-icon-marker-card') || target.classList.contains('gallery-image-placeholder')) {
-        const imageHolder = target.closest('.image-holder');
-        const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
-        cardId = parentImage ? parentImage.id : null;
-      } else if (target.classList.contains('static-gallery-image')) {
+      if (target.classList.contains('static-gallery-image')) {
         cardId = target.id;
-      } else {
+      } else if (target.classList.contains('additional-count')) {
         cardId = `label_id_${target.closest('.card-tags').id}`;
+      } else {
+        cardId = target.closest('.image-holder').querySelector('.static-gallery-image').id;
       }
-      if (!cardId) return;
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
 
@@ -361,13 +357,6 @@ export class CardContainer {
   }
 
   /**
-   * Returns cards of current type.
-   */
-  getCards() {
-    return this.#cardsByType;
-  }
-
-  /**
    * Returns cards of current type that are being rendered.
    */
   getCurrentCards() {
@@ -420,15 +409,16 @@ export class CardContainer {
    *
    * Cards accumulate across filter changes, so this re-applies the filters the server already applied when they were
    * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
-   * against its own. In a sorted order (#2705) the gathered cards go back into the sequence they arrived in, which
-   * is the server's order across the type buckets; that holds only because every card was fetched in this order
-   * (see #resetLoadedCards).
+   * against its own. The gathered cards go back into the sequence they arrived in. In a sorted order (#2705) that is
+   * the server's order across the type buckets, which holds only because every card was fetched in this order (see
+   * #resetLoadedCards). In the random order it keeps a page stable as more cards load: grouped by type, every fetch
+   * of a common type would push the rarer types' cards onto later pages.
    *
    * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: Record<string, string[]>, sort: string}} filters - The filters from #currentFilters().
+   *      tagsByType: Record<string, string[]>}} filters - The filters from #currentFilters().
    * @returns {CardBucket} The cards to page through.
    */
-  #collectCurrentCards({ types, valOptions, severities, tagsByType, sort }) {
+  #collectCurrentCards({ types, valOptions, severities, tagsByType }) {
     const bucket = new CardBucket();
     for (const type of types) {
       const cards = this.#cardsByType[type].copy();
@@ -437,9 +427,7 @@ export class CardContainer {
       cards.filterOnValidationOptions(valOptions);
       cards.getCards().forEach((card) => bucket.push(card));
     }
-    if (isSorted(sort)) {
-      bucket.getCards().sort((a, b) => this.#fetchOrder.get(a.getLabelId()) - this.#fetchOrder.get(b.getLabelId()));
-    }
+    bucket.getCards().sort((a, b) => this.#fetchOrder.get(a.getLabelId()) - this.#fetchOrder.get(b.getLabelId()));
     return bucket;
   }
 
@@ -512,10 +500,6 @@ export class CardContainer {
    * When a filter is updated; update which Cards are shown.
    */
   updateCardsByFilter() {
-    // List mode renders no filter controls, so nothing should reach this; guard anyway, since applying the sidebar's
-    // empty state would silently throw the list away.
-    if (this.#listMode) return;
-
     const newLabelTypes = this.#cardFilter.getStatus().currentLabelTypes;
     // Only need to refresh UI if the label types changed, since the tags are swapped out.
     if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
@@ -536,7 +520,6 @@ export class CardContainer {
    * sample, and a random Gallery seeded with them would open on, say, the thirty most severe labels.
    */
   updateCardsBySort() {
-    if (this.#listMode) return;
     this.#resetLoadedCards();
     this.#setPage(1);
     this.updateCardsNewPage();
@@ -548,6 +531,7 @@ export class CardContainer {
   render() {
     const uiCardContainer = this.#uiCardContainer;
     // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
+    closeReasonPopover();
     uiCardContainer.holder.replaceChildren();
 
     const imagesToLoad = this.getCurrentPageCards();
@@ -609,6 +593,7 @@ export class CardContainer {
     // Close expanded views (if open) and empty cards from current page. The view is absent until the opening query
     // and the viewer build have both finished (see #notifyExpandedViewRendered).
     this.#expandedView?.closeExpandedView();
+    closeReasonPopover();
     this.#uiCardContainer.holder.replaceChildren();
 
     // Place user back at top of page.
@@ -622,13 +607,6 @@ export class CardContainer {
     this.#cardFilter.disable();
     ui.labelsNotFound.style.display = 'none';
     ui.pageControl.style.display = 'none';
-  }
-
-  /**
-   * Flush all Cards currently being rendered.
-   */
-  clearCurrentCards() {
-    this.#currentCards = new CardBucket();
   }
 
   getCurrentPage() {
@@ -725,7 +703,6 @@ export class CardContainer {
    */
   static #renderListCount(shown) {
     const countEl = document.getElementById('gallery-list-count');
-    if (!countEl) return;
     const requested = Number(countEl.dataset.requested);
     countEl.textContent = shown < requested
       ? i18next.t('gallery:list-count-partial', { shown, count: requested })
@@ -744,13 +721,12 @@ export class CardContainer {
     if (!truncatedEl) return;
     const dropped = Number(truncatedEl.dataset.dropped);
     const max = Number(truncatedEl.dataset.max);
-    if (dropped > 0) truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
+    truncatedEl.textContent = i18next.t('gallery:list-truncated', { count: dropped, max });
   }
 
   /** Tells the reviewer the list could not be loaded, rather than letting a failed request read as an empty queue. */
   static #showListError() {
-    const errorEl = document.getElementById('gallery-list-error');
-    if (errorEl) errorEl.hidden = false;
+    document.getElementById('gallery-list-error').hidden = false;
   }
 
   /**
@@ -763,10 +739,9 @@ export class CardContainer {
    */
   static #renderUnavailableIds(labelIds) {
     const disclosure = document.getElementById('gallery-list-unavailable');
-    if (!disclosure) return;
     const list = disclosure.querySelector('.gallery-list-bar__ids');
     const summary = disclosure.querySelector('summary');
-    if (!list || !summary || !labelIds || labelIds.length === 0) {
+    if (!labelIds || labelIds.length === 0) {
       disclosure.hidden = true;
       return;
     }

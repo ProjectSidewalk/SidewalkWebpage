@@ -16,7 +16,7 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import './utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, fetchCropImageMetadata, retrySignedImage } from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -36,17 +36,20 @@ export class LabelMiniCard {
    * @param {Record<string, any>} label - A `/label/id/:id` JSON.
    * @param {object} options - Presentation and callbacks.
    * @param {string} [options.size='sheet'] - 'sheet' (a grid card with a caption) or 'strip' (a bare thumbnail).
-   * @param {Function} [options.onOpen] - Called with the label id when the picture is chosen.
-   * @param {Function} [options.onVote] - Called with `(action|null, label)` after a vote has landed server-side.
+   * @param {boolean} [options.showType=false] - Whether a sheet card's caption opens with the label type's name, as
+   *   the Gallery card's does; off where the host's heading already names it (a cluster sheet of one type).
+   * @param {Function} options.onOpen - Called with the label id when the picture is chosen.
    * @param {string} options.source - The `source` recorded with a vote, naming the surface (e.g. 'AccessScoreStrip').
-   * @param {Function} [options.log] - Called with an event name for an interaction worth logging.
+   * @param {Function} options.log - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
+   * @param {(labelId: number, field: string, url: string) => void} [options.onImageUrlRefresh] - Called when the
+   *     picture's signed URL was re-signed (#5861), so a host that caches label JSON can keep it for the next render.
    */
-  constructor(label, { size = 'sheet', onOpen = () => {}, onVote = () => {}, source, log = () => {}, className = '',
-    tag = 'li' }) {
+  constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li',
+    onImageUrlRefresh = () => {} }) {
     this.#label = { ...label };
-    this.#opts = { size, onOpen, onVote, source, log, className };
+    this.#opts = { size, showType, onOpen, source, log, className, onImageUrlRefresh };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -119,7 +122,6 @@ export class LabelMiniCard {
     const marker = label.crop_url
       ? `<img class="lmc__marker" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">`
       : '';
-    const colors = rating ? util.misc.getSeverityLevelColors(label.severity, type) : null;
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
     const date = label.timestamp
@@ -130,11 +132,12 @@ export class LabelMiniCard {
       ? i18next.t(util.misc.isPositiveLabelType(type) ? 'common:quality' : 'common:severity')
       : '';
     const ratingHtml = rating
-      ? `<span class="lmc__rating" style="--lmc-wash: ${esc(colors?.wash ?? '')}">${esc(ratingHeader)}: ${
-        esc(rating)}</span>`
+      ? `<span class="lmc__rating" style="--lmc-wash: ${
+        esc(util.misc.getSeverityLevelColors(label.severity, type).wash)}">${esc(ratingHeader)}: ${esc(rating)}</span>`
       : '';
     const body = this.#opts.size === 'sheet'
       ? `<div class="lmc__body">
+          ${this.#opts.showType ? `<span class="lmc__type">${esc(typeName)}</span>` : ''}
           <span class="lmc__meta">
             ${ratingHtml}
             ${date ? `<span class="lmc__date">${esc(date)}</span>` : ''}
@@ -169,14 +172,40 @@ export class LabelMiniCard {
       this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
     }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
-    // A failed picture falls back to the type icon, as if it never had one; its marker then has nothing to point at.
-    this.#els.image?.addEventListener('error', () => {
-      this.#els.image.replaceWith(LabelMiniCard.placeholder(type));
-      this.#els.marker?.remove();
-    }, { once: true });
+    const imageEl = this.#els.image;
+    imageEl?.addEventListener('error', () => this.#onImageError(imageEl));
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));
     }
+  }
+
+  /**
+   * Re-signs a failed signed picture and tries it once more, since its signature likely expired (#5861). Otherwise, or
+   * on a second failure, shows the type icon instead and drops the marker, which has nothing left to point at.
+   * @param {HTMLImageElement} image - The picture that failed.
+   */
+  #onImageError(image) {
+    if (image !== this.#els.image) return;
+    const label = this.#label;
+    const field = label.crop_url ? 'crop_url' : 'backup_image_url';
+    retrySignedImage(image, {
+      fetchMetadata: () => (field === 'crop_url'
+        ? fetchCropImageMetadata(label.label_type, label.label_id)
+        : fetchBackupImageMetadata(label.pano_id)),
+      // A re-render meanwhile replaced the picture, and that render's picture looks after itself.
+      isCurrent: () => image === this.#els.image,
+      onFresh: (url) => {
+        label[field] = url;
+        this.#opts.onImageUrlRefresh(label.label_id, field, url);
+      },
+      onGiveUp: () => {
+        // Dropped from the label too, so a vote's re-render doesn't bring the dead picture back.
+        label.crop_url = null;
+        label.backup_image_url = null;
+        image.replaceWith(LabelMiniCard.placeholder(label.label_type));
+        this.#els.marker?.remove();
+      },
+    });
   }
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */
@@ -212,7 +241,8 @@ export class LabelMiniCard {
    * @param {string} action - 'Agree', 'Disagree' or 'Unsure'.
    */
   async #vote(action) {
-    if (this.#busy || this.#lockReason()) return;
+    // A locked card's chips are disabled, but a host's `update` mid-vote redraws them enabled.
+    if (this.#busy) return;
     const before = this.#label;
     const prev = before.user_validation ?? null;
     const undone = prev === action;
@@ -234,7 +264,6 @@ export class LabelMiniCard {
       // Casting is recorded by the label_validation row; clearing deletes it, so the event is the only trace.
       if (undone) this.#opts.log(`ClearVote_result=${action}_labelId=${before.label_id}`);
       else if (prev === null) BadgeAchievements.recordValidation(this.#el);
-      this.#opts.onVote(next, this.#label);
     } catch (err) {
       console.error('LabelMiniCard: vote failed', err);
       this.#label = before;
@@ -268,7 +297,7 @@ export class LabelMiniCard {
       source: this.#opts.source,
       undone,
       redone: !undone && prev !== null,
-      // Which picture the vote was judged on, as the Gallery and the landing grid report it.
+      // Which picture the vote was judged on, as Gallery and the landing grid report it.
       viewer_type: label.crop_url ? 'StaticCrop' : 'StaticApi',
     };
   }

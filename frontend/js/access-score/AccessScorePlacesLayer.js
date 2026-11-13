@@ -18,8 +18,8 @@
  */
 
 import mapboxgl from '../common/mapboxgl.js';
-import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
+import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
 import { util } from '../common/utilities.js';
 
 export class AccessScorePlacesLayer {
@@ -30,39 +30,21 @@ export class AccessScorePlacesLayer {
   static NO_BIN = 'none';
 
   /**
-   * The disc of a place with no scored street within reach: the map's unaudited-street color per surface, so the
-   * marker reads as the street it sits on (AccessScoreMapView's `streetNone`), not as a low score.
-   */
-  static #NONE_TOKENS = Object.freeze({ light: '--color-neutral-700', dark: '--color-neutral-400' });
-
-  /**
-   * WCAG 2 relative luminance of a `#rrggbb` color, for picking the glyph that contrasts with a disc.
    * @param {string} hex - The color.
-   * @returns {number} Luminance in [0, 1].
+   * @returns {number} Its WCAG 2 relative luminance; see [[PlaceMarkerColors.luminance]].
    */
   static luminance(hex) {
-    const h = hex.trim().replace('#', '');
-    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-    const [r, g, b] = [0, 2, 4].map((i) => {
-      const c = parseInt(full.slice(i, i + 2), 16) / 255;
-      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return PlaceMarkerColors.luminance(hex);
   }
 
   /**
-   * Which of two inks contrasts more with a disc, by WCAG contrast ratio.
-   * @param {string} fill - The disc color, `#rrggbb`.
-   * @param {string} light - The light ink (white).
+   * @param {string} fill - The disc color.
+   * @param {string} light - The light ink.
    * @param {string} dark - The dark ink.
-   * @returns {string} `light` or `dark`.
+   * @returns {string} The ink that contrasts more; see [[PlaceMarkerColors.glyphColorFor]].
    */
   static glyphColorFor(fill, light, dark) {
-    const contrast = (a, b) => {
-      const [hi, lo] = [AccessScorePlacesLayer.luminance(a), AccessScorePlacesLayer.luminance(b)].sort((x, y) => y - x);
-      return (hi + 0.05) / (lo + 0.05);
-    };
-    return contrast(fill, light) >= contrast(fill, dark) ? light : dark;
+    return PlaceMarkerColors.glyphColorFor(fill, light, dark);
   }
 
   /** How far into the zoom range the marker shrinks, so a city-scale hospital is a dot, not a badge. */
@@ -192,17 +174,12 @@ export class AccessScorePlacesLayer {
   }
 
   /**
-   * The disc colors per score bin for a surface, worst first, then the no-score disc: what `rasterize` paints and
-   * what a legend would swatch. Each bin takes the ramp at its center, so a marker sits between the colors of the
-   * streets at the bin's edges rather than at one of them.
    * @param {number} bins - How many score bins.
    * @param {boolean} dark - Whether the basemap is dark.
-   * @returns {Array<string>} `bins + 1` hex colors.
+   * @returns {Array<string>} `bins + 1` hex colors; see [[PlaceMarkerColors.discColors]].
    */
   static discColors(bins, dark) {
-    const mode = dark ? 'dark' : 'light';
-    const ramp = Array.from({ length: bins }, (_, i) => ScoreRamp.at((i + 0.5) / bins, { mode }));
-    return [...ramp, AccessScorePlacesLayer.#token(AccessScorePlacesLayer.#NONE_TOKENS[mode])];
+    return PlaceMarkerColors.discColors(bins, dark);
   }
 
   /**

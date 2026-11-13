@@ -54,9 +54,20 @@ case class PanoData(
     sourceMetadata: Option[JsValue]
 ) {
 
+  /**
+   * The pano_data columns PannellumViewer needs that this row leaves unusable, by DB column name, in a fixed order, so
+   * a refusal can say which (#5183). Empty exactly when [[hasBackupViewerFields]] holds: that twin is derived from it.
+   */
+  def missingBackupViewerColumns: Seq[String] = Seq(
+    "width"          -> width.isDefined,
+    "height"         -> height.isDefined,
+    "lat"            -> lat.isDefined,
+    "lng"            -> lng.isDefined,
+    "camera_heading" -> cameraHeading.exists(!_.isNaN)
+  ).collect { case (name, false) => name }
+
   /** The in-memory twin of `PanoDataTable.hasBackupViewerFields`; see the note there before changing either. */
-  def hasBackupViewerFields: Boolean =
-    width.isDefined && height.isDefined && lat.isDefined && lng.isDefined && cameraHeading.exists(!_.isNaN)
+  def hasBackupViewerFields: Boolean = missingBackupViewerColumns.isEmpty
 }
 
 // NOTE need to update pano_source enum in postgres as well if changing this enum.
@@ -171,6 +182,20 @@ object PanoDataTable {
   }
 
   /**
+   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
+   *
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
+   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
+   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
+   * [[hasBackupViewerFields]]; see the note there before changing it.
+   *
+   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
+   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
+   */
+  def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] =
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && hasBackupViewerFields(pd))
+
+  /**
    * SQL that reads a free-text `capture_date` column as a date, or NULL when the value isn't a usable date. It takes
    * `YYYY`, `YYYY-MM`, and `YYYY-MM-DD` (missing parts become the 1st). Blank, junk ('Invalid date'), impossible
    * months, and years before 2004 (when street-level imagery began) give NULL instead of failing the query; an
@@ -245,7 +270,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
+   * Mark whether the pano was expired with a timestamp.
    *
    * Both branches carry two edge-triggered side effects on top of the flip itself. `expired_at` is stamped on the
    * false -> true edge and cleared on the way back, so it dates the imagery that is missing now — which
@@ -304,7 +329,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
              SET expired = FALSE,
                  has_backup = $hasBackup,
                  last_checked = $lastChecked,
-                 last_viewed = $lastChecked,
                  expired_at = NULL
              WHERE pano_id = $panoId"""
     }
@@ -470,6 +494,22 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         pano_history_saved = EXCLUDED.pano_history_saved,
         last_checked = EXCLUDED.last_checked
     """
+  }
+
+  /**
+   * The attribution owed for each of the given panos, for a page that shows their imagery server-rendered.
+   *
+   * @param panoIds Panos to look up.
+   * @return Pano ID -> its attribution; a pano with nothing to attribute is absent.
+   */
+  def getAttributions(panoIds: Seq[String]): DBIO[Map[String, ImageryAttribution.Line]] = {
+    panoDataRecords
+      .filter(_.panoId inSet panoIds)
+      .map(pano => (pano.panoId, pano.source, pano.copyright, pano.license))
+      .result
+      .map(_.flatMap { case (panoId, source, copyright, license) =>
+        ImageryAttribution.line(source, copyright, license).map(panoId -> _)
+      }.toMap)
   }
 
   /**

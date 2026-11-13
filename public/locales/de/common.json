@@ -15,17 +15,18 @@
   "correct": "Validiert als richtig",
   "incorrect": "Validiert als falsch",
   "unvalidated": "nicht validiert",
-  "curb-ramp": "Trottoir\u00ADabsenkung",
-  "no-curb-ramp": "fehlende Trottoir\u00ADabsenkung",
+  "curb-ramp": "Trottoir­absenkung",
+  "no-curb-ramp": "fehlende Trottoir­absenkung",
   "obstacle": "Hindernis im Weg",
-  "surface-problem": "Oberflächen\u00ADproblem",
+  "surface-problem": "Oberflächen­problem",
   "occlusion": "Trottoir nicht sichtbar",
   "no-sidewalk": "kein Trottoir",
   "crosswalk": "Markierter Fussgängerstreifen",
-  "signal": "Fussgänger:\u00ADinnensignal",
+  "signal": "Fussgänger:­innensignal",
   "other": "Andere",
-  "surface-problems": "Oberflächen\u00ADprobleme",
+  "surface-problems": "Oberflächen­probleme",
   "close": "Schließen",
+  "dont-show-again": "Nicht erneut anzeigen",
   "cancel": "Abbrechen",
   "continue": "Fortfahren",
   "delete": "Löschen",
@@ -108,6 +109,7 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
+  "ai-generated-label": "Von KI erstelltes Label",
   "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, beurteilen Sie daher selbst, ob es korrekt ist.",
   "tag": {
     "narrow": "schmal",
@@ -148,7 +150,7 @@
     "sand/gravel": "Schlamm/Sand/Kies",
     "uncovered manhole": "offener Schacht",
     "ends abruptly": "endet abrupt",
-    "street has a sidewalk": "Strasse hat ein Trottoir",
+    "other side has a sidewalk": "andere Seite hat ein Trottoir",
     "street has no sidewalks": "Strasse hat kein Trottoir",
     "gravel/dirt road": "Kies-/Naturstrasse",
     "shared pedestrian/car space": "gemeinsamer Raum für Fussgänger:innen und Autos",
@@ -209,11 +211,10 @@
     "view-in-panoramax": "Ansicht in Panoramax",
     "city": "Stadt",
     "copy-to-clipboard": "In die Zwischenablage kopieren",
-    "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
+    "no-info": "Keine Angaben",
+    "pano-url": "Pano-URL"
   },
-  "pano-attribution": {
-    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
-  },
+  "opens-new-tab": "(wird in einem neuen Tab geöffnet)",
   "image-adjustments": {
     "button": "Bild",
     "active-sr": "(angepasst)",
@@ -252,7 +253,7 @@
       },
       "slide-2": {
         "title": "Gehwege für Wohnhäuser",
-        "description": "Auf Gehwegen in Wohngebieten sollten <b>keine</b> fehlenden Trottoirabsenkungen beschriftet werden."
+        "description": "Gehwege zu Wohnhäusern sind privat und brauchen keine Trottoirabsenkungen."
       },
       "slide-3": {
         "title": "Nicht auf dem Gehweg",
@@ -288,7 +289,7 @@
       },
       "slide-2": {
         "title": "Normale Gehwegplatten",
-        "description": "Normale Gehwegplatten (ohne Spalten, Risse oder Unebenheiten) sind kein Oberflächenproblem."
+        "description": "Normale kleine Fugen zwischen Gehwegplatten sind kein Oberflächenproblem, solange es keine grossen Spalten, Risse oder Höhenunterschiede gibt."
       },
       "slide-3": {
         "title": "Nicht auf dem Gehweg",
@@ -346,13 +347,17 @@
       }
     }
   },
+  "copy": {
+    "copied": "Kopiert!",
+    "failed": "Kopieren fehlgeschlagen",
+    "section-link": "Link zu diesem Abschnitt kopieren"
+  },
   "share": {
     "button": "Teilen",
     "heading": "Diese Markierung teilen",
     "text": "Sieh dir diese {{labelType}} auf Project Sidewalk an",
     "story-text": "„{{excerpt}}“ – eine Geschichte aus der Community auf Project Sidewalk",
     "copy-link": "Link kopieren",
-    "copied": "Kopiert!",
     "on-bluesky": "Auf Bluesky teilen",
     "on-x": "Auf X teilen",
     "on-facebook": "Auf Facebook teilen",
@@ -411,5 +416,113 @@
   },
   "immersive-enter": "Immersiven Modus starten",
   "immersive-exit": "Immersiven Modus beenden",
-  "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden."
+  "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden.",
+  "validation-reason": {
+    "prompt-disagree": "Warum stimmst du nicht zu?",
+    "prompt-unsure": "Was macht dich unsicher?",
+    "other": "Anderer Grund…",
+    "other-hint": "Eigenen Grund eingeben",
+    "other-save": "Speichern",
+    "saved": "Grund gespeichert",
+    "dismiss": "Schließen",
+    "wrong-type": {
+      "text": "Das ist der falsche Etikettentyp",
+      "tooltip": "Hier ist etwas, aber es sollte mit einem anderen Etikettentyp gekennzeichnet werden.",
+      "tooltip-curb-ramp": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet.",
+      "tooltip-no-curb-ramp": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+      "tooltip-obstacle": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden.",
+      "tooltip-surface-problem": "Schotter oder Gras gelten nicht als Trottoir und sollten stattdessen mit „kein Trottoir“ gekennzeichnet werden.",
+      "tooltip-no-sidewalk": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden."
+    },
+    "driveway": {
+      "text": "Dies ist eine Einfahrt.",
+      "tooltip-curb-ramp": "$t(common:mission-start-tutorial.curb-ramp.slide-2.description)"
+    },
+    "driveway-transition": {
+      "text": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
+      "tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt."
+    },
+    "residential-walkway": {
+      "text": "Dies ist ein Gehweg in einem Wohngebiet.",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-2.description)"
+    },
+    "no-sidewalk-here": {
+      "text": "Hier gibt es keinen Bürgersteig.",
+      "tooltip-no-curb-ramp": "$t(common:mission-start-tutorial.no-curb-ramp.slide-4.description)"
+    },
+    "unsafe-crossing": {
+      "text": "Hier kann man nicht sicher überqueren.",
+      "tooltip": "Fußgänger sollen an dieser Stelle nicht überqueren, daher ist hier keine Trottoirabsenkung zu erwarten."
+    },
+    "not-pedestrian-path": {
+      "text": "Dies ist kein Weg für Fussgänger:innen.",
+      "tooltip-obstacle": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
+      "tooltip-surface-problem": "Wenn kein Trottoir vorhanden ist oder sich das Problem nicht auf dem für Fussgänger:innen vorgesehenen Teil des Trottoirs befindet, ist keine Oberflächenproblem-Kennzeichnung erforderlich."
+    },
+    "ample-space": {
+      "text": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",
+      "tooltip": "Auf sehr breiten Trottoirs sollten leicht vermeidbare Objekte <b>nicht</b> als Hindernisse gekennzeichnet werden."
+    },
+    "normal-tiles": {
+      "text": "Das sind normale Belagsplatten.",
+      "tooltip-surface-problem": "$t(common:mission-start-tutorial.surface-problem.slide-2.description)"
+    },
+    "sidewalk-here": {
+      "text": "Hier gibt es ein Trottoir.",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-3.description)"
+    },
+    "traffic-median": {
+      "text": "Dies ist eine Verkehrsinsel.",
+      "tooltip-no-sidewalk": "$t(common:mission-start-tutorial.no-sidewalk.slide-2.description)"
+    },
+    "no-visible-crosswalk": {
+      "text": "Hier ist kein Zebrastreifen sichtbar.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-2.description)"
+    },
+    "stop-line": {
+      "text": "Dies ist eine Haltelinie für Autos.",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-3.description)"
+    },
+    "speed-bump": {
+      "text": "Dies ist eine Bremsschwelle",
+      "tooltip-crosswalk": "$t(common:mission-start-tutorial.crosswalk.slide-4.description)"
+    },
+    "vehicle-signal-only": {
+      "text": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-4.description)"
+    },
+    "sign-no-light": {
+      "text": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-2.description)"
+    },
+    "pole-no-signal": {
+      "text": "Dies ist ein Pfosten ohne Fussgänger:innenlichtsignal oder -knopf.",
+      "tooltip-signal": "$t(common:mission-start-tutorial.signal.slide-3.description)"
+    },
+    "better-image": {
+      "text": "Ich benötige ein besseres Bild.",
+      "tooltip": "Dies könnte daran liegen, dass das Bild unscharf ist, das zu beschriftende Objekt zu weit entfernt ist oder ein anderer Blickwinkel erforderlich ist."
+    },
+    "placement-incorrect": {
+      "text": "Die Platzierung des Etiketts sieht falsch aus.",
+      "tooltip": "Manchmal ist das, was beschriftet wird, sichtbar, aber die Beschriftung selbst erscheint weit entfernt davon."
+    },
+    "ramp-required-unsure": {
+      "text": "Ich bin mir nicht sicher, ob eine Trottoirabsenkung erforderlich ist.",
+      "tooltip-curb-ramp": "Manche Gassen oder gewerbliche Einfahrten erfordern aufgrund von Höhenunterschieden eine Rampe, andere nicht. Manchmal ist nicht klar, ob ein Übergang an einem Trottoir eine Rampe oder einen taktilen Bodenindikator benötigt.",
+      "tooltip-no-curb-ramp": "Es kann unklar sein, ob die Überquerung von Fussgänger:innen an einer Kreuzung mit einer stärker befahrenen Strasse erlaubt sein sollte."
+    },
+    "space-to-avoid-unsure": {
+      "text": "Möglicherweise ist genügend Platz vorhanden, um dem Objekt auszuweichen.",
+      "tooltip": "Die Breite des Gehwegs lässt sich anhand eines Bildes möglicherweise nur schwer einschätzen."
+    },
+    "too-minor-unsure": {
+      "text": "Könnte zu unbedeutend sein, um es als solches zu kennzeichnen.",
+      "tooltip": "Es kann unklar sein, ob ein Problem wie beispielsweise Gras zwischen Belagsplatten gekennzeichnet werden muss."
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Ich bin mir nicht sicher, ob hier ein Trottoir sein sollte.",
+      "tooltip": "Manchmal ist mehr Kontext erforderlich, und es ist schwierig, anhand eines einzelnen Bildes zu beurteilen, ob ein Trottoir notwendig ist."
+    }
+  }
 }

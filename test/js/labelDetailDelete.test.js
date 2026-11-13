@@ -59,7 +59,6 @@ function buildCard() {
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false"></button>
           <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false"></button>
         </div>
-        <span class="label-detail__pan-hint" hidden></span>
       </div>
       <div class="label-detail__meta-row">
         <div class="label-detail__meta-cell"><span><span class="label-detail__labeled-word"></span>:</span><span class="label-detail__timestamp label-detail__meta-value"></span></div>
@@ -106,6 +105,7 @@ function buildCard() {
             <label class="sr-only" for="c">Why?</label>
             <input type="text" id="c" class="label-detail__comment-input">
             <button type="button" class="label-detail__comment-submit" data-action="submit-comment"></button>
+            <button type="button" class="label-detail__comment-cancel" hidden></button>
             <span class="label-detail__comment-confirmation" role="status" hidden></span>
           </div>
           <div class="label-detail__validator-comments"></div>
@@ -113,7 +113,7 @@ function buildCard() {
       </div>
       <section class="label-detail__stories" hidden></section>
       <span class="label-detail__story-status sr-only" role="status"></span>
-      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a></div>
+      <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a><div class="label-detail__share"><button type="button" class="label-detail__share-trigger"></button></div></div>
     </div>`;
   return document.getElementById('card');
 }
@@ -147,8 +147,9 @@ describe('deleting a label from the card (#3591)', () => {
   const noticeText = () => q('.label-detail__deleted-notice-text').textContent;
   const typeStatus = () => q('.label-detail__edit-status--type');
   const requests = () => request.mock.calls.map(([url, opts]) => `${opts.method} ${url}`);
-  const pressCtrlZ = () =>
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }));
+  // At whatever has focus, as a browser routes a key, so the card's window listener sees an element as the target.
+  const pressCtrlZ = () => (document.activeElement || document.body).dispatchEvent(
+    new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }));
   // jsdom's element.click() fires with `detail` 0, which the card reads as the keyboard; a pointer says 1.
   const pointerClick = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
 
@@ -256,7 +257,7 @@ describe('deleting a label from the card (#3591)', () => {
   test('a deleted label locks validating and editing, with the reason on the controls', async () => {
     await showLabel({ can_edit: true, from_current_user: false, deleted: true, can_restore: true });
     expect(q('.label-detail__pano-overlay').hidden).toBe(true);
-    expect(q('.label-detail__vote--agree').disabled).toBe(true);
+    expect(q('.label-detail__vote--agree').getAttribute('aria-disabled')).toBe('true');
     expect(q('.label-detail__comment-input').disabled).toBe(true);
     expect(card.classList.contains('label-detail--editable')).toBe(false);
     expect(q('.label-detail__tags-edit').getAttribute('aria-disabled')).toBe('true');
@@ -306,6 +307,7 @@ describe('deleting a label from the card (#3591)', () => {
   });
 
   test('a failed delete leaves the label live and says so', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     nextStatus = 500;
     await showLabel();
     await deleteLabel();
@@ -315,6 +317,7 @@ describe('deleting a label from the card (#3591)', () => {
     expect(typeStatus().classList.contains('label-detail__edit-status--error')).toBe(true);
     expect(typeStatus().getAttribute('data-ps-tooltip')).toBe('labelmap:delete-label-failed');
     expect(onDelete).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(new Error('HTTP 500'));
   });
 
   test('Restore undoes the delete and brings Delete back', async () => {

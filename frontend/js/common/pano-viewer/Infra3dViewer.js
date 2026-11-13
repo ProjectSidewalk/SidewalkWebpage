@@ -74,10 +74,10 @@ export class Infra3dViewer extends PanoViewer {
   /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions]
+   * @param {Record<string, any>} panoOptions
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     await Infra3dViewer.preloadLibrary();
     this.manager = await sdk.infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
@@ -91,17 +91,16 @@ export class Infra3dViewer extends PanoViewer {
 
     // Docs on Infra3D viewer options:
     // https://developers.infra3d.com/custom-content/reference/classes/Manager.Manager.html#initViewer
-    const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
+    // No page shows the SDK's own chrome.
     let panoOpts = {
       project_uid: projectId,
-      show_topbar: !disableDefaultUi,
-      show_toolbar: !disableDefaultUi,
-      show_mapWindow: !disableDefaultUi,
-      map_expand: !disableDefaultUi, // Only used if show_mapWindow is true
-      show_cockpit: !disableDefaultUi,
+      show_topbar: false,
+      show_toolbar: false,
+      show_mapWindow: false,
+      map_expand: false,
+      show_cockpit: false,
 
       defaultNavigation: false, // If true, we show infra3D viewer's navigation arrows
-      zoomControl: true,
     };
     panoOpts = { ...panoOpts, ...panoOptions };
 
@@ -131,12 +130,9 @@ export class Infra3dViewer extends PanoViewer {
     // Before the initial move, so the first pano's images get retries too.
     this.#retryFailedImageDownloads();
 
-    // Handle a few other configs that need to be handled after initialization.
+    // The SDK has no option for its arrows, so they come off once it is up.
     if (panoOpts.defaultNavigation === false) {
       this.hideNavigationArrows();
-    }
-    if (panoOpts.zoomControl === false) {
-      this.#disableUserZoom();
     }
 
     // Initialize pano at the desired location.
@@ -152,9 +148,7 @@ export class Infra3dViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
-      // Let the keys through in a text field, where they move the cursor rather than the pano.
-      const t = e.target;
-      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
+      if (util.pano.keyBelongsToPage(e.target)) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -417,6 +411,9 @@ export class Infra3dViewer extends PanoViewer {
 
   supportsLocationSearch = () => true;
 
+  // The nearest frame is often a flat photo a metre or two from a pano, which findPanoNear() then can't see.
+  findPanoNearCanMiss = () => true;
+
   /**
    * See PanoViewer.findPanoNear(). Uses the SDK's nearest-frame query (`imagesByKNN$`, the same HTTP request its
    * own movePosition$ starts from) rather than movePosition(), which setLocation() relies on and which moves the
@@ -656,10 +653,6 @@ export class Infra3dViewer extends PanoViewer {
     const z = Math.cos(omega) * Math.cos(phi);
 
     return (Math.atan(z / Math.sqrt(x * x + y * y)) * 180) / Math.PI;
-  };
-
-  #disableUserZoom = () => {
-    this.viewer.setUserInteraction(true, false); // first option is panning, second is zooming
   };
 
   hideNavigationArrows = () => {

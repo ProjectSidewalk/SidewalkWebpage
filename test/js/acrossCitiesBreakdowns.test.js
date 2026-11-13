@@ -10,7 +10,11 @@
  * AcrossCitiesPage is loaded fresh per test with its real MiniLineChart, so the bars are drawn by the real renderer.
  */
 
-import { loadModules } from './loader.js';
+import { useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
+
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>
@@ -112,36 +116,24 @@ function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.
 }
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
-  let AcrossCitiesPage;
   /** The page's own `util`, so a card is sanitized by the same code psTooltip uses. */
   let util;
 
   /**
-   * Renders the page against a fixture and returns the initialized instance.
+   * Renders the page against a fixture.
    *
    * @param {{cities?: Array, daily?: Array, summary?: ?object, baseline?: ?object}} fixture - Any subset of the
    *   endpoint's payload; `baseline` is its `daily_baseline` block, left out of the payload when absent.
-   * @returns {Promise<object>} The initialized AcrossCitiesPage.
    */
   async function render({ cities = [], daily = [], summary = null, baseline = undefined } = {}) {
-    document.body.innerHTML = MARKUP;
-    const windowByCity = {};
-    cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
-    window.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: cities.map((c) => c.city),
-        summary: {},
-        over_time_all_time: [],
-        over_time_daily: daily,
-        window_summary: summary,
-        window_by_city: windowByCity,
-        ...(baseline === undefined ? {} : { daily_baseline: baseline }),
-      }),
+    const windowByCity = Object.fromEntries(cities.map((c) => [c.city.city_id, c.window]));
+    ({ modules: { util } } = await renderAcrossCities({
+      markup: MARKUP,
+      scorecards: {
+        cities: cities.map((c) => c.city), over_time_daily: daily, window_summary: summary,
+        window_by_city: windowByCity, ...(baseline === undefined ? {} : { daily_baseline: baseline }),
+      },
     }));
-    const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
-    await page.init();
-    return page;
   }
 
   /** The card trigger inside the nth cell of the first table row (0 = city name). */
@@ -163,11 +155,6 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
   function barCard(index, chart = 'labels') {
     return barTarget(index, chart).getAttribute('data-ps-tooltip-html');
   }
-
-  beforeEach(async () => {
-    ({ AcrossCitiesPage, util } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js',
-      'frontend/js/common/utilities.js'));
-  });
 
   describe('tiles', () => {
     it('counts what people did and reports AI output on its own line', async () => {
@@ -508,6 +495,16 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         expect(card.querySelector('.ac-tip-hint')).toBeNull();
       });
 
+      it('leaves a name as plain text when its city\'s URL is malformed, rather than breaking the card', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0, 'not a url')])] })] });
+        const card = parse(barCard(0));
+
+        expect(card.querySelector('a')).toBeNull();
+        const row = card.querySelector('.ac-tip-where').closest('.ac-tip-row');
+        expect(row.firstElementChild.textContent).toBe('a · SEA');
+      });
+
       it('says how to reach the links on a card that has them', async () => {
         await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
           contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });
@@ -791,6 +788,86 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       expect(document.querySelectorAll('.mini-ref').length).toBe(0);
       expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
         .toBe('Labels per day, last 7 days');
+    });
+  });
+
+  describe('sparse days and windows', () => {
+    /** Renders a card's markup into a detached element, the way psTooltip does. */
+    function parse(card) {
+      const host = document.createElement('div');
+      host.append(util.sanitizeHtml(card));
+      return host;
+    }
+
+    /** @returns {Array<string>} Each line of a card as "label|value". */
+    function tipRows(card) {
+      return [...card.querySelectorAll('.ac-tip-row')]
+        .map((row) => `${row.firstElementChild.textContent}|${row.querySelector('.ac-tip-num').textContent}`);
+    }
+
+    it('words one anonymous session and several AI accounts today', async () => {
+      await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, anon_sessions: 1, ai_agents: 2 })] });
+      const anon = document.getElementById('now-contributors-today-anon');
+      expect(anon.textContent).toBe('+ 1 anonymous session');
+      expect(anon.getAttribute('data-ps-tooltip')).toContain('1 anonymous session also contributed today');
+      const agents = document.getElementById('now-contributors-today-ai');
+      expect(agents.textContent).toBe('+ 2 AI accounts');
+      expect(agents.getAttribute('data-ps-tooltip'))
+        .toBe('Contributors are people. 2 AI accounts were also active today.');
+    });
+
+    it('fills the tiles on a page without their AI, anonymous and change lines', async () => {
+      await renderAcrossCities({
+        markup: '<span id="now-labels-7d"></span><span id="now-labels-today"></span>',
+        scorecards: {
+          over_time_daily: [makeDay('2026-09-24', { labels: 2, ai_labels: 1, anon_sessions: 1, ai_agents: 1 })],
+          window_summary: { labels_7d: 5, labels_prior_7d: 1, ai_labels_7d: 1, anon_sessions_7d: 1, ai_agents_7d: 1 },
+        },
+      });
+      expect(document.getElementById('now-labels-7d').textContent).toBe('5');
+      expect(document.getElementById('now-labels-today').textContent).toBe('2');
+    });
+
+    it('reads a day whose people and cities come with names, counts and totals missing', async () => {
+      await render({ daily: [
+        makeDay('2026-09-24', {
+          labels: 3, contributors: 2, ai_labels: 2, contributor_total: undefined,
+          top_cities: [{ city_id: 'tau' }],
+          contributor_list: [
+            { kind: 'registered', cities: [{ city_id: 'x', url: 'https://x.example.org' }, { city_id: 'y' }] },
+            { username: 'solo', kind: 'registered' },
+          ],
+        }),
+        makeDay('2026-09-25', { labels: 1, top_cities: undefined, contributor_list: undefined }),
+      ] });
+      const card = parse(barCard(0));
+      expect(tipRows(card)).toEqual(expect.arrayContaining([
+        'AI labels|2', 'tau|0 · 0', 'unknown user · x, y|0 · 0', 'solo|0 · 0',
+      ]));
+      // Nobody here has a name and a city URL together, so there is nothing to link to.
+      expect(card.querySelector('a')).toBeNull();
+      expect(card.textContent).not.toContain('more');
+      const nextDay = parse(barCard(1)).textContent;
+      expect(nextDay).not.toContain('Busiest cities');
+      expect(nextDay).not.toContain('Who was active');
+    });
+
+    it('counts a city card’s people from its list when the window leaves out the total', async () => {
+      await render({ cities: [makeCity('alpha', {
+        labels_7d: 5, contributor_total: undefined, contributors: [contributor('ann', 5, 0)],
+      })] });
+      expect(cellCard(2)).toContain('ann');
+      expect(cellCard(2)).not.toContain('more');
+    });
+
+    it('shows a date it can’t read as sent, rather than Invalid Date', async () => {
+      await render({
+        daily: [makeDay('someday', { labels: 1 })],
+        baseline: { days: 365, window_start: 'soon', window_end: '2026-09-04', labels_per_day: 1 },
+      });
+      expect(parse(barCard(0)).querySelector('.ac-tip-title').textContent).toBe('someday');
+      expect(document.getElementById('ac-baseline-note').textContent).toContain('from soon to');
+      expect(document.getElementById('ac-chart-week-labels').textContent).toContain('someday');
     });
   });
 });

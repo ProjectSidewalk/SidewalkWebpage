@@ -63,7 +63,7 @@ class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite 
     val resp = route(app, FakeRequest(GET, uri)).get
     withClue(s"$uri: ") {
       status(resp) mustBe SERVICE_UNAVAILABLE
-      header(RETRY_AFTER, resp) mustBe Some(AccessScoreApiController.StillComputingRetryAfterSeconds.toString)
+      header(RETRY_AFTER, resp) mustBe Some(ApiError.StillComputingRetryAfterSeconds.toString)
       contentType(resp) mustBe Some(ApiError.ContentType)
       val json = contentAsJson(resp)
       (json \ "code").as[String] mustBe "STILL_COMPUTING"

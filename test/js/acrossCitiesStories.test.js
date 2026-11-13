@@ -7,7 +7,11 @@
  * and the attention item counts only visible stories, so hiding one there clears it.
  */
 
-import { loadModules } from './loader.js';
+import { useUtil } from './loader.js';
+import { metricDistanceUtil } from './fakes.js';
+import { renderAcrossCities } from './support/acrossCitiesHarness.js';
+
+useUtil(metricDistanceUtil);
 
 const MARKUP = `
   <div id="ac-attention"></div>
@@ -34,32 +38,13 @@ function counts(total, newest, { hidden = 0, withPhoto = 0, last7d = 0, visible7
 }
 
 describe('Across Cities — stories', () => {
-  let AcrossCitiesPage;
-
-  /**
-   * Renders the page against a stories list, with no scorecard rows, so only the Stories section and its attention
-   * items can be at work.
-   *
-   * @param {Array} stories - The payload's `stories` list.
-   * @returns {Promise<void>}
-   */
+  /** Renders the page with this stories list and no scorecard rows, so only stories can be at work. */
   async function render(stories) {
-    document.body.innerHTML = MARKUP;
-    window.fetch = vi.fn(() => Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({
-        cities: [], stories, summary: {}, over_time_all_time: [], over_time_daily: [], window_by_city: {},
-      }),
-    }));
-    await new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards', storiesPath: '/admin/stories' }).init();
+    await renderAcrossCities({ markup: MARKUP, scorecards: { stories }, storiesPath: '/admin/stories' });
   }
 
   const summary = () => document.getElementById('ac-stories-summary').textContent;
   const rows = () => [...document.querySelectorAll('#ac-stories-tbody tr')];
-
-  beforeEach(async () => {
-    ({ AcrossCitiesPage } = await loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js'));
-  });
 
   it('lists only cities with stories, newest first, linked to their own Stories page', async () => {
     await render([
@@ -109,5 +94,28 @@ describe('Across Cities — stories', () => {
     expect(items).toHaveLength(1);
     expect(items[0].getAttribute('href')).toBe('https://alpha.example.org/admin/stories');
     expect(items[0].textContent).toContain('2 new stories in the last 7 days');
+  });
+
+  describe('wording', () => {
+    it('says there is nothing to count when no city came back', async () => {
+      await render([]);
+      expect(summary()).toBe('No cities to count.');
+    });
+
+    it('counts several cities with no stories in the plural', async () => {
+      await render([entry('a', counts(0, null)), entry('b', counts(0, null))]);
+      expect(summary()).toBe('None of the 2 cities counted has stories yet.');
+    });
+
+    it('words a single story, several cities without one, and a city without a display name', async () => {
+      const quito = {
+        city_id: 'quito', url: 'https://quito.example.org/', counts: counts(1, '2026-09-01', { visible7d: 1 }),
+      };
+      await render([quito, entry('b', counts(0, null)), entry('c', counts(0, null))]);
+      expect(summary()).toBe('1 story in 1 city; 2 cities have none.');
+      expect(rows()[0].cells[0].textContent).toBe('quito');
+      expect(document.querySelector('#ac-attention .ov-attention-text').textContent)
+        .toBe('quito — 1 new story in the last 7 days');
+    });
   });
 });

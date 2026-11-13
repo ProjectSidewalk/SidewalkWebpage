@@ -81,8 +81,8 @@ export class CoverageBars {
         tooltip: [
           { field: 'name', type: 'nominal', title: 'Region' },
           { field: 'completion_rate', type: 'quantitative', format: '.0%', title: 'Coverage' },
-          { field: 'audited_distance_m', type: 'quantitative', format: ',.0f', title: 'Audited (m)' },
-          { field: 'total_distance_m', type: 'quantitative', format: ',.0f', title: 'Total (m)' },
+          { field: 'audited_distance_text', type: 'nominal', title: 'Audited' },
+          { field: 'total_distance_text', type: 'nominal', title: 'Total' },
           { field: 'street_count', type: 'quantitative', format: ',', title: 'Streets' },
           { field: 'audit_count', type: 'quantitative', format: ',', title: 'Audits' },
           { field: 'label_count', type: 'quantitative', format: ',', title: 'Labels' },

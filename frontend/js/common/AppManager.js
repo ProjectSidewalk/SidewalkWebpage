@@ -238,9 +238,9 @@ export class AppManager {
    * The input is always canonical — meters for `small`, kilometers for `large` — never a pre-converted value.
    *
    * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `fine` →
-   * m/ft to the whole unit, for an elevation or a rise, which a nearest-25 would flatten to nothing; `large` →
-   * km/mi), `precision` (decimal places, `large` only), and `unit: false` to emit the bare number for a string that
-   * names the unit once across several values. Separate multiple params with `;`.
+   * m/ft unrounded, for an elevation, a rise or a short street, which a nearest-25 would flatten to nothing; `large`
+   * → km/mi), `precision` (decimal places, `fine` and `large` only), and `unit: false` to emit the bare number for a
+   * string that names the unit once across several values. Separate multiple params with `;`.
    *
    * @private
    */
@@ -251,13 +251,14 @@ export class AppManager {
       const small = fine || options.style === 'small';
       let amount;
       if (fine) {
-        amount = Math.round(metric ? value : util.math.metersToFeet(value));
+        amount = metric ? value : util.math.metersToFeet(value);
       } else if (small) {
         amount = util.math.roundToTwentyFive(metric ? value : util.math.metersToFeet(value));
       } else {
         amount = metric ? value : util.math.kmsToMiles(value);
       }
-      const digits = small ? 0 : Number(options.precision) || 0;
+      // Nearest-25 rounding leaves no decimals to show; `fine` and `large` take a precision.
+      const digits = small && !fine ? 0 : Number(options.precision) || 0;
       const number = new Intl.NumberFormat(lng, {
         minimumFractionDigits: digits, maximumFractionDigits: digits,
       }).format(amount);

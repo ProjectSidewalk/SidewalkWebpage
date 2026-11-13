@@ -341,7 +341,7 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Re-checks one no_imagery street for regained imagery and maintains its reopen-candidate row (#4929).
    *
-   * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its updated_at bump
+   * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its polled_at stamp
    * is what advances this rotation. What the candidate is built from is then read back through
    * StreetImageryTable.attributedImagery rather than taken from pollOneStreet's return: the latter is filtered only by
    * proximity to this street, while attribution additionally requires this street to be the *nearest* one, and on a
@@ -397,7 +397,7 @@ class ImageryFreshnessServiceImpl @Inject() (
    *
    * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
-   * leaves updated_at un-bumped so the next night's rotation retries the street.
+   * leaves polled_at unstamped so the next night's rotation retries the street.
    *
    * @return The attributable observations when the street was conclusively polled and upserted (empty = confirmed
    *         nothing attributable there), or None when it was skipped -- observations rather than a bare success

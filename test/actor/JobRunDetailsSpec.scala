@@ -1,5 +1,6 @@
 package actor
 
+import models.street.StreetPriorityRecalc
 import play.api.libs.json.{JsNull, Json}
 import service.CropService.CropRunResult
 import service.{
@@ -88,12 +89,15 @@ class JobRunDetailsSpec extends SidewalkSpec {
       )
     }
 
-    "record the street-priority rebuild's count, or a null where no rebuild ran" in {
+    "record the street-priority counts, with a null rebuild count where no rebuild ran" in {
       // The hand-trigger runs the recalculation alone. Null rather than 0 so a reader can tell the rebuild that
       // seeded no regions from the trigger that never rebuilt, and rather than a missing key so both triggers write
       // one shape.
-      RecalculateStreetPriorityActor.runDetails(Some(16)) mustBe Json.obj("regions_seeded" -> 16)
-      RecalculateStreetPriorityActor.runDetails(None) mustBe Json.obj("regions_seeded" -> JsNull)
+      val recalc = StreetPriorityRecalc(streetsChanged = 17, streetsWithoutRow = 2)
+      RecalculateStreetPriorityActor.runDetails(recalc, Some(16)) mustBe
+        Json.obj("streets_changed" -> 17, "streets_without_row" -> 2, "regions_seeded" -> 16)
+      RecalculateStreetPriorityActor.runDetails(recalc, None) mustBe
+        Json.obj("streets_changed" -> 17, "streets_without_row" -> 2, "regions_seeded" -> JsNull)
     }
   }
 }
