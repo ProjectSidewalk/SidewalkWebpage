@@ -12,7 +12,7 @@ import i18next from 'i18next';
 import { createPanoAttribution } from '../common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from '../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../common/utilities.js';
-import '../common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from '../common/utilitiesSidewalk.js';
 
 export class MistakeGallery {
   // Width:height of the card's photo box (.ud-card-img); crops and stills are cover-fitted into it.
@@ -400,8 +400,9 @@ export class MistakeGallery {
 
   /**
    * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
-   * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
-   * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
+   * disk, where the Static API image is billed per request. A failed crop is re-signed once, since its URL expires
+   * (#5861), then the API image is tried, and a failure there removes the photo. Alt is empty: the card's title names
+   * the type below it.
    *
    * @param {Record<string, any>} m - The label record.
    * @param {(source: ?string) => void} onSourceChange - Called with the source now on screen ('api', or null once
@@ -415,7 +416,7 @@ export class MistakeGallery {
     photo.alt = '';
     photo.loading = 'lazy';
     photo.draggable = false; // The wrapper is the popup's click target; a native image drag would swallow the press.
-    photo.addEventListener('error', () => {
+    const fallBack = () => {
       if (photo.dataset.udSource === 'crop' && m.image_url) {
         photo.dataset.udSource = 'api';
         photo.src = m.image_url;
@@ -424,6 +425,17 @@ export class MistakeGallery {
         delete photo.dataset.udSource;
       }
       onSourceChange(photo.dataset.udSource ?? null);
+    };
+    photo.addEventListener('error', () => {
+      if (photo.dataset.udSource !== 'crop') {
+        fallBack();
+        return;
+      }
+      retrySignedImage(photo, {
+        fetchMetadata: () => fetchCropImageMetadata(m.label_type, m.label_id),
+        isCurrent: () => photo.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
     photo.src = m.crop_url || m.image_url;

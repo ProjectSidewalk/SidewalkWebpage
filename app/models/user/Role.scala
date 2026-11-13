@@ -32,6 +32,9 @@ object Role extends PgEnumCompanion[Role]("role") {
   /** Roles that grant access to admin-only pages and data. */
   val ADMIN_ROLES: Set[Role] = Set(Administrator, Owner)
 
+  /** [[ADMIN_ROLES]] as a quoted, comma-separated list for splicing into a raw-SQL `IN (...)`. */
+  val ADMIN_ROLES_SQL: String = ADMIN_ROLES.map(role => s"'${role.name}'").mkString(", ")
+
   /** Roles an admin may move a user into or out of; accounts in any other role are locked. */
   val ADMIN_ASSIGNABLE_ROLES: Seq[Role] = Seq(Registered, Researcher, Administrator)
 

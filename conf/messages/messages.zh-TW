@@ -128,6 +128,7 @@ city.name.newport-ky = 紐波特
 city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
 city.name.juneau-ak = 朱諾
+city.name.beringen-be = 貝靈恩
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -164,6 +165,7 @@ country.name.india = 印度
 country.name.chile = 智利
 country.name.brazil = 巴西
 country.name.france = 法國
+country.name.belgium = 比利時
 
 navbar.explore = 探索
 navbar.validate = 檢核
@@ -1017,6 +1019,7 @@ error.home = 返回首頁
 
 # 社區報告 (#5876).
 report.seo.title = {0}：社區報告 — Project Sidewalk
+report.tool.name = 報告
 report.eyebrow = 社區報告
 report.generated = 產生於 {0}。
 report.latest.observation = 最新標記：{0}。
@@ -1174,3 +1177,7 @@ report.worst.lede = {0} 個被評為最差的地點，依類型：
 report.worst.count.label = {0} 個地點：{1}。查看標籤
 report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。在側邊欄開啟「{0}」，即可在其他地圖上以虛線查看。
 report.toc.worst = 最嚴重的問題
+report.stories.title = 社群故事
+report.stories.rule = 社群成員附加在這個街區標籤上的故事，最新的在前。一則故事是一個人的經歷；它不會改變本頁的任何數字。
+report.stories.street = 查看這條街
+report.stories.all = 閱讀所有社群故事

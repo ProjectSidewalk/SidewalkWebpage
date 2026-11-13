@@ -11,22 +11,31 @@
 import { util } from '../common/utilities.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
+import { AdminShell } from './AdminShell.js';
 
 export class DataQualityPage {
   static #TOP_TAGS_PER_TYPE = 8;
+  /**
+   * Reliability bands for the validator chart, as [lowest score in the band, label]; display only.
+   * @type {Array<[number, string]>}
+   */
+  static #RELIABILITY_BANDS = [
+    [0.9, '90% and up'], [0.8, '80–90%'], [0.7, '70–80%'], [0.6, '60–70%'], [0, 'Below 60%'],
+  ];
 
   #statsUrl;
   #tagsUrl;
   #labelTypesUrl;
   #byDayUrl;
   #tagSeverityUrl;
+  #reliabilityUrl;
   #order = [];           // Canonical label-type order (machine names) from /v3/api/labelTypes.
   #meta = new Map();     // name -> { color, icon, display }
   #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
   /**
    * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
-   *          tagSeverityUrl: string}} opts
+   *          tagSeverityUrl: string, reliabilityUrl: string}} opts
    */
   constructor(opts) {
     this.#statsUrl = opts.statsUrl;
@@ -34,9 +43,12 @@ export class DataQualityPage {
     this.#labelTypesUrl = opts.labelTypesUrl;
     this.#byDayUrl = opts.byDayUrl;
     this.#tagSeverityUrl = opts.tagSeverityUrl;
+    this.#reliabilityUrl = opts.reliabilityUrl;
   }
 
   async init() {
+    // On its own, so the rest of the page neither waits on it nor goes blank if it fails.
+    const reliability = this.#loadReliability();
     try {
       const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
         util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
@@ -60,6 +72,23 @@ export class DataQualityPage {
     } catch (err) {
       console.error('Data Quality page failed to load:', err);
       this.#setStatus('Could not load data quality metrics. Please try again.', true);
+    }
+    await reliability;
+  }
+
+  /**
+   * Fetches and draws the validator reliability section, saying so in the section itself if that fails.
+   * @returns {Promise<void>}
+   */
+  async #loadReliability() {
+    if (!document.getElementById('dq-reliability')) return;
+    try {
+      const { validators } = await util.fetchJson(this.#reliabilityUrl);
+      this.#renderReliability(Array.isArray(validators) ? validators : []);
+    } catch (err) {
+      console.error('Validator reliability failed to load:', err);
+      const chart = document.getElementById('dq-reliability');
+      chart.innerHTML = '<p class="dq-empty">Could not load validator reliability.</p>';
     }
   }
 
@@ -92,18 +121,18 @@ export class DataQualityPage {
     const agreed = overall.agreed || 0;
     const validated = overall.validated || 0;
 
-    this.#setText('kpi-total-labels', (labels.count || 0).toLocaleString());
-    this.#setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
-    this.#setText(
+    AdminShell.setText('kpi-total-labels', (labels.count || 0).toLocaleString());
+    AdminShell.setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
+    AdminShell.setText(
       'kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`,
     );
-    this.#setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
-    this.#setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
-    this.#setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
+    AdminShell.setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
+    AdminShell.setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
+    AdminShell.setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
 
     // Imagery freshness: overallStats returns a string like "1037 days"; show it in years for readability.
     const ageDays = parseInt(labels.avg_age_of_image_when_labeled, 10);
-    this.#setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
+    AdminShell.setText('kpi-image-age', Number.isFinite(ageDays) ? `${(ageDays / 365.25).toFixed(1)} yr` : '—');
   }
 
   /** Labels by type: one row per type, bar width relative to the largest count. Sorted by count descending. */
@@ -215,6 +244,39 @@ export class DataQualityPage {
         <span class="dq-sub">(${r.agreed.toLocaleString()}/${r.validated.toLocaleString()})</span>`;
       return this.#row(r.type, track, value);
     }).join('');
+  }
+
+  /**
+   * Validator reliability: how many validators fall in each score band, with the totals behind the scores.
+   * @param {Array<{validator_reliability: number, validations_graded: number, validations_matched: number}>} scored
+   *   The scored validators, from /adminapi/validatorReliability.
+   */
+  #renderReliability(scored) {
+    const summary = document.getElementById('dq-reliability-summary');
+    const chart = document.getElementById('dq-reliability');
+    if (!scored.length) {
+      summary.textContent = '';
+      chart.innerHTML = '<p class="dq-empty">No validator has a score yet.</p>';
+      return;
+    }
+    const graded = scored.reduce((sum, u) => sum + u.validations_graded, 0);
+    const matched = scored.reduce((sum, u) => sum + u.validations_matched, 0);
+    summary.textContent = `${scored.length.toLocaleString()} validators scored · `
+      + `${graded.toLocaleString()} validations checked · ${DataQualityPage.#pct(matched / graded)} matched`;
+
+    const counts = DataQualityPage.#RELIABILITY_BANDS.map(() => 0);
+    for (const u of scored) {
+      counts[DataQualityPage.#RELIABILITY_BANDS.findIndex(([low]) => u.validator_reliability >= low)] += 1;
+    }
+    const max = Math.max(...counts);
+    chart.innerHTML = DataQualityPage.#RELIABILITY_BANDS.map(([, label], i) => `
+      <div class="dq-tag-row">
+        <span class="dq-tag-name">${util.escapeHTML(label)}</span>
+        <div class="dq-bar-track">
+          <div class="dq-bar dq-bar-agree" style="width:${(counts[i] / max) * 100}%"></div>
+        </div>
+        <span class="dq-tag-count">${counts[i].toLocaleString()}</span>
+      </div>`).join('');
   }
 
   /** Tag usage: a small-multiple — one mini ranked horizontal bar chart of top tags per label type. */
@@ -471,11 +533,6 @@ export class DataQualityPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
   }
 
   #setStatus(message, isError, hide = false) {

@@ -178,6 +178,20 @@ describe('the reason pop-up on the label card (#5475)', () => {
       console.error.mockRestore();
     });
 
+    test('a vote that lands after the host took the card off the page asks nothing, and frees the box', async () => {
+      await unvoted();
+      const vote = deferred();
+      post.mockImplementationOnce(() => vote.promise);
+      click(thumb('disagree'));
+      card.remove();
+
+      vote.resolve({ ok: true, status: 200, json: async () => ({}) });
+      await flush();
+      expect(popoverShown()).toBe(false);
+      // Nothing is asking why any more, so the box follows the Disagree as it would after a dismissal.
+      expect(commentRow().classList.contains('is-open')).toBe(true);
+    });
+
     test('your own label offers no reasons, as it takes no vote', async () => {
       await unvoted({ from_current_user: true });
       click(thumb('disagree'));
@@ -212,11 +226,11 @@ describe('the reason pop-up on the label card (#5475)', () => {
       });
       expect(logged()).toContain('Click_module=LabelDetail_action=DisagreeReason_Option=not-pedestrian-path_labelId=42');
       // Locked while the pick is written: the vote may not move under it.
-      expect(thumb('agree').disabled).toBe(true);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('true');
       expect(chips()[0].getAttribute('aria-disabled')).toBe('true');
 
       await flush();
-      expect(thumb('agree').disabled).toBe(false);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('false');
       expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
       expect(status().textContent).toBe('common:validation-reason.saved');
       // The comment is yours now, in your language, so the box closes as it does for a typed one.
@@ -251,7 +265,7 @@ describe('the reason pop-up on the label card (#5475)', () => {
       expect(popoverShown()).toBe(true);
       expect(chips()[0].getAttribute('aria-disabled')).toBe('false');
       expect(status().textContent).toBe('labelmap:comment-save-failed');
-      expect(thumb('agree').disabled).toBe(false);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('false');
       console.error.mockRestore();
     });
 
@@ -262,16 +276,16 @@ describe('the reason pop-up on the label card (#5475)', () => {
       let resolveComment;
       post.mockImplementationOnce(() => new Promise((resolve) => { resolveComment = resolve; }));
       click(chips()[0]);
-      expect(thumb('agree').disabled).toBe(true);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('true');
 
       await unvoted({ label_id: 101 });
       expect(popoverShown()).toBe(false);
-      expect(thumb('agree').disabled).toBe(false);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('false');
 
       resolveComment({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 9 }) });
       await flush();
       expect(q('.label-detail__validator-comments').textContent).not.toContain('wrong-type');
-      expect(thumb('agree').disabled).toBe(false);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('false');
     });
   });
 
@@ -292,13 +306,19 @@ describe('the reason pop-up on the label card (#5475)', () => {
       field.dispatchEvent(new Event('input', { bubbles: true }));
       expect(otherSave().disabled).toBe(false);
       click(otherSave(), 0); // Enter in the field submits through a pointerless click on Save.
-      expect(thumb('agree').disabled).toBe(true); // The vote holds while the words are written.
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('true'); // The vote holds while the words are written.
       await flush();
       expect(posted('/labelmap/comment').at(-1)).toMatchObject({ comment: 'blocked by a bin', reason: null });
       expect(logged()).toContain('KeyboardShortcut_module=LabelDetail_action=DisagreeReason_Other_Save_labelId=42');
       expect(q('.label-detail__validator-comments').textContent).toContain('blocked by a bin');
       expect(popoverEl().querySelector('.reason-popover__saved').textContent).not.toBe('');
-      expect(thumb('agree').disabled).toBe(false);
+      expect(thumb('agree').getAttribute('aria-disabled')).toBe('false');
+    });
+
+    test('"Other…" over a comment of yours that came with no text opens empty', async () => {
+      await reask({ comments: [comment(null, true)] });
+      click(other());
+      expect(otherInput().value).toBe('');
     });
 
     test('"Other…" over a comment of yours opens holding typed words, and empty over a canned reason', async () => {
@@ -385,6 +405,80 @@ describe('the reason pop-up on the label card (#5475)', () => {
       redrawPano.resolve(true);
       await flush();
       expect(document.activeElement).toBe(q('.label-detail__comment-input'));
+    });
+
+    test('refused words wait unfocused when the redrawn label turns out to have no imagery', async () => {
+      await reask();
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+      window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: null }) }));
+      const redrawPano = deferred();
+      panoManager.setPano.mockImplementation(() => redrawPano.promise);
+      panoManager.warmUp = vi.fn(async () => true);
+      click(otherSave());
+      await flush();
+      await flush();
+
+      redrawPano.resolve(false);
+      await flush();
+      expect(q('.label-detail__comment-input').disabled).toBe(true);
+      expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
+    });
+
+    test('refused words that arrive once the imagery is already back are focused at once', async () => {
+      await reask();
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+      window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: null }) }));
+      panoManager.setPano.mockImplementation(async () => true);
+      panoManager.warmUp = vi.fn(async () => true);
+      click(otherSave());
+      await flush();
+      await flush();
+
+      expect(q('.label-detail__comment-input').disabled).toBe(false);
+      expect(document.activeElement).toBe(q('.label-detail__comment-input'));
+    });
+
+    test('refused words on a card its host has hidden are kept, but take no focus', async () => {
+      await reask();
+      click(other());
+      otherInput().value = 'typed in the pop-up';
+      otherInput().dispatchEvent(new Event('input', { bubbles: true }));
+      post.mockImplementationOnce(async () => {
+        card.hidden = true;
+        return { ok: false, status: 409, json: async () => ({}) };
+      });
+      window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: null }) }));
+      panoManager.setPano.mockImplementation(async () => true);
+      panoManager.warmUp = vi.fn(async () => true);
+      const before = document.activeElement;
+      click(otherSave());
+      await flush();
+      await flush();
+
+      expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
+      expect(document.activeElement).toBe(before);
+    });
+
+    test('a canned pick the server refused leaves the box as it was, since there were no words to keep', async () => {
+      await unvoted();
+      click(thumb('disagree'));
+      await flush();
+      post.mockImplementationOnce(async () => ({ ok: false, status: 409, json: async () => ({}) }));
+      window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: 'Disagree' }) }));
+      panoManager.setPano.mockImplementation(async () => true);
+      panoManager.warmUp = vi.fn(async () => true);
+      click(chips()[0]);
+      await flush();
+      await flush();
+
+      expect(q('.label-detail__comment-input').value).toBe('');
+      expect(posted('/labelmap/comment')).toHaveLength(1);
     });
 
     test('unsaved words outlast a click outside; Escape still closes', async () => {

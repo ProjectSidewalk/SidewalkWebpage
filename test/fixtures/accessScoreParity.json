@@ -123,16 +123,16 @@
       "delta" : -0.25
     }, {
       "label_type" : "NoSidewalk",
+      "tag" : "other side has a sidewalk",
+      "delta" : 1
+    }, {
+      "label_type" : "NoSidewalk",
       "tag" : "pedestrian lane marking",
       "delta" : 0.5
     }, {
       "label_type" : "NoSidewalk",
       "tag" : "shared pedestrian/car space",
       "delta" : 0.25
-    }, {
-      "label_type" : "NoSidewalk",
-      "tag" : "street has a sidewalk",
-      "delta" : 1
     }, {
       "label_type" : "NoSidewalk",
       "tag" : "street has no sidewalks",
@@ -2459,7 +2459,7 @@
       "severity" : null,
       "label_count" : 2,
       "tag_counts" : {
-        "street has a sidewalk" : 2
+        "other side has a sidewalk" : 2
       }
     } ],
     "cluster_counts" : {
@@ -3694,7 +3694,7 @@
       "severity" : 3,
       "label_count" : 2,
       "tag_counts" : {
-        "street has a sidewalk" : 1,
+        "other side has a sidewalk" : 1,
         "pedestrian lane marking" : 1,
         "shared pedestrian/car space" : 0,
         "ends abruptly" : 2
@@ -3928,7 +3928,7 @@
       "severity" : 5,
       "label_count" : 1,
       "tag_counts" : {
-        "street has a sidewalk" : 0,
+        "other side has a sidewalk" : 0,
         "covered walkway" : 0,
         "pedestrian lane marking" : 1
       }
@@ -4055,7 +4055,7 @@
       "severity" : 2,
       "label_count" : 3,
       "tag_counts" : {
-        "street has a sidewalk" : 3,
+        "other side has a sidewalk" : 3,
         "pedestrian lane marking" : 1,
         "ends abruptly" : 3
       }
@@ -5949,7 +5949,7 @@
       "severity" : 5,
       "label_count" : 0,
       "tag_counts" : {
-        "street has a sidewalk" : 0,
+        "other side has a sidewalk" : 0,
         "street has no sidewalks" : 0,
         "shared pedestrian/car space" : 0,
         "ends abruptly" : 0
@@ -6100,7 +6100,7 @@
       "severity" : 2,
       "label_count" : 3,
       "tag_counts" : {
-        "street has a sidewalk" : 3,
+        "other side has a sidewalk" : 3,
         "pedestrian lane marking" : 0,
         "street has no sidewalks" : 0,
         "gravel/dirt road" : 1
@@ -6885,7 +6885,7 @@
       "severity" : null,
       "label_count" : 3,
       "tag_counts" : {
-        "street has a sidewalk" : 3,
+        "other side has a sidewalk" : 3,
         "street has no sidewalks" : 1
       }
     }, {
@@ -8056,7 +8056,7 @@
       "severity" : 3,
       "label_count" : 3,
       "tag_counts" : {
-        "street has a sidewalk" : 1,
+        "other side has a sidewalk" : 1,
         "street has no sidewalks" : 2,
         "shared pedestrian/car space" : 3
       }
@@ -8087,9 +8087,9 @@
       "tag_counts" : {
         "shared pedestrian/car space" : 0,
         "street has no sidewalks" : 1,
-        "ends abruptly" : 0,
-        "street has a sidewalk" : 0,
-        "gravel/dirt road" : 2
+        "gravel/dirt road" : 2,
+        "other side has a sidewalk" : 0,
+        "ends abruptly" : 0
       }
     }, {
       "label_type" : "Occlusion",
@@ -8694,9 +8694,9 @@
       "tag_counts" : {
         "shared pedestrian/car space" : 0,
         "street has no sidewalks" : 0,
-        "ends abruptly" : 0,
-        "street has a sidewalk" : 0,
-        "pedestrian lane marking" : 0
+        "pedestrian lane marking" : 0,
+        "other side has a sidewalk" : 0,
+        "ends abruptly" : 0
       }
     } ],
     "cluster_counts" : {
@@ -8821,7 +8821,7 @@
       "severity" : 3,
       "label_count" : 0,
       "tag_counts" : {
-        "street has a sidewalk" : 0,
+        "other side has a sidewalk" : 0,
         "covered walkway" : 0,
         "gravel/dirt road" : 0
       }
@@ -8888,7 +8888,7 @@
       "severity" : null,
       "label_count" : 1,
       "tag_counts" : {
-        "street has a sidewalk" : 1,
+        "other side has a sidewalk" : 1,
         "street has no sidewalks" : 1,
         "shared pedestrian/car space" : 0,
         "gravel/dirt road" : 1
@@ -9016,7 +9016,7 @@
       "severity" : 3,
       "label_count" : 2,
       "tag_counts" : {
-        "street has a sidewalk" : 2,
+        "other side has a sidewalk" : 2,
         "pedestrian lane marking" : 2,
         "gravel/dirt road" : 0
       }
@@ -9045,7 +9045,7 @@
       "severity" : 1,
       "label_count" : 0,
       "tag_counts" : {
-        "street has a sidewalk" : 0,
+        "other side has a sidewalk" : 0,
         "ends abruptly" : 0
       }
     }, {
@@ -9218,7 +9218,7 @@
       "severity" : 2,
       "label_count" : 3,
       "tag_counts" : {
-        "street has a sidewalk" : 0,
+        "other side has a sidewalk" : 0,
         "street has no sidewalks" : 1,
         "shared pedestrian/car space" : 0
       }
@@ -9532,7 +9532,7 @@
       "severity" : 3,
       "label_count" : 2,
       "tag_counts" : {
-        "street has a sidewalk" : 1,
+        "other side has a sidewalk" : 1,
         "street has no sidewalks" : 0,
         "ends abruptly" : 2,
         "gravel/dirt road" : 1
@@ -9679,7 +9679,7 @@
       "severity" : 2,
       "label_count" : 2,
       "tag_counts" : {
-        "street has a sidewalk" : 1,
+        "other side has a sidewalk" : 1,
         "gravel/dirt road" : 0
       }
     }, {

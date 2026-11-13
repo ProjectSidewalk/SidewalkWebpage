@@ -650,7 +650,7 @@ share.meta.image.alt = Street-level photo with the {0} location marked
 
 # Public single-label spotlight / share page (#456).
 sharedlabel.nearby.title = Nearby labels
-sharedlabel.nearby.caption = A sample of accessibility labels nearby. See {0} for the full map.
+sharedlabel.nearby.caption = A sample of accessibility labels nearby. See the {0} for the full map.
 sharedlabel.view.this.label = View this label
 sharedlabel.engage.title = Help assess sidewalks in {0}
 sharedlabel.engage.explore = Find accessibility problems in {0}
@@ -949,6 +949,7 @@ error.home = Return to home
 
 # Neighborhood reports (#5876).
 report.seo.title = {0}: Neighborhood Report — Project Sidewalk
+report.tool.name = Reports
 report.eyebrow = Neighborhood report
 report.generated = Generated {0}.
 report.latest.observation = Latest label {0}.
@@ -1106,3 +1107,7 @@ report.worst.lede = {0,choice,1#1 location|1<{0} locations} rated worst, by type
 report.worst.count.label = {0,choice,1#1 location|1<{0} locations}: {1}. See the labels
 report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map. Turn on "{0}" in the sidebar to see them as dashed lines on the other maps.
 report.toc.worst = Worst problems
+report.stories.title = Community stories
+report.stories.rule = Stories that community members attached to labels in this neighborhood, newest first. A story is one person''s experience; it changes no number on this page.
+report.stories.street = See this street
+report.stories.all = Read all community stories

@@ -128,9 +128,9 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
-    expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv');
+    expect(viewLink.textContent).toBe('common:pano-info.view-in-gsv common:opens-new-tab');
   });
 
   it('hides the link, rather than leaving href="#", when the first pano opened is a Pannellum one', () => {
@@ -140,7 +140,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
   });
 
@@ -154,7 +154,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     activeViewer = makePannellumViewer();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
   });
 
@@ -162,13 +162,13 @@ describe('PanoInfoPopover view-in-pano link', () => {
     activeViewer = makePannellumViewer();
     buildPopover();
     openPopover();
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     closePopover();
 
     activeViewer = makeGsvViewer();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
   });
 
@@ -181,7 +181,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).toBe('none');
+    expect(viewLink.hidden).toBe(true);
     expect(viewLink.hasAttribute('href')).toBe(false);
     expect(activeViewer.publicViewerLink).not.toHaveBeenCalled();
   });
@@ -191,7 +191,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     buildPopover();
     openPopover();
 
-    expect(viewLink.style.display).not.toBe('none');
+    expect(viewLink.hidden).toBe(false);
     expect(viewLink.getAttribute('href')).toContain(`pano=${GSV_PANO}`);
   });
 
@@ -223,7 +223,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     openPopover();
     popoverEl.querySelector('.pano-info-popover__clipboard').click();
     expect(clipboardText)
-      .toContain(`Pano URL: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
+      .toContain(`common:pano-info.pano-url: https://www.google.com/maps/@?api=1&map_action=pano&pano=${GSV_PANO}`);
     closePopover();
 
     activeViewer = makePannellumViewer();
@@ -231,7 +231,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
     popoverEl.querySelector('.pano-info-popover__clipboard').click();
 
     expect(clipboardText).toContain(BACKUP_PANO);
-    expect(clipboardText).not.toContain('Pano URL:');
+    expect(clipboardText).not.toContain('pano-url');
   });
 
   it('closes on pano_changed from a viewer that only appeared after construction', () => {

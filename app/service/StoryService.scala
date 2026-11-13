@@ -54,6 +54,12 @@ trait StoryService {
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]]
+
+  /**
+   * A region's newest visible stories, for a neighborhood report (#5900). A photoless story is previewed from its
+   * label's saved crop alone, never from a Street View still, since a report must cost no billable Google call.
+   */
+  def getStoriesForRegion(regionId: Int, n: Int): Future[Seq[StoryForListing]]
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]]
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean]
   def adminDeleteStory(storyId: Int): Future[Boolean]
@@ -394,27 +400,48 @@ class StoryServiceImpl @Inject() (
 
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
     db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
-      val photolessTypes = rows.collect { case (story, None, _, labelType, _, _, _) =>
+      val photolessTypes = rows.collect { case (story, None, _, labelType, _, _, _, _) =>
         story.labelId -> labelType
       }.toMap
-      labelPreviewUrls(photolessTypes).map { previewById =>
-        rows.map { case (story, media, username, labelType, regionId, regionName, address) =>
-          StoryForListing(
-            storyId = story.storyId,
-            labelId = story.labelId,
-            labelType = labelType,
-            regionId = regionId,
-            regionName = regionName,
-            address = address,
-            storyText = story.storyText,
-            displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
-            createdAt = story.createdAt,
-            media = media.map(toMediaForView),
-            labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
-          )
-        }
-      }
+      labelPreviewUrls(photolessTypes).map(previewById => rows.map(toListing(_, previewById)))
     }
+  }
+
+  def getStoriesForRegion(regionId: Int, n: Int): Future[Seq[StoryForListing]] = {
+    db.run(storyTable.getVisibleForCity(n, Some(regionId))).map { rows =>
+      val previewById = rows
+        .collect { case (story, None, _, labelType, _, _, _, _) =>
+          panoDataService.cropThumbnailUrl(story.labelId, labelType).map(story.labelId -> _)
+        }
+        .flatten
+        .toMap
+      rows.map(toListing(_, previewById))
+    }
+  }
+
+  /**
+   * @param row         One of `StoryTable.getVisibleForCity`'s rows
+   * @param previewById The label preview to show on a photoless story, by label id, when there is one
+   */
+  private def toListing(
+      row: (Story, Option[StoryMedia], String, LabelType, Int, Int, String, Option[String]),
+      previewById: Map[Int, String]
+  ): StoryForListing = {
+    val (story, media, username, labelType, streetEdgeId, regionId, regionName, address) = row
+    StoryForListing(
+      storyId = story.storyId,
+      labelId = story.labelId,
+      labelType = labelType,
+      streetEdgeId = streetEdgeId,
+      regionId = regionId,
+      regionName = regionName,
+      address = address,
+      storyText = story.storyText,
+      displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
+      createdAt = story.createdAt,
+      media = media.map(toMediaForView),
+      labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
+    )
   }
 
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]] = {

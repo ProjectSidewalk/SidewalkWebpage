@@ -65,6 +65,17 @@ describe('LabelCardView', () => {
       expect(q('.label-hover-card__type').textContent).toBe('common:curb-ramp');
       expect(typeName).toBe('common:curb-ramp');
     });
+
+    it('leaves a type dropdown header (Expert Validate) to its owner, still returning the name', () => {
+      const card = buildCard();
+      // What typeEditable renders in place of the plain icon and name.
+      card.querySelector('.label-hover-card__header').innerHTML =
+        '<span class="label-hover-card__type-dropdown"><span class="label-type-trigger__name">kept</span></span>';
+      const typeName = new LabelCardView(card).render({ labelType: 'Obstacle' });
+
+      expect(typeName).toBe('common:obstacle');
+      expect(q('.label-type-trigger__name').textContent).toBe('kept');
+    });
   });
 
   describe('rating chip', () => {

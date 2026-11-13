@@ -17,6 +17,9 @@ fakePanoOverlays();
 
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
+/** Lets the failed crop's re-sign request (#5861) answer. */
+const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+
 const MISTAKES_URL = '/userapi/mistakes';
 const VOTE_URL = '/userapi/mistakeVote';
 const NOTE_URL = '/userapi/mistakeNote';
@@ -136,6 +139,8 @@ describe('a card', () => {
     expect(document.querySelector('.ud-card-photo')).not.toBeNull();
 
     document.querySelector('.ud-card-photo').dispatchEvent(new Event('error'));
+
+    await settle();
     expect(document.querySelector('.ud-card-photo')).toBeNull();
   });
 

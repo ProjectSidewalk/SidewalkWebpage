@@ -308,4 +308,17 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
       MissionRequest(ValidateParams(false, unvalidatedOnly = true))
     )
   }
+
+  test("HealthFormats readers") {
+    import HealthFormats.{*, given}
+    check(
+      s"""{"status":"ok","git_sha":"abc","git_describe":"v1","git_dirty":false,"version":"11.20.0",
+         |"version_released_at":$ts,"city_id":"seattle","environment":"prod","app_started_at":$ts}""".stripMargin,
+      HealthStatus("ok", Some("abc"), Some("v1"), false, Some("11.20.0"), Some(t), "seattle", "prod", t)
+    )
+    check(
+      s"""{"status":"error","git_dirty":true,"city_id":"seattle","environment":"test","app_started_at":$ts}""",
+      HealthStatus("error", None, None, true, None, None, "seattle", "test", t)
+    )
+  }
 }

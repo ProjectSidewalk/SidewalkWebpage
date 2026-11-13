@@ -97,9 +97,11 @@ object LabelFormats {
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
       // Per label, not per city: a city that has changed providers holds labels from both (#5202).
-      "pano_source" -> labelMetadata.panoSource.name,
-      "pano_data"   -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
-      "admin_data"  -> adminData.map(ad =>
+      "pano_source"   -> labelMetadata.panoSource.name,
+      "pano_data"     -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
+      "gold_reason"   -> labelMetadata.goldReason.map(_.name),
+      "gold_crop_url" -> labelMetadata.goldCropUrl,
+      "admin_data"    -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -307,13 +309,21 @@ object LabelFormats {
    * @param labelId The label ID.
    * @param labelType The label type name.
    * @param url The signed serving URL (e.g. /cropImage/<labelType>/<labelId>?exp=...&sig=...).
+   * @param thumbnailUrl The signed URL of its thumbnail, so a page showing thumbnails re-signs to one (#5861).
    */
-  def cropImagePayload(labelId: Int, labelType: String, url: String, marker: Option[CropMarker]): JsObject = {
+  def cropImagePayload(
+      labelId: Int,
+      labelType: String,
+      url: String,
+      thumbnailUrl: String,
+      marker: Option[CropMarker]
+  ): JsObject = {
     Json.obj(
-      "label_id"    -> labelId,
-      "label_type"  -> labelType,
-      "image_url"   -> url,
-      "crop_marker" -> marker
+      "label_id"      -> labelId,
+      "label_type"    -> labelType,
+      "image_url"     -> url,
+      "thumbnail_url" -> thumbnailUrl,
+      "crop_marker"   -> marker
     )
   }
 

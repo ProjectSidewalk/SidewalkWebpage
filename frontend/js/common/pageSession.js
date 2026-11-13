@@ -21,7 +21,6 @@ export async function loadPageSession(url, init = {}) {
     // The request can fail before the translations are in; the app manager runs the callback once they are.
     window.appManager.ready(() => {
       const overlay = document.getElementById('page-loading');
-      if (!overlay) return;
       overlay.classList.add('page-loading--failed');
       overlay.querySelector('.loading-text').textContent = i18next.t('common:session-load-failed.title');
       overlay.querySelector('.loading-sub-text').textContent

@@ -101,16 +101,15 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions] - The SDK's options, plus two of ours: `linkedPanos` (see
-   *   wantsLinkedPanos) and `instantTransitions`, which jumps between panos instead of animating the move, for pages
-   *   where every move is to an unrelated pano.
+   * @param {Record<string, any>} panoOptions - The SDK's options, plus ours: `defaultNavigation` (the SDK's own
+   *   arrows), `preloadNeighbors`, `linkedPanos` (see wantsLinkedPanos) and `instantTransitions`, which jumps between
+   *   panos instead of animating the move, for pages where every move is to an unrelated pano.
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     await MapillaryViewer.preloadLibrary();
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
-    const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
-    const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const { defaultNavigation } = panoOptions;
     const preloadNeighbors = 'preloadNeighbors' in panoOptions ? panoOptions.preloadNeighbors : false;
     const { linkedPanos = true, instantTransitions = false, ...sdkOptions } = panoOptions;
     this.wantsLinkedPanos = linkedPanos;
@@ -118,7 +117,7 @@ export class MapillaryViewer extends PanoViewer {
       dataProvider: createMapillaryChunkedDataProvider(sdk.GraphDataProvider, { accessToken: panoOptions.accessToken }),
       container: canvasElem.id,
       component: {
-        bearing: !disableDefaultUi, // Shows heading viewer orb thing
+        bearing: false, // The SDK's heading orb, which no page shows.
         // Pre-downloads assets (texture + mesh) for panos linked to the current one, so nearby moves load fast.
         // Only worth it when navigation mostly follows those links (Explore); a jump to an unrelated pano
         // (Validate, label popups) never hits the cache, so the prefetch bandwidth would be wasted there.
@@ -128,8 +127,8 @@ export class MapillaryViewer extends PanoViewer {
         marker: true, // TODO "Enable an interface for showing 3D markers in the viewer"
         tag: true, // TODO "Enable an interface for drawing 2D geometries on top of images"
         pointer: true, // "Enable mouse, pen, and touch interaction for zoom and pan"
-        sequence: !disableDefaultUi, // Shows next/previous image UI at the top
-        zoom: 'zoomControl' in panoOptions ? panoOptions.zoomControl : false,
+        sequence: false, // The SDK's next/previous image strip, which no page shows.
+        zoom: false, // The SDK's zoom buttons, which no page shows.
       },
     };
     panoOpts = { ...panoOpts, ...sdkOptions };
@@ -488,10 +487,10 @@ export class MapillaryViewer extends PanoViewer {
    * mapillary-js's cache with the winner.
    *
    * @param {{lat: number, lng: number}} latLng - The location the next move is expected to target.
-   * @param {Set<PanoData>} [excludedPanos] - Panos the next move is expected to exclude.
+   * @param {Set<PanoData>} excludedPanos - Panos the next move is expected to exclude.
    * @returns {Promise<void>}
    */
-  preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
+  preloadPanoNear = async (latLng, excludedPanos) => {
     try {
       const center = turf.point([latLng.lng, latLng.lat]);
       const radius = PanoViewer.SEARCH_RADIUS_M / 1000.0; // Convert search radius to kms.
@@ -704,7 +703,6 @@ export class MapillaryViewer extends PanoViewer {
       const url = this.#createPanoFetchUrl(centerPoint, radius);
       const response = await fetch(url);
       const data = await response.json();
-      console.log(data);
 
       if (data.data) {
         return data.data;
@@ -898,10 +896,10 @@ export class MapillaryViewer extends PanoViewer {
   /**
    * See PanoViewer.publicViewerLink().
    * @param {string} panoId
-   * @param {{center?: number[]}} [opts]
+   * @param {{center?: number[]}} opts
    * @returns {{url: string, i18nKey: string}}
    */
-  publicViewerLink(panoId, { center } = {}) {
+  publicViewerLink(panoId, { center }) {
     // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
     const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
     return {

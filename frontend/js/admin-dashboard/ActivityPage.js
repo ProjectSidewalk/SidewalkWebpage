@@ -119,7 +119,6 @@ export class ActivityPage {
    */
   #renderBanner() {
     const el = document.getElementById('activity-latest');
-    if (!el) return;
     const top = this.#recent[0];
     if (!top && !this.#series.length) {
       el.innerHTML = 'No activity yet.';
@@ -149,8 +148,8 @@ export class ActivityPage {
     const showAll = el.querySelector('.act-show-all');
     if (showAll) {
       showAll.addEventListener('click', () => {
-        const allBtn = document.querySelector('.act-range-btn[data-range="all"]');
-        if (allBtn) allBtn.click(); // reuse the range toggle's wiring (updates state + re-renders)
+        // Reuses the range toggle's wiring (updates state + re-renders).
+        /** @type {HTMLElement} */ (document.querySelector('.act-range-btn[data-range="all"]')).click();
       });
     }
   }
@@ -162,15 +161,15 @@ export class ActivityPage {
     const sum = (field) => recs.reduce((a, r) => a + (r[field] || 0), 0);
     const note = this.#rangePhrase();
     const set = (id, field) => {
-      this.#setText(`kpi-${id}`, sum(field).toLocaleString());
-      this.#setText(`kpi-${id}-note`, note);
+      AdminShell.setText(`kpi-${id}`, sum(field).toLocaleString());
+      AdminShell.setText(`kpi-${id}-note`, note);
     };
     set('labels', 'labels');
     set('validations', 'validations');
     set('missions', 'missions');
     set('newusers', 'new_users');
-    this.#setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
-    this.#setText('kpi-distance-note', note);
+    AdminShell.setText('kpi-distance', util.metersToLongDistanceString(sum('explored_distance_m'), 1));
+    AdminShell.setText('kpi-distance-note', note);
   }
 
   /**
@@ -193,9 +192,9 @@ export class ActivityPage {
     };
     // explore_per_100m is median minutes/100 m.
     const fmtMinutes = (m) => (m === null || m === undefined ? 'N/A' : `${m.toFixed(1)} min`);
-    this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
-    this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
-    this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
+    AdminShell.setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
+    AdminShell.setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
+    AdminShell.setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
   }
 
   // --- Volume small-multiples ---------------------------------------------------------------------------------
@@ -459,7 +458,6 @@ export class ActivityPage {
    */
   #wireFeedClicks() {
     const feed = document.getElementById('activity-feed');
-    if (!feed) return;
     feed.addEventListener('click', (e) => {
       const link = /** @type {Element} */ (e.target).closest('.activity-label-link');
       if (!link || !this.#labelPopup) return; // no popup yet → let the href navigate
@@ -558,14 +556,8 @@ export class ActivityPage {
       : d.toLocaleString(undefined, util.SHORT_DATE_TIME);
   }
 
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('activity-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);
