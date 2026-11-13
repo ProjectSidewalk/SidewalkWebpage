@@ -711,14 +711,15 @@ object ConfigService {
   /**
    * Age beyond which a cross-city read is refreshed in the background when served (#4931).
    *
-   * One `/admin/across-cities` request triggers five of these reads (plus two more on their own longer clocks:
+   * One `/admin/across-cities` request triggers six of these reads (plus two more on their own longer clocks:
    * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
    * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
-   * expiring cache is that **no request ever waits on that fan-out**: past this age the cached copy is still served
-   * immediately and the refresh runs behind it, whereas an expiring entry makes whichever request arrives first pay
-   * for the whole thing while holding pool connections that Explore and Validate share. (Coalescing concurrent
-   * callers is not the difference — Caffeine's `get(key, mappingFunction)` under `getOrElseUpdate` is already atomic
-   * per key. `refreshCachedValue` keeps that property for background refreshes.)
+   * expiring cache is that **no request ever waits on that fan-out once it is cached**: past this age the cached copy
+   * is still served immediately and the refresh runs behind it, whereas an expiring entry makes whichever request
+   * arrives first pay for the whole thing while holding pool connections that Explore and Validate share. With nothing
+   * cached, a request waits at most [[CrossCityColdWait]] (#5432). (Coalescing concurrent callers is not the
+   * difference — Caffeine's `get(key, mappingFunction)` under `getOrElseUpdate` is already atomic per key.
+   * `refreshCachedValue` keeps that property for background refreshes.)
    */
   val CrossCityFreshFor: FiniteDuration = Duration(10, "minutes")
 
@@ -730,6 +731,15 @@ object ConfigService {
    * bound only decides how old the page may get while refreshes keep failing — not how fresh it normally is.
    */
   val CrossCityMaxAge: FiniteDuration = Duration(2, "hours")
+
+  /**
+   * How long a request that finds a cross-city read uncached waits for its fan-out before the page is told to retry.
+   *
+   * Kept under Apache's 60 s `ProxyTimeout`, past which the page gets a `502` it can't act on (#5432). After a deploy
+   * every one of these per-JVM reads is cold at once, but the page starts them in parallel, so this bounds the whole
+   * response. Lower the proxy's timeout and this has to follow, as `AccessScoreService.FullCityColdWait` does.
+   */
+  val CrossCityColdWait: FiniteDuration = Duration(45, "seconds")
 
   /**
    * How long the cross-city labeling-speed read may be served, and when it refreshes.
@@ -1181,9 +1191,10 @@ trait ConfigService {
    * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
    * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
    *
-   * @return A Future of one [[CityScorecardWithFlags]] per available city ("staging" excluded).
+   * @return One [[CityScorecardWithFlags]] per available city ("staging" excluded), or None when nothing was cached
+   *         and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]]
+  def getCityScorecards(): Future[Option[Seq[CityScorecardWithFlags]]]
 
   /**
    * Returns the weekly label/validation/active-user volume summed across all available cities (#4329), for the
@@ -1191,9 +1202,10 @@ trait ConfigService {
    * each (documented on the page).
    *
    * @param weeks Trailing weeks to include, or None for full history (the page's "All time" toggle).
-   * @return      Merged weekly series, ascending by week.
+   * @return      Merged weekly series, ascending by week, or None when nothing was cached and the fan-out outlasted
+   *              [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Option[Seq[WeeklyPoint]]]
 
   /**
    * Returns the daily label/validation/contributor volume across all available cities for the trailing window
@@ -1202,9 +1214,10 @@ trait ConfigService {
    * each day is rolled up by [[ConfigService.summarizeDay]], which merges a person's cities so they count once per day.
    *
    * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
-   * @return     Exactly `days` days, zero-filled and ascending by day.
+   * @return     Exactly `days` days, zero-filled and ascending by day, or None when nothing was cached and the fan-out
+   *             outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]]
+  def getCrossCityDailyTrend(days: Int): Future[Option[Seq[DailyActivity]]]
 
   /**
    * Returns the trailing-year per-day averages the per-day bar charts draw as reference lines (#5653).
@@ -1232,9 +1245,10 @@ trait ConfigService {
    * counts are made of (#4931). Same activity definition and exclusions as [[getCrossCityDailyTrend]]; contributors
    * are distinct per city per window and summed across cities.
    *
-   * @return Per-city windows plus their cross-city total.
+   * @return Per-city windows plus their cross-city total, or None when nothing was cached and the fan-out outlasted
+   *         [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows]
+  def getCrossCityActivitySummary(): Future[Option[CrossCityActivityWindows]]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -1244,9 +1258,10 @@ trait ConfigService {
    * load — the "nightly precompute" half of the hybrid delivery. Cities with no interaction data are omitted from the
    * map (the page shows them as unknown).
    *
-   * @return A Future of cityId → seconds per 100 m (lower is faster).
+   * @return cityId → seconds per 100 m (lower is faster), or None when nothing was cached and the fan-out outlasted
+   *         [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+  def getCrossCityLabelingSpeed(): Future[Option[Map[String, Double]]]
 
   /**
    * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
@@ -1255,9 +1270,10 @@ trait ConfigService {
    * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
    * evolution that added `story`), which the page shows as unavailable rather than as zero.
    *
-   * @return A Future of cityId → that city's story counts, or None where the count failed.
+   * @return cityId → that city's story counts (None where the count failed), or None as a whole when nothing was
+   *         cached and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
    */
-  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
+  def getCrossCityStoryStats(): Future[Option[Map[String, Option[CityStoryStats]]]]
 
   /**
    * Returns how many people contributed in any of the cities the Across Cities page shows, each counted once, and how
@@ -1268,7 +1284,8 @@ trait ConfigService {
    * fails keeps the last good count, since a union missing a city would silently undercount; None only when no good
    * count is cached.
    *
-   * @return A Future of the contributor counts, or None if they couldn't be read for every city.
+   * @return A Future of the contributor counts, or None if they couldn't be read for every city or nothing was cached
+   *         and the fan-out outlasted [[ConfigService.CrossCityColdWait]].
    */
   def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]]
 
@@ -1732,11 +1749,12 @@ class ConfigServiceImpl @Inject() (
     Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
 
-  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
-    swrCache.staleWhileRevalidate[Seq[CityScorecardWithFlags]](
+  def getCityScorecards(): Future[Option[Seq[CityScorecardWithFlags]]] = {
+    swrCache.staleWhileRevalidateWithin[Seq[CityScorecardWithFlags]](
       "getCityScorecards",
       ConfigService.CrossCityFreshFor,
-      ConfigService.CrossCityMaxAge
+      ConfigService.CrossCityMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
@@ -1755,12 +1773,13 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Option[Seq[WeeklyPoint]]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
-    swrCache.staleWhileRevalidate[Seq[WeeklyPoint]](
+    swrCache.staleWhileRevalidateWithin[Seq[WeeklyPoint]](
       cacheKey,
       ConfigService.CrossCityFreshFor,
-      ConfigService.CrossCityMaxAge
+      ConfigService.CrossCityMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1790,11 +1809,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]] = {
-    swrCache.staleWhileRevalidate[Seq[DailyActivity]](
+  def getCrossCityDailyTrend(days: Int): Future[Option[Seq[DailyActivity]]] = {
+    swrCache.staleWhileRevalidateWithin[Seq[DailyActivity]](
       s"getCrossCityDailyTrend_$days",
       ConfigService.CrossCityFreshFor,
-      ConfigService.CrossCityMaxAge
+      ConfigService.CrossCityMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1844,11 +1864,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
-    swrCache.staleWhileRevalidate[CrossCityActivityWindows](
+  def getCrossCityActivitySummary(): Future[Option[CrossCityActivityWindows]] = {
+    swrCache.staleWhileRevalidateWithin[CrossCityActivityWindows](
       "getCrossCityActivitySummary",
       ConfigService.CrossCityFreshFor,
-      ConfigService.CrossCityMaxAge
+      ConfigService.CrossCityMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
@@ -1900,11 +1921,12 @@ class ConfigServiceImpl @Inject() (
       }
   }
 
-  def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
-    swrCache.staleWhileRevalidate[Map[String, Double]](
+  def getCrossCityLabelingSpeed(): Future[Option[Map[String, Double]]] = {
+    swrCache.staleWhileRevalidateWithin[Map[String, Double]](
       "getCrossCityLabelingSpeed",
       ConfigService.LabelingSpeedFreshFor,
-      ConfigService.LabelingSpeedMaxAge
+      ConfigService.LabelingSpeedMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
@@ -1915,11 +1937,12 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]] = {
-    swrCache.staleWhileRevalidate[Map[String, Option[CityStoryStats]]](
+  def getCrossCityStoryStats(): Future[Option[Map[String, Option[CityStoryStats]]]] = {
+    swrCache.staleWhileRevalidateWithin[Map[String, Option[CityStoryStats]]](
       "getCrossCityStoryStats",
       ConfigService.CrossCityFreshFor,
-      ConfigService.CrossCityMaxAge
+      ConfigService.CrossCityMaxAge,
+      ConfigService.CrossCityColdWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>
@@ -1938,19 +1961,19 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityContributorCounts(): Future[Option[CrossCityContributorCounts]] = {
     swrCache
-      .staleWhileRevalidate[CrossCityContributorCounts](
+      .staleWhileRevalidateWithin[CrossCityContributorCounts](
         "getCrossCityContributorCounts",
         ConfigService.CrossCityFreshFor,
-        ConfigService.CrossCityMaxAge
+        ConfigService.CrossCityMaxAge,
+        ConfigService.CrossCityColdWait
       ) {
         availableCityIds().flatMap { availableCities =>
           // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
           // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
           val perCityFutures: Seq[Future[Seq[String]]] = availableCities.map { cityId =>
             val idsF = db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-            idsF.failed.foreach(e =>
-              logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-            )
+            idsF.failed
+              .foreach(e => logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}"))
             idsF
           }
           Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
@@ -1958,7 +1981,6 @@ class ConfigServiceImpl @Inject() (
           }
         }
       }
-      .map(Option(_))
       .recover { case e: Exception =>
         logger.warn(s"Cross-city contributor counts unavailable: ${e.getMessage}")
         None

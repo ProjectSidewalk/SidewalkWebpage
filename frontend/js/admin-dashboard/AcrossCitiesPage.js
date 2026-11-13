@@ -13,6 +13,7 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 
+import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
@@ -146,7 +147,7 @@ export class AcrossCitiesPage {
     try {
       // Scorecards are required; the cities geo (for the map) is an enhancement, so it degrades gracefully.
       const [data, citiesGeo] = await Promise.all([
-        util.fetchJson(this.#scorecardsUrl),
+        this.#fetchScorecards(),
         this.#citiesUrl ? util.fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
       ]);
       this.#cities = (data && data.cities) || [];
@@ -193,6 +194,22 @@ export class AcrossCitiesPage {
       AdminShell.setText('ac-status', 'Could not load city data. Please try again.');
       AdminShell.setText('ac-stories-summary', 'Could not load story counts.');
     }
+  }
+
+  /**
+   * Fetches the scorecards, retrying while the server's cross-city caches are cold (#5432).
+   *
+   * The pulse line shows the wait, since a retry can take up to 45 s with nothing else moving. Its wording doesn't
+   * claim the server is computing, because a proxy `502`/`503` mid-deploy takes the same path.
+   *
+   * @returns {Promise<any>} The scorecards payload, as the endpoint returns it.
+   */
+  #fetchScorecards() {
+    return FetchWithRetry.fetchJsonWithRetry(this.#scorecardsUrl, {
+      onWait: (_attempt, seconds) => {
+        AdminShell.setText('ac-pulse', `Still gathering figures from every city; trying again in ${seconds} s…`);
+      },
+    });
   }
 
   // --- Pulse ------------------------------------------------------------------------------------------------------
