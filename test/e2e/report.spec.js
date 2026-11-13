@@ -2,7 +2,8 @@
  * Behavior tests for the neighborhood report (/report/neighborhood/<slug>, #5876, with the worst-problems map of #5889
  * and the per-map "Places" switch and community stories of #5900). pages.spec.js covers the bare load; this checks
  * what the page does: its maps come up, each map's "Places" switch is its own, the worst map's key agrees with its
- * dots, a weight slider reopens the report under the new weights, a street's map and cards light each other, and the
+ * dots, the worst map's dots sit above its places and its points take one Tab stop with arrows between them (#5937),
+ * a weight slider reopens the report under the new weights, a street's map and cards light each other, and the
  * stories section appears only where the region has stories.
  *
  * Nothing here is stubbed: the report's maps run on the city's own tile archive and glyphs, so no Mapbox or Google
@@ -142,24 +143,24 @@ test.describe('/report/neighborhood', () => {
       test.skip(data.places.length === 0, 'the region has no important places, so no map carries the switch');
       // Every live map got every place and its own switch (#5900).
       for (const host of maps) {
-        await expect(host.locator('.report-map-toggle__input')).toBeChecked();
+        await expect(host.locator('[data-toggle="places"] .report-map-toggle__input')).toBeChecked();
         await expect(host.locator('button.report-map-place')).toHaveCount(data.places.length);
         await expect(host.locator('button.report-map-place[hidden]')).toHaveCount(0);
       }
       test.skip(maps.length < 2, 'one map only: nothing to show the switch is per map');
 
       const [first, second] = maps;
-      await first.locator('.report-map-toggle__input').uncheck();
+      await first.locator('[data-toggle="places"] .report-map-toggle__input').uncheck();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(data.places.length);
       // Unchecking scrolled the first map into view, which can unmount a street section's map further down; bring the
       // second back so its toggle exists before asserting on it.
       await expectLiveMap(second);
       // The other map's places stay, so a reader's choice on one map is not made for them on the rest.
       await expect(second.locator('button.report-map-place[hidden]')).toHaveCount(0);
-      await expect(second.locator('.report-map-toggle__input')).toBeChecked();
+      await expect(second.locator('[data-toggle="places"] .report-map-toggle__input')).toBeChecked();
 
       await expectLiveMap(first);
-      await first.locator('.report-map-toggle__input').check();
+      await first.locator('[data-toggle="places"] .report-map-toggle__input').check();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(0);
       expect(consoleErrors).toEqual([]);
     });
@@ -189,6 +190,92 @@ test.describe('/report/neighborhood', () => {
     await rows.first().dispatchEvent('mouseleave');
     await expect(rows.first()).not.toHaveClass(/is-highlighted/);
   });
+
+  test('the worst map\'s dots sit above its places, and its points are one Tab stop with arrows between them',
+    async ({page, request}) => {
+      const {data} = await openReport(page, request);
+      test.skip(data.worst.length === 0, 'the region has no location rated worst, so there is no worst map');
+      const host = page.locator('#report-worst-map');
+      await expectLiveMap(host);
+      const dots = host.locator('button.report-map-problem');
+      await expect(dots).toHaveCount(data.worst.length);
+
+      // No place is drawn over a dot's center (#5937). A control in the map's corner may be, which is no regression.
+      const covered = await host.evaluate((map) => {
+        const box = map.getBoundingClientRect();
+        return [...map.querySelectorAll('button.report-map-problem')].filter((dot) => {
+          const r = dot.getBoundingClientRect();
+          const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+          if (x < box.left || y < box.top || x > box.right || y > box.bottom) return false;
+          return !!document.elementFromPoint(x, y)?.closest('.report-map-place');
+        }).length;
+      });
+      expect(covered, 'dots covered by a place').toBe(0);
+
+      // A click opens the dot's card; Escape closes it and gives focus back to the dot.
+      const topmost = await host.evaluate((map) => [...map.querySelectorAll('button.report-map-problem')]
+        .findIndex((dot) => {
+          const r = dot.getBoundingClientRect();
+          const box = map.getBoundingClientRect();
+          const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+          return x > box.left && y > box.top && x < box.right && y < box.bottom
+            && document.elementFromPoint(x, y) === dot;
+        }));
+      expect(topmost, 'no dot is in view and on top').toBeGreaterThanOrEqual(0);
+      const dot = dots.nth(topmost);
+      await dot.click();
+      const popup = page.locator('.report-problem-popup');
+      await expect(popup).toBeVisible();
+      await expect(dot).toHaveClass(/is-open/);
+      await expect(dot).toHaveAttribute('aria-expanded', 'true');
+      // The card is on top of every dot, so its own buttons take their clicks.
+      expect(await popup.evaluate((card) => {
+        const r = card.querySelector('.maplibregl-popup-content').getBoundingClientRect();
+        return card.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      }), 'something is drawn over the open card').toBe(true);
+      await page.keyboard.press('Escape');
+      await expect(popup).toHaveCount(0);
+      await expect(dot).toBeFocused();
+      await expect(dot).not.toHaveClass(/is-open/);
+
+      const tabStops = host.locator('.maplibregl-marker[tabindex="0"]');
+      await expect(tabStops).toHaveCount(1);
+      const pointCount = await host.locator('.maplibregl-marker:not([hidden])').count();
+      let moved = pointCount < 2;
+      for (const key of moved ? [] : ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp']) {
+        await dot.focus();
+        await page.keyboard.press(key);
+        moved = await host.evaluate((map, from) => {
+          const active = document.activeElement;
+          return active !== map.querySelectorAll('button.report-map-problem')[from]
+            && active?.closest('.maplibregl-marker') !== null && map.contains(active);
+        }, topmost);
+        if (moved) break;
+      }
+      expect(moved, `no arrow key moved focus to another of the map's ${pointCount} points`).toBe(true);
+      await expect(tabStops).toHaveCount(1);
+
+      await dot.focus();
+      await page.keyboard.press('Enter');
+      await expect(popup).toBeVisible();
+
+      // A click on bare map closes the card cleanly: MapLibre has already dropped the card's element when it says so.
+      const pageErrors = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      const bare = await host.evaluate((map) => {
+        const box = map.getBoundingClientRect();
+        for (let y = box.top + 8; y < box.bottom; y += 8) {
+          for (let x = box.left + 8; x < box.right; x += 8) {
+            if (document.elementFromPoint(x, y)?.matches('canvas.maplibregl-canvas')) return {x, y};
+          }
+        }
+        return null;
+      });
+      expect(bare, 'no bare map to click').not.toBeNull();
+      await page.mouse.click(bare.x, bare.y);
+      await expect(popup).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    });
 
   test('letting go of a weight slider reopens the report under those weights, scored on the server',
     async ({page, request}) => {

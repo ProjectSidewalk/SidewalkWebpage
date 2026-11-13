@@ -9,6 +9,7 @@
   },
   "map": {
     "location": "{{type}} : afficher sa photo",
+    "problem": "{{type}} : ouvrir sa fiche",
     "gesture-windows": "Utilisez Ctrl + molette pour zoomer sur la carte",
     "gesture-mac": "Utilisez ⌘ + molette pour zoomer sur la carte",
     "gesture-touch": "Utilisez deux doigts pour déplacer la carte",

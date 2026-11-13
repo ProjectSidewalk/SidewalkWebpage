@@ -9,6 +9,7 @@
   },
   "map": {
     "location": "{{type}}: show its photo",
+    "problem": "{{type}}: open its card",
     "gesture-windows": "Use Ctrl + scroll to zoom the map",
     "gesture-mac": "Use ⌘ + scroll to zoom the map",
     "gesture-touch": "Use two fingers to move the map",

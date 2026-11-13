@@ -9,6 +9,7 @@
   },
   "map": {
     "location": "{{type}}: Foto anzeigen",
+    "problem": "{{type}}: Karte öffnen",
     "gesture-windows": "Strg + Scrollen zum Zoomen der Karte",
     "gesture-mac": "⌘ + Scrollen zum Zoomen der Karte",
     "gesture-touch": "Karte mit zwei Fingern bewegen",

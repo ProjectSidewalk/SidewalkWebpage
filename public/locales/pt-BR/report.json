@@ -9,6 +9,7 @@
   },
   "map": {
     "location": "{{type}}: mostrar a foto",
+    "problem": "{{type}}: abrir o cartão",
     "gesture-windows": "Use Ctrl + rolagem para ampliar o mapa",
     "gesture-mac": "Use ⌘ + rolagem para ampliar o mapa",
     "gesture-touch": "Use dois dedos para mover o mapa",

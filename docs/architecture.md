@@ -508,9 +508,15 @@ Sidewalk lines are an inference from `/v3/api/sidewalkPresence` and the legend s
 Below the segment list, a worst-problems map (#5889) puts a dot, in its type's label color, on every location whose
 rating (the cluster's median, the one the score uses) is the worst on its type's scale (`ReportRules.worstProblems`).
 Unrated types, missing sidewalks above all, have no worst end and stay off it; a note points to the sidebar's sidewalks
-switch instead. The per-type counts beside it are its key and its keyboard path, since a canvas dot can't take focus,
-and a dot opens its label's Gallery card in a popup. Its places wear the unscored grey disc, since color on that map
-means a label type. It prints as the counts alone.
+switch instead. The per-type counts beside it are its key, and a dot opens its label's Gallery card in a popup. Its
+places wear the unscored grey disc, since color on that map means a label type, and sit under the dots. It prints as
+the counts alone.
+
+Every point on a report map (a street map's label icons, the worst map's dots, the places) is a button marker, not a
+canvas feature (#5937), and a map's points share one Tab stop: Tab reaches one, the arrow keys move to the nearest one
+that way on screen, Home and End go to the first and last (`ReportMapPoints`, the WAI-ARIA roving-tabindex pattern).
+The maps hold dozens of points, where buttons cost nothing and give pointer, keyboard and screen reader one thing to
+reach; a map of thousands, like AccessScore's city view, would draw them on the canvas instead.
 
 After the fixes, when the region has any, come the community's stories (#4054, #5900): the newest
 `ReportService.StoriesListSize` visible stories on labels in the region (`StoryTable.getVisibleForCity` scoped by

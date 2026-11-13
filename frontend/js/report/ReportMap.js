@@ -15,6 +15,11 @@
  * Given problems instead of locations, it is the worst-problems map: every street in a quiet grey under one dot per
  * location, colored by type, so the dots are the only color on it; its places wear a neutral disc for the same reason.
  *
+ * Every point on a map (an icon, a dot, a place) is a button over the canvas, drawn above the places so a place never
+ * covers what the map is about, and all of a map's points share one Tab stop with arrow keys between them
+ * (ReportMapPoints, #5937). Canvas layers would scale further, but a report map holds dozens of points, not
+ * thousands, and a button gives pointer, keyboard and screen reader the same thing to reach.
+ *
  * It knows nothing of cards. A host hears which location or street the pointer is on and tells it what to light, so
  * the same map serves the overview and a street's section.
  */
@@ -32,6 +37,7 @@ import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
 import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
 import { ReportPlacesToggle } from './ReportPlacesToggle.js';
 import { ReportMapToggle } from './ReportMapToggle.js';
+import { ReportMapPoints } from './ReportMapPoints.js';
 import { alignLocations, markerOffsets } from './ReportLabelAlignment.js';
 import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
 import { formatScore } from '../access-score/AccessScoreText.js';
@@ -80,6 +86,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {(labelType: ?string) => void} [onProblemHover] - With the type of the dot under the pointer.
  * @property {(problem: ReportMapProblem, lngLat: [number, number]) => void} [onProblemClick]
  * @property {() => void} [onProblemClose] - When a card opened by `openProblem` closes, however it was closed.
+ * @property {() => void} [onKeyNav] - The first time an arrow key moves between the map's points.
  *
  * @typedef {object} ReportMapProblem
  * @property {number} clusterId
@@ -101,11 +108,9 @@ const STREETS_SOURCE = 'report-streets';
 const SIDEWALKS_SOURCE = 'report-sidewalks';
 const VIEWPOINT_SOURCE = 'report-viewpoint';
 const CURSOR_SOURCE = 'report-cursor';
-const PROBLEMS_SOURCE = 'report-problems';
-const PROBLEM_LAYER = 'report-problems';
-const PROBLEM_OPEN_LAYER = 'report-problem-open';
-// A dot fades to this when another type is lit: still there, so the reader keeps their bearings.
-const UNLIT_OPACITY = 0.15;
+// A worst dot's diameter at these zooms, eased between: small enough at a neighborhood's zoom that 60 dots don't
+// merge, big enough close in to read its color. Set as a CSS variable, since a marker doesn't follow the zoom itself.
+const PROBLEM_DOT_PX = [[12, 6], [15, 10], [18, 16]];
 const CONTEXT_LAYER = 'report-streets-context';
 const LIT_STREET_LAYER = 'report-street-lit';
 const SCORED_LAYER = 'report-streets-scored';
@@ -191,6 +196,23 @@ function loadImage(src) {
 }
 
 /**
+ * @param {number} zoom
+ * @returns {number} A worst dot's diameter there, eased linearly between `PROBLEM_DOT_PX`'s stops.
+ */
+export function problemDotPx(zoom) {
+  const stops = PROBLEM_DOT_PX;
+  if (zoom <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) {
+    const [z1, px1] = stops[i];
+    if (zoom <= z1) {
+      const [z0, px0] = stops[i - 1];
+      return px0 + ((px1 - px0) * (zoom - z0)) / (z1 - z0);
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+/**
  * @param {number[][]} points - `[lng, lat]`s.
  * @returns {[[number, number], [number, number]]} The box around them.
  */
@@ -222,6 +244,11 @@ export class ReportMap {
   #sided = new Set();
   /** @type {AccessScoreMapLegend} */ #legend;
   /** @type {?maplibregl.Popup} */ #popup = null;
+  /** @type {?ReportMapPoints} The one Tab stop for every point; none on a still map, which takes no input. */
+  #points = null;
+  /** @type {WeakMap<HTMLElement, maplibregl.Marker>} Each point's marker, to bring a focused one into view. */
+  #markerOf = new WeakMap();
+  /** @type {Map<number, HTMLElement>} The worst dots by cluster id. */ #problemDots = new Map();
   #prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
   /**
@@ -273,13 +300,15 @@ export class ReportMap {
       this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
       // The worst map's only color is its dots', whose key is the type list beside it.
       if (!options.problems) this.#addLegend();
+      this.#points = new ReportMapPoints({
+        onFocus: (element) => this.#bringIntoView(this.#markerOf.get(element)),
+        onFirstMove: () => options.onKeyNav?.(),
+      });
     }
 
     this.#map.once('load', () => {
       this.#addStreets(focusEdgeIds);
-      if (options.problems) {
-        this.#addProblems(options.problems);
-      } else {
+      if (!options.problems) {
         this.#addSidewalks();
         this.#bindStreetPointer();
         this.#addViewpoint();
@@ -302,9 +331,18 @@ export class ReportMap {
         });
         this.#map.addControl(this.#placesToggle);
       }
-      // A pinned place tooltip closes on a click anywhere else on the map; a place's own click doesn't reach here.
-      this.#map.on('click', () => this.#openPlace?.());
+      // Added after the places, so they sit above them in the marker pane: a place never covers a dot.
+      if (options.problems) this.#addProblems(options.problems);
+      // Markers sit inside the canvas container, so a point's own click reaches here too and is told apart by its
+      // target: a place's pins its tooltip and leaves the card, a dot's opens its own card, any other closes both.
+      this.#map.on('click', (e) => {
+        const point = /** @type {Element} */ (e.originalEvent.target).closest?.('.maplibregl-marker');
+        if (!point?.classList.contains('report-map-place')) this.#openPlace?.();
+        if (!point) this.#popup?.remove();
+      });
       for (const location of locations) this.#addMarker(location);
+      // Joined last, so the map's one Tab stop and Home land on what the map is about, not on its context.
+      for (const element of this.#places) this.#points?.add(element);
       this.#addAlignment(locations, focusEdgeIds);
     }
   }
@@ -322,6 +360,7 @@ export class ReportMap {
     this.#aligned = alignLocations(locations, lines);
     if (!this.#aligned.length) return;
     this.#alignedToggle = new ReportMapToggle({
+      name: 'aligned',
       text: i18next.t('report:map.aligned'),
       note: i18next.t('report:map.aligned-note'),
       checked: this.#alignedVisible,
@@ -583,91 +622,74 @@ export class ReportMap {
   }
 
   /**
-   * A dot per problem, and a ring for the one whose card is open.
+   * A dot per problem, as a button: hover and focus name its type to the host, which lights that type's key row, and
+   * a click or Enter opens its card. The dots' size follows the zoom through `--report-dot-px` on the container.
    * @param {ReportMapProblem[]} problems
    */
   #addProblems(problems) {
-    this.#map.addSource(PROBLEMS_SOURCE, {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: problems.map((p) => ({
-          type: 'Feature',
-          properties: {
-            clusterId: p.clusterId, labelId: p.labelId, labelType: p.labelType,
-            color: util.misc.getLabelColors(p.labelType),
-          },
-          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-        })),
-      },
-    });
-    const radius = /** @type {any} */ (['interpolate', ['linear'], ['zoom'], 12, 3, 15, 5, 18, 8]);
-    this.#map.addLayer({
-      id: PROBLEM_LAYER,
-      type: 'circle',
-      source: PROBLEMS_SOURCE,
-      paint: {
-        'circle-color': ['get', 'color'],
-        'circle-radius': radius,
-        // Dark, not white: the palest type color (Other's grey) needs it to stand off the grey streets (WCAG 1.4.11).
-        'circle-stroke-color': token('--color-neutral-900'),
-        'circle-stroke-width': 1,
-      },
-    });
-    this.#map.addLayer({
-      id: PROBLEM_OPEN_LAYER,
-      type: 'circle',
-      source: PROBLEMS_SOURCE,
-      filter: ['==', ['get', 'clusterId'], -1],
-      paint: {
-        'circle-color': ['get', 'color'],
-        'circle-radius': /** @type {any} */ (['interpolate', ['linear'], ['zoom'], 12, 6, 15, 8, 18, 11]),
-        'circle-stroke-color': token('--color-neutral-900'),
-        'circle-stroke-width': 2.5,
-      },
-    });
+    const container = this.#map.getContainer();
+    const size = () => container.style.setProperty('--report-dot-px', `${problemDotPx(this.#map.getZoom())}px`);
+    size();
+    this.#map.on('zoom', size);
 
     const { onProblemHover, onProblemClick } = this.#options;
-    // mousemove fires dozens of times over one dot, and each call restyles the layer, so only a change is passed on.
-    /** @type {?string} */ let hovered = null;
-    const hover = (labelType) => {
-      if (labelType === hovered) return;
-      hovered = labelType;
-      onProblemHover?.(labelType);
-    };
-    this.#map.on('mousemove', PROBLEM_LAYER, (e) => {
-      this.#map.getCanvas().style.cursor = 'pointer';
-      hover(e.features?.[0]?.properties?.labelType ?? null);
-    });
-    this.#map.on('mouseleave', PROBLEM_LAYER, () => {
-      this.#map.getCanvas().style.cursor = '';
-      hover(null);
-    });
-    this.#map.on('click', PROBLEM_LAYER, (e) => {
-      const props = e.features?.[0]?.properties;
-      const problem = props && problems.find((p) => p.clusterId === props.clusterId);
-      if (problem) onProblemClick?.(problem, [problem.lng, problem.lat]);
-    });
-    // The popup's own close-on-click would also hear the click that opens it, so a click off every dot closes it here.
-    this.#map.on('click', (e) => {
-      const layers = [PROBLEM_LAYER, PROBLEM_OPEN_LAYER];
-      if (this.#map.queryRenderedFeatures(e.point, { layers }).length === 0) this.#popup?.remove();
-    });
+    for (const problem of problems) {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'report-map-problem';
+      element.dataset.clusterId = String(problem.clusterId);
+      element.dataset.labelType = problem.labelType;
+      element.style.setProperty('--report-dot-color', util.misc.getLabelColors(problem.labelType));
+      element.setAttribute('aria-label',
+        i18next.t('report:map.problem', { type: util.misc.labelTypeName(problem.labelType) }));
+      element.setAttribute('aria-expanded', 'false');
+      element.addEventListener('mouseenter', () => onProblemHover?.(problem.labelType));
+      element.addEventListener('mouseleave', () => onProblemHover?.(null));
+      element.addEventListener('focus', () => onProblemHover?.(problem.labelType));
+      element.addEventListener('blur', () => onProblemHover?.(null));
+      element.addEventListener('click', () => onProblemClick?.(problem, [problem.lng, problem.lat]));
+      this.#addPoint(element, [problem.lng, problem.lat]);
+      this.#problemDots.set(problem.clusterId, element);
+    }
   }
 
   /**
-   * Lights one type's dots by fading the rest.
+   * Puts a point's button on the map and in its one Tab stop.
+   * @param {HTMLElement} element
+   * @param {[number, number]} lngLat
+   * @param {boolean} [join=true] - Whether it joins the Tab stop now; places join after the map's subject.
+   * @returns {maplibregl.Marker}
+   */
+  #addPoint(element, lngLat, join = true) {
+    const marker = new maplibregl.Marker({ element }).setLngLat(lngLat).addTo(this.#map);
+    this.#markerOf.set(element, marker);
+    if (join) this.#points?.add(element);
+    return marker;
+  }
+
+  /**
+   * Pans only if the icon is out of view: a map that moves on every hover or arrow press loses the reader.
+   * @param {maplibregl.Marker|undefined} marker
+   */
+  #bringIntoView(marker) {
+    if (!marker) return;
+    const lngLat = marker.getLngLat();
+    // Where the icon is drawn, which the aligned view's offset puts away from its anchor.
+    const { x, y } = this.#map.project(lngLat).add(marker.getOffset());
+    const { clientWidth, clientHeight } = this.#map.getContainer();
+    if (x < 0 || y < 0 || x > clientWidth || y > clientHeight) {
+      this.#map.easeTo({ center: lngLat, duration: this.#prefersReducedMotion ? 0 : 300 });
+    }
+  }
+
+  /**
+   * Lights one type's dots by fading the rest, still there so the reader keeps their bearings.
    * @param {?string} labelType - The type, or null to show every dot alike.
    */
   lightType(labelType) {
-    this.#whenLoaded(() => {
-      if (!this.#map.getLayer(PROBLEM_LAYER)) return;
-      const opacity = labelType === null
-        ? 1
-        : ['case', ['==', ['get', 'labelType'], labelType], 1, UNLIT_OPACITY];
-      this.#map.setPaintProperty(PROBLEM_LAYER, 'circle-opacity', /** @type {any} */ (opacity));
-      this.#map.setPaintProperty(PROBLEM_LAYER, 'circle-stroke-opacity', /** @type {any} */ (opacity));
-    });
+    for (const element of this.#problemDots.values()) {
+      element.classList.toggle('is-unlit', labelType !== null && element.dataset.labelType !== labelType);
+    }
   }
 
   /**
@@ -687,23 +709,24 @@ export class ReportMap {
       .setDOMContent(content)
       .addTo(this.#map);
     this.#popup = popup;
-    const ring = (id) => this.#whenLoaded(() => {
-      if (this.#map.getLayer(PROBLEM_OPEN_LAYER)) {
-        this.#map.setFilter(PROBLEM_OPEN_LAYER, ['==', ['get', 'clusterId'], id]);
-      }
-    });
-    ring(problem.clusterId);
+    const dot = this.#problemDots.get(problem.clusterId);
+    dot?.classList.add('is-open');
+    dot?.setAttribute('aria-expanded', 'true');
     const onKey = (e) => {
       if (e.key === 'Escape') popup.remove();
     };
-    popup.getElement().addEventListener('keydown', onKey);
+    // Kept, since MapLibre has already dropped the popup's element by the time it fires `close`.
+    const card = popup.getElement();
+    card.addEventListener('keydown', onKey);
     popup.on('close', () => {
       if (this.#popup !== popup) return;
       this.#popup = null;
-      ring(-1);
+      dot?.classList.remove('is-open');
+      dot?.setAttribute('aria-expanded', 'false');
+      // Back to the dot it came from, so the reader's place in the map's points survives the card.
       const focus = document.activeElement;
-      if (!focus || focus === document.body || popup.getElement().contains(focus)) {
-        this.#map.getCanvas().focus({ preventScroll: true });
+      if (!focus || focus === document.body || card.contains(focus)) {
+        (dot ?? this.#map.getCanvas()).focus({ preventScroll: true });
       }
       this.#options.onProblemClose?.();
     });
@@ -807,8 +830,9 @@ export class ReportMap {
     element.addEventListener('focus', show);
     element.addEventListener('mouseleave', hide);
     element.addEventListener('blur', close);
-    element.addEventListener('click', (e) => {
-      e.stopPropagation();
+    element.addEventListener('click', () => {
+      // MapLibre's Marker stops a mousedown from focusing it, so a click does here, for Escape to reach the button.
+      element.focus({ preventScroll: true });
       if (pinned) {
         close();
       } else {
@@ -820,7 +844,7 @@ export class ReportMap {
       if (e.key === 'Escape') close();
     });
     element.hidden = !this.#placesVisible;
-    new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
+    this.#addPoint(element, [place.lng, place.lat], false);
     this.#places.push(element);
   }
 
@@ -832,6 +856,7 @@ export class ReportMap {
     this.#placesVisible = visible;
     if (!visible) this.#openPlace?.();
     for (const element of this.#places) element.hidden = !visible;
+    this.#points?.refresh();
     this.#placesToggle?.setChecked(visible);
   }
 
@@ -885,7 +910,7 @@ export class ReportMap {
     element.addEventListener('blur', () => onLocationHover?.(null));
     element.addEventListener('click', () => onLocationClick?.(clusterId));
 
-    const marker = new maplibregl.Marker({ element }).setLngLat([lng, lat]).addTo(this.#map);
+    const marker = this.#addPoint(element, [lng, lat]);
     this.#markers.set(clusterId, { marker, element, labelType });
   }
 
@@ -896,14 +921,7 @@ export class ReportMap {
   lightLocation(clusterId) {
     for (const [id, { element }] of this.#markers) element.classList.toggle('is-lit', id === clusterId);
     const lit = clusterId === null ? null : this.#markers.get(clusterId);
-    if (!lit) return;
-    const lngLat = lit.marker.getLngLat();
-    // Where the icon is drawn, which the aligned view's offset puts away from its anchor.
-    const { x, y } = this.#map.project(lngLat).add(lit.marker.getOffset());
-    const { clientWidth, clientHeight } = this.#map.getContainer();
-    if (x < 0 || y < 0 || x > clientWidth || y > clientHeight) {
-      this.#map.easeTo({ center: lngLat, duration: this.#prefersReducedMotion ? 0 : 300 });
-    }
+    if (lit) this.#bringIntoView(lit.marker);
   }
 
   /** @returns {number} The map's scale at its center now. */

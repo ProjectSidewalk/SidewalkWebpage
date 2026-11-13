@@ -10,6 +10,7 @@ export class ReportMapToggle {
   /** @type {?HTMLElement} */ #root = null;
   /** @type {?HTMLInputElement} */ #input = null;
   /** @type {?HTMLElement} */ #noteElement = null;
+  #name;
   #text;
   /** @type {?string} */ #note;
   #checked;
@@ -17,12 +18,15 @@ export class ReportMapToggle {
 
   /**
    * @param {object} options
+   * @param {string} options.name - Which switch this is, as `data-toggle`: a map can carry several, and a test or
+   *   style must tell them apart without reading the translated label.
    * @param {string} options.text - The switch's label, already translated.
    * @param {?string} [options.note=null] - A caveat shown under the switch while it is on, and read with it always.
    * @param {boolean} [options.checked=true] - Whether it starts on.
    * @param {(shown: boolean) => void} options.onChange - Called with the new state when the reader flips it.
    */
-  constructor({ text, note = null, checked = true, onChange }) {
+  constructor({ name, text, note = null, checked = true, onChange }) {
+    this.#name = name;
     this.#text = text;
     this.#note = note;
     this.#checked = checked;
@@ -36,6 +40,7 @@ export class ReportMapToggle {
   onAdd() {
     const root = document.createElement('div');
     root.className = 'maplibregl-ctrl report-map-toggle';
+    root.dataset.toggle = this.#name;
     const label = document.createElement('label');
     label.className = 'report-map-toggle__label';
     const input = document.createElement('input');
