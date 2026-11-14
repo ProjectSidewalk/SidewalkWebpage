@@ -158,6 +158,10 @@ describe('i18next over our locale files', () => {
       const singular = new Intl.PluralRules(language).select(1);
       expect(page.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
       expect(page.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
+      // A form this language's file leaves out (Spanish `_many`, for a million) reads its own `_other`, not English.
+      const million = new Intl.PluralRules(language).select(1000000);
+      const ownForm = `${key}_${million}` in own || !(`${key}_other` in own) ? million : 'other';
+      expect(page.i18next.t(`common:${key}`, { count: 1000000 })).toBe(expected(ownForm, 1000000));
     });
 
     test('renders a distance through our formatter, with the unit the page was given', () => {

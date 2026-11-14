@@ -15,7 +15,9 @@ import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 const i18next = { t: (key) => key };
 mockModule('i18next', () => ({ default: i18next }));
 
-const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
+// main.css comes along because its [hidden] rule is what collapses a row that sets its own display.
+const DASHBOARD_CSS = ['frontend/css/main.css', 'frontend/css/pages/user-dashboard.css']
+  .map((file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).join('\n');
 
 const PAGE_SIZE = 5;
 
@@ -171,8 +173,6 @@ describe('the dashboard\'s needs-re-audit list', () => {
     });
 
     it('collapses the rows it holds back, not just in the DOM', async () => {
-      // .ud-reaudit-row sets its own display, which beats the UA stylesheet's [hidden] rule -- so the attribute
-      // alone leaves every row on screen while the property still reads true.
       await init(15);
 
       const [firstShown] = rows();

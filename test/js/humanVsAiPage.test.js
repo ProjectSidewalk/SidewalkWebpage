@@ -207,7 +207,7 @@ describe('Humans vs AI — labeler lens', () => {
   test('scales count bars against the largest count on either side', async () => {
     await render(BUSY);
     const widths = [...document.querySelectorAll('#hva-type-mix .dq-bar')].map((bar) => bar.style.width);
-    expect(widths).toEqual(['100%', `${(100 / 600) * 100}%`, '50%', '0%']);
+    expect(widths).toEqual(['100%', '16.6667%', '50%', '0%']);
   });
 
   test('gives each type’s correct rate, muting a side with too few validated labels', async () => {

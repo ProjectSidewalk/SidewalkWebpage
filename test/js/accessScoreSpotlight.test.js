@@ -22,8 +22,8 @@ const STRINGS = {
 };
 
 /** i18next's escaping, character for character, for the calls that ask for it. */
-const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
+const escapeLikeI18next = (value) => String(value).replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;',
 })[c]);
 
 // Keys pass through with their interpolation values appended, so two renderings of one key can be told apart. The

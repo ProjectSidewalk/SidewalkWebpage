@@ -470,16 +470,34 @@ describe('filling the grid, voting, and swapping cards', () => {
       expect(cards()).toHaveLength(6);
     });
 
+  test('a reader who moved on while the thanks showed keeps their place when the card swaps', async () => {
+    batches = [{ labelsOfType: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => labelEntry(id)) }];
+    await renderGrid();
+    vi.useFakeTimers();
+    const agree = cards()[0].querySelector('.lvg-btn-agree');
+    agree.focus();
+    agree.click();
+    await vi.advanceTimersByTimeAsync(0);
+    const elsewhere = cards()[1].querySelector('.lvg-btn');
+    elsewhere.focus();
+
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   test('a vote the server refuses is reported and the buttons come back', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     lazyIdentityFetch = vi.fn(async () => ({ ok: false, status: 403 }));
     batches = [{ labelsOfType: [labelEntry(1)] }];
     await renderGrid();
-    cards()[0].querySelector('.lvg-btn-unsure').click();
+    const unsure = cards()[0].querySelector('.lvg-btn-unsure');
+    unsure.focus();
+    unsure.click();
     await settle();
 
     expect(error).toHaveBeenCalledWith('Failed to submit validation', expect.any(Error));
     expect([...cards()[0].querySelectorAll('.lvg-btn')].some((button) => button.disabled)).toBe(false);
+    expect(document.activeElement).toBe(unsure);
     expect(cards()[0].querySelector('.lvg-card-thanks')).toBeNull();
   });
 

@@ -140,26 +140,27 @@ test.describe('/report/neighborhood', () => {
       expect(consoleErrors).toEqual([]);
 
       test.skip(data.places.length === 0, 'the region has no important places, so no map carries the switch');
-      // Every live map got every place and its own switch (#5900).
+      // Every live map got every place and its own switch (#5900), found by name since street maps have two.
+      const placesSwitch = (host) => host.getByRole('checkbox', {name: 'Places'});
       for (const host of maps) {
-        await expect(host.locator('.report-map-toggle__input')).toBeChecked();
+        await expect(placesSwitch(host)).toBeChecked();
         await expect(host.locator('button.report-map-place')).toHaveCount(data.places.length);
         await expect(host.locator('button.report-map-place[hidden]')).toHaveCount(0);
       }
       test.skip(maps.length < 2, 'one map only: nothing to show the switch is per map');
 
       const [first, second] = maps;
-      await first.locator('.report-map-toggle__input').uncheck();
+      await placesSwitch(first).uncheck();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(data.places.length);
       // Unchecking scrolled the first map into view, which can unmount a street section's map further down; bring the
       // second back so its toggle exists before asserting on it.
       await expectLiveMap(second);
       // The other map's places stay, so a reader's choice on one map is not made for them on the rest.
       await expect(second.locator('button.report-map-place[hidden]')).toHaveCount(0);
-      await expect(second.locator('.report-map-toggle__input')).toBeChecked();
+      await expect(placesSwitch(second)).toBeChecked();
 
       await expectLiveMap(first);
-      await first.locator('.report-map-toggle__input').check();
+      await placesSwitch(first).check();
       await expect(first.locator('button.report-map-place[hidden]')).toHaveCount(0);
       expect(consoleErrors).toEqual([]);
     });

@@ -287,7 +287,7 @@ describe('the endpoint and format bars', () => {
     expect(barRows('endpoints')).toEqual([
       ['labelClusters', '1,000 · 100 docs'], ['streets', '200 · 150 docs'], ['regions', '0 · 50 docs'],
     ]);
-    expect(barWidths('endpoints')[0]).toEqual(['90.9090909090909%', '9.090909090909092%']);
+    expect(barWidths('endpoints')[0]).toEqual(['90.9091%', '9.09091%']);
     const legend = (chart) => document.getElementById(`api-toggle-${chart}`).closest('.api-docs-control')
       .querySelector('.api-docs-legend');
     expect(legend('endpoints').classList.contains('ps-hidden')).toBe(false);

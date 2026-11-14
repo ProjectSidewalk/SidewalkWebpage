@@ -378,6 +378,8 @@ export class LandingValidationGrid {
   async #validate(card, entry, result) {
     const label = entry.label;
     const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (card.querySelectorAll('.lvg-btn'));
+    // Read before the buttons are disabled, since the browser takes focus off a disabled button.
+    const hadFocus = card.contains(document.activeElement);
     buttons.forEach((button) => {
       button.disabled = true;
     });
@@ -426,12 +428,15 @@ export class LandingValidationGrid {
       thanks.className = 'lvg-card-thanks';
       thanks.textContent = i18next.t('common:map.thanks');
       card.querySelector('.lvg-card-question-row').replaceWith(thanks);
-      setTimeout(() => this.#replaceCard(card), LandingValidationGrid.#THANKS_MS);
+      setTimeout(() => this.#replaceCard(card, hadFocus), LandingValidationGrid.#THANKS_MS);
     } catch (e) {
       console.error('Failed to submit validation', e);
       buttons.forEach((button) => {
         button.disabled = false;
       });
+      if (hadFocus && document.activeElement === document.body) {
+        /** @type {HTMLElement} */ (card.querySelector(`.lvg-btn-${result.toLowerCase()}`))?.focus();
+      }
     }
   }
 
@@ -439,13 +444,16 @@ export class LandingValidationGrid {
    * Swaps a finished (or broken) card for the next pooled label, refilling the pool in the background as it runs
    * low. With the pool empty the card is simply removed, and an emptied-out grid hides the whole section.
    * @param {HTMLElement} card - The card to replace.
+   * @param {boolean} [votedWithFocus] - Whether focus was in the card when its vote was cast.
    */
-  async #replaceCard(card) {
+  async #replaceCard(card, votedWithFocus = false) {
     if (this.#pool.length <= LandingValidationGrid.#REFILL_THRESHOLD) {
       const refill = this.#loadBatch(LandingValidationGrid.#REFILL_FETCH);
       if (this.#pool.length === 0) await refill;
     }
-    const hadFocus = card.contains(document.activeElement);
+    // Disabling the vote buttons dropped focus to the page; a reader who has since moved on keeps their place.
+    const focusFellToPage = votedWithFocus && document.activeElement === document.body;
+    const hadFocus = focusFellToPage || card.contains(document.activeElement);
     const index = [...this.#grid.children].indexOf(card);
     const entry = this.#pool.shift();
     if (entry) {
