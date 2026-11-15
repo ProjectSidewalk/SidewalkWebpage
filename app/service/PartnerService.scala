@@ -55,7 +55,8 @@ trait PartnerService {
  *
  * Reads that serve the public landing page are cached in-process: partner data changes only on rare admin writes but
  * renders on the highest-traffic page. Same-instance writes invalidate immediately; the TTLs bound how stale another
- * instance can get (a global-partner edit is made on one city's app but rendered by all of them).
+ * instance can get (a global-partner edit, or any city's edit on /about, is made on one city's app but rendered by
+ * all of them).
  */
 @Singleton
 class PartnerServiceImpl @Inject() (

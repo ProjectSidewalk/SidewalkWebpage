@@ -29,12 +29,12 @@
 @languageCount = @{commonData.supportedLanguages.map(_.takeWhile(_ != '-')).distinct.size}
 
 @* The partner logo grid (#5980): every organization in the shared partner table once, project-wide partners first,
-   then the rest alphabetically (PartnerMetadata.groupForAbout). Each grid renders only when it has logos, so a fresh
-   database shows just the prose above. Markup mirrors the landing partial (landing/_partners), including why the
-   name's psTooltip sits on the non-focusable wrapper rather than the link: the alt already describes the logo, and
-   aria-describedby on the link would make a screen reader read the name twice. *@
-@projectPartners = @{PartnerMetadata.groupForAbout(partners)._1}
-@otherPartners = @{PartnerMetadata.groupForAbout(partners)._2}
+   then the rest alphabetically, leaving out private cities' partners (PartnerMetadata.groupForAbout, which takes the
+   public city ids from config so the rule isn't re-declared here). Each grid renders only when it has logos, so a
+   fresh database shows just the prose above. Markup mirrors the landing partial (landing/_partners), including why
+   the name's psTooltip sits on the non-focusable wrapper rather than the link: the alt already describes the logo,
+   and aria-describedby on the link would make a screen reader read the name twice. *@
+@publicCityIds = @{commonData.allCityInfo.filter(_.isPublic).map(_.cityId).toSet}
 
 @partnerLogoImg(p: PartnerMetadata) = {
   <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.logoVersion"
@@ -321,16 +321,20 @@
         <h2>@Messages("about.partners.title")</h2>
         <p>@Messages("about.partners.body")</p>
         <p>@Html(Messages("about.partners.schools"))</p>
-        @if(projectPartners.nonEmpty) {
-          <h3 class="about-partners-heading" id="about-project-partners-title">
-            @Messages("about.partners.project.title")</h3>
-          <p class="about-partners-tagline">@Messages("landing.partners.project.tagline")</p>
-          @partnerGrid(projectPartners, "about-project-partners-title")
-        }
-        @if(otherPartners.nonEmpty) {
-          <h3 class="about-partners-heading" id="about-city-partners-title">@Messages("about.partners.city.title")</h3>
-          <p class="about-partners-tagline">@Messages("about.partners.city.tagline")</p>
-          @partnerGrid(otherPartners, "about-city-partners-title")
+        @* Grouped once here, since a Twirl value definition would re-run the grouping at each use: groups._1 is the
+           project-wide partners, groups._2 every other organization. *@
+        @defining(PartnerMetadata.groupForAbout(partners, publicCityIds)) { groups =>
+          @if(groups._1.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-project-partners-title">
+              @Messages("about.partners.project.title")</h3>
+            <p class="about-partners-tagline">@Messages("landing.partners.project.tagline")</p>
+            @partnerGrid(groups._1, "about-project-partners-title")
+          }
+          @if(groups._2.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-city-partners-title">@Messages("about.partners.city.title")</h3>
+            <p class="about-partners-tagline">@Messages("about.partners.city.tagline")</p>
+            @partnerGrid(groups._2, "about-city-partners-title")
+          }
         }
       </div>
     </section>

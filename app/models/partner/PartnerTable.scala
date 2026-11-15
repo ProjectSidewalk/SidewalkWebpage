@@ -11,7 +11,9 @@ import scala.concurrent.ExecutionContext
 
 /**
  * A community-partner logo shown on the landing page (#4516). `cityId` None means project-wide: shown on every
- * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global".
+ * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global". Every deployment's
+ * /about page also shows the project-wide rows and those of public cities, one logo per organization
+ * ([[PartnerMetadata.groupForAbout]], #5980).
  */
 case class Partner(
     partnerId: Int,
@@ -73,24 +75,47 @@ object PartnerMetadata {
   }
 
   /**
-   * Groups every city's partners for the /about page's logo grid (#5980). The table holds one row per organization per
-   * city, so each organization (by [[nameKey]]) shows once. One with any project-wide row is a project-wide partner,
-   * shown with the lowest-id project-wide row's logo, in the project-wide display order the admins set. Every other
-   * organization shows the lowest-id row's logo, sorted alphabetically by name, ignoring case and spacing.
+   * Groups every city's partners for the /about page's logo grid (#5980). Only project-wide rows and rows of a
+   * public city count: a private deployment (unlaunched, or private at its partners' request) keeps its partners
+   * off every other deployment's page. That filter runs first, so an organization listed by a private and a public
+   * city still shows, from the public city's row.
+   *
+   * The table holds one row per organization per city, so each organization (by [[nameKey]]) shows once. One with any
+   * project-wide row is a project-wide partner, shown with the lowest-id project-wide row's logo, in the project-wide
+   * display order the admins set. Every other organization shows its lowest-id row's logo, sorted alphabetically with
+   * a root-locale collator, so an accented or non-Latin initial sorts with its base letter rather than after Z. A
+   * winning row with no URL or alt text takes the first one its sibling rows have, lowest id first, since an
+   * Administrator can't edit another city's row to add the link there.
    *
    * {{{
-   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter".
-   * groupForAbout(Seq(row4, row2, row9)) // == (Seq(row9), Seq(row2))
+   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter", 5 = private "Foo".
+   * groupForAbout(Seq(row4, row2, row9, row5), Set("seattle", "chicago")) // == (Seq(row9), Seq(row2))
    * }}}
    *
+   * @param publicCityIds The ids of the deployments whose `city-params.status` is public.
    * @return (the project-wide partners, every other organization), each with one row per organization
    */
-  def groupForAbout(partners: Seq[PartnerMetadata]): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
-    val (projectWide, others) = partners.groupBy(p => nameKey(p.name)).values.toSeq.partitionMap { rows =>
-      val projectWideRows = rows.filter(_.cityId.isEmpty)
-      if (projectWideRows.nonEmpty) Left(projectWideRows.minBy(_.partnerId)) else Right(rows.minBy(_.partnerId))
+  def groupForAbout(
+      partners: Seq[PartnerMetadata],
+      publicCityIds: Set[String]
+  ): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
+    val shown                 = partners.filter(_.cityId.forall(publicCityIds.contains))
+    val (projectWide, others) = shown.groupBy(p => nameKey(p.name)).values.toSeq.partitionMap { rows =>
+      val byId     = rows.sortBy(_.partnerId)
+      val winner   = byId.find(_.cityId.isEmpty).getOrElse(byId.head)
+      val gapsFill = winner.copy(
+        url = winner.url.orElse(byId.flatMap(_.url).headOption),
+        altText = winner.altText.orElse(byId.flatMap(_.altText).headOption)
+      )
+      if (winner.cityId.isEmpty) Left(gapsFill) else Right(gapsFill)
     }
-    (projectWide.sortBy(p => (p.displayOrder, p.partnerId)), others.sortBy(p => nameKey(p.name)))
+    val collator = java.text.Collator.getInstance(java.util.Locale.ROOT)
+    collator.setStrength(java.text.Collator.SECONDARY)
+    val alphabetical = Ordering.fromLessThan[PartnerMetadata] { (a, b) =>
+      val byCollator = collator.compare(nameKey(a.name), nameKey(b.name))
+      if (byCollator != 0) byCollator < 0 else nameKey(a.name) < nameKey(b.name)
+    }
+    (projectWide.sortBy(p => (p.displayOrder, p.partnerId)), others.sorted(using alphabetical))
   }
 
   /**

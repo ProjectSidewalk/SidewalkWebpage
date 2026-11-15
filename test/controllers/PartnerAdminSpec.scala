@@ -161,6 +161,12 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
     contentAsString(resp)
   }
 
+  private def aboutBody(): String = {
+    val resp = route(app, FakeRequest(GET, "/about")).get
+    status(resp) mustBe OK
+    contentAsString(resp)
+  }
+
   "the partner admin surface" should {
     "refuse a signed-in visitor, naming the role it wants" in {
       // The anonymous checks in RouteAuthPostureSpec cannot tell WithAdmin from WithOwner; this can.
@@ -337,7 +343,9 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
     "let an Owner update a global row" in {
       val globalId = createPartner(ownerCookies, "/adminapi/globalPartners", "Partner Spec Global Editable")
-      val update   = route(
+      // Warms the /about cache (#5980) with the old name, so the assertion below proves the write invalidated it.
+      aboutBody() must include("Partner Spec Global Editable")
+      val update = route(
         app,
         FakeRequest(PUT, s"/adminapi/partners/$globalId")
           .withHeaders(XHR)
@@ -355,6 +363,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       names must contain("Partner Spec Global Renamed")
       // The landing list is cached in-process; a write must invalidate it so the admin sees the change immediately.
       landingBody() must include("Partner Spec Global Renamed")
+      aboutBody() must (include("Partner Spec Global Renamed") and not include "Partner Spec Global Editable")
     }
   }
 
