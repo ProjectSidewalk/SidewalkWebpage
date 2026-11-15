@@ -130,7 +130,7 @@ and fills a database schema in an afternoon. The server side is still yours to r
 
 Project Sidewalk began in 2012 with a Google Faculty Research Award and NSF Award
 [#1302338](https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338), led by Prof. Jon E. Froehlich and then–PhD
-student Kotaro Hara. The first deployment launched in Washington, DC, around 2017 (CHI 2019 Best Paper, above). The
+student Kotaro Hara. The first deployment launched in Washington, DC, in 2016 (CHI 2019 Best Paper, above). The
 work is currently supported by NSF Awards [#2125087](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087)
 (UI Chicago) and [#2236277](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2236277) (Utah State University). See
 the [wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) for the fuller history, deployments, and
