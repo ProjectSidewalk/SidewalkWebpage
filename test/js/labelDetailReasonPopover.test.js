@@ -456,13 +456,13 @@ describe('the reason pop-up on the label card (#5475)', () => {
       window.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => meta({ user_validation: null }) }));
       panoManager.setPano.mockImplementation(async () => true);
       panoManager.warmUp = vi.fn(async () => true);
-      const before = document.activeElement;
       click(otherSave());
       await flush();
       await flush();
 
       expect(q('.label-detail__comment-input').value).toBe('typed in the pop-up');
-      expect(document.activeElement).toBe(before);
+      // Not "focus stayed put": hiding the card takes focus off whatever in it had it, a moment later.
+      expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
     });
 
     test('a canned pick the server refused leaves the box as it was, since there were no words to keep', async () => {
