@@ -249,6 +249,9 @@ about.data.body = Tout ce que nous collectons est ouvert. Téléchargez les éti
 about.partners.title = Partenaires locaux
 about.partners.body = Nous travaillons main dans la main avec des associations de défense des personnes handicapées, des collectivités, des écoles et des groupes locaux du monde entier — dont Easterseals, World Enabled, Liga Peatonal et l''Active Transportation Alliance — pour planifier les déploiements, organiser des événements de cartographie collective et transformer les données en action locale.
 about.partners.schools = Des enseignants intègrent Project Sidewalk à leurs cours d''éducation civique et de science des données, et notre équipe et nos partenaires ont expérimenté des programmes d''apprentissage par le service et d''insertion professionnelle pour des jeunes en situation de handicap. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Découvrez comment utiliser Project Sidewalk dans votre communauté</a>.
+about.partners.project.title = Partenaires de l''ensemble du projet
+about.partners.city.title = Partenaires dans nos villes
+about.partners.city.tagline = Collectivités, écoles, associations et organisations locales avec lesquelles nous travaillons dans une ou plusieurs de nos villes.
 about.funding.title = Financement de la recherche
 about.funding.body = Project Sidewalk est une recherche universitaire financée par des subventions, soutenue par la National Science Foundation avec le concours de Google, de la Fondation Alfred P. Sloan, de PacTrans et du UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
 about.cta.title = Aidez-nous à cartographier chaque trottoir

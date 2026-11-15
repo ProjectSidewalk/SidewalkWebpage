@@ -236,6 +236,9 @@ about.data.body = Alles wat we verzamelen is open. Download labels, labelcluster
 about.partners.title = Maatschappelijke partners
 about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
 about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
+about.partners.project.title = Projectbrede partners
+about.partners.city.title = Partners in onze steden
+about.partners.city.tagline = Overheden, scholen, belangenorganisaties en gemeenschapsorganisaties waarmee we in een of meer van onze steden samenwerken.
 about.funding.title = Onderzoeksfinanciering
 about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
 about.cta.title = Help ons elk trottoir in kaart te brengen

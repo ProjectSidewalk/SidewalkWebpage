@@ -73,6 +73,27 @@ object PartnerMetadata {
   }
 
   /**
+   * Groups every city's partners for the /about page's logo grid (#5980). The table holds one row per organization per
+   * city, so each organization (by [[nameKey]]) shows once. One with any project-wide row is a project-wide partner,
+   * shown with the lowest-id project-wide row's logo, in the project-wide display order the admins set. Every other
+   * organization shows the lowest-id row's logo, sorted alphabetically by name, ignoring case and spacing.
+   *
+   * {{{
+   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter".
+   * groupForAbout(Seq(row4, row2, row9)) // == (Seq(row9), Seq(row2))
+   * }}}
+   *
+   * @return (the project-wide partners, every other organization), each with one row per organization
+   */
+  def groupForAbout(partners: Seq[PartnerMetadata]): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
+    val (projectWide, others) = partners.groupBy(p => nameKey(p.name)).values.toSeq.partitionMap { rows =>
+      val projectWideRows = rows.filter(_.cityId.isEmpty)
+      if (projectWideRows.nonEmpty) Left(projectWideRows.minBy(_.partnerId)) else Right(rows.minBy(_.partnerId))
+    }
+    (projectWide.sortBy(p => (p.displayOrder, p.partnerId)), others.sortBy(p => nameKey(p.name)))
+  }
+
+  /**
    * Partner identity across scopes: project-wide and city rows aren't linked, so the admin-typed name is the only
    * shared key. Case and spacing are ignored so a stray capital doesn't show a logo twice.
    */
@@ -129,6 +150,9 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         .sortBy(p => (p.cityId.isDefined, p.displayOrder))
     ).result
   }
+
+  /** Every partner of every city plus the project-wide ones, unordered: the /about page's grid (#5980). */
+  def getAll: DBIO[Seq[PartnerMetadata]] = metadataOf(partners).result
 
   /** All partners in one scope (None = global), in display order. */
   def getByScope(cityId: Option[String]): DBIO[Seq[PartnerMetadata]] = {

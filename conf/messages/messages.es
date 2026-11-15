@@ -249,6 +249,9 @@ about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupo
 about.partners.title = Socios comunitarios
 about.partners.body = Trabajamos de la mano con organizaciones de defensa de la discapacidad, gobiernos, escuelas y grupos comunitarios de todo el mundo — incluidos Easterseals, World Enabled, Liga Peatonal y la Active Transportation Alliance — para planear despliegues, organizar eventos de mapeo comunitario y convertir los datos en acción local.
 about.partners.schools = Docentes llevan Project Sidewalk a clases de civismo y ciencia de datos, y nuestro equipo y socios han pilotado planes de estudio de aprendizaje-servicio y desarrollo laboral para jóvenes con discapacidades. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Aprende a usar Project Sidewalk en tu comunidad</a>.
+about.partners.project.title = Socios de todo el proyecto
+about.partners.city.title = Socios en nuestras ciudades
+about.partners.city.tagline = Gobiernos, escuelas, grupos de defensa y organizaciones comunitarias con los que trabajamos en una o más de nuestras ciudades.
 about.funding.title = Financiamiento de la investigación
 about.funding.body = Project Sidewalk es investigación académica financiada con subvenciones, con el apoyo de la National Science Foundation y apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
 about.cta.title = Ayúdanos a mapear todas las banquetas
