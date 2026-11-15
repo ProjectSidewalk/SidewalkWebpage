@@ -534,7 +534,7 @@ p#conditional-text {
   text-wrap: balance;
 }
 
-/* With no partner logos above it, the notice closes the section as a footnote under the credit line, set off by a
+/* With no city logos above it, the notice closes the section as a footnote under the credit line, set off by a
    rule so it doesn't read as part of the credits. */
 #partners-credit + .partner-section-notice {
   margin-top: var(--space-xl);
@@ -576,12 +576,10 @@ p#conditional-text {
   object-fit: contain;
 }
 
-/* The credit line (long-time partners, students, volunteers) sits under the creator logos, and names enough
-   organizations that it needs a wider measure than the tagline above to stay at three lines. */
+/* The credit line (students, volunteers) sits under the creator logos. */
 #partners-credit {
   margin-top: var(--space-xl);
   margin-bottom: 0;
-  max-width: 780px;
 }
 
 /* The project-wide and creator strips sit a step below the city's own partners, which are what a visitor to this city

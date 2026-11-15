@@ -37,7 +37,7 @@ class PartnersSectionViewSpec extends SidewalkSpec with ViewSpecFixtures {
     }
 
     "render the notice exactly once, with its LabelMap and Stories links" in {
-      Seq(Seq(partner), Seq.empty).foreach { partners =>
+      Seq(Seq(partner), Seq.empty, Seq(projectWide(2, "SciStarter"))).foreach { partners =>
         val body = render(partners, Some(contact))
         "partners-official-contact".r.findAllMatchIn(body).length mustBe 1
         body must include("""href="/labelMap" data-partner-source="official-contact-labelmap"""")
@@ -48,6 +48,11 @@ class PartnersSectionViewSpec extends SidewalkSpec with ViewSpecFixtures {
     "keep the notice with the city's logos, above the project-wide partners" in {
       val body = render(Seq(partner, projectWide(2, "SciStarter")), Some(contact))
       body.indexOf("partners-official-contact") must be < body.indexOf("project-partners-title")
+    }
+
+    "put the notice at the foot when only project-wide partners render, not under their row" in {
+      val body = render(Seq(projectWide(2, "SciStarter")), Some(contact))
+      body.indexOf("partners-official-contact") must be > body.indexOf("partners-credit")
     }
 
     "leave the notice out when the city has none" in {
@@ -74,7 +79,7 @@ class PartnersSectionViewSpec extends SidewalkSpec with ViewSpecFixtures {
     }
 
     "leave out a project-wide partner the city also lists, ignoring case and spacing" in {
-      val body = render(Seq(projectWide(2, "city of  burnaby "), projectWide(3, "SciStarter"), partner), None)
+      val body = render(Seq(projectWide(2, "city of\u00a0 burnaby "), projectWide(3, "SciStarter"), partner), None)
       "partnerLogo/2".r.findAllMatchIn(body).length mustBe 0
       body must include("partnerLogo/1")
       body must include("partnerLogo/3")
