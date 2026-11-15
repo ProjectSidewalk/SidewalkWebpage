@@ -518,10 +518,10 @@ p#conditional-text {
   vertical-align: -0.06em;
 }
 
-/* Breathing room between the community-partners strip (or the city's contact notice under it) and the created-by
-   section, when both render. */
-.partner-logos + #creators-title,
-.partner-section-notice + #creators-title {
+/* Breathing room between one part of the section and the next heading: the city's strip (or its contact notice), the
+   project-wide strip, and the created-by credit, whichever of them render. */
+.partner-logos + .partner-section-heading,
+.partner-section-notice + .partner-section-heading {
   margin-top: var(--space-xxl);
 }
 
@@ -584,11 +584,9 @@ p#conditional-text {
   max-width: 780px;
 }
 
-/* The static creator logos are a visually subordinate strip. */
-.partner-logos--creators {
-  gap: var(--space-lg) var(--space-xxl);
-}
-
+/* The project-wide and creator strips sit a step below the city's own partners, which are what a visitor to this city
+   came for. */
+.partner-logos--project img,
 .partner-logos--creators img {
   height: 56px;
   max-width: 240px;
@@ -605,6 +603,7 @@ p#conditional-text {
     max-width: 160px;
   }
 
+  .partner-logos--project img,
   .partner-logos--creators img {
     height: 40px;
     max-width: 160px;
