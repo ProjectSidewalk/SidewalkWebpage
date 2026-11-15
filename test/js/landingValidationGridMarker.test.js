@@ -449,8 +449,13 @@ describe('filling the grid, voting, and swapping cards', () => {
       const disagree = card.querySelector('.lvg-btn-disagree');
       disagree.focus();
       disagree.click();
-      expect([...card.querySelectorAll('.lvg-btn')].every((button) => button.disabled)).toBe(true);
+      expect([...card.querySelectorAll('.lvg-btn')].every((button) => button.getAttribute('aria-disabled') === 'true'))
+        .toBe(true);
+      // Still focusable, so a keyboard vote keeps its place, and a second press sends nothing more.
+      expect(document.activeElement).toBe(disagree);
+      disagree.click();
       await vi.advanceTimersByTimeAsync(0);
+      expect(lazyIdentityFetch).toHaveBeenCalledTimes(1);
 
       const payload = JSON.parse(lazyIdentityFetch.mock.calls[0][1].body);
       expect(payload).toMatchObject({
@@ -474,7 +479,8 @@ describe('filling the grid, voting, and swapping cards', () => {
     batches = [{ labelsOfType: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => labelEntry(id)) }];
     await renderGrid();
     vi.useFakeTimers();
-    const agree = cards()[0].querySelector('.lvg-btn-agree');
+    const voted = cards()[0];
+    const agree = voted.querySelector('.lvg-btn-agree');
     agree.focus();
     agree.click();
     await vi.advanceTimersByTimeAsync(0);
@@ -482,7 +488,29 @@ describe('filling the grid, voting, and swapping cards', () => {
     elsewhere.focus();
 
     await vi.advanceTimersByTimeAsync(1200);
+    expect(document.contains(voted)).toBe(false);
+    expect(cards()).toHaveLength(6);
     expect(document.activeElement).toBe(elsewhere);
+  });
+
+  test('a voted card whose image then fails is swapped once, not again when its thanks runs out', async () => {
+    batches = [{ labelsOfType: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => labelEntry(id)) }];
+    await renderGrid();
+    vi.useFakeTimers();
+    const voted = cards()[0];
+    voted.querySelector('.lvg-btn-agree').click();
+    await vi.advanceTimersByTimeAsync(0);
+    voted.querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    voted.querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    await vi.advanceTimersByTimeAsync(1200);
+
+    const shown = () => cards().map((card) => card.querySelector('.lvg-card-photo').src.split('/').pop());
+    expect(shown()).toEqual(['7', '2', '3', '4', '5', '6']);
+    // Label 8 is still in the pool: the thanks timer didn't spend it on the card that was already gone.
+    cards()[1].querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    cards()[1].querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shown()[1]).toBe('8');
   });
 
   test('a vote the server refuses is reported and the buttons come back', async () => {
@@ -496,7 +524,7 @@ describe('filling the grid, voting, and swapping cards', () => {
     await settle();
 
     expect(error).toHaveBeenCalledWith('Failed to submit validation', expect.any(Error));
-    expect([...cards()[0].querySelectorAll('.lvg-btn')].some((button) => button.disabled)).toBe(false);
+    expect([...cards()[0].querySelectorAll('.lvg-btn')].some((button) => button.hasAttribute('aria-disabled'))).toBe(false);
     expect(document.activeElement).toBe(unsure);
     expect(cards()[0].querySelector('.lvg-card-thanks')).toBeNull();
   });
@@ -523,6 +551,24 @@ describe('filling the grid, voting, and swapping cards', () => {
       answerRefill({ ok: true, json: async () => ({ labelsOfType: [] }) });
       await settle();
     });
+
+  test('a card that finds the pool empty waits for the refill already on its way', async () => {
+    batches = [{ labelsOfType: [1, 2, 3, 4, 5, 6, 7].map((id) => labelEntry(id)) }];
+    await renderGrid();
+    let answerRefill;
+    batches = [() => new Promise((resolve) => { answerRefill = resolve; })];
+    const [first, second] = cards();
+    for (const card of [first, first, second, second]) {
+      card.querySelector('.lvg-card-photo').dispatchEvent(new Event('error'));
+    }
+    await settle();
+    expect(document.contains(second)).toBe(true);
+
+    answerRefill({ ok: true, json: async () => ({ labelsOfType: [labelEntry(8)] }) });
+    await settle();
+    expect(cards().map((card) => card.querySelector('.lvg-card-photo').src.split('/').pop()))
+      .toEqual(['7', '8', '3', '4', '5', '6']);
+  });
 
   test('with nothing left to show, a finished card is removed, and the last one hides the section', async () => {
     batches = [{ labelsOfType: [labelEntry(1)] }];
