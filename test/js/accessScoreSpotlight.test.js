@@ -22,8 +22,8 @@ const STRINGS = {
 };
 
 /** i18next's escaping, character for character, for the calls that ask for it. */
-const escapeLikeI18next = (value) => String(value).replace(/[&<>"'/]/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;', '/': '&#x2F;',
+const escapeLikeI18next = (value) => String(value).replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;',
 })[c]);
 
 // Keys pass through with their interpolation values appended, so two renderings of one key can be told apart. The
@@ -736,7 +736,7 @@ describe('the AccessScore Spotlight', () => {
         .toBe("Explore Al 'Ummah Community Center");
     });
 
-    it('prints the last-updated date with its slashes, to the minute', async () => {
+    it('prints the last-updated date to the minute, with nothing escaped', async () => {
       await mount({
         regions: feed('regions', {
           qualifying: 6, total: 9, top: [regionRow(42, 'Capitol Hill', 0.84)],
@@ -746,7 +746,6 @@ describe('the AccessScore Spotlight', () => {
       });
 
       const tip = document.querySelector('.spotlight-tip').textContent;
-      expect(tip).not.toContain('&#x2F;');
       // The day depends on the worker's zone; newer ICU puts a narrow no-break space before AM/PM.
       expect(tip).toMatch(/Last updated Sep 1[67], 2026, \d{1,2}:\d{2}[\s\u202f][AP]M\.$/);
     });

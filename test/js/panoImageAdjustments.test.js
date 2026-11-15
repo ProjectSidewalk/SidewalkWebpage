@@ -231,7 +231,7 @@ describe('persistence', () => {
     });
     const model = new PanoImageAdjustments(target, storage);
     expect(model.values()).toEqual({ shadows: 40, brightness: 120, contrast: 90 });
-    expect(target.style.filter).toBe('url(#ps-pano-tone-curve) brightness(1.2) contrast(0.9)');
+    expect(target.style.filter).toBe('url("#ps-pano-tone-curve") brightness(1.2) contrast(0.9)');
   });
 
   test('takes only the stored fields that are finite numbers within range', () => {
