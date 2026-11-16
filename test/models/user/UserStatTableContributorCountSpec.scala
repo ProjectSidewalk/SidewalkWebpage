@@ -1,5 +1,6 @@
 package models.user
 
+import models.utils.ConfigTable
 import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -8,7 +9,8 @@ import slick.dbio.DBIO
 import util.{RolledBackDb, SidewalkSpec}
 
 /**
- * The admin Overview's Contributors count (#4344). Seeds its own rows in a rolled-back transaction, so it runs on CI.
+ * The admin Overview's Contributors count (#4344) and the per-city contributor ids behind `/v3/api/aggregateStats`
+ * (#5914). Seeds its own rows in a rolled-back transaction, so it runs on CI.
  */
 class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -16,6 +18,7 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val userStatTable: UserStatTable = app.injector.instanceOf[UserStatTable]
+  private lazy val configTable: ConfigTable     = app.injector.instanceOf[ConfigTable]
 
   /**
    * Seeds a user with a `user_stat` row and, for an AI account, its role. Ids are MAX+1 because seeded dev dumps
@@ -113,6 +116,24 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
 
       // Only the labeler and the validator are new contributors.
       after mustBe before + 2
+    }
+  }
+
+  "ConfigTable.getContributorUserIdsBySchema" should {
+    "list a voter but not an AI voter" in {
+      val (validator, aiUser, ids) = runRolledBack(for {
+        schema    <- currentSchema
+        labeler   <- seedUser()
+        labelId   <- seedLabel(labeler)
+        validator <- seedUser()
+        _         <- seedVote(validator, labelId)
+        aiUser    <- seedUser(ai = true)
+        _         <- seedVote(aiUser, labelId)
+        ids       <- configTable.getContributorUserIdsBySchema(schema)
+      } yield (validator, aiUser, ids))
+
+      ids must contain(validator)
+      ids must not contain aiUser
     }
   }
 }

@@ -314,17 +314,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""SELECT contributor.user_id FROM #${FilteredTables.contributorIds(Some(schema))}""".as[String]
 
   /**
-   * The `user_id`s holding the AI role, from the shared login schema (#5828).
-   *
-   * Lets a caller strip AI accounts from a cross-city union of [[getContributorUserIdsBySchema]] once, rather than
-   * adding a role join to every city's query.
-   *
-   * @return DBIO action yielding the AI accounts' `user_id`s.
-   */
-  def getAiUserIds: DBIO[Seq[String]] =
-    sql"""SELECT user_id FROM sidewalk_login.user_role WHERE role = 'AI'""".as[String]
-
-  /**
    * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
    *
    * @param schema       The database schema to query
@@ -592,7 +581,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     ) AS audit_windows, (
         SELECT COUNT(*) AS cnt
         FROM #${FilteredTables.contributorIds(Some(schema))}
-        WHERE #${FilteredTables.notAi("contributor.user_id")}
     ) AS active_contributors, (
         -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
         -- Everyone's labels, since this counts the excluded users.

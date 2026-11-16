@@ -145,7 +145,8 @@ object CommonPageData {
  * more miles than the city has streets. Only cities where both the stats and the contributor query succeeded get a
  * `CityImpact`, so a partial failure can't render a tile reading zero next to tiles reading six figures.
  *
- * @param contributors        Distinct non-excluded users who added a non-tutorial label or validated one in this city.
+ * @param contributors        Distinct non-excluded people (AI accounts left out) who added a non-tutorial label or
+ *                            validated one in this city.
  * @param totalLabels         Non-tutorial, non-deleted labels from non-excluded users.
  * @param totalValidations    Validations from non-excluded users.
  * @param kmExploredNoOverlap Kilometers of distinct streets with a completed audit task.
@@ -1051,15 +1052,14 @@ object ConfigService {
     sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
 
   /**
-   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
-   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   * Counts contributors across cities from each city's contributor ids. Each city's ids are deduped here rather than
+   * trusted to arrive distinct, since a repeat within one city would read as a second city.
    *
    * @param perCity One city's contributor `user_id`s per element.
-   * @param aiIds   The AI accounts' `user_id`s.
    * @return        Each person counted once, and those in two or more cities.
    */
-  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
-    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+  def contributorCounts(perCity: Seq[Seq[String]]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).groupMapReduce(identity)(_ => 1)(_ + _)
     CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
   }
 
@@ -1976,9 +1976,7 @@ class ConfigServiceImpl @Inject() (
               .foreach(e => logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}"))
             idsF
           }
-          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            ConfigService.contributorCounts(perCity, aiIds.toSet)
-          }
+          Future.sequence(perCityFutures).map(ConfigService.contributorCounts)
         }
       }
       .recover { case e: Exception =>
