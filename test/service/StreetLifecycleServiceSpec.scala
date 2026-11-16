@@ -1,6 +1,6 @@
 package service
 
-import models.street.{StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdgeStatusChangeTable}
+import models.street.{StatusChangeWeek, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdgeStatusChangeTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
@@ -99,14 +99,19 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
     "bucket transitions by week and destination status" in {
       assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
       cleanUp()
-      val now = OffsetDateTime.now
+      // Compared with what the window held before the seed, since a real database can have recent changes of its own.
+      val now    = OffsetDateTime.now
+      val since  = now.minusWeeks(8)
+      val before = run(statusChangeTable.transitionsByWeek(since))
       seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, now)
       seedChange(StreetEdgeStatus.NoImagery, StreetEdgeStatus.Closed, now.minusWeeks(3))
+      val after = run(statusChangeTable.transitionsByWeek(since))
 
-      val weeks = run(statusChangeTable.transitionsByWeek(now.minusWeeks(8)))
-      weeks.filter(_.newStatus == StreetEdgeStatus.NoImagery).map(_.streetCount).sum mustBe 1
-      weeks.filter(_.newStatus == StreetEdgeStatus.Closed).map(_.streetCount).sum mustBe 1
-      weeks.map(_.weekStart).distinct must have size 2
+      def total(rows: Seq[StatusChangeWeek], status: StreetEdgeStatus): Int =
+        rows.filter(_.newStatus == status).map(_.streetCount).sum
+      total(after, StreetEdgeStatus.NoImagery) mustBe total(before, StreetEdgeStatus.NoImagery) + 1
+      total(after, StreetEdgeStatus.Closed) mustBe total(before, StreetEdgeStatus.Closed) + 1
+      after.diff(before).map(_.weekStart).distinct must have size 2
     }
 
     "count a street once even when it moved twice into the same status in one week" in {
