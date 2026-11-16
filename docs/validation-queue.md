@@ -562,7 +562,7 @@ us it cannot call, which is what the cap stops.
 20,000 simulated votes over the real pool, with missions of 10, each policy choosing its own label type and
 drawing with its own sampler, and counts updated per vote. The voter model is printed in the tool's own report.
 
-| metric | OLD (today) | NEW (#4715) |
+| metric | OLD (pre-#4715) | NEW (#4715) |
 |---|---|---|
 | votes simulated | 20,000 | 20,000 |
 | % on labels already decided | 38.0 | 0.0 |

@@ -165,7 +165,7 @@ object ValidationQueuePolicy {
    * @param l        The label being scored.
    * @param at       The audit task the label was placed on; a low-quality or stale task forfeits the new-labeler bonus.
    * @param us       The labeler's stats.
-   * @param aiResult The AI's vote on this label, absent when the AI never assessed it.
+   * @param aiResult The AI's vote on this label when it is in the label's counts, absent otherwise.
    */
   def priorityScore(
       l: LabelTableDef,
@@ -182,7 +182,7 @@ object ValidationQueuePolicy {
     val highQuality: Rep[Double] = Case.If(us.highQuality).Then(HighQualityLabelerBonus.bind).Else(0d.bind)
 
     val consensusMargin: Rep[Int] = margin(l)
-    // Floored at 0: an AI vote that doesn't count (say, on the AI's own label) isn't in unsure_count.
+    // Floored at 0 so counts that have drifted from the votes can't make the divisor 0 and fail the whole query.
     val aiUnsure: Rep[Double] =
       Case.If((aiResult === ValidationOption.Unsure).getOrElse(false)).Then(1d.bind).Else(0d.bind)
     val humanUnsure: Rep[Double]   = greatest(l.unsureCount.asColumnOf[Double] - aiUnsure, 0d.bind)
@@ -223,7 +223,7 @@ object ValidationQueuePolicy {
    * @param l        The label being scored.
    * @param at       The audit task the label was placed on.
    * @param us       The labeler's stats.
-   * @param aiResult The AI's vote on this label, absent when the AI never assessed it.
+   * @param aiResult The AI's vote on this label when it is in the label's counts, absent otherwise.
    * @param face     The label's face evidence; both columns NULL for an unsided label, which then gets the base score
    *                 plus the age bonus and no face factor.
    */

@@ -20,9 +20,6 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class GalleryFilter {
-  /** Validation options shown by default, matching the `/gallery` route's default query param. */
-  static #DEFAULT_VALIDATIONS = ['correct', 'unsure', 'unvalidated'];
-
   /** @type {?HTMLElement} Absent in review-list mode, which renders no filter controls at all (#5444). */
   #root;
   /** @type {?FilterSidebar} Absent with no root; every reader below then answers the empty default. */
@@ -56,7 +53,8 @@ export class GalleryFilter {
    * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
    * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
    * @param {?HTMLSelectElement} sortSelect - The admin's "Sort by" select, or null when none is rendered.
-   * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
+   * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page,
+   *   plus `defaultValidationOptions`, the validation statuses the server shows when the URL names none.
    * @param {Tracker} tracker - Logs the filter interactions.
    */
   constructor(root, clearButton, sortSelect, initialFilters, tracker) {
@@ -291,10 +289,10 @@ export class GalleryFilter {
     // comma (#4783); see util.url.setRepeated.
     util.url.setRepeated(params, 'tags', this.getAppliedTagNames());
     // TODO once we add a UI for region filtering, have that process mirror what we have for other filters.
-    const { regionIds, aiValidationOptions } = this.#initialFilters;
+    const { regionIds, aiValidationOptions, defaultValidationOptions } = this.#initialFilters;
     if (regionIds.length > 0) params.set('regions', regionIds.join());
     if (severities.length !== 4) params.set('severities', severities.join());
-    if (valOptions.join() !== GalleryFilter.#DEFAULT_VALIDATIONS.join()) {
+    if (valOptions.join() !== defaultValidationOptions.join()) {
       params.set('validationOptions', valOptions.join());
     }
     // TODO once we add a UI for filtering on AI validation, have that process mirror the other filters.
@@ -407,6 +405,7 @@ export class GalleryFilter {
     this.#sidebar.clearAllTags();
     this.#sidebar.setSection('label-type', () => true);
     this.#sidebar.setSection(FilterSidebar.SEVERITY, () => true);
-    this.#sidebar.setSection('label-validations', (v) => GalleryFilter.#DEFAULT_VALIDATIONS.includes(v));
+    const defaults = this.#initialFilters.defaultValidationOptions;
+    this.#sidebar.setSection('label-validations', (v) => defaults.includes(v));
   }
 }

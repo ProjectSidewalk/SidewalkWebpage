@@ -47,6 +47,8 @@ INNER JOIN label_point ON label.label_id = label_point.label_id
 INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
 INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
 LEFT JOIN label_ai_assessment ON label.label_id = label_ai_assessment.label_id
+    -- An assessment of a type the label has since lost says nothing about it now (#3671), as in the label query.
+    AND label_ai_assessment.label_type = label.label_type
 LEFT JOIN label_validation ON label_ai_assessment.label_validation_id = label_validation.label_validation_id
 WHERE label.deleted = FALSE
   AND label.tutorial = FALSE

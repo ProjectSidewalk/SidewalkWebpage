@@ -149,10 +149,11 @@
     "dataStoreUrl": "@routes.GalleryController.post",
     @* The filters with controls of their own are read off the rendered sidebar; these two have no UI yet, so the page
        carries them through for the card query and the URL. A non-empty labelIds puts Gallery in review-list mode:
-       these labels, in this order, filters ignored. *@
+       these labels, in this order, filters ignored. defaultValidationOptions is what a reset goes back to. *@
     "initialFilters": {
       "regionIds": @jsonForScript(regionIds),
       "aiValidationOptions": @jsonForScript(aiValOptions),
+      "defaultValidationOptions": @jsonForScript(controllers.GalleryController.DefaultValidationOptions),
       "labelIds": @jsonForScript(labelIds)
     },
     @* Region names, keyed by the region id each label carries, for the location line on a card. *@

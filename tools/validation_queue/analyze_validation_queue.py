@@ -199,15 +199,16 @@ def old_priority_score(agree, disagree, correct_is_null, own_labels_validated, h
     )
 
 
-def new_priority_score(agree, disagree, unsure, own_labels_validated, high_quality, low_quality, stale, recent,
-                       ai_result=""):
+def new_priority_score(agree, disagree, unsure, ai_result, own_labels_validated, high_quality, low_quality, stale,
+                       recent):
     """The #4715 deterministic score: unsure votes lower the need, and the new-labeler bonus follows `needs_votes`.
 
     Tying the bonus to `needs_votes` rather than `correct IS NULL` is the one behavioural change inside the score:
     a label whose only vote is the AI's still needs a human, so it keeps the emphasis it was meant to have. The AI's
     own Unsure is taken off the need's unsure count (#5833): no one has judged the label yet.
 
-    @param ai_result: Per-label AI verdict as text ('Agree', 'Disagree', 'Unsure', or '' when the AI never voted).
+    @param ai_result: Per-label AI vote that is in the label's counts ('Agree', 'Disagree', 'Unsure'), else ''; see
+        Pool.counted_ai_result.
     """
     human_unsure = np.maximum(np.asarray(unsure) - (np.asarray(ai_result) == "Unsure"), 0)
     new_labeler = (
@@ -732,13 +733,18 @@ class Pool(object):
         """The subset #4715 pays the bonus on: gated on `needs_votes`, so an AI-only label keeps it."""
         return self.new_labeler() & self.needs_votes()
 
+    def counted_ai_result(self):
+        """The AI's vote where it is in the label's counts: its vote on its own label never is."""
+        return np.where(self.ai_labeler, "", self.ai_result)
+
     def old_score(self):
         return old_priority_score(self.agree, self.disagree, self.correct_is_null, self.own_labels_validated,
                                   self.high_quality, self.low_quality, self.stale, self.recent)
 
     def new_score(self):
-        return new_priority_score(self.agree, self.disagree, self.unsure, self.own_labels_validated,
-                                  self.high_quality, self.low_quality, self.stale, self.recent, self.ai_result)
+        return new_priority_score(self.agree, self.disagree, self.unsure, self.counted_ai_result(),
+                                  self.own_labels_validated, self.high_quality, self.low_quality, self.stale,
+                                  self.recent)
 
     def faces_score(self):
         """The #5285 score: the #4715 score for every type, with NoSidewalk's rows rescored by block face."""
@@ -1051,8 +1057,8 @@ class _VoteSim(object):
                                       pool.own_labels_validated[idx], pool.high_quality[idx],
                                       pool.low_quality[idx], pool.stale[idx], pool.recent[idx])
         base = new_priority_score(self.agree[idx], self.disagree[idx], self.unsure[idx],
-                                  pool.own_labels_validated[idx], pool.high_quality[idx], pool.low_quality[idx],
-                                  pool.stale[idx], pool.recent[idx], pool.ai_result[idx])
+                                  pool.counted_ai_result()[idx], pool.own_labels_validated[idx],
+                                  pool.high_quality[idx], pool.low_quality[idx], pool.stale[idx], pool.recent[idx])
         if POLICIES[self.policy]["score"] == "faces":
             no_sidewalk = pool.label_type[idx] == "NoSidewalk"
             scored = no_sidewalk_priority_score(base, self.has_face[idx], self.face_labelers[idx],
@@ -1417,7 +1423,7 @@ def _simulation_section(pool, rng, n_votes, serve_no_sidewalk):
         ["most votes on any one label", _int(results["old"]["max_votes_on_one_label"]),
          _int(results["new"]["max_votes_on_one_label"])],
     ]
-    table = markdown_table(["metric", "OLD (today)", "NEW (#4715)"], rows)
+    table = markdown_table(["metric", "OLD (pre-#4715)", "NEW (#4715)"], rows)
     model = (
         "Voter model: each label is genuinely correct with probability {0:.3f} (the share of the pool's decided "
         "labels that came out agree > disagree). A validator votes Agree/Disagree/Unsure with {1} on a correct "
