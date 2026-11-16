@@ -481,7 +481,6 @@ object LabelCVMetadata extends ApiFields[LabelCVMetadata] {
     field("camera_heading")(_.cameraHeading),
     field("camera_pitch")(_.cameraPitch),
     field("camera_roll")(_.cameraRoll),
-    // Named `source`, as `/adminapi/panos` does, because the cropper reads these three names as they are.
     field("source")(_.source),
     field("copyright")(_.copyright),
     // Mapillary's license is the same for every picture, so it is never stored and has to be filled in here.
