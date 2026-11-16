@@ -19,29 +19,23 @@ class ApiFieldsSpec extends AnyFunSuite with Matchers {
 
   private val sampleDailyStat = DailyStatRecord(LocalDate.parse("2025-01-15"), "CurbRamp", 1, 2, 3, 4, 5, 6, 7, 8)
 
-  private val sampleCvMetadata = LabelCVMetadata(
-    labelId = 1, panoId = "pano-1", labelType = "CurbRamp", agreeCount = 3, disagreeCount = 1, unsureCount = 0,
-    panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
-    canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
-    cameraRoll = None
-  )
-
   private val sampleRawLabel = RawLabelInClusterDataForApi(
     labelId = 8, userId = "u1", panoId = "abc123", panoSource = None, severity = Some(2),
     timeCreated = OffsetDateTime.parse("2023-08-16T23:47:25Z"), latitude = 47.6, longitude = -122.3,
     correct = Some(true), imageCaptureDate = None
   )
 
-  /** These three map one constructor parameter to one field, so arity catches a parameter the list forgot. */
+  /** These two map one constructor parameter to one field, so arity catches a parameter the list forgot. */
   test("each field list covers every parameter of the case class it serializes") {
     withClue("DailyStatRecord: ")(DailyStatRecord.fields.size shouldBe sampleDailyStat.productArity)
-    withClue("LabelCVMetadata: ")(LabelCVMetadata.fields.size shouldBe sampleCvMetadata.productArity)
     withClue("RawLabelInClusterDataForApi: ")(RawLabelFields.fields.size shouldBe sampleRawLabel.productArity)
   }
 
   test("a geometry-backed model's CSV carries its own columns on top of the shared fields") {
     StreetDataForApi.csvFields.size shouldBe StreetDataForApi.fields.size + 2
-    StreetDataForApi.csvHeader should endWith("start_point,end_point")
+    // The point columns keep their pre-#5431 positions; the grade fields come after them.
+    StreetDataForApi.csvHeader should include("osm_ways,start_point,end_point,mean_grade")
+    StreetDataForApi.csvHeader should endWith("dem_source")
     StreetDataForApi.fields.map(_.name) should not contain "start_point"
   }
 

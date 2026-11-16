@@ -32,10 +32,10 @@ case class LabelTypeStats(
  * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
  *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
  * @param totalValidations Total number of validations across all cities
- * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
- *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
- *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
- *                   of contributor ids, not the sum of per-city counts).
+ * @param totalUsers Number of distinct contributors across all cities — people (AI accounts left out) who added at least
+ *                   one (non-tutorial) label or validated at least one label. Counted as distinct people: because
+ *                   `user_id` is a global identifier shared across city schemas, a user active in multiple cities is
+ *                   counted once (the union of contributor ids, not the sum of per-city counts).
  * @param numCities Number of cities where Project Sidewalk is deployed
  * @param numCountries Number of countries where Project Sidewalk is deployed
  * @param numLanguages Number of distinct languages supported

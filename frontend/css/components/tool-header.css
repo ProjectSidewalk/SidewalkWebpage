@@ -1,0 +1,33 @@
+/* A tool's lockup (#5958, common/toolHeader.scala.html): its logo beside its name, heading that tool's left sidebar. */
+
+.ps-tool-header {
+  /* How far below its sidebar's top edge the mark starts where the sidebar stands beside the page: the line the top of
+     the map panels' close chevron sits on. Each host's stylesheet places the header with it, so the four tools'
+     headers start at one height. Stacked above the page on a phone, a host uses its strip's own padding instead. */
+  --tool-header-top: 13px;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.ps-tool-header__mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* It may be an <h1> or a <p>, so the margin and color are set rather than inherited from either. */
+.ps-tool-header__name {
+  min-width: 0;
+  margin: 0;
+  font: var(--text-tool-name);
+  letter-spacing: -0.01em;
+  color: var(--color-asphalt-500);
+
+  /* A translated name can be one long word; it wraps rather than widening the column. */
+  overflow-wrap: anywhere;
+}

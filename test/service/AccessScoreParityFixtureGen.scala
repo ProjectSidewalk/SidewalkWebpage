@@ -88,7 +88,7 @@ object AccessScoreParityFixtureGen {
       c("NoSidewalk", labelCount = 1, tagCounts = Map("ends abruptly" -> 1))),
     "nosidewalk tags cancel" -> Seq(
       c("NoSidewalk", labelCount = 2, tagCounts = Map("street has no sidewalks" -> 2)),
-      c("NoSidewalk", labelCount = 2, tagCounts = Map("street has a sidewalk" -> 2))
+      c("NoSidewalk", labelCount = 2, tagCounts = Map("other side has a sidewalk" -> 2))
     ),
     "unscored types ignored" -> Seq(c("Occlusion", Some(3)), c("Other"), c("Signal")),
     "mixed street"           -> Seq(

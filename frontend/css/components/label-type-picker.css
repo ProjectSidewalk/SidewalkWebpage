@@ -22,10 +22,6 @@
   white-space: nowrap;
 }
 
-.label-type-picker__chip[hidden] {
-  display: none; /* The chip's display rule above would otherwise beat the hidden attribute. */
-}
-
 .label-type-picker__icon {
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
@@ -70,10 +66,6 @@
   align-items: center;
   gap: calc(8px * var(--ui-scale, 1));
   min-width: 0;
-}
-
-.label-type-trigger[hidden] {
-  display: none; /* The display rule above would otherwise beat the hidden attribute. */
 }
 
 .label-type-trigger__icon {

@@ -1,0 +1,22 @@
+@*
+ * A tool's lockup (#5958): its logo beside its name, heading that tool's left sidebar. The only place a mark is
+ * paired with a name, so the four stay one family; see docs/style-guide.md, "Tool logos".
+ *
+ * Usage: `@common.toolHeader("gallery")`, or `@common.toolHeader("reports", asHeading = false)`.
+ *
+ * @param tool      "accessscore", "gallery", "labelmap" or "reports", as `views.ToolLockup` knows them. Anything
+ *                  else throws, so a typo fails the render rather than shipping a header with no mark.
+ * @param asHeading Whether the name is the page's `<h1>`. False where the page has one of its own, and in a map
+ *                  panel, which can be collapsed: the page then carries its `<h1>` outside the panel.
+ *@
+@(tool: String, asHeading: Boolean = true)(using messages: Messages, assets: AssetsFinder)
+
+<div class="ps-tool-header">
+  @* Decorative: the name beside it already says which tool this is. *@
+  <img class="ps-tool-header__mark" src='@assets.path(s"images/logos/tools/${views.ToolLockup.mark(tool)}.svg")' alt="" width="40" height="40">
+  @if(asHeading) {
+    <h1 class="ps-tool-header__name">@views.ToolLockup.name(tool)</h1>
+  } else {
+    <p class="ps-tool-header__name">@views.ToolLockup.name(tool)</p>
+  }
+</div>

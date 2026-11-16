@@ -78,8 +78,7 @@
     <script>window.mapillaryMaxPoseTiltDeg = @service.PanoDataService.MapillaryMaxPoseTiltDeg;</script>
     @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
-       literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
-       that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
+       literals that can drift from the backend. Must precede the tool bundles, which read it at load time. *@
     <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
     @* The canned reasons each label type offers for a Disagree or Unsure vote, in menu order (#5475).
        ValidationReason owns it; validationReasons.js builds every reason list from it, for the Validate menus, the
@@ -179,7 +178,7 @@
         <p><span id="funding-title">@Messages("footer.funding")</span></p>
         <div class="footer-logos-row">
           <div class="footer-logo-nsf">
-            <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link" target="_blank"
+            <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" id="nsf-link" target="_blank"
                rel="noopener">
               <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
             </a>

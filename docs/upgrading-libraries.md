@@ -27,15 +27,15 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Node (+ npm) | **26.x** (npm ≥ 11) | 26.x (checked 2026-10-30) | Apr 2029 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
 | Python | **3.12** (noble's `python3`; prod's `python3.12`) | 3.14.7 | Oct 2028 | web base image ([details](#interpreter)), `ci.yml` |
 | web image | **`eclipse-temurin:21-jdk-noble`** | noble | Apr 2029 (Ubuntu 24.04) | `Dockerfile` |
-| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.6 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
+| db image | **`postgres:18-trixie`** + PGDG `postgresql-18-postgis-3` (the `postgis/postgis` images are amd64-only, #5789) | 18 / PostGIS 3.7 | ~Aug 2028 (Debian 13) | `db/Dockerfile` |
 | ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **The base image's Ubuntu release picks the Python.** Noble's `python3` is 3.12, chosen to match the `python3.12`
   prod's app shells out to ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)); a later Ubuntu
   would move it, so the two change together. Noble's glibc (2.39) also lets sbt's native client run in the container
   (#5268).
-- **The db image updates by rebuilding.** It's Debian 13 with Postgres from the official image and PostGIS, GEOS and
-  PROJ from Postgres's own package server, the same source as prod's.
+- **The db image updates by rebuilding** (`docker compose build --pull --no-cache db`). Postgres and PostGIS come from
+  PGDG, prod's source too (#5970). PostGIS is pinned to prod's minor (`POSTGIS_MINOR` in `db/Dockerfile`).
 - **Java 21** everywhere, prod included (`sidewalk-tools/conf/server.conf` pins `java_sdk_21`, Rocky's
   `java-21-openjdk-devel`). A Java move changes there, in the base image, `build.sbt` and `ci.yml` together, and
   prod has to have the JDK first ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)).
@@ -44,23 +44,21 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 
 ### Database server
 
-Prod is the target dev tracks. Test moved to Postgres 18 on 2026-10-07, ahead of prod (#3955). Prod's column was
-read on 2026-07-01 (#4398), test's on 2026-10-07; re-check any of them with
+Prod is the target dev tracks. Read on 2026-11-12 (dev: a fresh build); re-check with
 `SELECT version();` and `SELECT PostGIS_Full_Version();` (in dev, `docker exec projectsidewalk-db psql -U
 readonly_user -d sidewalk`).
 
 | | dev (`projectsidewalk-db`) | test (makelab1) | prod (makelab1) | Latest |
 |---|---|---|---|---|
 | OS | Debian 13 trixie | Rocky Linux 9.8 (EOL May 2032) | Rocky Linux 9.8 | — |
-| Postgres | **18.6** | **18.6** | **16.14** | 18.6 |
-| PostGIS | **3.6.4** | **3.6.4** | **3.4.6** | 3.6.4 |
-| GEOS | **3.14.1** | **3.14.1** | **3.14.1** | 3.15.0 |
-| PROJ | **9.8.1** | **9.8.1** | **9.8.1** | 9.8.1 |
+| Postgres | **18.7** | **18.6** | **18.6** | 18.7 |
+| PostGIS | **3.6.4** | **3.6.4** | **3.6.4** | 3.7.0 |
+| GEOS | **3.15.0** | **3.15.0** | **3.15.0** | 3.15.0 |
+| PROJ | **9.9.0** | **9.8.1** | **9.8.1** | 9.9.0 |
 | GDAL | **3.10.3** (`libgdal36`) | not collected | not collected | 3.13.3 |
 
-- **Dev matches test, and prod except for the Postgres and PostGIS versions.** Until prod is on 18, don't use SQL
-  that's new in 17 or 18 (`RETURNING OLD/NEW`, `uuidv7()`, `JSON_TABLE`, virtual generated columns). JIT is off in
-  `docker-compose.yml`, matching prod ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
+- **Dev matches prod's Postgres major and PostGIS minor.** JIT is off in `docker-compose.yml`, matching prod
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)).
 - **Name time zones as Area/City** (`America/Los_Angeles`, not `US/Pacific`). Debian 13 dropped the old names, so
   dev's Postgres rejects them; Rocky's still accepts them.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
@@ -72,6 +70,7 @@ readonly_user -d sidewalk`).
   `/usr/pgsql-<version>/bin/pg_dump` (sidewalk-server-tools#8 makes the scripts do this).
 - **When CSE IT updates a server's PostGIS library**, its SQL functions lag behind (`PostGIS_Full_Version()` ends in
   `need upgrade`). Run `ALTER EXTENSION postgis UPDATE` in each database, then hand any new functions to `sidewalk`.
+  On a new prod minor, bump `POSTGIS_MINOR`.
   Avoid `postgis_extensions_upgrade()` until `tools/one-off/3955-drop-raster-leftovers.sql` has cleared that
   database's old raster functions. **GDAL** isn't reported there (no raster support); dev's comes from its package.
 
@@ -145,17 +144,21 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   registers only the chart types, scales and plugins the previews use, so a new kind of chart means adding its pieces
   there, or it fails at draw time.
 - **i18next** and **i18next-http-backend** — `test/js/i18nextLocales.test.js` runs both over our real locale files in
-  every language, so `make test-js args=i18nextLocales` is the check after a bump of either.
+  every language, so `make test-js args=i18nextLocales` is the check after a bump of either. Two i18next defaults we
+  lean on: an empty string counts as missing and falls back to `en` (`returnEmptyString`), and a plural form a
+  language's file leaves out reads that language's own `_other`.
 - **@inovitas/infra3dapi** (with **proj4**, loaded through `sdk/infra3d.js`) — `Infra3dViewer.js` reaches past the
   documented API into `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`, `resize`, the component toggles, the
-  `nodechanged` event, the navigator's `imagesByKNN$`) and each node's `spatialEdges$` stream, none of which the
+  `nodechanged` event, `setTokens`, the navigator's `imagesByKNN$`, `graphService._graph$`, the scene engine's
+  `requestTexture`) and each node's `spatialEdges$` stream, none of which the
   [changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog) covers, so after a bump
   grep the package's `infra3dapi.js` for each name. The riskiest bump here, which is why the `npm-imagery` groups wait
   for a person.
-- **maplibre-gl** — draws the Explore minimap (#5429). It looks for its Web Worker beside its own file, which in the
-  bundle is the Explore chunk, so `Minimap.js` imports the worker through Vite's `?worker&url` and hands the URL to
-  `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` fails the build at that import; a worker that
-  builds but won't start leaves a blank minimap, logged as `Minimap_Error` or `Minimap_Unavailable` (#5810).
+- **maplibre-gl** — draws the Explore minimap (#5429) and the report maps. It looks for its Web Worker beside its own
+  file, which in the bundle is the page's chunk, so `Minimap.js` and `ReportMap.js` import the worker through Vite's
+  `?worker&url` and hand the URL to `setWorkerUrl`. A bump that renames `dist/maplibre-gl-worker.mjs` fails the build
+  at that import; a worker that builds but won't start leaves a blank map. The minimap logs that as `Minimap_Error`
+  or `Minimap_Unavailable` (#5810); a report map logs nothing, so open a report after a bump.
 - **mapbox-gl** — imported through `frontend/js/common/mapboxgl.js`, which takes the CSP build and hands it the worker
   Vite builds from `dist/mapbox-gl-csp-worker.js` (the comment there says why the regular build can't be bundled).
   **Held below 3.25 on purpose**, by the `ignore` entry in `.github/dependabot.yml`: from 3.25.0 a symbol layer that
@@ -188,6 +191,13 @@ Dependabot bumps straight past it; mapbox-gl's is the one in place.
   blocks stay on the design-system tokens. **1.x is the line to track:** v1 is in maintenance while the repo's default
   branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`, a different dist layout), so 2.x will
   be a migration rather than a bump.
+- **@stylistic/eslint-plugin** — from 6 its preset enforces `list-style` (a list all on one line or one item per
+  line), which would rewrite about 150 files against how we wrap, so `eslint.config.js` turns it off and keeps
+  `object-curly-spacing` and `array-bracket-spacing`, the two rules it replaced. Those print a deprecation notice on
+  every run and will be gone in 7, so that bump means choosing between `list-style` and no brace-spacing check.
+- **stylelint** — **held on 17.** `stylelint-plugin-use-baseline` has no release that accepts stylelint 18
+  ([its #186](https://github.com/ryo-manba/stylelint-plugin-use-baseline/issues/186)), and stylelint 18,
+  stylelint-config-standard 41 and @stylistic/stylelint-plugin 6 only install together, so all three wait for it.
 - **tom-select** — the tag picker on Validate. We import the `tom-select/base` build, which has no plugins, plus the
   unthemed `tom-select.css`; the picker's look comes from `svv-validation-menu.css`.
 - **vega, vega-lite, vega-embed** — the coverage charts on the admin dashboard. We write Vega-Lite specs and hand them

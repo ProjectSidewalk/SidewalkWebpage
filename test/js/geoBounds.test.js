@@ -49,4 +49,9 @@ describe('featureCollectionBounds', () => {
   test('is empty for no features', () => {
     expect(featureCollectionBounds({ type: 'FeatureCollection', features: [] }).isEmpty()).toBe(true);
   });
+
+  // The admin maps hand over whatever the server sent; a collection without its list is still nothing to fit.
+  test('is empty for a collection that has no feature list at all', () => {
+    expect(featureCollectionBounds(/** @type {any} */ ({ type: 'FeatureCollection' })).isEmpty()).toBe(true);
+  });
 });

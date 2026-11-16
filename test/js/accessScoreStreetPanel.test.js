@@ -831,4 +831,12 @@ describe('AccessScoreStreetPanel', () => {
     expect(root.querySelector('[data-acs-evidence]').hidden).toBe(true);
     expect(panel.streetId).toBeNull();
   });
+
+  test('the feed swaps in a re-signed image URL without undoing a newer vote (#5861)', async () => {
+    const feed = new AccessScoreClusterFeed({types: FIXTURE.config.scored_types});
+    feed.rememberLabel({label_id: 9, crop_url: 'old', num_agree: 1});
+    feed.rememberImageUrl(9, 'crop_url', 'fresh');
+    feed.rememberImageUrl(10, 'crop_url', 'never asked for');
+    expect(await feed.label(9)).toEqual({label_id: 9, crop_url: 'fresh', num_agree: 1});
+  });
 });

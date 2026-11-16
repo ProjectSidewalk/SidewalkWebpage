@@ -157,7 +157,7 @@ VALUES
    FALSE, NULL, '2020-01-01 00:00:00+00', FALSE),
   -- A LABELED Mapillary pano due for a check, so the nightly sweep's sampling query sees a non-gsv
   -- source. Real, from Richmond -- the one city on Mapillary imagery. Expired and unbacked, so it
-  -- stays out of the Gallery; Validate and Explore already filter it out on the city's pano source.
+  -- stays out of Gallery; Validate and Explore already filter it out on the city's pano source.
   ('1050859256685844', 'mapillary', '2024-09', 11000, 5500, 11000, 5500,
    37.539015301397, -77.441233369283, 35.915695572831, 2.9712443964874025, 2.10982137066022, 'HKocen',
    TRUE, '2020-01-01 00:00:00+00', '2020-01-01 00:00:00+00', FALSE)
@@ -197,7 +197,7 @@ ON CONFLICT (audit_task_id) DO NOTHING;
 -- rest cover the forks the share, gallery and edit specs read. `correct` stays NULL, so all still need validating.
 --
 -- The two NoSidewalk labels have no crop, as prod has none for them either: still validatable (Validate reads the
--- backup panorama, not crops), just absent from the Gallery -- which is what that state means in production.
+-- backup panorama, not crops), just absent from Gallery -- which is what that state means in production.
 INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type,
                                     street_edge_id, temporary_label_id, time_created, deleted, tutorial,
                                     severity, tags)

@@ -246,6 +246,19 @@ describe('ObservedArea', () => {
       expect(area.getFractionObserved()).toBe(135 / 360);
     });
 
+    test('being told the heading settled again on the same pano keeps counting the same way round', () => {
+      const area = build();
+      standAt(area, 'pano-a', { lat: 100, lng: 100 }, 350);
+      listeners.headingSettled();
+      lookAt(area, 5);
+      const seen = area.getFractionObserved();
+
+      // Still facing 5°: nothing new was looked at, so nothing more is counted.
+      listeners.headingSettled();
+      expect(area.getFractionObserved()).toBe(seen);
+      expect(seen).toBeLessThan(0.5);
+    });
+
     test('with nothing rendered across the frame the ring stays an empty track', () => {
       fov = 0;
       const area = build();

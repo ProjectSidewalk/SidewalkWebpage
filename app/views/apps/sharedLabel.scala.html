@@ -25,9 +25,11 @@
  * @param cityName    Formatted deployment-city name (e.g. "Seattle, WA").
  * @param shareMeta   Pre-built Open Graph / Twitter Card <meta> block, injected into <head>.
  * @param isAdmin     Render the label detail card in admin mode (only ever true behind the admin-gated route).
+ * @param goldReason  On the admin's page, the reason this label is a training example (#1445), if it is one.
  *@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, meta: LabelMetadata,
-    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false
+    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false,
+    goldReason: Option[String] = None
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. *@
@@ -36,6 +38,7 @@
     "labelId"            -> meta.labelId,
     "labelType"          -> meta.labelType.name,
     "admin"              -> isAdmin,
+    "goldReason"         -> goldReason,
     "lat"                -> labelLatLng.map(_.lat),
     "lng"                -> labelLatLng.map(_.lng),
     "imagerySource"      -> commonData.imagerySource.name,
@@ -64,6 +67,27 @@
           @common.labelDetail(admin = isAdmin)
         </div>
         @common.panoInfoPopover()
+        @if(isAdmin) {
+          @* Admin-only, so English only, like the admin dashboard. Driven by GoldExamplePin.js. *@
+          <section class="spotlight__gold" id="spotlight-gold" aria-labelledby="spotlight-gold-title">
+            <h2 id="spotlight-gold-title" class="spotlight__gold-title">Training example</h2>
+            <p class="spotlight__gold-help">
+              Shown to validators as a common mistake; if they don't disagree, they're told why it's wrong.
+              <a href="@routes.AdminDashboardController.goldExamples">All training examples</a>
+            </p>
+            <div class="spotlight__gold-field">
+              <label class="spotlight__gold-label" for="spotlight-gold-reason">Why it's wrong</label>
+              <select class="ps-select" id="spotlight-gold-reason"></select>
+            </div>
+            <div class="spotlight__gold-actions">
+              <button type="button" class="button button--primary button--medium" id="spotlight-gold-pin"></button>
+              <button type="button" class="button button--secondary button--medium" id="spotlight-gold-unpin" hidden>
+                Remove
+              </button>
+            </div>
+            <p class="spotlight__gold-status" id="spotlight-gold-status" role="status" aria-live="polite"></p>
+          </section>
+        }
       </div>
 
       <aside class="spotlight__side">
@@ -74,10 +98,11 @@
             </div>
             <div class="spotlight-map" id="spotlight-map"></div>
             <p class="spotlight-map__caption">
-            @* The full-map link carries this label's id so LabelMap opens centered on the shared label (with its
+            @* The full-map link carries this label's id so the Label Map opens centered on the shared label (with its
                popup + location pulse), making the hand-off from this page seamless rather than a cold city view. *@
             @Html(Messages("sharedlabel.nearby.caption",
-              s"""<a class="spotlight-map__link" id="spotlight-full-map" href="/labelMap?labelId=${meta.labelId}">LabelMap</a>"""))
+              s"""<a class="spotlight-map__link" id="spotlight-full-map" href="/labelMap?labelId=${meta.labelId}">""" +
+                s"""${Messages("navbar.labelmap")}</a>"""))
             </p>
           </section>
         }

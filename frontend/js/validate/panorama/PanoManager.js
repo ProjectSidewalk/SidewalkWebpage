@@ -13,7 +13,7 @@ import { PanoLoadTimeoutError } from '../../common/pano-viewer/PanoLoadTimeoutEr
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import '../../common/utilitiesSidewalk.js';
+import { freshBackupImage } from '../../common/utilitiesSidewalk.js';
 import '../util/throttle.js';
 /** @typedef {import('../label/Label.js').Label} Label */
 /** @typedef {import('../../common/pano-viewer/PanoData.js').PanoData} PanoData */
@@ -240,12 +240,12 @@ export class PanoManager {
   }
 
   /**
-   * Gets a specific property from the PanoManager.
-   * @param {string} key   - Property name.
-   * @returns {*} Value associated with this property or null.
+   * Reads a PanoManager property.
+   * @param {'panoLoaded'} key - Property name.
+   * @returns {boolean} Whether the current pano has finished loading.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
+    return this.#properties[key];
   }
 
   /**
@@ -259,7 +259,6 @@ export class PanoManager {
 
   /** Returns the viewer_type enum value for the currently active viewer: 'Pannellum' or 'Default'. */
   getActiveViewerName() {
-    if (!this.#activeViewer) return '';
     return this.#activeViewer === this.#pannellumViewer ? 'Pannellum' : 'Default';
   }
 
@@ -699,6 +698,10 @@ export class PanoManager {
    * @returns {Promise<PanoData>}
    */
   async #showPannellumPano(backupImage) {
+    // A label fetched long enough ago can carry a URL whose signature has since expired (#5861).
+    const signed = await freshBackupImage(backupImage);
+    if (!signed) throw new Error(`Backup URL for pano ${backupImage.pano_id} expired and could not be re-signed.`);
+    backupImage = signed;
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
     const neutralPov = { heading: backupImage.camera_heading || 0, pitch: 0, zoom: 1 };
 

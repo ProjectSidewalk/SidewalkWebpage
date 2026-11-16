@@ -260,6 +260,11 @@ describe('the usage trend', () => {
     expect(text('api-trend')).toMatch(/^No API calls over all time\./);
   });
 
+  test('shows a last-call date it cannot read as sent, with no days-ago count', async () => {
+    await load(payload({ total_calls: 0, last_api_call: 'not-a-date', daily: [] }));
+    expect(text('api-trend')).toBe('No API calls in the past 30 days. The last was on not-a-date. Try a longer range.');
+  });
+
   test('says no calls have ever been made when there is no last call', async () => {
     await load(payload({ total_calls: 0, last_api_call: null, daily: [] }));
     expect(text('api-trend')).toBe('No v3 API calls have been recorded yet.');
@@ -282,7 +287,7 @@ describe('the endpoint and format bars', () => {
     expect(barRows('endpoints')).toEqual([
       ['labelClusters', '1,000 · 100 docs'], ['streets', '200 · 150 docs'], ['regions', '0 · 50 docs'],
     ]);
-    expect(barWidths('endpoints')[0]).toEqual(['90.9090909090909%', '9.090909090909092%']);
+    expect(barWidths('endpoints')[0]).toEqual(['90.9091%', '9.09091%']);
     const legend = (chart) => document.getElementById(`api-toggle-${chart}`).closest('.api-docs-control')
       .querySelector('.api-docs-legend');
     expect(legend('endpoints').classList.contains('ps-hidden')).toBe(false);
@@ -298,9 +303,23 @@ describe('the endpoint and format bars', () => {
   });
 
   test('say so when nothing was called in the range', async () => {
-    await load(payload({ endpoints: [{ endpoint: '/v3/api/streets', external: 0, api_docs: 0 }], formats: [] }));
+    await load(payload({ endpoints: [{ endpoint: '/v3/api/streets', external: 0, api_docs: 0 }],
+      formats: [{ format: 'csv', external: 0, api_docs: 0 }] }));
     expect(text('api-endpoints')).toBe('No API calls recorded for this range.');
     expect(text('api-formats')).toBe('No format data for this range.');
+  });
+
+  test('read a payload without day or format lists as having none', async () => {
+    const answer = payload();
+    delete answer.daily;
+    delete answer.formats;
+    await load({ 30: answer, 0: answer });
+    expect(text('api-formats')).toBe('No format data for this range.');
+    const [, , series] = MiniLineChart.renderInto.mock.calls.at(-1);
+    expect(series.every(({ values }) => values.every((v) => v === 0))).toBe(true);
+    range(0).click();
+    await flush();
+    expect(text('api-trend-range')).toBe('Date range: all time (no API activity yet)');
   });
 
   test('a switch flipped before the data arrives takes effect once it does', async () => {

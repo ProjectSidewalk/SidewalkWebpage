@@ -245,6 +245,15 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
       } finally cleanUpThumbnail()
     }
 
+    "be handed out signed by the crop's metadata, so a page of thumbnails re-signs to one (#5861)" in {
+      cleanUpThumbnail()
+      try {
+        writeCrop(1440, 960)
+        val meta = contentAsJson(route(app, FakeRequest(GET, s"/cropImage/CurbRamp/$labelId/metadata")).get)
+        status(route(app, FakeRequest(GET, (meta \ "thumbnail_url").as[String])).get) mustBe OK
+      } finally cleanUpThumbnail()
+    }
+
     "refuse a missing signature, a signature for the full crop, and another site's Referer" in {
       cleanUpThumbnail()
       try {

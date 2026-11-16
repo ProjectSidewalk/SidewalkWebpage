@@ -1,5 +1,5 @@
 /**
- * The Gallery's half of the shared filter sidebar (#4585).
+ * Gallery's half of the shared filter sidebar (#4585).
  *
  * FilterSidebar owns the controls and their interaction rules; this class turns the resulting state into a card
  * query — mirroring the selection into the URL, asking the card container to refetch, and logging the interaction.
@@ -20,9 +20,6 @@ import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../data/Tracker.js').Tracker} Tracker */
 
 export class GalleryFilter {
-  /** Validation options shown by default, matching the `/gallery` route's default query param. */
-  static #DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
-
   /** @type {?HTMLElement} Absent in review-list mode, which renders no filter controls at all (#5444). */
   #root;
   /** @type {?FilterSidebar} Absent with no root; every reader below then answers the empty default. */
@@ -31,7 +28,7 @@ export class GalleryFilter {
   #clearButton;
   /**
    * @type {?HTMLSelectElement} The admin's "Sort by" (#2705). Absent for everyone else and in review-list mode, and
-   * then the Gallery is in its random order.
+   * then Gallery is in its random order.
    */
   #sortSelect;
   /** Whether the select had focus when the filters were last disabled, so enable() can hand it back. */
@@ -56,7 +53,8 @@ export class GalleryFilter {
    * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
    * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
    * @param {?HTMLSelectElement} sortSelect - The admin's "Sort by" select, or null when none is rendered.
-   * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
+   * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page,
+   *   plus `defaultValidationOptions`, the validation statuses the server shows when the URL names none.
    * @param {Tracker} tracker - Logs the filter interactions.
    */
   constructor(root, clearButton, sortSelect, initialFilters, tracker) {
@@ -198,9 +196,10 @@ export class GalleryFilter {
     if (section.hidden) return;
 
     const rated = types.filter((type) => util.misc.labelTypeHasSeverity(type));
-    const positive = rated.length > 0 && rated.every((type) => util.misc.isPositiveLabelType(type));
-    // A label type whose severity reads in the direction the whole selection reads, for the icons and level names.
-    const iconType = positive ? rated[0] : (rated.find((type) => !util.misc.isPositiveLabelType(type)) ?? rated[0]);
+    const positive = rated.every((type) => util.misc.isPositiveLabelType(type));
+    // A label type whose severity reads in the direction the whole selection reads, for the icons and level names:
+    // any negative one when the selection mixes directions, else the first.
+    const iconType = rated.find((type) => !util.misc.isPositiveLabelType(type)) ?? rated[0];
 
     const headingKey = positive ? 'common:quality' : 'common:severity';
     const heading = section.querySelector('.filter-sidebar__heading');
@@ -290,10 +289,10 @@ export class GalleryFilter {
     // comma (#4783); see util.url.setRepeated.
     util.url.setRepeated(params, 'tags', this.getAppliedTagNames());
     // TODO once we add a UI for region filtering, have that process mirror what we have for other filters.
-    const { regionIds, aiValidationOptions } = this.#initialFilters;
+    const { regionIds, aiValidationOptions, defaultValidationOptions } = this.#initialFilters;
     if (regionIds.length > 0) params.set('regions', regionIds.join());
     if (severities.length !== 4) params.set('severities', severities.join());
-    if (valOptions.join() !== GalleryFilter.#DEFAULT_VALIDATIONS.join()) {
+    if (valOptions.join() !== defaultValidationOptions.join()) {
       params.set('validationOptions', valOptions.join());
     }
     // TODO once we add a UI for filtering on AI validation, have that process mirror the other filters.
@@ -324,7 +323,7 @@ export class GalleryFilter {
       tracker.push(checked ? 'SeverityApply' : 'SeverityUnapply', null, { Severity: severityName(value) });
     } else if (section === 'label-type') {
       tracker.push(checked ? 'LabelTypeApply' : 'LabelTypeUnapply', null, { Label_Type: value });
-    } else if (section === 'label-validations') {
+    } else {
       tracker.push(checked ? 'ValidationOptionApply' : 'ValidationOptionUnapply', null, {
         ValidationOption: value,
       });
@@ -359,7 +358,7 @@ export class GalleryFilter {
   /** @returns {Record<string, string[]>} The tags narrowing each selected label type, keyed by type name. */
   getAppliedTagsByType() {
     const tags = this.#sidebar?.getState().tags ?? {};
-    return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type] ?? []]));
+    return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type]]));
   }
 
   /** @returns {string[]} Every tag narrowing something, deduped — what the URL carries and the cards highlight. */
@@ -406,6 +405,7 @@ export class GalleryFilter {
     this.#sidebar.clearAllTags();
     this.#sidebar.setSection('label-type', () => true);
     this.#sidebar.setSection(FilterSidebar.SEVERITY, () => true);
-    this.#sidebar.setSection('label-validations', (v) => GalleryFilter.#DEFAULT_VALIDATIONS.includes(v));
+    const defaults = this.#initialFilters.defaultValidationOptions;
+    this.#sidebar.setSection('label-validations', (v) => defaults.includes(v));
   }
 }

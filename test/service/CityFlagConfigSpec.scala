@@ -71,6 +71,16 @@ class CityFlagConfigSpec extends SidewalkSpec {
     }
   }
 
+  "city-params.not-deployed" should {
+    "name only configured city ids, so a typo can't silently leave a city in the fleet table as down" in {
+      Seq("prod", "test").foreach { env =>
+        config.getStringList(s"city-params.not-deployed.$env").asScala.foreach { cityId =>
+          withClue(s"not-deployed.$env.$cityId is not in city-params.city-ids: ") { cityIds must contain(cityId) }
+        }
+      }
+    }
+  }
+
   "ai-label-submission-enabled" should {
     // Replacing the old hard-coded `getCityId == "vancouver-wa"` check with this flag (#4760) is only behavior-
     // preserving as long as Vancouver stays listed — dropping the entry would silently close the pilot's gate.

@@ -87,7 +87,7 @@ export class ContextMenu {
     navigationService.onMoveStarted(() => {
       if (this.isOpen()) this.hide();
     });
-    document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
+    document.addEventListener('mousedown', () => this.#handleMouseDown());
     this.#menuWindow.addEventListener('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
     for (const radio of this.#severityRadios) radio.addEventListener('change', (e) => this.#handleSeverityChange(e));
     this.#descriptionTextBox.addEventListener('change', (e) => this.#handleDescriptionTextBoxChange(e));
@@ -149,16 +149,13 @@ export class ContextMenu {
   }
 
   /**
-   * Handles clicking outside of context menu holder. If so, close the context menu and note if user rated severity.
-   * @param {Event} e
+   * Closes the menu on a click outside it, noting whether the user rated severity. A click inside the menu never
+   * gets here, since the menu stops its own mousedowns from reaching the document.
    */
-  #handleMouseDown(e) {
-    const clickedOut = !this.#menuWindow.contains(/** @type {Node} */ (e.target));
+  #handleMouseDown() {
     if (this.isOpen()) {
-      if (clickedOut) {
-        this.#tracker.push('ContextMenu_CloseClickOut', null, this.#status.targetLabel);
-        this.handleSeverityPopup();
-      }
+      this.#tracker.push('ContextMenu_CloseClickOut', null, this.#status.targetLabel);
+      this.handleSeverityPopup();
       this.hide();
     }
   }
@@ -263,10 +260,8 @@ export class ContextMenu {
       // from code, and this keeps the styling keyed to the same value that picks the smiley above.
       button.classList.toggle('severity-button--checked', sev === checkedSev);
       const colors = util.misc.getSeverityLevelColors(sev, labelType);
-      if (colors) {
-        button.style.setProperty('--level-wash', colors.wash);
-        button.style.setProperty('--level-edge', colors.edge);
-      }
+      button.style.setProperty('--level-wash', colors.wash);
+      button.style.setProperty('--level-edge', colors.edge);
     });
   }
 
@@ -679,7 +674,7 @@ export class ContextMenu {
       beforeOpen: async () => {
         const label = this.#getStatus('targetLabel');
         await this.#form.ensureLabelSaved(label);
-        if (label) this.#pointShareAtLabel(label);
+        this.#pointShareAtLabel(label);
       },
     });
   }

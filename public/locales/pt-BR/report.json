@@ -11,7 +11,9 @@
     "location": "{{type}}: mostrar a foto",
     "gesture-windows": "Use Ctrl + rolagem para ampliar o mapa",
     "gesture-mac": "Use ⌘ + rolagem para ampliar o mapa",
-    "gesture-touch": "Use dois dedos para mover o mapa"
+    "gesture-touch": "Use dois dedos para mover o mapa",
+    "aligned": "Rótulos alinhados",
+    "aligned-note": "Cada rótulo no seu lado da rua, aproximadamente no seu ponto ao longo dela: não o local exato."
   },
   "place": {
     "score": "Pontuação {{score}}",

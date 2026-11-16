@@ -108,8 +108,7 @@
     "hint-shapefile": "Für ArcGIS, QGIS",
     "hint-geopackage": "Offenes GIS-Format",
     "caveat": "Einige Filter aus dem Link dieser Seite (mehrere Regionen, Routen oder KI-Validierung) können auf Downloads nicht angewendet werden, daher kann die Datei mehr Beschriftungen enthalten als oben angegeben.",
-    "api-docs-link": "Dokumentation der Raw-Labels-API",
-    "opens-new-tab": " (wird in einem neuen Tab geöffnet)"
+    "api-docs-link": "Dokumentation der Raw-Labels-API"
   },
   "story": {
     "heading": "Erfahrungsberichte",

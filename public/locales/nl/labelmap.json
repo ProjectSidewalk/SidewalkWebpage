@@ -108,8 +108,7 @@
     "hint-shapefile": "Voor ArcGIS, QGIS",
     "hint-geopackage": "Open GIS-formaat",
     "caveat": "Sommige filters uit de link van deze pagina (meerdere regio’s, routes of AI-validatie) kunnen niet worden toegepast op downloads, dus het bestand kan meer etiketten bevatten dan het aantal hierboven.",
-    "api-docs-link": "Documentatie van de Raw Labels API",
-    "opens-new-tab": " (opent in een nieuw tabblad)"
+    "api-docs-link": "Documentatie van de Raw Labels API"
   },
   "story": {
     "heading": "Verhalen uit de community",

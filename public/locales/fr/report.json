@@ -11,7 +11,9 @@
     "location": "{{type}} : afficher sa photo",
     "gesture-windows": "Utilisez Ctrl + molette pour zoomer sur la carte",
     "gesture-mac": "Utilisez ⌘ + molette pour zoomer sur la carte",
-    "gesture-touch": "Utilisez deux doigts pour déplacer la carte"
+    "gesture-touch": "Utilisez deux doigts pour déplacer la carte",
+    "aligned": "Étiquettes alignées",
+    "aligned-note": "Chaque étiquette de son côté de la rue, à peu près à sa position le long de celle-ci : pas son emplacement exact."
   },
   "place": {
     "score": "Score {{score}}",

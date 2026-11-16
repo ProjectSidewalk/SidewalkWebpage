@@ -5,7 +5,7 @@ import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.partner.{PartnerLogoUpload, PartnerMetadata, PartnerRejection}
 import models.user.{Role, SidewalkUserWithRole}
 import models.utils.OfficialContact
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsBoolean, JsObject, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import service.{ConfigService, PartnerService}
@@ -34,11 +34,15 @@ class PartnerController @Inject() (
   /** Both scopes' partner lists for the admin page, plus what the caller may edit. */
   def getPartners = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     partnerService.getAdminLists.map { case (city, global) =>
+      // Same rule as PartnerMetadata.splitForLanding, so the admin page can say which logo a city hides.
+      val projectWideNames = global.map(p => PartnerMetadata.nameKey(p.name)).toSet
       Ok(
         Json.obj(
-          "city_id"         -> configService.getCityId,
-          "is_owner"        -> isOwner(request.identity),
-          "city_partners"   -> city.map(metadataJson),
+          "city_id"       -> configService.getCityId,
+          "is_owner"      -> isOwner(request.identity),
+          "city_partners" -> city.map(p =>
+            metadataJson(p) + ("also_project_wide" -> JsBoolean(projectWideNames(PartnerMetadata.nameKey(p.name))))
+          ),
           "global_partners" -> global.map(metadataJson)
         )
       )

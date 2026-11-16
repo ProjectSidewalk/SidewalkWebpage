@@ -9,14 +9,14 @@ import { MapSidebarFilter } from '../ps-map/MapSidebarFilter.js';
 /**
  * Loads the map into the existing `#<mapId>` holder once translations are ready.
  *
- * With `wireLabelPopup`, map labels become hoverable/clickable and open the shared label-detail popup, exactly like
- * LabelMap; the page must then expose `window.udLabelPopupReady`, a Promise resolving to its LabelPopup instance (or
- * null if its init failed, which leaves clicks as harmless no-ops).
+ * Map labels are hoverable/clickable and open the shared label-detail popup, exactly like LabelMap, so the page must
+ * expose `window.udLabelPopupReady`, a Promise resolving to its LabelPopup instance (or null if its init failed, which
+ * leaves clicks as harmless no-ops).
  *
- * @param {{mapId: string, mapboxApiKey: string, streetsURL: string, labelsURL: string, wireLabelPopup?: boolean}} opts
+ * @param {{mapId: string, mapboxApiKey: string, streetsURL: string, labelsURL: string}} opts
  * @returns {Promise<?object>} The map, or null if it failed to load, so an awaiting section is never left hanging.
  */
-export function loadContributionMap({ mapId, mapboxApiKey, streetsURL, labelsURL, wireLabelPopup = false }) {
+export function loadContributionMap({ mapId, mapboxApiKey, streetsURL, labelsURL }) {
   return new Promise((resolve) => {
     window.appManager.ready(async () => {
       const params = {
@@ -41,31 +41,25 @@ export function loadContributionMap({ mapId, mapboxApiKey, streetsURL, labelsURL
         // flag's only effect is turning on the dashed rendering for streets that need a re-audit (#4384).
         differentiateUnauditedStreets: true,
       };
-      if (wireLabelPopup) {
-        // Label hover/click in AddLabelsToMap only activates when a popupLabelViewer is present. This thin adapter
-        // resolves the host page's popup lazily at click time, so map setup can't race popup init.
-        params.popupLabelViewer = {
-          showLabel: async (labelId, uiSource) => {
-            const popup = await window.udLabelPopupReady;
-            if (!popup) return;
-            await popup.showLabel(labelId, uiSource);
-          },
-        };
-      }
+      // Label hover/click in AddLabelsToMap only activates when a popupLabelViewer is present. This thin adapter
+      // resolves the host page's popup lazily at click time, so map setup can't race popup init.
+      params.popupLabelViewer = {
+        showLabel: async (labelId, uiSource) => {
+          const popup = await window.udLabelPopupReady;
+          if (!popup) return;
+          await popup.showLabel(labelId, uiSource);
+        },
+      };
       try {
         const m = await createPSMap(params);
         new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
         resolve(m[0]);
         // Wheel/trackpad zooms the map whenever the pointer is over it, and scrolls the page everywhere else.
         const map = m[0];
-        if (map && map.scrollZoom) {
-          map.scrollZoom.disable();
-          const holder = document.getElementById(`${mapId}-holder`);
-          if (holder) {
-            holder.addEventListener('mouseenter', () => map.scrollZoom.enable());
-            holder.addEventListener('mouseleave', () => map.scrollZoom.disable());
-          }
-        }
+        map.scrollZoom.disable();
+        const holder = document.getElementById(`${mapId}-holder`);
+        holder.addEventListener('mouseenter', () => map.scrollZoom.enable());
+        holder.addEventListener('mouseleave', () => map.scrollZoom.disable());
       } catch (e) {
         console.error('Contribution map failed to load', e);
         resolve(null);

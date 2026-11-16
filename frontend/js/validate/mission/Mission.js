@@ -5,72 +5,51 @@
 /** @typedef {import('./MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../status/StatusField.js').StatusField} StatusField */
 
+/**
+ * What a mission knows about itself, as MissionContainer builds it from the server's mission and progress.
+ * @typedef {object} MissionProperties
+ * @property {number} agreeCount - Agree votes cast in this mission so far.
+ * @property {number} disagreeCount - Disagree votes cast in this mission so far.
+ * @property {number} unsureCount - Unsure votes cast in this mission so far.
+ * @property {number} missionId
+ * @property {string} missionType - E.g. 'validation'.
+ * @property {boolean} completed
+ * @property {?number} labelsProgress - Labels validated so far; null for a mission nobody has started.
+ * @property {number} labelsValidated - How many labels the mission asks for.
+ * @property {string} labelType
+ */
+
 export class Mission {
   /** @type {MissionContainer} */
   #missionContainer;
   /** @type {StatusField} */
   #statusField;
-
-  #properties = {
-    agreeCount: 0,
-    disagreeCount: 0,
-    missionId: undefined,
-    missionType: undefined,
-    completed: undefined,
-    labelsProgress: undefined,
-    labelType: undefined,
-    labelsValidated: undefined,
-    unsureCount: 0,
-  };
+  /** @type {MissionProperties} */
+  #properties;
 
   /**
-   * @param {object} params - Mission metadata passed in from MissionContainer.js.
+   * @param {MissionProperties} params - Mission metadata passed in from MissionContainer.js.
    * @param {MissionContainer} missionContainer - Told when this mission's last label is validated.
    * @param {StatusField} statusField - Shows this mission's progress and the validator's running count.
    */
   constructor(params, missionContainer, statusField) {
     this.#missionContainer = missionContainer;
     this.#statusField = statusField;
-    this.#init(params);
-  }
-
-  /**
-   * Initializes a front-end mission object from metadata.
-   * @param {object} params - Mission metadata.
-   */
-  #init(params) {
-    if ('agreeCount' in params) this.setProperty('agreeCount', params.agreeCount);
-    if ('disagreeCount' in params) this.setProperty('disagreeCount', params.disagreeCount);
-    if ('missionId' in params) this.setProperty('missionId', params.missionId);
-    if ('missionType' in params) this.setProperty('missionType', params.missionType);
-    if ('regionId' in params) this.setProperty('regionId', params.regionId);
-    if ('completed' in params) this.setProperty('completed', params.completed);
-    if ('labelsProgress' in params) this.setProperty('labelsProgress', params.labelsProgress);
-    if ('labelsValidated' in params) this.setProperty('labelsValidated', params.labelsValidated);
-    if ('labelType' in params) this.setProperty('labelType', params.labelType);
-    if ('unsureCount' in params) this.setProperty('unsureCount', params.unsureCount);
+    this.#properties = { ...params };
   }
 
   /**
    * Gets a single property for this mission object.
-   * @param {string} key - String representation of property.
-   * @returns {*} Property if it exists, null otherwise.
+   * @param {keyof MissionProperties} key - Property name.
+   * @returns {*} The property's value.
    */
   getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
-  }
-
-  /**
-   * Returns all properties associated with this mission.
-   * @returns {object} Object for properties.
-   */
-  getProperties() {
-    return this.#properties;
+    return this.#properties[key];
   }
 
   /**
    * Function that checks if the current mission is complete.
-   * @returns {boolean|undefined} True if this mission is complete, false if in progress, undefined if not yet known.
+   * @returns {boolean} True if this mission is complete, false if in progress.
    */
   isComplete() {
     return this.getProperty('completed');

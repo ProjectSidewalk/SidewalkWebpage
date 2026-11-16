@@ -5,6 +5,7 @@
  */
 package models.api
 
+import models.street.StreetGradientStats
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.LineString
@@ -160,6 +161,8 @@ object OsmWaySideForApi {
  * @param outdated Whether the street was audited before but every audit predates newer imagery (needs re-audit, #4384)
  * @param firstLabelDate Timestamp of the first label applied to this street (if any)
  * @param lastLabelDate Timestamp of the most recent label applied to this street (if any)
+ * @param gradient The street's slope statistics (#5223), or None if it has not been sampled. Slope is measured from an
+ *                 elevation model rather than labeled, so an unaudited street carries it too.
  * @param geometry The LineString geometry representing the street segment
  */
 case class StreetDataForApi(
@@ -177,6 +180,7 @@ case class StreetDataForApi(
     outdated: Boolean,
     firstLabelDate: Option[OffsetDateTime] = None,
     lastLabelDate: Option[OffsetDateTime] = None,
+    gradient: Option[StreetGradientStats] = None,
     geometry: LineString
 ) extends StreamingApiType {
 
@@ -194,7 +198,8 @@ case class StreetDataForApi(
 object StreetDataForApi extends ApiFields[StreetDataForApi] {
   import ApiFields.field
 
-  override val fields: Seq[ApiField[StreetDataForApi]] = Seq(
+  /** The fields that predate the slope fields, in their published order. */
+  private val baseFields: Seq[ApiField[StreetDataForApi]] = Seq(
     field("street_edge_id")(_.streetEdgeId),
     field("osm_way_id")(_.osmWayId),
     field("region_id")(_.regionId),
@@ -209,14 +214,23 @@ object StreetDataForApi extends ApiFields[StreetDataForApi] {
     field("user_count")(_.userIds.size),
     field("first_label_date")(_.firstLabelDate.map(_.toString)),
     field("last_label_date")(_.lastLabelDate.map(_.toString)),
-    // Last, so a reader that goes by column position in the CSV or .dbf is only disturbed after it.
     field("osm_ways")(_.osmWays)
   )
+
+  /** The slope fields (#5431), shared with `/v3/api/accessScoreStreets` so both name them identically. */
+  private val gradeFields: Seq[ApiField[StreetDataForApi]] =
+    StreetGradientApiFields.statFields.map(_.on[StreetDataForApi](_.gradient))
+
+  // The grade fields go after every older field, in the CSV after the point columns too, so a reader that goes by
+  // column position is only disturbed past the columns it already knew.
+  override val fields: Seq[ApiField[StreetDataForApi]] = baseFields ++ gradeFields
 
   override val csvOnlyFields: Seq[ApiField[StreetDataForApi]] = Seq(
     field("start_point")(s => s"${s.geometry.getStartPoint.getX},${s.geometry.getStartPoint.getY}"),
     field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")
   )
+
+  override def csvFields: Seq[ApiField[StreetDataForApi]] = baseFields ++ csvOnlyFields ++ gradeFields
 
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJson method.

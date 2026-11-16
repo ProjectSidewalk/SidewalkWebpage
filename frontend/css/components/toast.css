@@ -127,7 +127,6 @@
   height: calc(14px * var(--ui-scale, 1));
 }
 
-
 /* The default X is nearly as tall as a one-line toast. The ::after keeps the clickable area at 24px for touch. */
 .ps-toast--compact .ps-toast__close {
   top: calc(-6px * var(--ui-scale, 1));

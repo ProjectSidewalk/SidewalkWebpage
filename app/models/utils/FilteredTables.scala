@@ -45,6 +45,17 @@ object FilteredTables {
     s"$streetIdColumn <> ${tutorialStreetId(schema)}"
 
   /**
+   * Whether a label isn't from the tutorial, for a query that has `label` and its `audit_task`. Also checks the
+   * audit's street, since a tutorial label can land on a real street.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A boolean SQL expression.
+   */
+  def notTutorialLabel(schema: Option[String] = None): String =
+    s"label.tutorial = FALSE AND ${notTutorialStreet("label.street_edge_id", schema)} " +
+      s"AND ${notTutorialStreet("audit_task.street_edge_id", schema)}"
+
+  /**
    * Streets that count: open and not the tutorial street. Twin of `StreetEdgeTable.streets`.
    *
    * @param schema A city schema to read instead of the current one.
@@ -89,8 +100,8 @@ object FilteredTables {
     }
 
   /**
-   * Labels that count: not deleted, not tutorial, not by an excluded user, not on the tutorial street. Twin of
-   * `LabelTable.labels`. Also checks the audit's street, since a tutorial label can land on a real street.
+   * Labels that count: not deleted, not tutorial ([[notTutorialLabel]]), not by an excluded user. Twin of
+   * `LabelTable.labels`.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.
@@ -104,9 +115,7 @@ object FilteredTables {
          FROM ${table(schema, "label")} AS label
          INNER JOIN ${table(schema, "audit_task")} AS audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE label.deleted = FALSE
-             AND label.tutorial = FALSE
-             AND ${notTutorialStreet("label.street_edge_id", schema)}
-             AND ${notTutorialStreet("audit_task.street_edge_id", schema)}
+             AND ${notTutorialLabel(schema)}
              AND ${userCounts(schema, "audit_task.user_id", contributors)}
        ) AS label"""
 
@@ -121,9 +130,7 @@ object FilteredTables {
          FROM label
          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE ${models.label.LabelTable.countsTowardAccuracySql}
-             AND label.tutorial = FALSE
-             AND ${notTutorialStreet("label.street_edge_id")}
-             AND ${notTutorialStreet("audit_task.street_edge_id")}
+             AND ${notTutorialLabel()}
        ) AS label"""
 
   /**
@@ -205,4 +212,29 @@ object FilteredTables {
          FROM ${table(schema, "voided_label_validation")} AS voided_label_validation
          WHERE ${userCounts(schema, "voided_label_validation.user_id", Contributors.NotExcluded)}
        ) AS voided_label_validation"""
+
+  /**
+   * People with a counted label or a vote, voided votes included since the work still happened (#3976). AI accounts
+   * are left out, since every count built on this is a count of people (#5914).
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause, one row per distinct `user_id` (a `text` column).
+   */
+  def contributorIds(schema: Option[String] = None): String =
+    s"""(
+         SELECT work.user_id
+         FROM (
+           SELECT label.user_id
+           FROM ${labels(schema)}
+           UNION
+           SELECT label_validation.user_id
+           FROM ${votesCast(schema)}
+           UNION
+           SELECT voided_label_validation.user_id
+           FROM ${voidedVotesCast(schema)}
+         ) AS work
+         WHERE NOT EXISTS (
+           SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = work.user_id AND user_role.role = 'AI'
+         )
+       ) AS contributor"""
 }

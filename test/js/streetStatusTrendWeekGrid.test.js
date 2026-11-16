@@ -27,6 +27,7 @@ const MARKUP = `
     <div class="mini-host" id="trend-reports-chart"></div>
     <p id="trend-expiry-note"></p>
     <div class="mini-host" id="trend-expiry-chart"></div>
+    <div id="trend-reopen-candidates"></div>
     <p id="trend-corroborated-intro"></p>
     <div id="trend-corroborated"></div>
     <div id="trend-regions"></div>

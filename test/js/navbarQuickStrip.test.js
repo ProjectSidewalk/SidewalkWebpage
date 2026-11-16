@@ -13,6 +13,7 @@
  */
 
 import { loadModules } from './loader.js';
+import { NAVBAR_CITY_DROPDOWN } from './support/pageChromeHarness.js';
 
 
 const LOGO_WIDTH = 110;
@@ -46,6 +47,7 @@ function buildNavbar() {
               </li>
             </ul>
             <ul class="navbar-list navbar-list--utility">
+              ${NAVBAR_CITY_DROPDOWN}
               <li class="dropdown navbar-item" id="li-user" data-nav-quick="1">
                 <button type="button" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-user-menu"></button>
@@ -160,7 +162,7 @@ describe('Navbar quick strip', () => {
     it('takes promoted items out of the panel, so nothing is listed twice', () => {
       render({ stacked: true, barWidth: 800 });
 
-      expect(panelIds()).toEqual(['li-explore', 'language-dropdown']);
+      expect(panelIds()).toEqual(['li-explore', 'navbar-city-dropdown', 'language-dropdown']);
     });
 
     it('drops the lowest-priority items on a narrow screen and leaves them in the panel', () => {
@@ -192,12 +194,34 @@ describe('Navbar quick strip', () => {
       expect(stripIds()).toEqual(['li-user']);
     });
 
+    it('closes the account menu when a resize carries it between the panel and the strip', async () => {
+      const userMenuOpen = () => document.getElementById('li-user').classList.contains('is-open');
+      const refit = async (barWidth) => {
+        stubLayout({ stacked: true, barWidth });
+        window.dispatchEvent(new Event('resize'));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      };
+      render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH });
+      document.querySelector('#li-user button').click();
+      expect(userMenuOpen()).toBe(true);
+
+      await refit(800);
+      expect(stripIds()).toContain('li-user');
+      expect(userMenuOpen()).toBe(false);
+
+      document.querySelector('#li-user button').click();
+      await refit(LOGO_WIDTH + HAMBURGER_WIDTH);
+      expect(stripIds()).toEqual([]);
+      expect(userMenuOpen()).toBe(false);
+      expect(document.querySelector('#li-user button').getAttribute('aria-expanded')).toBe('false');
+    });
+
     it('leaves the strip empty when there is no room at all', () => {
       render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH });
 
       expect(stripIds()).toEqual([]);
       expect(panelIds()).toEqual(
-        ['li-explore', 'li-validate', 'li-api', 'li-about', 'li-user', 'language-dropdown']
+        ['li-explore', 'li-validate', 'li-api', 'li-about', 'navbar-city-dropdown', 'li-user', 'language-dropdown']
       );
     });
   });
@@ -236,7 +260,7 @@ describe('Navbar quick strip', () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       expect(panelIds()).toEqual(
-        ['li-explore', 'li-validate', 'li-api', 'li-about', 'li-user', 'language-dropdown']
+        ['li-explore', 'li-validate', 'li-api', 'li-about', 'navbar-city-dropdown', 'li-user', 'language-dropdown']
       );
     });
   });

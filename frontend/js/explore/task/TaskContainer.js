@@ -415,7 +415,7 @@ export class TaskContainer {
   /**
    * How far the labeler has to go from the end of one street to where they enter the next. Under CONNECTED_TASK_KM
    * the streets are switched seamlessly; from further away it is a jump, which StreetProgress prompts for and the
-   * minimap draws a connector for, so both read the same gap.
+   * minimap's preview stops at, so both read the same gap.
    *
    * @param {Task} task - The street being finished.
    * @param {Task} nextTask - The street that follows it.
@@ -425,6 +425,15 @@ export class TaskContainer {
     const from = task.getEndCoordinate();
     const to = nextTask.getEntryCoordinate();
     return turf.distance(turf.point([from.lng, from.lat]), turf.point([to.lng, to.lat]), { units: 'kilometers' });
+  }
+
+  /**
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street that follows it on a planned walk.
+   * @returns {boolean} Whether the labeler is moved to `nextTask` rather than walking onto it.
+   */
+  static isJump(task, nextTask) {
+    return TaskContainer.jumpGapKm(task, nextTask) >= TaskContainer.CONNECTED_TASK_KM;
   }
 
   /**
@@ -471,19 +480,15 @@ export class TaskContainer {
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * How far along the current street the user has walked, counting the pano they're on now.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
    * @returns {number}
    */
   getCurrentTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
 
-    if (this.#currentTask) {
-      const currentLatLng = this.#panoManager.getPosition();
-      this.#currentTask.updateTheFurthestPointReached(currentLatLng);
-      return this.#currentTask.getAuditedDistance(unit);
-    }
-    return 0;
+    this.#currentTask.updateTheFurthestPointReached(this.#panoManager.getPosition());
+    return this.#currentTask.getAuditedDistance(unit);
   }
 
   /**
@@ -654,8 +659,7 @@ export class TaskContainer {
     } else if (this.hasWalkPlan()) {
       // The earliest unwalked step of the plan; a street the plan left out sorts last (null would compare as 0). No
       // direction correction, unlike the greedy rule below: the plan chose each street's direction, including a jump
-      // target entered at its far end, and turning one toward the finished street would land the labeler where the
-      // minimap connector does not point.
+      // target entered at its far end, and turning one toward the finished street would undo that choice.
       const position = (t) => t.getPlannedPosition() ?? Infinity;
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
         return position(current) < position(min) ? current : min;
@@ -767,7 +771,7 @@ export class TaskContainer {
   recordExploreMove(latLng) {
     const current = this.#currentTask;
     const nearest = this.tasksLoaded() ? this.#nearestTask(latLng) : null;
-    if (nearest && current && nearest !== current) {
+    if (nearest && nearest !== current) {
       this.#tracker.push('ExploreAddress_StreetSwitch', {
         from: current.getStreetEdgeId(),
         to: nearest.getStreetEdgeId(),
@@ -779,10 +783,8 @@ export class TaskContainer {
       if (nearest.getCoveredRanges().length === 0) nearest.setProperty('taskStart', new Date());
       this.setCurrentTask(nearest);
     }
-    if (this.#currentTask) {
-      this.#currentTask.recordVisit(latLng);
-      this.renderTask(this.#currentTask);
-    }
+    this.#currentTask.recordVisit(latLng);
+    this.renderTask(this.#currentTask);
   }
 
   /**
@@ -796,8 +798,8 @@ export class TaskContainer {
     const point = turf.point([latLng.lng, latLng.lat]);
     let nearest = null;
     let nearestM = Task.ON_STREET_MAX_DISTANCE_M;
-    const candidates = this.#currentTask ? [this.#currentTask, ...this._tasks] : this._tasks;
-    for (const task of candidates) {
+    // A Set, since the current task is usually among the loaded ones too; listed first so it wins a tie.
+    for (const task of new Set([this.#currentTask, ...this._tasks])) {
       const distM = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
       if (distM < nearestM) {
         nearest = task;
@@ -811,12 +813,13 @@ export class TaskContainer {
    * Get the street id of the current task.
    */
   getCurrentTaskStreetEdgeId() {
-    return this.#currentTask ? this.#currentTask.getStreetEdgeId() : null;
+    return this.#currentTask.getStreetEdgeId();
   }
 
   /**
-   *
-   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to the user's units
+   * The combined length of every loaded street.
+   * @param {object} [unit] - Object with field 'units' holding distance unit; defaults to kilometers.
+   * @returns {number}
    */
   getTotalTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };

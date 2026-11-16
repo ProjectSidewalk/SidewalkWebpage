@@ -76,6 +76,19 @@ describe('util.pano projection', () => {
 
       expect(pano.centeredPovToCanvasCoord(behind, pov, CANVAS_WIDTH, CANVAS_HEIGHT, 20)).toBeNull();
     });
+
+    // A point exactly 90° off the view direction lies on a line parallel to the image plane, so it never meets it.
+    it('returns null for a point square to the side of the camera rather than dividing by zero', () => {
+      const pov = {heading: 90, pitch: 0, zoom: 1};
+      const beside = {heading: 180, pitch: 0};
+
+      expect(pano.centeredPovToCanvasCoord(beside, pov, CANVAS_WIDTH, CANVAS_HEIGHT, 20)).toBeNull();
+    });
+  });
+
+  // The projection flips its horizontal basis on the sign of cos(pitch), and counts a level camera as upright.
+  it('sgn counts zero as positive', () => {
+    expect([pano.sgn(-0.5), pano.sgn(0), pano.sgn(2)]).toEqual([-1, 1, 1]);
   });
 
   // PanoMarker falls back to the 2D projection whenever the browser hands it no WebGL context, so this runs for

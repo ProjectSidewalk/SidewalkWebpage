@@ -5,8 +5,6 @@
 
 import * as turf from '@turf/turf';
 import { PanoViewer } from '../../common/pano-viewer/PanoViewer.js';
-import { util } from '../../common/utilities.js';
-import '../../common/utilitiesMath.js';
 /** @typedef {import('../navigation/Minimap.js').MinimapStreetLine} MinimapStreetLine */
 
 /**
@@ -26,6 +24,10 @@ export class Task {
   // advance the furthest point reached nor finish the street. GsvViewer holds Google's replies to the search radius
   // (#5114); Mapillary and Panoramax search a square box of that half-width, so it bounds their landings only roughly.
   static ON_STREET_MAX_DISTANCE_M = PanoViewer.SEARCH_RADIUS_M;
+  // How far past the furthest point reached (m) a pano must sit for the walk to step to it. Imagery that turns off
+  // the street gets nowhere, and stepping onto it sends the labeler back and forth (#5918). Kept under the spacing
+  // of the densest imagery, so no usable pano is skipped.
+  static MIN_STEP_ADVANCE_M = 2;
   // How far (km) from a street's line the labeler may stand and still count as on it: advancing along it, the
   // compass's on-route check, and picking up the next street all use it.
   static CLOSE_TO_ROUTE_KM = 0.05;
@@ -377,6 +379,18 @@ export class Task {
   getStreetPriorityDiscretized() {
     const n = 4;
     return Math.min(Math.floor(this.#geojson.properties.priority / (1 / n)), n - 1);
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there advances the walk: on-street, MIN_STEP_ADVANCE_M past the furthest point.
+   */
+  advancesWalk(latLng) {
+    const meters = { units: /** @type {const} */ ('meters') };
+    // Past the on-street bound a pano can't move the furthest point, so every search from it would start over.
+    const point = turf.point([latLng.lng, latLng.lat]);
+    if (turf.pointToLineDistance(point, this.#geojson, meters) >= Task.ON_STREET_MAX_DISTANCE_M) return false;
+    return this.getDistanceFromStart(latLng, meters) - this.getAuditedDistance(meters) >= Task.MIN_STEP_ADVANCE_M;
   }
 
   /**
@@ -745,7 +759,54 @@ export class Task {
     const remainder = this.unwalkedRemainder();
     const distIncrement = Math.min(0.015, turf.length(remainder));
     const goalLoc = turf.along(remainder, distIncrement).geometry.coordinates;
-    return ((util.math.toDegrees(Math.atan2(goalLoc[0] - latLng.lng, goalLoc[1] - latLng.lat)) + 360) % 360);
+    return (turf.bearing([latLng.lng, latLng.lat], goalLoc) + 360) % 360;
+  }
+
+  /**
+   * The street from where a position falls on it to one of its ends, whatever has been walked: free exploration
+   * steps along a street either way (#5968), where unwalkedRemainder() only leads on from the furthest point.
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {GeoJSON.Feature<GeoJSON.LineString>} Starts at the position's nearest point on the street.
+   */
+  streetFrom(latLng, towardEnd) {
+    const here = turf.nearestPointOnLine(this.#geojson, turf.point([latLng.lng, latLng.lat]));
+    const length = turf.length(this.#geojson);
+    const at = Math.min(Math.max(here.properties.location, 0), length);
+    // Cut by distance along the street, not between two points: on a loop the ends are one point, and two points on
+    // one segment come back in the order named.
+    const [from, to] = towardEnd ? [at, length] : [0, at];
+    if (to - from <= 0) return turf.lineString([here.geometry.coordinates, here.geometry.coordinates]);
+    const stretch = turf.lineSliceAlong(this.#geojson, from, to);
+    if (!towardEnd) stretch.geometry.coordinates.reverse();
+    return stretch;
+  }
+
+  /**
+   * @param {{lat: number, lng: number}} latLng - Where the labeler stands.
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {?number} Degrees clockwise from true north to 15 m down the street that way (its end if nearer); null
+   *   when too little street is left that way for any pano to count as a step down it.
+   */
+  headingAlongStreet(latLng, towardEnd) {
+    const stretch = this.streetFrom(latLng, towardEnd);
+    const length = turf.length(stretch);
+    if (length * 1000 < Task.MIN_STEP_ADVANCE_M) return null;
+    const goalLoc = turf.along(stretch, Math.min(0.015, length)).geometry.coordinates;
+    // From the labeler's place on the street, not where they stand: from off to one side, both ways would point in
+    // at the street and the two arrows would close on each other.
+    return (turf.bearing(stretch.geometry.coordinates[0], goalLoc) + 360) % 360;
+  }
+
+  /**
+   * @param {GeoJSON.Feature<GeoJSON.LineString>} stretch - From streetFrom().
+   * @param {{lat: number, lng: number}} latLng - Where a pano sits.
+   * @returns {boolean} Whether a step there goes down the stretch: MIN_STEP_ADVANCE_M or more from its start. A pano
+   *   behind or beside the start falls on the start itself.
+   */
+  static isStepDown(stretch, latLng) {
+    const snapped = turf.nearestPointOnLine(stretch, turf.point([latLng.lng, latLng.lat]), { units: 'meters' });
+    return snapped.properties.location >= Task.MIN_STEP_ADVANCE_M;
   }
 
   /**

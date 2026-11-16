@@ -112,9 +112,7 @@ export class ValidationInfoDisplay {
    * @param {boolean} filled - Whether the icon should show its filled variant.
    */
   setVoteIconFilled(action, filled) {
-    const container = action === 'Agree' ? this.agreeContainer : this.disagreeContainer;
-    const icon = /** @type {?HTMLImageElement} */ (container?.querySelector('.validation-info-image'));
-    if (icon) icon.src = this.#voteIconSrc(action, filled);
+    this.#voteTallies[action].icon.src = this.#voteIconSrc(action, filled);
   }
 
   /**

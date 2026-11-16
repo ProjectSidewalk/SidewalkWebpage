@@ -451,9 +451,10 @@ export class Onboarding {
           strokeStyle: 'rgba(255, 255, 255, 1)',
         };
         this.#drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
-      } else if (annotation.type === 'label') {
-        // Example labels pop in staggered, in the order the copy introduces them; POV/resize redraws after the
-        // entrance render them at rest. Under prefers-reduced-motion they appear at rest immediately.
+      } else {
+        // The only other kind is an example label. These pop in staggered, in the order the copy introduces them, and
+        // POV/resize redraws after the entrance render them at rest. Under prefers-reduced-motion they skip the
+        // entrance and appear at rest straight away.
         if (annotation.appearStart === undefined) {
           annotation.appearStart = reduceMotion ? -Infinity : performance.now() + newLabelCount * 350;
           newLabelCount += 1;

@@ -55,11 +55,6 @@ describe('label icon sizing across the UI scale', () => {
       expect(iconScreenDiameter(crossover - 0.01)).toBeLessThan(38);
       expect(iconScreenDiameter(crossover + 0.01)).toBeCloseTo(38, 5);
     });
-
-    test('reads the live scale off the page when called with no argument', () => {
-      document.documentElement.style.setProperty('--ui-scale', '1.8');
-      expect(util.labelIconRadius()).toBeCloseTo(util.labelIconRadius(1.8), 10);
-    });
   });
 
   describe('util.labelHitMargin', () => {

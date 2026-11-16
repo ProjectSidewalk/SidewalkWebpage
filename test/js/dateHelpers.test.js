@@ -74,3 +74,10 @@ describe('util.timeAgo', () => {
     i18next.language = 'en';
   });
 });
+
+describe('util.yearMonth', () => {
+  // `pano_data.capture_date` is free text, so a timestamp-shaped value can still name no real instant.
+  test('gives null for a timestamp that names no real date', () => {
+    expect(util.yearMonth('2024-13-45T00:00:00Z')).toBeNull();
+  });
+});

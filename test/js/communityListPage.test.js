@@ -428,6 +428,15 @@ describe('StoryListPage', () => {
       expect(excerpt).toBe(`${'word '.repeat(18).trim()}…`); // Cut at the last space inside the 90-char cap.
     });
 
+    test('text with no spaces to break at, like Chinese, is cut at the cap', () => {
+      setupDom(storyCard({ id: '7', storyId: '42', text: '路'.repeat(120) }));
+      setupShareWidget();
+      const setTarget = vi.spyOn(ShareWidget.prototype, 'setTarget');
+      new StoryListPage().init();
+
+      expect(setTarget.mock.calls[0][0].text).toBe(`shared:${'路'.repeat(90)}…`);
+    });
+
     test('opening the chip logs surface + story attribution', () => {
       setupDom(storyCard({ id: '7', storyId: '42' }));
       setupShareWidget();

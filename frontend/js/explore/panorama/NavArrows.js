@@ -1,7 +1,6 @@
 /**
- * The navigation arrows drawn over the pano: one per linked pano, rotated to its direction, plus the route's way
- * forward in the navigation blue (#4671). What a click or hover means is announced rather than acted on here, since
- * the moves belong to NavigationService and the matching minimap crumb to ForwardCrumbs, both built after this.
+ * The navigation arrows drawn over the pano: one per linked pano, with the route's next step in blue (#4671). Clicks
+ * and hovers are announced, not acted on: moves belong to NavigationService and crumbs to ForwardCrumbs, built later.
  */
 
 import { Gate } from '../../common/Gate.js';
@@ -17,6 +16,11 @@ import { MinimapStyle } from '../navigation/MinimapStyle.js';
  * @typedef {{panoId: string}|{routeForward: true}} ArrowTarget
  */
 
+/**
+ * Where the route walk would land, and which way that is; null when no pano is known ahead.
+ * @typedef {?{panoId: string, heading: number}} WalkLanding
+ */
+
 export class NavArrows {
   #group;
   #container;
@@ -26,11 +30,23 @@ export class NavArrows {
   /** Showing the arrows; the tutorial holds it outside its walk step. */
   showing = new Gate();
 
+  /**
+   * The walk's landing, kept with its pano: it arrives after the move, so it may be for a pano already left.
+   * @type {?{forPanoId: string, landing: WalkLanding}}
+   */
+  #walkLanding = null;
+
+  /** Whether the street has ended where the labeler stands. */
+  #walkEnded = false;
+
   /** @type {Array<(panoId: string) => void>} */
   #linkClickListeners = [];
 
   /** @type {Array<() => void>} */
   #routeForwardClickListeners = [];
+
+  /** @type {Array<(towardEnd: boolean) => void>} */
+  #streetWalkClickListeners = [];
 
   /** @type {Array<(target: ?ArrowTarget) => void>} */
   #hoverListeners = [];
@@ -57,15 +73,17 @@ export class NavArrows {
       // The tutorial's walk step handles arrow clicks itself.
       if (this.#config.isOnboarding) return;
       event.stopPropagation();
-      // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
-      // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
-      // graph offers nothing along the route) walks the compass's "straight" path. (#4671)
+      // A blue arrow with a pano-id is a real link and moves like one. Only the synthesized arrow (no pano-id)
+      // walks the compass's "straight" path. (#4671)
       const target = /** @type {Element} */ (event.target);
       const targetPanoId = target.getAttribute('pano-id');
       if (targetPanoId) {
         this.#linkClickListeners.forEach((listener) => listener(targetPanoId));
       } else if (target.classList.contains('route-forward-arrow')) {
         this.#routeForwardClickListeners.forEach((listener) => listener());
+      } else if (target.classList.contains('street-walk-arrow')) {
+        const towardEnd = target.getAttribute('toward') === 'end';
+        this.#streetWalkClickListeners.forEach((listener) => listener(towardEnd));
       }
     });
 
@@ -97,6 +115,14 @@ export class NavArrows {
   }
 
   /**
+   * Told when a free-exploration arrow down the street is clicked (#5968), and which end of the street it faces.
+   * @param {(towardEnd: boolean) => void} listener
+   */
+  onStreetWalkClick(listener) {
+    this.#streetWalkClickListeners.push(listener);
+  }
+
+  /**
    * Told what the pointer is over: an arrow's target, or null once it leaves the arrows.
    * @param {(target: ?ArrowTarget) => void} listener
    */
@@ -122,40 +148,80 @@ export class NavArrows {
   /**
    * Removes the old arrows and creates new ones from the current pano's links.
    *
-   * The arrow pointing the way the route wants the user to go is highlighted in the navigation blue (#4671): normally
-   * that is the forward link arrow, recolored; where the link graph offers nothing along the route (a dead-end), a
-   * blue arrow is synthesized at the route heading and its click walks the route instead of a link.
+   * The blue arrow points at the pano its click lands on (#4671, #5918): the link the spacebar would take, else the
+   * link to the walk's landing, else a synthesized arrow aimed at the landing (down the street when none is known).
+   * On an ended street only a landing further down it is blue: the nearest link can pace between its last panos.
+   *
+   * Free exploration has no route, so nothing is blue there. A pano with no links gets a plain arrow each way down
+   * the street instead: providers return some reachable panos that way, with no other visible way out (#5968).
    */
   reset() {
     while (this.#group.firstChild) {
       this.#group.removeChild(this.#group.firstChild);
     }
 
-    // Highlight the link that best heads the route's way: forward when on route, back toward the route when off route
-    // (the heading is measured from the current position). Following the blue link arrows then walks the user along,
-    // or back to, the route one pano at a time.
+    // Off route the heading points back to the route, so the blue link arrows lead back one pano at a time.
     const links = this.#panoManager.panoViewer.getLinkedPanos();
-    const targetHeading = this.#routeForwardHeading();
-    const forwardIndex = targetHeading === null ? -1 : ForwardCrumbs.closestLinkIndex(links, targetHeading);
+    const routeHeading = this.#routeForwardHeading();
+    let blueIndex = routeHeading === null || this.#walkEnded ? -1 : ForwardCrumbs.stepLinkIndex(links, routeHeading);
+    let synthesizedHeading = null;
+
+    // On route only: off route the walk would teleport back rather than step. Until the landing is known nothing
+    // is blue, since a guess could point nowhere.
+    const walk = this.#walkLanding;
+    if (routeHeading !== null && blueIndex === -1 && this.#isEnRoute()
+      && walk && walk.forPanoId === this.#panoManager.getPanoId()) {
+      const landing = walk.landing;
+      blueIndex = landing ? links.findIndex((link) => link.panoId === landing.panoId) : -1;
+      const leadsOn = landing || !this.#walkEnded;
+      if (blueIndex === -1 && leadsOn) synthesizedHeading = landing ? landing.heading : routeHeading;
+    }
 
     links.forEach((link, i) => {
-      const arrow = i === forwardIndex ? NavArrows.#createForwardArrow() : NavArrows.#createArrow();
+      const arrow = i === blueIndex ? NavArrows.#createForwardArrow() : NavArrows.#createArrow();
       arrow.setAttribute('transform', `translate(15, 0) rotate(${(link.heading + 360) % 360}, 15, 30)`);
       arrow.setAttribute('pano-id', link.panoId);
       this.#group.appendChild(arrow);
     });
 
-    // With no link the route's way, synthesize a forward arrow at the route heading, but only on route, where the
-    // route walk steps forward along the street. Off route it would teleport back to the route rather than step, so
-    // the user keeps their link arrows to walk back one pano at a time instead. (#4671)
-    if (targetHeading !== null && forwardIndex === -1 && this.#isEnRoute()) {
+    if (synthesizedHeading !== null) {
       const arrow = NavArrows.#createForwardArrow();
       arrow.classList.add('route-forward-arrow');
-      arrow.setAttribute('transform', `translate(15, 0) rotate(${targetHeading}, 15, 30)`);
+      arrow.setAttribute('transform', `translate(15, 0) rotate(${synthesizedHeading}, 15, 30)`);
       this.#group.appendChild(arrow);
     }
 
+    if (links.length === 0) {
+      this.#streetWalkHeadings().forEach(({ towardEnd, heading }) => {
+        const arrow = NavArrows.#createArrow();
+        arrow.classList.add('street-walk-arrow');
+        arrow.setAttribute('toward', towardEnd ? 'end' : 'start');
+        arrow.setAttribute('transform', `translate(15, 0) rotate(${heading}, 15, 30)`);
+        this.#group.appendChild(arrow);
+      });
+    }
+
     this.rotate(this.#panoManager.getPov().heading);
+  }
+
+  /**
+   * Told where the route walk would land, once the minimap's lookups answer; redraws so the blue arrow points there.
+   * @param {string} forPanoId - The pano the landing was worked out for.
+   * @param {WalkLanding} landing
+   */
+  setWalkLanding(forPanoId, landing) {
+    this.#walkLanding = { forPanoId, landing };
+    if (forPanoId === this.#panoManager.getPanoId()) this.reset();
+  }
+
+  /**
+   * Told when the prompt to move on from a finished street goes up, and when the labeler takes it (#5918).
+   * @param {boolean} ended
+   */
+  setWalkEnded(ended) {
+    this.#walkEnded = ended;
+    // Taking the prompt is a move, which redraws the arrows itself.
+    if (ended) this.reset();
   }
 
   /**
@@ -167,7 +233,7 @@ export class NavArrows {
   }
 
   /**
-   * The heading (degrees from true north) toward the route's next goal, which picks the arrow highlighted forward
+   * The heading (degrees from true north) toward the route's next goal, which picks the link arrow drawn blue
    * (#4671): the way forward on route, back toward the route off it. Null when there is no route at all: free
    * exploration, the tutorial, no current task, or a task whose geometry isn't ready.
    * @returns {?number}
@@ -181,6 +247,39 @@ export class NavArrows {
     } catch {
       return null; // Route geometry not ready yet (e.g. mid-initialization).
     }
+  }
+
+  /**
+   * Which ways free exploration can step down the street the labeler stands on (#5968).
+   * @returns {Array<{towardEnd: boolean, heading: number}>} Empty outside free exploration, off the street, with no
+   *   street ready, or on a viewer that can't search the street for a pano; one entry short at a street's end.
+   */
+  #streetWalkHeadings() {
+    const task = this.#taskContainer.getCurrentTask();
+    if (!this.#config.isExploreAddressMode || !this.#taskContainer.tasksLoaded() || !task) return [];
+    if (!this.#panoManager.panoViewer.supportsLocationSearch()) return [];
+    const position = this.#panoManager.getPosition();
+    try {
+      if (!task.isNearRoute(position)) return [];
+      return [true, false]
+        .map((towardEnd) => ({ towardEnd, heading: task.headingAlongStreet(position, towardEnd) }))
+        .filter(({ heading }) => heading !== null);
+    } catch {
+      return []; // Street geometry not ready yet (e.g. mid-initialization).
+    }
+  }
+
+  /**
+   * Which street arrow a step toward a heading takes, by the rule that picks a link (ForwardCrumbs.stepLinkIndex), so
+   * the arrow keys work the street arrows as they do link arrows (#5968).
+   * @param {number} heading - The heading to step toward, degrees clockwise from north.
+   * @returns {?boolean} Toward the street's end (true) or start (false); null when no street arrow lies that way.
+   */
+  streetWalkToward(heading) {
+    if (this.#panoManager.panoViewer.getLinkedPanos().length > 0) return null;
+    const ways = this.#streetWalkHeadings();
+    const index = ForwardCrumbs.stepLinkIndex(ways, heading);
+    return index === -1 ? null : ways[index].towardEnd;
   }
 
   /** @returns {boolean} Whether the user stands close enough to the current street to count as on the route. */
@@ -244,7 +343,7 @@ export class NavArrows {
   /**
    * The blue "go this way" arrow (#4671): a link arrow's chevron filled with the peg's navigation blue through an
    * inline SVG, so the color stays sourced from the design token. The caller keeps its pano-id (a real link,
-   * highlighted) or adds route-forward-arrow (synthesized at a dead end).
+   * highlighted) or adds route-forward-arrow (synthesized where no link leads on).
    * @returns {SVGImageElement}
    */
   static #createForwardArrow() {

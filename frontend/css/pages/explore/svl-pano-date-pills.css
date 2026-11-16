@@ -20,11 +20,6 @@
   cursor: default;
 }
 
-/* .svl-pano-pill's own display would otherwise win over the UA's [hidden]; unpilled, the UA rule already covers it. */
-.svl-pano-pill[hidden] {
-  display: none;
-}
-
 /* Unpilled, this is all that separates the date from the info button; pilled, the pill's padding owns it. */
 #svl-panorama-date {
   padding-right: calc(3px * var(--ui-scale, 1));

@@ -128,6 +128,7 @@ city.name.newport-ky = 紐波特
 city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
 city.name.juneau-ak = 朱諾
+city.name.beringen-be = 貝靈恩
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -164,6 +165,7 @@ country.name.india = 印度
 country.name.chile = 智利
 country.name.brazil = 巴西
 country.name.france = 法國
+country.name.belgium = 比利時
 
 navbar.explore = 探索
 navbar.validate = 檢核
@@ -284,9 +286,11 @@ about.where.body = 從西雅圖、墨西哥城到蘇黎世，志工們一條街�
 about.where.links = <a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">將 Project Sidewalk 帶到您的城市</a>。
 about.history.title = 我們的歷史
 about.history.2012 = Project Sidewalk 由 Jon E. Froehlich 教授與博士生 Kotaro Hara 在 <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> 發起，早期獲得 <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> 與<a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">美國國家科學基金會</a>支持。
-about.history.2017 = 第一個城市級部署於華盛頓特區啟動，由博士生 Manaswi Saha 與研究科學家 Mikey Saugstad 主導；同年實驗室遷至華盛頓大學 Paul G. Allen 電腦科學與工程學院。
+about.history.2016 = 第一個城市級部署於華盛頓特區啟動，由博士生 Manaswi Saha 與研究科學家 Mikey Saugstad 主導。
 about.history.2019 = 華盛頓特區的先導研究證明線上群眾外包可以用來繪製整座城市的人行道，並獲得 CHI 2019 最佳論文獎。
+about.history.2019.mexico = Project Sidewalk 走向國際，先後在墨西哥市與 San Pedro Garza García 推出，合作夥伴為行人權益組織 <a href="https://ligapeatonal.org/" target="_blank" rel="noopener">Liga Peatonal</a>。Liga 與地方政府及社區組織建立關係，將工具翻譯成西班牙文，並依墨西哥街道加以調整，為此後所有非英語部署打開了大門。
 about.history.2021 = <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">美國國家科學基金會「智慧與互聯社區」補助</a>深化了我們與伊利諾大學芝加哥分校及 Easterseals 的合作，拓展部署、教育計畫與姊妹網站 <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>。
+about.history.2022 = 在紐澤西州 Oradell，一支女童軍小隊與美國多發性硬化症協會（National MS Society）地方委員會及 Hackensack Meridian Health 合作，標註了鎮上每一條街道，並<a href="https://www.hackensackmeridianhealth.org/en/news/2023/03/13/humc-and-community-groups-demonstrate-sidewalk-deficiencies" target="_blank" rel="noopener">向鎮議會發表成果</a>。此後，這套做法已擴展到紐澤西州另外六個城鎮、聖路易，以及<a href="https://walthamtimes.org/2026/06/28/mcdevitt-civics-class-earns-state-recognition-for-sidewalk-accessibility-project/" target="_blank" rel="noopener">Waltham 等地的課堂</a>。
 about.history.today.label = 今天
 about.history.today = Project Sidewalk 已在全球 <span data-live-stat="num_cities">{0}</span> 個城市運行，原生翻譯為 {1} 種語言，由數以千計的志工共同推動。
 about.team.title = 團隊
@@ -311,6 +315,9 @@ about.data.body = 我們收集的一切都是開放的。您可以透過<a href=
 about.partners.title = 社區夥伴
 about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
 about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">了解如何在您的社區使用 Project Sidewalk</a>。
+about.partners.project.title = 全專案合作夥伴
+about.partners.city.title = 各城市的合作夥伴
+about.partners.city.tagline = 在我們的一個或多個城市中與我們合作的政府、學校、倡議團體與社區組織。
 about.funding.title = 研究經費
 about.funding.body = Project Sidewalk 是由研究經費支持的學術研究，主要由美國國家科學基金會（NSF）資助，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
 about.cta.title = 與我們一起繪製每一條人行道
@@ -358,11 +365,13 @@ landing.deployment.map.title = 探索其他城市
 landing.deployment.map.subtitle = 點擊下面的圓圈來探索其他 Project Sidewalk 城市！
 landing.partners.title = {0}的社群合作夥伴
 landing.partners.tagline = 我們在{0}的工作有賴這些社群合作夥伴，包括：
+landing.partners.project.title = 全專案合作夥伴
+landing.partners.project.tagline = 以下組織為 Project Sidewalk 帶來了跨越城市、影響深遠的貢獻。
 landing.partners.official.contact = Project Sidewalk 是一項研究工具。如需回報問題或申請維修，請直接聯絡{0}。歡迎在您的申請中附上 Project Sidewalk <a href="/labelMap" data-partner-source="official-contact-labelmap">標記</a>或<a href="/stories" data-partner-source="official-contact-stories">故事</a>的連結。
 landing.partners.logo.alt = {0} 標誌
 landing.partners.created.by = 用 {0} 打造 Project Sidewalk 的團隊
 landing.partners.created.heart = 愛
-landing.partners.created.credits = …並由 <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>、<a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> 與 <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a> 等長期合作夥伴，以及超過 100 位學生貢獻者和全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
+landing.partners.created.credits = …並由超過 100 位學生貢獻者和全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
 landing.partners.creator.makeability.alt = Makeability 實驗室標誌
 landing.partners.creator.uw.alt = 華盛頓大學 Paul G. Allen 電腦科學與工程學院標誌
 landing.partners.creator.uic.alt = 伊利諾大學芝加哥分校殘疾與人類發展研究所標誌
@@ -386,7 +395,7 @@ footer.api = 應用程式介面(API)
 footer.connect = 相關連結
 footer.email = Email我們
 footer.funding = 我們由以下單位贊助
-footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.award = 資助編號 <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a>、<a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>、<br> <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2236277" target="_blank" rel="noopener">#2236277</a> 以及 <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2623243" target="_blank" rel="noopener">#2623243</a>
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： {1}
 
@@ -1017,6 +1026,7 @@ error.home = 返回首頁
 
 # 社區報告 (#5876).
 report.seo.title = {0}：社區報告 — Project Sidewalk
+report.tool.name = 報告
 report.eyebrow = 社區報告
 report.generated = 產生於 {0}。
 report.latest.observation = 最新標記：{0}。
@@ -1174,3 +1184,7 @@ report.worst.lede = {0} 個被評為最差的地點，依類型：
 report.worst.count.label = {0} 個地點：{1}。查看標籤
 report.worst.nosidewalk = 缺少人行道沒有評分，因此不在這張地圖上。在側邊欄開啟「{0}」，即可在其他地圖上以虛線查看。
 report.toc.worst = 最嚴重的問題
+report.stories.title = 社群故事
+report.stories.rule = 社群成員附加在這個街區標籤上的故事，最新的在前。一則故事是一個人的經歷；它不會改變本頁的任何數字。
+report.stories.street = 查看這條街
+report.stories.all = 閱讀所有社群故事

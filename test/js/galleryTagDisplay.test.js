@@ -57,9 +57,10 @@ function stubLayout(widthOf) {
  * @param {Object<string, number>} widths - Content-box width per tag name; other text is sized by character count.
  * @param {number} [holderWidth=HOLDER_WIDTH] - The space the tag row has to spend, i.e. the card's width less its
  *     severity, validation and "Tags" header columns.
+ * @param {string[]} [appliedTags=[]] - The tags Gallery's filters are narrowing to.
  * @returns {{container: HTMLElement, layoutReads: number[]}}
  */
-async function render(tags, widths, holderWidth = HOLDER_WIDTH) {
+async function render(tags, widths, holderWidth = HOLDER_WIDTH, appliedTags = []) {
   document.body.innerHTML = '<div class="card-tags" id="1"></div>';
   const container = document.querySelector('.card-tags');
   const probe = stubLayout((el) => {
@@ -67,7 +68,7 @@ async function render(tags, widths, holderWidth = HOLDER_WIDTH) {
     return widths[el.textContent] ?? el.textContent.length * CHAR_PX;
   });
   const {TagDisplay} = await loadModules('frontend/js/gallery/displays/TagDisplay.js');
-  new TagDisplay(container, tags, []);
+  new TagDisplay(container, tags, appliedTags);
   return {container, layoutReads: probe.layoutReads};
 }
 
@@ -171,6 +172,13 @@ describe('TagDisplay', () => {
     // Three pills, their three minimum-width probes and the "+n" pill: interleaving would attach each one only
     // after measuring the last, so the reads would climb rather than all seeing the full row.
     expect(layoutReads).toEqual([7, 7, 7, 7, 7, 7, 7]);
+  });
+
+  it('puts the tags the filters narrow to first, so a cut-off row still shows why the card matched', async () => {
+    const widths = {narrow: 100, grass: 100, uneven: 100};
+    const {container} = await render(['narrow', 'grass', 'uneven'], widths, HOLDER_WIDTH, ['uneven']);
+
+    expect(shownTags(container)).toEqual(['uneven', 'narrow', 'grass']);
   });
 
   it('renders nothing when the label has no tags', async () => {

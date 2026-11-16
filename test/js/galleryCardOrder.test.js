@@ -1,5 +1,5 @@
 /**
- * Tests for the client's side of the Gallery's admin sort (frontend/js/gallery/cards/cardOrder.js, issue #2705).
+ * Tests for the client's side of Gallery's admin sort (frontend/js/gallery/cards/cardOrder.js, issue #2705).
  *
  * The order itself is the server's and the page keeps cards in arrival order, so what is pinned here is the
  * page's reading of a sort: which names are an order at all, and when the filters leave a sort nothing to rank, so

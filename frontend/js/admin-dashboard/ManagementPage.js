@@ -157,7 +157,6 @@ export class ManagementPage {
 
   #renderCount(matched) {
     const count = document.getElementById('mgmt-user-count');
-    if (!count) return;
     count.textContent = matched === this.#users.length
       ? AdminShell.count(this.#users.length, 'user')
       : `${matched.toLocaleString()} of ${this.#users.length.toLocaleString()} users`;
@@ -188,8 +187,7 @@ export class ManagementPage {
           + `<select class="ps-select">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
+      document.getElementById(id).innerHTML = html;
     }
   }
 
@@ -248,7 +246,6 @@ export class ManagementPage {
     // Pagination controls (delegated on each stable pagination bar — top and bottom stay in sync).
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const bar = document.getElementById(id);
-      if (!bar) continue;
       bar.addEventListener('click', (e) => {
         const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.ps-pager-btn'));
         if (!btn || btn.disabled) return;
@@ -380,7 +377,6 @@ export class ManagementPage {
      */
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
-      if (!btn) return;
       btn.addEventListener('click', async () => {
         const confirmed = await ConfirmDialog.confirm({
           message: btn.getAttribute('data-confirm'),
@@ -423,7 +419,6 @@ export class ManagementPage {
 
   #wireSearch() {
     const input = /** @type {HTMLInputElement} */ (document.getElementById('mgmt-user-search'));
-    if (!input) return;
     input.addEventListener('input', () => {
       this.#filter = input.value;
       this.#page = 1;
@@ -439,7 +434,6 @@ export class ManagementPage {
 
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('mgmt-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);
@@ -447,7 +441,6 @@ export class ManagementPage {
 
   #maintResult(message, isError = false) {
     const el = document.getElementById('mgmt-maint-result');
-    if (!el) return;
     el.textContent = message;
     el.classList.toggle('error', !!isError);
   }

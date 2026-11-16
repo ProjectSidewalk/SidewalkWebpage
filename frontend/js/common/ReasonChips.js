@@ -86,7 +86,7 @@ export class ReasonChips {
    * @returns {number} How many reasons are offered; 0 means the row is hidden.
    */
   render({ labelType, vote, selected = null, otherText = '', draft = null }) {
-    const reasons = vote ? validationReasons.forLabel(labelType, vote) : [];
+    const reasons = validationReasons.forLabel(labelType, vote);
     // Focus rides along to the same chip in the rebuilt row, so a host redrawing after a pick doesn't move it.
     const focusedId = this.#chips.find((c) => c === document.activeElement)?.dataset.reasonId ?? null;
     const hadFocus = this.#root.contains(document.activeElement);
@@ -279,8 +279,8 @@ export class ReasonChips {
     input.addEventListener('input', () => this.#syncOtherSave());
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      // Save is disabled while busy or empty, and a form whose submit button is disabled can't be submitted.
       const text = input.value.trim();
-      if (this.#busy || text === '') return;
       // Enter in the field submits through a click on Save that no pointer made (detail 0), as Enter/Space on Save do.
       const savedViaKeyboard = this.#saveClickDetail <= 0;
       this.#saveClickDetail = -1;
@@ -306,8 +306,7 @@ export class ReasonChips {
 
   /** Save takes nothing empty, and nothing while a save is in flight. */
   #syncOtherSave() {
-    const save = this.#otherForm?.querySelector('button');
-    if (save) save.disabled = this.#busy || this.#otherInput().value.trim() === '';
+    this.#otherForm.querySelector('button').disabled = this.#busy || this.#otherInput().value.trim() === '';
   }
 
   /**
@@ -356,8 +355,7 @@ export class ReasonChips {
   }
 
   #handleClick = (e) => {
-    const target = e.target instanceof Element ? e.target : null;
-    const chip = target?.closest('.reason-chips__chip');
+    const chip = /** @type {Element} */ (e.target).closest('.reason-chips__chip');
     if (!(chip instanceof HTMLButtonElement) || !this.#root.contains(chip)) return;
     // `detail === 0` is a click the keyboard produced (Enter or Space on the focused chip), the idiom the label
     // card and Navbar use to log the two input paths apart.

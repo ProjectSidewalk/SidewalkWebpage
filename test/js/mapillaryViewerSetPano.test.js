@@ -354,6 +354,50 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  test('a links report still loading is waited past, for the one that has them', async () => {
+    buildViewer(() => Promise.resolve(makeImage('pano1', false)));
+
+    const outcome = viewer.setPano('pano1');
+    await vi.advanceTimersByTimeAsync(100);
+    sdk.emit('spatialedges', { status: { cached: false, edges: [] } });
+    sdk.emit('spatialedges', { status: { cached: true, edges: [LINK] } });
+    const panoData = await outcome;
+
+    expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
+  });
+
+  test('an existence check answered with a page that is not JSON is inconclusive, so it stays slow', async () => {
+    buildViewer(hangs);
+    const htmlPage = { status: 502, json: () => Promise.reject(new SyntaxError('<html>')) };
+    window.fetch.mockReturnValue(Promise.resolve(htmlPage));
+
+    const { error } = await settle('slow');
+
+    expect(error).toBeInstanceOf(classes.PanoLoadTimeoutError);
+  });
+
+  test('a browser without AbortSignal.timeout still gets its existence check, bounded by the budget', async () => {
+    vi.stubGlobal('AbortSignal', { ...AbortSignal, timeout: undefined });
+    buildViewer(hangs);
+    window.fetch.mockReturnValue(graphAnswers(404, MISSING_BODY));
+
+    const { error } = await settle('gone');
+
+    expect(error).toBeInstanceOf(classes.NoImageryError);
+    expect(window.fetch.mock.calls[0][1].signal).toBeUndefined();
+  });
+
+  test('an SDK rejecting with something other than an Error, on an image that exists, becomes an Error', async () => {
+    buildViewer(() => Promise.reject('texture failed'));
+    window.fetch.mockReturnValue(graphAnswers(200, { id: 'there' }));
+
+    const { error } = await settle('there');
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe('Failed to load Mapillary pano there');
+    expect(error.cause).toBe('texture failed');
+  });
+
   test('linked panos reported for a different image are ignored', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1', false)));
 

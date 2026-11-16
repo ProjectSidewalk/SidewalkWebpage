@@ -4,6 +4,7 @@ import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import '../../css/components/filter-sidebar.css';
 import '../../css/components/map-frame.css';
 import '../../css/components/info-button.css';
+import '../../css/components/tool-header.css';
 import '../../css/pages/access-score.css';
 
 const data = document.getElementById('page-entry').dataset;

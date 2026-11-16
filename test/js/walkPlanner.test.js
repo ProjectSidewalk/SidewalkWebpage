@@ -258,6 +258,28 @@ describe('WalkPlanner', () => {
     expect(steps[1].jumpM).toBeCloseTo(distanceM(P(1, 0), P(1, 2)), 6);
   });
 
+  it('enters a fixedDirection street at coords[0] straight from the trail, even with another street to choose', () => {
+    const streets = [
+      st(1, [0, 0], [1, 0]),
+      st(2, [1, 0], [1, 2], 1, { fixedDirection: true }),
+      st(3, [1, 0], [2, 0]),
+    ];
+    const { steps } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(steps[1]).toEqual({ id: 2, reverse: false, jump: false, jumpM: 0 });
+  });
+
+  it('jumps to a real street in the tier over a nearer sliver of lower priority', () => {
+    // The sliver is ~33 m from the end of street 1 and the real street ~444 m, but the sliver waits.
+    const streets = [
+      st(1, [0, 0], [1, 0]),
+      st(2, [5, 0], [6, 0]),
+      { id: 3, coords: [P(1, 0.3), [P(1, 0.3)[0] + 15 / 111195, P(1, 0.3)[1]]], priority: 0.95 },
+    ];
+    const { steps } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
+    expect(ids(steps)).toEqual([1, 2, 3]);
+  });
+
   it('walks a loop street as part of the trail through its node', () => {
     const loop = { id: 2, coords: [P(1, 0), P(2, 0), P(2, 1), P(1, 1), P(1, 0)], priority: 1 };
     const streets = [st(1, [0, 0], [1, 0]), loop, st(3, [1, 0], [1, -1])];
@@ -470,6 +492,19 @@ describe('WalkPlanner', () => {
       { id: 1, coords: [P(1, 1), r1], priority: 1 },
       { id: 2, coords: [P(1, -1), r2], priority: 1 },
       { id: 3, coords: [y, P(2, 0)], priority: 1 },
+    ];
+    const { steps } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
+    expect(steps[1]).toEqual({ id: 3, reverse: false, jump: false, jumpM: 0 });
+  });
+
+  it('merges an endpoint exactly as far from two nodes into the older one, whichever is scanned first', () => {
+    // A (east) is made before B (west), 12 m apart; M sits 6 m from each. B's cell is scanned first.
+    const a = [6 / 111195, 0];
+    const b = [-6 / 111195, 0];
+    const streets = [
+      { id: 1, coords: [P(0, 1), a], priority: 1 },
+      { id: 2, coords: [P(0, -1), b], priority: 1 },
+      { id: 3, coords: [[0, 0], P(2, 0)], priority: 1 },
     ];
     const { steps } = new WalkPlanner(streets, SETTINGS).plan({ streetId: 1 });
     expect(steps[1]).toEqual({ id: 3, reverse: false, jump: false, jumpM: 0 });

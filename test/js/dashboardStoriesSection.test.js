@@ -56,7 +56,7 @@ describe('the dashboard\'s "Your stories" list', () => {
 
   /**
      * Renders the section against the stubbed payload.
-     * @param {object} [opts] Overrides for the StoriesSection options (e.g. composerDialog: null).
+     * @param {object} [opts] - Overrides for the StoriesSection options (e.g. composerDialog: null).
      * @returns {Promise<StoriesSection>} The rendered section.
      */
   async function renderSection(opts = {}) {
@@ -65,6 +65,8 @@ describe('the dashboard\'s "Your stories" list', () => {
       labelPopup: null,
       composerDialog: document.getElementById('ud-story-composer'),
       currUsername: 'ada',
+      storiesUrl: '/userapi/stories/mine',
+      storyUrlFor: (storyId) => `/userapi/stories/${storyId}`,
       ...opts,
     });
     await section.render();
@@ -182,5 +184,109 @@ describe('the dashboard\'s "Your stories" list', () => {
     expect(window.fetch).toHaveBeenCalledWith('/userapi/stories/11', { method: 'DELETE' });
     expect(rows()).toHaveLength(0);
     expect(document.querySelector('.ud-nudge').textContent).toBe('dashboard:stories.none');
+  });
+
+  it('marks a story moderators hid, so its author can see why it is not public', async () => {
+    stories = [story({ hidden: true }), story({ story_id: 12 })];
+    await renderSection();
+
+    const [hidden, shown] = rows();
+    expect(hidden.classList.contains('ud-story-row--hidden')).toBe(true);
+    expect(hidden.querySelector('.ud-story-chip').textContent).toBe('labelmap:story.hidden-chip');
+    expect(shown.classList.contains('ud-story-row--hidden')).toBe(false);
+    expect(shown.querySelector('.ud-story-chip')).toBeNull();
+  });
+
+  it('swaps a thumbnail that fails to load for the empty placeholder', async () => {
+    stories = [story({ label_image_url: '/cropImage/SurfaceProblem/501?exp=1&sig=x' })];
+    await renderSection();
+
+    document.querySelector('img.ud-story-thumb').dispatchEvent(new Event('error'));
+
+    expect(document.querySelector('img.ud-story-thumb')).toBeNull();
+    expect(document.querySelector('.ud-story-thumb--none')).not.toBeNull();
+  });
+
+  it('opens the label in the dashboard\'s popup when there is one', async () => {
+    const labelPopup = { showLabel: vi.fn() };
+    await renderSection({ labelPopup });
+
+    const link = document.querySelector('.ud-story-meta a');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(click);
+
+    expect(labelPopup.showLabel).toHaveBeenCalledWith(501, 'DashboardStories');
+    expect(click.defaultPrevented).toBe(true);
+  });
+
+  it('lets the label link go to the label page when there is no popup', async () => {
+    await renderSection();
+
+    const link = document.querySelector('.ud-story-meta a');
+    let leftToBrowser = null;
+    // Runs after the section's handler: notes whether the browser would follow the link, then stops jsdom trying.
+    document.addEventListener('click', (e) => {
+      leftToBrowser = !e.defaultPrevented;
+      e.preventDefault();
+    }, { once: true });
+    link.click();
+
+    expect(link.getAttribute('href')).toBe('/label/501');
+    expect(leftToBrowser).toBe(true);
+  });
+
+  it('logs and shows nothing when the list fails to load', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500 }));
+
+    await renderSection();
+
+    expect(rows()).toHaveLength(0);
+    expect(error).toHaveBeenCalledWith('Stories section failed to load.', expect.any(Error));
+  });
+
+  it('keeps the row when the server refuses the delete', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await renderSection();
+    window.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 403 }));
+
+    document.querySelector('.ud-story-delete').click();
+    await flush();
+
+    expect(rows()).toHaveLength(1);
+    expect(error).toHaveBeenCalledWith('Story delete failed.', expect.any(Error));
+  });
+
+  it('keeps the other stories, and no empty-state nudge, after deleting one of several', async () => {
+    stories = [story(), story({ story_id: 12 })];
+    await renderSection();
+
+    document.querySelector('.ud-story-delete').click();
+    await flush();
+
+    expect(rows().map((r) => r.dataset.storyId)).toEqual(['12']);
+    expect(document.querySelector('.ud-nudge')).toBeNull();
+  });
+
+  it('refreshes on a brand-new story without grabbing focus for any row', async () => {
+    await renderSection();
+    stories = [story({ story_id: 12, text: 'Just posted.' }), story()];
+
+    document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: {} }));
+    await flush();
+
+    expect(rows()).toHaveLength(2);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('leaves focus where the label popup put it after a save made there', async () => {
+    await renderSection();
+    document.body.insertAdjacentHTML('beforeend', '<button id="popup-close">Close</button>');
+    document.getElementById('popup-close').focus();
+
+    document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: { storyId: 11 } }));
+    await flush();
+
+    expect(document.activeElement).toBe(document.getElementById('popup-close'));
   });
 });

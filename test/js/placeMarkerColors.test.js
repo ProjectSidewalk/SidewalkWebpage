@@ -41,4 +41,11 @@ describe('PlaceMarkerColors', () => {
     expect(PlaceMarkerColors.glyphColorFor('#c2c2c2', '#ffffff', '#2b2b2b')).toBe('#2b2b2b');
     expect(PlaceMarkerColors.forScore(0.5, 10).halo).toBe('#ffffff');
   });
+
+  it('measures luminance the WCAG way, near-black steps and three-digit colors included', () => {
+    expect(PlaceMarkerColors.luminance('#fff')).toBeCloseTo(1, 10);
+    expect(PlaceMarkerColors.luminance('#000000')).toBe(0);
+    // A channel this dark sits on the curve's straight foot: 8/255 / 12.92, weighted for green.
+    expect(PlaceMarkerColors.luminance('#000800')).toBeCloseTo(0.7152 * (8 / 255 / 12.92), 10);
+  });
 });

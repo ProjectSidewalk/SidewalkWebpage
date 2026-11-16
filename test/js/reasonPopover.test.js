@@ -526,3 +526,74 @@ describe('after a pick', () => {
     expect(el().querySelector('.reason-popover__foot').classList.contains('reason-popover__foot--empty')).toBe(true);
   });
 });
+
+describe('state and late news', () => {
+  test('points at nothing and holds no unsaved words while closed; words typed into "Other…" count', () => {
+    expect(popover.anchor).toBeNull();
+    expect(popover.hasUnsavedWords).toBe(false);
+    open();
+    expect(popover.hasUnsavedWords).toBe(false);
+    other().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    const input = el().querySelector('.reason-chips__other-input');
+    input.value = 'words';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(popover.hasUnsavedWords).toBe(true);
+  });
+
+  test('a save or a failure landing after it closed neither reopens it nor speaks', () => {
+    open();
+    popover.close();
+    popover.markSaved('driveway');
+    popover.markFailed('nope');
+    expect(isShown()).toBeFalsy();
+    expect(el().querySelector('.reason-popover__foot').textContent.trim()).toBe('');
+  });
+
+  test('a resize while closed leaves it where it last stood', () => {
+    open();
+    popover.close();
+    placeAt(anchor, { top: 600, left: 600 });
+    window.dispatchEvent(new Event('resize'));
+    expect(el().style.left).toBe('180px');
+  });
+
+  test('a <dialog> closing after the pop-up moved to a card outside it leaves the pop-up open', () => {
+    document.body.insertAdjacentHTML('beforeend', '<dialog id="card"><button id="card-vote"></button></dialog>');
+    const card = document.getElementById('card');
+    open({ host: card, anchor: document.getElementById('card-vote') });
+    open();
+    card.dispatchEvent(new Event('close'));
+    expect(popover.isOpenFor(host)).toBe(true);
+  });
+
+  test('Shift+Tab out of the pop-up passes over a control the browser will not focus', () => {
+    host.insertAdjacentHTML('beforebegin', '<button id="before"></button>');
+    // What a display:none control does: focus() is a no-op.
+    anchor.focus = () => {};
+    open({ viaKeyboard: true });
+    const shiftTab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+    chips()[0].dispatchEvent(shiftTab);
+    expect(document.activeElement).toBe(document.getElementById('before'));
+  });
+});
+
+describe('native Popover API', () => {
+  test('where the browser has it, shows and hides through it rather than through `hidden`', () => {
+    const showPopover = vi.fn();
+    const hidePopover = vi.fn();
+    Object.assign(HTMLElement.prototype, { showPopover, hidePopover });
+    try {
+      const native = new ReasonPopover();
+      const nativeEl = [...document.querySelectorAll('.reason-popover')].at(-1);
+      expect(nativeEl.hasAttribute('hidden')).toBe(false);
+      native.open({ anchor, host, labelType: 'CurbRamp', vote: 'Disagree', onPick, onSubmitOther });
+      expect(showPopover).toHaveBeenCalledTimes(1);
+      native.close();
+      expect(hidePopover).toHaveBeenCalledTimes(1);
+      expect(nativeEl.hasAttribute('hidden')).toBe(false);
+    } finally {
+      delete HTMLElement.prototype.showPopover;
+      delete HTMLElement.prototype.hidePopover;
+    }
+  });
+});

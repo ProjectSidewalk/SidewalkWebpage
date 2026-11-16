@@ -181,7 +181,7 @@ export class Form {
         labels_progress: mission.getProperty('labelsProgress'),
         labels_total: mission.getProperty('labelsValidated'),
         label_type: mission.getProperty('labelType'),
-        completed: missionComplete ? missionComplete : false,
+        completed: missionComplete,
       };
     }
 

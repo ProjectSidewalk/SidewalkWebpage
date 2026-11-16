@@ -81,7 +81,29 @@ export class ReportPage {
     this.#wireSidewalkToggle();
     this.#wireColorBy();
     this.#wireWeights();
+    this.#wireStoryReadMore();
     this.#restoreScroll();
+  }
+
+  /** Gives each story clamped by its card's height a "Read more" toggle, so a long story keeps its row short. */
+  #wireStoryReadMore() {
+    const list = /** @type {?HTMLElement} */ (document.querySelector('.report-stories'));
+    if (!list) return;
+    for (const text of list.querySelectorAll('.report-story__text')) {
+      if (text.scrollHeight <= text.clientHeight + 1) continue;
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'report-story__read-more';
+      toggle.textContent = list.dataset.readMore ?? '';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.addEventListener('click', () => {
+        const expanded = text.classList.toggle('is-expanded');
+        toggle.textContent = (expanded ? list.dataset.readLess : list.dataset.readMore) ?? '';
+        toggle.setAttribute('aria-expanded', String(expanded));
+        this.#log(`Report_StoryReadMore_Expanded=${expanded}`);
+      });
+      text.after(toggle);
+    }
   }
 
   /** @returns {Promise<Record<string, any>>} `/v3/api/accessScoreConfig`'s answer, fetched once. */
@@ -252,6 +274,7 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Region`),
         onStreetHover: (streetId) => {
           lightRow(streetId);
           this.#regionMap?.lightStreet(streetId ?? selected);
@@ -308,6 +331,8 @@ export class ReportPage {
         basemap: this.#data.basemap,
         edges: this.#data.edges,
         problems: this.#data.worst ?? [],
+        places: this.#data.places ?? [],
+        onPlacesToggle: (shown) => this.#log(`Report_PlacesToggle_Shown=${shown}_Map=Worst`),
         onProblemHover: light,
         onProblemClick: (problem) => {
           this.#log(`Report_WorstMapClick_LabelType=${problem.labelType}`);
@@ -333,7 +358,7 @@ export class ReportPage {
   }
 
   /**
-   * Opens a location's card over the worst map, built by the Gallery's own code so it reads and votes as it does there.
+   * Opens a location's card over the worst map, built by Gallery's own code so it reads and votes as it does there.
    * @param {{labelId: ?number, labelType: string}} problem
    * @returns {Promise<void>} Resolves once the card is drawn, or has failed to be.
    */
@@ -474,7 +499,7 @@ export class ReportPage {
 
   /**
    * Uses the small thumbnail, never the billable Street View still a Gallery card falls back to; with no crop the pane
-   * gets the Gallery's own placeholder.
+   * gets Gallery's own placeholder.
    * @param {HTMLElement} item
    * @param {Record<string, any>} fix
    * @param {?Record<string, any>} entry - The Gallery endpoint's answer for the fix's label, if it had one.
@@ -504,7 +529,7 @@ export class ReportPage {
   }
 
   /**
-   * The label's icon where it sits in the photo, as the Gallery's card places it: the crop's recorded position, or the
+   * The label's icon where it sits in the photo, as Gallery's card places it: the crop's recorded position, or the
    * label's own on the labeling canvas, re-expressed for the square pane the photo is cover-fitted into.
    * @param {string} labelType
    * @param {Record<string, any>} entry - The Gallery endpoint's answer for the fix's label.

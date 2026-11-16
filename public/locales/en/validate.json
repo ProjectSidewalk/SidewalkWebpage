@@ -33,6 +33,17 @@
     "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
     "retry": "Try Again"
   },
+  "gold-feedback": {
+    "eyebrow": "Training example",
+    "image-alt": "The label you just judged",
+    "advice": "You should vote {{- no}} on these in the future.",
+    "explanation": {
+      "driveway": "Driveways are <b>not</b> curb ramps. They are designed for vehicles and not pedestrians.",
+      "no-sidewalk-here": "For corners with <b>no sidewalks</b>, the No Sidewalk label should be used instead.",
+      "not-pedestrian-path-obstacle": "If there is no sidewalk or the object is not on the part of the sidewalk meant for pedestrians, an Obstacle label is not needed."
+    },
+    "ok": "Got it"
+  },
   "pano-loading": {
     "skipping": "Still loading, trying the next label..."
   },

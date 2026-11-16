@@ -381,6 +381,69 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
     }
   }
 
+  "the streets exports" should {
+    "carry a sampled street's grade fields, and nulls for an unsampled one, in both GIS formats (#5431)" in {
+      val line      = wgs84.createLineString(Array(Coordinate(-74.03, 40.88), Coordinate(-74.02, 40.89)))
+      val unsampled = StreetDataForApi(
+        streetEdgeId = 952, osmWayId = 11584846L, osmWays = Seq.empty, regionId = 1, regionName = "Teaneck",
+        wayType = "residential", maxSpeed = None, status = "open", userIds = Seq.empty, labelCount = 0, auditCount = 0,
+        outdated = false, geometry = line
+      )
+      val sampled = unsampled.copy(
+        streetEdgeId = 951,
+        gradient = Some(
+          StreetGradientStats(
+            streetEdgeId = 951, quality = StreetGradientQuality.Measured, confidence = StreetGradientConfidence.High,
+            netGrade = Some(-0.04), meanGrade = Some(0.06), maxGrade = Some(0.09), metersOver5pctGrade = Some(40.0),
+            metersOver8pctGrade = Some(10.0), climbM = Some(1.5), descentM = Some(5.5), elevStartM = Some(104.0),
+            elevEndM = Some(100.0), demSource = "usgs-3dep-10m", demResolutionM = 10.0
+          )
+        )
+      )
+      val streets = Seq(sampled, unsampled)
+
+      inTempDir("streets") { base =>
+        val gpkg = Await
+          .result(shapefileCreator.createStreetDataGeopackage(Source(streets), base, 2), 60.seconds)
+          .value
+        val (names, features) = readBack(openGeoPackage(gpkg), "street_edge_id")
+        names mustBe "the_geom" +: StreetDataForApi.fields.map(_.geoPackageName)
+        attr(features(951), "mean_grade") mustBe 0.06
+        attr(features(951), "net_grade") mustBe -0.04
+        attr(features(951), "meters_over_8pct") mustBe 10.0
+        features(951).getAttribute("grade_quality") mustBe "measured"
+        features(951).getAttribute("dem_source") mustBe "usgs-3dep-10m"
+        features(952).getAttribute("mean_grade") mustBe null
+        features(952).getAttribute("grade_quality") mustBe null
+      }
+
+      inTempDir("streets-shp") { base =>
+        val shp = Await
+          .result(shapefileCreator.createStreetDataShapefile(Source(streets), base, 2), 60.seconds)
+          .value
+        val (names, features) = readBack(openShapefile(shp), "streetId")
+        names.foreach(_.length must be <= 10) // The DBF format truncates anything longer, silently.
+        // Hand-written columns pushed positionally: reading each back is what catches a value under its neighbor.
+        names.takeRight(11) mustBe Seq(
+          "osmWays", "meanGrade", "maxGrade", "netGrade", "climbM", "descentM", "mOver5pct", "mOver8pct", "gradeConf",
+          "gradeQual", "demSource"
+        )
+        attr(features(951), "meanGrade") mustBe 0.06
+        attr(features(951), "maxGrade") mustBe 0.09
+        attr(features(951), "netGrade") mustBe -0.04
+        attr(features(951), "climbM") mustBe 1.5
+        attr(features(951), "descentM") mustBe 5.5
+        attr(features(951), "mOver5pct") mustBe 40.0
+        attr(features(951), "mOver8pct") mustBe 10.0
+        features(951).getAttribute("gradeConf") mustBe "high"
+        features(951).getAttribute("gradeQual") mustBe "measured"
+        features(951).getAttribute("demSource") mustBe "usgs-3dep-10m"
+        features(952).getAttribute("meanGrade") mustBe null
+        features(952).getAttribute("demSource") mustBe null
+      }
+    }
+  }
+
   "the labelClusters GeoPackage" should {
     "declare each layer's own extent: clusters from their centers, raw labels from the labels (#5275)" in {
       // Each cluster's labels sit a little outside its center, so the two layers' extents differ.

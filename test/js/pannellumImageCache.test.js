@@ -8,56 +8,15 @@
  * download that produced them. The entry is released once the load has settled either way, and the viewer records
  * whether the load was served from the cache, which is what Validate logs as `PanoPrefetch`.
  *
- * Pannellum itself is a fake that settles each scene's load by whether its URL is on a failing list, so the
- * assertions read the URLs it was handed, in order.
+ * Pannellum itself is the pano viewer harness's fake, which settles each scene's load by whether its URL is on a
+ * failing list, so the assertions read the URLs it was handed, in order.
  */
 
-import { loadModules, mockModule } from './loader.js';
+import { loadModules } from './loader.js';
+import { installFakePannellum } from './support/panoViewerHarness.js';
 
 const NATIVE_URL = '/backupImage/p1';
 const NEXT_URL = '/backupImage/p2';
-
-/**
- * Installs a fake `pannellum` whose viewers settle a scene's load on the next microtask.
- * @param {Set<string>} [failingUrls] - Panorama URLs whose load fires `error` instead of `load`.
- * @returns {{attempted: string[], loaded: string[]}} Every URL a load was tried for, and the ones that succeeded.
- */
-function installFakePannellum(failingUrls = new Set()) {
-  const attempted = [];
-  const loaded = [];
-  mockModule('frontend/js/common/pano-viewer/sdk/pannellum.js', () => ({ pannellum: {
-    viewer: vi.fn((_el, config) => {
-      const handlers = { load: new Set(), error: new Set() };
-      const scenes = { ...config.scenes };
-      const settle = (url) => Promise.resolve().then(() => {
-        attempted.push(url);
-        if (failingUrls.has(url)) {
-          [...handlers.error].forEach((h) => h('load failed'));
-        } else {
-          loaded.push(url);
-          [...handlers.load].forEach((h) => h());
-        }
-      });
-      settle(scenes[config.default.firstScene].panorama);
-      return {
-        on: (event, handler) => handlers[event].add(handler),
-        off: (event, handler) => handlers[event].delete(handler),
-        addScene: (id, scene) => { scenes[id] = scene; },
-        loadScene: (id) => settle(scenes[id].panorama),
-        removeScene: vi.fn(() => true),
-        destroy: vi.fn(),
-        resize: vi.fn(),
-        getYaw: () => 0,
-        getPitch: () => 0,
-        getHfov: () => 90,
-        setYaw: vi.fn(),
-        setPitch: vi.fn(),
-        setHfov: vi.fn(),
-      };
-    }),
-  } }));
-  return { attempted, loaded };
-}
 
 /**
  * A cache holding the given network URL -> blob URL entries, recording what the viewer releases.
@@ -129,9 +88,11 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
   test('a held copy that fails steps down to a smaller network copy rather than the same bytes again', async () => {
     const { attempted, loaded } = installFakePannellum(new Set(['blob:p1']));
     const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const viewer = await viewerWith(cache);
 
+    expect(warn).toHaveBeenCalledWith('Pano p1 failed to load; retrying at a smaller size.', expect.any(Error));
     expect(attempted).toEqual(['blob:p1', `${NATIVE_URL}?maxWidth=8192`]);
     expect(loaded).toEqual([`${NATIVE_URL}?maxWidth=8192`]);
     expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
@@ -181,10 +142,26 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
     installFakePannellum(failing);
     const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
     const viewer = await viewerWith(cache);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     await expect(viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 }))
       .rejects.toThrow();
 
+    expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  test('a next pano that fails on a lost WebGL context is still released (#5939)', async () => {
+    const pannellum = installFakePannellum();
+    const cache = fakeCache({ [NEXT_URL]: 'blob:p2' });
+    const viewer = await viewerWith(cache);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    pannellum.webgl.lost = true;
+    await expect(viewer.loadPano('p2', metadata('p2', NEXT_URL), { heading: 0, pitch: 0, zoom: 1 }))
+      .rejects.toThrow('WebGL context lost');
+
+    // Released by the ladder that held it, and again by the retry in a fresh instance, which asked for it anew.
     expect(cache.release).toHaveBeenLastCalledWith(NEXT_URL);
   });
 

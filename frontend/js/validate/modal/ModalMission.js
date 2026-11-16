@@ -181,7 +181,6 @@ export class ModalMission {
    */
   #watchCarousel() {
     const strip = this.#uiModalMission.instruction.querySelector('.mv-examples');
-    if (!strip) return;
     const dots = strip.parentElement.querySelectorAll('.mv-dot');
     strip.addEventListener('scroll', () => {
       const idx = Math.round(strip.scrollLeft / strip.clientWidth);
@@ -217,8 +216,8 @@ export class ModalMission {
 
   /**
    * @param {string} title - What this mission is, e.g. "Validate 10 Curb Ramp Labels".
-   * @param {string} [instruction] - Body HTML — the examples carousel.
-   * @param {string} [labelType] - The mission's label type, whose marker icon heads the screen.
+   * @param {string} instruction - Body HTML: the examples carousel on the phone, empty on desktop.
+   * @param {string} labelType - The mission's label type, whose marker icon heads the screen.
    */
   show(title, instruction, labelType) {
     // ModalNoNewMission paints these same elements, and what it puts there is a dead end with its own button and
@@ -233,7 +232,7 @@ export class ModalMission {
     }
     // The eyebrow is the phone briefing's; desktop has none.
     if (this.#uiModalMission.eyebrow) {
-      const icon = labelType ? `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">` : '';
+      const icon = `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">`;
       const eyebrowText = i18next.t('validate:mission-start-tutorial.mst-instruction-1');
       this.#uiModalMission.eyebrow.innerHTML = `${icon}${eyebrowText}`;
     }

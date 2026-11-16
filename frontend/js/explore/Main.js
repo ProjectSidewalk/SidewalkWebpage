@@ -397,12 +397,24 @@ export class Main {
       labelContainer, labelModes, navArrows, keyboardLock, alertController);
     const streetProgress = new StreetProgress(config, regionModel, missionModel, missionContainer, taskContainer,
       panoManager, navigationService, streetSweep, jumpAlert, tracker);
+    navigationService.onMoveStarted(() => streetSweep.rememberStanding());
+    streetProgress.onLabelBeforeJumpChanged((armed) => navArrows.setWalkEnded(armed));
     navArrows.onLinkClick((panoId) => navigationService.moveToPano(panoId));
     navArrows.onRouteForwardClick(() => {
       tracker.push('Click_RouteForwardArrow');
       navigationService.moveForward()
         .then(() => tracker.push('RouteForwardArrow_Success'))
         .catch(() => tracker.push('RouteForwardArrow_PanoNotAvailable'));
+    });
+    navArrows.onStreetWalkClick((towardEnd) => {
+      const notes = { toward: towardEnd ? 'end' : 'start' };
+      tracker.push('Click_StreetWalkArrow', notes);
+      navigationService.moveAlongStreet(towardEnd)
+        .then((panoId) => {
+          if (panoId) tracker.push('StreetWalkArrow_Success', notes);
+          else if (panoId === null) tracker.push('StreetWalkArrow_PanoNotAvailable', notes);
+        })
+        .catch(() => tracker.push('StreetWalkArrow_PanoNotAvailable', notes));
     });
     navArrows.reset();
     const compass = new Compass(config, regionModel, taskContainer, panoManager, navigationService, streetProgress,
@@ -424,10 +436,11 @@ export class Main {
       routeOverview, navigationService, regionModel, tracker);
     new MinimapLegend(ui.minimap, labelContainer, tracker);
     const forwardCrumbs = new ForwardCrumbs(config, panoManager, taskContainer, compass, minimap, observedArea,
-      navigationService, navArrows, tracker);
+      navigationService, streetSweep, navArrows, tracker);
+    streetProgress.onLabelBeforeJumpChanged((armed) => forwardCrumbs.setWalkEnded(armed));
     const minimapMissionProgress = new MinimapMissionProgress(ui.minimap, config, regionModel, taskContainer,
       missionContainer, minimap);
-    const walkPlanLayer = new WalkPlanLayer(ui.minimap, taskContainer, missionContainer, minimap);
+    const walkPlanLayer = new WalkPlanLayer(taskContainer, missionContainer);
     // What the ⛶ button fits: a route's every street; a region audit's mission streets plus the one being walked and
     // the planned streets previewed ahead (#5526), since at street zoom the preview is mostly off screen.
     minimap.setOverviewStreets(() => {
@@ -528,7 +541,7 @@ export class Main {
 
     // Last, so no shortcut acts before the tool is wired.
     const keyboard = new KeyboardManager(keyboardLock, canvas, contextMenu, navigationService, labelModes, zoomControl,
-      panoManager, compass, immersiveMode, tracker);
+      panoManager, compass, streetProgress, immersiveMode, tracker);
 
     this.#modules = {
       tracker, keyboardLock, alertController, regionModel, missionModel, panoManager, navArrows, minimap,

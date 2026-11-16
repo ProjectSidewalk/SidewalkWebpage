@@ -165,6 +165,15 @@ describe('GsvViewer location searches hold replies to the radius', () => {
     expect(diagnostics.map((d) => d.details.google)).toEqual(['true']);
   });
 
+  test('a far pano whose reply names no rights holder is not counted as Google imagery', async () => {
+    const { data } = reply('FAR', metersFromQuery(77));
+    delete data.copyright;
+    getPanorama.mockResolvedValue({ data });
+
+    await expect(viewer.findPanoNear(SEATTLE_QUERY)).resolves.toBeNull();
+    expect(diagnostics.map((d) => d.details.google)).toEqual(['false']);
+  });
+
   test('a far first seed falls through to the next start-of-street point, like an empty one', async () => {
     const backup = metersFromQuery(10, 0);
     const onStreet = metersFromQuery(12, 0);

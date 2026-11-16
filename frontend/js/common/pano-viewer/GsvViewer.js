@@ -81,17 +81,17 @@ export class GsvViewer extends PanoViewer {
   /**
    * See PanoViewer.initialize().
    * @param {HTMLElement} canvasElem
-   * @param {Record<string, any>} [panoOptions]
+   * @param {Record<string, any>} panoOptions
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
     await google.maps.importLibrary('core');
     const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
     this.streetViewService = await new StreetViewService();
 
     // Set GSV panorama options.
-    const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const { defaultNavigation } = panoOptions;
     const defaults = {
       addressControl: false,
       clickToGo: defaultNavigation,
@@ -501,8 +501,8 @@ export class GsvViewer extends PanoViewer {
 
   /**
    * Returns the stored pano data for either of the two tutorial panos.
-   * @param {string} pano - The pano ID/name of the wanted custom panorama.
-   * @returns {google.maps.StreetViewPanoramaData|undefined} The custom Street View panorama, if one matches.
+   * @param {string} pano - One of util.pano.TUTORIAL_PANO_IDS, which every caller checks first.
+   * @returns {google.maps.StreetViewPanoramaData} The custom Street View panorama.
    */
   #getCustomPanoData = (pano) => {
     // time, tiles.originHeading, and tiles.originPitch aren't in Google's types, but #updateCurrPanoData reads them.
@@ -531,28 +531,27 @@ export class GsvViewer extends PanoViewer {
         },
         time: [],
       });
-    } else if (pano === 'afterWalkTutorial') {
-      return /** @type {google.maps.StreetViewPanoramaData} */ ({
-        location: {
-          pano: 'afterWalkTutorial',
-          latLng: new google.maps.LatLng(38.94061618, -77.06768201),
-        },
-        links: [],
-        imageDate: '2014-05',
-        copyright: 'Imagery (c) 2010 Google',
-        tiles: {
-          tileSize: new google.maps.Size(1700, 850),
-          worldSize: new google.maps.Size(3400, 1700),
-          centerHeading: 344,
-          originHeading: 344,
-          originPitch: 0,
-          getTileUrl(_pano, zoom, tileX, tileY) {
-            return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
-          },
-        },
-        time: [],
-      });
     }
+    return /** @type {google.maps.StreetViewPanoramaData} */ ({
+      location: {
+        pano: 'afterWalkTutorial',
+        latLng: new google.maps.LatLng(38.94061618, -77.06768201),
+      },
+      links: [],
+      imageDate: '2014-05',
+      copyright: 'Imagery (c) 2010 Google',
+      tiles: {
+        tileSize: new google.maps.Size(1700, 850),
+        worldSize: new google.maps.Size(3400, 1700),
+        centerHeading: 344,
+        originHeading: 344,
+        originPitch: 0,
+        getTileUrl(_pano, zoom, tileX, tileY) {
+          return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
+        },
+      },
+      time: [],
+    });
   };
 
   getLinkedPanos = () => {
@@ -614,10 +613,10 @@ export class GsvViewer extends PanoViewer {
   /**
    * See PanoViewer.publicViewerLink().
    * @param {string} panoId
-   * @param {{heading?: number, pitch?: number}} [opts]
+   * @param {{heading?: number, pitch?: number}} opts
    * @returns {{url: string, i18nKey: string}}
    */
-  publicViewerLink(panoId, { heading, pitch } = {}) {
+  publicViewerLink(panoId, { heading, pitch }) {
     return {
       url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${panoId}&heading=${heading}&pitch=${pitch}`,
       i18nKey: 'common:pano-info.view-in-gsv',

@@ -1,5 +1,5 @@
 /**
- * Keeps track of the current and completed validation missions.
+ * Keeps track of the validation mission in progress, and how many this page has finished.
  */
 
 import { Mission } from './Mission.js';
@@ -10,8 +10,8 @@ import { Mission } from './Mission.js';
 /** @typedef {import('../Tracker.js').Tracker} Tracker */
 
 export class MissionContainer {
+  /** @type {Mission|undefined} Undefined only until Main creates the first mission. */
   #currentMission = undefined;
-  #completedMissions = [];
   /** @type {number} Missions finished on this page, including a mission finished twice through an undo. */
   #missionsCompleted = 0;
   /** @type {StatusField} */
@@ -49,39 +49,12 @@ export class MissionContainer {
   }
 
   /**
-   * Adds a mission to in progress or list of completed missions.
-   * @param {Mission} mission
-   */
-  addAMission(mission) {
-    if (mission.getProperty('completed')) {
-      this.#addToCompletedMissions(mission);
-    } else {
-      this.#currentMission = mission;
-      this.#statusField.reset(mission);
-    }
-    return this;
-  }
-
-  /**
-   * This function adds the current mission to a list of completed missions.
-   * @param {Mission} mission - Mission object of the current mission.
-   */
-  #addToCompletedMissions(mission) {
-    const existingMissionIds = this.#completedMissions.map((m) => m.getProperty('missionId'));
-    const currentMissionId = mission.getProperty('missionId');
-    if (existingMissionIds.indexOf(currentMissionId) < 0) {
-      this.#completedMissions.push(mission);
-    }
-  }
-
-  /**
    * Shows the mission-complete screen and hands the mission to the listeners, which submit it to the backend.
    */
   completeAMission() {
     this.#missionsCompleted += 1;
     this.#modalMissionComplete.show(this.#currentMission, this.#missionsCompleted);
     for (const listener of this.#completeListeners) listener();
-    this.#addToCompletedMissions(this.#currentMission);
   }
 
   /**
@@ -106,7 +79,9 @@ export class MissionContainer {
       unsureCount: progressMetadata.unsure_count,
     };
     const mission = new Mission(metadata, this, this.#statusField);
-    this.addAMission(mission);
+    // The server hands out only unfinished missions, so the new one is always the one in progress.
+    this.#currentMission = mission;
+    this.#statusField.reset(mission);
     this.#modalMission.setMissionMessage(mission);
     this.#statusField.updateLabelText(mission.getProperty('labelType'), mission.getProperty('labelsValidated'));
   }

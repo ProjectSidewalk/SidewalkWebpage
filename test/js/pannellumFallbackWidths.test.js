@@ -30,6 +30,7 @@ async function candidatesFor(maxTextureSize, metadata, { mobile = false } = {}) 
     MAX_TEXTURE_SIZE: 0x0d33,
     getParameter: () => maxTextureSize,
     getExtension: () => null,
+    isContextLost: () => false,
   };
   const { panoramaUrlCandidates } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
   return panoramaUrlCandidates(metadata);
@@ -42,6 +43,23 @@ const widthsOf = (urls) => urls.map((u) => {
 });
 
 describe('panoramaUrlCandidates', () => {
+  it('does not keep a cap read off a lost context, and asks the GPU again on the next load (#5939)', async () => {
+    // A context the browser hands out already lost, as it does for a while after a GPU reset, answers every
+    // parameter with null. Cached, that would stand for the device until the page reloads.
+    useUtil({ isMobile: () => false });
+    const gl = {
+      MAX_TEXTURE_SIZE: 0x0d33, lost: true, getParameter: () => (gl.lost ? null : 4096), getExtension: () => null,
+      isContextLost: () => gl.lost,
+    };
+    window.HTMLCanvasElement.prototype.getContext = () => gl;
+    const { panoramaUrlCandidates } = await loadModules('frontend/js/common/pano-viewer/PannellumViewer.js');
+    const pano = { image_url: IMAGE_URL, width: 16384 };
+
+    expect(widthsOf(panoramaUrlCandidates(pano))).toEqual([null, 8192, 4096]);
+    gl.lost = false;
+    expect(widthsOf(panoramaUrlCandidates(pano))).toEqual([8192, 4096, 2048]);
+  });
+
   it('steps down from the pano width, not the GPU cap, when the pano is the narrower of the two', async () => {
     // MAX_TEXTURE_SIZE 16384 -> a 32768 ceiling, far above this 8192-wide pano, so rung 0 is the native file.
     // Anchored on the cap, the rungs would be 16384 and 8192 -- both of which the server answers with that same
@@ -74,6 +92,12 @@ describe('panoramaUrlCandidates', () => {
   it('still ladders down for a browser that reports no WebGL context', async () => {
     // No cap to read, but the pano width alone is enough to know what smaller looks like.
     expect(widthsOf(await candidatesFor(null, { image_url: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
+  });
+
+  it('keeps a signed URL\'s own query and adds the width to it', async () => {
+    const signed = `${IMAGE_URL}?sig=abc`;
+    expect(await candidatesFor(4096, { image_url: signed, width: 16384 }))
+      .toEqual([`${signed}&maxWidth=8192`, `${signed}&maxWidth=4096`, `${signed}&maxWidth=2048`]);
   });
 
   it('offers only the native file when neither the cap nor the width is known', async () => {

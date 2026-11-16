@@ -14,6 +14,7 @@ import models.api.{
   StreetAccessScoreForApi,
   StreetDataForApi
 }
+import models.street.StreetGradientStats
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.api.data.{DataStore, DataStoreFinder, SimpleFeatureStore, Transaction}
@@ -840,6 +841,38 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
   }
 
   /**
+   * The slope statistics' DBF columns (#5223), shared by the two street shapefiles so they name them alike. The names
+   * are abbreviated to the DBF's 10-character limit; the other formats use `StreetGradientApiFields.statFields`.
+   * [[addGradeAttributes]] must add the values in this order.
+   */
+  private val gradeShapefileSpec: String = Seq(
+    "meanGrade:Double", // Mean absolute grade as a fraction (null if unsampled or a structure)
+    "maxGrade:Double",  // Steepest grade over a 30 m baseline
+    "netGrade:Double",  // End-to-end grade, signed in the digitized direction
+    "climbM:Double",    // Summed rise in meters
+    "descentM:Double",  // Summed fall in meters
+    "mOver5pct:Double", // Meters steeper than 1:20
+    "mOver8pct:Double", // Meters steeper than 1:12 (8.33%)
+    "gradeConf:String", // high / medium / low, from the elevation model's grid size
+    "gradeQual:String", // measured / structure / suspect / no_data
+    "demSource:String"  // The elevation model, for attribution
+  ).mkString(",")
+
+  /** Adds a street's slope statistics in [[gradeShapefileSpec]]'s order, all null for an unsampled street. */
+  private def addGradeAttributes(fb: SimpleFeatureBuilder, gradient: Option[StreetGradientStats]): Unit = {
+    fb.add(gradient.flatMap(_.meanGrade).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.maxGrade).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.netGrade).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.climbM).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.descentM).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.metersOver5pctGrade).map(Double.box).orNull)
+    fb.add(gradient.flatMap(_.metersOver8pctGrade).map(Double.box).orNull)
+    fb.add(gradient.map(_.confidence.name).orNull)
+    fb.add(gradient.map(_.quality.name).orNull)
+    fb.add(gradient.map(_.demSource).orNull)
+  }
+
+  /**
    * Creates a shapefile from StreetDataForApi objects.
    *
    * @param source Stream of StreetDataForApi objects
@@ -870,7 +903,8 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
         + "userIds:String,"            // List of user IDs as a string
         + "firstLabel:String,"         // First label date
         + "lastLabel:String,"          // Last label date
-        + "osmWays:String"             // Every OSM way the street lies on: way:from-to:+ (or :-) per way (#5741)
+        + "osmWays:String,"            // Every OSM way the street lies on: way:from-to:+ (or :-) per way (#5741)
+        + gradeShapefileSpec           // The slope statistics (#5431), after every older column
     )
 
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -898,6 +932,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.osmWays.map(_.shapefileText).mkString(","))
+      addGradeAttributes(featureBuilder, street.gradient)
 
       featureBuilder.buildFeature(null)
     }
@@ -1105,16 +1140,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
         + "auditCount:Integer,"        // Number of completed audits
         + "lengthM:Double,"            // Street length in meters
         + "labelCount:Integer,"        // Number of labels contributing to the score
-        + "meanGrade:Double,"          // Mean absolute grade as a fraction (null if unsampled or a structure)
-        + "maxGrade:Double,"           // Steepest grade over a 30 m baseline
-        + "netGrade:Double,"           // End-to-end grade, signed in the digitized direction
-        + "climbM:Double,"             // Summed rise in meters
-        + "descentM:Double,"           // Summed fall in meters
-        + "mOver5pct:Double,"          // Meters steeper than 1:20
-        + "mOver8pct:Double,"          // Meters steeper than 1:12 (8.33%)
-        + "gradeConf:String,"          // high / medium / low, from the elevation model's grid size
-        + "gradeQual:String,"          // measured / structure / suspect / no_data
-        + "demSource:String,"          // The elevation model, for attribution
+        + gradeShapefileSpec + ","     // The slope statistics (#5223)
         + "gradeTerm:Double,"          // What grade adds to the segment's pre-sigmoid sum (never positive)
         + perTypeSpec + ","            // Per-type cluster count (n<code>) and sub-score (s<code>)
         + perBucketSpec + ","          // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
@@ -1136,16 +1162,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
-      fb.add(s.gradient.flatMap(_.meanGrade).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.maxGrade).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.netGrade).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.climbM).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.descentM).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.metersOver5pctGrade).map(Double.box).orNull)
-      fb.add(s.gradient.flatMap(_.metersOver8pctGrade).map(Double.box).orNull)
-      fb.add(s.gradient.map(_.confidence.name).orNull)
-      fb.add(s.gradient.map(_.quality.name).orNull)
-      fb.add(s.gradient.map(_.demSource).orNull)
+      addGradeAttributes(fb, s.gradient)
       fb.add(s.slopeTerm)
       AccessScoreApiModels.orderedTypes.foreach { t =>
         fb.add(s.clusterCounts.getOrElse(t, 0))

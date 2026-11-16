@@ -152,6 +152,30 @@ class StreetGradientTableSpec
     }
   }
 
+  "StreetGradientStatsSql" should {
+    "read a row exactly as the Slick projection does, and None where a LEFT JOIN finds none (#5431)" in {
+      given slick.jdbc.GetResult[Option[StreetGradientStats]] = StreetGradientStatsSql.read(_)
+      // A coarse row too, so the reader is held to the projection on a row whose statistics are mostly null.
+      val (sampled, coarse, viaSlick, viaSql) = runRolledBack(for {
+        a        <- insertStreet()
+        b        <- insertStreet()
+        c        <- insertStreet()
+        _        <- insertMeasured(a)
+        _        <- insertCoarse(b, "spec-coarse-dem")
+        viaSlick <- table.getStats(Seq(a, b, c))
+        viaSql   <- sql"""SELECT #${StreetGradientStatsSql.columns("street_gradient")}
+                          FROM street_edge
+                          LEFT JOIN street_gradient ON street_edge.street_edge_id = street_gradient.street_edge_id
+                          WHERE street_edge.street_edge_id IN ($a, $b, $c)
+                          ORDER BY street_edge.street_edge_id""".as[Option[StreetGradientStats]]
+      } yield (a, b, viaSlick, viaSql))
+
+      viaSql mustBe Seq(viaSlick.get(sampled), viaSlick.get(coarse), None)
+      viaSql.head.value.meanGrade mustBe Some(0.06)
+      viaSql(1).value.meanGrade mustBe None
+    }
+  }
+
   "StreetGradientTable.sourceCounts" should {
     "count streets per elevation model with its confidence, the most-used model first" in {
       // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.

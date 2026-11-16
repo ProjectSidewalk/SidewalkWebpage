@@ -128,6 +128,17 @@ describe('TestServerBanner', () => {
       expect(document.documentElement.style.getPropertyValue(HEIGHT_VAR)).toBe('0px');
     });
 
+    test.each(['load', 'resize'])('re-measures on the window\'s %s, when fonts or a new width rewrap it', (type) => {
+      const banner = insertBanner();
+      stubLayout(banner, { position: 'fixed', height: 40 });
+      new TestServerBanner(banner);
+
+      Object.defineProperty(banner, 'offsetHeight', { configurable: true, value: 64 });
+      window.dispatchEvent(new Event(type));
+
+      expect(document.documentElement.style.getPropertyValue(HEIGHT_VAR)).toBe('64px');
+    });
+
     test('reserves nothing while hidden even if it still has a height', () => {
       const banner = insertBanner();
       stubLayout(banner, { position: 'fixed', height: 40 });
@@ -135,6 +146,20 @@ describe('TestServerBanner', () => {
       banner.classList.add('ps-hidden');
 
       expect(bannerCtl.updateHeight()).toBe(0);
+      expect(document.documentElement.style.getPropertyValue(HEIGHT_VAR)).toBe('0px');
+    });
+  });
+
+  describe('on page load', () => {
+    test('wires up the banner the page rendered, without anyone constructing it', async () => {
+      const banner = insertBanner();
+      stubLayout(banner, { height: 40 });
+
+      await loadModules('frontend/js/common/TestServerBanner.js');
+      expect(document.documentElement.style.getPropertyValue(HEIGHT_VAR)).toBe('40px');
+      banner.querySelector('.test-server-banner-close').click();
+
+      expect(banner.classList.contains('ps-hidden')).toBe(true);
       expect(document.documentElement.style.getPropertyValue(HEIGHT_VAR)).toBe('0px');
     });
   });

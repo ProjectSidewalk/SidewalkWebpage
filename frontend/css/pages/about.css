@@ -14,12 +14,6 @@
   color: var(--color-link-200);
 }
 
-/* The `hidden` attribute must always win, even over author display rules like the pub cards' grid or the
-   show-all button's inline-flex. */
-#about-page [hidden] {
-  display: none !important;
-}
-
 .about-container {
   max-width: 1100px;
   margin: 0 auto;
@@ -714,6 +708,52 @@
   margin: 0;
 }
 
+/* Partner logo grid (#5980): sub-headed groups under the partners prose. */
+.about-partners-heading {
+  font: var(--text-h3-bold);
+  color: var(--color-asphalt-500);
+  margin: 36px 0 4px;
+}
+
+#about-page .about-partners-tagline {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin-bottom: 20px;
+}
+
+/* A static wrapping grid rather than a ticker: moving logos would need a pause control (WCAG 2.2.2) and show only a
+   few of the partners at a time. Most logos are wide wordmarks, so rows share a fixed height and a width cap (as on
+   the landing strip) instead of square tiles, which would shrink a wordmark to an unreadable sliver. */
+.about-partner-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 24px 40px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-partner-logo a {
+  display: inline-block;
+  border-radius: 4px;
+}
+
+/* The page's link color alone wouldn't show focus on an image link, so give it a ring that clears the logo's edge. */
+#about-page .about-partner-logo a:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 4px;
+}
+
+.about-partner-logo img {
+  display: block;
+  height: 48px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+}
+
 /* Responsive stacking */
 @media (width <= 1000px) {
   .about-impact-grid {
@@ -762,5 +802,14 @@
 
   .about-pub-thumb {
     width: 72px;
+  }
+
+  .about-partner-logos {
+    gap: 20px 28px;
+  }
+
+  .about-partner-logo img {
+    height: 36px;
+    max-width: 140px;
   }
 }

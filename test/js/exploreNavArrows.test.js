@@ -1,8 +1,8 @@
 /**
  * The navigation arrows over the pano (frontend/js/explore/panorama/NavArrows.js, #5840): one per linked pano, turned
- * against the camera; the one leading the route's way drawn in the navigation blue, or a blue arrow synthesized at a
- * dead end; what a click or hover on each announces; the highlight a hovered minimap crumb puts on its arrow; and the
- * tutorial's hold and blink.
+ * against the camera; the one that takes the route's next step drawn in the navigation blue, or a blue arrow
+ * synthesized where no link goes there; what a click or hover on each announces; the highlight a hovered minimap
+ * crumb puts on its arrow; and the tutorial's hold and blink.
  */
 
 import { loadModules } from './loader.js';
@@ -36,6 +36,7 @@ describe('NavArrows', () => {
       getPosition: () => ({ lat: 47.6, lng: -122.3 }),
       getPov() { return { heading: this.heading, pitch: 0, zoom: 1 }; },
       getLinkedPanos() { return this.links; },
+      supportsLocationSearch: () => true,
     };
     arrows = new NavArrows(group, container, config, fakeTaskContainer(() => task, { tasksLoaded: () => tasksLoaded }),
       fakePanoManager(viewer, { onPovChanged: (listener) => { povChanged = listener; } }));
@@ -72,20 +73,91 @@ describe('NavArrows', () => {
       expect(synthesized()).toBeNull();
     });
 
-    test('with no link the route\'s way, a blue arrow at the route heading is added, but only on the route', () => {
-      viewer.links = [{ panoId: 'pano-west', heading: 270 }];
+    test('a link up to 60° off the route is the blue one, as it is the one the spacebar takes', () => {
+      viewer.links = [{ panoId: 'pano-northeast', heading: 35 }, { panoId: 'pano-north', heading: 20 }];
       arrows.reset();
-
-      expect(synthesized()).not.toBeNull();
-      expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(90, 15, 30)');
-      expect(synthesized().hasAttribute('pano-id')).toBe(false);
-      expect(images()).toHaveLength(2);
-
-      // Off the route the link arrows lead back one pano at a time; a synthesized arrow would teleport instead.
-      task.isNearRoute.mockReturnValue(false);
-      arrows.reset();
+      expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-northeast']);
       expect(synthesized()).toBeNull();
-      expect(images()).toHaveLength(1);
+    });
+
+    describe('with no link the route\'s way', () => {
+      beforeEach(() => {
+        viewer.links = [{ panoId: 'pano-west', heading: 270 }, { panoId: 'pano-north', heading: 0 }];
+      });
+
+      test('nothing is blue until the route walk\'s landing is known', () => {
+        arrows.reset();
+        expect(forwardArrows()).toEqual([]);
+        expect(images()).toHaveLength(2);
+      });
+
+      test('the link to the pano the walk lands on is the blue one, whichever way it points', () => {
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-north', heading: 2 });
+        expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
+        expect(synthesized()).toBeNull();
+      });
+
+      test('a landing no link leads to gets a blue arrow of its own, aimed at that pano', () => {
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-unlinked', heading: 120 });
+        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(120, 15, 30)');
+        expect(synthesized().hasAttribute('pano-id')).toBe(false);
+        expect(forwardArrows()).toEqual([synthesized()]);
+        expect(images()).toHaveLength(3);
+      });
+
+      test('with no pano known ahead, the blue arrow points down the street', () => {
+        arrows.setWalkLanding('pano-here', null);
+        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(90, 15, 30)');
+      });
+
+      test('a landing worked out for another pano is not used, here or after a redraw', () => {
+        arrows.reset();
+        const drawn = images();
+        arrows.setWalkLanding('pano-left-behind', { panoId: 'pano-north', heading: 2 });
+        expect(images()).toEqual(drawn);
+        arrows.reset();
+        expect(forwardArrows()).toEqual([]);
+      });
+
+      test('the landing survives the redraw that follows a move', () => {
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-north', heading: 2 });
+        arrows.reset();
+        expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
+      });
+
+      test('with the street ended here and no pano ahead it is not drawn: it could only walk nowhere (#5918)', () => {
+        arrows.setWalkLanding('pano-here', null);
+        arrows.setWalkEnded(true);
+        expect(synthesized()).toBeNull();
+      });
+
+      test('with the street ended but a pano still ahead it stays, so the last stretch can be walked', () => {
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-unlinked', heading: 120 });
+        arrows.setWalkEnded(true);
+        expect(synthesized().getAttribute('transform')).toBe('translate(15, 0) rotate(120, 15, 30)');
+      });
+
+      test('off the route nothing is synthesized: the link arrows lead back one pano at a time', () => {
+        task.isNearRoute.mockReturnValue(false);
+        arrows.setWalkLanding('pano-here', { panoId: 'pano-unlinked', heading: 120 });
+        expect(forwardArrows()).toEqual([]);
+        expect(images()).toHaveLength(2);
+      });
+    });
+
+    test('with the street ended the nearest link is not blue, so the arrow cannot flip between its last panos', () => {
+      viewer.links = [{ panoId: 'pano-east', heading: 90 }, { panoId: 'pano-west', heading: 270 }];
+      task.headingAlongRoute.mockReturnValue(90);
+      arrows.setWalkEnded(true);
+      expect(forwardArrows()).toEqual([]);
+      expect(images()).toHaveLength(2);
+    });
+
+    test('with the street ended the link to a pano further down it is still blue (#5918)', () => {
+      viewer.links = [{ panoId: 'pano-east', heading: 90 }, { panoId: 'pano-west', heading: 270 }];
+      arrows.setWalkEnded(true);
+      arrows.setWalkLanding('pano-here', { panoId: 'pano-west', heading: 270 });
+      expect(forwardArrows().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-west']);
     });
 
     test('off the route the blue arrow is the link that leads back toward it', () => {
@@ -100,6 +172,82 @@ describe('NavArrows', () => {
       arrows.reset();
       expect(images()).toHaveLength(2);
       expect(forwardArrows()).toEqual([]);
+    });
+
+    describe('free exploration on a pano with no links (#5968)', () => {
+      const streetArrows = () => [...group.querySelectorAll('.street-walk-arrow')];
+
+      beforeEach(() => {
+        config.isExploreAddressMode = true;
+        viewer.links = [];
+        // The street runs east; the labeler stands partway down it.
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? 90 : 270));
+      });
+
+      test('a plain arrow points each way down the street, as the only ways out', () => {
+        arrows.reset();
+        expect(images()).toEqual(streetArrows());
+        expect(streetArrows().map((arrow) => [arrow.getAttribute('toward'), arrow.getAttribute('transform')]))
+          .toEqual([['end', 'translate(15, 0) rotate(90, 15, 30)'], ['start', 'translate(15, 0) rotate(270, 15, 30)']]);
+        expect(forwardArrows()).toEqual([]);
+        expect(images().some((image) => image.hasAttribute('pano-id'))).toBe(false);
+      });
+
+      test('at an end of the street only the arrow back down it is drawn', () => {
+        task.headingAlongStreet = vi.fn((_position, towardEnd) => (towardEnd ? null : 270));
+        arrows.reset();
+        expect(streetArrows().map((arrow) => arrow.getAttribute('toward'))).toEqual(['start']);
+      });
+
+      test('a click says which end of the street the arrow faces', () => {
+        const streetWalkClicks = vi.fn();
+        const routeForwardClicks = vi.fn();
+        arrows.onStreetWalkClick(streetWalkClicks);
+        arrows.onRouteForwardClick(routeForwardClicks);
+        arrows.reset();
+        streetArrows().forEach((arrow) => fire(arrow, 'click'));
+        expect(streetWalkClicks.mock.calls).toEqual([[true], [false]]);
+        expect(routeForwardClicks).not.toHaveBeenCalled();
+      });
+
+      test('a pano with any link keeps only its link arrows', () => {
+        viewer.links = [{ panoId: 'pano-north', heading: 0 }];
+        arrows.reset();
+        expect(images().map((image) => image.getAttribute('pano-id'))).toEqual(['pano-north']);
+        expect(arrows.streetWalkToward(90)).toBeNull();
+      });
+
+      test('an arrow key\'s heading picks the street arrow within 60° of it, as it would a link', () => {
+        expect(arrows.streetWalkToward(100)).toBe(true);
+        expect(arrows.streetWalkToward(250)).toBe(false);
+        expect(arrows.streetWalkToward(0)).toBeNull();
+      });
+
+      test.each([
+        ['no current street', () => { task = null; }],
+        ['streets not loaded yet', () => { tasksLoaded = false; }],
+        ['standing off the street', () => task.isNearRoute.mockReturnValue(false)],
+        [
+          'street geometry not ready',
+          () => task.headingAlongStreet.mockImplementation(() => { throw new Error('no geometry'); }),
+        ],
+        ['a viewer that cannot search the street for a pano', () => { viewer.supportsLocationSearch = () => false; }],
+      ])('nothing is drawn with no street to walk: %s', (_name, arrange) => {
+        arrange();
+        arrows.reset();
+        expect(images()).toEqual([]);
+        expect(arrows.streetWalkToward(90)).toBeNull();
+      });
+
+      test.each([
+        ['the tutorial', () => { config.isOnboarding = true; }],
+        ['a mission, whose arrow waits for the walk\'s landing', () => {}],
+      ])('outside free exploration nothing is drawn by this rule: %s', (_name, arrange) => {
+        config.isExploreAddressMode = false;
+        arrange();
+        arrows.reset();
+        expect(images()).toEqual([]);
+      });
     });
 
     test.each([
@@ -141,7 +289,7 @@ describe('NavArrows', () => {
       arrows.onRouteForwardClick(routeForwardClicks);
       container.addEventListener('click', reachedContainer);
       viewer.links = [{ panoId: 'pano-west', heading: 270 }];
-      arrows.reset();
+      arrows.setWalkLanding('pano-here', null);
     });
 
     test('a link arrow names the pano it leads to, and the click goes no further', () => {
@@ -178,7 +326,7 @@ describe('NavArrows', () => {
       hovered = vi.fn();
       arrows.onHover(hovered);
       viewer.links = [{ panoId: 'pano-west', heading: 270 }];
-      arrows.reset();
+      arrows.setWalkLanding('pano-here', null);
     });
 
     test('says which pano or route step is under the pointer, and when it leaves', () => {

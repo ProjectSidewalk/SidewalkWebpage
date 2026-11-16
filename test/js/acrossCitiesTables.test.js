@@ -255,6 +255,19 @@ describe('Across Cities — label-type mix', () => {
       .toBe('Curb ramp: 30 (75%), Obstacle: 10 (25%)');
   });
 
+  it('names a label type the page has no short name for by its backend name', async () => {
+    const stamp = window.labelTypes;
+    window.labelTypes = [...stamp, { ...stamp[0], name: 'Puddle' }];
+    try {
+      await render([makeCity('a', { total_labels: 3, by_label_type: byType({ CurbRamp: 1, Puddle: 2 }) })]);
+    } finally {
+      window.labelTypes = stamp;
+    }
+    const shown = [...document.querySelectorAll('#ac-patterns-legend .ac-legend-item')]
+      .map((el) => el.textContent.trim());
+    expect(shown).toEqual(['Curb ramp', 'Puddle']);
+  });
+
   it('says "no labels" for a city with none', async () => {
     await render([
       makeCity('busy', { total_labels: 1, by_label_type: byType({ CurbRamp: 1 }) }),

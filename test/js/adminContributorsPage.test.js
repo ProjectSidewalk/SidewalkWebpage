@@ -236,6 +236,18 @@ describe('the top labelers table', () => {
     expect(heights).toEqual(['100%', '0%', '100%']);
   });
 
+  test('a label type or severity the server sends without a count reads as zero', async () => {
+    await load({ boards: { top_validators: [], top_labelers: [
+      { user_id: 'id-ada', username: 'ada', role: 'Registered', labels: 2, own_validated: 0, high_quality: true,
+        label_type_counts: [{ label_type: 'CurbRamp', count: 2 }, { label_type: 'Obstacle', count: null }],
+        severity_counts: [{ severity: 1, count: 2 }, { severity: 2, count: null }] },
+    ] } });
+    expect(document.querySelector('.contrib-typebar').getAttribute('aria-label'))
+      .toBe('CurbRamp: 2 (100%), Obstacle: 0 (0%)');
+    expect(document.querySelector('.contrib-sevdist').getAttribute('aria-label'))
+      .toBe('Severity 1: 2 (100%), Severity 2: 0 (0%), Severity 3: 0 (0%)');
+  });
+
   test('says so when nobody has labeled, or the answer has no leaderboard', async () => {
     await load({ boards: { top_labelers: [], top_validators: [] } });
     expect(text('contrib-top-labelers')).toBe('No labelers yet.');

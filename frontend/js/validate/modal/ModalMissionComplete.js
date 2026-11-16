@@ -120,7 +120,7 @@ export class ModalMissionComplete {
 
     // What they're climbing toward, which is what makes the badge legible as a level rather than a decoration. It's
     // the same line for someone who has none yet: their first badge is simply the next one.
-    if (ui.badgeProgressFill) new ProgressBar(ui.badgeProgressFill).setFraction(fraction);
+    new ProgressBar(ui.badgeProgressFill).setFraction(fraction);
     ui.badgeNext.textContent = next
       ? i18next.t('mission-complete.next-badge', { count: remaining, badge: `${next.name} ${next.roman}` })
       : i18next.t('mission-complete.top-badge');

@@ -6,9 +6,8 @@
 
 import i18next from 'i18next';
 import { Gate } from '../../common/Gate.js';
+import { ForwardCrumbs } from './ForwardCrumbs.js';
 import { NoImageryFlagGuard } from '../panorama/NoImageryFlagGuard.js';
-import { util } from '../../common/utilities.js';
-import '../../common/utilitiesMath.js';
 /** @typedef {import('../alert/AlertController.js').AlertController} AlertController */
 /** @typedef {import('../Main.js').StreetviewUi} StreetviewUi */
 /** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
@@ -221,12 +220,16 @@ export class NavigationService {
    * Once the heading stops changing after a move (Mapillary animates it briefly), tells the views of it (peg, fog
    * cone, compass) to redraw; until then they keep their pre-move orientation. Stops if a new move begins, which
    * runs its own; GSV's pov is final at once, so it settles after a couple of ticks.
+   *
+   * Keeps watching to the time limit and tells them again if the heading moves on: Mapillary's animation can pause
+   * mid-turn long enough to look settled, and nothing else redraws them when it resumes.
    */
   #refreshHeadingViewsAfterPovSettles() {
     if (this.#povSettlePoll) window.clearInterval(this.#povSettlePoll); // Replace any in-flight poll from a prior move.
 
     let prevHeading = this.#panoManager.getPov().heading;
     let stableTicks = 0;
+    let announcedHeading = null;
     const startTime = performance.now();
     const pollMs = 80;
     const maxSettleMs = 1500; // Stop polling even if the heading never fully stabilizes.
@@ -243,9 +246,15 @@ export class NavigationService {
       prevHeading = heading;
       stableTicks = headingDelta < 0.5 ? stableTicks + 1 : 0;
 
-      if (stableTicks >= 2 || performance.now() - startTime > maxSettleMs) {
+      const timedOut = performance.now() - startTime > maxSettleMs;
+      if (timedOut) {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
+      }
+      const movedOn = announcedHeading === null
+        || Math.abs(((heading - announcedHeading + 540) % 360) - 180) >= 0.5;
+      if ((stableTicks >= 2 || timedOut) && movedOn) {
+        announcedHeading = heading;
         this.#moveState = 'idle'; // Settled first, so the listeners recompute from the settled pov.
         this.#headingSettledListeners.forEach((listener) => listener());
       }
@@ -267,6 +276,26 @@ export class NavigationService {
     this.#updateUiBeforeMove();
     const result = await this.#sweepForward();
     return result.outcome === 'landed' ? result.panoId : null;
+  }
+
+  /**
+   * Free exploration's step off a pano with no links, down the street toward either end (#5968).
+   * @param {boolean} towardEnd - Toward the street's end; false for toward its start.
+   * @returns {Promise<string|null|void>} The new pano id; null if nothing loaded; undefined if they can't walk now.
+   */
+  async moveAlongStreet(towardEnd) {
+    if (!this.canWalk()) return undefined;
+    this.#updateUiBeforeMove();
+    let panoId;
+    try {
+      panoId = await this.#streetSweep.stepAlongStreet(towardEnd);
+    } catch (err) {
+      this.#restoreUiAfterFailedMove();
+      throw err;
+    }
+    if (panoId) this.#updateUiAfterMove();
+    else this.#restoreUiAfterFailedMove();
+    return panoId;
   }
 
   /**
@@ -322,19 +351,25 @@ export class NavigationService {
   moveToLinkedPano(heading, options) {
     if (!this.canWalk()) return Promise.resolve(false);
 
-    // Figure out if there's a link close to the given heading.
-    const currHeading = this.#panoManager.getPov().heading;
     const linkedPanos = this.#panoManager.panoViewer.getLinkedPanos();
-    const cosines = linkedPanos.map((link) => {
-      const headingAngleOffset = util.math.toRadians(currHeading + heading) - util.math.toRadians(link.heading);
-      return Math.cos(headingAngleOffset);
-    });
-    const maxIndex = cosines.indexOf(Math.max.apply(null, cosines));
-    if (cosines[maxIndex] > 0.5) {
-      return this.moveToPano(linkedPanos[maxIndex].panoId, false, options);
-    } else {
-      return Promise.resolve(false);
-    }
+    const index = ForwardCrumbs.stepLinkIndex(linkedPanos, this.#panoManager.getPov().heading + heading);
+    return index === -1 ? Promise.resolve(false) : this.moveToPano(linkedPanos[index].panoId, false, options);
+  }
+
+  /**
+   * An arrow key's step: the linked pano nearest that way or, on a free-exploration pano with no links, down the
+   * street by the street arrow nearest it (#5968), which would otherwise be reachable by pointer only.
+   * @param {number} heading - The step's heading relative to the view, in degrees.
+   * @param {boolean} [held=false] - Whether the key is repeating while held down. A held key takes no street arrow:
+   *   a step that finds nothing searches the whole street and leaves no pause before the next repeat.
+   * @returns {Promise<{moved: boolean, streetWalkToward: ?boolean}>} `streetWalkToward` says which street arrow was
+   *   taken (true for the street's end); null when the step was a link's or there was none to take.
+   */
+  async moveByArrowKey(heading, held = false) {
+    if (await this.moveToLinkedPano(heading)) return { moved: true, streetWalkToward: null };
+    const towardEnd = held ? null : this.#navArrows.streetWalkToward(this.#panoManager.getPov().heading + heading);
+    if (towardEnd === null || !this.canWalk()) return { moved: false, streetWalkToward: null };
+    return { moved: Boolean(await this.moveAlongStreet(towardEnd)), streetWalkToward: towardEnd };
   }
 
   /**

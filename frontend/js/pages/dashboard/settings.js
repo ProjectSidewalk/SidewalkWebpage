@@ -9,7 +9,6 @@ const data = document.getElementById('page-entry').dataset;
 window.appManager.ready(() => {
   new Settings({
     saveUrl: data.saveUrl,
-    currentUsername: data.username,
     currentUnits: data.units,
   });
 });

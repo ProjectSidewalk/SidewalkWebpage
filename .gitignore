@@ -169,3 +169,5 @@ test/js/gsv-fov-probe/recorded/**/manifest.json
 tools/experiments/2886-street-side/data/
 tools/experiments/2886-street-side/out/
 tools/experiments/2886-street-side/compute.log
+# The e2e admin's random credentials (test/e2e/fixtures/ensure-admin.sh).
+test/e2e/.admin-account.json

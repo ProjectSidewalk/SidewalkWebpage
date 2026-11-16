@@ -94,6 +94,13 @@ describe('MissionLiveMarker (issue #5561)', () => {
     expect(new MissionLiveMarker(storage).takeUnexpectedUnload().navType).toBe('unknown');
   });
 
+  test('a browser with no Navigation Timing at all says "unknown" too', () => {
+    performance.getEntriesByType = undefined;
+    new MissionLiveMarker(storage).markLive(42);
+
+    expect(new MissionLiveMarker(storage).takeUnexpectedUnload().navType).toBe('unknown');
+  });
+
   test('storage that throws is treated as no marker, in both directions', () => {
     const marker = new MissionLiveMarker(throwingStorage());
 

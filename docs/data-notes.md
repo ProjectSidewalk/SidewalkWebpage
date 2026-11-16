@@ -55,6 +55,18 @@ gone. Analysts should know:
   legacy coordinates (negative `pano_y`), a few hundred whose pano has no recorded position still have no
   lat/lng, and the ~14,800 tutorial labels were left alone on purpose. 37 labels with an empty pano id were deleted,
   as 298.sql did elsewhere.
+- **Labels placed before 2017-02-15 were clicked on a flat renderer.** Until Google retired Maps API 3.25, the client
+  showed the non-perspective `html4` Street View and recorded coordinates with a matching linear formula (#429,
+  #518), so projecting their heading/pitch/canvas records with today's perspective formula drew markers up to ~5°
+  off. `tools/one-off/5920-dc-linear-projection.sql` (#5920) re-aimed those ~61k records at the click and rewrote
+  their `pano_x`/`pano_y`; its backup table `old_label_point_linear` holds the previous values and, per label, how far
+  off the old record rendered. Human votes made while the marker was 30 px or more off are archived in
+  `voided_label_validation`; the AI's votes and assessments on every label whose pixels moved were deleted for the
+  nightly job to redo, and the crops cut around the old pixels were re-cut.
+  The 13 labels between that cut and the v2.1 deploy (2017-03-21) were left alone. The flat renderer did not level
+  the horizon the way the perspective viewer does, so these labels still sit vertically about half a camera tilt
+  (0.58 of `pano_data.camera_pitch`, measured against later labels on the same panos) away from where a modern
+  click lands; any rig-tilt correction (#4784) has to treat them as their own population.
 - **Naive timestamps** (`label.time_created`, survey submissions) were US/Eastern before 2018-08-25 and UTC after.
 - The public aggregate stats now count DC live: users 823 registered + the split anonymous accounts rather than the
   old fixed 1,395; distance 2,089 km of network rather than the 5,482 km "explored" (which counted repeat audits).

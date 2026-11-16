@@ -32,8 +32,9 @@
 --     the two were drawn in opposite directions, routes and paused audits are flipped and a paused audit's distance
 --     along the street is cleared. A route stop landing on a street the route already visits is dropped.
 --   * Its OSM way link, priority and imagery rows go, then the street itself.
--- Each kept street moves to the live region holding most of its length. The nightly jobs rebuild priority, sidewalk
--- presence, clusters, intersections, access scores and user distance; region completion is cleared and refills.
+-- Each kept street moves to the region holding most of its length whose state matches its status (open in a live
+-- region, closed in a deleted one). The nightly jobs rebuild priority, sidewalk presence, clusters, intersections,
+-- access scores and user distance; region completion is cleared and refills.
 --
 -- The duplicate detection matches 3067-find-duplicate-streets.sql next to this file, which prints the pairs one per
 -- row; use that to look at a city before applying. ~40s on the largest schema (Chicago, 331k streets).
@@ -122,10 +123,12 @@ street_data AS (
            AS n_user_data,
          (SELECT street_edge_region.region_id FROM street_edge_region
            WHERE street_edge_region.street_edge_id = street_fact.street_edge_id) AS region_id,
-         -- Deleted regions are hidden everywhere in the app, so a street in one would vanish from the site.
+         -- The region step 7 would move the street to; keep it in step with that rule.
          (SELECT region.region_id FROM region
            JOIN street_edge ON street_edge.street_edge_id = street_fact.street_edge_id
-           WHERE region.geom && street_edge.geom AND NOT region.deleted
+           WHERE ST_Intersects(region.geom, street_edge.geom)
+             AND (street_edge.status NOT IN ('open', 'closed') OR region.deleted = (street_edge.status = 'closed'))
+             AND ST_Length(ST_Intersection(street_edge.geom, region.geom)::geography) >= 1
            ORDER BY ST_Length(ST_Intersection(street_edge.geom, region.geom)::geography) DESC, region.region_id
            LIMIT 1) AS best_region_id
   FROM street_fact
@@ -418,14 +421,17 @@ BEGIN
   END IF;
 END $$;
 
--- 7. Put each kept street in the live region holding most of its length; a deleted region would hide it.
+-- 7. Put each kept street in the region holding most of it whose state matches its status: reveals and hides find
+--    streets by region, so a closed street in a live one would never reopen (#5953).
 CREATE TEMP TABLE region_move ON COMMIT DROP AS
 SELECT street_edge_region.street_edge_id, street_edge_region.region_id AS from_region_id, best.region_id AS to_region_id
 FROM street_edge_region
 JOIN street_edge ON street_edge.street_edge_id = street_edge_region.street_edge_id
 CROSS JOIN LATERAL (
   SELECT region.region_id FROM region
-  WHERE region.geom && street_edge.geom AND NOT region.deleted
+  WHERE ST_Intersects(region.geom, street_edge.geom)
+    AND (street_edge.status NOT IN ('open', 'closed') OR region.deleted = (street_edge.status = 'closed'))
+    AND ST_Length(ST_Intersection(street_edge.geom, region.geom)::geography) >= 1
   ORDER BY ST_Length(ST_Intersection(street_edge.geom, region.geom)::geography) DESC, region.region_id
   LIMIT 1
 ) AS best
@@ -437,7 +443,7 @@ FROM region_move WHERE street_edge_region.street_edge_id = region_move.street_ed
 
 -- Checked here, while the dropped streets still have their regions. A street is hidden everywhere in the app while
 -- its region is deleted, so work moving off a street people can see onto one they can't would vanish from the site.
--- It can happen when no live region covers the street being kept, which leaves nowhere for the move above to go.
+-- It happens when the kept street lies in a hidden region and the dropped one in a live region.
 CREATE TEMP TABLE work_moved_out_of_sight ON COMMIT DROP AS
 SELECT street_merge.drop_id
 FROM street_merge

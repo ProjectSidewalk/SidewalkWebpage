@@ -33,6 +33,17 @@
     "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
   },
+  "gold-feedback": {
+    "eyebrow": "Ejemplo de práctica",
+    "image-alt": "La etiqueta que acabas de evaluar",
+    "advice": "En el futuro, deberías votar {{- no}} en estos casos.",
+    "explanation": {
+      "driveway": "Las entradas de vehículos <b>no</b> son rampas para peatones. Están diseñadas para vehículos y no para peatones.",
+      "no-sidewalk-here": "Para las esquinas sin <b>banquetas</b>, debe usarse la etiqueta No hay banqueta.",
+      "not-pedestrian-path-obstacle": "Si no hay banqueta o el objeto no está en la parte de la banqueta destinada a los peatones, no se necesita una etiqueta de Obstáculo."
+    },
+    "ok": "Entendido"
+  },
   "pano-loading": {
     "skipping": "Sigue cargando; pasamos a la siguiente etiqueta..."
   },

@@ -149,6 +149,16 @@ describe("a street's popup", () => {
     expect(popup.text()).not.toContain('All OSM ways');
   });
 
+  it('gives the first and last label dates, and calls a street with no way type unknown', async () => {
+    const first = daysAgo(20);
+    const last = daysAgo(10);
+    const popup = await popupFor({ ...street(2).properties, user_count: 1, way_type: null, first_label_date: first,
+      last_label_date: last });
+    expect(popup.text()).toContain('Type: Unknown');
+    expect(popup.text()).toContain(`First Label: ${new Date(first).toLocaleDateString()} `
+      + `Last Label: ${new Date(last).toLocaleDateString()}`);
+  });
+
   it('lists every OSM way of a street built from several, with the stretch each covers', async () => {
     // Mapbox hands back an array property as a JSON string.
     const osmWays = JSON.stringify([

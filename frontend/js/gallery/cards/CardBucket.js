@@ -81,17 +81,19 @@ export class CardBucket {
     return new CardBucket([...this.#bucket]);
   }
 
+  /**
+   * @param {number} index - A position in the bucket.
+   * @returns {Card|undefined} The card at that position, if there is one.
+   */
   getCardByIndex(index) {
     return this.#bucket[index];
   }
 
+  /**
+   * @param {string} imageId - The id on a card's image element (Card.getImageId()).
+   * @returns {number} The position of the card showing that image, or -1 if none does.
+   */
   findCardIndexByImageId(imageId) {
-    for (let i = 0; i < this.#bucket.length; i++) {
-      if (this.#bucket[i].getImageId() === imageId) {
-        return i;
-      }
-    }
-
-    return -1;
+    return this.#bucket.findIndex((card) => card.getImageId() === imageId);
   }
 }

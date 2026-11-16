@@ -15,7 +15,9 @@ import { loadModules, mockModule, REPO_ROOT } from './loader.js';
 const i18next = { t: (key) => key };
 mockModule('i18next', () => ({ default: i18next }));
 
-const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'frontend/css/pages/user-dashboard.css'), 'utf8');
+// main.css comes along because its [hidden] rule is what collapses a row that sets its own display.
+const DASHBOARD_CSS = ['frontend/css/main.css', 'frontend/css/pages/user-dashboard.css']
+  .map((file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).join('\n');
 
 const PAGE_SIZE = 5;
 
@@ -171,8 +173,6 @@ describe('the dashboard\'s needs-re-audit list', () => {
     });
 
     it('collapses the rows it holds back, not just in the DOM', async () => {
-      // .ud-reaudit-row sets its own display, which beats the UA stylesheet's [hidden] rule -- so the attribute
-      // alone leaves every row on screen while the property still reads true.
       await init(15);
 
       const [firstShown] = rows();
@@ -282,6 +282,24 @@ describe('the dashboard\'s needs-re-audit list', () => {
 
       expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('2025年10月');
     });
+
+    it('keeps the server\'s imagery month when its machine-readable month is unusable', async () => {
+      renderSection(3);
+      document.querySelectorAll('.ud-reaudit-imagery-date').forEach((el) => el.setAttribute('datetime', 'soon'));
+      new OutdatedStreets(document.getElementById('ud-reaudit-list'), { mapReady: Promise.resolve(map) }).init();
+
+      expect(document.querySelector('.ud-reaudit-imagery-date').textContent).toBe('October 2025');
+    });
+  });
+
+  it('pages five at a time when the list does not say its page size', async () => {
+    renderSection(13);
+    document.getElementById('ud-reaudit-list').removeAttribute('data-page-size');
+    new OutdatedStreets(document.getElementById('ud-reaudit-list'), { mapReady: Promise.resolve(map) }).init();
+
+    showMoreButton().click();
+
+    expect(shownStreetIds()).toHaveLength(10);
   });
 
   it('logs a revisit with the street it sends the mapper to', async () => {

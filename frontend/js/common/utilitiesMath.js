@@ -84,10 +84,6 @@ export function milesToKms(dist) {
   return dist * 1.60934;
 }
 
-function milesToFeet(dist) {
-  return dist * 5280;
-}
-
 export function kmsToMeters(dist) {
   return dist * 1000;
 }
@@ -96,31 +92,10 @@ export function kmsToMiles(dist) {
   return dist / 1.609344; // Exact: a mile is defined as 1609.344 m.
 }
 
-function kmsToFeet(dist) {
-  return dist * 3280.84;
-}
-
-function feetToMeters(dist) {
-  return dist / 3.28084;
-}
-
-function feetToMiles(dist) {
-  return dist / 5280;
-}
-
-function feetToKms(dist) {
-  return dist / 3280.84;
-}
-
 util.math.metersToMiles = metersToMiles;
 util.math.metersToKms = metersToKms;
 util.math.metersToFeet = metersToFeet;
 util.math.milesToMeters = milesToMeters;
 util.math.milesToKms = milesToKms;
-util.math.milesToFeet = milesToFeet;
 util.math.kmsToMeters = kmsToMeters;
 util.math.kmsToMiles = kmsToMiles;
-util.math.kmsToFeet = kmsToFeet;
-util.math.feetToMeters = feetToMeters;
-util.math.feetToMiles = feetToMiles;
-util.math.feetToKms = feetToKms;

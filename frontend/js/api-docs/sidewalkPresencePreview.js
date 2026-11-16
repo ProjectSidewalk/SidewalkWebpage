@@ -90,8 +90,14 @@ function summarize(features) {
   return stats;
 }
 
-export function percent(count, total) {
-  return total > 0 ? Math.round(((count || 0) / total) * 100) : 0;
+/**
+ * A share of the region's street sides, as a whole percent. Only called once the region is known to have some.
+ * @param {number|undefined} count - Sides with one verdict; undefined when the region has none with it.
+ * @param {number} total - Every street side in the region.
+ * @returns {number}
+ */
+function percent(count, total) {
+  return Math.round(((count || 0) / total) * 100);
 }
 
 export function plural(count, noun) {

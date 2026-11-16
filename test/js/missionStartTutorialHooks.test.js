@@ -8,39 +8,9 @@
 
 import { loadModules, mockModule } from './loader.js';
 import { fakeTracker } from './fakes.js';
+import { renderMissionStartTutorial } from './support/pageChromeHarness.js';
 
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
-
-
-/** The markup the tutorial fills in, reduced to the elements it reaches for. */
-function buildFixture() {
-  document.body.innerHTML = `
-      <div class="mission-start-tutorial-overlay">
-        <div class="mst-instruction-1"></div>
-        <div class="mst-instruction-2"></div>
-        <div class="mst-slide">
-          <div class="label-type-title"></div>
-          <div class="label-type-subtitle"></div>
-          <div class="label-type-description"></div>
-          <div class="example-type-label"></div>
-          <img class="msts-image" alt="">
-          <div class="label-on-image">
-            <div class="label-on-image-type-title"></div>
-          </div>
-          <div class="label-on-image-description"></div>
-        </div>
-        <button class="previous-slide-button"></button>
-        <div class="mst-carousel-location-indicator-area"></div>
-        <template id="mst-carousel-location-indicator-template"><span class="mst-carousel-location-indicator"></span></template>
-        <button class="next-slide-button"></button>
-        <button class="mission-start-tutorial-done-btn"></button>
-      </div>
-      <div class="explore-mission-start-tab-bar ps-hidden">
-        <button class="explore-mission-start-tab" data-label-type="CurbRamp">
-          <span class="explore-mission-start-tab-text"></span>
-        </button>
-      </div>`;
-}
 
 describe('the mission-start tutorial closing', () => {
   let MissionStartTutorial;
@@ -51,7 +21,7 @@ describe('the mission-start tutorial closing', () => {
   });
 
   beforeEach(() => {
-    buildFixture();
+    renderMissionStartTutorial();
     hooks = {
       tracker: fakeTracker(),
       keyboard: { enableKeyboard: vi.fn() },

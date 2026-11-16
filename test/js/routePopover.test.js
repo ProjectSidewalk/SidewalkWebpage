@@ -46,13 +46,17 @@ const { RoutePopover } = await loadModules('frontend/js/route-builder/RoutePopov
 
 describe('RoutePopover', () => {
   let popover;
+  let onReverse;
+  let onDelete;
   const menu = () => document.querySelector('.route-popover');
 
   beforeEach(() => {
     document.body.innerHTML = '';
     window.logWebpageActivity = vi.fn();
     vi.useFakeTimers();
-    popover = new RoutePopover({}, vi.fn(), vi.fn());
+    onReverse = vi.fn();
+    onDelete = vi.fn();
+    popover = new RoutePopover({}, onReverse, onDelete);
   });
 
   test('a hover-opened menu closes once the pointer has been off the route for a beat', () => {
@@ -108,5 +112,26 @@ describe('RoutePopover', () => {
     vi.advanceTimersByTime(RoutePopover.HOVER_CLOSE_MS);
 
     expect(popover.isOpen()).toBe(true);
+  });
+
+  test.each([
+    ['Reverse', '.route-popover-reverse', 'ReverseRoute_Popover', () => onReverse],
+    ['Delete', '.route-popover-delete', 'DeleteRoute_Popover', () => onDelete],
+  ])('%s closes the menu and acts on the route', (_name, selector, logged, action) => {
+    popover.open({ lng: 0, lat: 0 }, true);
+
+    document.querySelector(selector).click();
+
+    expect(popover.isOpen()).toBe(false);
+    expect(action()).toHaveBeenCalledTimes(1);
+    expect(window.logWebpageActivity).toHaveBeenCalledWith(`RouteBuilder_Click=${logged}`);
+  });
+
+  test('a click-open puts focus on the first item, a hover-open leaves focus alone', () => {
+    popover.open({ lng: 0, lat: 0 });
+    expect(document.activeElement).toBe(document.body);
+
+    popover.open({ lng: 0, lat: 0 }, true);
+    expect(document.activeElement).toBe(document.querySelector('.route-popover-reverse'));
   });
 });

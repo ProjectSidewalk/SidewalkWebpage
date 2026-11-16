@@ -76,6 +76,7 @@ city.name.zurich = Zürich
 city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Kalifornien
 state.name.alaska = Alaska
@@ -89,6 +90,7 @@ country.name.canada = Kanada
 country.name.india = Indien
 country.name.brazil = Brasilien
 country.name.france = Frankreich
+country.name.belgium = Belgien
 
 navbar.explore = Erkunden
 navbar.validate = Valideren
@@ -210,9 +212,11 @@ about.where.body = Von Seattle über Mexiko-Stadt bis Zürich: Freiwillige haben
 about.where.links = <a href="/cities">Alle Standorte ansehen</a> oder <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Project Sidewalk in Ihre Stadt holen</a>.
 about.history.title = Unsere Geschichte
 about.history.2012 = Project Sidewalk beginnt als Forschungsprojekt von Professor Jon E. Froehlich und Doktorand Kotaro Hara im <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> — mit früher Unterstützung durch einen <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> und die <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
-about.history.2017 = Der erste stadtweite Einsatz startet in Washington, DC, geleitet von Doktorandin Manaswi Saha und Forschungswissenschaftler Mikey Saugstad, während das Labor an die Paul G. Allen School of Computer Science &amp; Engineering der University of Washington zieht.
+about.history.2016 = Der erste stadtweite Einsatz startet in Washington, DC, geleitet von Doktorandin Manaswi Saha und Forschungswissenschaftler Mikey Saugstad.
 about.history.2019 = Die Pilotstudie in Washington, DC zeigt, dass sich mit Online-Crowdsourcing die Trottoirs einer ganzen Stadt kartieren lassen — und erhält auf der CHI 2019 den Best Paper Award.
+about.history.2019.mexico = Project Sidewalk wird international — in Mexiko-Stadt und danach in San Pedro Garza García, gemeinsam mit der Fußgängerrechtsorganisation <a href="https://ligapeatonal.org/" target="_blank" rel="noopener">Liga Peatonal</a>. Liga knüpfte Kontakte zu Kommunalverwaltungen und lokalen Organisationen, übersetzte das Tool ins Spanische und passte es an mexikanische Straßen an — und öffnete damit die Tür für jeden späteren nicht englischsprachigen Einsatz.
 about.history.2021 = Eine <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">NSF-Förderung (Smart &amp; Connected Communities)</a> vertieft unsere Zusammenarbeit mit der University of Illinois Chicago und Easterseals — mit mehr Städten, Bildungsprogrammen und unserer Schwesterseite <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
+about.history.2022 = In Oradell, New Jersey, kartiert eine Girl-Scout-Gruppe gemeinsam mit dem lokalen Rat der National MS Society und Hackensack Meridian Health jede Straße des Ortes und <a href="https://www.hackensackmeridianhealth.org/en/news/2023/03/13/humc-and-community-groups-demonstrate-sidewalk-deficiencies" target="_blank" rel="noopener">präsentiert ihre Ergebnisse dem Gemeinderat</a>. Seitdem hat sich der Ansatz auf sechs weitere Orte in New Jersey, auf St. Louis und auf <a href="https://walthamtimes.org/2026/06/28/mcdevitt-civics-class-earns-state-recognition-for-sidewalk-accessibility-project/" target="_blank" rel="noopener">Schulklassen wie in Waltham</a> ausgeweitet.
 about.history.today.label = Heute
 about.history.today = Project Sidewalk ist in <span data-live-stat="num_cities">{0}</span> Städten weltweit im Einsatz, nativ in {1} Sprachen übersetzt und getragen von Tausenden Freiwilligen.
 about.team.title = Das Team
@@ -237,6 +241,9 @@ about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, C
 about.partners.title = Community-Partner
 about.partners.body = Wir arbeiten eng mit Behindertenverbänden, Behörden, Schulen und Gemeinschaftsgruppen weltweit zusammen — darunter Easterseals, World Enabled, Liga Peatonal und die Active Transportation Alliance — um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
 about.partners.schools = Lehrkräfte bringen Project Sidewalk in den Gesellschafts- und Datenunterricht, und unser Team und unsere Partner haben Lehrmaterialien für Service Learning und berufliche Entwicklung für Jugendliche mit Behinderungen erprobt. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Erfahren Sie, wie Sie Project Sidewalk in Ihrer Gemeinde einsetzen</a>.
+about.partners.project.title = Projektweite Partner
+about.partners.city.title = Partner in unseren Städten
+about.partners.city.tagline = Behörden, Schulen, Interessenverbände und Gemeinschaftsorganisationen, mit denen wir in einer oder mehreren unserer Städte zusammenarbeiten.
 about.funding.title = Forschungsförderung
 about.funding.body = Project Sidewalk ist durch Fördermittel finanzierte akademische Forschung, unterstützt von der National Science Foundation, mit weiterer Unterstützung von Google, der Alfred P. Sloan Foundation, PacTrans und dem CREATE-Zentrum der University of Washington.
 about.cta.title = Helfen Sie uns, jedes Trottoir zu kartieren
@@ -284,11 +291,13 @@ landing.deployment.map.title = Erkunden Sie andere Städte
 landing.deployment.map.subtitle = Klicken Sie unten auf einen Kreis, um andere Städte des Project Sidewalk zu erkunden!
 landing.partners.title = Community-Partner in {0}
 landing.partners.tagline = Unsere Arbeit in {0} wird durch unsere Community-Partner ermöglicht, darunter:
+landing.partners.project.title = Projektweite Partner
+landing.partners.project.tagline = Die folgenden Organisationen haben Project Sidewalk nachhaltig und über einzelne Städte hinaus geprägt.
 landing.partners.official.contact = Project Sidewalk ist ein Forschungswerkzeug. Um ein Problem zu melden oder eine Reparatur anzufordern, wenden Sie sich bitte direkt an {0}. Gerne können Sie Ihrer Anfrage Links zu <a href="/labelMap" data-partner-source="official-contact-labelmap">Beschriftungen</a> oder <a href="/stories" data-partner-source="official-contact-stories">Erfahrungsberichten</a> aus Project Sidewalk beifügen.
 landing.partners.logo.alt = Logo von {0}
 landing.partners.created.by = Project Sidewalk wurde mit {0} entwickelt von
 landing.partners.created.heart = Liebe
-landing.partners.created.credits = …und geprägt von langjährigen Partnern wie <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, dem <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> und der <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a> sowie über 100 studentischen Mitwirkenden und Tausenden freiwilliger Mapper weltweit. <a href="/about" data-partner-source="about-team">Das Team kennenlernen</a>.
+landing.partners.created.credits = …und geprägt von über 100 studentischen Mitwirkenden und Tausenden freiwilliger Mapper weltweit. <a href="/about" data-partner-source="about-team">Das Team kennenlernen</a>.
 landing.partners.creator.makeability.alt = Makeability Lab-Logo
 landing.partners.creator.uw.alt = Logo der Paul G. Allen School of Computer Science & Engineering der University of Washington
 landing.partners.creator.uic.alt = Logo des Institute on Disability and Human Development der University of Illinois Chicago
@@ -312,7 +321,7 @@ footer.api = Sidewalk API
 footer.connect = KONTAKT
 footer.email = E-Mail senden
 footer.funding = WIR WERDEN MIT STOLZ FINANZIERT VON
-footer.award = Zuschlag <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> und <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.award = Förderungen <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a>, <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>, <br> <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2236277" target="_blank" rel="noopener">#2236277</a> und <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2623243" target="_blank" rel="noopener">#2623243</a>
 footer.designed.operated = Project Sidewalk wird entwickelt und betrieben durch das <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> der <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">Universität Washington</a>
 footer.version = Version {0} | Zuletzt aktualisiert: {1}
 
@@ -668,7 +677,7 @@ share.meta.image.alt = Straßenansicht mit markierter Position: {0}
 
 # Öffentliche Spotlight-/Teilen-Seite für ein einzelnes Label (#456).
 sharedlabel.nearby.title = Labels in der Nähe
-sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe {0} für die vollständige Karte.
+sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe die {0} für die vollständige Karte.
 sharedlabel.view.this.label = Dieses Label ansehen
 sharedlabel.engage.title = Hilf mit, die Gehwege in {0} zu bewerten
 sharedlabel.engage.explore = Barrierefreiheitsprobleme in {0} finden
@@ -943,6 +952,7 @@ error.home = Zurück zur Startseite
 
 # Nachbarschaftsberichte (#5876).
 report.seo.title = {0}: Nachbarschaftsbericht — Project Sidewalk
+report.tool.name = Berichte
 report.eyebrow = Nachbarschaftsbericht
 report.generated = Erstellt am {0}.
 report.latest.observation = Neueste Beschriftung: {0}.
@@ -1100,3 +1110,7 @@ report.worst.lede = {0,choice,1#1 Ort|1<{0} Orte} mit der schlechtesten Bewertun
 report.worst.count.label = {0,choice,1#1 Ort|1<{0} Orte}: {1}. Labels ansehen
 report.worst.nosidewalk = Fehlende Gehwege haben keine Bewertung und sind daher nicht auf dieser Karte. Schalten Sie „{0}“ in der Seitenleiste ein, um sie auf den anderen Karten als gestrichelte Linien zu sehen.
 report.toc.worst = Schlimmste Probleme
+report.stories.title = Erfahrungsberichte der Community
+report.stories.rule = Erfahrungsberichte, die Community-Mitglieder an Labels in diesem Viertel angehängt haben, neueste zuerst. Ein Bericht ist die Erfahrung einer Person; er ändert keine Zahl auf dieser Seite.
+report.stories.street = Zu dieser Straße
+report.stories.all = Alle Erfahrungsberichte der Community lesen

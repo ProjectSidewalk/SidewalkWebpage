@@ -22,7 +22,7 @@ describe('Explore shortcut keys', () => {
       onTextFieldFocusChanged: vi.fn(),
     };
     new KeyboardManager(fakeGate(), canvas, contextMenu, { walking: fakeGate({ isHeld: () => true }) },
-      labelModes, {}, {}, {}, {}, tracker);
+      labelModes, {}, {}, {}, {}, {}, tracker);
   });
 
   beforeEach(() => {

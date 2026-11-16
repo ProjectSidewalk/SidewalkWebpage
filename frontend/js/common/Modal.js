@@ -34,7 +34,7 @@ export class Modal {
     // Fires on every close path (close(), Esc/cancel, form method=dialog), so cleanup lives here.
     dialog.addEventListener('close', () => {
       dialog.dispatchEvent(new CustomEvent('ps:modal:hidden', { bubbles: true }));
-      this.#opener?.focus?.();
+      this.#opener?.focus();
       this.#opener = null;
     });
   }

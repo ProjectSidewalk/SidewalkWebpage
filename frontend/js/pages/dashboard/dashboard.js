@@ -27,7 +27,6 @@ const contributionMapReady = loadContributionMap({
   mapboxApiKey: data.mapboxApiKey,
   streetsURL: data.streetsUrl,
   labelsURL: data.labelsUrl,
-  wireLabelPopup: true,
 });
 
 // Accuracy-bar widths are data-driven per label type; set from the data attribute because inline style

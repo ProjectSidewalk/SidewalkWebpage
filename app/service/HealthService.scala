@@ -2,7 +2,18 @@ package service
 
 import actor.ScheduledJobs
 import com.google.inject.ImplementedBy
-import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
+import formats.json.HealthFormats.HealthStatus
+import models.utils.{
+  BackgroundJobRun,
+  BackgroundJobRunTable,
+  BuildInfo,
+  HealthTable,
+  JobRunStatus,
+  JobRunTrigger,
+  VersionTable
+}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.pattern.after
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.*
@@ -12,7 +23,8 @@ import models.utils.MyPostgresProfile
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject.*
-import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeoutException
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
@@ -177,6 +189,12 @@ trait HealthService {
   def getDbHealth: Future[DbHealthData]
 
   /**
+   * The `GET /health` body (#4548). Reads the `version` table uncached so every probe is a real database round-trip;
+   * `status` is "error" and the version fields are empty when that read fails.
+   */
+  def getHealthStatus: Future[HealthStatus]
+
+  /**
    * The state of every nightly job, cached. Shared with panels that report on one pipeline's jobs (#4908), so that
    * "is this job overdue" has one definition rather than one per page.
    */
@@ -189,12 +207,41 @@ class HealthServiceImpl @Inject() (
     config: Configuration,
     cacheApi: AsyncCacheApi,
     healthTable: HealthTable,
-    backgroundJobRunTable: BackgroundJobRunTable
+    backgroundJobRunTable: BackgroundJobRunTable,
+    versionTable: VersionTable,
+    configService: ConfigService,
+    actorSystem: ActorSystem
 )(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+
+  private val envType: String = config.get[String]("environment-type")
+
+  // Well under the pool's 30s connectionTimeout and the fleet probe's 5s: a database that can't answer in this long
+  // has to surface as a 503 ("error") rather than as the instance itself being unreachable.
+  private val healthDbWait: FiniteDuration = 2.seconds
+
+  def getHealthStatus: Future[HealthStatus] = {
+    val read: Future[HealthStatus] =
+      versionTable.currentVersion().map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime), None))
+    val deadline: Future[HealthStatus] =
+      after(healthDbWait, actorSystem.scheduler)(Future.failed(TimeoutException(s"no answer in $healthDbWait")))
+    // No log line: a down database already logs itself, and a probe hits this every few seconds.
+    Future.firstCompletedOf(Seq(read, deadline)).recover { case e: Exception =>
+      healthStatus("error", None, None, Some(e.getClass.getSimpleName))
+    }
+  }
+
+  private def healthStatus(
+      status: String,
+      version: Option[String],
+      releasedAt: Option[OffsetDateTime],
+      error: Option[String]
+  ) =
+    HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
+      configService.getCityId, envType, configService.appStartTime, error)
 
   // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
   private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)

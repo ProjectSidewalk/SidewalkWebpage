@@ -12,11 +12,19 @@
     <import class="ch.qos.logback.core.rolling.RollingFileAppender"/>
     <import class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"/>
 
+    <!--
+      The deployment points every city at one log directory outside the build (SIDEWALK_LOG_DIR), so cities can share
+      one staged build and a redeploy's `sbt clean` leaves the logs alone. Unset locally, where the app dir is fine. The
+      fallback is user.dir, which the start script pins to the app dir, not Play's application.home: logback reads this
+      file once on its own before Play sets that property, which leaves a stray application.home_IS_UNDEFINED/ folder.
+    -->
+    <property name="LOG_DIR" value="${SIDEWALK_LOG_DIR:-${user.dir}/logs}"/>
+
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${application.home}/logs/application-${SIDEWALK_CITY_ID}.log</file>
+        <file>${LOG_DIR}/application-${SIDEWALK_CITY_ID}.log</file>
         <immediateFlush>true</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${application.home}/logs/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_DIR}/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>90</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>

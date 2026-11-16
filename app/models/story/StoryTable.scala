@@ -202,33 +202,41 @@ class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Newest visible stories city-wide, each with its author's username, its label's type and region, and the
-   * label's street address when known — the feed for the public /stories listing page (#4688).
+   * Newest visible stories city-wide, or in one region, each with its author's username, its label's type, street and
+   * region, and the label's street address when known — the feed for the public /stories listing page (#4688) and
+   * for a neighborhood report's stories (#5900).
    *
    * Public-only by design: hidden stories are absent for everyone (authors manage theirs on the dashboard, admins
    * on /admin/stories), and stories on soft-deleted labels are dropped since their label can't be opened. The
    * address joins through pano_data, which is back-filled lazily as panos are viewed, so it's often absent.
+   *
+   * @param n        How many, newest first
+   * @param regionId Only stories whose label sits on a street in this region, or every region's when None
    */
   def getVisibleForCity(
-      n: Int
-  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType, Int, String, Option[String])]] = {
+      n: Int,
+      regionId: Option[Int] = None
+  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType, Int, Int, String, Option[String])]] = {
     val visibleWithPlace = for {
       story            <- stories if story.visible
       user             <- users if user.userId === story.userId
       label            <- labels if label.labelId === story.labelId && !label.deleted
-      streetEdgeRegion <- streetEdgeRegions if streetEdgeRegion.streetEdgeId === label.streetEdgeId
-      region           <- regions if region.regionId === streetEdgeRegion.regionId
-    } yield (story, user.username, label.labelType, label.panoId, region.regionId, region.name)
+      streetEdgeRegion <- streetEdgeRegions
+      if streetEdgeRegion.streetEdgeId === label.streetEdgeId && regionId.fold(LiteralColumn(true): Rep[Boolean])(
+        streetEdgeRegion.regionId === _
+      )
+      region <- regions if region.regionId === streetEdgeRegion.regionId
+    } yield (story, user.username, label.labelType, label.panoId, label.streetEdgeId, region.regionId, region.name)
     visibleWithPlace
       .joinLeft(storyMedia)
-      .on { case ((story, _, _, _, _, _), media) => story.storyId === media.storyId }
+      .on { case ((story, _, _, _, _, _, _), media) => story.storyId === media.storyId }
       .joinLeft(panoData)
-      .on { case (((_, _, _, panoId, _, _), _), pano) => panoId === pano.panoId }
-      .sortBy { case (((story, _, _, _, _, _), _), _) => story.createdAt.desc }
+      .on { case (((_, _, _, panoId, _, _, _), _), pano) => panoId === pano.panoId }
+      .sortBy { case (((story, _, _, _, _, _, _), _), _) => story.createdAt.desc }
       .take(n)
       .result
-      .map(_.map { case (((story, username, labelType, _, regionId, regionName), media), pano) =>
-        (story, media, username, labelType, regionId, regionName, pano.flatMap(_.address))
+      .map(_.map { case (((story, username, labelType, _, streetEdgeId, regionId, regionName), media), pano) =>
+        (story, media, username, labelType, streetEdgeId, regionId, regionName, pano.flatMap(_.address))
       })
   }
 

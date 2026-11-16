@@ -8,7 +8,7 @@ import slick.lifted.{Case, Ordered}
 import java.time.Instant
 
 /**
- * The orderings the Gallery's admin-only "Sort by" control offers (#2705).
+ * The orderings Gallery's admin-only "Sort by" control offers (#2705).
  *
  * This enum is the one definition of the option list: the page renders its `<select>` from `values`, the card query
  * reads the chosen `name` back, and the frontend never re-declares the options (backend is the source of truth).
@@ -26,7 +26,7 @@ import java.time.Instant
  */
 enum GallerySort(val name: String) extends NamedEnum {
 
-  /** The Gallery's default and the only order non-admins ever see; carries no SQL order of its own. */
+  /** Gallery's default and the only order non-admins ever see; carries no SQL order of its own. */
   case Random       extends GallerySort("random")
   case Newest       extends GallerySort("newest")
   case Oldest       extends GallerySort("oldest")
@@ -35,7 +35,7 @@ enum GallerySort(val name: String) extends NamedEnum {
   case MostDisputed extends GallerySort("most_disputed")
 
   /**
-   * The SQL ordering for this sort, over the Gallery's row projection.
+   * The SQL ordering for this sort, over Gallery's row projection.
    * @param r The projected row.
    * @return  The `ORDER BY` key: the sort's own column(s), then `time_created DESC, label_id DESC` as the tiebreak
    *          (`Oldest` reads its time the other way and so is its own tiebreak).
@@ -108,7 +108,7 @@ object GallerySort extends NamedEnumCompanion[GallerySort] {
  */
 enum GalleryOrder {
 
-  /** `ORDER BY random()`, then the type-spread and shuffle the Gallery has always done. */
+  /** `ORDER BY random()`, then the type-spread and shuffle Gallery has always done. */
   case Random
 
   /** Newest-first query, shuffled per batch: the landing grid's recent pool. */

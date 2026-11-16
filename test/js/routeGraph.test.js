@@ -183,6 +183,31 @@ describe('RouteGraph', () => {
     });
   });
 
+  describe('building the graph', () => {
+    it('skips a street with fewer than two points, which has no line to walk', () => {
+      const graph = new RouteGraph([street(10, [A, B]), street(20, [C])]);
+      expect(graph.getFeature(20)).toBeUndefined();
+      expect(graph.snapToStreet({ lng: C[0], lat: C[1] }).streetId).toBe(10);
+    });
+
+    it('keeps a street whose two ends meet for snapping, but routes nothing through it', () => {
+      const loop = street(30, [A, [0.0005, 0.0005], [0.00001, 0]]);
+      const graph = new RouteGraph([loop]);
+      expect(graph.getFeature(30)).toBe(loop);
+      expect(graph.getLengthM(30)).toBeGreaterThan(100);
+      expect(graph.route({ lng: A[0], lat: A[1] }, { lng: 0.0005, lat: 0.0005 }).error).toBe('no-path');
+    });
+
+    it('reports a length of zero for a street it was never given', () => {
+      expect(new RouteGraph(gridStreets()).getLengthM(999)).toBe(0);
+    });
+
+    it('finds no path at all on an empty street network', () => {
+      const graph = new RouteGraph([]);
+      expect(graph.route({ lng: A[0], lat: A[1] }, { lng: B[0], lat: B[1] })).toEqual({ error: 'no-path' });
+    });
+  });
+
   describe('snapToStreet()', () => {
     it('snaps to the nearest street and its nearer endpoint', () => {
       const graph = new RouteGraph(gridStreets());

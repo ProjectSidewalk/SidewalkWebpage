@@ -1,17 +1,13 @@
 /**
- * Previews the next few streets of a neighborhood mission's planned walk on the minimap, and the jumps between them
- * (#5526).
+ * Previews the next few streets of a neighborhood mission's planned walk on the minimap (#5526).
  *
  * A route shows every street ahead, but a planned walk covers the whole region, and drawing all of it that way would
  * bury the path the labeler is about to take. So only the streets within a horizon are drawn as the route ahead (a
- * task marked planned-ahead draws itself that way), with a dashed connector wherever Explore will move the labeler
- * rather than let them walk, so a jump is visible before it happens. Everything beyond stays quiet grey context.
+ * task marked planned-ahead draws itself that way), and only up to the first jump: the labeler can't walk to a
+ * stretch on the far side of one (#5918). Everything beyond stays quiet grey context.
  */
 
 import { TaskContainer } from '../task/TaskContainer.js';
-/** @typedef {import('../Main.js').MinimapUi} MinimapUi */
-/** @typedef {import('./Minimap.js').Minimap} Minimap */
-/** @typedef {import('./Minimap.js').MinimapStreetLine} MinimapStreetLine */
 /** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
 /** @typedef {import('../task/Task.js').Task} Task */
 
@@ -24,15 +20,9 @@ export class WalkPlanLayer {
   // 100 m at Seattle's latitude, less than a block, so most of the preview is seen through the ⛶ overview, which
   // frames the previewed streets (Minimap.setOverviewStreets).
   static #MAX_STREETS = 8;
-  // Holder class that reveals the legend's jump row: the row explains a mark only a planned walk draws.
-  static #PLAN_MODE_CLASS = 'minimap-plan-mode';
-  // The minimap key the jump connectors are drawn under, replaced as one on every refresh.
-  static #CONNECTORS_KEY = 'walk-plan-jumps';
 
-  #ui;
   #taskContainer;
   #missionContainer;
-  #minimap;
   /** @type {Task[]} */
   #previewed = [];
 
@@ -41,16 +31,12 @@ export class WalkPlanLayer {
    * from it), a street ending (it drops out, so the horizon reaches one further), and a new mission (its remaining
    * distance sets the horizon).
    *
-   * @param {MinimapUi} ui - Whose holder carries the plan-mode class for the legend.
    * @param {TaskContainer} taskContainer - Source of the plan and of the current street.
    * @param {MissionContainer} missionContainer - Whose current mission's remaining distance sets the horizon.
-   * @param {Minimap} minimap - Where the jump connectors are drawn.
    */
-  constructor(ui, taskContainer, missionContainer, minimap) {
-    this.#ui = ui;
+  constructor(taskContainer, missionContainer) {
     this.#taskContainer = taskContainer;
     this.#missionContainer = missionContainer;
-    this.#minimap = minimap;
 
     taskContainer.onWalkPlanChanged(() => this.refresh());
     taskContainer.onCurrentTaskChanged(() => this.refresh());
@@ -59,10 +45,10 @@ export class WalkPlanLayer {
   }
 
   /**
-   * How many of the planned streets ahead to preview: enough to cover the rest of the mission (and at least
-   * #MIN_HORIZON_M), never fewer than #MIN_STREETS nor more than #MAX_STREETS.
+   * How many of the streets ahead to preview: enough to cover the rest of the mission (and at least #MIN_HORIZON_M),
+   * never fewer than #MIN_STREETS nor more than #MAX_STREETS, unless fewer can be reached.
    *
-   * @param {number[]} lengthsM - Lengths of the planned streets ahead, in walk order.
+   * @param {number[]} lengthsM - Lengths of the streets ahead of the first jump, in walk order.
    * @param {number} remainingMissionM - Metres left in the mission once the current street is finished; 0 when
    *     unknown.
    * @returns {number} The number of streets from the front of `lengthsM` to preview.
@@ -80,8 +66,8 @@ export class WalkPlanLayer {
   }
 
   /**
-   * Recomputes which streets are previewed and redraws them and the jump connectors. The preview is decoration, so a
-   * drawing error is only logged: let into the street switch or submission that triggered it, it would reload the page.
+   * Recomputes which streets are previewed and redraws them. The preview is decoration, so a drawing error is only
+   * logged: let into the street switch or submission that triggered it, it would reload the page.
    */
   refresh() {
     try {
@@ -96,24 +82,21 @@ export class WalkPlanLayer {
     return [...this.#previewed];
   }
 
-  /** Marks the streets within the horizon as previewed, re-renders what changed, and redraws the jump connectors. */
+  /** Marks the streets before the first jump, as far as the horizon, as previewed, and re-renders what changed. */
   #redraw() {
-    const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS);
-    const lengthsM = ahead.map(({ task }) => WalkPlanLayer.#remainderM(task));
+    const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS).map(({ task }) => task);
+    const reachable = ahead.slice(0, this.#streetsBeforeFirstJump(ahead));
+    const lengthsM = reachable.map((task) => WalkPlanLayer.#remainderM(task));
     // The current street's unwalked part is walked before any of these, so it comes out of what they must cover.
     const afterCurrentM = Math.max(this.#remainingMissionM() - this.#currentRemainderM(), 0);
-    const previewedSteps = ahead.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM));
 
     const before = this.#previewed;
-    this.#previewed = previewedSteps.map(({ task }) => task);
+    this.#previewed = reachable.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM));
     for (const task of before) task.setPlannedAhead(false);
     for (const task of this.#previewed) task.setPlannedAhead(true);
     // Every previewed street is redrawn, not only the ones whose flag changed: a replan can turn a street around, and
     // its chevrons have to follow.
     for (const task of new Set([...before, ...this.#previewed])) this.#taskContainer.renderTask(task);
-
-    this.#minimap.setStreetLines(WalkPlanLayer.#CONNECTORS_KEY, this.#connectors(this.#previewed));
-    this.#ui.holder.classList.toggle(WalkPlanLayer.#PLAN_MODE_CLASS, this.#taskContainer.hasWalkPlan());
   }
 
   /**
@@ -146,28 +129,23 @@ export class WalkPlanLayer {
   }
 
   /**
-   * One connector for each previewed street Explore will jump to, from the end of the street before it (the previous
-   * previewed one, or the current street for the first) to where the labeler lands on it. A current street just given
-   * up on for lack of imagery gets none: the labeler leaves it from where they stand, not from its far end.
+   * How many of the streets ahead the labeler reaches on foot before the first jump. A current street given up on for
+   * lack of imagery is always left by a jump, so the count then starts from the street after it.
    *
-   * Drawn from geometry rather than the plan's own jump flag, with the same gap StreetProgress measures at the end of
-   * a street, so a connector never promises a jump that turns out to be a seamless switch.
+   * Asks the question StreetProgress asks at a street's end, not the plan's jump flag, so the two never disagree.
    *
-   * @param {Task[]} previewed - The previewed streets, in walk order.
-   * @returns {MinimapStreetLine[]} The connectors, as lines for the minimap.
+   * @param {Task[]} tasks - The streets ahead, in walk order.
+   * @returns {number} The number of streets from the front of `tasks` before the first jump.
    */
-  #connectors(previewed) {
-    const lines = [];
+  #streetsBeforeFirstJump(tasks) {
     const current = this.#taskContainer.getCurrentTask();
     let previous = current?.isLeftToWalk() ? current : null;
-    for (const task of previewed) {
-      if (previous && TaskContainer.jumpGapKm(previous, task) >= TaskContainer.CONNECTED_TASK_KM) {
-        const from = previous.getEndCoordinate();
-        const to = task.getEntryCoordinate();
-        lines.push({ kind: 'jump', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] });
-      }
+    let count = 0;
+    for (const task of tasks) {
+      if (previous && TaskContainer.isJump(previous, task)) break;
       previous = task;
+      count++;
     }
-    return lines;
+    return count;
   }
 }

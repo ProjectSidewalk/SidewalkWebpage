@@ -118,6 +118,15 @@ describe('KeyboardManager label-card scope', () => {
       expect(document.activeElement).toBe(marker());
     });
 
+    it('Escape in Expert Validate\'s open type dropdown closes only the dropdown, leaving the card up', () => {
+      current.labelCard.closeTypeDropdown = vi.fn(() => true);
+      key('Escape', cardButton());
+
+      expect(current.labelCard.closeTypeDropdown).toHaveBeenCalledTimes(1);
+      expect(current.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+      expect(current.tracker.push).not.toHaveBeenCalled();
+    });
+
     it('Escape with the card already closed logs nothing, but still keeps focus on the marker', () => {
       current.labelVisibilityControl.isCardVisible = () => false;
       marker().focus();

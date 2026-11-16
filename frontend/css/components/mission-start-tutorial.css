@@ -35,7 +35,6 @@
   height: fit-content;
 }
 
-
 .mst-instruction-2 {
   font: var(--text-subtitle-bold);
   margin: calc(5px * var(--ui-scale, 1)) 0;
@@ -361,7 +360,6 @@
   background: rgb(from var(--color-label-signal) r g b / 15%);
 }
 
-
 /* Selected tabs */
 .explore-mission-start-tab[data-label-type="CurbRamp"].is-active {
   background: rgb(from var(--color-label-curb-ramp) r g b / 15%);
@@ -397,7 +395,6 @@
   background: rgb(from var(--color-label-signal) r g b / 15%);
   border-bottom-color: var(--color-label-signal);
 }
-
 
 .explore-mission-start-tab-icon {
   width: calc(30px * var(--ui-scale, 1));

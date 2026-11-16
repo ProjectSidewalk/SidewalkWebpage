@@ -27,10 +27,6 @@ dialog.ps-lightbox::backdrop {
   text-align: center;
 }
 
-.ps-lightbox__caption[hidden] {
-  display: none;
-}
-
 .ps-lightbox__close {
   position: fixed;
   top: 8px;

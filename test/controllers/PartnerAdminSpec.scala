@@ -161,6 +161,12 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
     contentAsString(resp)
   }
 
+  private def aboutBody(): String = {
+    val resp = route(app, FakeRequest(GET, "/about")).get
+    status(resp) mustBe OK
+    contentAsString(resp)
+  }
+
   "the partner admin surface" should {
     "refuse a signed-in visitor, naming the role it wants" in {
       // The anonymous checks in RouteAuthPostureSpec cannot tell WithAdmin from WithOwner; this can.
@@ -209,7 +215,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       body must include(s"/partnerLogo/$id")
     }
 
-    "let an Owner create a global partner that renders before city partners" in {
+    "let an Owner create a global partner that renders in the Project-Wide row, after the city's own (#5984)" in {
       val cityIdCreated   = createPartner(adminCookies, "/adminapi/partners", "Partner Spec City Two")
       val globalIdCreated = createPartner(ownerCookies, "/adminapi/globalPartners", "Partner Spec Global Org")
 
@@ -221,7 +227,19 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       val body = landingBody()
       body.indexOf(s"/partnerLogo/$globalIdCreated") must be > 0
       body.indexOf(s"/partnerLogo/$cityIdCreated") must be > 0
-      body.indexOf(s"/partnerLogo/$globalIdCreated") must be < body.indexOf(s"/partnerLogo/$cityIdCreated")
+      body.indexOf(s"/partnerLogo/$cityIdCreated") must be < body.indexOf("project-partners-title")
+      body.indexOf("project-partners-title") must be < body.indexOf(s"/partnerLogo/$globalIdCreated")
+    }
+
+    "flag a city partner that is also project-wide, by case- and space-insensitive name (#5984)" in {
+      createPartner(ownerCookies, "/adminapi/globalPartners", "Partner Spec Shared Org")
+      val dupId  = createPartner(adminCookies, "/adminapi/partners", "partner spec  shared org")
+      val soloId = createPartner(adminCookies, "/adminapi/partners", "Partner Spec Solo Org")
+
+      val city          = (getAdminLists(adminCookies) \ "city_partners").as[Seq[JsObject]]
+      def flag(id: Int) = city.find(p => (p \ "partner_id").as[Int] == id).value.\("also_project_wide").as[Boolean]
+      flag(dupId) mustBe true
+      flag(soloId) mustBe false
     }
 
     "name each partner in a psTooltip on its logo wrapper, escaped once for the attribute" in {
@@ -325,7 +343,9 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
     "let an Owner update a global row" in {
       val globalId = createPartner(ownerCookies, "/adminapi/globalPartners", "Partner Spec Global Editable")
-      val update   = route(
+      // Warms the /about cache (#5980) with the old name, so the assertion below proves the write invalidated it.
+      aboutBody() must include("Partner Spec Global Editable")
+      val update = route(
         app,
         FakeRequest(PUT, s"/adminapi/partners/$globalId")
           .withHeaders(XHR)
@@ -343,6 +363,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       names must contain("Partner Spec Global Renamed")
       // The landing list is cached in-process; a write must invalidate it so the admin sees the change immediately.
       landingBody() must include("Partner Spec Global Renamed")
+      aboutBody() must (include("Partner Spec Global Renamed") and not include "Partner Spec Global Editable")
     }
   }
 

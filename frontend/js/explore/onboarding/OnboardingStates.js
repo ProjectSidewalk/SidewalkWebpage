@@ -1502,7 +1502,7 @@ export function OnboardingStates(contextMenu, compass, panoManager, uiMinimap) {
       message: {
         message: i18next.t('tutorial.tag-attribute-7', {
           tag1: tagPillHtml('NoSidewalk', 'ends abruptly'),
-          tag2: tagPillHtml('NoSidewalk', 'street has a sidewalk'),
+          tag2: tagPillHtml('NoSidewalk', 'other side has a sidewalk'),
           interpolation: { escapeValue: false },
         }),
         anchor: '#context-menu-tag-section',
@@ -1538,7 +1538,7 @@ export function OnboardingStates(contextMenu, compass, panoManager, uiMinimap) {
       message: {
         message: i18next.t('tutorial.redo-tag-attribute-7', {
           tag1: tagPillHtml('NoSidewalk', 'ends abruptly'),
-          tag2: tagPillHtml('NoSidewalk', 'street has a sidewalk'),
+          tag2: tagPillHtml('NoSidewalk', 'other side has a sidewalk'),
           interpolation: { escapeValue: false },
         }),
         anchor: '#context-menu-tag-section',

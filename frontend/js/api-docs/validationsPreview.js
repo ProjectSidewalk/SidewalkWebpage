@@ -219,7 +219,7 @@ export const ValidationsPreview = {
         return total >= config.minValidationsToShow;
       })
     // Sort by total validation count (descending).
-      .sort(([,a], [,b]) => {
+      .sort(([, a], [, b]) => {
         const totalA = a.agree + a.disagree + a.unsure;
         const totalB = b.agree + b.disagree + b.unsure;
         return totalB - totalA;

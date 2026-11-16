@@ -178,6 +178,28 @@ describe('KeyboardManager image adjustments scope', () => {
       expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
     });
 
+    it('Enter on a keyboard-focused link opens it rather than submitting', () => {
+      document.body.insertAdjacentHTML('beforeend', '<a id="label-link" href="/admin/label/1">1</a>');
+      const link = document.getElementById('label-link');
+      link.focus();
+      const ev = key('Enter', link);
+
+      expect(ev.defaultPrevented).toBe(false);
+      expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+    });
+
+    it('Enter on a link a mouse click focused submits', () => {
+      document.body.insertAdjacentHTML('beforeend', '<a id="label-link" href="/admin/label/1">1</a>');
+      const link = document.getElementById('label-link');
+      link.focus();
+      const matches = link.matches.bind(link);
+      link.matches = (sel) => (sel === ':focus-visible' ? false : matches(sel));
+      const ev = key('Enter', link);
+
+      expect(ev.defaultPrevented).toBe(true);
+      expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
+    });
+
     it('Enter on the hide-label toggle submits, as from any other focused button', () => {
       const ev = key('Enter', hideLabelToggle());
 

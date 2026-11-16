@@ -198,7 +198,7 @@ export class MapDownloadControl {
         <a class="map-download-control__docs-link" href="/v3/api-docs/rawLabels" target="_blank" rel="noopener">
           <span data-i18n="labelmap:download.api-docs-link">Raw Labels API documentation</span>
           <span class="sr-only"
-                data-i18n="labelmap:download.opens-new-tab"> (opens in a new tab)</span>
+                data-i18n="common:opens-new-tab">(opens in a new tab)</span>
         </a>
       </div>
       <p class="sr-only" role="status"></p>`;

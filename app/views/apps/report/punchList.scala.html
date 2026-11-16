@@ -29,7 +29,7 @@
     <p class="report-empty">@Messages("report.punch.none")</p>
   } else {
     @* One card per fix, the spot from above beside the photo of it. report.js draws both panes: the map as a still
-       picture, since a page can't hold a live map per card, and the photo from the Gallery's own endpoint. *@
+       picture, since a page can't hold a live map per card, and the photo from Gallery's own endpoint. *@
     <ol class="report-fixes">
       @for((fix, index) <- report.fixes.zipWithIndex) {
         <li class="report-fix" data-label-id="@fix.label.labelId">
@@ -71,7 +71,7 @@
               @if(fix.item.locations.size > 1) {
                 <a href="@ReportLinks.labelList(fix.item.labelIds)" data-report-event="Report_OpenGallery">@Messages("report.count.locations", fix.item.locations.size)</a>
               }
-              <a href="@ReportLinks.label(fix.label.labelId)" target="_blank" rel="noopener" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId<span class="sr-only" data-i18n="common:pano-attribution.opens-new-tab">(opens in a new tab)</span></a>
+              <a href="@ReportLinks.label(fix.label.labelId)" target="_blank" rel="noopener" data-report-event="Report_OpenLabel">@cityId:@fix.label.labelId<span class="sr-only" data-i18n="common:opens-new-tab">(opens in a new tab)</span></a>
             </p>
           </div>
         </li>

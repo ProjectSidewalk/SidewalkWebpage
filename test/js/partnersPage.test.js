@@ -81,7 +81,25 @@ describe('PartnersPage', () => {
     // The server would 403 these anyway; the page must not offer buttons that can only fail.
     expect(globalRows[0].querySelectorAll('button')).toHaveLength(0);
 
-    expect(document.getElementById('partners-status').textContent).toBe('1 global · 2 city');
+    expect(document.getElementById('partners-status').textContent).toBe('1 project-wide · 2 city');
+  });
+
+  test('notes a city row that is also a project-wide partner, and only that row', async () => {
+    buildDom({ ownerForms: false });
+    stubFetch(() => ({
+      city_id: 'cdmx',
+      is_owner: false,
+      city_partners: [{ ...cityPartner(1, 'Liga Peatonal'), also_project_wide: true }, cityPartner(2, 'UNAM')],
+      global_partners: [globalPartner(9, 'Liga Peatonal')],
+    }));
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    const notes = [...document.querySelectorAll('#partners-city-list .partners-row')]
+      .map((row) => row.querySelector('.partners-row-note'));
+    expect(notes[0].textContent).toContain('project-wide');
+    expect(notes[1]).toBeNull();
+    expect(document.querySelector('#partners-global-list .partners-row-note')).toBeNull();
   });
 
   test('a move-down click PUTs the whole permuted order to the scope-matched endpoint', async () => {
@@ -386,8 +404,8 @@ describe('PartnersPage lists', () => {
   test('say when a scope has no partners yet', async () => {
     await startOwner(listOf([]));
     expect(textOf(document.getElementById('partners-city-list'))).toBe('No city partners yet.');
-    expect(textOf(document.getElementById('partners-global-list'))).toBe('No global partners yet.');
-    expect(document.getElementById('partners-status').textContent).toBe('0 global · 0 city');
+    expect(textOf(document.getElementById('partners-global-list'))).toBe('No project-wide partners yet.');
+    expect(document.getElementById('partners-status').textContent).toBe('0 project-wide · 0 city');
   });
 
   test('say the list failed to load', async () => {
@@ -658,7 +676,7 @@ describe('PartnersPage official-contact errors', () => {
       .toBe('Landing page preview: Contact … directly.');
   });
 
-  test('says something went wrong for a refusal with no reason, or a request that never arrives', async () => {
+  test('says something went wrong for a refusal with no reason or no body, or a request that never arrives', async () => {
     const form = buildContact();
     const replies = { 'GET /adminapi/officialContact': { body: { name: null, url: null } },
       'PUT /adminapi/officialContact': { ok: false, status: 500, body: {} } };
@@ -670,6 +688,11 @@ describe('PartnersPage official-contact errors', () => {
     expect(contactError()).toBe('Something went wrong. Please try again.');
 
     replies['PUT /adminapi/officialContact'] = new TypeError('Failed to fetch');
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+    expect(contactError()).toBe('Something went wrong. Please try again.');
+    // A proxy's error page has no JSON body to read a reason from.
+    replies['PUT /adminapi/officialContact'] = { ok: false, status: 502 };
     form.dispatchEvent(new Event('submit', { cancelable: true }));
     await settle();
     expect(contactError()).toBe('Something went wrong. Please try again.');

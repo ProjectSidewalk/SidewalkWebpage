@@ -14,9 +14,9 @@ import java.time.{Duration, OffsetDateTime}
  * Slick expressions shared by the label query and the per-type counts, and the specs pin them. Lifting a value into
  * `application.conf` is a one-file change if a deployment ever needs a different one.
  *
- * Rationale for the values (Seattle, Sept 2026; see docs/validation-queue.md for the tables): votes still arriving on
- * an undecided label fall from 203k at the first vote to 2k at the fifth while their Unsure share climbs from 7% to
- * 26%, so five crowd votes without a decision is where the crowd stops and an expert takes over.
+ * Rationale for the values (Seattle, Nov 2026; see docs/validation-queue.md for the tables): votes still arriving on
+ * an undecided label fall from 212k at the first vote to 2k once five are in while their Unsure share climbs from 9%
+ * to 34%, so five crowd votes without a decision is where the crowd stops and an expert takes over.
  */
 object ValidationQueuePolicy {
 
@@ -46,8 +46,8 @@ object ValidationQueuePolicy {
 
   /**
    * Pick probability is proportional to score to this power, which is how much of the additive score survives into the
-   * serve rate. On Seattle's pool, labels by a new labeler are 14% of the pool and take 22% of picks at exponent 1
-   * against 35% at 2; [[NewLabelerBonus]] is the other half of that dial.
+   * serve rate. On Seattle's pool, labels by a new labeler are 15% of the pool and take 20% of picks at exponent 1
+   * against 30% at 2; [[NewLabelerBonus]] is the other half of that dial.
    */
   val PickWeightExponent: Double = 2
 
@@ -158,14 +158,21 @@ object ValidationQueuePolicy {
    * Deterministic priority, 0 < score ≤ [[MaxScore]].
    *
    * The bonuses are additive so the doc can list them one line each; [[pickKey]] is what turns the sum into a serve
-   * rate. The consensus term divides by `1 + margin² + unsure`, which makes an Unsure vote lower the priority exactly
-   * as far as a lone Agree does — the label is no closer to a decision either way.
+   * rate. The consensus term divides by `1 + margin² + human unsure`, which makes a person's Unsure vote lower the
+   * priority exactly as far as a lone Agree does — the label is no closer to a decision either way. The AI's Unsure
+   * is left out (#5833): it says the AI is weak on this label type, not that anyone judged the label.
    *
-   * @param l  The label being scored.
-   * @param at The audit task the label was placed on; a low-quality or stale task forfeits the new-labeler bonus.
-   * @param us The labeler's stats.
+   * @param l        The label being scored.
+   * @param at       The audit task the label was placed on; a low-quality or stale task forfeits the new-labeler bonus.
+   * @param us       The labeler's stats.
+   * @param aiResult The AI's vote on this label when it is in the label's counts, absent otherwise.
    */
-  def priorityScore(l: LabelTableDef, at: AuditTaskTableDef, us: UserStatTableDef): Rep[Double] = {
+  def priorityScore(
+      l: LabelTableDef,
+      at: AuditTaskTableDef,
+      us: UserStatTableDef,
+      aiResult: Rep[Option[ValidationOption]]
+  ): Rep[Double] = {
     // The bonus follows `needsVotes` rather than `correct IS NULL`, because a single AI Agree flips `correct` and
     // would otherwise strip the emphasis off a new labeler's still-unconfirmed labels.
     val newLabeler: Rep[Double] = Case
@@ -174,9 +181,13 @@ object ValidationQueuePolicy {
       .Else(0d.bind)
     val highQuality: Rep[Double] = Case.If(us.highQuality).Then(HighQualityLabelerBonus.bind).Else(0d.bind)
 
-    val consensusMargin: Rep[Int]  = margin(l)
+    val consensusMargin: Rep[Int] = margin(l)
+    // Floored at 0 so counts that have drifted from the votes can't make the divisor 0 and fail the whole query.
+    val aiUnsure: Rep[Double] =
+      Case.If((aiResult === ValidationOption.Unsure).getOrElse(false)).Then(1d.bind).Else(0d.bind)
+    val humanUnsure: Rep[Double]   = greatest(l.unsureCount.asColumnOf[Double] - aiUnsure, 0d.bind)
     val consensusNeed: Rep[Double] = ConsensusNeedMax.bind /
-      (1d.bind + (consensusMargin * consensusMargin + l.unsureCount).asColumnOf[Double])
+      (1d.bind + (consensusMargin * consensusMargin).asColumnOf[Double] + humanUnsure)
 
     val window: Rep[Duration] = SimpleLiteral[Duration](s"interval '$RecencyWindowDays days'")
     val recency: Rep[Double]  = Case.If(l.timeCreated > now --- window).Then(RecencyBonus.bind).Else(0d.bind)
@@ -209,16 +220,18 @@ object ValidationQueuePolicy {
    * so someone else can weigh in. A face with no human labeler at all (every label the AI's) needs a look at least
    * as much as a one-labeler face, so `labelerCount` is floored at 1.
    *
-   * @param l    The label being scored.
-   * @param at   The audit task the label was placed on.
-   * @param us   The labeler's stats.
-   * @param face The label's face evidence; both columns NULL for an unsided label, which then gets the base score
-   *             plus the age bonus and no face factor.
+   * @param l        The label being scored.
+   * @param at       The audit task the label was placed on.
+   * @param us       The labeler's stats.
+   * @param aiResult The AI's vote on this label when it is in the label's counts, absent otherwise.
+   * @param face     The label's face evidence; both columns NULL for an unsided label, which then gets the base score
+   *                 plus the age bonus and no face factor.
    */
   def noSidewalkPriorityScore(
       l: LabelTableDef,
       at: AuditTaskTableDef,
       us: UserStatTableDef,
+      aiResult: Rep[Option[ValidationOption]],
       face: FaceEvidenceRep
   ): Rep[Double] = {
     val labelers: Rep[Double]     = greatest(face.labelerCount.getOrElse(0).asColumnOf[Double], 1d.bind)
@@ -229,7 +242,7 @@ object ValidationQueuePolicy {
     val ageBonus: Rep[Double] =
       least(AgeBonusMax.bind, AgePointsPerYear.bind * ageSeconds(l.timeCreated) / SecondsPerYear.bind)
     val supportFactor: Rep[Double] = 1d.bind / (1d.bind + face.support.getOrElse(0).asColumnOf[Double])
-    (priorityScore(l, at, us) + evidenceNeed + ageBonus) * supportFactor
+    (priorityScore(l, at, us, aiResult) + evidenceNeed + ageBonus) * supportFactor
   }
 
   /**

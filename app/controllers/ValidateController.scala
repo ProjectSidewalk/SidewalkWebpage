@@ -31,7 +31,7 @@ import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json.*
 import play.api.mvc.Result
-import service.{ReasonNotOffered, ValidationSubmission, ValidationTaskPostReturnValue}
+import service.{GoldExampleAnswer, ReasonNotOffered, ValidationSubmission, ValidationTaskPostReturnValue}
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -53,7 +53,8 @@ class ValidateController @Inject() (
     panoDataService: service.PanoDataService,
     osmWayService: service.OsmWayService,
     missionService: service.MissionService,
-    aiService: service.AiService
+    aiService: service.AiService,
+    goldExampleService: service.GoldExampleService
 )(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   given Configuration = config
@@ -415,8 +416,24 @@ class ValidateController @Inject() (
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
+      // A vote on a training example is filed beside its serve, never on the label (#1445). Pinned labels are out of
+      // every queue this endpoint serves, so any vote here on one is the answer. An undo is dropped: the first counts.
+      goldServed <- goldExampleService.servedTo(user.userId, data.validations.map(_.labelId).toSet)
+      (goldAnswers, realValidations) = data.validations.partition(v => goldServed.contains(v.labelId))
+      _ <- goldExampleService.recordAnswers(
+        user.userId,
+        goldAnswers
+          .filterNot(_.undone)
+          .map(v =>
+            GoldExampleAnswer(
+              v.labelId,
+              v.validationResult,
+              v.comment.flatMap(_.reason).flatMap(reasonFor(v, _))
+            )
+          )
+      )
       // Insert validations and comments (if there are any).
-      _ <- validationService.submitValidations(data.validations.map { newVal =>
+      _ <- validationService.submitValidations(realValidations.map { newVal =>
         ValidationSubmission(
           LabelValidation(0, newVal.labelId, labelTypeSeen(newVal), newVal.validationResult, user.userId,
             newVal.missionId, newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom,
@@ -450,7 +467,7 @@ class ValidateController @Inject() (
         )
       })
       // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
-      _ = data.validations
+      _ = realValidations
         .filter(v =>
           v.newLabelType.isDefined && v.validationResult == ValidationOption.Agree && !v.undone && isAdmin(user)
         )

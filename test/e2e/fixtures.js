@@ -11,6 +11,8 @@ const path = require('path');
 
 // Where auth.setup.js saves the registered user's session for the specs that need one (dashboard.spec.js).
 const STORAGE_STATE = 'test-results/.auth/registered.json';
+// The admin's random name and password, which fixtures/ensure-admin.sh writes and git ignores.
+const ADMIN_ACCOUNT_FILE = path.join(__dirname, '.admin-account.json');
 
 // The phone profile the viewport specs measure at. defaultBrowserType is dropped because the suite's chromium
 // project already fixes the browser; shared so the page walk and the checks that pin its rules can't drift apart.
@@ -143,6 +145,37 @@ async function serveAnyPano(context) {
 }
 
 /**
+ * Reads the CSRF token off a form page, which also starts the session the form's POST has to carry.
+ * @param {import('@playwright/test').APIRequestContext} request - A request client with a cookie jar.
+ * @param {string} path - The form page, e.g. `/signIn`.
+ * @returns {Promise<string>}
+ */
+async function csrfTokenFrom(request, path) {
+  const token = (await (await request.get(path)).text()).match(/name="csrfToken" value="([^"]+)"/)?.[1];
+  base.expect(token, `csrfToken hidden input not found in the ${path} HTML`).toBeTruthy();
+  return token;
+}
+
+/**
+ * Signs the context in as the admin fixtures/ensure-admin.sh makes. Per test, not a setup project, so a missing
+ * admin fails only the admin specs.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context to sign in.
+ */
+async function signInAsAdmin(context) {
+  const missing = `no ${ADMIN_ACCOUNT_FILE}: run test/e2e/fixtures/ensure-admin.sh, which makes the admin`;
+  base.expect(fs.existsSync(ADMIN_ACCOUNT_FILE), missing).toBe(true);
+  const {username, password} = JSON.parse(fs.readFileSync(ADMIN_ACCOUNT_FILE, 'utf8'));
+  const response = await context.request.post('/authenticate/credentials', {
+    form: {csrfToken: await csrfTokenFrom(context.request, '/signIn'), email: username, password},
+    maxRedirects: 0,
+  });
+  const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which says why`;
+  base.expect(response.status(), refused).toBe(303);
+  base.expect(response.headers().location, refused).not.toContain('/signIn');
+}
+
+/**
  * Stubs the Makeability Lab API that /about hydrates its team/publications/grants sections from. The empty
  * listing keeps every section on its server-rendered fallback, so the suite measures a deterministic DOM in
  * both environments — and an ML-site outage can't fail the run (Chromium logs its own console error for any
@@ -218,8 +251,9 @@ async function loadAndSettle(page, context, p) {
 }
 
 /**
- * Loads `/validate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the seed always makes
- * one, so the mission-only checks would otherwise skip and stay green. A local database may have none to give.
+ * Loads `/validate`, `/expertValidate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the
+ * seed always makes one, so the mission-only checks would otherwise skip and stay green. A local database may have
+ * none to give.
  * @param {import('@playwright/test').Page} page The test's page.
  * @param {string} path The page to load.
  * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
@@ -237,6 +271,50 @@ async function loadValidate(page, path) {
       + '(#4810)').toBe(true);
   }
   return onMission;
+}
+
+/**
+ * Waits out LabelContainer.VERDICT_GRACE_MS from the label appearing, inside which a verdict is a dropped double tap.
+ * @param {import('@playwright/test').Page} page
+ */
+async function pastDoubleTapGuard(page) {
+  await page.waitForFunction(() => {
+    const labelContainer = window.svv.labelContainer;
+    return Date.now() - labelContainer.getProperty('renderedTimestamp') > labelContainer.constructor.VERDICT_GRACE_MS;
+  });
+}
+
+/**
+ * Waits for Validate to move on from a label and finish loading the next one: the tool ignores input until then.
+ * @param {import('@playwright/test').Page} page
+ * @param {number} fromId The label just validated.
+ */
+async function nextLabel(page, fromId) {
+  // A Pannellum load averages under 2 s but can run several times that on a slow runner.
+  const timeout = 15_000;
+  await base.expect.poll(() => currentLabelId(page), {message: 'the verdict did not move Validate to the next label',
+    timeout}).not.toBe(fromId);
+  await base.expect(page.locator('#svv-application-holder')).not.toHaveClass(/validate-disabled/, {timeout});
+}
+
+/**
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<number>} The id of the label on screen.
+ */
+function currentLabelId(page) {
+  return page.evaluate(() => window.svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'));
+}
+
+/**
+ * Through the page's session, so `user_validation` is this user's verdict.
+ * @param {import('@playwright/test').Page} page
+ * @param {number} id
+ * @returns {Promise<Record<string, any>>} The GET /label/id/:id response.
+ */
+async function readLabel(page, id) {
+  const response = await page.request.get(`/label/id/${id}`);
+  base.expect(response.ok(), `GET /label/id/${id} responded ${response.status()}`).toBe(true);
+  return response.json();
 }
 
 /**
@@ -385,11 +463,17 @@ module.exports = {
   stubMapbox,
   stubGoogleMaps,
   serveAnyPano,
+  csrfTokenFrom,
+  signInAsAdmin,
   stubMakeabilityLab,
   stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
   loadValidate,
+  pastDoubleTapGuard,
+  nextLabel,
+  currentLabelId,
+  readLabel,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,

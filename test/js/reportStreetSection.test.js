@@ -31,7 +31,7 @@ const EDGES = [
  */
 const cardData = (id, labelType = 'Obstacle', costPoints = 2) => ({
   clusterId: id, labelId: id + 100, labelType, severity: 3, lat: 47.6, lng: -122.325,
-  labelIds: [id + 100], listIds: [id + 100], atCrossing: false, costPoints, poolSize: 1,
+  labelIds: [id + 100], listIds: [id + 100], atCrossing: false, edgeId: 1, side: 'left', costPoints, poolSize: 1,
 });
 
 /** @returns {HTMLElement} A section as the template renders it. */
@@ -204,6 +204,26 @@ describe('ReportStreetSection', () => {
     expect(second.setSidewalksVisible).toHaveBeenCalledWith(false);
   });
 
+  test('a rebuilt map starts with the places as the reader last left them, and the flip is logged', () => {
+    const section = build([cardData(1)]);
+    expect(mapOptions.placesVisible).toBe(true);
+    mapOptions.onPlacesToggle(false);
+    expect(deps.log).toHaveBeenCalledWith('Report_PlacesToggle_Shown=false_Map=Street');
+    section.unmountMap();
+    section.mountMap();
+    expect(mapOptions.placesVisible).toBe(false);
+  });
+
+  test('the aligned view starts off, is logged when flipped, and a rebuilt map keeps the reader\'s answer', () => {
+    const section = build([cardData(1)]);
+    expect(mapOptions.alignedVisible).toBe(false);
+    mapOptions.onAlignedToggle(true);
+    expect(deps.log).toHaveBeenCalledWith('Report_AlignedToggle_Shown=true_Map=Street');
+    section.unmountMap();
+    section.mountMap();
+    expect(mapOptions.alignedVisible).toBe(true);
+  });
+
   test('sidewalks arriving after the map came down go nowhere', async () => {
     let answer;
     deps.sidewalks.mockReturnValue(new Promise((resolve) => { answer = resolve; }));
@@ -228,7 +248,7 @@ describe('ReportStreetSection', () => {
     expect(reference.querySelector('.sr-only').textContent).toContain('opens-new-tab');
   });
 
-  test('a location with several labels links to them in the Gallery, and past the cap says how many there were', async () => {
+  test('a location with several labels links to them in Gallery, and past the cap says how many there were', async () => {
     const pooled = { ...cardData(1), labelIds: [11, 12, 13], listIds: [11, 12] };
     const section = build([pooled, { ...cardData(2), labelIds: [21, 22], listIds: [21, 22] }]);
     await section.loadCards();

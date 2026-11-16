@@ -357,3 +357,52 @@
     transition: none;
   }
 }
+
+/* The admin page's training-example panel (#1445). */
+.spotlight__gold {
+  margin-top: 16px;
+  padding: 16px 22px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+}
+
+.spotlight__gold-title {
+  font: var(--text-subtitle-bold);
+  margin: 0 0 8px;
+}
+
+.spotlight__gold-help {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 12px;
+}
+
+/* The reason stacked over its label, then the buttons on a row of their own, so a long reason can't push them apart. */
+.spotlight__gold-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 440px;
+}
+
+.spotlight__gold-field .ps-select {
+  width: 100%;
+}
+
+.spotlight__gold-label {
+  font: var(--text-small-bold);
+}
+
+.spotlight__gold-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.spotlight__gold-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 8px 0 0;
+  min-height: 1lh;
+}

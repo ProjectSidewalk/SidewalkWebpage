@@ -214,6 +214,16 @@ describe('Infra3dViewer access-token renewal', () => {
       expect.objectContaining({ reason: 'non-JSON response' }));
   });
 
+  it('logs what the SDK threw when it refuses the new token with something other than an Error', async () => {
+    const { manager } = await createViewer(T0 + 60 * MINUTE_MS);
+    fetch.mockImplementation(() => tokenResponse(T0 + 115 * MINUTE_MS));
+    manager.setTokens.mockImplementation(() => { throw 'token rejected'; });
+
+    await vi.advanceTimersByTimeAsync(55 * MINUTE_MS);
+
+    expect(diagnostics).toHaveBeenCalledWith('TokenRefreshFailed', { attempt: '1', reason: 'token rejected' });
+  });
+
   it('says so, once, when the token is not a JWT it can read', async () => {
     fakeSdk();
     const viewer = await Infra3dViewer.create(mount, { accessToken: 'not-a-jwt', startPanoId: 'SEED' });
@@ -273,6 +283,28 @@ describe('Infra3dViewer initViewer timeout', () => {
     await settled;
     expect(window.logWebpageActivity).toHaveBeenCalledWith('PanoViewer_InitTimeout_source=infra3d_reloading=false');
     expect(window.sessionStorage.getItem('infra3dViewerInitReloaded')).toBeNull();
+  });
+
+  it('gives up with an Error even when the SDK failed with something else', async () => {
+    window.sessionStorage.setItem('infra3dViewerInitReloaded', '1');
+    const manager = fakeSdk();
+    manager.initViewer.mockImplementation(() => Promise.reject('project not found'));
+
+    await expect(Infra3dViewer.create(mount, { accessToken: jwtExpiringAt(T0 + 60 * MINUTE_MS) }))
+      .rejects.toThrow(new Error('project not found'));
+  });
+
+  it('reloads on every timeout when the browser blocks session storage, with nowhere to remember it', async () => {
+    const storage = vi.spyOn(window, 'sessionStorage', 'get')
+      .mockImplementation(() => { throw new DOMException('denied'); });
+    fakeSdk({ initViewerResolves: false });
+    Infra3dViewer.create(mount, { accessToken: jwtExpiringAt(T0 + 60 * MINUTE_MS) }).catch(() => {});
+
+    await vi.advanceTimersByTimeAsync(Infra3dViewer.INIT_TIMEOUT_MS);
+
+    expect(window.logWebpageActivity).toHaveBeenCalledWith('PanoViewer_InitTimeout_source=infra3d_reloading=true');
+    // Handed back before the suite's cleanup empties storage.
+    storage.mockRestore();
   });
 
   it('clears the reload memory once a viewer comes up, so a later hang gets its own reload', async () => {

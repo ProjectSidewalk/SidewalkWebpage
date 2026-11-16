@@ -43,6 +43,7 @@ describe('Explore KeyboardManager', () => {
   const navigationService = {
     canWalk: () => true,
     moveToLinkedPano: vi.fn(() => Promise.resolve(moved)),
+    moveByArrowKey: vi.fn(() => Promise.resolve({ moved, streetWalkToward: null })),
     moveForward: vi.fn(() => Promise.resolve()),
   };
   const labelModes = { switchTo: vi.fn(), backToWalk: vi.fn() };
@@ -53,6 +54,8 @@ describe('Explore KeyboardManager', () => {
     setPov: vi.fn(),
   };
   const compass = { getTargetAngle: () => 91 };
+  let streetEnded;
+  const streetProgress = { isLabelBeforeJumpArmed: () => streetEnded };
   const immersiveMode = { toggle: vi.fn() };
 
   /** @returns {object} A label of the given type, as the shortcuts read it. */
@@ -88,11 +91,12 @@ describe('Explore KeyboardManager', () => {
     tagsDisabled = false;
     ratingDisabled = false;
     moved = true;
+    streetEnded = false;
     document.body.innerHTML = '<button data-tag-id="1"></button><button data-tag-id="2"></button>';
     const own = lock;
     const gate = fakeGate({ isHeld: () => own.held });
     new KeyboardManager(gate, canvas, contextMenu, navigationService, labelModes, zoomControl, panoManager, compass,
-      immersiveMode, tracker);
+      streetProgress, immersiveMode, tracker);
     contextMenu.textFieldFocused(false);
   });
 
@@ -116,11 +120,31 @@ describe('Explore KeyboardManager', () => {
       expect(panoManager.setPov).not.toHaveBeenCalled();
     });
 
-    it('steps to the linked pano ahead or behind on the up and down arrows', () => {
+    it('steps ahead or behind on the up and down arrows, logging nothing of its own for a link', async () => {
       press('ArrowUp');
-      expect(navigationService.moveToLinkedPano).toHaveBeenCalledWith(0);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(0, false);
       press('ArrowDown');
-      expect(navigationService.moveToLinkedPano).toHaveBeenCalledWith(180);
+      expect(navigationService.moveByArrowKey).toHaveBeenCalledWith(180, false);
+      await Promise.resolve();
+      expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', expect.anything());
+    });
+
+    it('logs a step that took a free-exploration street arrow, and whether it landed (#5968)', async () => {
+      navigationService.moveByArrowKey.mockResolvedValueOnce({ moved: true, streetWalkToward: false });
+      press('ArrowDown');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_StreetWalkArrow', { toward: 'start', moved: true });
+    });
+
+    it('a step whose search throws is reported, not left as an unhandled rejection', async () => {
+      const reported = vi.spyOn(console, 'error').mockImplementation(() => {});
+      navigationService.moveByArrowKey.mockRejectedValueOnce(new Error('provider down'));
+      press('ArrowUp');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(reported).toHaveBeenCalledWith(expect.objectContaining({ message: 'provider down' }));
+      reported.mockRestore();
     });
 
     it.each([
@@ -132,7 +156,7 @@ describe('Explore KeyboardManager', () => {
       press('ArrowLeft');
       press('ArrowUp');
       expect(panoManager.setPov).not.toHaveBeenCalled();
-      expect(navigationService.moveToLinkedPano).not.toHaveBeenCalled();
+      expect(navigationService.moveByArrowKey).not.toHaveBeenCalled();
     });
   });
 
@@ -152,6 +176,24 @@ describe('Explore KeyboardManager', () => {
       await flush();
       expect(navigationService.moveForward).toHaveBeenCalledTimes(1);
       expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: true });
+    });
+
+    it('takes no link once the street has ended, only the walk on down it (#5918)', async () => {
+      streetEnded = true;
+      navigationService.moveForward.mockResolvedValueOnce('pano-further');
+      press(' ');
+      await flush();
+      expect(navigationService.moveToLinkedPano).not.toHaveBeenCalled();
+      expect(navigationService.moveForward).toHaveBeenCalledTimes(1);
+      expect(tracker.push).toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', { usedRoute: true });
+    });
+
+    it('logs no move when nothing is further down an ended street', async () => {
+      streetEnded = true;
+      navigationService.moveForward.mockResolvedValueOnce(null);
+      press(' ');
+      await flush();
+      expect(tracker.push).not.toHaveBeenCalledWith('KeyboardShortcut_MoveForwardAlongRoute', expect.anything());
     });
 
     it('leaves Space to a focused radio button, which has no other key', () => {

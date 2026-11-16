@@ -79,6 +79,26 @@ describe('PageToc', () => {
     expect(() => toc.destroy()).not.toThrow();
   });
 
+  it('scrolls only its own column to bring the current entry into view, up or down', () => {
+    const nav = buildPage();
+    const rect = (top, height) => () => ({ top, bottom: top + height, height });
+    nav.getBoundingClientRect = rect(100, 200); // The column shows 100–300.
+    document.getElementById('l-c').getBoundingClientRect = rect(320, 20); // Below the column's bottom.
+    document.getElementById('l-a').getBoundingClientRect = rect(40, 20); // Above its top.
+    document.getElementById('l-b').getBoundingClientRect = rect(150, 20); // Already in view.
+    nav.scrollTop = 500;
+    new PageToc(nav);
+
+    report('c', true);
+    expect(nav.scrollTop).toBe(500 + (340 - 300) + 20);
+    report('c', false);
+    report('b', true);
+    expect(nav.scrollTop).toBe(560);
+    report('b', false);
+    report('a', true);
+    expect(nav.scrollTop).toBe(560 - (100 - 40) - 20);
+  });
+
   it('stops watching when destroyed', () => {
     const toc = new PageToc(buildPage());
     toc.destroy();

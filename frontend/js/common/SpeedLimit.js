@@ -170,7 +170,7 @@ export class SpeedLimit {
    */
   async #maxSpeedNearCurrentPosition() {
     const position = this.#coords();
-    const tasks = this.#taskContainer.getTasks() ?? [];
+    const tasks = this.#taskContainer.getTasks();
     if (!Number.isFinite(position?.lat) || tasks.length === 0) {
       // At page startup the pano position and street list can lag this component. Re-check shortly instead of
       // treating the spot as off-network (which would pointlessly ask the server about an on-network street).
@@ -194,7 +194,7 @@ export class SpeedLimit {
       }
     }
 
-    if (nearestTask !== null && minDistance <= SpeedLimit.#NEARBY_STREET_THRESHOLD_M) {
+    if (minDistance <= SpeedLimit.#NEARBY_STREET_THRESHOLD_M) {
       return nearestTask.getProperty('maxSpeed');
     }
     return await this.#fetchSpeedLimitAtPoint(position.lat, position.lng);

@@ -31,6 +31,7 @@ import '../../common/utilitiesSidewalk.js';
 export class LabelCard {
   #card;
   #view;
+  /** @type {ShareWidget} */
   #shareWidget;
   /** @type {?string} The rendered label's type, for the share click's analytics note. */
   #labelType = null;
@@ -42,8 +43,8 @@ export class LabelCard {
   #labelVisibilityControl;
   /** @type {Tracker} */
   #tracker;
-  /** @type {?((labelType: string) => void)} Registered by the verdict menu (onTypePicked), which is built after. */
-  #onTypePicked = null;
+  /** @type {(labelType: string) => void} Registered by the verdict menu (onTypePicked), which is built after. */
+  #onTypePicked;
 
   /**
    * @param {HTMLElement} card - The card element, holding the shared template's markup.
@@ -66,25 +67,23 @@ export class LabelCard {
     // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
     // came from the back end, so its id is always real and the button is never in a state where it can't work.
     const trigger = /** @type {HTMLButtonElement} */ (document.getElementById('label-card-share'));
-    if (trigger) {
-      this.#shareWidget = new ShareWidget(trigger, {
-        // The card is anchored to the label's marker, which can sit anywhere in the pano.
-        fitToViewport: true,
-        onDismiss: () => labelVisibilityControl.handlePopoverDismissed(),
-      });
-      trigger.addEventListener('click', () => {
-        // Only the opening click, and carrying the label type so the note matches Explore's.
-        if (this.#shareWidget.isOpen()) return;
-        tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
-      });
-    }
+    this.#shareWidget = new ShareWidget(trigger, {
+      // The card is anchored to the label's marker, which can sit anywhere in the pano.
+      fitToViewport: true,
+      onDismiss: () => labelVisibilityControl.handlePopoverDismissed(),
+    });
+    trigger.addEventListener('click', () => {
+      // Only the opening click, and carrying the label type so the note matches Explore's.
+      if (this.#shareWidget.isOpen()) return;
+      tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
+    });
 
     const typePopover = this.#card.querySelector('.label-type-popover');
     if (typePopover) {
       this.#typeDropdown = new LabelTypeDropdown(this.#card.querySelector('.label-hover-card__type-dropdown'),
         /** @type {HTMLElement} */ (typePopover), {
           onOpen: () => this.#prepareTypePicker(),
-          onPick: (labelType) => this.#onTypePicked?.(labelType),
+          onPick: (labelType) => this.#onTypePicked(labelType),
           onClose: () => labelVisibilityControl.handlePopoverDismissed(),
         });
       this.#typeDropdown.setEditable(true);
@@ -117,7 +116,7 @@ export class LabelCard {
    * @returns {boolean} Whether the share popover or the type dropdown is open.
    */
   isPopoverOpen() {
-    return Boolean(this.#shareWidget?.isOpen() || this.#typeDropdown?.isOpen());
+    return this.#shareWidget.isOpen() || Boolean(this.#typeDropdown?.isOpen());
   }
 
   /**
@@ -126,7 +125,7 @@ export class LabelCard {
    * waits on isPopoverOpen() would never fire again.
    */
   closePopovers() {
-    this.#shareWidget?.close();
+    this.#shareWidget.close();
     this.#typeDropdown?.setOpen(false);
   }
 
@@ -171,15 +170,13 @@ export class LabelCard {
     // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
     // serves the og:image that crawlers embed in the share card. Named by the type the label still has, since
     // that's what the link opens.
-    if (this.#shareWidget) {
-      const sharedType = label.getAuditProperty('labelType');
-      const typeName = util.misc.labelTypeName(sharedType);
-      const shareText = i18next.t('common:share.text', { labelType: typeName });
-      this.#shareWidget.setTarget({
-        url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,
-        title: shareText,
-        text: shareText,
-      });
-    }
+    const sharedType = label.getAuditProperty('labelType');
+    const typeName = util.misc.labelTypeName(sharedType);
+    const shareText = i18next.t('common:share.text', { labelType: typeName });
+    this.#shareWidget.setTarget({
+      url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,
+      title: shareText,
+      text: shareText,
+    });
   }
 }

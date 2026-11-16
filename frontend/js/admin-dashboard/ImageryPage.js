@@ -69,8 +69,8 @@ export class ImageryPage {
     StreetPriorityTiers.publishCssVars();
 
     // Started first and deliberately not awaited: the pipeline section draws from a different endpoint and needs
-    // nothing from the whole-city GeoJSON, so a slow street fetch must not hold it blank. Nothing awaits it, so it
-    // carries its own catch — an unhandled rejection here would fail the e2e smoke suite.
+    // nothing from the whole-city GeoJSON, so a slow street fetch must not hold it blank. The panel shows its own
+    // load failures on the page, so its init never rejects.
     new ImageryPipelinePanel({
       pipelineUrl: this.#pipelineUrl,
       days: this.#pipelineDays,
@@ -79,7 +79,7 @@ export class ImageryPage {
         this.#renderLastPollKpi();
         this.#renderRotation();
       },
-    }).init().catch((e) => console.error('Could not initialize the imagery pipeline section.', e));
+    }).init();
 
     try {
       const [geojson, priority] = await Promise.all([

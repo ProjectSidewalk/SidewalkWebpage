@@ -181,6 +181,20 @@ describe('BadgeAchievements.getProgress', () => {
   });
 });
 
+describe('BadgeAchievements.detectUnlock', () => {
+  test('a metric distance is compared in miles, and its badge wears the kilometer icon', () => {
+    // The first distance badge is at half a mile, about 0.80 km.
+    expect(BadgeAchievements.detectUnlock('distance', 0.7, 0.75, {isMetric: true})).toBeNull();
+    const badge = BadgeAchievements.detectUnlock('distance', 0.75, 0.9, {isMetric: true});
+    expect(badge).toMatchObject({type: 'distance', level: 1});
+    expect(badge.iconSrc).toContain('distance_km');
+  });
+
+  test('miles are taken as they are', () => {
+    expect(BadgeAchievements.detectUnlock('distance', 0.4, 0.6)).toMatchObject({level: 1});
+  });
+});
+
 describe('BadgeAchievements.seedCounts', () => {
   // Each test re-evaluates the class so the once-only #seeded latch starts fresh.
   let Badges;
@@ -268,6 +282,20 @@ describe('BadgeAchievements.seedCounts', () => {
     expect(consoleError).toHaveBeenCalledTimes(1);
     // With no counts to compare against, activity can't claim an unlock it hasn't verified.
     expect(validate(100)).toHaveLength(0);
+  });
+
+  test('a completed mission crossing a mission threshold shows its toast over the screen it names', async () => {
+    respondWith(200, {validation_count: 0, mission_count: 4});
+    const toasts = [];
+    Badges.showUnlockToast = (badge, referenceEl) => toasts.push([badge.roman, referenceEl]);
+    const modal = document.createElement('div');
+    Badges.recordMissionComplete(modal); // Not seeded yet: nothing to compare against, so nothing is claimed.
+    Badges.seedCounts();
+    await settle();
+    Badges.recordMissionComplete(modal); // 4 -> 5 crosses the first mission threshold.
+    Badges.recordMissionComplete(modal); // 5 -> 6 crosses nothing.
+
+    expect(toasts).toEqual([['I', modal]]);
   });
 
   test('only the first call fetches', async () => {

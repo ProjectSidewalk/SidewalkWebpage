@@ -1,5 +1,5 @@
 /**
- * The Gallery's Z / Shift+Z zoom shortcut (#5142): frontend/js/gallery/keyboard/KeyboardManager.js calling
+ * Gallery's Z / Shift+Z zoom shortcut (#5142): frontend/js/gallery/keyboard/KeyboardManager.js calling
  * PopupPanoManager's zoomIn()/zoomOut() (frontend/js/common/label-detail/PopupPanoManager.js).
  *
  * These pin the key → manager call → viewer POV chain (the manager has to have the methods the key calls), the
@@ -36,9 +36,19 @@ async function loadPopupPanoManager() {
   return (await loadModules('frontend/js/common/label-detail/PopupPanoManager.js')).PopupPanoManager;
 }
 
-/** Builds a manager the way LabelDetail does, with a viewer type whose create() returns `viewer`. */
+/**
+ * Builds a manager the way LabelDetail does, with a viewer type whose create() returns `viewer`.
+ * @param {Function} PopupPanoManager - The class, freshly loaded.
+ * @param {object} viewer - What the viewer type builds.
+ * @returns {{manager: Promise<object>, viewerType: object}}
+ */
 function createManager(PopupPanoManager, viewer) {
-  document.body.innerHTML = '<div id="sv-holder"></div><div id="button-holder"></div>';
+  document.body.innerHTML = `
+    <div class="label-detail__pano-wrap">
+      <div id="sv-holder"></div>
+      <div class="label-detail__pano-loading" hidden></div>
+    </div>
+    <div id="button-holder"></div>`;
   const viewerType = { create: vi.fn(() => Promise.resolve(viewer)), preloadLibrary: () => Promise.resolve() };
   const manager = PopupPanoManager.create(
     document.getElementById('sv-holder'), document.getElementById('button-holder'), false, viewerType, 'token',
@@ -46,7 +56,7 @@ function createManager(PopupPanoManager, viewer) {
   return { manager, viewerType };
 }
 
-/** Releases a key on the page, the event the Gallery's manager listens for. */
+/** Releases a key on the page, the event Gallery's manager listens for. */
 function release(init) {
   document.body.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, ...init }));
 }
@@ -144,6 +154,26 @@ describe('Gallery Z / Shift+Z shortcut', () => {
     expect(tracker.push).not.toHaveBeenCalled();
   });
 
+  it('Escape closes the expanded view and brings back the grid, but not while it is already closed', () => {
+    expandedView.closeExpandedViewAndRemoveCardTransparency.mockClear();
+    release({ key: 'Escape', code: 'Escape' });
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).toHaveBeenCalledTimes(1);
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+
+    expandedView.open = false;
+    release({ key: 'Escape', code: 'Escape' });
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a key that is no Gallery shortcut, and one with no code at all', () => {
+    expandedView.closeExpandedViewAndRemoveCardTransparency.mockClear();
+    release({ key: 'q', code: 'KeyQ' });
+    release({ key: 'z' });
+    expect(expandedView.panoManager.zoomIn).not.toHaveBeenCalled();
+    expect(expandedView.closeExpandedViewAndRemoveCardTransparency).not.toHaveBeenCalled();
+    expect(tracker.push).not.toHaveBeenCalled();
+  });
+
   it('drives a real PopupPanoManager without throwing before any label has been shown (#5142, #5128)', async () => {
     const PopupPanoManager = await loadPopupPanoManager();
     const { manager, viewerType } = createManager(PopupPanoManager, fakeViewer());
@@ -170,6 +200,11 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
     const viewer = fakeViewer(zoom);
     const { manager: created } = createManager(PopupPanoManager, viewer);
     const manager = await created;
+    // LabelDetail hands over the label before it asks for the imagery.
+    manager.setLabel({
+      labelId: 1, label_type: 'CurbRamp', canvasX: 360, canvasY: 240, originalCanvasWidth: 720,
+      originalCanvasHeight: 480, pov: { heading: 10, pitch: 0, zoom }, streetEdgeId: 5, aiGenerated: false,
+    });
     const shown = manager.setPano('pano-1', { heading: 10, pitch: 0, zoom }, null);
     await vi.runAllTimersAsync();
     await shown;
@@ -250,6 +285,14 @@ describe('PopupPanoManager zoomIn() / zoomOut()', () => {
     expect(manager.zoomOut()).toBe(false);
     expect(manager.zoomIn()).toBe(true);
     expect(viewer.getPov().zoom).toBe(1);
+  });
+
+  it('does nothing while the live viewer has no view to report', async () => {
+    const { manager, viewer } = await liveManager(2);
+    viewer.getPov = () => null;
+    expect(manager.zoomIn()).toBe(false);
+    expect(manager.zoomOut()).toBe(false);
+    expect(viewer.setPov).not.toHaveBeenCalled();
   });
 
   it('does nothing over the crop fallback, though the hidden live viewer is still there', async () => {

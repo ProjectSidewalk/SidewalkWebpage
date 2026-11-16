@@ -6,6 +6,7 @@
 
 import { util } from '../common/utilities.js';
 import { MiniLineChart } from './MiniLineChart.js';
+import { AdminShell } from './AdminShell.js';
 
 export class ApiAnalyticsPage {
   #dataUrl;
@@ -52,13 +53,13 @@ export class ApiAnalyticsPage {
     const total = d.total_calls || 0;
     const busiest = (d.endpoints || []).find((e) => (e.external || 0) > 0);
 
-    this.#setText('kpi-external-calls', extCalls.toLocaleString());
-    this.#setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
-    this.#setText('kpi-external-clients', (ext.unique_ips || 0).toLocaleString());
-    this.#setText('kpi-busiest', busiest ? ApiAnalyticsPage.#short(busiest.endpoint) : '—');
-    this.#setText('kpi-busiest-note', busiest ? `${busiest.external.toLocaleString()} external calls` : '');
-    this.#setText('kpi-pct-external', total ? ApiAnalyticsPage.#pct(extCalls / total) : '—');
-    this.#setText('kpi-pct-external-note', `${total.toLocaleString()} total calls`);
+    AdminShell.setText('kpi-external-calls', extCalls.toLocaleString());
+    AdminShell.setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
+    AdminShell.setText('kpi-external-clients', (ext.unique_ips || 0).toLocaleString());
+    AdminShell.setText('kpi-busiest', busiest ? ApiAnalyticsPage.#short(busiest.endpoint) : '—');
+    AdminShell.setText('kpi-busiest-note', busiest ? `${busiest.external.toLocaleString()} external calls` : '');
+    AdminShell.setText('kpi-pct-external', total ? ApiAnalyticsPage.#pct(extCalls / total) : '—');
+    AdminShell.setText('kpi-pct-external-note', `${total.toLocaleString()} total calls`);
   }
 
   /**
@@ -156,7 +157,7 @@ export class ApiAnalyticsPage {
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */
   #renderRangeCaptions(d) {
     const label = `Date range: ${this.#rangeLabel(d)}`;
-    for (const id of ['api-trend-range', 'api-endpoints-range', 'api-formats-range']) this.#setText(id, label);
+    for (const id of ['api-trend-range', 'api-endpoints-range', 'api-formats-range']) AdminShell.setText(id, label);
   }
 
   /**
@@ -321,7 +322,7 @@ export class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
+        legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
         else this.#renderFormats(this.#data);
@@ -333,14 +334,8 @@ export class ApiAnalyticsPage {
     return `${Math.round((frac || 0) * 100)}%`;
   }
 
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
   #setStatus(message, isError, hide = false) {
     const status = document.getElementById('api-status');
-    if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
     status.classList.toggle('ps-hidden', hide);

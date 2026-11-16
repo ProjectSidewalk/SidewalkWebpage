@@ -18,6 +18,8 @@
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
   </button>
   <div class="page-nav report-sidebar__body" id="report-sidebar-body">
+    @* Not a heading (the page's <h1> is the neighborhood); inside the body so it folds away on a narrow screen. *@
+    @common.toolHeader("reports", asHeading = false)
     <section class="filter-sidebar__section report-control" id="report-map-controls" aria-labelledby="report-map-title" hidden>
       <div class="filter-sidebar__heading-row">
         <h2 class="filter-sidebar__heading" id="report-map-title">@Messages("report.map.title")</h2>

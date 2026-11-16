@@ -213,9 +213,11 @@ about.where.body = From Seattle to Mexico City to Zurich, volunteers have put <s
 about.where.links = <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">bring Project Sidewalk to your city</a>.
 about.history.title = Our history
 about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, with early support from a <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> and the <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
-about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
+about.history.2016 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad.
 about.history.2019 = The DC pilot study shows that online crowdsourcing can be used to map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
+about.history.2019.mexico = Project Sidewalk goes international in Mexico City, then San Pedro Garza García, with the pedestrian-rights organization <a href="https://ligapeatonal.org/" target="_blank" rel="noopener">Liga Peatonal</a>. Liga built relationships with local governments and community groups, translated the tool into Spanish and adapted it for Mexican streets, opening the door to every non-English deployment since.
 about.history.2021 = An <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">NSF Smart &amp; Connected Communities grant</a> deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
+about.history.2022 = In Oradell, New Jersey, a Girl Scout troop maps every street in the borough with the National MS Society''s local council and Hackensack Meridian Health, then <a href="https://www.hackensackmeridianhealth.org/en/news/2023/03/13/humc-and-community-groups-demonstrate-sidewalk-deficiencies" target="_blank" rel="noopener">presents its findings to the Borough Council</a>. The approach has since spread to six more New Jersey towns, St. Louis, and <a href="https://walthamtimes.org/2026/06/28/mcdevitt-civics-class-earns-state-recognition-for-sidewalk-accessibility-project/" target="_blank" rel="noopener">classrooms like Waltham''s</a>.
 about.history.today.label = Today
 about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
 about.team.title = The team
@@ -240,6 +242,9 @@ about.data.body = Everything we collect is open. Download raw labels, label clus
 about.partners.title = Community partners
 about.partners.body = We work hand in hand with disability advocacy organizations, governments, schools, and community groups around the world — including Easterseals, World Enabled, Liga Peatonal, and the Active Transportation Alliance — to plan deployments, run community mapping events, and turn data into local action.
 about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Learn how to use Project Sidewalk in your community</a>.
+about.partners.project.title = Project-wide partners
+about.partners.city.title = Partners in our cities
+about.partners.city.tagline = Governments, schools, advocacy groups, and community organizations we work with in one or more of our cities.
 about.funding.title = Research funding
 about.funding.body = Project Sidewalk is grant-funded academic research, supported by the National Science Foundation with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
 about.cta.title = Help us map every sidewalk
@@ -287,11 +292,13 @@ landing.deployment.map.title = Explore other cities
 landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
 landing.partners.title = Community Partners in {0}
 landing.partners.tagline = Our work in {0} is made possible through our community partners, including:
+landing.partners.project.title = Project-Wide Partners
+landing.partners.project.tagline = The following organizations have made lasting, cross-city impacts on Project Sidewalk.
 landing.partners.official.contact = Project Sidewalk is a research tool. To report a problem or request a repair, contact {0} directly. Feel free to include links to Project Sidewalk <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> or <a href="/stories" data-partner-source="official-contact-stories">stories</a> in your request.
 landing.partners.logo.alt = {0} logo
 landing.partners.created.by = Project Sidewalk was created with {0} by
 landing.partners.created.heart = love
-landing.partners.created.credits = …and shaped by longtime partners like <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, the <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a>, and <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, along with 100+ student contributors and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
+landing.partners.created.credits = …and shaped by 100+ student contributors and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab logo
 landing.partners.creator.uw.alt = Paul G. Allen School of Computer Science & Engineering at the University of Washington logo
 landing.partners.creator.uic.alt = University of Illinois Chicago Institute on Disability and Human Development logo
@@ -315,7 +322,7 @@ footer.api = Sidewalk API
 footer.connect = CONNECT
 footer.email = Email Us
 footer.funding = WE ARE PROUDLY FUNDED BY
-footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> and <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.award = Awards <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a>, <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>, <br> <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2236277" target="_blank" rel="noopener">#2236277</a> and <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2623243" target="_blank" rel="noopener">#2623243</a>
 footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">University of Washington</a>
 footer.version = Version {0} | Last Updated: {1}
 
@@ -650,7 +657,7 @@ share.meta.image.alt = Street-level photo with the {0} location marked
 
 # Public single-label spotlight / share page (#456).
 sharedlabel.nearby.title = Nearby labels
-sharedlabel.nearby.caption = A sample of accessibility labels nearby. See {0} for the full map.
+sharedlabel.nearby.caption = A sample of accessibility labels nearby. See the {0} for the full map.
 sharedlabel.view.this.label = View this label
 sharedlabel.engage.title = Help assess sidewalks in {0}
 sharedlabel.engage.explore = Find accessibility problems in {0}
@@ -949,6 +956,7 @@ error.home = Return to home
 
 # Neighborhood reports (#5876).
 report.seo.title = {0}: Neighborhood Report — Project Sidewalk
+report.tool.name = Reports
 report.eyebrow = Neighborhood report
 report.generated = Generated {0}.
 report.latest.observation = Latest label {0}.
@@ -1106,3 +1114,7 @@ report.worst.lede = {0,choice,1#1 location|1<{0} locations} rated worst, by type
 report.worst.count.label = {0,choice,1#1 location|1<{0} locations}: {1}. See the labels
 report.worst.nosidewalk = Missing sidewalks have no rating, so they aren''t on this map. Turn on "{0}" in the sidebar to see them as dashed lines on the other maps.
 report.toc.worst = Worst problems
+report.stories.title = Community stories
+report.stories.rule = Stories that community members attached to labels in this neighborhood, newest first. A story is one person''s experience; it changes no number on this page.
+report.stories.street = See this street
+report.stories.all = Read all community stories

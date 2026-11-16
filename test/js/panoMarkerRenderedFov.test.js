@@ -38,11 +38,13 @@ describe('PanoMarker projection', () => {
       removeListener: vi.fn(),
       getPanoId: () => 'pano',
     };
-    const marker = new PanoMarker({ panoViewer, markerContainer: container, position: { heading: 95, pitch: 0 } });
+    const marker = new PanoMarker({
+      panoViewer, markerContainer: container, position: { heading: 95, pitch: 0 }, size: { width: 22, height: 22 },
+    });
     marker.draw();
     expect(pano.renderedHFov).toHaveBeenCalledWith(3, 2, 'gsv');
     expect(pano.centeredPovToCanvasCoord2d).toHaveBeenCalledWith(
-      { heading: 95, pitch: 0 }, { heading: 90, pitch: 5, zoom: 3 }, 800, 400, expect.any(Number), 42,
+      { heading: 95, pitch: 0 }, { heading: 90, pitch: 5, zoom: 3 }, 800, 400, 22, 42,
     );
   });
 });

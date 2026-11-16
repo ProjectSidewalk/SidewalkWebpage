@@ -179,9 +179,10 @@ export class WalkPlanner {
     let deadEnds = 0;
     let forcedJumps = 0;
 
+    // Only asked while a street is left unwalked, so the pointer always stops on one.
     const bestRemaining = () => {
-      while (priorityPtr < n && walked[this.#byPriority[priorityPtr]]) priorityPtr++;
-      return priorityPtr < n ? streets[this.#byPriority[priorityPtr]].priority : -Infinity;
+      while (walked[this.#byPriority[priorityPtr]]) priorityPtr++;
+      return streets[this.#byPriority[priorityPtr]].priority;
     };
     const take = (i, reverse, jump, jumpM) => {
       const [a, b] = this.#ends[i];
@@ -656,12 +657,8 @@ export class WalkPlanner {
     return trails - 1;
   }
 
-  /**
-   * A millisecond clock that works in the browser and in Node.
-   *
-   * @returns {number} Milliseconds.
-   */
+  /** @returns {number} Milliseconds, from the clock the browser and Node share. */
   static #now() {
-    return typeof performance !== 'undefined' ? performance.now() : Date.now();
+    return performance.now();
   }
 }

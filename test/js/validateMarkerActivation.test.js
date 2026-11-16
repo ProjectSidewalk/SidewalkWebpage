@@ -44,6 +44,7 @@ const touch = (identifier, clientX, clientY) => ({identifier, clientX, clientY})
 
 describe('Validate pano marker activation', () => {
   let toggleLabelCard;
+  let toggleLabelCardPin;
   let isMobile;
   let control;
   let wireMarker; // What LabelVisibilityControl registered with the pano manager for each marker built.
@@ -57,6 +58,7 @@ describe('Validate pano marker activation', () => {
     document.body.innerHTML = '<div id="view-control-layer"></div><div id="label-card"></div>';
     isMobile = true;
     toggleLabelCard = vi.fn();
+    toggleLabelCardPin = vi.fn();
 
     useUtil({
       isMobile: () => isMobile,
@@ -80,6 +82,7 @@ describe('Validate pano marker activation', () => {
     );
     // Positioning is not under test, so the card's own methods are stubbed out and only their calls are counted.
     control.toggleLabelCard = toggleLabelCard;
+    control.toggleLabelCardPin = toggleLabelCardPin;
     for (const name of ['showLabelCard', 'scheduleHideLabelCard', 'cancelScheduledCardHide']) {
       control[name] = vi.fn();
     }
@@ -261,23 +264,83 @@ describe('Validate pano marker activation', () => {
       expect(control.showLabelCard).not.toHaveBeenCalled();
     });
 
-    test('the focus a click gives the marker does not reopen the card the click closed', () => {
-      markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
-      markerEl().focus();
-      expect(control.showLabelCard).not.toHaveBeenCalled();
+    test('a left press is kept from focusing the marker; keyboard focus opens the card', () => {
+      const down = new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0});
+      markerEl().dispatchEvent(down);
+      expect(down.defaultPrevented).toBe(true);
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
 
-      // Once the press is over, focus is the keyboard's again.
-      window.dispatchEvent(new MouseEvent('mouseup'));
-      markerEl().blur();
       markerEl().focus();
       expect(control.showLabelCard).toHaveBeenCalledWith({viaKeyboard: true});
     });
 
     test('the keys stay with Validate’s KeyboardManager, which handles them with capture', () => {
       markerEl().dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
-      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true}));
 
       expect(toggleLabelCard).not.toHaveBeenCalled();
+      expect(toggleLabelCardPin).not.toHaveBeenCalled();
+    });
+
+    /** A primary-button press on the marker, released `dx`,`dy` px from where it started, then the click. */
+    function press(dx = 0, dy = 0) {
+      markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 0, clientX: 100, clientY: 100}));
+      window.dispatchEvent(new MouseEvent('mousemove', {clientX: 100 + dx, clientY: 100 + dy}));
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 100 + dx, clientY: 100 + dy}));
+      const at = {clientX: 100 + dx, clientY: 100 + dy};
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 1, ...at}));
+    }
+
+    test('a click pins the card, as the button’s primary gesture (#4843)', () => {
+      press();
+
+      expect(toggleLabelCardPin).toHaveBeenCalledTimes(1);
+      expect(toggleLabelCardPin).toHaveBeenCalledWith();
+      expect(toggleLabelCard).not.toHaveBeenCalled();
+    });
+
+    test('a few px of wobble is still a click', () => {
+      press(3, 3);
+
+      expect(toggleLabelCardPin).toHaveBeenCalledTimes(1);
+    });
+
+    test('a pan that starts on the marker hides the card and is not a click, even released back on it', () => {
+      control.hideLabelCard = vi.fn();
+      markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 0, clientX: 100, clientY: 100}));
+      window.dispatchEvent(new MouseEvent('mousemove', {clientX: 160, clientY: 100}));
+      window.dispatchEvent(new MouseEvent('mousemove', {clientX: 101, clientY: 100}));
+      markerEl().dispatchEvent(new MouseEvent('mouseup', {bubbles: true, clientX: 101, clientY: 100}));
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 1, clientX: 101, clientY: 100}));
+
+      expect(control.hideLabelCard).toHaveBeenCalledTimes(1);
+      expect(toggleLabelCardPin).not.toHaveBeenCalled();
+
+      // The next, still click is a click again.
+      press();
+      expect(toggleLabelCardPin).toHaveBeenCalledTimes(1);
+    });
+
+    test('moving the mouse after the press is over is not a drag', () => {
+      control.hideLabelCard = vi.fn();
+      press();
+      window.dispatchEvent(new MouseEvent('mousemove', {clientX: 400, clientY: 400}));
+
+      expect(control.hideLabelCard).not.toHaveBeenCalled();
+    });
+
+    test('a non-primary button press arms nothing', () => {
+      control.hideLabelCard = vi.fn();
+      markerEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, button: 2, clientX: 100, clientY: 100}));
+      window.dispatchEvent(new MouseEvent('mousemove', {clientX: 300, clientY: 300}));
+
+      expect(control.hideLabelCard).not.toHaveBeenCalled();
+    });
+
+    test('a pointerless click (detail 0), a screen reader’s press, toggles like Enter/Space, not pinning', () => {
+      markerEl().dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 0}));
+
+      expect(toggleLabelCard).toHaveBeenCalledTimes(1);
+      expect(toggleLabelCardPin).not.toHaveBeenCalled();
     });
   });
 

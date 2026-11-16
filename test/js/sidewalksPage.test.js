@@ -372,6 +372,13 @@ describe('the Sidewalks page', () => {
     expect(JSON.stringify(map.filters.at(-1))).toContain('["get","no_sidewalk_user_count"],2');
   });
 
+  test('pressing Enter in a filter does not submit the filter form and reload the page', async () => {
+    await renderPage();
+    const submit = new Event('submit', { cancelable: true });
+    document.getElementById('sidewalks-filters').dispatchEvent(submit);
+    expect(submit.defaultPrevented).toBe(true);
+  });
+
   test('the confirmed-only box hides unconfirmed no-sidewalk sides on the map and in the count alike', async () => {
     const map = await renderPage();
     const box = document.getElementById('sidewalks-confirmed-only');
@@ -417,6 +424,16 @@ describe('the Sidewalks page', () => {
     expect(ballard().classList.contains('is-highlighted')).toBe(true);
     ballard().querySelector('button').click();
     expect(ballard().classList.contains('is-highlighted')).toBe(false);
+  });
+
+  test('a region whose streets only report their right side is still chosen, leaving the map where it is', async () => {
+    const rightOnly = { ...street(7, face('left'), face('right')), faces: [face('right')], region_id: 12,
+      region_name: 'Fremont' };
+    const map = await renderPage({ streets: [...CITY, rightOnly], ids: [1, 2, 3, 4, 5, 6, 7] });
+    const fremont = () => regionRows().find((tr) => tr.textContent.includes('Fremont'));
+    fremont().querySelector('button').click();
+    expect(fremont().classList.contains('is-highlighted')).toBe(true);
+    expect(map.fits).toEqual([]);
   });
 
   test('a region button says whether it is pressed, and choosing a street lets go of the region', async () => {

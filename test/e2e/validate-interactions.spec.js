@@ -7,77 +7,146 @@
  * nothing, but the menu, shortcuts and undo don't need the image.
  *
  * Counts are compared with a reading taken just before each vote, not fixed numbers, because other users (and a CI
- * retry) vote on the same labels.
+ * retry) vote on the same labels. Expert Validate's tests are in this file for the same reason: its admin votes on the
+ * same seeded labels, and one file runs its tests one at a time, so no vote lands between a reading and its check.
  */
-const {test, expect, serveAnyPano, loadValidate} = require('./fixtures');
+const {test, expect, serveAnyPano, signInAsAdmin, loadValidate, pastDoubleTapGuard, nextLabel, currentLabelId,
+  readLabel} = require('./fixtures');
 
 const COUNT_FIELD = {Agree: 'num_agree', Disagree: 'num_disagree', Unsure: 'num_unsure'};
 
-test.beforeEach(async ({page, context}) => {
-  await serveAnyPano(context);
-  const onMission = await loadValidate(page, '/validate');
-  test.skip(!onMission, 'Validate settled on the no-mission modal, so there is nothing to validate');
-  // The mission-start tutorial holds the keyboard until closed; clicked from the page, as its own overlay covers it.
+test.describe('Validate', () => {
+  test.beforeEach(async ({page, context}) => {
+    await serveAnyPano(context);
+    await startMission(page, '/validate');
+  });
+
+  test('Agree, Disagree and Unsure clicked in the menu are saved', async ({page, consoleErrors}) => {
+    const buttons = {Agree: '#validate-yes-button', Disagree: '#validate-no-button', Unsure: '#validate-unsure-button'};
+    for (const [verdict, button] of Object.entries(buttons)) {
+      const label = await startVote(page);
+      await page.locator(button).click();
+      await page.locator('#validate-submit-button').click();
+      await nextLabel(page, label.id);
+      await expectSaved(page, label, verdict);
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('Agree, Disagree and Unsure by keyboard shortcut are saved', async ({page, consoleErrors}) => {
+    // Each verdict's keys, and each way to submit: S, and Enter from anywhere.
+    const shortcuts = [['Agree', 'a', 'Enter'], ['Disagree', 'n', 's'], ['Unsure', 'u', 'Enter']];
+    for (const [verdict, key, submit] of shortcuts) {
+      const label = await startVote(page);
+      await page.keyboard.press(key);
+      await page.keyboard.press(submit);
+      await nextLabel(page, label.id);
+      await expectSaved(page, label, verdict);
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('undo takes back a saved verdict and lets it be changed', async ({page, consoleErrors}) => {
+    // By button, by B, and by Ctrl+Z, each once the verdict has reached the server.
+    const undos = [
+      () => page.locator('#validate-undo-button').click(),
+      () => page.keyboard.press('b'),
+      () => page.keyboard.press('Control+z'),
+    ];
+    const undoButton = page.locator('#validate-undo-button');
+    // Nothing to go back to on the mission's first label.
+    await expect(undoButton).toBeDisabled();
+    for (const undo of undos) {
+      const label = await startVote(page);
+      await page.keyboard.press('y');
+      await page.keyboard.press('Enter');
+      await nextLabel(page, label.id);
+      await expectSaved(page, label, 'Agree');
+
+      await expect(undoButton).toBeEnabled();
+      await undo();
+      await expect.poll(() => currentLabelId(page), 'undo did not go back to the label').toBe(label.id);
+      // The menu shows the verdict being taken back, so it can be changed rather than chosen again.
+      await expect(page.locator('#validate-yes-button')).toHaveClass(/is-chosen/);
+      await expectSaved(page, label, null);
+
+      await pastDoubleTapGuard(page);
+      await page.keyboard.press('n');
+      await page.keyboard.press('Enter');
+      await nextLabel(page, label.id);
+      await expectSaved(page, label, 'Disagree');
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('the Details popover links the label id to the label\'s page', async ({page, consoleErrors}) => {
+    const id = await currentLabelId(page);
+    await page.locator('#pano-info-button').click();
+    // The suite's user isn't an admin, so the link is the public page rather than the admin view.
+    const link = page.locator('#pano-info-popover [data-field="label-id"] a');
+    await expect(link).toHaveAttribute('href', `/label/${id}`);
+    await expect(link).toHaveAttribute('target', '_blank');
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe('Expert Validate, as the suite\'s admin', () => {
+  test.beforeEach(async ({page, context}) => {
+    await serveAnyPano(context);
+    await signInAsAdmin(context);
+    await startMission(page, '/expertValidate');
+  });
+
+  // The tag search box gives the keys back after a pick, so S submits (#5946).
+  test('a tag clicked in the list leaves the box, and S submits it', async ({page, consoleErrors}) => {
+    const {id, tag} = await agreeAndOpenTags(page);
+
+    await page.locator('#select-tag-ts-dropdown [data-selectable]').first().click();
+    await expect(page.locator('#select-tag-ts-control')).not.toBeFocused();
+
+    await page.keyboard.press('s');
+    await nextLabel(page, id);
+    await expect.poll(async () => (await readLabel(page, id)).tags, `label ${id} was not saved with "${tag}"`)
+      .toContain(tag);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('a tag picked by Enter keeps the box, and one Escape closes the list and leaves it', async ({page,
+    consoleErrors}) => {
+    const {id, tag} = await agreeAndOpenTags(page);
+    const box = page.locator('#select-tag-ts-control');
+
+    await page.keyboard.press('Enter');
+    await expect(box).toBeFocused();
+    // Still the box's own key: S types into the search and reopens the list instead of submitting.
+    await page.keyboard.press('s');
+    await expect(box).toHaveValue('s');
+    await expect(box).toHaveAttribute('aria-expanded', 'true');
+
+    await page.keyboard.press('Escape');
+    await expect(box).not.toBeFocused();
+    await expect(box).toHaveAttribute('aria-expanded', 'false');
+
+    await page.keyboard.press('s');
+    await nextLabel(page, id);
+    await expect.poll(async () => (await readLabel(page, id)).tags, `label ${id} was not saved with "${tag}"`)
+      .toContain(tag);
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+/**
+ * Loads a Validate page and closes its mission-start tutorial, which holds the keyboard until closed. Skips the test
+ * when the page has no mission to give.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} path
+ */
+async function startMission(page, path) {
+  const onMission = await loadValidate(page, path);
+  test.skip(!onMission, `${path} settled on the no-mission modal, so there is nothing to validate`);
+  // Clicked from the page, as the tutorial's own overlay covers the button.
   await page.evaluate(() => document.querySelector('.mission-start-tutorial-done-btn').click());
-});
-
-test('Agree, Disagree and Unsure clicked in the menu are saved', async ({page, consoleErrors}) => {
-  const buttons = {Agree: '#validate-yes-button', Disagree: '#validate-no-button', Unsure: '#validate-unsure-button'};
-  for (const [verdict, button] of Object.entries(buttons)) {
-    const label = await startVote(page);
-    await page.locator(button).click();
-    await page.locator('#validate-submit-button').click();
-    await nextLabel(page, label.id);
-    await expectSaved(page, label, verdict);
-  }
-  expect(consoleErrors).toEqual([]);
-});
-
-test('Agree, Disagree and Unsure by keyboard shortcut are saved', async ({page, consoleErrors}) => {
-  // Each verdict's keys, and each way to submit: S, and Enter from anywhere.
-  const shortcuts = [['Agree', 'a', 'Enter'], ['Disagree', 'n', 's'], ['Unsure', 'u', 'Enter']];
-  for (const [verdict, key, submit] of shortcuts) {
-    const label = await startVote(page);
-    await page.keyboard.press(key);
-    await page.keyboard.press(submit);
-    await nextLabel(page, label.id);
-    await expectSaved(page, label, verdict);
-  }
-  expect(consoleErrors).toEqual([]);
-});
-
-test('undo takes back a saved verdict and lets it be changed', async ({page, consoleErrors}) => {
-  // By button, by B, and by Ctrl+Z, each once the verdict has reached the server.
-  const undos = [
-    () => page.locator('#validate-undo-button').click(),
-    () => page.keyboard.press('b'),
-    () => page.keyboard.press('Control+z'),
-  ];
-  const undoButton = page.locator('#validate-undo-button');
-  // Nothing to go back to on the mission's first label.
-  await expect(undoButton).toBeDisabled();
-  for (const undo of undos) {
-    const label = await startVote(page);
-    await page.keyboard.press('y');
-    await page.keyboard.press('Enter');
-    await nextLabel(page, label.id);
-    await expectSaved(page, label, 'Agree');
-
-    await expect(undoButton).toBeEnabled();
-    await undo();
-    await expect.poll(() => currentLabelId(page), 'undo did not go back to the label').toBe(label.id);
-    // The menu shows the verdict being taken back, so it can be changed rather than chosen again.
-    await expect(page.locator('#validate-yes-button')).toHaveClass(/is-chosen/);
-    await expectSaved(page, label, null);
-
-    await pastDoubleTapGuard(page);
-    await page.keyboard.press('n');
-    await page.keyboard.press('Enter');
-    await nextLabel(page, label.id);
-    await expectSaved(page, label, 'Disagree');
-  }
-  expect(consoleErrors).toEqual([]);
-});
+}
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -87,30 +156,6 @@ async function startVote(page) {
   await pastDoubleTapGuard(page);
   const id = await currentLabelId(page);
   return {id, counts: countsOf(await readLabel(page, id))};
-}
-
-/**
- * Waits out LabelContainer.VERDICT_GRACE_MS from the label appearing, inside which a verdict is a dropped double tap.
- * @param {import('@playwright/test').Page} page
- */
-async function pastDoubleTapGuard(page) {
-  await page.waitForFunction(() => {
-    const labelContainer = window.svv.labelContainer;
-    return Date.now() - labelContainer.getProperty('renderedTimestamp') > labelContainer.constructor.VERDICT_GRACE_MS;
-  });
-}
-
-/**
- * Waits for Validate to move on from a label and finish loading the next one: the tool ignores input until then.
- * @param {import('@playwright/test').Page} page
- * @param {number} fromId The label just validated.
- */
-async function nextLabel(page, fromId) {
-  // A Pannellum load averages under 2 s but can run several times that on a slow runner.
-  const timeout = 15_000;
-  await expect.poll(() => currentLabelId(page), {message: 'the verdict did not move Validate to the next label',
-    timeout}).not.toBe(fromId);
-  await expect(page.locator('#svv-application-holder')).not.toHaveClass(/validate-disabled/, {timeout});
 }
 
 /**
@@ -129,29 +174,26 @@ async function expectSaved(page, label, verdict) {
 }
 
 /**
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<number>} The id of the label on screen.
- */
-function currentLabelId(page) {
-  return page.evaluate(() => window.svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'));
-}
-
-/**
- * Through the page's session, so `user_validation` is this user's verdict.
- * @param {import('@playwright/test').Page} page
- * @param {number} id
- * @returns {Promise<Record<string, any>>} The GET /label/id/:id response.
- */
-async function readLabel(page, id) {
-  const response = await page.request.get(`/label/id/${id}`);
-  expect(response.ok(), `GET /label/id/${id} responded ${response.status()}`).toBe(true);
-  return response.json();
-}
-
-/**
  * @param {Record<string, any>} label A GET /label/id/:id response.
  * @returns {Record<string, number>} Its three verdict counts.
  */
 function countsOf(label) {
   return Object.fromEntries(Object.values(COUNT_FIELD).map((field) => [field, label[field]]));
+}
+
+/**
+ * Agrees with the label on screen, which shows the tag editor, and focuses the tag search with its list open.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{id: number, tag: string}>} The label, and the tag at the top of the list, which a pick takes.
+ */
+async function agreeAndOpenTags(page) {
+  await pastDoubleTapGuard(page);
+  const id = await currentLabelId(page);
+  await page.locator('#validate-yes-button').click();
+  await page.locator('#select-tag-ts-control').click();
+  const first = page.locator('#select-tag-ts-dropdown [data-selectable]').first();
+  await expect(first).toBeVisible();
+  // Highlighted, so Enter picks it too.
+  await expect(first).toHaveClass(/active/);
+  return {id, tag: await first.getAttribute('data-value')};
 }

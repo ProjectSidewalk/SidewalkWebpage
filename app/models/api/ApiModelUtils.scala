@@ -55,13 +55,13 @@ object ApiModelUtils {
   })
 
   /**
-   * Helper to safely quote CSV fields containing commas, quotes, or newlines.
+   * Helper to safely quote CSV fields containing commas, quotes, or line breaks.
    *
    * @param field The field to escape for CSV.
    * @return The escaped field suitable for CSV output.
    */
   def escapeCsvField(field: String): String = {
-    val needsQuotes: Boolean = field.contains(",") || field.contains("\"") || field.contains("\n")
+    val needsQuotes: Boolean = field.exists(",\"\n\r".contains(_))
     val escapedField: String = field.replace("\"", "\"\"")
     if (needsQuotes) s""""$escapedField"""" else escapedField
   }

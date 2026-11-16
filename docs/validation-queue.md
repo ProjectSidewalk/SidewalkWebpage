@@ -77,9 +77,9 @@ easy to get wrong:
 - **`unvalidatedOnly` is orthogonal.** It is a separate opt-in filter on `label.correct IS NULL` that applies inside
   whichever queue is active; it is not a queue of its own.
 
-`MaxCrowdVotes = 5` is where the crowd stops paying: by the fifth vote a quarter of the votes still arriving on
-undecided labels are Unsure, up from 7% at the first vote, which is the crowd telling us it cannot decide (see
-[Evidence](#evidence-seattle-2026-09)). Labels that reach the cap undecided are exactly what the `Triage` queue hands
+`MaxCrowdVotes = 5` is where the crowd stops paying: once a label has five votes a third of the votes still arriving
+on undecided labels are Unsure, up from 9% at the first vote, which is the crowd telling us it cannot decide (see
+[Evidence](#evidence-seattle-2026-11)). Labels that reach the cap undecided are exactly what the `Triage` queue hands
 to an expert.
 
 ## The priority score
@@ -90,15 +90,21 @@ Within a queue, every candidate gets a deterministic score in `(0, 425]`:
 |---|---|---|
 | New-labeler bonus | 150 | the labeler's `user_stat.own_labels_validated < 50`, the label still `needsVotes`, and its audit task is neither low-quality nor stale |
 | High-quality-labeler bonus | 50 | `user_stat.high_quality` |
-| Consensus need | `200 / (1 + margin² + unsure_count)` | always |
+| Consensus need | `200 / (1 + margin² + human unsure votes)` | always |
 | Recency bonus | 25 | the label was placed within the last 7 days |
 
 The new-labeler gate is `needsVotes`, not `label.correct IS NULL`: a single AI *Agree* sets `correct`, and a new
 labeler's very first labels are the ones most worth a human's eyes, so the bonus follows the queue's own definition of
 "this label still needs a validation".
 
-The consensus term folds unsure votes into the same denominator as the margin, so one unsure vote lowers the need
-exactly as much as one lone agree does:
+The consensus term folds people's unsure votes into the same denominator as the margin, so one unsure vote lowers the
+need exactly as much as one lone agree does. The AI's Unsure is taken off the count first (#5833): it says the AI is
+weak on that label type, not that the label is hard to judge, so a label whose only vote is an AI Unsure scores 200
+like an unvoted one and is served ahead of a label the AI agreed with. The AI's Unsure still counts toward
+`totalVotes`, the cap, and unsure-heavy. That has a price: a label the AI agreed with settles on one human Agree and
+an AI-unsure one needs two, so on Seattle (2026-11) it moves unsure-only labels from 10.4% of picks to 19.0% and
+settles 7,657 labels per 20,000 votes where counting the AI's Unsure settled 8,567. The table's unsure column is
+human votes:
 
 | agree / disagree / unsure | Consensus need |
 |---|---|
@@ -130,8 +136,8 @@ Three properties are the point of choosing this over the alternatives:
 - **No label is ever certain to be served.** Concurrent validators draw independent samples spread across the whole
   eligible pool, with no coordination and no shared "top 50" for everyone to pile onto.
 - **The exponent is a dial, not a constant of nature.** It decides how much of the additive score survives into the
-  serve rate: on Seattle's pool, new labelers' labels take 22.1% of picks at exponent 1 (plain proportional sampling)
-  and 34.6% at 2. See [Evidence](#evidence-seattle-2026-09).
+  serve rate: on Seattle's pool, new labelers' labels take 20.2% of picks at exponent 1 (plain proportional sampling)
+  and 30.4% at 2. See [Evidence](#evidence-seattle-2026-11).
 
 Bounded jitter (`score + random() * 25`) was considered and rejected: it is effectively strict tiering, so every
 concurrent validator gets the same handful of top-scoring labels, which recreates the pile-on the sampler exists to
@@ -168,9 +174,9 @@ the `NoSidewalk` face count only when the cascade has `NeedsVotes` and the missi
    its counts carry no priority signal.
 3. Give every remaining type a 2% floor and split the rest in proportion to its weight, then draw. In `NeedsVotes` a
    type weighs its labels still needing votes — except `NoSidewalk`, which weighs its **block faces** still needing
-   votes (`LabelTypeValidationsLeft.weightFor`): Seattle has ~138k undecided labels across the other types and
-   ~9k `NoSidewalk` faces, so `NoSidewalk` takes roughly 6–8% of missions plus the floor, rather than the quarter its
-   48k labels would claim. A type with labels enough but no weight cannot win a queue
+   votes (`LabelTypeValidationsLeft.weightFor`): Seattle has ~97k undecided labels across the other types and
+   ~9k `NoSidewalk` faces, so `NoSidewalk` takes roughly 8% of missions plus the floor, rather than the third its
+   51k labels would claim. A type with labels enough but no weight cannot win a queue
    (`LabelTypeValidationsLeft.canFill`); that only ever bites `NoSidewalk`, whose labels can all sit on faces the crowd
    has settled, and it keeps such a city from getting every mission on finished faces — the cascade falls through to
    `Any` instead.
@@ -309,6 +315,49 @@ The two metrics the issue names move the right way — 37% more faces per thousa
 face — and the pile-on drops from 68 votes on one face to 24. The constants are starting points; re-run the tool after
 the queue has been live for a while and tune them against the settled-face rate.
 
+## Training examples
+
+A validator's first missions on `/validate` and `/mobile` each carry one **training example** (#1445, a "gold
+example" in the code): a label an admin pinned, on `/admin/label/<id>`, as a common mistake, with the Disagree
+reason that explains it. The label is a real one the crowd has already voted wrong; the pin only says it teaches.
+A lesson is a reason on a label type (a few reasons are offered on more than one type). A validator is done with a
+lesson once they get an example of it right, or after `GoldExampleTable.AnswersPerReason` (3) answers on it either
+way (`GoldExampleTable.reasonSettled`), and done with examples once every lesson the city has a pin for is done.
+A pinned label leaves the ordinary queue for everyone (`LabelTable.isGoldExample`, in both the label query and the
+per-type counts): it is a known-wrong label, so an ordinary vote on it is noise and a beginner's Agree would count
+toward voting it back to correct.
+
+- **Who and where.** `LabelServiceImpl.goldExampleEligible`: the plain pages only (no `regions`, no
+  `unvalidatedOnly`, never Expert Validate), and never an admin, who pins the examples. Replacement labels
+  (`/validationTask/moreLabels`) are never examples. `owedGoldExample` then checks, before the label query runs, that
+  the mission's example isn't already answered and that some pin (`anyOpen`) teaches a lesson the user isn't done with.
+- **Which one.** `LabelTable.goldExampleForValidationQuery`: the pinned labels of the mission's type that pass every
+  rule the mission's own labels pass (`validationCandidates`: not the validator's, not voted on by them, imagery
+  their viewer renders) and teach a lesson the validator isn't done with, in random order, through the same imagery
+  check, minus one whose type changed since the pin so its reason no longer fits. A missed reason so comes round
+  again on a fresh label while the city has one. The example takes one of the mission's slots, never the first, and
+  its block face counts as taken for a NoSidewalk mission (#5285).
+- **The answer is not a vote.** The examples are picked for being commonly mistaken, so counting beginners' Agrees
+  would vote a known-wrong label back to correct, and with it the labeler's accuracy and the API's `correct`. The
+  serve is recorded in `gold_example_response` (label, user, mission), and when the vote arrives the controller files
+  it there instead of `label_validation`: a pinned label is in no queue the Validate endpoint serves, so any vote
+  there on one is its answer (the Gallery and label page vote through another endpoint). The first answer stands: a
+  validator told the answer could otherwise undo and get it "right", so the client sends it at once rather than
+  after the usual wait, and before the explanation is shown, so a tab closed on it still counts. A reload before the
+  example is answered rebuilds the mission with one (the same or another open lesson); a reload after it gets no
+  second. A serve answered in no mission is re-pointed at the next, with the pin's current reason.
+- **What they see.** Nothing on a Disagree. On Agree or Unsure, `ModalGoldFeedback` explains the pinned reason in a
+  modal dialog over the page, beside the label's own crop (`gold_crop_url`, when one is on disk), with the reason
+  menu's text and tooltip (or `gold-feedback.explanation.<reason>`, for a tooltip that points at a picture the card
+  places elsewhere) and a line saying to vote No on these, before the mission moves on.
+- **Afterwards.** A label the validator has answered as an example is not offered to them again, as an example or,
+  once unpinned, as an ordinary label (`answeredAsGoldExample`): they were told the answer. An unpinned label is a
+  real label again for everyone else, and a vote on it is a validation (`servedTo` checks the pin still stands). The
+  answer counts toward the mission's ten and its end-of-mission tally (`LabelServiceImpl.missionTally`), but not
+  toward the validator's validation count or stats.
+- **Expiry.** An example whose pano the provider dropped is served through its backup like any label; one without a
+  backup fails `imageryViewable` and is simply not picked, and `/admin/goldExamples` marks it "imagery gone".
+
 ## Expert Validate's `?triage=`
 
 `GET /expertValidate?triage=<bool>` and `GET /adminValidate?triage=<bool>` take an optional boolean that **defaults to
@@ -349,166 +398,163 @@ it; the sampler spec sizes its bands from it. `NewLabelerOwnLabelsValidated` is
 `UserStatTable.OwnLabelsValidatedToJudge`, the threshold under which `high_quality` stops trusting accuracy, so the
 two cannot drift apart.
 
-## Evidence (Seattle, 2026-09)
+## Evidence (Seattle, 2026-11)
 
 Every number below is pasted from `tools/validation_queue/analyze_validation_queue.py` (see
-[Re-running the analysis](#re-running-the-analysis)) against the Seattle city schema of the dev DB dump — a recent
-production snapshot, 304,948 non-deleted labels and 422,284 validations. Nothing here is typed by hand. Those three
-counts are direct `count(*)`s against the schema; every other number comes from the tool's report, and the tables are
-its **excluding-`NoSidewalk`** half — the other six types' queue on its own, which is what validators saw before
-#5285 brought `NoSidewalk` back (its own numbers are in the [NoSidewalk](#nosidewalk-the-block-face-is-the-unit)
-section).
+[Re-running the analysis](#re-running-the-analysis)) run on 2026-11-16 against exports of the production Seattle
+schema: 258,897 servable labels and 525,940 validations. Nothing here is typed by hand. The tables are the report's
+**excluding-`NoSidewalk`** half — the other six types' queue on its own, which is what validators saw before #5285
+brought `NoSidewalk` back (its own numbers are in the [NoSidewalk](#nosidewalk-the-block-face-is-the-unit) section).
 
 "Honest servable pool" means the exact joins and filters the label query applies, so it counts what Validate could
-actually serve today: **206,657** labels excluding `NoSidewalk`, of which **33.1%** already have
-a decided outcome. Two inflations to be aware of when reading the issue's original figures: `NoSidewalk` labels
-(50,806, which missions avoided whenever another type was available) and tutorial labels
-(36,112, which the queue never serves at all).
+actually serve today: **208,141** labels excluding `NoSidewalk`, of which **52.6%** already have a decided outcome.
+Two inflations to be aware of when reading the issue's original figures: `NoSidewalk` labels (50,756, which missions
+avoided whenever another type was available) and tutorial labels (which the queue never serves at all).
 
 ### Pool composition
 
 | status | labels | % pool | still needs votes | retired at N_max | triage |
 |---|---|---|---|---|---|
-| unvalidated | 8,533 | 4.1 | 8,533 | 0 | 0 |
-| unsure-only | 10,202 | 4.9 | 10,201 | 1 | 871 |
-| margin 1 | 111,384 | 53.9 | 110,155 | 1,229 | 2,456 |
-| tied | 8,204 | 4.0 | 7,648 | 556 | 3,321 |
-| decided | 68,334 | 33.1 | 0 | 0 | 0 |
-| **total** | 206,657 | 100.0 | 136,537 | 1,786 | 6,648 |
+| unvalidated | 1,092 | 0.5 | 1,092 | 0 | 0 |
+| unsure-only | 11,076 | 5.3 | 11,075 | 1 | 1,162 |
+| margin 1 | 74,175 | 35.6 | 72,734 | 1,441 | 4,806 |
+| tied | 12,417 | 6.0 | 11,743 | 674 | 8,407 |
+| decided | 109,381 | 52.6 | 0 | 0 | 0 |
+| **total** | 208,141 | 100.0 | 96,644 | 2,116 | 14,375 |
 
 | label type | labels | unvalidated | decided | needs votes | triage |
 |---|---|---|---|---|---|
-| CurbRamp | 99,879 | 6,376 | 23,856 | 75,984 | 1,880 |
-| NoCurbRamp | 44,094 | 868 | 20,925 | 22,842 | 1,187 |
-| Obstacle | 17,793 | 99 | 7,569 | 9,201 | 1,606 |
-| SurfaceProblem | 37,147 | 293 | 13,273 | 23,524 | 1,914 |
-| Crosswalk | 6,156 | 94 | 2,156 | 3,974 | 37 |
-| Signal | 1,588 | 803 | 555 | 1,012 | 24 |
+| CurbRamp | 100,552 | 105 | 51,474 | 49,025 | 4,822 |
+| NoCurbRamp | 44,420 | 25 | 30,641 | 13,402 | 2,993 |
+| Obstacle | 17,881 | 10 | 7,875 | 8,792 | 2,495 |
+| SurfaceProblem | 37,317 | 41 | 16,233 | 20,658 | 3,976 |
+| Crosswalk | 6,291 | 4 | 2,608 | 3,658 | 65 |
+| Signal | 1,680 | 907 | 550 | 1,109 | 24 |
 
-Zero-vote labels: 8,533. Unsure-only: 10,202. The pool is dominated by margin-1 labels
-(111,384), **45,147** of which carry only the AI's vote — exactly the case a second, human vote
-should confirm, and exactly what the "nothing is retired by the AI alone" rule keeps in the crowd queue.
+Zero-vote labels: 1,092. Unsure-only: 11,076. **53,827** labels carry only the AI's vote — exactly the case a
+second, human vote should confirm, and exactly what the "nothing is retired by the AI alone" rule keeps in the crowd
+queue.
 
 ### Vote-count buckets among undecided labels
 
-The 138,323 labels in the pool that are still undecided (`|agree − disagree| < SettledMargin`), by how many votes they
+The 98,760 labels in the pool that are still undecided (`|agree − disagree| < SettledMargin`), by how many votes they
 already carry. The "≥ this many" column is what a cap set at that number would retire into the expert queue, so the
 column *is* the sizing table for `MaxCrowdVotes`. It is computed from the same `pool.csv` export with the same
-module's predicates; its 5-row (1,786) is the `retired at N_max` total above.
+predicates; its 5-row (2,116) is the `retired at N_max` total above.
 
 | total votes | undecided labels | ≥ this many votes | % of undecided |
 |---|---|---|---|
-| 0 | 8,533 | 138,323 | 100.0 |
-| 1 | 102,329 | 129,790 | 93.8 |
-| 2 | 12,424 | 27,461 | 19.9 |
-| 3 | 10,922 | 15,037 | 10.9 |
-| 4 | 2,329 | 4,115 | 3.0 |
-| 5 | 1,073 | 1,786 | 1.3 |
-| 6 | 377 | 713 | 0.5 |
-| 7 | 191 | 336 | 0.2 |
-| 8+ | 145 | 145 | 0.1 |
+| 0 | 1,092 | 98,760 | 100.0 |
+| 1 | 54,029 | 97,668 | 98.9 |
+| 2 | 25,474 | 43,639 | 44.2 |
+| 3 | 11,925 | 18,165 | 18.4 |
+| 4 | 4,124 | 6,240 | 6.3 |
+| 5 | 1,117 | 2,116 | 2.1 |
+| 6 | 581 | 999 | 1.0 |
+| 7 | 207 | 418 | 0.4 |
+| 8+ | 211 | 211 | 0.2 |
 
-`MaxCrowdVotes = 5` retires **1,786** undecided labels (1.3% of the undecided set) into the
-expert queue. A cap of 4 would retire 4,115, a cap of 6 only 713.
+`MaxCrowdVotes = 5` retires **2,116** undecided labels (2.1% of the undecided set) into the expert queue. A cap of 4
+would retire 6,240, a cap of 6 only 999.
 
 ### Where picks land
 
 Each column is 2,000+ simulated missions of the real procedure — order a type's labels by that policy's sort key, take
-the top 50, keep a random 10 — with types weighted by that policy's own type selection. `OLD (today)` is the
+the top 50, keep a random 10 — with types weighted by that policy's own type selection. `OLD (pre-#4715)` is the
 `det + random() · (426 − det)` key over the whole pool; the three middle columns change only the sampler, keeping the
 new score and the old (unretired) eligibility, so the gap between them and `NEW` is what the retirement rule buys.
 
-| status | labels | % pool | OLD analytic | OLD (today) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (retirement + score^2) |
+| status | labels | % pool | OLD analytic | OLD (pre-#4715) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (#4715: retirement + score^2) |
 |---|---|---|---|---|---|---|---|---|
-| unvalidated | 8,533 | 4.1 | 7.9 | 9.4 | 9.0 | 11.9 | 34.5 | 12.6 |
-| unsure-only | 10,202 | 4.9 | 9.6 | 11.2 | 6.9 | 6.8 | 0.3 | 6.4 |
-| margin 1 | 111,384 | 53.9 | 48.8 | 45.4 | 58.3 | 62.0 | 2.4 | 71.4 |
-| tied | 8,204 | 4.0 | 9.3 | 10.4 | 7.4 | 10.3 | 62.8 | 9.6 |
-| decided | 68,334 | 33.1 | 24.4 | 23.6 | 18.5 | 9.0 | 0.0 | 0.0 |
+| unvalidated | 1,092 | 0.5 | 10.3 | 12.4 | 4.4 | 5.3 | 47.9 | 3.6 |
+| unsure-only | 11,076 | 5.3 | 10.5 | 12.4 | 12.0 | 17.6 | 22.7 | 19.0 |
+| margin 1 | 74,175 | 35.6 | 29.5 | 28.5 | 42.4 | 42.9 | 0.0 | 54.5 |
+| tied | 12,417 | 6.0 | 14.0 | 14.5 | 13.2 | 20.6 | 29.5 | 22.9 |
+| decided | 109,381 | 52.6 | 35.6 | 32.2 | 28.0 | 13.6 | 0.0 | 0.0 |
 
-Decided labels take **23.6%** of picks under the `det + random() · (426 − det)` sort key. Fixing only
-the randomization is not enough: proportional sampling still sends 18.5% of picks at them. The
-retirement rule is what removes the waste — with it, the figure is 0.0%.
+Decided labels take **32.2%** of picks under the `det + random() · (426 − det)` sort key. Fixing only the
+randomization is not enough: proportional sampling still sends 28.0% of picks at them. The retirement rule is what
+removes the waste — with it, the figure is 0.0%.
 
-| label group | labels | % pool | OLD analytic | OLD (today) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (retirement + score^2) |
+| label group | labels | % pool | OLD analytic | OLD (pre-#4715) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (#4715: retirement + score^2) |
 |---|---|---|---|---|---|---|---|---|
-| by a new labeler | 29,258 | 14.2 | 21.2 | 23.3 | 22.1 | 34.6 | 100.0 | 37.0 |
-| ...and bonus-eligible today (correct IS NULL) | 2,650 | 1.3 | 10.5 | 13.0 | 4.4 | 8.1 | 97.6 | 7.5 |
-| ...and bonus-eligible under #4715 (needs votes) | 17,827 | 8.6 | 16.7 | 18.8 | 19.0 | 33.1 | 100.0 | 37.0 |
+| by a new labeler | 30,358 | 14.6 | 31.2 | 32.4 | 20.2 | 30.4 | 100.0 | 33.6 |
+| ...and bonus-eligible today (correct IS NULL) | 3,409 | 1.6 | 21.7 | 23.5 | 6.3 | 12.7 | 100.0 | 13.9 |
+| ...and bonus-eligible under #4715 (needs votes) | 11,373 | 5.5 | 24.4 | 26.1 | 15.3 | 27.8 | 100.0 | 33.6 |
 
-New labelers' labels are 29,258 of the pool (14.2%), and they go from **23.3%** of picks today to **37.0%** under this
-PR. Two changes are behind that, and the table does not let them be attributed cleanly, because every column that
-isolates the sampler already carries the new score:
+New labelers' labels are 30,358 of the pool (14.6%), and they take 32.4% of picks under the old key and **33.6%**
+under this policy. Two things inside the new policy set that share:
 
 - **The bonus gate.** Moving it from `label.correct IS NULL` to `needsVotes` takes the new-labeler labels that
-  actually carry the +150 from **2,650** to **17,827** — the same bonus, reaching 6.7× as many labels, because under
+  actually carry the +150 from **3,409** to **11,373** — the same bonus, reaching 3.3× as many labels, because under
   the `needsVotes` gate a lone AI *Agree* does not disqualify a label.
-- **The exponent.** Holding eligibility fixed, the same score gives new labelers **22.1%** of picks at
-  `PickWeightExponent = 1` and **34.6%** at 2; the retirement rule adds the last 2.4 points to reach 37.0%.
+- **The exponent.** Holding eligibility fixed, the same score gives new labelers **20.2%** of picks at
+  `PickWeightExponent = 1` and **30.4%** at 2; the retirement rule adds the last 3.2 points to reach 33.6%.
 
-So the 37.0% is a deliberate increase over today's 23.3%, not a side effect. If maintainers want new labelers back
-near today's share, `NewLabelerBonus` (150) is the knob to turn — it is the term the widened gate multiplied across
-the set — and `PickWeightExponent` is the second.
+If maintainers want new labelers' share moved, `NewLabelerBonus` (150) is the knob to turn — it is the term the
+widened gate multiplied across the set — and `PickWeightExponent` is the second.
 
 ### Historical replay
 
 Replaying every validation in timestamp order (self-votes excluded) and asking what the label's margin was at the
-moment the vote was cast: of 417,930 non-self validations, 72,769 (17.4%) were cast on a label that was already
+moment the vote was cast: of 524,854 non-self validations, 107,319 (20.4%) were cast on a label that was already
 decided.
 
 | year | votes | cast at margin >= 2 | % wasted |
 |---|---|---|---|
-| 2019 | 46,583 | 4,375 | 9.4 |
-| 2020 | 26,291 | 33 | 0.1 |
-| 2021 | 67,826 | 235 | 0.3 |
-| 2022 | 77,544 | 16,038 | 20.7 |
-| 2023 | 41,746 | 14,542 | 34.8 |
-| 2024 | 32,819 | 10,546 | 32.1 |
-| 2025 | 53,467 | 8,533 | 16.0 |
-| 2026 | 71,654 | 18,467 | 25.8 |
+| 2019 | 46,623 | 4,375 | 9.4 |
+| 2020 | 26,270 | 33 | 0.1 |
+| 2021 | 67,838 | 235 | 0.3 |
+| 2022 | 77,512 | 16,038 | 20.7 |
+| 2023 | 42,424 | 14,811 | 34.9 |
+| 2024 | 31,795 | 10,242 | 32.2 |
+| 2025 | 53,403 | 8,529 | 16.0 |
+| 2026 | 178,989 | 53,056 | 29.6 |
 
 | source | votes | cast at margin >= 2 | % wasted |
 |---|---|---|---|
-| Validate | 243,904 | 42,101 | 17.3 |
-| SidewalkAI | 103,632 | 20,872 | 20.1 |
-| ValidateMobile | 54,849 | 5,382 | 9.8 |
-| Old data, unknown source | 6,923 | 830 | 12.0 |
-| ExternalTagValidationASSETS2024 | 5,716 | 3,112 | 54.4 |
-| GalleryImage | 1,134 | 262 | 23.1 |
-| AdminUserDashboard | 926 | 1 | 0.1 |
+| Validate | 244,595 | 42,224 | 17.3 |
+| SidewalkAI | 209,452 | 55,067 | 26.3 |
+| ValidateMobile | 54,816 | 5,370 | 9.8 |
+| Old data, unknown source | 6,909 | 830 | 12.0 |
+| ExternalTagValidationASSETS2024 | 5,702 | 3,106 | 54.5 |
+| GalleryImage | 1,173 | 297 | 25.3 |
+| AdminUserDashboard | 922 | 1 | 0.1 |
+| GalleryExpandedImage | 573 | 232 | 40.5 |
 | ExpertValidate | 360 | 76 | 21.1 |
-| GalleryExpandedImage | 264 | 43 | 16.3 |
 | LabelSearchPage | 109 | 52 | 47.7 |
-| LabelMap | 38 | 7 | 18.4 |
+| LandingPage | 71 | 0 | 0.0 |
+| LabelMap | 56 | 16 | 28.6 |
+| GalleryExpandedThumbs | 48 | 19 | 39.6 |
 | AdminLabelSearchTab | 33 | 16 | 48.5 |
-| GalleryExpandedThumbs | 30 | 14 | 46.7 |
+| SharedLabelImage | 23 | 12 | 52.2 |
 | GalleryThumbs | 8 | 1 | 12.5 |
 | AdminContributionsTab | 4 | 0 | 0.0 |
 
-This is a live property of the selection policy, not legacy debris: **25.8%** of the votes cast in
-2026 landed on a label that was already at `margin >= SettledMargin` when the vote was cast.
+This is a live property of the selection policy, not legacy debris: **29.6%** of the votes cast in 2026 landed on a
+label that was already at `margin >= SettledMargin` when the vote was cast.
 
 The marginal value of a vote, by how many the label already carried. The settle rate is measured over the votes cast
 while the label was still undecided, because a vote on a settled label cannot settle anything:
 
 | votes already on the label | votes cast there | of those, on an already-decided label | still-undecided votes | % of those that settled it | % of those unsure |
 |---|---|---|---|---|---|
-| 0 | 203,066 | 0 | 203,066 | 0.0 | 8.3 |
-| 1 | 103,035 | 0 | 103,035 | 68.0 | 7.2 |
-| 2 | 55,424 | 35,579 | 19,845 | 10.9 | 19.6 |
-| 3 | 27,142 | 14,551 | 12,591 | 48.0 | 19.4 |
-| 4 | 12,899 | 9,666 | 3,233 | 16.9 | 23.7 |
-| 5 | 6,591 | 4,605 | 1,986 | 38.2 | 25.8 |
-| 6 | 3,552 | 2,880 | 672 | 19.2 | 28.4 |
-| 7 | 2,026 | 1,641 | 385 | 29.9 | 29.4 |
-| 8 | 1,236 | 1,099 | 137 | 23.4 | 25.5 |
-| 9+ | 2,959 | 2,748 | 211 | 29.9 | 22.7 |
+| 0 | 211,634 | 0 | 211,634 | 0.0 | 8.6 |
+| 1 | 156,085 | 0 | 156,085 | 68.6 | 12.0 |
+| 2 | 80,719 | 55,584 | 25,135 | 11.8 | 25.4 |
+| 3 | 37,454 | 21,074 | 16,380 | 46.4 | 26.0 |
+| 4 | 17,800 | 13,691 | 4,109 | 15.8 | 31.2 |
+| 5 | 8,737 | 6,284 | 2,453 | 34.9 | 33.6 |
+| 6 | 4,657 | 3,817 | 840 | 17.0 | 38.6 |
+| 7 | 2,596 | 2,121 | 475 | 25.3 | 38.5 |
+| 8 | 1,579 | 1,399 | 180 | 20.6 | 39.4 |
+| 9+ | 3,593 | 3,349 | 244 | 26.2 | 31.1 |
 
 The settle rate alternates with the parity of the vote count rather than decaying — a vote arriving at an odd count is
-the one that can open a margin of 2, so **68.0%** of second votes settle their label against 10.9% of third votes and
-**38.2%** of sixth votes. What does decay is the volume and the confidence: the still-undecided votes arriving at
-depth 5 are 1,986, under 1% of the 203,066 that arrive at depth 0, and the Unsure share of them has climbed from
-7.2% at one prior vote to 25.8% at five. Past five votes the crowd is spending its time on labels it has already told
+the one that can open a margin of 2, so **68.6%** of second votes settle their label against 11.8% of third votes and
+**34.9%** of sixth votes. What does decay is the volume and the confidence: the still-undecided votes arriving at
+depth 5 are 2,453, about 1% of the 211,634 that arrive at depth 0, and the Unsure share of them has climbed from
+12.0% at one prior vote to 33.6% at five. Past five votes the crowd is spending its time on labels it has already told
 us it cannot call, which is what the cap stops.
 
 ### Forward simulation
@@ -516,26 +562,27 @@ us it cannot call, which is what the cap stops.
 20,000 simulated votes over the real pool, with missions of 10, each policy choosing its own label type and
 drawing with its own sampler, and counts updated per vote. The voter model is printed in the tool's own report.
 
-| metric | OLD (today) | NEW (#4715) |
+| metric | OLD (pre-#4715) | NEW (#4715) |
 |---|---|---|
 | votes simulated | 20,000 | 20,000 |
-| % on labels already decided | 25.7 | 0.0 |
-| % on labels already at 5+ votes | 4.9 | 0.0 |
-| distinct zero-vote labels reached | 1,489 | 2,228 |
-| labels newly settled | 6,389 | 9,465 |
-| votes per label settled | 3.13 | 2.11 |
+| % on labels already decided | 38.0 | 0.0 |
+| % on labels already at 5+ votes | 7.5 | 0.0 |
+| distinct zero-vote labels reached | 697 | 565 |
+| labels newly settled | 4,468 | 7,657 |
+| votes per label settled | 4.48 | 2.61 |
 | most votes on any one label | 4 | 4 |
 
-Votes landing on already-decided labels: 25.7% → **0.0%**. Distinct zero-vote labels reached: 1,489 →
-**2,228**. Labels settled by those 20,000 votes: 6,389 → **9,465**, i.e. 3.13 votes per settled label → **2.11**.
+Votes landing on already-decided labels: 38.0% → **0.0%**. Labels settled by those 20,000 votes: 4,468 →
+**7,657**, i.e. 4.48 votes per settled label → **2.61**. Distinct zero-vote labels reached falls, 697 → 565: only
+1,092 are left in the pool, and the new policy spends its picks on the far larger set one vote short of a decision.
 The cap does not bind at this horizon — the deepest label reaches 4 votes under both policies — so the retirement
 rule's gain here is entirely the decided labels it stops serving, not labels rescued from over-validation; the 5-vote
-cap pays off on the 1,786 labels that are *already* past it.
+cap pays off on the 2,116 labels that are *already* past it.
 
 ### Triage queue size
 
-6,648 Seattle labels qualify for `Triage`: 1,786 capped out, 2,030
-unsure-heavy, 3,029 AI-contested (the three overlap).
+14,375 Seattle labels qualify for `Triage`: 2,116 capped out, 3,779 unsure-heavy, 8,867 AI-contested (the three
+overlap).
 
 ## Re-running the analysis
 

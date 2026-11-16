@@ -45,7 +45,7 @@
 .lvg-card-img {
   position: relative;
 
-  /* Match the Explore canvas (720x480) so the label marker's percentage position lines up, like the Gallery. */
+  /* Match the Explore canvas (720x480) so the label marker's percentage position lines up, like Gallery. */
   aspect-ratio: 3 / 2;
   overflow: hidden;
   background: var(--color-neutral-100, #f0f0f0);
@@ -187,7 +187,7 @@
   outline-offset: 2px;
 }
 
-.lvg-btn:disabled {
+.lvg-btn[aria-disabled="true"] {
   cursor: default;
   opacity: 0.6;
 }
@@ -195,17 +195,17 @@
 /* White at rest so six cards' buttons don't compete with the photos; hovering fills with the Gallery card's
    validation palette (pine/orange/asphalt) so the two label-card UIs read as one family at the moment of action.
    Dark asphalt text keeps ≥4.5:1 contrast on all three hover fills. */
-.lvg-btn-agree:hover:not(:disabled) {
+.lvg-btn-agree:hover:not([aria-disabled="true"]) {
   background: var(--color-pine-500, #78c9ab);
   border-color: var(--color-pine-600, #60a189);
 }
 
-.lvg-btn-disagree:hover:not(:disabled) {
+.lvg-btn-disagree:hover:not([aria-disabled="true"]) {
   background: var(--color-orange-500, #eb724e);
   border-color: var(--color-orange-600, #a74d32);
 }
 
-.lvg-btn-unsure:hover:not(:disabled) {
+.lvg-btn-unsure:hover:not([aria-disabled="true"]) {
   background: var(--color-asphalt-100, #d5d3e4);
   border-color: var(--color-asphalt-200, #9f9db1);
 }

@@ -282,8 +282,9 @@ export class MiniLineChart {
   static #niceMax(dataMax, integral) {
     const rawStep = dataMax / 4;
     const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-    const mantissa = rawStep / magnitude;
-    let step = ([1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((c) => mantissa <= c) ?? 10) * magnitude;
+    // Capped so a rounding slip in log10 can't push it past the last candidate.
+    const mantissa = Math.min(rawStep / magnitude, 10);
+    let step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((c) => mantissa <= c) * magnitude;
     if (integral && !Number.isInteger(step)) step = Math.ceil(step);
     return step * 4;
   }

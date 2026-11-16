@@ -19,6 +19,7 @@ import scala.util.Try
 @ImplementedBy(classOf[PartnerServiceImpl])
 trait PartnerService {
   def getPartnersForLanding: Future[Seq[PartnerMetadata]]
+  def getAllPartners: Future[Seq[PartnerMetadata]]
   def getAdminLists: Future[(Seq[PartnerMetadata], Seq[PartnerMetadata])]
   def getLogoForServing(partnerId: Int, version: Option[String]): Future[Option[(Array[Byte], String, OffsetDateTime)]]
   def createPartner(
@@ -54,7 +55,8 @@ trait PartnerService {
  *
  * Reads that serve the public landing page are cached in-process: partner data changes only on rare admin writes but
  * renders on the highest-traffic page. Same-instance writes invalidate immediately; the TTLs bound how stale another
- * instance can get (a global-partner edit is made on one city's app but rendered by all of them).
+ * instance can get (a global-partner edit, or any city's edit on /about, is made on one city's app but rendered by
+ * all of them).
  */
 @Singleton
 class PartnerServiceImpl @Inject() (
@@ -75,6 +77,11 @@ class PartnerServiceImpl @Inject() (
     cacheApi.getOrElseUpdate(LANDING_CACHE_KEY, LANDING_CACHE_TTL) {
       db.run(partnerTable.getForLanding(configService.getCityId))
     }
+  }
+
+  /** Every city's partners plus the project-wide ones, for the /about page's grid (#5980); cached like the landing's. */
+  def getAllPartners: Future[Seq[PartnerMetadata]] = {
+    cacheApi.getOrElseUpdate(ABOUT_CACHE_KEY, LANDING_CACHE_TTL)(db.run(partnerTable.getAll))
   }
 
   def getAdminLists: Future[(Seq[PartnerMetadata], Seq[PartnerMetadata])] = {
@@ -180,9 +187,10 @@ class PartnerServiceImpl @Inject() (
     }
   }
 
-  /** Drops the landing-page cache (and, when given, one partner's logo cache) after a successful write. */
+  /** Drops the landing and /about caches (and, when given, one partner's logo cache) after a successful write. */
   private def invalidate(partnerId: Option[Int]): Future[Unit] = {
-    val removals = cacheApi.remove(LANDING_CACHE_KEY) +: partnerId.map(id => cacheApi.remove(logoCacheKey(id))).toSeq
+    val removals = Seq(cacheApi.remove(LANDING_CACHE_KEY), cacheApi.remove(ABOUT_CACHE_KEY)) ++
+      partnerId.map(id => cacheApi.remove(logoCacheKey(id))).toSeq
     Future.sequence(removals).map(_ => ())
   }
 
@@ -278,12 +286,13 @@ object PartnerServiceImpl {
   val MAX_ALT_TEXT_LENGTH: Int = 300
   val MAX_URL_LENGTH: Int      = 500
 
-  // Cross-instance staleness bound for the cached landing list (same-instance writes invalidate immediately).
+  // Cross-instance staleness bound for the cached landing and /about lists (same-instance writes invalidate immediately).
   private val LANDING_CACHE_TTL = 10.minutes
   // Logo bytes are only served from cache when the requested ?v= matches, so this TTL is memory hygiene, not a
   // correctness bound.
   private val LOGO_CACHE_TTL = 1.hour
 
   private val LANDING_CACHE_KEY            = "partnersForLanding"
+  private val ABOUT_CACHE_KEY              = "partnersForAbout"
   private def logoCacheKey(partnerId: Int) = s"partnerLogo_$partnerId"
 }

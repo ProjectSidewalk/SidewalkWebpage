@@ -13,6 +13,7 @@
 
 import mapboxgl from '../common/mapboxgl.js';
 import { LabelDetail } from '../common/label-detail/LabelDetail.js';
+import { GoldExamplePin } from './GoldExamplePin.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { util } from '../common/utilities.js';
 import { addLabelsToMap } from '../ps-map/addLabelsToMap.js';
@@ -38,6 +39,7 @@ export class SharedLabelPage {
   constructor(data) {
     this.#data = data;
     this.#initDetail();
+    this.#initGoldExamplePin();
     this.#initMap();
     this.#initLegend();
     this.#initStats();
@@ -47,6 +49,17 @@ export class SharedLabelPage {
   // ───────────────────────────────────────────────────────────────────
   // Hero: the shared LabelDetail component
   // ───────────────────────────────────────────────────────────────────
+
+  /** The public page has no panel to mount on (#1445). */
+  #initGoldExamplePin() {
+    const root = document.getElementById('spotlight-gold');
+    if (!root) return;
+    new GoldExamplePin(root, {
+      labelId: this.#data.labelId,
+      labelType: this.#data.labelType,
+      goldReason: this.#data.goldReason,
+    });
+  }
 
   /**
    * Resolves the pano-viewer class for the city's imagery provider. Mirrors the LabelMap / Gallery selection.

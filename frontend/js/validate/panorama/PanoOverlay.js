@@ -7,7 +7,6 @@ import { mousePosition, util } from '../../common/utilities.js';
  */
 export class PanoOverlay {
   #viewControlLayer;
-  #panningDisabled = false;
   /** @type {LabelVisibilityControl} */
   #labelVisibilityControl;
   /** @type {PanoManager} */
@@ -39,20 +38,6 @@ export class PanoOverlay {
   }
 
   /**
-   * Disables panning on the pano canvas.
-   */
-  disablePanning() {
-    this.#panningDisabled = true;
-  }
-
-  /**
-   * Enables panning on the pano canvas.
-   */
-  enablePanning() {
-    this.#panningDisabled = false;
-  }
-
-  /**
    * A callback function that is fired with the mouse down event on the view control layer (when panning).
    * @param {MouseEvent} e
    */
@@ -65,8 +50,9 @@ export class PanoOverlay {
     this.#mouseStatus.isLeftDown = true;
     this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
 
-    // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
-    this.#labelVisibilityControl.hideLabelCard();
+    // Hide the label card as panning starts. A press on the marker may be a click instead; the marker handles that.
+    const onMarker = /** @type {Element} */ (e.target).closest('#validate-pano-marker');
+    if (!onMarker) this.#labelVisibilityControl.hideLabelCard();
 
     // This is necessary for supporting touch devices, because there is no mouse hover.
     this.#mouseStatus.prevX = mousePosition(e, e.currentTarget).x;
@@ -97,8 +83,7 @@ export class PanoOverlay {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;
     this.#mouseStatus.currY = mousePosition(e, e.currentTarget).y;
 
-    const panning = this.#mouseStatus.isLeftDown && this.#panningDisabled === false;
-    if (panning && this.#panoManager.getProperty('panoLoaded')) {
+    if (this.#mouseStatus.isLeftDown && this.#panoManager.getProperty('panoLoaded')) {
       // If a mouse is being dragged on the control layer, move the pano.
       let dx = this.#mouseStatus.currX - this.#mouseStatus.prevX;
       let dy = this.#mouseStatus.currY - this.#mouseStatus.prevY;

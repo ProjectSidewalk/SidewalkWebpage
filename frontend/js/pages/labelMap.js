@@ -14,6 +14,7 @@ import { createLabelSpotlight } from '../ps-map/labelSpotlight.js';
 import { createNearbyLabelNavigator } from '../ps-map/nearbyLabelNavigator.js';
 import { setRegionFocus } from '../ps-map/psMapUtilities.js';
 import '../../css/components/map-frame.css';
+import '../../css/components/tool-header.css';
 
 const data = document.getElementById('page-entry').dataset;
 const imagerySrc = data.imagerySource;

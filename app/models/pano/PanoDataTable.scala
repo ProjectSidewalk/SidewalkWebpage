@@ -182,6 +182,20 @@ object PanoDataTable {
   }
 
   /**
+   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
+   *
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and heading, and rows written
+   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
+   * imagery under the new label's marker (#4804), so they're better left out of the queue. The field rule is
+   * [[hasBackupViewerFields]]; see the note there before changing it.
+   *
+   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
+   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
+   */
+  def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] =
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) && hasBackupViewerFields(pd))
+
+  /**
    * SQL that reads a free-text `capture_date` column as a date, or NULL when the value isn't a usable date. It takes
    * `YYYY`, `YYYY-MM`, and `YYYY-MM-DD` (missing parts become the 1st). Blank, junk ('Invalid date'), impossible
    * months, and years before 2004 (when street-level imagery began) give NULL instead of failing the query; an

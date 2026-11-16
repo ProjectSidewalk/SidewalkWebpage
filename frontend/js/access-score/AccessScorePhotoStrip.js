@@ -168,6 +168,8 @@ export class AccessScorePhotoStrip {
         className: 'acs-photos__item',
         source: 'AccessScoreStrip',
         log: this.#log,
+        // Redraws build cards from the feed's label cache, so it keeps the re-signed URL, not the expired one (#5861).
+        onImageUrlRefresh: (labelId, field, url) => this.#feed.rememberImageUrl(labelId, field, url),
         onOpen: (labelId) => {
           this.#log('PhotoStrip_labelId', labelId);
           this.#onOpenLabel(labelId, this.#ids);

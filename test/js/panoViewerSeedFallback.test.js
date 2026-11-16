@@ -80,7 +80,21 @@ describe('PanoViewer._moveToInitialLocation', () => {
     expect(viewer.initialSeed).toBe('latLng');
   });
 
+  test('a viewer built with no seed, as Validate builds its own, loads nothing until it is asked to', async () => {
+    const viewer = new TestViewer();
+    await viewer._moveToInitialLocation({});
+    expect(viewer.calls).toEqual([]);
+    expect(viewer.initialSeed).toBeUndefined();
+  });
+
   describe('what the rejection claims about the street (#4918)', () => {
+    test('a lone start location that comes back empty is a street with no imagery', async () => {
+      const viewer = new TestViewer();
+      viewer.deadLatLngs.push(START);
+      const attempt = viewer._moveToInitialLocation({ startLatLng: START });
+      await expect(attempt).rejects.toThrow('No imagery at any of the 1 candidate points along the street.');
+    });
+
     test('every candidate empty is the one case that reports the street as imagery-less', async () => {
       const viewer = new TestViewer();
       viewer.deadLatLngs.push(START, BACKUP_1);

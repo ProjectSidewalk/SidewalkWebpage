@@ -51,6 +51,27 @@ describe('ScoreRamp', () => {
     expect(expr[3].slice(3)).toEqual(ScoreRamp.stops());
   });
 
+  it('reads the dark set for a dark basemap', () => {
+    const dark = ['#111111', '#222222', '#333333', '#444444', '#555555'];
+    dark.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-dark-${i + 1}`, hex));
+    expect(ScoreRamp.colors({ mode: 'dark' })).toEqual(dark);
+  });
+
+  it('reads a three-digit token as its six-digit form', () => {
+    document.documentElement.style.setProperty('--color-score-ramp-1', '#fff');
+    try {
+      expect(ScoreRamp.at(0)).toBe('#ffffff');
+    } finally {
+      document.documentElement.style.setProperty('--color-score-ramp-1', RAMP[0]);
+    }
+  });
+
+  it('a domain with no width paints from the bottom of the ramp rather than dividing by zero', () => {
+    expect(ScoreRamp.at(3, { min: 3, max: 3 })).toBe(RAMP[0]);
+    expect(ScoreRamp.stops({ min: 3, max: 3 }))
+      .toEqual([3, RAMP[0], 3.25, RAMP[1], 3.5, RAMP[2], 3.75, RAMP[3], 4, RAMP[4]]);
+  });
+
   it('renders the legend gradient from the same colors', () => {
     expect(ScoreRamp.cssGradient()).toBe(`linear-gradient(to right, ${RAMP.join(', ')})`);
   });

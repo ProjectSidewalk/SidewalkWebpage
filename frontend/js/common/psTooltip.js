@@ -149,8 +149,8 @@ import { util } from './utilities.js';
     // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do; so does a trigger
     // hiding itself (the minimap's Map key pill).
     if (textObserver === null) {
+      // Only ever watching the trigger of the card on screen: `hide` disconnects it, which drops anything pending.
       textObserver = new MutationObserver((records) => {
-        if (activeTrigger === null || !tooltip?.classList.contains('ps-tooltip--visible')) return;
         if (activeTrigger.checkVisibility?.() === false) {
           hide();
           return;

@@ -62,7 +62,6 @@
   margin: 0 0 25px;
 }
 
-
 .section-subtitle {
   max-width: 450px;
   margin: auto;
@@ -163,7 +162,6 @@
   height: 100%;
 }
 
-
 /* Video banner */
 video#bgvid {
   min-width: 1100px;
@@ -237,7 +235,6 @@ video#bgvid {
   margin: auto;
   padding-top: 20px;
 }
-
 
 #instructionvideo {
   position: relative;
@@ -521,10 +518,10 @@ p#conditional-text {
   vertical-align: -0.06em;
 }
 
-/* Breathing room between the community-partners strip (or the city's contact notice under it) and the created-by
-   section, when both render. */
-.partner-logos + #creators-title,
-.partner-section-notice + #creators-title {
+/* Breathing room between one part of the section and the next heading: the city's strip (or its contact notice), the
+   project-wide strip, and the created-by credit, whichever of them render. */
+.partner-logos + .partner-section-heading,
+.partner-section-notice + .partner-section-heading {
   margin-top: var(--space-xxl);
 }
 
@@ -537,7 +534,7 @@ p#conditional-text {
   text-wrap: balance;
 }
 
-/* With no partner logos above it, the notice closes the section as a footnote under the credit line, set off by a
+/* With no city logos above it, the notice closes the section as a footnote under the credit line, set off by a
    rule so it doesn't read as part of the credits. */
 #partners-credit + .partner-section-notice {
   margin-top: var(--space-xl);
@@ -579,19 +576,15 @@ p#conditional-text {
   object-fit: contain;
 }
 
-/* The credit line (long-time partners, students, volunteers) sits under the creator logos, and names enough
-   organizations that it needs a wider measure than the tagline above to stay at three lines. */
+/* The credit line (students, volunteers) sits under the creator logos. */
 #partners-credit {
   margin-top: var(--space-xl);
   margin-bottom: 0;
-  max-width: 780px;
 }
 
-/* The static creator logos are a visually subordinate strip. */
-.partner-logos--creators {
-  gap: var(--space-lg) var(--space-xxl);
-}
-
+/* The project-wide and creator strips sit a step below the city's own partners, which are what a visitor to this city
+   came for. */
+.partner-logos--project img,
 .partner-logos--creators img {
   height: 56px;
   max-width: 240px;
@@ -608,6 +601,7 @@ p#conditional-text {
     max-width: 160px;
   }
 
+  .partner-logos--project img,
   .partner-logos--creators img {
     height: 40px;
     max-width: 160px;

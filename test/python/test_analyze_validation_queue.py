@@ -196,7 +196,7 @@ def test_consensus_need_without_unsure_is_todays_formula():
 
 
 def test_new_score_tops_out_at_425_for_a_fresh_label_from_a_new_high_quality_labeler():
-    score = avq.new_priority_score(0, 0, 0, own_labels_validated=0, high_quality=True, low_quality=False,
+    score = avq.new_priority_score(0, 0, 0, "", own_labels_validated=0, high_quality=True, low_quality=False,
                                    stale=False, recent=True)
     assert float(score) == pytest.approx(425.0)
 
@@ -205,15 +205,29 @@ def test_the_new_labeler_bonus_follows_needs_votes_not_the_correct_flag():
     # A single AI Agree sets `correct`, which strips the bonus under today's gate but not under the new one.
     args = dict(own_labels_validated=0, high_quality=False, low_quality=False, stale=False, recent=False)
     old = avq.old_priority_score(1, 0, correct_is_null=False, **args)
-    new = avq.new_priority_score(1, 0, 0, **args)
+    new = avq.new_priority_score(1, 0, 0, "Agree", **args)
     assert float(old) == pytest.approx(100.0)
     assert float(new) == pytest.approx(250.0)
 
 
+def test_the_ais_unsure_does_not_lower_the_consensus_need():
+    args = dict(own_labels_validated=100, high_quality=False, low_quality=False, stale=False, recent=False)
+    assert float(avq.new_priority_score(0, 0, 1, "Unsure", **args)) == pytest.approx(200.0)
+    assert float(avq.new_priority_score(0, 0, 1, "", **args)) == pytest.approx(100.0)
+    assert float(avq.new_priority_score(0, 0, 2, "Unsure", **args)) == pytest.approx(100.0)
+
+
+def test_the_ais_vote_on_its_own_label_is_not_a_counted_vote():
+    pool = make_pool([("CurbRamp", 0, 0, 1, {"ai_result": "Unsure", "ai_labeler": True}),
+                      ("CurbRamp", 0, 0, 1, {"ai_result": "Unsure"})])
+    assert list(pool.counted_ai_result()) == ["", "Unsure"]
+    assert [float(s) for s in pool.new_score()] == pytest.approx([100.0, 200.0])
+
+
 def test_a_low_quality_or_stale_audit_task_forfeits_the_new_labeler_bonus():
     base = dict(own_labels_validated=0, high_quality=False, recent=False)
-    assert float(avq.new_priority_score(0, 0, 0, low_quality=True, stale=False, **base)) == pytest.approx(200.0)
-    assert float(avq.new_priority_score(0, 0, 0, low_quality=False, stale=True, **base)) == pytest.approx(200.0)
+    assert float(avq.new_priority_score(0, 0, 0, "", low_quality=True, stale=False, **base)) == pytest.approx(200.0)
+    assert float(avq.new_priority_score(0, 0, 0, "", low_quality=False, stale=True, **base)) == pytest.approx(200.0)
 
 
 def test_old_pick_weight_is_the_reciprocal_of_the_gap_to_the_ceiling():

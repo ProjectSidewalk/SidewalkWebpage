@@ -177,6 +177,20 @@ describe('addCitiesToMap city popup (#4591)', () => {
     expect(distanceCell()).toBe('1234 km'); // stats.km_explored
   });
 
+  test('keeps a decimal for a distance that is under ten in the reader\'s own units', async () => {
+    const stats = { ...GOOD_STATS, km_explored: 12 };
+    await clickCity(stats);
+    expect(distanceCell()).toBe('12 km');
+
+    // Twelve kilometers is under eight miles, so an imperial reader gets the decimal a metric one does not.
+    useUtil({
+      isMetric: () => false,
+      longDistanceToString: (km, precision = 0) => `${(km / 1.609344).toFixed(precision)} mi`,
+    });
+    await clickCity(stats);
+    expect(distanceCell()).toBe('7.5 mi');
+  });
+
   // The regression itself: with the pre-restructure flat shape, validations.combined is undefined, so the cell
   // falls back to 0 while labels/distance still populate — exactly the reported #4591 symptom. If the code ever
   // reverts to reading the flat `validations.total_validations`, the assertion above fails against GOOD_STATS.

@@ -133,7 +133,7 @@ export class PanoramaxViewer extends PanoViewer {
    * @param {boolean} [panoOptions.scrollwheel] - GSV's name for `zoomControl`, used when that isn't given.
    * @returns {Promise<void>}
    */
-  async initialize(canvasElem, panoOptions = {}) {
+  async initialize(canvasElem, panoOptions) {
     await PanoramaxViewer.preloadLibrary();
     const { Viewer, EquirectangularTilesAdapter } = sdk;
     // Validate and the label popup pass GSV's `scrollwheel` name for the same switch.
@@ -267,7 +267,7 @@ export class PanoramaxViewer extends PanoViewer {
     this.#position = this.#viewer.getPosition();
 
     // Convert zoom to a horizontal fov, then to the vertical fov PSV's zoom level is defined on.
-    const zoom = pov.zoom || this.getPov().zoom || 1;
+    const zoom = pov.zoom || this.getPov().zoom;
     const verticalFov = util.pano.hFovToVFov(util.pano.zoomToFov(zoom), this.#aspect());
     this.#viewer.zoom(this.#viewer.dataHelper.fovToZoomLevel(verticalFov));
     this.#verticalFov = this.#viewer.state.vFov;
@@ -278,7 +278,6 @@ export class PanoramaxViewer extends PanoViewer {
   showNavigationArrows = () => {};
 
   resize = () => {
-    if (!this.#viewer) return;
     this.#viewer.autoSize();
     // The zoom-1 and zoom-3 field-of-view bounds are defined horizontally, so a new aspect ratio moves them.
     const fovs = this.#fovLimits();
@@ -341,7 +340,7 @@ export class PanoramaxViewer extends PanoViewer {
    * (30 is its default view). `LabelDataForApi.panoUrl` builds the same URL server-side for the v3 API's `pano_url`
    * and can't share this code across the language line — change one and change the other.
    */
-  publicViewerLink(panoId, { heading = 0, pitch = 0 } = {}) {
+  publicViewerLink(panoId, { heading = 0, pitch = 0 }) {
     return {
       url: `https://api.panoramax.xyz/#focus=pic&pic=${panoId}&xyz=${heading.toFixed(2)}/${pitch.toFixed(2)}/30`,
       i18nKey: 'common:pano-info.view-in-panoramax',
@@ -580,7 +579,7 @@ export class PanoramaxViewer extends PanoViewer {
   #attributionFor = (item) => {
     const id = item.properties.license;
     const known = PanoramaxViewer.#LICENSES[id];
-    const licenseLink = item.links?.find((l) => l.rel === 'license')?.href;
+    const licenseLink = item.links.find((l) => l.rel === 'license')?.href;
     return {
       holder: item.properties['geovisio:producer'] || 'Panoramax contributor',
       provider: 'Panoramax',
@@ -685,7 +684,7 @@ export class PanoramaxViewer extends PanoViewer {
   #yawToHeading = (yaw) => (this.#azimuth() + util.math.toDegrees(yaw) + 360) % 360;
 
   /** The live width:height ratio PSV renders at, falling back to the container's until the first render. */
-  #aspect = () => this.#viewer?.state?.aspect || this._viewportAspect();
+  #aspect = () => this.#viewer?.state.aspect || this._viewportAspect();
 
   /**
    * PSV's zoom range is defined on the vertical field of view, while our zoom levels are horizontal-fov terms, so

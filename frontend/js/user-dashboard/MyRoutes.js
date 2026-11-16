@@ -68,7 +68,7 @@ export class MyRoutes {
 
   /** Announces a change to screen readers via the section's live region. */
   #announce(message) {
-    if (this.#statusEl) this.#statusEl.textContent = message;
+    this.#statusEl.textContent = message;
   }
 
   /**
@@ -77,7 +77,7 @@ export class MyRoutes {
    * @param {HTMLElement} btn - The clicked copy button (carries data-route-id).
    */
   #copyLink(btn) {
-    const slug = btn.closest('.ud-route-row')?.dataset.slug;
+    const slug = btn.closest('.ud-route-row').dataset.slug;
     const url = slug
       ? `${window.location.origin}/r/${slug}`
       : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
@@ -181,7 +181,7 @@ export class MyRoutes {
       this.#announce(i18next.t('dashboard:routes-deleted', { name }));
       if (this.#list.querySelectorAll('.ud-route-row').length === 0) {
         this.#list.hidden = true;
-        if (this.#emptyEl) this.#emptyEl.hidden = false;
+        this.#emptyEl.hidden = false;
       }
       window.logWebpageActivity(`Click_module=RouteList_Delete_RouteId=${row.dataset.routeId}`);
     } catch (e) {

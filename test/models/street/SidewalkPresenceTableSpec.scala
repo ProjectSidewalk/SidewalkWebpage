@@ -277,7 +277,7 @@ class SidewalkPresenceTableSpec
         _              <- audit(taggedStreet, user)
         _              <- audit(untaggedStreet, user)
         _ <- insertLabel(taggedStreet, user, "NoSidewalk", Some(3.0), tags = Seq(NoSidewalksTag, "gravel/dirt road"))
-        _ <- insertLabel(untaggedStreet, user, "NoSidewalk", Some(3.0), tags = Seq("street has a sidewalk"))
+        _ <- insertLabel(untaggedStreet, user, "NoSidewalk", Some(3.0), tags = Seq("other side has a sidewalk"))
         _ <- table.rebuild
         tagged   <- facesOf(taggedStreet)
         untagged <- facesOf(untaggedStreet)

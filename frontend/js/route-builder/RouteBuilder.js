@@ -331,7 +331,6 @@ export class RouteBuilder {
   #initEstTimeTooltip() {
     const val = this.#routeTimeEl;
     const tip = this.#routeTimeTipEl;
-    if (!val || !tip) return;
     const show = () => {
       tip.hidden = false;
     };
@@ -441,7 +440,6 @@ export class RouteBuilder {
    * anchored at the newest flag (#showHint) and the toast goes.
    */
   #updateCta() {
-    if (!this.#map) return;
     let key = null;
     if (!this.#routeStarted()) key = this.#inOverview() ? 'cta-select-region' : 'cta-pick-start';
     if (key === this.#ctaKey) return;
@@ -577,8 +575,7 @@ export class RouteBuilder {
    */
   #zoomToRegion(regionId, lngLat) {
     const map = this.#map;
-    const region = this.#regionData?.features.find((n) => n.properties.region_id === regionId);
-    if (!region) return;
+    const region = this.#regionData.features.find((n) => n.properties.region_id === regionId);
     // Mousemove doesn't fire during the zoom animation, so drop the stale pointer feedback now.
     this.#setCursorGuide(null);
     const framed = map.cameraForBounds(turf.bbox(region), { padding: 60, maxZoom: 16 });
@@ -841,7 +838,7 @@ export class RouteBuilder {
     if (!overRoute && !this.#routePopover.isOpen()) {
       if (this.#inOverview()) {
         if (hoverRegionId !== null) {
-          text = i18next.t('guide-select-region', { region: this.#getRegionName(hoverRegionId) ?? '' });
+          text = i18next.t('guide-select-region', { region: this.#getRegionName(hoverRegionId) });
         }
       } else if (snapped && !this.#routeStarted()) {
         text = i18next.t('guide-pick-start');
@@ -969,7 +966,6 @@ export class RouteBuilder {
     const features = [];
     this.#segments.flat().forEach(({ streetId, flip }) => {
       const orig = this.#getRouteGraph().getFeature(streetId);
-      if (!orig) return;
       const coords = orig.geometry.coordinates.slice(); // Shallow copy: reversing it never touches the original.
       if (flip) coords.reverse();
       features.push({
@@ -1296,7 +1292,6 @@ export class RouteBuilder {
       this.#recompute();
       return;
     }
-    if (this.#waypoints.length === 0) return;
     this.#waypoints.pop();
     this.#segments.pop();
     if (this.#waypoints.length === 0) {
@@ -1389,7 +1384,6 @@ export class RouteBuilder {
    * @returns {Array<{lng: number, lat: number}>}
    */
   #waypointsFromSegments() {
-    if (this.#segments.length === 0) return [];
     const legEnds = this.#segments.map((segment) => {
       const last = segment[segment.length - 1];
       const coords = this.#orientedCoords(last);

@@ -10,6 +10,7 @@
  */
 
 import { loadModules } from './loader.js';
+import { NAVBAR_CITY_DROPDOWN } from './support/pageChromeHarness.js';
 
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */
@@ -26,6 +27,7 @@ function buildNavbar() {
           </div>
           <div id="navbar">
             <ul class="navbar-list navbar-list--utility">
+              ${NAVBAR_CITY_DROPDOWN}
               <li class="dropdown navbar-item" id="li-user" data-nav-quick="1">
                 <button type="button" id="user-btn" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-user-menu"></button>

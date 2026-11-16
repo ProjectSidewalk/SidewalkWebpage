@@ -137,7 +137,6 @@
     "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
   },
   "right-ui": {
-    "opens-new-tab": "(在新分頁中開啟)",
     "accuracy-tooltip": "精準度是依照其他用戶的檢核。若您的精準度很低，請查看近期檢核出的錯誤於 <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">您的用戶儀表板</a> 以協助您增加精準度！",
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
@@ -192,7 +191,6 @@
       "mission-progress": "任務進度",
       "legend-explored": "已探索",
       "legend-ahead": "剩餘路線",
-      "legend-jump": "跳到下一條街",
       "legend-you": "你的位置與視角方向",
       "legend-crumbs": "圓圈：可點選前往的位置",
       "legend-unseen": "尚未查看",
@@ -278,7 +276,7 @@
         "sand-gravel": "泥/沙/礫石(<tag-underline>v</tag-underline>)",
         "uncovered-manhole": "未封蓋之人孔蓋(<tag-underline>e</tag-underline>)",
         "ends-abruptly": "突然中斷(<tag-underline>a</tag-underline>)",
-        "street-has-a-sidewalk": "街道另一側有實體人行道(<tag-underline>r</tag-underline>)",
+        "other-side-has-a-sidewalk": "街道另一側有實體人行道(<tag-underline>r</tag-underline>)",
         "street-has-no-sidewalks": "街道兩側皆無實體人行道(<tag-underline>t</tag-underline>)",
         "gravel-dirt-road": "碎石/泥土路(<tag-underline>d</tag-underline>)",
         "shared-pedestrian-car-space": "行人車輛共用空間(<tag-underline>e</tag-underline>)",

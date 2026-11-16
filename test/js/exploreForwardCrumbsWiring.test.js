@@ -57,6 +57,7 @@ describe('ForwardCrumbs wiring', () => {
   let viewer;
   let nav;
   let navArrows;
+  let streetSweep;
   let compass;
   let tracker;
   let crumbs;
@@ -98,9 +99,20 @@ describe('ForwardCrumbs wiring', () => {
       returnToPano: vi.fn(async () => true),
     };
     navArrows = {
-      onHover: (listener) => { listeners.hover = listener; }, highlightTo: vi.fn(), clearHighlight: vi.fn(),
+      onHover: (listener) => { listeners.hover = listener; },
+      highlightTo: vi.fn(),
+      clearHighlight: vi.fn(),
+      setWalkLanding: vi.fn(),
     };
     compass = { isEnRoute: () => true, getTargetAngle: () => 90 };
+    // Stands in for the sweep's search: the first pano past the furthest point reached.
+    streetSweep = {
+      findLanding: vi.fn(async (walked) => {
+        const furthestM = metersAt(walked.getFurthestPointReached().geometry.coordinates[0]);
+        const next = [...panosAlongStreet].find(([meters]) => meters > furthestM + 5);
+        return next ? { panoId: next[1], lat: LAT, lng: lngAt(next[0]) } : null;
+      }),
+    };
     tracker = fakeTracker();
     viewer = {
       supportsLocationSearch: () => true,
@@ -119,6 +131,7 @@ describe('ForwardCrumbs wiring', () => {
       { addMarker: (latLng, content, options) => new FakeMarker(latLng, content, options) },
       { hasVisited: () => false },
       nav,
+      streetSweep,
       navArrows,
       tracker,
     );
@@ -257,6 +270,19 @@ describe('ForwardCrumbs wiring', () => {
       expect(classesAt(40)).toContain('minimap-crumb-next');
     });
 
+    it('on an ended street leaves the nearest link untinted and tints only the walk\'s next stop (#5918)', async () => {
+      links = [link('side', 80, 12)];
+      await crumbs.refresh();
+      expect(classesAt(12)).toContain('minimap-crumb-next');
+
+      crumbs.setWalkEnded(true);
+      expect(classesAt(12)).not.toContain('minimap-crumb-next');
+      expect(classesAt(20)).toContain('minimap-crumb-next');
+
+      crumbs.setWalkEnded(false);
+      expect(classesAt(12)).toContain('minimap-crumb-next');
+    });
+
     it('tints nothing when the compass cannot say which way the route goes', async () => {
       compass.getTargetAngle = () => { throw new Error('no task geometry yet'); };
 
@@ -264,6 +290,90 @@ describe('ForwardCrumbs wiring', () => {
 
       expect(onMap().some((marker) => marker.content.classList.contains('minimap-crumb-next'))).toBe(false);
       expect(crumbs.isWalkNextStop('p20')).toBe(true);
+    });
+  });
+
+  describe('telling the on-pano arrows where the route walk lands', () => {
+    it('names the landing and which way it is, for the pano the user stands on', async () => {
+      await crumbs.refresh();
+
+      const [forPanoId, landing] = navArrows.setWalkLanding.mock.lastCall;
+      expect(forPanoId).toBe('standing-here');
+      expect(landing.panoId).toBe('p20');
+      expect(landing.heading).toBeCloseTo(90, 0); // The street runs east.
+    });
+
+    it('says there is none when no pano is ahead, or when the walk\'s search went unanswered', async () => {
+      panosAlongStreet = new Map();
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenLastCalledWith('standing-here', null);
+
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      streetSweep.findLanding.mockRejectedValue(new Error('provider down'));
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenLastCalledWith('standing-here', null);
+    });
+
+    it('draws a crumb for a landing too far off the street to be a stop, as the first stop on the route', async () => {
+      const offStreet = { panoId: 'corner', lat: LAT + 20 / 111320, lng: lngAt(10) };
+      streetSweep.findLanding.mockResolvedValue(offStreet);
+      await crumbs.refresh();
+
+      const corner = onMap().find((marker) => marker.latLng.lat === offStreet.lat);
+      expect(corner.title).toBe('audit:right-ui.minimap.forward-crumb-title#1');
+      expect([...corner.content.classList]).toContain('minimap-crumb-next');
+      expect(navArrows.setWalkLanding.mock.lastCall[1].panoId).toBe('corner');
+    });
+
+    it('keeps a landing worked out for a pano the user has since left to itself', async () => {
+      streetSweep.findLanding.mockImplementation(async () => {
+        viewer.getPanoId = () => 'moved-on';
+        return { panoId: 'p20', lat: LAT, lng: lngAt(20) };
+      });
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).not.toHaveBeenCalled();
+    });
+
+    it('tells the arrows as soon as the landing is known, without waiting for the route stops', async () => {
+      let stopsAnswered = false;
+      const sampled = viewer.findPanoNear;
+      viewer.findPanoNear = async (...args) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        stopsAnswered = true;
+        return sampled(...args);
+      };
+      navArrows.setWalkLanding.mockImplementation(() => expect(stopsAnswered).toBe(false));
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves a landing the arrows already heard alone when the rest of the refresh fails', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      viewer.getPov = () => { throw new Error('no view yet'); };
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenCalledTimes(1);
+      expect(navArrows.setWalkLanding.mock.lastCall[1].panoId).toBe('p20');
+    });
+
+    it('outlines the walk\'s next stop on hover before the route stops have answered', async () => {
+      await crumbs.refresh();
+      task = makeTask(1, { furthestM: 30 });
+      let release;
+      viewer.getLinkedPanoPositions = () => new Promise((resolve) => { release = () => resolve(links); });
+      const refreshing = crumbs.refresh();
+      await new Promise((resolve) => setTimeout(resolve));
+
+      listeners.hover({}); // The synthesized route-forward arrow.
+      expect(classesAt(40)).toContain('minimap-crumb-highlight');
+      release();
+      await refreshing;
+    });
+
+    it('says there is none when the crumbs could not be worked out at all', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      viewer.getPosition = () => { throw new Error('no position yet'); };
+      await crumbs.refresh();
+      expect(navArrows.setWalkLanding).toHaveBeenLastCalledWith('standing-here', null);
     });
   });
 
@@ -361,12 +471,5 @@ describe('ForwardCrumbs wiring', () => {
       expect(nav.moveToPano).not.toHaveBeenCalled();
       expect(tracker.push).not.toHaveBeenCalled();
     });
-  });
-
-  it('reports no walk stop at all when the street has no panos on it', () => {
-    const opts = { minAheadM: 5, maxOffsetM: 15, searchRadiusM: 25 };
-    const offStreet = [{ panoId: 'alley', alongKm: 0.05, offsetM: 40 }];
-
-    expect(ForwardCrumbs.walkLandingStop(offStreet, 0.1, 40, opts)).toBeNull();
   });
 });

@@ -91,6 +91,11 @@ class GalleryPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerS
       activeTags(galleryPage()) mustBe empty
     }
 
+    "hand the page the default validation statuses, so the reset and the URL agree with the route" in {
+      val expected = GalleryController.DefaultValidationOptions.map(o => s""""$o"""").mkString("[", ",", "]")
+      galleryPage().replaceAll("\\s", "") must include(s""""defaultValidationOptions":$expected""")
+    }
+
     "restore every tag a repeated tags parameter names" in {
       val tags = renderedTags(galleryPage()).take(2)
       assume(tags.size == 2, "connected database renders fewer than two tags")

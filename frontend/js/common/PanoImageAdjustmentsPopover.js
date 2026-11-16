@@ -58,9 +58,9 @@ export class PanoImageAdjustmentsPopover {
   /**
    * Visually hidden text inside the trigger that says a filter is in force. The active dot is a pseudo-element, which
    * assistive tech never announces, so without this a screen reader user has no way to learn the imagery is altered.
-   * @type {HTMLSpanElement|null}
+   * @type {HTMLSpanElement}
    */
-  #activeText = null;
+  #activeText;
 
   /**
    * @type {{onOpen: Function, onClose: Function, onChange: Function, onReset: Function,
@@ -252,14 +252,12 @@ export class PanoImageAdjustmentsPopover {
     }
     if (this.#resetButton) this.#resetButton.disabled = atDefault;
     this.#button.classList.toggle(PanoImageAdjustmentsPopover.ACTIVE_CLASS, !atDefault);
-    if (this.#activeText) {
-      // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
-      // The leading space keeps the pill's accessible name from running "Image" and this text together.
-      if (!atDefault) {
-        this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
-      }
-      this.#activeText.hidden = atDefault;
+    // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
+    // The leading space keeps the pill's accessible name from running "Image" and this text together.
+    if (!atDefault) {
+      this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
     }
+    this.#activeText.hidden = atDefault;
   }
 
   /**

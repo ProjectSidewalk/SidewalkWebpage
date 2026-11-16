@@ -62,7 +62,7 @@ case class ValidationCount(
   require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
-/** How many agree, disagree, and unsure votes a validation mission has so far. */
+/** How many agree, disagree, and unsure votes a validation mission or a label has so far. */
 case class ValidationResultCounts(agreeCount: Int, disagreeCount: Int, unsureCount: Int)
 
 /** How many validations a user has given, and when they gave their most recent one. */

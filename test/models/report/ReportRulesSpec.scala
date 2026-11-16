@@ -1,8 +1,8 @@
 package models.report
 
 import models.api.StreetAccessScoreForApi
-import models.label.LabelType
 import models.label.LabelType.*
+import models.label.{LabelType, StreetSide}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -33,13 +33,15 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       disagree: Int = 0,
       unsure: Int = 0,
       user: String = "u1",
-      capture: Option[String] = Some("2024-05")
+      capture: Option[String] = Some("2024-05"),
+      side: Option[StreetSide] = None
   ): ReportLabel = ReportLabel(
     id,
     labelType,
     severity,
     tags,
     edge,
+    side,
     user,
     s"pano$id",
     created,
@@ -632,7 +634,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
 
   // ---- Links -----------------------------------------------------------------------------------------------------
 
-  test("a count's link lists exactly its labels up to the Gallery's cap, and only past that falls back to a filter") {
+  test("a count's link lists exactly its labels up to Gallery's cap, and only past that falls back to a filter") {
     ReportLinks.count(Seq(5, 9), "fallback") shouldBe "/gallery?labelIds=5,9"
     ReportLinks.count(1 to ReportLinks.MaxListedIds, "fallback") should startWith("/gallery?labelIds=1,2,")
     ReportLinks.count(1 to ReportLinks.MaxListedIds + 1, "fallback") shouldBe "fallback"
@@ -684,7 +686,7 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
     raised(0.97, 6.0) shouldBe 100.0
   }
 
-  test("a label list over the Gallery's cap sends only what it can show, with the total for its notice") {
+  test("a label list over Gallery's cap sends only what it can show, with the total for its notice") {
     ReportLinks.labelList(Seq(1, 2)) shouldBe "/gallery?labelIds=1,2"
     val many = 1 to (ReportLinks.MaxListedIds + 700)
     val url  = ReportLinks.labelList(many)
@@ -792,5 +794,24 @@ class ReportRulesSpec extends AnyFunSuite with Matchers {
       Some("w:0")
     ) shouldBe
       custom
+  }
+
+  test("a location's side is its own edge's labels' majority, and nothing on a tie") {
+    val labels = Seq(
+      label(1, side = Some(StreetSide.Left)),
+      label(2, side = Some(StreetSide.Left)),
+      label(3, side = Some(StreetSide.Right)),
+      label(4, side = None),
+      // On another edge: its side is measured against another line, so it has no say.
+      label(5, edge = 2, side = Some(StreetSide.Right)),
+      label(6, edge = 2, side = Some(StreetSide.Right))
+    ).map(l => l.labelId -> l).toMap
+    ReportRules.sideOf(loc(1, labelIds = Some(Seq(1, 2, 3, 4, 5, 6))), labels) shouldBe Some(StreetSide.Left)
+    ReportRules.sideOf(loc(1, labelIds = Some(Seq(1, 3))), labels) shouldBe None
+    ReportRules.sideOf(loc(1, labelIds = Some(Seq(4))), labels) shouldBe None
+    ReportRules.sideOf(loc(1, labelIds = Some(Seq(3, 99))), labels) shouldBe Some(StreetSide.Right)
+    ReportRules.sideOf(loc(1, labelIds = Some(Seq(5, 6))), labels) shouldBe None
+    // A crossing's location stays at the intersection, so it has no side to be drawn on.
+    ReportRules.sideOf(loc(1, crossing = Some(7), labelIds = Some(Seq(1, 2))), labels) shouldBe None
   }
 }

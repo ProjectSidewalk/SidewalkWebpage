@@ -10,7 +10,7 @@ import play.api.Logger
 import play.api.http.{ContentTypes, HttpEntity, HttpVerbs}
 import play.api.mvc.{RequestHeader, Result}
 
-import java.io.BufferedInputStream
+import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.time.{Duration, Instant, OffsetDateTime}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
@@ -153,6 +153,18 @@ abstract class BaseApiController(cc: CustomControllerComponents)(using ec: Execu
   }
 
   /**
+   * A single-file download in a folder of its own. A timestamped name in the working directory is not unique enough
+   * once every city on a host runs from one build (#5138), so these get the same folder-per-download as the rest.
+   *
+   * @param name The file name, extension included.
+   * @return     The file to write, in a new download folder.
+   */
+  protected def newDownloadFile(name: String): File = newDownloadDir().resolve(name).toFile
+
+  /** Deletes a finished single-file download together with its folder. */
+  protected def deleteDownload(file: File): Unit = deleteDownloadDir(file.toPath.getParent)
+
+  /**
    * Serves one copy of a URL at a time. Building a file takes minutes on prod, and a client that retries early doubles
    * that work (#4161), so the retry gets a 429 instead. Only for file downloads: the site's own pages fetch the same
    * CSV/GeoJSON URLs in parallel, and those are cheap to repeat. `serve` must wrap its body with [[releasing]].
@@ -274,7 +286,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(using ec: Execu
 
     // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
     // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.
-    Future.successful(Ok.chunked(csvSource, inline.getOrElse(false), Some(filename)).as("text/csv"))
+    Future.successful(Ok.chunked(csvSource, inline.getOrElse(false), Some(filename)).as("text/csv; charset=utf-8"))
   }
 
   /**

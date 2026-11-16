@@ -86,7 +86,7 @@ export class TeamPage {
    */
   #columns() {
     return [
-      { key: 'username', label: 'User', align: 'left', sort: (m) => (m.username || '').toLowerCase() },
+      { key: 'username', label: 'User', align: 'left', sort: (m) => m.username.toLowerCase() },
       { key: 'role', label: 'Role', align: 'left', sort: (m) => m.role || '' },
       { key: 'labels', label: 'Labels', align: 'right', sort: (m) => m.labels || 0 },
       { key: 'validations', label: 'Validations given', align: 'right', sort: (m) => m.validations || 0 },
@@ -111,7 +111,7 @@ export class TeamPage {
       const bv = col.sort(b);
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
-      return (a.username || '').localeCompare(b.username || '');
+      return a.username.localeCompare(b.username);
     });
   }
 

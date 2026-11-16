@@ -47,7 +47,7 @@ const PAGES = {
   'pages/admin-dashboard.css': {
     importers: ['frontend/js/pages/admin/', 'frontend/js/admin-dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',
-      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-', 'admin-nav-'],
+      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-', 'gold-examples-', 'admin-nav-'],
   },
   'pages/api-docs': { importers: ['frontend/js/pages/api-docs/', 'frontend/js/api-docs/'] },
   'pages/auth.css': { importers: ['frontend/js/pages/main.js'] },

@@ -9,7 +9,7 @@
   <div class="page-section" id="street-grade-intro-section">
     <h1 class="page-heading" id="street-grade-api">Street Grade API <a href="#street-grade-api" class="permalink">#</a></h1>
     <p>The Street Grade API returns one street's running grade (how steep it is along its length) and its elevation profile: the ground elevation at even spacing along the street's centerline, sampled from a bare-earth elevation model. It is a measurement, not a score: grade needs no labeling, so a street has a profile whether or not anyone has audited it.</p>
-    <p>The grade statistics also ride on every street of the <a href="@routes.ApiDocsController.accessScoreStreets#street-grade">AccessScore: Streets API</a>, which is where to get them for a whole city, and where they feed each street's score. The profile is served here, a street at a time, because it is the one grade field too heavy for a city-wide file.</p>
+    <p>The grade statistics also ride on every street of the <a href="@routes.ApiDocsController.streets#street-grade">Streets API</a> and the <a href="@routes.ApiDocsController.accessScoreStreets#street-grade">AccessScore: Streets API</a>, which are where to get them for a whole city; on the latter they also feed each street's score. The profile is served here, a street at a time, because it is the one grade field too heavy for a city-wide file.</p>
   </div>
 
   <div class="page-section" id="street-grade-preview-section">

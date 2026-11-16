@@ -15,9 +15,9 @@ export class TablePager {
   /**
    * @param {HTMLTableSectionElement} tbody - The table body, carrying `data-page-size` and the opening `data-page`.
    * @param {HTMLElement} nav - The `.ps-pager` bar under the table.
-   * @param {(page: number) => void} [onPage] - Called with the 1-based page after each move, for logging.
+   * @param {(page: number) => void} onPage - Called with the 1-based page after each move, for logging.
    */
-  constructor(tbody, nav, onPage = () => {}) {
+  constructor(tbody, nav, onPage) {
     this.#rows = [...tbody.rows];
     this.#pageSize = Number(tbody.dataset.pageSize);
     this.#page = Number(tbody.dataset.page);

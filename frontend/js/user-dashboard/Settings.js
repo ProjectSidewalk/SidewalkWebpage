@@ -19,18 +19,16 @@ export class Settings {
   /**
    * @param {object} opts - Configuration.
    * @param {string} opts.saveUrl - Endpoint the form POSTs to.
-   * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
    * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
    *   save that changes it can reload the page onto the new units.
    */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
-    this.currentUsername = opts.currentUsername;
     this.currentUnits = opts.currentUnits;
     this.saveBtn = document.getElementById('set-save-btn');
     this.status = document.getElementById('set-save-status');
     this.#baseline = this.#snapshot();
-    if (this.saveBtn) this.saveBtn.addEventListener('click', () => this.#save());
+    this.saveBtn.addEventListener('click', () => this.#save());
     // The guard's save skips the units reload: the page they're headed to renders in the new units anyway, and
     // reloading this one would strand them here.
     new UnsavedChangesGuard({
@@ -42,22 +40,20 @@ export class Settings {
 
   /**
    * @returns {{username: string, on_leaderboard: boolean, public_profile: boolean, community_service: boolean,
-   *     measurement_system: string, news_email?: boolean, team_id: ?number}} The payload the save endpoint takes.
+   *     measurement_system: string, news_email: boolean, team_id: ?number}} The payload the save endpoint takes.
    */
   #payload() {
-    const input = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
-    const teamEl = /** @type {?HTMLSelectElement} */ (document.getElementById('set-team'));
-    const teamVal = teamEl?.value ?? '';
+    const input = (id) => /** @type {HTMLInputElement} */ (document.getElementById(id));
+    const teamEl = /** @type {HTMLSelectElement} */ (document.getElementById('set-team'));
+    const teamVal = teamEl.value;
     return {
-      username: (input('set-username')?.value || '').trim(),
-      on_leaderboard: input('set-on-leaderboard')?.checked ?? true,
-      public_profile: input('set-public-profile')?.checked ?? true,
-      community_service: input('set-community-service')?.checked ?? false,
+      username: input('set-username').value.trim(),
+      on_leaderboard: input('set-on-leaderboard').checked,
+      public_profile: input('set-public-profile').checked,
+      community_service: input('set-community-service').checked,
       // 'auto' = follow the site language, which the server saves as no choice.
-      measurement_system: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
-      // Left out when the box isn't on the page, which the server reads as "leave it alone"; a guessed value could
-      // re-subscribe someone who opted out.
-      ...(input('set-news-email') ? { news_email: input('set-news-email').checked } : {}),
+      measurement_system: input('set-units').value,
+      news_email: input('set-news-email').checked,
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
       team_id: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),
@@ -85,7 +81,6 @@ export class Settings {
     try {
       const { ok, error } = await saveUserSettings(this.saveUrl, payload);
       if (ok) {
-        this.currentUsername = payload.username || this.currentUsername;
         // Hand the written team to the controls, so a second save skips it and Leave speaks for it, not the old one.
         if (payload.team_id !== null) TeamActions.settingsTeamSaved(payload.team_id);
         // What was just written is the baseline now, with team_id flattened to the null a team already joined sends,
@@ -115,7 +110,6 @@ export class Settings {
    * @param {boolean|null} ok - true = success styling, false = error styling, null = neutral.
    */
   #setStatus(text, ok) {
-    if (!this.status) return;
     this.status.textContent = text;
     this.status.classList.remove('ud-save-ok', 'ud-save-err');
     if (ok === true) this.status.classList.add('ud-save-ok');

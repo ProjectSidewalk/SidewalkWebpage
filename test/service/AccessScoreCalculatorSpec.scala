@@ -113,7 +113,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("a lone NoSidewalk cluster scores the same through scoreCluster and scoreByType") {
-    val c = noSidewalk(labelCount = 2, "street has a sidewalk", tagged = 2)
+    val c = noSidewalk(labelCount = 2, "other side has a sidewalk", tagged = 2)
     AccessScoreCalculator.scoreCluster(c) shouldBe (noSidewalkTerm(c) +- eps)
     AccessScoreCalculator.scoreCluster(c) shouldBe (-2.0 / 3 + 1.0 +- eps)
   }
@@ -150,14 +150,14 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("the mutually exclusive sidewalk tags cancel when a street's labels split exactly in half") {
     noSidewalkTerm(
       noSidewalk(labelCount = 2, "street has no sidewalks", tagged = 2),
-      noSidewalk(labelCount = 2, "street has a sidewalk", tagged = 2)
+      noSidewalk(labelCount = 2, "other side has a sidewalk", tagged = 2)
     ) shouldBe (-4.0 / 3 +- eps)
   }
 
   test("NoSidewalk streets order by what labelers recorded: no sidewalks < untagged < a sidewalk on the other side") {
     val full        = Seq.fill(3)(noSidewalk())
     val noSidewalks = Seq.fill(3)(noSidewalk(tag = "street has no sidewalks", tagged = 1))
-    val otherSide   = Seq.fill(3)(noSidewalk(tag = "street has a sidewalk", tagged = 1))
+    val otherSide   = Seq.fill(3)(noSidewalk(tag = "other side has a sidewalk", tagged = 1))
     val endsHere    = full :+ noSidewalk(tag = "ends abruptly", tagged = 1)
 
     AccessScoreCalculator.scoreStreet(noSidewalks) should be < AccessScoreCalculator.scoreStreet(full)
@@ -173,7 +173,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.tagAdjustments.collect { case (("NoSidewalk", tag), delta) => tag -> delta } shouldBe Map(
       "ends abruptly"               -> -1.0,
       "street has no sidewalks"     -> -1.0,
-      "street has a sidewalk"       -> +1.0,
+      "other side has a sidewalk"   -> +1.0,
       "gravel/dirt road"            -> -0.25,
       "shared pedestrian/car space" -> +0.25,
       "covered walkway"             -> +0.5,

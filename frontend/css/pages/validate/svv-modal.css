@@ -135,6 +135,11 @@
   gap: calc(8px * var(--ui-scale, 1));
 }
 
+/* Grown past their text, so the label would otherwise sit at the left edge. */
+.modal-mission-complete-buttons .button {
+  justify-content: center;
+}
+
 /* Grown 3:2 from each label's own width, not from zero: a zero basis hands the primary 60% of the row, which French's
    label is too long for. */
 #modal-mission-complete-close-button-primary {

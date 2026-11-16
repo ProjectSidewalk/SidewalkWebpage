@@ -29,6 +29,7 @@
     <div class="page-nav-header">Manage</div>
     @navItem("management", routes.AdminDashboardController.management, "Management", "Roles (all cities), teams, jobs", false)
     @navItem("partners", routes.AdminDashboardController.partners, "Partners", "Landing-page logos, city and global", false)
+    @navItem("gold-examples", routes.AdminDashboardController.goldExamples, "Training Examples", "Common mistakes used for training", false)
     @if(isOwner) {
       @navItem("health", routes.AdminDashboardController.health, "Health", "All-city database; this city's jobs, panos", true)
     }

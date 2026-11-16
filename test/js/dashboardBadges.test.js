@@ -136,4 +136,30 @@ describe('DashboardBadges', () => {
     expect(() => new DashboardBadges(document.getElementById('ud-badges')).render()).not.toThrow();
     expect(document.querySelector('[data-fill]').style.width).toBe('');
   });
+
+  test('a track without a bar or a nudge line still shows the tier earned', () => {
+    document.body.innerHTML = `
+            <div class="ud-badge-tracks" id="ud-badges" data-metric="false">
+              <div class="ud-badge-track" data-badge-type="labels" data-value="300">
+                <span class="ud-badge-track-current ud-tier-0" data-tier>—</span>
+              </div>
+            </div>`;
+
+    new DashboardBadges(document.getElementById('ud-badges')).render();
+
+    expect(document.querySelector('[data-tier]').textContent).toBe('II: Sidewalk Scout');
+  });
+
+  test('a track without its name still names the next badge by tier', () => {
+    document.body.innerHTML = `
+            <div class="ud-badge-tracks" id="ud-badges" data-metric="false">
+              <div class="ud-badge-track" data-badge-type="labels" data-value="300">
+                <span class="ud-badge-track-next" data-next></span>
+              </div>
+            </div>`;
+
+    new DashboardBadges(document.getElementById('ud-badges')).render();
+
+    expect(document.querySelector('[data-next] strong').textContent.trim()).toBe('III: Access Ace');
+  });
 });

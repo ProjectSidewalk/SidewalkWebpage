@@ -7,8 +7,13 @@
  * the street's own color, and a side without one dashed. The color is still the street's (no score is per side), so
  * the two never compete for the one meaning a line's color has.
  *
+ * With aligned labels on (#5888), a street map's markers leave their estimated positions for a line beside the street
+ * on the side each was labeled on, at the point along it nearest where each is: a block then reads as two sidewalks
+ * with their problems in order. The side line is a fixed number of screen pixels out, so it holds at every zoom, and
+ * the view is only a way of drawing, which its own switch says.
+ *
  * Given problems instead of locations, it is the worst-problems map: every street in a quiet grey under one dot per
- * location, colored by type, so the dots are the only color on it.
+ * location, colored by type, so the dots are the only color on it; its places wear a neutral disc for the same reason.
  *
  * It knows nothing of cards. A host hears which location or street the pointer is on and tells it what to light, so
  * the same map serves the overview and a street's section.
@@ -25,6 +30,9 @@ import { AccessScoreMapLegend } from '../access-score/AccessScoreMapLegend.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
 import { PlaceCategoryIcons } from '../common/PlaceCategoryIcons.js';
 import { PlaceMarkerColors } from '../common/PlaceMarkerColors.js';
+import { ReportPlacesToggle } from './ReportPlacesToggle.js';
+import { ReportMapToggle } from './ReportMapToggle.js';
+import { alignLocations, markerOffsets } from './ReportLabelAlignment.js';
 import { AccessScoreModel } from '../access-score/AccessScoreModel.js';
 import { formatScore } from '../access-score/AccessScoreText.js';
 import { util } from '../common/utilities.js';
@@ -47,6 +55,9 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {string} labelType
  * @property {number} lat
  * @property {number} lng
+ * @property {?string} [side] - `left` or `right` of its edge's digitized direction, for the aligned view; null keeps it
+ *   where it is.
+ * @property {?number} [edgeId] - The edge the aligned view draws it beside.
  *
  * @typedef {object} ReportMapOptions
  * @property {{tilesUrl: ?string, glyphsUrl: string}} basemap - From the page's data.
@@ -60,7 +71,11 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
  * @property {boolean} [still] - Draws once, for `snapshot`: no controls, no input, and a canvas that can be read back.
  * @property {[number, number]} [center] - Centers here at `STILL_ZOOM` rather than framing the street.
  * @property {{score: ?number, grade: ?number}} [mark] - The focused street's own numbers, for its legend to point at.
- * @property {ReportMapPlace[]} [places] - Important places to show.
+ * @property {ReportMapPlace[]} [places] - Important places to show, each behind the map's own "Places" switch.
+ * @property {boolean} [placesVisible=true] - Whether the places start shown.
+ * @property {(shown: boolean) => void} [onPlacesToggle] - When the reader flips the map's "Places" switch.
+ * @property {boolean} [alignedVisible=false] - Whether the locations start lined up along the street (#5888).
+ * @property {(shown: boolean) => void} [onAlignedToggle] - When the reader flips the map's aligned-labels switch.
  * @property {ReportMapProblem[]} [problems] - Draws the worst-problems map: these as dots, the streets unscored.
  * @property {(labelType: ?string) => void} [onProblemHover] - With the type of the dot under the pointer.
  * @property {(problem: ReportMapProblem, lngLat: [number, number]) => void} [onProblemClick]
@@ -98,10 +113,17 @@ const SIDEWALK_LAYER = 'report-sidewalks';
 const NO_SIDEWALK_LAYER = 'report-sidewalks-absent';
 const SPINE_LAYER = 'report-streets-spine';
 const SIDEWALK_OFFSET_PX = 6;
+// `.report-map-marker`'s box in report.css, for before a marker has been laid out to measure.
+const MARKER_PX = 24;
+// The aligned view's side line. The marker's 20px icon then starts at the drawn sidewalk line and ends 26px out, so
+// the two sides' markers are 32px apart and neither covers the street's own line.
+const ALIGNED_OFFSET_PX = 16;
 // A block or so around a fix: the street it is on and the corner it is near, at a size two panes can show.
 const STILL_ZOOM = 17.5;
-const STILL_ICON_PX = 24;
-const PLACE_DISC_PX = 22;
+// Smaller than the marker on the photo beside it, so the two panes don't read as the same thing twice: the map's icon
+// says where the spot is, the photo's what it is.
+const STILL_ICON_PX = 16;
+const PLACE_DISC_PX = 18;
 // A tile that never answers must not hold a card's map forever; the sketch stays in its place.
 const STILL_TIMEOUT_MS = 10000;
 // A lit icon covers about 15px around its point, so this leaves the wedge plainly visible past it.
@@ -183,7 +205,14 @@ export class ReportMap {
   /** @type {ReportMapOptions} */ #options;
   /** @type {?Map<number, ReportMapEdge>} The edges by id, built on first need. */ #edges = null;
   /** @type {?(() => void)} Closes the place tooltip that is open, if any. */ #openPlace = null;
+  /** @type {HTMLElement[]} The place markers' buttons, which the "Places" switch shows and hides. */ #places = [];
+  #placesVisible = true;
+  /** @type {?ReportPlacesToggle} */ #placesToggle = null;
   /** @type {Map<number, {marker: maplibregl.Marker, element: HTMLElement, labelType: string}>} */ #markers = new Map();
+  #alignedVisible = false;
+  /** @type {?ReportMapToggle} */ #alignedToggle = null;
+  /** @type {import('./ReportLabelAlignment.js').AlignedLocation[]} What the aligned view can move, worked out once. */
+  #aligned = [];
   /** Work asked for before the style finished loading. */
   #pending = [];
   #loaded = false;
@@ -201,7 +230,12 @@ export class ReportMap {
    */
   constructor(container, options) {
     this.#options = options;
-    const { basemap, edges, focusEdgeIds = null, locations = [], still = false, center = null } = options;
+    const {
+      basemap, edges, focusEdgeIds = null, locations = [], still = false, center = null, placesVisible = true,
+      alignedVisible = false,
+    } = options;
+    this.#placesVisible = placesVisible;
+    this.#alignedVisible = alignedVisible;
     if (basemap.tilesUrl) addArchiveProtocol();
     // pmtiles' protocol handler wants an absolute URL after its prefix.
     const tilesUrl = basemap.tilesUrl ? `pmtiles://${new URL(basemap.tilesUrl, window.location.href).href}` : null;
@@ -219,8 +253,11 @@ export class ReportMap {
       maxZoom: 19,
       // A map mid-page must not take the page's scroll: wheel zooming needs a modifier and touch panning two fingers.
       cooperativeGestures: true,
+      // North stays up: the aligned view's side offsets are drawn in screen axes.
       dragRotate: false,
       touchPitch: false,
+      pitchWithRotate: false,
+      maxPitch: 0,
       attributionControl: false,
       locale: {
         'CooperativeGesturesHandler.WindowsHelpText': i18next.t('report:map.gesture-windows'),
@@ -230,6 +267,8 @@ export class ReportMap {
       },
     });
     if (!still) {
+      this.#map.touchZoomRotate.disableRotation();
+      this.#map.keyboard.disableRotation();
       this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
       this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
       // The worst map's only color is its dots', whose key is the type list beside it.
@@ -253,9 +292,77 @@ export class ReportMap {
     // A still map's icons are painted into its picture instead, since a DOM marker isn't on the canvas.
     if (!still) {
       for (const place of options.places ?? []) this.#addPlace(place);
+      if (this.#places.length) {
+        this.#placesToggle = new ReportPlacesToggle({
+          checked: placesVisible,
+          onChange: (shown) => {
+            this.setPlacesVisible(shown);
+            options.onPlacesToggle?.(shown);
+          },
+        });
+        this.#map.addControl(this.#placesToggle);
+      }
       // A pinned place tooltip closes on a click anywhere else on the map; a place's own click doesn't reach here.
       this.#map.on('click', () => this.#openPlace?.());
       for (const location of locations) this.#addMarker(location);
+      this.#addAlignment(locations, focusEdgeIds);
+    }
+  }
+
+  /**
+   * The aligned view's switch, on a street map with something it can move: a location with a side on one of the
+   * street's own edges. Its offsets are in screen pixels along the street, so they follow the zoom.
+   * @param {ReportMapLocation[]} locations
+   * @param {?Array<number>} focusEdgeIds
+   */
+  #addAlignment(locations, focusEdgeIds) {
+    if (!focusEdgeIds) return;
+    const focused = new Set(focusEdgeIds);
+    const lines = new Map(this.#options.edges.filter((e) => focused.has(e.id)).map((e) => [e.id, e.coordinates]));
+    this.#aligned = alignLocations(locations, lines);
+    if (!this.#aligned.length) return;
+    this.#alignedToggle = new ReportMapToggle({
+      text: i18next.t('report:map.aligned'),
+      note: i18next.t('report:map.aligned-note'),
+      checked: this.#alignedVisible,
+      onChange: (shown) => {
+        this.setAlignedVisible(shown);
+        this.#options.onAlignedToggle?.(shown);
+      },
+    });
+    this.#map.addControl(this.#alignedToggle);
+    this.#map.on('zoom', () => {
+      if (this.#alignedVisible) this.#placeAligned();
+    });
+    if (this.#alignedVisible) this.#placeAligned();
+  }
+
+  /**
+   * Draws the locations lined up along the street, or where they are.
+   * @param {boolean} visible
+   */
+  setAlignedVisible(visible) {
+    this.#alignedVisible = visible;
+    this.#alignedToggle?.setChecked(visible);
+    if (visible) {
+      this.#placeAligned();
+      return;
+    }
+    for (const { clusterId, lng, lat } of this.#options.locations ?? []) {
+      this.#markers.get(clusterId)?.marker.setLngLat([lng, lat]).setOffset([0, 0]);
+    }
+  }
+
+  /** Moves each alignable marker to the foot of its position on the street, offset to its side at this zoom. */
+  #placeAligned() {
+    const [first] = this.#markers.values();
+    const offsets = markerOffsets(this.#aligned, {
+      offsetPx: ALIGNED_OFFSET_PX,
+      markerPx: first?.element.offsetWidth || MARKER_PX,
+      metersPerPixel: this.#metersPerPixel(),
+    });
+    for (const a of this.#aligned) {
+      this.#markers.get(a.clusterId)?.marker.setLngLat(a.lngLat).setOffset(offsets.get(a.clusterId));
     }
   }
 
@@ -285,7 +392,7 @@ export class ReportMap {
     const ratio = source.width / source.clientWidth;
     const size = STILL_ICON_PX * ratio;
     const disc = PLACE_DISC_PX * ratio;
-    for (const place of this.#options.places ?? []) {
+    for (const place of this.#placesVisible ? this.#options.places ?? [] : []) {
       const glyph = await loadImage(placeIconUrl(place.category));
       const colors = this.#placeColors(place);
       const { x, y } = this.#map.project([place.lng, place.lat]);
@@ -634,12 +741,14 @@ export class ReportMap {
    */
   /**
    * A place's marker colors: its nearest segment's score, binned as AccessScore bins it, so the report's markers and
-   * the tool's agree.
+   * the tool's agree. On the worst-problems map the disc is the unscored grey instead: there, color means a label
+   * type, and a score-colored disc would be a second meaning on the one map.
    * @param {ReportMapPlace} place
    * @returns {{fill: string, glyph: string, halo: string}}
    */
   #placeColors(place) {
-    return PlaceMarkerColors.forScore(this.#edgeById(place.edgeId)?.score ?? null, AccessScoreModel.HISTOGRAM_BINS);
+    const score = this.#options.problems ? null : this.#edgeById(place.edgeId)?.score ?? null;
+    return PlaceMarkerColors.forScore(score, AccessScoreModel.HISTOGRAM_BINS);
   }
 
   /**
@@ -661,7 +770,8 @@ export class ReportMap {
     const colors = this.#placeColors(place);
     const element = document.createElement('button');
     element.type = 'button';
-    element.className = 'report-map-place';
+    // Beside the worst map's small dots a full-size disc reads as the bigger thing, so there it shrinks to their scale.
+    element.className = this.#options.problems ? 'report-map-place report-map-place--small' : 'report-map-place';
     element.style.background = colors.fill;
     element.style.boxShadow = `0 0 0 2px ${colors.halo}`;
     const glyph = document.createElement('span');
@@ -709,7 +819,20 @@ export class ReportMap {
     element.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') close();
     });
+    element.hidden = !this.#placesVisible;
     new maplibregl.Marker({ element }).setLngLat([place.lng, place.lat]).addTo(this.#map);
+    this.#places.push(element);
+  }
+
+  /**
+   * Shows or hides the important places, closing the tooltip of one that's open.
+   * @param {boolean} visible
+   */
+  setPlacesVisible(visible) {
+    this.#placesVisible = visible;
+    if (!visible) this.#openPlace?.();
+    for (const element of this.#places) element.hidden = !visible;
+    this.#placesToggle?.setChecked(visible);
   }
 
   /**
@@ -775,17 +898,23 @@ export class ReportMap {
     const lit = clusterId === null ? null : this.#markers.get(clusterId);
     if (!lit) return;
     const lngLat = lit.marker.getLngLat();
-    if (!this.#map.getBounds().contains(lngLat)) {
+    // Where the icon is drawn, which the aligned view's offset puts away from its anchor.
+    const { x, y } = this.#map.project(lngLat).add(lit.marker.getOffset());
+    const { clientWidth, clientHeight } = this.#map.getContainer();
+    if (x < 0 || y < 0 || x > clientWidth || y > clientHeight) {
       this.#map.easeTo({ center: lngLat, duration: this.#prefersReducedMotion ? 0 : 300 });
     }
   }
 
+  /** @returns {number} The map's scale at its center now. */
+  #metersPerPixel() {
+    const { lat } = this.#map.getCenter();
+    return (EARTH_CIRCUMFERENCE_METERS * Math.cos((lat * Math.PI) / 180)) / (TILE_SIZE_PX * 2 ** this.#map.getZoom());
+  }
+
   /** @returns {number} The least a viewpoint's shape should reach to read at this zoom, in meters. */
   viewpointMinRadiusMeters() {
-    const { lat } = this.#map.getCenter();
-    const metersPerPixel = (EARTH_CIRCUMFERENCE_METERS * Math.cos((lat * Math.PI) / 180))
-      / (TILE_SIZE_PX * 2 ** this.#map.getZoom());
-    return metersPerPixel * VIEWPOINT_MIN_RADIUS_PX;
+    return this.#metersPerPixel() * VIEWPOINT_MIN_RADIUS_PX;
   }
 
   /**

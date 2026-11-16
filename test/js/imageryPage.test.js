@@ -489,6 +489,21 @@ describe('ImageryPage brushing', () => {
     expect(highlighted.map((tr) => tr.cells[0].textContent)).toEqual(['Downtown']);
   });
 
+  test('a street hovered on the map brushes its region, and a street clicked there pins it', async () => {
+    const { mapState } = await renderPage();
+    const fire = (event, e) => mapState.handlers.find((h) => h.event === event).handler(e);
+    const downtownStreet = { id: 4, properties: { street_edge_id: 4, region_id: '11', priority: 0.333 } };
+
+    fire('mousemove', { features: [downtownStreet], lngLat: { lng: -122.3, lat: 47.6 } });
+    const downtown = () => regionRows().find((tr) => tr.cells[0].textContent === 'Downtown');
+    expect(downtown().classList.contains('is-highlighted')).toBe(true);
+    fire('mouseleave', {});
+    expect(downtown().classList.contains('is-highlighted')).toBe(false);
+
+    fire('click', { features: [downtownStreet] });
+    expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
+  });
+
   test('does not narrow the street queue on hover, only on a pin', async () => {
     await renderPage();
     regionRows().find((tr) => tr.cells[0].textContent === 'Downtown')

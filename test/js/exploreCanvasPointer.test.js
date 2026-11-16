@@ -247,11 +247,11 @@ describe('Canvas pointer handling', () => {
 
     test('the cursor is the armed type\'s icon, centred on the pointer', () => {
       pointer(drawing, 'mousemove', 10, 10);
-      expect(drawing.style.cursor).toBe('url(cursor-Obstacle) 19 19, auto');
+      expect(drawing.style.cursor).toBe('url("cursor-Obstacle") 19 19, auto');
 
       c.setMode('Walk');
       pointer(drawing, 'mousemove', 10, 10);
-      expect(drawing.style.cursor).toBe('url(cursor-Obstacle) 19 19, auto');
+      expect(drawing.style.cursor).toBe('url("cursor-Obstacle") 19 19, auto');
     });
 
     test('leaving the pano disarms the type, except in the tutorial', () => {
@@ -274,7 +274,7 @@ describe('Canvas pointer handling', () => {
       c.fire('mode', 'CurbRamp');
 
       expect(page.ui.hoverCard.style.visibility).toBe('hidden');
-      expect(page.ui.drawingLayer.style.cursor).toBe('url(cursor-CurbRamp) 19 19, auto');
+      expect(page.ui.drawingLayer.style.cursor).toBe('url("cursor-CurbRamp") 19 19, auto');
       expect(c.audioEffect.load).toHaveBeenCalledWith('drip');
     });
 

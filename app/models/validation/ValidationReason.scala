@@ -8,7 +8,7 @@ import play.api.libs.json.{JsObject, Json}
  * The canned reasons a validator can give for a Disagree or Unsure vote, backing the `validation_reason` Postgres
  * enum type (#5475).
  *
- * One vocabulary for every surface that asks "why?": the Validate menus, the label detail card and the Gallery
+ * One vocabulary for every surface that asks "why?": the Validate menus, the label detail card and Gallery
  * cards all offer the same reasons for a label type, and each stores the one picked as `validation_task_comment
  * .reason` beside the comment text. The id is what analysis keys on; the text is whatever language the validator
  * was reading in, so "canned vs. free-text" and per-reason counts would otherwise be a string match.

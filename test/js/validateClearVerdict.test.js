@@ -9,6 +9,7 @@
 
 import { loadModules, mockModule, useUtil } from './loader.js';
 import { fakeTracker } from './fakes.js';
+import { renderDesktopMenu } from './support/desktopValidationMenuHarness.js';
 
 mockModule('i18next', () => ({ default: { t: (key) => key } }));
 
@@ -35,37 +36,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
   const byId = (id) => document.getElementById(id);
 
   beforeEach(() => {
-    document.body.innerHTML = `
-      <div id="validation-menu-holder">
-        <button id="validate-verdict-clear"></button>
-        <button id="validate-yes-button"></button>
-        <button id="validate-no-button"></button>
-        <button id="validate-unsure-button"></button>
-        <template id="current-tag-template"><div class="current-tag"><div class="tag-name"></div><button class="remove-tag-x"></button></div></template>
-        <div id="validate-tags-section">
-          <div id="current-tags-list"></div>
-          <div id="sidewalk-ai-suggestions-block"><template id="sidewalk-ai-suggested-tag-template"><div class="sidewalk-ai-suggested-tag"></div></template></div>
-          <select id="select-tag"></select>
-        </div>
-        <div id="validate-severity-section"><div id="validate-severity-header"></div>
-          <div id="severity-radio-holder">${[1, 2, 3].map((n) => `
-            <label class="severity-button" id="severity-button-${n}" data-severity="${n}">
-              <input type="radio" name="label-severity" id="validate-severity-radio-${n}" class="severity-button__radio">
-              <img class="severity-button__icon" alt=""><span class="severity-button__label"></span>
-            </label>`).join('')}
-          </div>
-        </div>
-        <div id="validate-optional-comment-section"><input id="add-optional-comment"></div>
-        <div id="validate-why-no-section"><div id="no-reason-options">
-          ${[1, 2, 3, 4].map((n) => `<button id="no-button-${n}" class="validation-reason-button"></button>`).join('')}
-          <input id="add-disagree-comment">
-        </div></div>
-        <div id="validate-why-unsure-section"><div id="unsure-reason-options">
-          ${[1, 2, 3].map((n) => `<button id="unsure-button-${n}" class="validation-reason-button"></button>`).join('')}
-          <input id="add-unsure-comment">
-        </div></div>
-        <button id="validate-submit-button" disabled></button>
-      </div>`;
+    const ui = renderDesktopMenu();
 
     label = new Label({
       label_id: 7, label_type: 'Obstacle', severity: 2, tags: [], ai_tags: null, ai_tags_not_present: null,
@@ -79,29 +50,8 @@ describe('DesktopValidationMenu.clearVerdict', () => {
       onLabelReady: vi.fn(),
     };
 
-    const menu = new DesktopValidationMenu({
-      holder: byId('validation-menu-holder'),
-      verdictClearButton: byId('validate-verdict-clear'),
-      yesButton: byId('validate-yes-button'),
-      noButton: byId('validate-no-button'),
-      unsureButton: byId('validate-unsure-button'),
-      tagsMenu: byId('validate-tags-section'),
-      severityMenu: byId('validate-severity-section'),
-      optionalCommentSection: byId('validate-optional-comment-section'),
-      optionalCommentTextBox: byId('add-optional-comment'),
-      noMenu: byId('validate-why-no-section'),
-      disagreeReasonOptions: byId('no-reason-options'),
-      disagreeReasonTextBox: byId('add-disagree-comment'),
-      unsureMenu: byId('validate-why-unsure-section'),
-      unsureReasonOptions: byId('unsure-reason-options'),
-      unsureReasonTextBox: byId('add-unsure-comment'),
-      submitButton: byId('validate-submit-button'),
-      currentTags: byId('current-tags-list'),
-      aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      currentTagTemplate: byId('current-tag-template'),
-      aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
-    }, config, buildReasonButtonInfo(), labelContainer, { render: vi.fn(), onTypePicked: vi.fn() },
-    { styleMarkerForLabel: vi.fn() }, tracker);
+    const menu = new DesktopValidationMenu(ui, config, buildReasonButtonInfo(), labelContainer,
+      { render: vi.fn(), onTypePicked: vi.fn() }, { styleMarkerForLabel: vi.fn() }, tracker);
     menu.resetMenu(label);
   });
 

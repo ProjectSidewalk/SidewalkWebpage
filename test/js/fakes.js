@@ -119,7 +119,13 @@ export function mockLabelDetailCollaborators(getPanoManager) {
   mockModule('frontend/js/common/label-detail/PopupPanoManager.js',
     () => ({ PopupPanoManager: { create: async () => getPanoManager() } }));
   mockModule('frontend/js/common/label-detail/StorySection.js', () => ({ StorySection: class { setLabel() {} } }));
-  mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({ PanoInfoPopover: class {} }));
+  // The real popover appends its (i) trigger into the host span, which the card's Details chip forwards clicks to.
+  mockModule('frontend/js/common/pano-viewer/PanoInfoPopover.js', () => ({
+    PanoInfoPopover: class {
+      /** @param {HTMLElement} host - The span the trigger goes in. */
+      constructor(host) { host.append(document.createElement('img')); }
+    },
+  }));
 }
 
 /**

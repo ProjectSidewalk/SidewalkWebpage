@@ -26,7 +26,7 @@
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, partitionViolations, formatViolations} =
+const {EXEMPT_PAGES, A11Y_ALLOWLIST, OTHER_FORCED_STATES, WCAG_TAGS, partitionViolations, formatViolations} =
   require('./a11y-allowlist');
 
 // Valid JSON that stops early — what a client sees when a streamed response dies after its 200 has gone out.
@@ -166,8 +166,8 @@ for (const s of STATES.filter((state) => !(state.path in EXEMPT_PAGES))) {
 
 // A state-suffixed allowlist key outlives the state it named as easily as a page key outlives its page, and
 // a11y.spec.js's key check only proves the page half of it exists.
-test('a11y: state-suffixed allowlist keys name states this spec forces', () => {
-  const forced = new Set(STATES.map((s) => `${s.path} [${s.state}]`));
+test('a11y: state-suffixed allowlist keys name states this spec or another forces', () => {
+  const forced = new Set([...STATES.map((s) => `${s.path} [${s.state}]`), ...Object.values(OTHER_FORCED_STATES)]);
   const unknown = Object.keys(A11Y_ALLOWLIST)
     .filter((key) => key.includes(' [') && !forced.has(key));
   expect(unknown, 'keys naming no forced state').toEqual([]);

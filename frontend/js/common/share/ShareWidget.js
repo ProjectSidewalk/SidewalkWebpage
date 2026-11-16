@@ -37,6 +37,8 @@ export class ShareWidget {
   #fitToViewport = false;
   /** @type {?(() => void)} Called after a user-initiated close; see the constructor. */
   #onDismiss = null;
+  /** @type {?number} The deferred listener registration, cancelled if the popover closes before it runs. */
+  #listenTimer = null;
 
   // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
   static #SHED_ORDER = ['x', 'bluesky'];
@@ -64,13 +66,13 @@ export class ShareWidget {
    */
   constructor(trigger, opts = {}) {
     this.#trigger = trigger;
-    this.#host = opts.host || trigger.parentElement || document.body;
+    this.#host = opts.host || trigger.parentElement;
     this.#beforeOpen = opts.beforeOpen || null;
     this.#fitToViewport = Boolean(opts.fitToViewport);
     this.#onDismiss = opts.onDismiss || null;
 
     // Read before the first open: #fitPopover rewrites this class, so the markup's choice has to be captured now.
-    this.#prefersBelow = Boolean(this.#host.classList?.contains('label-detail__share--below'));
+    this.#prefersBelow = this.#host.classList.contains('label-detail__share--below');
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
     this.#trigger.setAttribute('aria-expanded', 'false');
@@ -117,7 +119,7 @@ export class ShareWidget {
    * @param {string} target.text - Longer descriptive text (used by the native sheet, X, and the email body).
    */
   setTarget({ url, title, text }) {
-    this.#target = { url: url || '', title: title || '', text: text || '' };
+    this.#target = { url, title, text };
     if (this.#open) this.#closePopover(true, false);
   }
 
@@ -207,9 +209,6 @@ export class ShareWidget {
    * container — the label-detail popup's footer and the landing grid's cards both sit in one.
    */
   #fitPopover() {
-    const wrapper = this.#popover.parentElement;
-    if (!wrapper) return;
-
     // A previous open may have dropped some; start from the full menu and re-derive.
     for (const platform of ShareWidget.#SHED_ORDER) this.#setPlatformHidden(platform, false);
 
@@ -226,7 +225,7 @@ export class ShareWidget {
     const space = room();
     if (below && height() > space.below && height() <= space.above) below = false;
     else if (!below && height() > space.above && height() <= space.below) below = true;
-    wrapper.classList.toggle('label-detail__share--below', below);
+    this.#host.classList.toggle('label-detail__share--below', below);
 
     // Still too tall. Drop platforms rather than let the menu run off the screen, cheapest first: Copy link is what
     // most people came for, and email is the one that works without an account anywhere.
@@ -242,8 +241,7 @@ export class ShareWidget {
    * @param {boolean} hidden
    */
   #setPlatformHidden(platform, hidden) {
-    const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
-    if (item) item.hidden = hidden;
+    /** @type {HTMLElement} */ (this.#popover.querySelector(`[data-share-platform="${platform}"]`)).hidden = hidden;
   }
 
   /**
@@ -257,13 +255,13 @@ export class ShareWidget {
     if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
-    setTimeout(() => {
+    this.#listenTimer = setTimeout(() => {
+      this.#listenTimer = null;
       document.addEventListener('click', this.#boundOutsideClick, true);
       document.addEventListener('keydown', this.#boundKeydown, true);
     }, 0);
 
-    const firstItem = this.#popover.querySelector('[role="menuitem"]');
-    if (firstItem) firstItem.focus();
+    /** @type {HTMLElement} */ (this.#popover.querySelector('[role="menuitem"]')).focus();
   }
 
   /**
@@ -273,9 +271,11 @@ export class ShareWidget {
    *      closing us (close(), setTarget()), which it does not need telling about.
    */
   #closePopover(returnFocus = true, notifyHost = true) {
-    if (this.#popover) this.#popover.hidden = true;
+    this.#popover.hidden = true;
     this.#open = false;
     this.#trigger.setAttribute('aria-expanded', 'false');
+    clearTimeout(this.#listenTimer);
+    this.#listenTimer = null;
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (returnFocus) this.#trigger.focus();
@@ -423,8 +423,8 @@ export class ShareWidget {
       return;
     }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    // Copy link is never shed, so there is always at least one item.
     const items = [...this.#popover.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
-    if (items.length === 0) return;
     e.preventDefault();
 
     // When focus sits outside the menu (e.g. the user clicked elsewhere without closing), arrows re-enter at an end.

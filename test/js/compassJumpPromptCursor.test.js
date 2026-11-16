@@ -22,6 +22,7 @@ describe('Compass cursor under the label-before-jump prompt', () => {
       onMoveStarted: (listener) => { nav.moveStarted = listener; },
       onMoveFinished: (listener) => { nav.moveFinished = listener; },
       onHeadingSettled: vi.fn(),
+      isMoving: () => true, // A move that lands is still in flight when it says it finished.
     };
     const streetProgress = {
       onLabelBeforeJumpChanged: (listener) => { nav.jumpPrompt = listener; },

@@ -108,8 +108,7 @@
     "hint-shapefile": "For ArcGIS, QGIS",
     "hint-geopackage": "Open GIS format",
     "caveat": "Some filters from this page's link (multiple regions, routes, or AI validation) can't be applied to downloads, so the file may contain more labels than the count above.",
-    "api-docs-link": "Raw Labels API documentation",
-    "opens-new-tab": " (opens in a new tab)"
+    "api-docs-link": "Raw Labels API documentation"
   },
   "story": {
     "heading": "Community stories",

@@ -75,6 +75,7 @@ city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
+city.name.beringen-be = Beringen
 
 state.name.california = Californië
 state.name.alaska = Alaska
@@ -86,6 +87,7 @@ country.name.new-zealand = Nieuw-Zeeland
 country.name.chile = Chili
 country.name.brazil = Brazilië
 country.name.france = Frankrijk
+country.name.belgium = België
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen
@@ -93,7 +95,7 @@ navbar.howto = Hoe te Labelen
 navbar.api = API
 navbar.about = Over ons
 navbar.tools = Hulpmiddelen
-navbar.labelmap = Label Kaart
+navbar.labelmap = Labelkaart
 navbar.accessscore = AccessScore
 navbar.leaderboard = Scoreboard
 navbar.stories = Verhalen
@@ -207,9 +209,11 @@ about.where.body = Van Seattle tot Mexico-Stad tot Zürich: vrijwilligers zetten
 about.where.links = <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">breng Project Sidewalk naar jouw stad</a>.
 about.history.title = Onze geschiedenis
 about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, met vroege steun van een <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> en de <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
-about.history.2017 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad, terwijl het lab verhuist naar de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington.
+about.history.2016 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad.
 about.history.2019 = De pilotstudie in DC toont aan dat online crowdsourcing kan worden gebruikt om de trottoirs van een hele stad in kaart te brengen — en wint een Best Paper Award op CHI 2019.
+about.history.2019.mexico = Project Sidewalk gaat internationaal in Mexico-Stad en daarna San Pedro Garza García, samen met de voetgangersorganisatie <a href="https://ligapeatonal.org/" target="_blank" rel="noopener">Liga Peatonal</a>. Liga legde contacten met lokale overheden en maatschappelijke organisaties, vertaalde de tool naar het Spaans en paste hem aan voor Mexicaanse straten. Zo opende Liga de deur naar elke anderstalige inzet die volgde.
 about.history.2021 = Een <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">NSF Smart &amp; Connected Communities-subsidie</a> verdiept onze samenwerking met de University of Illinois Chicago en Easterseals, met meer steden, onderwijsprogramma''s en onze zustersite <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
+about.history.2022 = In Oradell, New Jersey, brengt een groep Girl Scouts samen met de lokale afdeling van de National MS Society en Hackensack Meridian Health elke straat van de gemeente in kaart en <a href="https://www.hackensackmeridianhealth.org/en/news/2023/03/13/humc-and-community-groups-demonstrate-sidewalk-deficiencies" target="_blank" rel="noopener">presenteert de bevindingen aan de gemeenteraad</a>. Sindsdien is de aanpak uitgebreid naar zes andere gemeenten in New Jersey, St. Louis en <a href="https://walthamtimes.org/2026/06/28/mcdevitt-civics-class-earns-state-recognition-for-sidewalk-accessibility-project/" target="_blank" rel="noopener">schoolklassen zoals in Waltham</a>.
 about.history.today.label = Vandaag
 about.history.today = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden wereldwijd, native vertaald in {1} talen en aangedreven door duizenden vrijwilligers.
 about.team.title = Het team
@@ -234,6 +238,9 @@ about.data.body = Alles wat we verzamelen is open. Download labels, labelcluster
 about.partners.title = Maatschappelijke partners
 about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
 about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
+about.partners.project.title = Projectbrede partners
+about.partners.city.title = Partners in onze steden
+about.partners.city.tagline = Overheden, scholen, belangenorganisaties en gemeenschapsorganisaties waarmee we in een of meer van onze steden samenwerken.
 about.funding.title = Onderzoeksfinanciering
 about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
 about.cta.title = Help ons elk trottoir in kaart te brengen
@@ -281,11 +288,13 @@ landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners in {0}
 landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze communitypartners, waaronder:
+landing.partners.project.title = Projectbrede partners
+landing.partners.project.tagline = De volgende organisaties hebben Project Sidewalk blijvend en over steden heen beïnvloed.
 landing.partners.official.contact = Project Sidewalk is een onderzoekstool. Neem voor het melden van een probleem of het aanvragen van een reparatie rechtstreeks contact op met {0}. Je kunt links naar <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> of <a href="/stories" data-partner-source="official-contact-stories">verhalen</a> van Project Sidewalk aan je verzoek toevoegen.
 landing.partners.logo.alt = Logo van {0}
 landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
-landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, het <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> en de <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, samen met 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
+landing.partners.created.credits = …en gevormd door 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab-logo
 landing.partners.creator.uw.alt = Logo van de Paul G. Allen School of Computer Science & Engineering van de University of Washington
 landing.partners.creator.uic.alt = Logo van het Institute on Disability and Human Development van de University of Illinois Chicago
@@ -309,7 +318,7 @@ footer.api = Sidewalk API
 footer.connect = Contact
 footer.email = Email ons
 footer.funding = MET TROTS GESPONSORD DOOR
-footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> en <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.award = Subsidies <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a>, <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>, <br> <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2236277" target="_blank" rel="noopener">#2236277</a> en <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2623243" target="_blank" rel="noopener">#2623243</a>
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: {1}
 
@@ -616,7 +625,7 @@ routebuilder.legend.pois = Nuttige plaatsen
 dashboard.routes.title = Mijn routes
 dashboard.routes.intro = Routes die je in RouteBuilder hebt gemaakt. Verken er een om erlangs te labelen, of deel de link met anderen.
 dashboard.routes.explore = Verkennen
-dashboard.routes.labelmap = Label Kaart
+dashboard.routes.labelmap = Labelkaart
 dashboard.routes.copy = Link kopiëren
 dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
@@ -664,7 +673,7 @@ share.meta.image.alt = Straatfoto met de gemarkeerde locatie: {0}
 
 # Openbare spotlight-/deelpagina voor een enkel label (#456).
 sharedlabel.nearby.title = Labels in de buurt
-sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie {0} voor de volledige kaart.
+sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie de {0} voor de volledige kaart.
 sharedlabel.view.this.label = Bekijk dit label
 sharedlabel.engage.title = Help stoepen in {0} te beoordelen
 sharedlabel.engage.explore = Vind toegankelijkheidsproblemen in {0}
@@ -939,6 +948,7 @@ error.home = Terug naar start
 
 # Buurtrapporten (#5876).
 report.seo.title = {0}: buurtrapport — Project Sidewalk
+report.tool.name = Rapporten
 report.eyebrow = Buurtrapport
 report.generated = Gegenereerd op {0}.
 report.latest.observation = Laatste label: {0}.
@@ -1096,3 +1106,7 @@ report.worst.lede = {0,choice,1#1 locatie|1<{0} locaties} met de slechtste beoor
 report.worst.count.label = {0,choice,1#1 locatie|1<{0} locaties}: {1}. Bekijk de labels
 report.worst.nosidewalk = Ontbrekende stoepen hebben geen beoordeling, dus staan ze niet op deze kaart. Zet "{0}" aan in de zijbalk om ze als stippellijnen op de andere kaarten te zien.
 report.toc.worst = Ergste problemen
+report.stories.title = Verhalen uit de community
+report.stories.rule = Verhalen die communityleden aan labels in deze buurt hebben toegevoegd, nieuwste eerst. Een verhaal is de ervaring van één persoon; het verandert geen enkel getal op deze pagina.
+report.stories.street = Naar deze straat
+report.stories.all = Alle verhalen uit de community lezen

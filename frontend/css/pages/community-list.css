@@ -112,11 +112,6 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
 }
 
-/* The display: flex above beats the UA stylesheet's [hidden] rule, so search filtering needs its own. */
-.community-card[hidden] {
-  display: none;
-}
-
 /* Flat filled tags — borderless so they don't read as clickable buttons (our buttons carry borders/outlines). The
    type chip's background is tinted with the label type's canonical color by StoryListPage.js (backend-sourced). */
 .community-chip {

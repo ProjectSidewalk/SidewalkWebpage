@@ -29,7 +29,6 @@ export class StoryComposer {
   #username;
   #updateUrlFor;
   #objectUrl = null;
-  #busy = false;
   // Edit mode (#4054): non-null while editing an existing story. The existing photo is previewed from its signed URL
   // (it can't be loaded into the file input). #existingMedia holds the still-shown existing photo (nulled once a
   // replacement is picked or it's removed); #editHadMedia records whether the story had a photo when editing opened,
@@ -42,7 +41,7 @@ export class StoryComposer {
   /**
    * @param {HTMLDialogElement} dialog - The `.story-composer` dialog element.
    * @param {object} opts
-   * @param {string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
+   * @param {?string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
    * @param {boolean} [opts.omitDashboardLink] - Set by a host that is itself the dashboard, so the privacy note
    *     drops the link back to it.
    * @param {(edited: boolean) => void} [opts.onSubmitted] - Fired after a successful submission or in-place edit
@@ -52,7 +51,7 @@ export class StoryComposer {
    */
   constructor(dialog, opts) {
     this.#dialog = dialog;
-    this.#username = opts.currUsername || '';
+    this.#username = opts.currUsername;
     this.#onSubmitted = opts.onSubmitted;
     this.#updateUrlFor = opts.updateUrlFor || ((storyId) => `/userapi/stories/${storyId}`);
 
@@ -132,7 +131,7 @@ export class StoryComposer {
     this.#reset();
     this.#dialog.showModal();
     this.#els.text.focus();
-    window.logWebpageActivity?.(`Click_module=StoryComposerOpen_labelId=${labelId}`);
+    window.logWebpageActivity(`Click_module=StoryComposerOpen_labelId=${labelId}`);
     // Restore a draft stashed before a sign-in redirect (#4054) so no in-progress work is lost. Best-effort: an
     // absent or unreadable draft just leaves the freshly reset composer.
     await this.#restoreDraft(labelId);
@@ -178,7 +177,7 @@ export class StoryComposer {
     this.#editSnapshot = this.#snapshot();
     this.#dialog.showModal();
     els.text.focus();
-    window.logWebpageActivity?.(`Click_module=StoryEditOpen_storyId=${story.story_id}`);
+    window.logWebpageActivity(`Click_module=StoryEditOpen_storyId=${story.story_id}`);
   }
 
   /**
@@ -289,7 +288,6 @@ export class StoryComposer {
    * key is translated when we have it, with the server's English message as the fallback.
    */
   async #submit() {
-    if (this.#busy) return;
     const els = this.#els;
     const text = els.text.value.trim();
     const photo = els.photoInput.files[0];
@@ -323,7 +321,7 @@ export class StoryComposer {
       }
     }
 
-    this.#busy = true;
+    // A disabled button takes no clicks, so a second click can't post the story twice.
     els.submit.disabled = true;
     els.submit.textContent = i18next.t(editing ? 'labelmap:story.saving' : 'labelmap:story.submitting');
     try {
@@ -332,9 +330,9 @@ export class StoryComposer {
         : await this.#postForm('/userapi/stories', formData);
       if (res.ok) {
         if (editing) {
-          window.logWebpageActivity?.(`Click_module=StoryUpdateClient_storyId=${this.#editStoryId}`);
+          window.logWebpageActivity(`Click_module=StoryUpdateClient_storyId=${this.#editStoryId}`);
         } else {
-          window.logWebpageActivity?.(`Click_module=StorySubmitClient_labelId=${this.#labelId}_hasPhoto=${!!photo}`);
+          window.logWebpageActivity(`Click_module=StorySubmitClient_labelId=${this.#labelId}_hasPhoto=${!!photo}`);
         }
         this.#dialog.close();
         if (typeof this.#onSubmitted === 'function') this.#onSubmitted(editing);
@@ -352,7 +350,7 @@ export class StoryComposer {
         }
         const key = body && body.error ? `labelmap:${body.error}` : null;
         // When the server said how long the wait is (the daily story cap), prefer the variant of the message that
-        // names it. Falls back to the plain message whenever the wait is unknown or unformattable.
+        // names it. Falls back to the plain message whenever the wait is unknown.
         const when = StoryComposer.#relativeTime(body && body.retry_after_seconds);
         const timedKey = key && when ? `${key}-retry` : null;
         let message;
@@ -373,7 +371,6 @@ export class StoryComposer {
     } catch {
       this.#showError(i18next.t('labelmap:story.error.generic'));
     } finally {
-      this.#busy = false;
       els.submit.disabled = false;
       els.submit.textContent = i18next.t(editing ? 'labelmap:story.save' : 'labelmap:story.submit');
     }
@@ -401,7 +398,7 @@ export class StoryComposer {
    *      for types that don't read as a thing you can have a story "about" — see LabelDetail.
    */
   setLabelType(labelTypeName) {
-    this.#labelTypeName = labelTypeName || null;
+    this.#labelTypeName = labelTypeName;
     this.#renderTitle();
   }
 
@@ -551,7 +548,7 @@ export class StoryComposer {
   async #signInWithDraft() {
     const els = this.#els;
     const photo = els.photoInput.files[0];
-    window.logWebpageActivity?.(`Click_module=StorySignInCta_labelId=${this.#labelId}`);
+    window.logWebpageActivity(`Click_module=StorySignInCta_labelId=${this.#labelId}`);
     try {
       await this.#putDraft({
         labelId: this.#labelId,
@@ -567,7 +564,7 @@ export class StoryComposer {
     }
     const back = new URL(window.location.href);
     back.searchParams.set('resumeStory', String(this.#labelId));
-    window.location.assign(`/signIn?url=${encodeURIComponent(back.pathname + back.search + back.hash)}`);
+    window.location.assign(`/signIn?url=${encodeURIComponent(`${back.pathname}${back.search}${back.hash}`)}`);
   }
 
   /**
@@ -589,16 +586,15 @@ export class StoryComposer {
     // hold it in memory, and a failed delete only means it may reappear on the next open, never lost work.
     this.#deleteDraft(labelId).catch((err) => console.error('Could not clear stashed story draft:', err));
     const els = this.#els;
-    els.text.value = draft.text || '';
+    els.text.value = draft.text;
     this.#renderCounter();
     if (draft.useUsername && this.#username) {
       els.nameUser.checked = true;
       els.nameAnon.checked = false;
     }
     if (draft.photoBlob) {
-      const type = draft.photoType || draft.photoBlob.type;
-      this.#setPhoto(new File([draft.photoBlob], draft.photoName || 'photo', { type }));
-      els.altInput.value = draft.altText || '';
+      this.#setPhoto(new File([draft.photoBlob], draft.photoName, { type: draft.photoType }));
+      els.altInput.value = draft.altText;
     }
   }
 
@@ -636,14 +632,8 @@ export class StoryComposer {
    */
   static #relativeTime(seconds) {
     const usable = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0;
-    if (!usable || typeof Intl === 'undefined' || typeof Intl.RelativeTimeFormat !== 'function') return null;
-    const lang = i18next.language || document.documentElement.lang || 'en';
-    let fmt;
-    try {
-      fmt = new Intl.RelativeTimeFormat(lang, { numeric: 'always' });
-    } catch {
-      return null; // Unknown or malformed tag — fall back to the untimed message rather than throw mid-error-path.
-    }
+    if (!usable) return null;
+    const fmt = new Intl.RelativeTimeFormat(i18next.language, { numeric: 'always' });
     return seconds < 5400
       ? fmt.format(Math.ceil(seconds / 60), 'minute')
       : fmt.format(Math.ceil(seconds / 3600), 'hour');

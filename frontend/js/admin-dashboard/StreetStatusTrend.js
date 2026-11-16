@@ -108,12 +108,10 @@ export class StreetStatusTrend {
 
   /**
    * The regained-imagery review queue (#4929): no_imagery streets whose latest nightly poll found panos again, each
-   * with Reopen/Dismiss actions. Tolerates both the payload field and the container being absent, so older fixtures
-   * and pages keep rendering.
+   * with Reopen/Dismiss actions. A payload without the field reads as an empty queue.
    */
   #renderReopenCandidates(data) {
     const container = document.getElementById('trend-reopen-candidates');
-    if (!container) return;
     const rows = data.reopen_candidates || [];
 
     if (rows.length === 0) {
@@ -251,7 +249,6 @@ export class StreetStatusTrend {
    */
   #setQueueError(message) {
     const container = document.getElementById('trend-reopen-candidates');
-    if (!container) return;
     let note = container.querySelector('.reopen-queue-error');
     if (!note) {
       note = document.createElement('p');
