@@ -8,10 +8,10 @@
  * Nothing here is stubbed: the report's maps run on the city's own tile archive and glyphs, so no Mapbox or Google
  * request is ever made, and the specs read the page's own embedded `#report-data` JSON to learn what the server put
  * on it. The region under test is discovered from `/v3/api/regions` rather than hardcoded, so the same spec runs
- * against a dev database holding any city and against CI's one-region seed, skipping (with a reason) whatever that
- * seed does not carry. CI's seed has no label clusters, places or stories, so there the worst-problems key, the street
- * cards, the fixes, the places half of the map test and the score-change check all skip; what CI holds the page to is
- * its load, its maps and the weights round trip. The `googleMapsLeaks` fixture fails any test whose page asks Google.
+ * against a dev database holding any city and against CI's one-region seed, skipping (with a reason) whatever a dev
+ * database does not carry. CI's seed carries all of it (label clusters with one rated worst, a place, a fix and a
+ * story, #5936), so there every test runs in full and `openReport` fails rather than let one skip. The
+ * `googleMapsLeaks` fixture fails any test whose page asks Google.
  */
 const {test, expect, waitForAppReady} = require('./fixtures');
 
@@ -60,8 +60,20 @@ async function openReport(page, request, query = '') {
   expect(page.url()).toMatch(/\/report\/neighborhood\/(?!\d+(?:[?#]|$))[^/?#]+(?:[?#]|$)/);
   await waitForAppReady(page);
   const data = await readReportData(page);
-  // CI's seed has streets, so the map and weights tests must not quietly skip there.
-  if (process.env.CI) expect(data.streets.length, 'CI\'s seed region reported no streets').toBeGreaterThan(0);
+  // CI's seed carries everything the tests here read, so none of them may quietly skip there (#5936).
+  if (process.env.CI) {
+    const seeded = {
+      'streets': data.streets.length,
+      'cards on its first street': data.streets[0]?.cards.length ?? 0,
+      'worst problems': data.worst.length,
+      'places': data.places.length,
+      'fixes': data.fixes.length,
+      'stories': await page.locator('.report-story').count()
+    };
+    for (const [what, count] of Object.entries(seeded)) {
+      expect(count, `CI's seed region reported no ${what}`).toBeGreaterThan(0);
+    }
+  }
   return {data};
 }
 
