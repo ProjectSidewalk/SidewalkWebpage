@@ -47,6 +47,7 @@ import models.validation.{
   ValidationOption,
   ValidationQueuePolicy,
   ValidationReason,
+  ValidationResultCounts,
   ValidationTaskCommentTableDef
 }
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -3299,7 +3300,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Get metadata used for 2022 CV project for all labels.
+   * Gets what the CV/ML tools need to cut a crop for each label and credit its imagery.
+   *
+   * @return One row per label whose pano has a known camera heading and pitch, ordered by label id.
    */
   def getLabelCVMetadata: StreamingDBIO[Seq[LabelCVMetadata], LabelCVMetadata] = {
     (for {
@@ -3314,23 +3317,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           _l.labelId,
           _pd.panoId,
           _l.labelTypeName,
-          _l.agreeCount,
-          _l.disagreeCount,
-          _l.unsureCount,
+          (_l.agreeCount, _l.disagreeCount, _l.unsureCount).mapTo[ValidationResultCounts],
           _pd.width,
           _pd.height,
-          _lp.panoX,
-          _lp.panoY,
-          _lp.canvasWidth,
-          _lp.canvasHeight,
-          _lp.canvasX,
-          _lp.canvasY,
-          _lp.zoom,
-          _lp.heading,
-          _lp.pitch,
+          (_lp.panoX, _lp.panoY).mapTo[LocationXY],
+          (_lp.canvasWidth, _lp.canvasHeight).mapTo[Dimensions],
+          (_lp.canvasX, _lp.canvasY).mapTo[LocationXY],
+          (_lp.heading, _lp.pitch, _lp.zoom).mapTo[POV],
           _pd.cameraHeading.asColumnOf[Double],
           _pd.cameraPitch.asColumnOf[Double],
-          _pd.cameraRoll
+          _pd.cameraRoll,
+          _pd.source,
+          _pd.copyright,
+          _pd.license
         ).mapTo[LabelCVMetadata]
       }
       .result

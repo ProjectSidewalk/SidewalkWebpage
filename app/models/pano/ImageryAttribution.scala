@@ -23,6 +23,9 @@ object ImageryAttribution {
   val MapillaryLicense: String    = "CC BY-SA 4.0"
   val MapillaryLicenseUrl: String = "https://creativecommons.org/licenses/by-sa/4.0/"
 
+  /** The Mapillary licence as an identifier, written the way Panoramax records its own (see [[PanoramaxLicenses]]). */
+  val MapillaryLicenseId: String = "CC-BY-SA-4.0"
+
   /**
    * A licence as it should read on screen, and where its text lives.
    *
@@ -108,6 +111,13 @@ object ImageryAttribution {
         )
       case _ => recorded.map(Line(_, None, None, None))
     }
+  }
+
+  /** @return The licence identifier for data handed to other tools: Mapillary's, or the one a Panoramax pano recorded. */
+  def licenseId(source: PanoSource, license: Option[String]): Option[String] = source match {
+    case PanoSource.Mapillary => Some(MapillaryLicenseId)
+    case PanoSource.Panoramax => license.map(_.trim).filter(_.nonEmpty)
+    case _                    => None
   }
 
   /**

@@ -1,7 +1,9 @@
 package models.api
 
-import models.label.LabelType
+import models.label.{Dimensions, LabelType, LocationXY, POV}
+import models.pano.PanoSource
 import models.user.LabelTypeStat
+import models.validation.ValidationResultCounts
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsNull, JsObject}
@@ -70,10 +72,22 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   private def sampleCVMetadata: LabelCVMetadata = LabelCVMetadata(
-    labelId = 1, panoId = "pano-1", labelType = "NoCurbRamp", agreeCount = 3, disagreeCount = 1, unsureCount = 0,
-    panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
-    canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
-    cameraRoll = None
+    labelId = 1,
+    panoId = "pano-1",
+    labelType = "NoCurbRamp",
+    validationCounts = ValidationResultCounts(3, 1, 0),
+    panoWidth = None,
+    panoHeight = Some(8192),
+    panoXY = LocationXY(100, 200),
+    canvasSize = Dimensions(720, 480),
+    canvasXY = LocationXY(50, 60),
+    pov = POV(heading = 90.0, pitch = -10.0, zoom = 1.0),
+    cameraHeading = 95.0,
+    cameraPitch = 0.0,
+    cameraRoll = None,
+    source = PanoSource.Mapillary,
+    copyright = Some("Jane Doe"),
+    license = None
   )
 
   test("LabelCVMetadata JSON uses snake_case keys, with a null for each unset optional field") {
@@ -83,16 +97,18 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (json \ "pano_height").as[Int] shouldBe 8192
     (json \ "pano_width").get shouldBe JsNull
     (json \ "camera_roll").get shouldBe JsNull
+    (json \ "source").as[String] shouldBe "mapillary"
+    (json \ "copyright").as[String] shouldBe "Jane Doe"
+    (json \ "license").as[String] shouldBe "CC-BY-SA-4.0" // Mapillary's, though the record holds none
     json.as[JsObject].keys.filter(k => k != k.toLowerCase) shouldBe empty
   }
 
-  test("LabelCVMetadata CSV columns match the header, empty for an unset optional field") {
-    val header = LabelCVMetadata.csvHeader.split(",", -1)
-    val cols   = sampleCVMetadata.toCsvRow.split(",", -1)
-    cols.length shouldBe header.length
+  test("LabelCVMetadata CSV keeps the columns the cropper reads, in order, with a cell for each") {
+    LabelCVMetadata.csvHeader shouldBe "label_id,pano_id,label_type,agree_count,disagree_count,unsure_count," +
+      "pano_width,pano_height,pano_x,pano_y,canvas_width,canvas_height,canvas_x,canvas_y,zoom,heading,pitch," +
+      "camera_heading,camera_pitch,camera_roll,source,copyright,license"
 
-    header.head shouldBe "label_id"
-    cols(6) shouldBe ""   // panoWidth = None
-    cols.last shouldBe "" // cameraRoll = None
+    sampleCVMetadata.toCsvRow shouldBe
+      "1,pano-1,NoCurbRamp,3,1,0,,8192,100,200,720,480,50,60,1.0,90.0,-10.0,95.0,0.0,,mapillary,Jane Doe,CC-BY-SA-4.0"
   }
 }
