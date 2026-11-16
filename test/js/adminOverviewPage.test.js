@@ -206,9 +206,9 @@ describe('the Humans vs AI card', () => {
 
 describe('the weekly trends', () => {
   const SERIES = [
-    { date: daysAgo(0), labels: 10, validations: 4, audits: 2, new_users: 1 },
-    { date: daysAgo(3), labels: 5, validations: 1, audits: 3 },
-    { date: daysAgo(8), labels: 30, validations: 2, audits: 5, new_users: 1 },
+    { date: daysAgo(0), labels: 10, validations: 4, audits: 2, new_users: 9, new_contributors: 2 },
+    { date: daysAgo(3), labels: 5, validations: 1, audits: 3, new_contributors: 1 },
+    { date: daysAgo(8), labels: 30, validations: 2, audits: 5, new_users: 1, new_contributors: 1 },
     { date: daysAgo(20), audits: 1 },
     { date: daysAgo(40), labels: 7 },
   ];
@@ -222,7 +222,10 @@ describe('the weekly trends', () => {
     const coverage = document.getElementById('ov-coverage-trend');
     expect(coverage.textContent).toBe('→ 5 streets this week');
     expect(coverage.className).toBe('ov-card-trend ov-trend--flat');
-    expect(text('ov-contributors-trend')).toBe('→ 1 new this week');
+    // New contributors, not the sign-ups in new_users.
+    const contributors = document.getElementById('ov-contributors-trend');
+    expect(contributors.textContent).toBe('▲ 3 new this week');
+    expect(contributors.title).toBe('3 this week vs 1 last week');
     // 15 labels + 5 validations + 5 streets this week, against 30 + 2 + 5.
     expect(text('ov-activity-trend')).toBe('▼ 25 actions this week');
   });

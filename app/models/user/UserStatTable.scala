@@ -1268,6 +1268,20 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Counts the people who became contributors each day: the day of their first counted label or vote.
+   *
+   * @return (day, new contributors) for each day that had any, ascending; all days sum to [[countAllUsersContributed]].
+   */
+  def getNewContributorCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    sql"""
+      SELECT date_trunc('day', contributor.first_at) AS day, COUNT(*)
+      FROM #${FilteredTables.contributorFirstWork()}
+      GROUP BY day
+      ORDER BY day;
+    """.as[(OffsetDateTime, Int)]
+  }
+
+  /**
    * Gets user statistics with optional filtering applied at the database query level for efficiency.
    *
    * @param minLabels Optional minimum number of labels a user must have
