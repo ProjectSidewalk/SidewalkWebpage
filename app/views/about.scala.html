@@ -29,13 +29,10 @@
 @languageCount = @{commonData.supportedLanguages.map(_.takeWhile(_ != '-')).distinct.size}
 
 @* The partner logo grid (#5980): every organization in the shared partner table once, project-wide partners first,
-   then the rest alphabetically, leaving out private cities' partners (PartnerMetadata.groupForAbout, which takes the
-   public city ids from config so the rule isn't re-declared here). Each grid renders only when it has logos, so a
-   fresh database shows just the prose above. Markup mirrors the landing partial (landing/_partners), including why
-   the name's psTooltip sits on the non-focusable wrapper rather than the link: the alt already describes the logo,
-   and aria-describedby on the link would make a screen reader read the name twice. *@
-@publicCityIds = @{commonData.allCityInfo.filter(_.isPublic).map(_.cityId).toSet}
-
+   then the rest alphabetically, private cities' partners included (PartnerMetadata.groupForAbout). Each grid
+   renders only when it has logos, so a fresh database shows just the prose above. Markup mirrors the landing partial
+   (landing/_partners), including why the name's psTooltip sits on the non-focusable wrapper rather than the link: the
+   alt already describes the logo, and aria-describedby on the link would make a screen reader read the name twice. *@
 @partnerLogoImg(p: PartnerMetadata) = {
   <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.logoVersion"
   width="@p.logoWidth" height="@p.logoHeight"
@@ -255,7 +252,7 @@
         <p>@Html(Messages("about.partners.schools"))</p>
         @* Grouped once here, since a Twirl value definition would re-run the grouping at each use: groups._1 is the
            project-wide partners, groups._2 every other organization. *@
-        @defining(PartnerMetadata.groupForAbout(partners, publicCityIds)) { groups =>
+        @defining(PartnerMetadata.groupForAbout(partners)) { groups =>
           @if(groups._1.nonEmpty) {
             <h3 class="about-partners-heading" id="about-project-partners-title">
               @Messages("about.partners.project.title")</h3>

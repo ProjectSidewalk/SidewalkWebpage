@@ -19,9 +19,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
       altText: Option[String] = None
   ) = PartnerMetadata(id, cityId, name, url, altText, displayOrder, 800, 200, OffsetDateTime.now)
 
-  private val publicCities = Set("seattle", "chicago", "newberg", "cdmx")
-
-  private def group(rows: Seq[PartnerMetadata]) = PartnerMetadata.groupForAbout(rows, publicCities)
+  private def group(rows: Seq[PartnerMetadata]) = PartnerMetadata.groupForAbout(rows)
 
   "PartnerMetadata.groupForAbout" should {
     "show an organization once, ignoring case and spacing (no-break spaces too), with its lowest-id row" in {
@@ -64,26 +62,20 @@ class PartnerMetadataSpec extends SidewalkSpec {
       others.map(_.name) mustBe Seq("Active Transportation Alliance", "Liga Peatonal", "walkable Seattle")
     }
 
-    "leave out a partner only a private city lists, but show one a public city also lists, from the public row" in {
+    "include every city's partners, whatever the city's status" in {
       val (projectWide, others) = group(
-        Seq(
-          row(1, Some("taipei"), "Taipei Walks"),
-          row(2, Some("taipei"), "Public Nudge"),
-          row(3, Some("seattle"), "Public Nudge"),
-          row(4, Some("unconfigured"), "Ghost Org"),
-          row(5, None, "SciStarter")
-        )
+        Seq(row(1, Some("taipei"), "Public Nudge"), row(2, Some("zurich"), "iNovitas"), row(5, None, "SciStarter"))
       )
       projectWide.map(_.partnerId) mustBe Seq(5)
-      others.map(_.partnerId) mustBe Seq(3)
+      others.map(_.partnerId) mustBe Seq(2, 1)
     }
 
-    "take a missing URL or alt text from a sibling row, lowest id first, never from a private city" in {
+    "take a missing URL or alt text from a sibling row, lowest id first" in {
       val (projectWide, others) = group(
         Seq(
           row(3, Some("seattle"), "Public Nudge"),
-          row(4, Some("taipei"), "Public Nudge", url = Some("https://private.example/")),
-          row(7, Some("chicago"), "Public Nudge", url = Some("https://publicnudge.org/"), altText = Some("PN")),
+          row(4, Some("taipei"), "Public Nudge", url = Some("https://publicnudge.org/")),
+          row(7, Some("chicago"), "Public Nudge", url = Some("https://other.example/"), altText = Some("PN")),
           row(9, Some("cdmx"), "Public Nudge", url = Some("https://later.example/"), altText = Some("Later")),
           row(10, None, "SciStarter"),
           row(2, Some("seattle"), "scistarter", url = Some("https://scistarter.org/"))

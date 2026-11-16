@@ -55,10 +55,11 @@ class AboutPartnersViewSpec extends SidewalkSpec with ViewSpecFixtures {
       Seq("partnerLogo/3", "partnerLogo/6").foreach(dropped => band must not include dropped)
     }
 
-    "leave out the partners of a city that isn't public" in {
+    "include the partners of a city that isn't public" in {
       val city = privateCity.getOrElse(fail("cityparams.conf configures no private city to test with"))
-      val band = partnersBand(render(Seq(row(4, Some(city), "Unlaunched Partner"), row(5, Some(publicCity), "Shown"))))
-      band must not include "partnerLogo/4"
+      val band =
+        partnersBand(render(Seq(row(4, Some(city), "Private-City Partner"), row(5, Some(publicCity), "Shown"))))
+      band must include("partnerLogo/4")
       band must include("partnerLogo/5")
     }
 
