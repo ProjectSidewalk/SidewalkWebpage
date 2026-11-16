@@ -1256,15 +1256,14 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Counts this city's contributors ([[models.utils.FilteredTables.contributorIds]]), leaving out AI accounts.
+   * Counts this city's contributors ([[models.utils.FilteredTables.contributorIds]]).
    *
-   * @return The number of distinct non-AI contributors, all time.
+   * @return The number of distinct contributors, all time.
    */
   def countAllUsersContributed(): DBIO[Int] = {
     sql"""
       SELECT COUNT(*)
-      FROM #${FilteredTables.contributorIds()}
-      WHERE #${FilteredTables.notAi("contributor.user_id")};
+      FROM #${FilteredTables.contributorIds()};
     """.as[Int].head
   }
 

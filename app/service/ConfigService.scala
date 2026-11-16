@@ -145,7 +145,8 @@ object CommonPageData {
  * more miles than the city has streets. Only cities where both the stats and the contributor query succeeded get a
  * `CityImpact`, so a partial failure can't render a tile reading zero next to tiles reading six figures.
  *
- * @param contributors        Distinct non-excluded users who added a non-tutorial label or validated one in this city.
+ * @param contributors        Distinct non-excluded people (AI accounts left out) who added a non-tutorial label or
+ *                            validated one in this city.
  * @param totalLabels         Non-tutorial, non-deleted labels from non-excluded users.
  * @param totalValidations    Validations from non-excluded users.
  * @param kmExploredNoOverlap Kilometers of distinct streets with a completed audit task.
@@ -580,14 +581,6 @@ case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[Strin
  * @param multiCity Those who contributed in two or more cities.
  */
 case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
-
-/**
- * People who contributed, for the public aggregate stats, AI accounts excluded (#5914).
- *
- * @param total  Each person counted once, wherever they contributed.
- * @param byCity Each city's own count, for the cities whose contributors could be read.
- */
-case class AggregateContributorCounts(total: Int, byCity: Map[String, Int])
 
 /**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
@@ -1059,33 +1052,15 @@ object ConfigService {
     sc.mappedKm >= MinMappedKmForReauditFlag && reauditKm(sc) >= sc.mappedKm * ReauditBacklogShare
 
   /**
-   * Counts contributors across cities from each city's contributor ids, AI accounts dropped. Each city's ids are
-   * deduped here rather than trusted to arrive distinct, since a repeat within one city would read as a second city.
+   * Counts contributors across cities from each city's contributor ids. Each city's ids are deduped here rather than
+   * trusted to arrive distinct, since a repeat within one city would read as a second city.
    *
    * @param perCity One city's contributor `user_id`s per element.
-   * @param aiIds   The AI accounts' `user_id`s.
    * @return        Each person counted once, and those in two or more cities.
    */
-  def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
-    val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
+  def contributorCounts(perCity: Seq[Seq[String]]): CrossCityContributorCounts = {
+    val cityCount = perCity.flatMap(_.distinct).groupMapReduce(identity)(_ => 1)(_ + _)
     CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
-  }
-
-  /**
-   * Counts contributors for the public aggregate stats, AI accounts dropped so they match the admin counts.
-   *
-   * @param perCity Each city's contributor `user_id`s, or None if they couldn't be read.
-   * @param aiIds   The AI accounts' `user_id`s.
-   * @return        Each person counted once overall, plus a count for each city that could be read.
-   */
-  def aggregateContributorCounts(
-      perCity: Seq[(String, Option[Set[String]])],
-      aiIds: Set[String]
-  ): AggregateContributorCounts = {
-    val people: Map[String, Set[String]] = perCity.collect { case (cityId, Some(ids)) =>
-      cityId -> (ids -- aiIds)
-    }.toMap
-    AggregateContributorCounts(people.values.flatten.toSet.size, people.view.mapValues(_.size).toMap)
   }
 
   /**
@@ -2001,9 +1976,7 @@ class ConfigServiceImpl @Inject() (
               .foreach(e => logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}"))
             idsF
           }
-          Future.sequence(perCityFutures).zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            ConfigService.contributorCounts(perCity, aiIds.toSet)
-          }
+          Future.sequence(perCityFutures).map(ConfigService.contributorCounts)
         }
       }
       .recover { case e: Exception =>
@@ -2185,21 +2158,20 @@ class ConfigServiceImpl @Inject() (
           }
         )
 
-        // Distinct contributors across all cities, deduped by the global `user_id` (#3976) so a user active in
-        // multiple cities counts once. Unlike the per-city reads, a failed AI-account read fails the whole computation:
-        // the counts would otherwise include AI accounts, and a failed background refresh keeps the last good stats.
-        val contributorsFut: Future[AggregateContributorCounts] =
-          contributorIdsFut.zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
-            ConfigService.aggregateContributorCounts(perCity, aiIds.toSet)
-          }
-
         // Wait for all futures to complete and aggregate results.
-        Future.sequence(cityStatsFutures).zip(contributorsFut).map { case (cityStats, contributors) =>
+        Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
+          // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
+          // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
+          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
+
           // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
+          val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
+            cityId -> ids.size
+          }.toMap
           val byCity: Map[String, CityImpact] = cityStats.collect {
-            case (cityId, Some(stats)) if contributors.byCity.contains(cityId) =>
+            case (cityId, Some(stats)) if contributorCounts.contains(cityId) =>
               cityId -> CityImpact(
-                contributors.byCity(cityId),
+                contributorCounts(cityId),
                 stats.totalLabels,
                 stats.totalValidations,
                 stats.kmExploredNoOverlap
@@ -2214,7 +2186,7 @@ class ConfigServiceImpl @Inject() (
             // Return empty aggregate stats if no cities provided data.
             AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
           } else {
-            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, contributors.total)
+            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, totalUsers)
             AggregateStatsBundle(overall, byCity)
           }
         }
