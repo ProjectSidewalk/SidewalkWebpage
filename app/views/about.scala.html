@@ -248,7 +248,30 @@
       </div>
     </section>
 
-    <section class="about-band" id="about-history">
+    <section class="about-band" id="about-partners">
+      <div class="about-container">
+        <h2>@Messages("about.partners.title")</h2>
+        <p>@Messages("about.partners.body")</p>
+        <p>@Html(Messages("about.partners.schools"))</p>
+        @* Grouped once here, since a Twirl value definition would re-run the grouping at each use: groups._1 is the
+           project-wide partners, groups._2 every other organization. *@
+        @defining(PartnerMetadata.groupForAbout(partners, publicCityIds)) { groups =>
+          @if(groups._1.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-project-partners-title">
+              @Messages("about.partners.project.title")</h3>
+            <p class="about-partners-tagline">@Messages("landing.partners.project.tagline")</p>
+            @partnerGrid(groups._1, "about-project-partners-title")
+          }
+          @if(groups._2.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-city-partners-title">@Messages("about.partners.city.title")</h3>
+            <p class="about-partners-tagline">@Messages("about.partners.city.tagline")</p>
+            @partnerGrid(groups._2, "about-city-partners-title")
+          }
+        }
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-history">
       <div class="about-container">
         <h2>@Messages("about.history.title")</h2>
         <ol class="about-timeline">
@@ -276,7 +299,7 @@
       </div>
     </section>
 
-    <section class="about-band about-band--tint" id="about-pubs">
+    <section class="about-band" id="about-pubs">
       <div class="about-container">
         <h2>@Messages("about.pubs.title")</h2>
         <p class="about-section-intro">@Html(Messages("about.pubs.intro"))</p>
@@ -309,33 +332,10 @@
       </div>
     </section>
 
-    <section class="about-band" id="about-data">
+    <section class="about-band about-band--tint" id="about-data">
       <div class="about-container">
         <h2>@Html(Messages("about.data.title"))</h2>
         <p>@Html(Messages("about.data.body"))</p>
-      </div>
-    </section>
-
-    <section class="about-band about-band--tint" id="about-partners">
-      <div class="about-container">
-        <h2>@Messages("about.partners.title")</h2>
-        <p>@Messages("about.partners.body")</p>
-        <p>@Html(Messages("about.partners.schools"))</p>
-        @* Grouped once here, since a Twirl value definition would re-run the grouping at each use: groups._1 is the
-           project-wide partners, groups._2 every other organization. *@
-        @defining(PartnerMetadata.groupForAbout(partners, publicCityIds)) { groups =>
-          @if(groups._1.nonEmpty) {
-            <h3 class="about-partners-heading" id="about-project-partners-title">
-              @Messages("about.partners.project.title")</h3>
-            <p class="about-partners-tagline">@Messages("landing.partners.project.tagline")</p>
-            @partnerGrid(groups._1, "about-project-partners-title")
-          }
-          @if(groups._2.nonEmpty) {
-            <h3 class="about-partners-heading" id="about-city-partners-title">@Messages("about.partners.city.title")</h3>
-            <p class="about-partners-tagline">@Messages("about.partners.city.tagline")</p>
-            @partnerGrid(groups._2, "about-city-partners-title")
-          }
-        }
       </div>
     </section>
 
