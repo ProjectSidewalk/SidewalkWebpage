@@ -135,6 +135,8 @@ class TrafficMathSpec extends SidewalkSpec {
           40,
           0.4,
           0.05,
+          300,
+          700,
           32494L,
           17690L,
           0.116,
@@ -145,15 +147,54 @@ class TrafficMathSpec extends SidewalkSpec {
         )
       )
       json.as[play.api.libs.json.JsObject].keys mustBe Set("city_id", "sessions_7d", "sessions_prior_7d",
-        "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_28d",
-        "sessions_all_time", "visitors_all_time", "mobile_share_all_time", "ga_since", "weekly_sessions",
-        "baseline_median", "anomaly")
+        "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_30d",
+        "new_visitors_30d", "new_visitors_90d", "sessions_all_time", "visitors_all_time", "mobile_share_all_time",
+        "ga_since", "weekly_sessions", "baseline_median", "anomaly")
       (json \ "sessions_7d").as[Int] mustBe 100
       (json \ "sessions_all_time").as[Long] mustBe 32494L
       (json \ "visitors_all_time").as[Long] mustBe 17690L
       (json \ "ga_since").as[String] mustBe "2021-10-27"
       (json \ "baseline_median").as[Double] mustBe 33.5
       (json \ "anomaly").as[String] mustBe "traffic_spike"
+    }
+  }
+
+  "funnelVisitors" should {
+    val traffic = CityTraffic(
+      "seattle-wa",
+      100,
+      90,
+      80,
+      70,
+      40,
+      0.4,
+      0.05,
+      300,
+      700,
+      32494L,
+      17690L,
+      0.116,
+      Some(LocalDate.of(2021, 10, 27)),
+      Seq(1, 2, 3),
+      None,
+      None
+    )
+
+    "pick first-time visitors for the 30 and 90 day windows and every visitor for all time" in {
+      TrafficService.funnelVisitors(traffic, "30d").map(_.visitors) mustBe Some(300L)
+      TrafficService.funnelVisitors(traffic, "90d").map(_.visitors) mustBe Some(700L)
+      TrafficService.funnelVisitors(traffic, "all").map(_.visitors) mustBe Some(17690L)
+    }
+
+    "have an answer for every funnel window and none for anything else" in {
+      ConfigService.FunnelWindowKeys.foreach(w => TrafficService.funnelVisitors(traffic, w) must not be empty)
+      TrafficService.funnelVisitors(traffic, "7d") mustBe None
+    }
+
+    "give a rate only for a dated window with visitors" in {
+      TrafficService.funnelVisitors(traffic, "30d").flatMap(_.rate(30)) mustBe Some(0.1)
+      TrafficService.funnelVisitors(traffic, "all").flatMap(_.rate(30)) mustBe None
+      FunnelVisitors(0, None, windowed = true).rate(5) mustBe None
     }
   }
 

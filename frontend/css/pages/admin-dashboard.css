@@ -666,6 +666,7 @@
 .mini-line--activity { stroke: var(--act-accent); }       .mini-pt--activity { fill: var(--act-accent); }
 .mini-line--registered { stroke: var(--act-registered); } .mini-pt--registered { fill: var(--act-registered); }
 .mini-line--anon { stroke: var(--act-anon); }             .mini-pt--anon { fill: var(--act-anon); }
+.mini-bar--activity { fill: var(--act-accent); }
 .mini-swatch--registered { background: var(--act-registered); }
 .mini-swatch--anon { background: var(--act-anon); }
 

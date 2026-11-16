@@ -1174,7 +1174,7 @@ export class AcrossCitiesPage {
         ? `Weekly sessions: latest ${this.#num(weeks[weeks.length - 1])}, `
         + `peak ${this.#num(Math.max(...weeks))}`
         : 'No weekly sessions to plot.';
-      const mobileTitle = `${this.#pct(t.mobile_share_28d)} in the last 28 days, `
+      const mobileTitle = `${this.#pct(t.mobile_share_30d)} in the last 30 days, `
         + `vs ${this.#pct(t.mobile_share_all_time)} over all time`;
       return `
         <tr class="${t.anomaly ? 'ac-row--flagged' : ''}">
@@ -1182,7 +1182,7 @@ export class AcrossCitiesPage {
           ${this.#trafficCell(t.sessions_7d, t.sessions_prior_7d, 'sessions')}
           ${this.#trafficCell(t.active_users_7d, t.active_users_prior_7d, 'visitors')}
           <td class="ac-num" title="${engagementTitle}">${this.#pct(t.engagement_rate_7d)}</td>
-          <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_28d)}</td>
+          <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_30d)}</td>
           <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTip}">${this.#num(t.sessions_all_time)}</td>
           <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#num(t.visitors_all_time)}</td>
           <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#pct(t.mobile_share_all_time)}</td>

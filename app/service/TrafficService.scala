@@ -22,7 +22,8 @@ import scala.util.{Failure, Success, Try}
 
 /**
  * One city's web-traffic summary from the GA4 Data API: rolling 7-day windows (level + week-over-week delta), a
- * trailing weekly sessions series (sparkline + anomaly baseline), and a 28-day device split.
+ * trailing weekly sessions series (sparkline + anomaly baseline), a 30-day device split, and first-time visitors for
+ * the engagement funnels' windows.
  *
  * @param cityId             The deployment's city id (cities sharing a GA property each get a row).
  * @param sessions7d         Sessions in the trailing 7 days (including today, partial).
@@ -31,7 +32,9 @@ import scala.util.{Failure, Success, Try}
  * @param activeUsersPrior7d Distinct active users in the 7 days before that.
  * @param engagedSessions7d  GA "engaged" sessions (10s+, a conversion, or 2+ pageviews) in the trailing 7 days.
  * @param engagementRate7d   `engagedSessions7d / sessions7d`; 0 when there were no sessions.
- * @param mobileShare28d     Share of the last 28 days' sessions from mobile or tablet devices.
+ * @param mobileShare30d     Share of the last 30 days' sessions from mobile or tablet devices.
+ * @param newVisitors30d     First-time visitors (per GA) in the last 30 days.
+ * @param newVisitors90d     First-time visitors (per GA) in the last 90 days.
  * @param sessionsAllTime    Sessions over the property's whole GA4 history.
  * @param visitorsAllTime    Distinct users over that history, deduplicated by GA across devices.
  * @param mobileShareAllTime Share of all-time sessions from mobile or tablet devices.
@@ -51,7 +54,9 @@ case class CityTraffic(
     activeUsersPrior7d: Int,
     engagedSessions7d: Int,
     engagementRate7d: Double,
-    mobileShare28d: Double,
+    mobileShare30d: Double,
+    newVisitors30d: Int,
+    newVisitors90d: Int,
     sessionsAllTime: Long,
     visitorsAllTime: Long,
     mobileShareAllTime: Double,
@@ -74,7 +79,9 @@ object CityTraffic {
       "active_users_prior_7d" -> t.activeUsersPrior7d,
       "engaged_sessions_7d"   -> t.engagedSessions7d,
       "engagement_rate_7d"    -> t.engagementRate7d,
-      "mobile_share_28d"      -> t.mobileShare28d,
+      "mobile_share_30d"      -> t.mobileShare30d,
+      "new_visitors_30d"      -> t.newVisitors30d,
+      "new_visitors_90d"      -> t.newVisitors90d,
       "sessions_all_time"     -> t.sessionsAllTime,
       "visitors_all_time"     -> t.visitorsAllTime,
       "mobile_share_all_time" -> t.mobileShareAllTime,
@@ -92,6 +99,29 @@ object CityTraffic {
  * configured, which is steady state, rather than having been unreachable this round.
  */
 case class TrafficSnapshot(fetchedAt: OffsetDateTime, cities: Seq[CityTraffic], failedCityIds: Seq[String])
+
+/** One of a city's traffic sources: GA's session source and medium, and their sessions in the last 30 days. */
+case class TrafficSource(source: String, medium: String, sessions: Int)
+
+object TrafficSource {
+  given trafficSourceWrites: Writes[TrafficSource] = Json.writes[TrafficSource]
+}
+
+/** This deployment's own traffic and its busiest sources (most sessions first), with when GA was asked. */
+case class CurrentCityTraffic(fetchedAt: OffsetDateTime, traffic: CityTraffic, topSources: Seq[TrafficSource])
+
+/**
+ * GA's first-time visitors for one funnel window.
+ *
+ * @param since    First day the GA property reported, so an all-time count can say what it covers.
+ * @param windowed False for the all-time window, where the funnel's accounts can predate GA and the two can't be
+ *                 compared as a rate.
+ */
+case class FunnelVisitors(visitors: Long, since: Option[LocalDate], windowed: Boolean) {
+
+  /** @return `reached / visitors`, or None where the two cover different periods or there were no visitors. */
+  def rate(reached: Int): Option[Double] = if (windowed && visitors > 0) Some(reached.toDouble / visitors) else None
+}
 
 /**
  * Constants, the service-account JWT assembly, and the (pure) traffic math for the GA traffic reporting, so the
@@ -122,6 +152,22 @@ object TrafficService {
   val FanOutParallelism: Int = 8
 
   val RequestTimeout: FiniteDuration = Duration(10, "seconds")
+
+  val TopSourcesLimit: Int = 10
+
+  /**
+   * GA's first-time visitors for a funnel window, the closest GA number to the funnel's "accounts made in the window".
+   *
+   * @param windowKey One of [[ConfigService.FunnelWindowKeys]].
+   * @return          None for a window the funnels don't have.
+   */
+  def funnelVisitors(traffic: CityTraffic, windowKey: String): Option[FunnelVisitors] = windowKey match {
+    case "30d" => Some(FunnelVisitors(traffic.newVisitors30d, traffic.gaSince, windowed = true))
+    case "90d" => Some(FunnelVisitors(traffic.newVisitors90d, traffic.gaSince, windowed = true))
+    // Over a property's whole history every visitor was a first-time visitor once.
+    case "all" => Some(FunnelVisitors(traffic.visitorsAllTime, traffic.gaSince, windowed = false))
+    case _     => None
+  }
 
   /** Start of the all-time window: the earliest date the API accepts, so it resolves to each property's own history. */
   val AllTimeStart: String = "2015-08-14"
@@ -267,6 +313,15 @@ trait TrafficService {
    *         so callers degrade rather than cache emptiness.
    */
   def getCityTraffic(): Future[Option[TrafficSnapshot]]
+
+  /**
+   * Returns this deployment's own GA traffic and top sources, from cache when warm. Asks GA about one property only,
+   * so a city's admin page never pays for the cross-city fan-out.
+   *
+   * @return None when traffic reporting isn't configured here or this city has no property id; a failed future when
+   *         GA couldn't be reached.
+   */
+  def getCurrentCityTraffic(): Future[Option[CurrentCityTraffic]]
 }
 
 @Singleton
@@ -321,6 +376,24 @@ class TrafficServiceImpl @Inject() (
           }
           .map(Some(_))
       }
+  }
+
+  def getCurrentCityTraffic(): Future[Option[CurrentCityTraffic]] = {
+    val cityId     = config.get[String]("city-id")
+    val propertyId = config.getOptional[String](s"city-params.google-analytics-property-id.$envType.$cityId")
+    (credentials, propertyId) match {
+      case (Some(creds), Some(id)) =>
+        swrCache
+          .staleWhileRevalidate[CurrentCityTraffic]("getCurrentCityTraffic", TrafficFreshFor, TrafficMaxAge) {
+            for {
+              token   <- accessToken(creds)
+              traffic <- fetchProperty(token, id)
+              sources <- fetchTopSources(token, id)
+            } yield CurrentCityTraffic(OffsetDateTime.now(), traffic.copy(cityId = cityId), sources)
+          }
+          .map(Some(_))
+      case _ => Future.successful(None)
+    }
   }
 
   /** Runs the full fan-out: one token, then one batched report call per distinct GA property. */
@@ -389,21 +462,25 @@ class TrafficServiceImpl @Inject() (
           "dimensions" -> Json.arr(Json.obj("name" -> "date")),
           "metrics"    -> Json.arr(Json.obj("name" -> "sessions"))
         ),
-        // Exact rolling windows (trailing 7 days vs the 7 before), so activeUsers is deduplicated per window by GA.
+        // Exact rolling windows, so GA deduplicates users per window: the trailing 7 days vs the 7 before, plus the
+        // funnels' 30 and 90 days. Four date ranges is the most one report takes.
         Json.obj(
           "dateRanges" -> Json.arr(
             Json.obj("startDate" -> "6daysAgo", "endDate"  -> "today"),
-            Json.obj("startDate" -> "13daysAgo", "endDate" -> "7daysAgo")
+            Json.obj("startDate" -> "13daysAgo", "endDate" -> "7daysAgo"),
+            Json.obj("startDate" -> "29daysAgo", "endDate" -> "today"),
+            Json.obj("startDate" -> "89daysAgo", "endDate" -> "today")
           ),
           "metrics" -> Json.arr(
             Json.obj("name" -> "sessions"),
             Json.obj("name" -> "activeUsers"),
-            Json.obj("name" -> "engagedSessions")
+            Json.obj("name" -> "engagedSessions"),
+            Json.obj("name" -> "newUsers")
           )
         ),
-        // 28-day device split.
+        // 30-day device split.
         Json.obj(
-          "dateRanges" -> Json.arr(Json.obj("startDate" -> "27daysAgo", "endDate" -> "today")),
+          "dateRanges" -> Json.arr(Json.obj("startDate" -> "29daysAgo", "endDate" -> "today")),
           "dimensions" -> Json.arr(Json.obj("name" -> "deviceCategory")),
           "metrics"    -> Json.arr(Json.obj("name" -> "sessions"))
         ),
@@ -441,7 +518,8 @@ class TrafficServiceImpl @Inject() (
         }.toMap
         val weekly = weeklyBuckets(sessionsByDate, TrendWeeks)
 
-        // Two date ranges and no dimensions, so GA adds an implicit dateRange dimension: "date_range_0" is current.
+        // Several date ranges and no dimensions, so GA adds an implicit dateRange dimension: "date_range_0" is the
+        // first range asked for.
         val windowRows                              = rows(report(1)).map(row => dimValue(row, 0) -> row).toMap
         def window(range: String, metric: Int): Int =
           windowRows.get(range).map(row => metricValue(row, metric).toInt).getOrElse(0)
@@ -472,7 +550,9 @@ class TrafficServiceImpl @Inject() (
           activeUsersPrior7d = window("date_range_1", 1),
           engagedSessions7d = engaged7d,
           engagementRate7d = if (sessions7d > 0) engaged7d.toDouble / sessions7d else 0.0,
-          mobileShare28d = mobileShare,
+          mobileShare30d = mobileShare,
+          newVisitors30d = window("date_range_2", 3),
+          newVisitors90d = window("date_range_3", 3),
           sessionsAllTime = allTimeSessions,
           visitorsAllTime = totalsValue(report(3), 1),
           mobileShareAllTime = allTimeMobile,
@@ -481,6 +561,26 @@ class TrafficServiceImpl @Inject() (
           baselineMedian = baselineMedian(weekly),
           anomaly = trafficAnomaly(sessions7d, weekly)
         )
+      }
+  }
+
+  /** @return One GA property's busiest session sources of the last 30 days, most sessions first. */
+  private def fetchTopSources(token: String, propertyId: String): Future[Seq[TrafficSource]] = {
+    val body = Json.obj(
+      "dateRanges" -> Json.arr(Json.obj("startDate" -> "29daysAgo", "endDate" -> "today")),
+      "dimensions" -> Json.arr(Json.obj("name" -> "sessionSource"), Json.obj("name" -> "sessionMedium")),
+      "metrics"    -> Json.arr(Json.obj("name" -> "sessions")),
+      "orderBys"   -> Json.arr(Json.obj("metric" -> Json.obj("metricName" -> "sessions"), "desc" -> true)),
+      "limit"      -> TopSourcesLimit
+    )
+    ws.url(s"https://analyticsdata.googleapis.com/v1beta/properties/$propertyId:runReport")
+      .addHttpHeaders("Authorization" -> s"Bearer $token")
+      .withRequestTimeout(RequestTimeout)
+      .post(body)
+      .map { response =>
+        if (response.status != 200)
+          throw RuntimeException(s"runReport failed (${response.status}): ${response.body[String].take(300)}")
+        rows(response.json).map(row => TrafficSource(dimValue(row, 0), dimValue(row, 1), metricValue(row, 0).toInt))
       }
   }
 
