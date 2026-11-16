@@ -64,7 +64,7 @@
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-today">—</span><span class="ac-hero-label">Contributors today</span><span class="ac-hero-ai" id="now-contributors-today-anon"></span><span class="ac-hero-ai" id="now-contributors-today-ai"></span></div>
     </div>
 
-    <h3 class="ac-chart-group-title" id="past-7-days">Past 7 days</h3>
+    <h3 class="ac-chart-group-title" id="past-7-days">Past 7 days @views.html.apps.report.info("The last 168 hours.")</h3>
     <div class="ac-hero-row">
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-7d">—</span><span class="ac-hero-label">Labels</span><span class="ac-hero-delta" id="now-labels-7d-delta"></span><span class="ac-hero-ai" id="now-labels-7d-ai"></span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-7d">—</span><span class="ac-hero-label">Validations</span><span class="ac-hero-delta" id="now-validations-7d-delta"></span><span class="ac-hero-ai" id="now-validations-7d-ai"></span></div>
@@ -74,7 +74,7 @@
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-new-contributors">—</span><span class="ac-hero-label">New contributors this calendar week</span></div>
     </div>
 
-    <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
+    <h3 class="ac-chart-group-title" id="this-week">Past 7 days @views.html.apps.report.info("The past 6 days plus today so far, in Pacific time. The bars won't add up exactly to the tiles above, which count the last 168 hours.")</h3>
     <div class="ac-charts">
       <div class="ac-chart">
         <h4 class="ac-chart-title">Labels per day</h4>
@@ -90,7 +90,7 @@
       </div>
     </div>
 
-    <h3 class="ac-chart-group-title" id="this-month">This month (rolling 30 days)</h3>
+    <h3 class="ac-chart-group-title" id="this-month">Past 30 days @views.html.apps.report.info("The past 29 days plus today so far, in Pacific time.")</h3>
     <div class="ac-charts">
       <div class="ac-chart">
         <h4 class="ac-chart-title">Labels per day</h4>
@@ -162,7 +162,7 @@
         <thead>
           <tr class="ac-th-group">
             <td></td>
-            <th tabindex="0" colspan="4" scope="colgroup" data-ps-tooltip="Rolling windows ending today: 7 days for sessions, visitors and engagement, 28 for mobile share.">Recent</th>
+            <th tabindex="0" colspan="4" scope="colgroup" data-ps-tooltip="The past 6 days plus today so far (27 plus today for mobile share). analytics.google.com's 'Last 7 days' ends yesterday, so its numbers will differ.">Recent</th>
             <th tabindex="0" colspan="3" scope="colgroup" data-ps-tooltip="Each city's GA4 history, which starts when its property was created. A figure's tooltip gives that date.">All time</th>
             <td></td>
           </tr>
