@@ -48,6 +48,8 @@ async function discoverReportPath(request) {
 async function openReport(page, request, query = '') {
   test.slow();
   const path = await discoverReportPath(request);
+  // CI's seed has a region, so there a missing one is a failure rather than a reason to skip.
+  if (process.env.CI) expect(path, 'CI\'s seed has no region to report on').not.toBeNull();
   test.skip(path === null, 'this database has no region to report on');
   let response = await page.goto(path + query);
   for (let attempt = 0; attempt < 2 && response.status() === 503; attempt++) {
@@ -68,6 +70,8 @@ async function openReport(page, request, query = '') {
       'worst problems': data.worst.length,
       'places': data.places.length,
       'fixes': data.fixes.length,
+      // Only its size matters: the weights test checks that scores move when curb ramps weigh on them at all.
+      'curb ramp weight on its scores': Math.abs(data.contributions?.CurbRamp ?? 0),
       'stories': await page.locator('.report-story').count()
     };
     for (const [what, count] of Object.entries(seeded)) {

@@ -4,7 +4,8 @@
     docker exec -w /home projectsidewalk-web python3 test/e2e/fixtures/gen_ci_seed.py [path/to/ci-seed-slice.csv]
 
 Run it in the web container: the clusters are made by the app's own clusterer (scripts/label_clustering.py), which
-needs the Python packages installed there.
+needs the Python packages installed there. It rewrites the seed of the checkout it is run from, so for a worktree
+set `-w /home/.claude/worktrees/<name>` and pass the slice path, which defaults to that checkout's own scratchpad/.
 
 The seed is real prod data, so it cannot be edited freely: the derived caches it writes have to keep agreeing with
 the recomputes GeodesicDistanceSpec re-runs, label ids have to stay inside a window the share and phone-viewport
@@ -56,6 +57,8 @@ TYPE_ORDER = ['CurbRamp', 'Crosswalk', 'NoCurbRamp', 'NoSidewalk', 'Obstacle', '
 # slice is rated 3 and the report's worst-problems map draws only locations at the bad end of their scale. It also
 # carries the second human vote and the story, so the report has a fix to list and a story to show.
 WORST_LABEL = 4797
+# UserStatTable.updateHighQuality's bar: a labeler placing fewer labels per meter walked than this is low quality.
+MIN_LABELS_PER_METER = 0.0375
 
 rows = {r['city']: json.loads(r['slice']) for r in csv.DictReader(open(SLICE))}
 tn, rich = rows['teaneck'], rows['richmond']
@@ -442,11 +445,12 @@ w("INSERT INTO sidewalk_teaneck.route_street (route_street_id, route_id, street_
                          "ON CONFLICT (route_street_id) DO NOTHING;") + "\n")
 
 # Who the app would cluster (ClusteringSessionTable.labelsForApiQuery): every label judged correct, plus the unjudged
-# labels of high-quality labelers. Quality is the labeling-frequency rule the seed applies at the end, worked out
-# here from the same streets and labels.
+# labels of high-quality labelers. Quality is the labeling-frequency rule the seed applies at the end, restated here
+# over the same streets and labels because the clusters are made before any database exists to ask. The Mapillary
+# label is left out by hand: its labeler falls below the bar, and it has no row in `labels` to carry a street.
 audited_m = {2: sum(s['length_m'] for s in STREETS.values()), 3: STREETS[1141]['length_m']}
 placed = collections.Counter(3 if l is mlbl else OWNER[l['street_edge_id']] for l in ordered)
-high_quality = {u for u in audited_m if placed[u] / audited_m[u] > 0.0375}
+high_quality = {u for u in audited_m if placed[u] / audited_m[u] > MIN_LABELS_PER_METER}
 judged_correct = {labels[0]['label_id'], WORST_LABEL}
 to_cluster = pd.DataFrame([
     {'label_id': id_map[l['label_id']], 'label_type': l['label_type'], 'lat': l['lat'], 'lng': l['lng'],
@@ -612,11 +616,11 @@ WHERE user_stat.user_id = accuracy_subquery.user_id
   AND user_stat.user_id LIKE '00000000-5115-%';
 
 -- The quality heuristic, minus only the branches these rows can't reach (none is excluded or manually rated). The
--- two seeded labelers land either side of the 0.0375 labeling-frequency threshold, which exercises the recompute in
+-- two seeded labelers land either side of the {MIN_LABELS_PER_METER} labeling-frequency threshold, which exercises the recompute in
 -- both directions; the accuracy clause is written out rather than assumed away, so seeding more validations later
 -- can't silently diverge from updateHighQuality.
 UPDATE sidewalk_teaneck.user_stat
-SET high_quality = (meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+SET high_quality = (meters_audited = 0 OR COALESCE(labels_per_meter, 5) > {MIN_LABELS_PER_METER})
                    AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)
 WHERE user_stat.user_id LIKE '00000000-5115-%';
 
