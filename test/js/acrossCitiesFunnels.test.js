@@ -241,7 +241,7 @@ describe('Across Cities — engagement funnels, sparse data', () => {
   });
   it('adds a GA visitors column and panel line for all users, and drops both under a breakdown', async () => {
     const withGa = { ...MAPPING, cities: [
-      { ...MAPPING.cities[0], ga_visitors: { count: 2500, since: '2021-10-27', second_step_rate: 0.02 } },
+      { ...MAPPING.cities[0], ga_visitors: { count: 2500, since: null, rate: 0.02, rate_step: 'took_step' } },
       { ...MAPPING.cities[1], ga_visitors: null },
     ] };
     await render({ funnels: { mapping: withGa } });

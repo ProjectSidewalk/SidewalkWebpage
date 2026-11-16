@@ -22,7 +22,7 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service.*
 
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -1058,18 +1058,20 @@ class AdminController @Inject() (
   )
 
   /**
-   * @param all The funnel's whole-population segment, whose second step the visitors' rate is measured against.
-   * @return    GA's visitors for one funnel as JSON, or null when GA has none for the city.
+   * @param stepKeys The funnel's step keys; the visitors' rate is measured against the second, the first real action.
+   * @return         GA's visitors for one funnel as JSON, or null when GA has none for the city.
    */
-  private def gaVisitorsJson(visitors: Option[FunnelVisitors], all: FunnelSegment): JsValue = visitors match {
-    case Some(v) =>
-      Json.obj(
-        "count"            -> v.visitors,
-        "since"            -> v.since.map(_.toString),
-        "second_step_rate" -> v.rate(all.steps.lift(1).getOrElse(0))
-      )
-    case None => JsNull
-  }
+  private def gaVisitorsJson(visitors: Option[FunnelVisitors], stepKeys: Seq[String], all: FunnelSegment): JsValue =
+    visitors match {
+      case Some(v) =>
+        Json.obj(
+          "count"     -> v.visitors,
+          "since"     -> v.since.map(_.toString),
+          "rate"      -> v.rate(all.steps.lift(1).getOrElse(0)),
+          "rate_step" -> stepKeys.lift(1)
+        )
+      case None => JsNull
+    }
 
   def getCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -1078,9 +1080,10 @@ class AdminController @Inject() (
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
 
-    // GA being down or unconfigured only costs the funnels their visitors line.
+    // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line.
+    val today                                           = LocalDate.now(ZoneOffset.UTC)
     val trafficByCity: Future[Map[String, CityTraffic]] = trafficService
-      .getCityTraffic()
+      .getCityTraffic(Some(TrafficService.FunnelColdWait))
       .map(_.map(_.cities.map(c => c.cityId -> c).toMap).getOrElse(Map.empty))
       .recover { case NonFatal(_) => Map.empty }
 
@@ -1088,16 +1091,16 @@ class AdminController @Inject() (
       funnelsByType <- configService.getCityFunnels(windowKey)
       traffic       <- trafficByCity
     } yield {
-      def cityJson(f: CityFunnel): JsObject = {
+      def cityJson(stepKeys: Seq[String])(f: CityFunnel): JsObject = {
         val info     = cityInfoById.get(f.cityId)
-        val visitors = traffic.get(f.cityId).flatMap(TrafficService.funnelVisitors(_, windowKey))
+        val visitors = traffic.get(f.cityId).flatMap(TrafficService.funnelVisitors(_, windowKey, today))
         Json.obj(
           "city_id"             -> f.cityId,
           "city_name"           -> info.map(_.cityNameShort),
           "city_name_formatted" -> info.map(_.cityNameFormatted),
           "url"                 -> info.map(_.URL),
           "visibility"          -> info.map(_.visibility),
-          "ga_visitors"         -> gaVisitorsJson(visitors, f.all),
+          "ga_visitors"         -> gaVisitorsJson(visitors, stepKeys, f.all),
           "all"                 -> funnelSegJson(f.all),
           "registered"          -> funnelSegJson(f.registered),
           "anonymous"           -> funnelSegJson(f.anonymous),
@@ -1111,7 +1114,7 @@ class AdminController @Inject() (
       val funnels = JsObject(ConfigService.FunnelDefs.map { case (funnelType, stepKeys) =>
         funnelType -> Json.obj(
           "steps"  -> stepKeys,
-          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson))
+          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson(stepKeys)))
         )
       })
       Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
@@ -1187,10 +1190,11 @@ class AdminController @Inject() (
       // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
       val windowKey = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
 
-      // GA being down or unconfigured only costs the funnels their visitors line.
+      // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line.
+      val today                                          = LocalDate.now(ZoneOffset.UTC)
       val visitorsFuture: Future[Option[FunnelVisitors]] = trafficService
-        .getCurrentCityTraffic()
-        .map(_.flatMap(t => TrafficService.funnelVisitors(t.traffic, windowKey)))
+        .getCurrentCityTraffic(Some(TrafficService.FunnelColdWait))
+        .map(_.flatMap(t => TrafficService.funnelVisitors(t.traffic, windowKey, today)))
         .recover { case NonFatal(_) => None }
 
       for {
@@ -1211,7 +1215,7 @@ class AdminController @Inject() (
             val funnel = result.byType(funnelType)
             funnelType -> Json.obj(
               "steps"       -> stepKeys,
-              "ga_visitors" -> gaVisitorsJson(visitors, funnel.all),
+              "ga_visitors" -> gaVisitorsJson(visitors, stepKeys, funnel.all),
               "segments"    -> segmentsJson(funnel)
             )
         })

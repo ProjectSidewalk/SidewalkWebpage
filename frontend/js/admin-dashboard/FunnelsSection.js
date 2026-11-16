@@ -100,15 +100,21 @@ export class FunnelsSection {
     }));
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
+  /**
+   * Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. An
+   * answer for a window the reader has since clicked away from is dropped, so the bars always match the lit button.
+   */
   async #load() {
+    const timeWindow = this.#window;
     AdminShell.setText(this.#statusId, 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+      if (timeWindow !== this.#window) return;
       this.#funnels = (data && data.funnels) || {};
       this.#computedAt = (data && data.computed_at) || null;
       this.#render();
     } catch (err) {
+      if (timeWindow !== this.#window) return;
       console.error('Funnel load failed:', err);
       AdminShell.setText(this.#statusId, 'Could not load funnel data.');
     }
@@ -177,8 +183,8 @@ export class FunnelsSection {
     }).join('');
 
     // GA can't be split the way the breakdowns are, so the line only heads the whole funnel.
-    const secondStep = (FunnelsSection.#STEP_LABELS[steps[1]] || { full: steps[1] }).full;
-    const visitors = this.#dim === 'all' ? funnelVisitorsRowHtml(funnel.ga_visitors, secondStep) : '';
+    const stepLabel = (k) => (FunnelsSection.#STEP_LABELS[k] || { full: k }).full;
+    const visitors = this.#dim === 'all' ? funnelVisitorsRowHtml(funnel.ga_visitors, stepLabel) : '';
 
     return `
       <div class="ac-funnel-block">

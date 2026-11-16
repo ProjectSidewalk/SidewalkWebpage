@@ -202,30 +202,35 @@ describe('the breakdown toggle', () => {
 });
 
 describe('the Google Analytics visitors line', () => {
-  const ga = (extra) => ({ count: 4000, since: '2021-10-27', second_step_rate: null, ...extra });
+  const ga = (extra) => ({ count: 4000, since: null, rate: null, rate_step: 'contributed', ...extra });
   const gaRows = () => Array.from(document.querySelectorAll('.ac-funnel-step--ga')).map(textOf);
 
-  test('heads each funnel with the count and the share that reached its second step', async () => {
+  test('heads each funnel with the count and the share that reached the step the server names', async () => {
     await load({ '30d': answer('30d', {
-      mapping: { ...MAPPING, ga_visitors: ga({ second_step_rate: 1.5 }) },
-      contribution: { ...CONTRIBUTION, ga_visitors: ga({ second_step_rate: 0.05 }) },
+      mapping: { ...MAPPING, ga_visitors: ga({ rate: 0.5, rate_step: 'tutorial_started' }) },
+      contribution: { ...CONTRIBUTION, ga_visitors: ga({ rate: 0.05 }) },
     }) });
     expect(gaRows()).toEqual([
-      'New visitors (Google Analytics) 4,000 · 150% reached “Started tutorial”',
+      'New visitors (Google Analytics) 4,000 · 50% reached “Started tutorial”',
       'New visitors (Google Analytics) 4,000 · 5% reached “Labeled or validated”',
     ]);
     expect(steps(0)[1]).toEqual({ label: 'New account, visited this city', bars: ['12k'] });
   });
 
   test('gives small shares one decimal', async () => {
-    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION,
-      ga_visitors: ga({ second_step_rate: 0.0137 }) } }) });
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga({ rate: 0.0137 }) } }) });
     expect(gaRows()).toEqual(['New visitors (Google Analytics) 4,000 · 1.4% reached “Labeled or validated”']);
   });
 
-  test('says when Google Analytics\' history starts where there is no share to give', async () => {
-    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga() } }) });
+  test('says when Google Analytics\' history starts where the server sends a start date and no share', async () => {
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION,
+      ga_visitors: ga({ since: '2021-10-27' }) } }) });
     expect(gaRows()).toEqual(['New visitors (Google Analytics) 4,000 · since Oct 27, 2021']);
+  });
+
+  test('shows the count alone with neither a share nor a start date', async () => {
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga({ count: 0 }) } }) });
+    expect(gaRows()).toEqual(['New visitors (Google Analytics) 0']);
   });
 
   test('is left out when Google Analytics has nothing, and under a breakdown', async () => {
@@ -250,6 +255,25 @@ describe('the window picker', () => {
     const active = Array.from(document.querySelectorAll('#funnel-window .ac-toggle-btn.is-active'))
       .map((b) => b.dataset.window);
     expect(active).toEqual(['all']);
+  });
+
+  test('drops an answer for a window the reader has clicked away from', async () => {
+    let release30;
+    const slow30 = new Promise((resolve) => { release30 = resolve; });
+    document.body.innerHTML = MARKUP;
+    routeFetch({ '/adminapi/funnels?window=': async (url) => {
+      const w = new URL(url, 'http://x').searchParams.get('window');
+      if (w === '30d') await slow30;
+      return answer(w, { contribution: { ...CONTRIBUTION,
+        segments: segments(w === '30d' ? [800, 200, 50] : [9000, 200, 50], [1, 1, 1], [1, 1, 1], [0, 0, 0]) } });
+    } });
+    const started = new FunnelsSection(OPTS).init();
+    document.querySelector('[data-window="90d"]').click();
+    await flush();
+    release30();
+    await started;
+    await flush();
+    expect(steps(0)[0].bars).toEqual(['9.0k']);
   });
 
   test('does not refetch the window already shown', async () => {

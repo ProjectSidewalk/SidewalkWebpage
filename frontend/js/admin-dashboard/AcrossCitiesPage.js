@@ -1518,7 +1518,7 @@ export class AcrossCitiesPage {
     const multi = segs.length > 1;
     // GA can't be split the way the breakdowns are; and with GA off everywhere the column would be all dashes.
     const showGa = this.#funnelDim === 'all' && cities.some((c) => c.ga_visitors);
-    const secondStep = (labels[steps[1]] || { full: steps[1] }).full;
+    const stepLabel = (k) => (labels[k] || { full: k }).full;
     const gaTip = 'First-time visitors per Google Analytics in this window. A separate count from the accounts: GA '
       + 'counts browsers and skips most bots.';
     const head = [
@@ -1558,9 +1558,9 @@ export class AcrossCitiesPage {
           return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
         }).join('');
         const ga = c.ga_visitors;
+        const gaTitle = ga ? util.escapeHTML(funnelVisitorsText(ga, stepLabel)) : '';
         const gaCell = ga
-          ? `<td class="ac-num" title="${util.escapeHTML(funnelVisitorsText(ga, secondStep))}">`
-          + `${this.#compact(ga.count)}</td>`
+          ? `<td class="ac-num" title="${gaTitle}">${this.#compact(ga.count)}</td>`
           : '<td class="ac-num">—</td>';
         return [
           '<tr>',
@@ -1616,8 +1616,8 @@ export class AcrossCitiesPage {
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
         + `<div class="ac-funnel-bars">${bars}</div></div>`;
     }).join('');
-    const secondStep = (labels[steps[1]] || { full: steps[1] }).full;
-    const visitors = this.#funnelDim === 'all' ? funnelVisitorsRowHtml(c.ga_visitors, secondStep) : '';
+    const stepLabel = (k) => (labels[k] || { full: k }).full;
+    const visitors = this.#funnelDim === 'all' ? funnelVisitorsRowHtml(c.ga_visitors, stepLabel) : '';
     return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>`
       + `${legend}${visitors}${stepRows}</div>`;
   }

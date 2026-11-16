@@ -26,6 +26,7 @@ const TRAFFIC = {
   new_visitors_30d: 3400,
   new_visitors_90d: 9000,
   weekly_sessions: [800, 1000, 1200],
+  weekly_sessions_end: '2026-11-14',
 };
 
 /**
@@ -51,11 +52,11 @@ describe('the Website traffic section', () => {
   test('shows the headline numbers, each with its window', async () => {
     await load({ available: true, fetched_at: '2026-11-16T20:00:00Z', traffic: TRAFFIC, top_sources: [] });
     expect(kpis()).toEqual([
-      '1,200Sessionslast 7 days, up 20%',
-      '900Visitorslast 7 days, same as the week before',
-      '25%Engaged sessionslast 7 days',
-      '3,400New visitorslast 30 days',
-      '4%On mobile or tabletlast 30 days',
+      '1,200 Sessions last 7 days, up 20%',
+      '900 Visitors last 7 days, same as the week before',
+      '25% Engaged sessions last 7 days',
+      '3,400 New visitors last 30 days',
+      '4% On mobile or tablet last 30 days',
     ]);
     expect(status()).toMatch(/^Data as of /);
   });
@@ -63,7 +64,7 @@ describe('the Website traffic section', () => {
   test('leaves the comparison out when the week before had nothing', async () => {
     await load({ available: true, fetched_at: '2026-11-16T20:00:00Z',
       traffic: { ...TRAFFIC, sessions_prior_7d: 0 }, top_sources: [] });
-    expect(kpis()[0]).toBe('1,200Sessionslast 7 days');
+    expect(kpis()[0]).toBe('1,200 Sessions last 7 days');
   });
 
   test('lists sources busiest first as sent, escaping their names', async () => {
@@ -82,6 +83,19 @@ describe('the Website traffic section', () => {
     expect(textOf(document.querySelector('[data-traffic="sources"]'))).toBe('No sessions in the last 30 days.');
     expect(textOf(document.querySelector('[data-traffic="weekly"]')))
       .toBe('Not enough traffic history to chart yet.');
+  });
+
+  test('labels each week by the day it ends, counted back from the last day Google Analytics reported', async () => {
+    await load({ available: true, fetched_at: '2026-11-16T20:00:00Z', traffic: TRAFFIC, top_sources: [] });
+    const tips = Array.from(document.querySelectorAll('[data-traffic="weekly"] title')).map((t) => t.textContent);
+    expect(tips).toEqual(['Week to Oct 31: 800 sessions', 'Week to Nov 7: 1,000 sessions',
+      'Week to Nov 14: 1,200 sessions']);
+  });
+
+  test('keeps the rest of the section when only the sources are missing', async () => {
+    await load({ available: true, fetched_at: '2026-11-16T20:00:00Z', traffic: TRAFFIC, top_sources: null });
+    expect(textOf(document.querySelector('[data-traffic="sources"]'))).toBe('Sources unavailable.');
+    expect(kpis().length).toBe(5);
   });
 
   test('collapses to a note when traffic is unavailable or the request fails', async () => {

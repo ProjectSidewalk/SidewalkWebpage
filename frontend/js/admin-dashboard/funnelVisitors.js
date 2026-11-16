@@ -21,40 +21,41 @@ function pct(frac) {
 }
 
 /**
- * What the visitors line says after its count: the share that reached the funnel's second step, or, for all time,
- * the day GA's history starts.
- *
- * @param {{count: number, since: ?string, second_step_rate: ?number}} ga - The funnel's `ga_visitors` payload.
- * @param {string} secondStepLabel - Display name of the funnel's second step.
- * @returns {string} Plain text; empty when there is nothing to add.
+ * @typedef {{count: number, since: ?string, rate: ?number, rate_step: ?string}} GaVisitors A funnel's `ga_visitors`
+ *   payload: `rate` is the share of the visitors that reached the step `rate_step`, and `since` is set only when GA
+ *   covers less than the window.
  */
-function detail(ga, secondStepLabel) {
-  if (ga.second_step_rate !== null && ga.second_step_rate !== undefined) {
-    return `${pct(ga.second_step_rate)} reached “${secondStepLabel}”`;
-  }
+
+/**
+ * @param {GaVisitors} ga - The funnel's `ga_visitors` payload.
+ * @param {(stepKey: string) => string} stepLabel - Gives a funnel step's display name.
+ * @returns {string} What the visitors line says after its count; empty when there is nothing to add.
+ */
+function detail(ga, stepLabel) {
+  if (ga.rate !== null && ga.rate !== undefined) return `${pct(ga.rate)} reached “${stepLabel(ga.rate_step)}”`;
   const since = ga.since ? util.parseDate(ga.since) : null;
   if (!since || isNaN(since.getTime())) return '';
   return `since ${since.toLocaleDateString(undefined, util.SHORT_DATE)}`;
 }
 
 /**
- * @param {{count: number, since: ?string, second_step_rate: ?number}} ga - The funnel's `ga_visitors` payload.
- * @param {string} secondStepLabel - Display name of the funnel's second step.
+ * @param {GaVisitors} ga - The funnel's `ga_visitors` payload.
+ * @param {(stepKey: string) => string} stepLabel - Gives a funnel step's display name.
  * @returns {string} One sentence describing the funnel's GA visitors, for a table cell's tooltip.
  */
-export function funnelVisitorsText(ga, secondStepLabel) {
-  const extra = detail(ga, secondStepLabel);
+export function funnelVisitorsText(ga, stepLabel) {
+  const extra = detail(ga, stepLabel);
   return `${(ga.count || 0).toLocaleString()} first-time visitors per Google Analytics${extra ? `; ${extra}` : ''}`;
 }
 
 /**
- * @param {?{count: number, since: ?string, second_step_rate: ?number}} ga - The funnel's `ga_visitors` payload.
- * @param {string} secondStepLabel - Display name of the funnel's second step.
+ * @param {?GaVisitors} ga - The funnel's `ga_visitors` payload.
+ * @param {(stepKey: string) => string} stepLabel - Gives a funnel step's display name.
  * @returns {string} The visitors row for the top of a funnel panel, or '' when GA has nothing for this funnel.
  */
-export function funnelVisitorsRowHtml(ga, secondStepLabel) {
+export function funnelVisitorsRowHtml(ga, stepLabel) {
   if (!ga) return '';
-  const extra = detail(ga, secondStepLabel);
+  const extra = detail(ga, stepLabel);
   const text = `${(ga.count || 0).toLocaleString()}${extra ? ` · ${extra}` : ''}`;
   return `
     <div class="ac-funnel-step ac-funnel-step--ga">

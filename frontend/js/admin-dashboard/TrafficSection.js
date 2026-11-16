@@ -22,6 +22,7 @@ export class TrafficSection {
     this.#statusId = opts.statusId;
   }
 
+  /** Fetches this city's traffic and renders it, or leaves a note when there is none to show. */
   async init() {
     AdminShell.setText(this.#statusId, 'Loading traffic…');
     try {
@@ -44,7 +45,7 @@ export class TrafficSection {
 
   /**
    * @param {{fetched_at: string, traffic: Record<string, any>,
-   *   top_sources: Array<{source: string, medium: string, sessions: number}>}} data - The /adminapi/traffic answer.
+   *   top_sources: ?Array<{source: string, medium: string, sessions: number}>}} data - The /adminapi/traffic answer.
    */
   #render(data) {
     const t = data.traffic;
@@ -57,19 +58,28 @@ export class TrafficSection {
       this.#kpi(AdminShell.num(t.new_visitors_30d), 'New visitors', 'last 30 days'),
       this.#kpi(this.#pct(t.mobile_share_30d), 'On mobile or tablet', 'last 30 days'),
     ].join('');
-    this.#renderWeekly(body.querySelector('[data-traffic="weekly"]'), t.weekly_sessions || [], data.fetched_at);
-    this.#renderSources(body.querySelector('[data-traffic="sources"]'), data.top_sources || []);
+    this.#renderWeekly(body.querySelector('[data-traffic="weekly"]'), t.weekly_sessions || [],
+      t.weekly_sessions_end);
+    this.#renderSources(body.querySelector('[data-traffic="sources"]'), data.top_sources);
     const asOf = new Date(data.fetched_at);
     AdminShell.setText(this.#statusId, isNaN(asOf.getTime())
       ? ''
       : `Data as of ${asOf.toLocaleString(undefined, util.SHORT_DATE_TIME)}.`);
   }
 
-  /** @returns {string} One KPI tile's HTML: the formatted figure, what it counts, and a small note. */
+  /**
+   * @param {string} value - The headline figure, already formatted.
+   * @param {string} label - What it counts.
+   * @param {string} note - The small line under the label.
+   * @returns {string} One KPI tile's HTML.
+   */
   #kpi(value, label, note) {
-    return `<div class="ps-kpi"><span class="ps-kpi-value">${util.escapeHTML(value)}</span>`
-      + `<span class="ps-kpi-label">${util.escapeHTML(label)}</span>`
-      + `<span class="ps-kpi-note">${util.escapeHTML(note)}</span></div>`;
+    return `
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">${util.escapeHTML(value)}</span>
+        <span class="ps-kpi-label">${util.escapeHTML(label)}</span>
+        <span class="ps-kpi-note">${util.escapeHTML(note)}</span>
+      </div>`;
   }
 
   /**
@@ -85,19 +95,18 @@ export class TrafficSection {
   }
 
   /**
-   * Draws the weekly sessions bars. The buckets are trailing 7-day blocks ending near the fetch day, so each is
-   * labeled by the day it ends.
+   * Draws the weekly sessions bars, each labeled by the day its 7-day block ends.
    *
    * @param {HTMLElement} host - Where the chart goes.
    * @param {number[]} weeks - Sessions per trailing week, oldest first.
-   * @param {string} fetchedAt - ISO timestamp of the GA fetch.
+   * @param {?string} weeksEnd - Last day of the last block, as `YYYY-MM-DD`; absent with no sessions at all.
    */
-  #renderWeekly(host, weeks, fetchedAt) {
-    if (weeks.length < 2) {
+  #renderWeekly(host, weeks, weeksEnd) {
+    const end = weeksEnd ? util.parseDate(weeksEnd) : null;
+    if (weeks.length < 2 || !end || isNaN(end.getTime())) {
       host.innerHTML = '<p class="dq-empty">Not enough traffic history to chart yet.</p>';
       return;
     }
-    const end = new Date(fetchedAt);
     const labels = weeks.map((_, i) => {
       const d = new Date(end);
       d.setDate(d.getDate() - 7 * (weeks.length - 1 - i));
@@ -114,9 +123,14 @@ export class TrafficSection {
 
   /**
    * @param {HTMLElement} host - Where the table goes.
-   * @param {Array<{source: string, medium: string, sessions: number}>} sources - Busiest sources first.
+   * @param {?Array<{source: string, medium: string, sessions: number}>} sources - Busiest sources first; null when
+   *   only that report failed.
    */
   #renderSources(host, sources) {
+    if (!sources) {
+      host.innerHTML = '<p class="dq-empty">Sources unavailable.</p>';
+      return;
+    }
     if (!sources.length) {
       host.innerHTML = '<p class="dq-empty">No sessions in the last 30 days.</p>';
       return;

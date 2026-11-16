@@ -41,6 +41,8 @@ import scala.util.{Failure, Success, Try}
  * @param gaSince            First day the property reported. "All time" starts here, not at the city's launch — some
  *                           properties were created years in, so the page has to say when.
  * @param weeklySessions     Trailing 7-day session buckets, oldest first, aligned to the newest reported day.
+ * @param weeksEnd           That newest reported day, the last day of the last bucket; None with no sessions at all.
+ * @param sharedProperty     True when other cities report into the same GA property, so the figures aren't one city's.
  * @param baselineMedian     Median weekly sessions over the trailing baseline; None when the series is too short.
  *                           Published so the page can explain a flag without re-deriving the rule.
  * @param anomaly            "traffic_spike" or "traffic_drop" when `sessions7d` is an outlier vs the city's own
@@ -62,6 +64,8 @@ case class CityTraffic(
     mobileShareAllTime: Double,
     gaSince: Option[LocalDate],
     weeklySessions: Seq[Int],
+    weeksEnd: Option[LocalDate],
+    sharedProperty: Boolean,
     baselineMedian: Option[Double],
     anomaly: Option[String]
 )
@@ -87,6 +91,8 @@ object CityTraffic {
       "mobile_share_all_time" -> t.mobileShareAllTime,
       "ga_since"              -> t.gaSince.map(_.toString),
       "weekly_sessions"       -> t.weeklySessions,
+      "weekly_sessions_end"   -> t.weeksEnd.map(_.toString),
+      "shared_property"       -> t.sharedProperty,
       "baseline_median"       -> t.baselineMedian,
       "anomaly"               -> t.anomaly
     )
@@ -107,20 +113,28 @@ object TrafficSource {
   given trafficSourceWrites: Writes[TrafficSource] = Json.writes[TrafficSource]
 }
 
-/** This deployment's own traffic and its busiest sources (most sessions first), with when GA was asked. */
-case class CurrentCityTraffic(fetchedAt: OffsetDateTime, traffic: CityTraffic, topSources: Seq[TrafficSource])
+/**
+ * This deployment's own traffic and its busiest sources (most sessions first), with when GA was asked.
+ *
+ * @param topSources None when only the sources report failed, so the rest of the section still shows.
+ */
+case class CurrentCityTraffic(fetchedAt: OffsetDateTime, traffic: CityTraffic, topSources: Option[Seq[TrafficSource]])
 
 /**
  * GA's first-time visitors for one funnel window.
  *
- * @param since    First day the GA property reported, so an all-time count can say what it covers.
- * @param windowed False for the all-time window, where the funnel's accounts can predate GA and the two can't be
- *                 compared as a rate.
+ * @param since      First day the GA property reported, given only when GA covers less than the window asked for.
+ * @param comparable False where the visitors and the funnel's accounts don't describe the same people: all time
+ *                   (accounts predate GA), a window GA only partly covers, or a property shared with another city.
  */
-case class FunnelVisitors(visitors: Long, since: Option[LocalDate], windowed: Boolean) {
+case class FunnelVisitors(visitors: Long, since: Option[LocalDate], comparable: Boolean) {
 
-  /** @return `reached / visitors`, or None where the two cover different periods or there were no visitors. */
-  def rate(reached: Int): Option[Double] = if (windowed && visitors > 0) Some(reached.toDouble / visitors) else None
+  /**
+   * @return `reached / visitors`, or None where the two aren't comparable or more accounts reached the step than GA
+   *         saw visitors, which would read as over 100%.
+   */
+  def rate(reached: Int): Option[Double] =
+    if (comparable && visitors > 0 && reached <= visitors) Some(reached.toDouble / visitors) else None
 }
 
 /**
@@ -159,15 +173,29 @@ object TrafficService {
    * GA's first-time visitors for a funnel window, the closest GA number to the funnel's "accounts made in the window".
    *
    * @param windowKey One of [[ConfigService.FunnelWindowKeys]].
+   * @param today     The day the windows count back from.
    * @return          None for a window the funnels don't have.
    */
-  def funnelVisitors(traffic: CityTraffic, windowKey: String): Option[FunnelVisitors] = windowKey match {
-    case "30d" => Some(FunnelVisitors(traffic.newVisitors30d, traffic.gaSince, windowed = true))
-    case "90d" => Some(FunnelVisitors(traffic.newVisitors90d, traffic.gaSince, windowed = true))
-    // Over a property's whole history every visitor was a first-time visitor once.
-    case "all" => Some(FunnelVisitors(traffic.visitorsAllTime, traffic.gaSince, windowed = false))
-    case _     => None
+  def funnelVisitors(traffic: CityTraffic, windowKey: String, today: LocalDate): Option[FunnelVisitors] = {
+    def windowed(visitors: Int, days: Int): FunnelVisitors = {
+      // A property that started reporting inside the window has counted only part of it.
+      val partial = traffic.gaSince.exists(_.isAfter(today.minusDays(days - 1L)))
+      FunnelVisitors(visitors, traffic.gaSince.filter(_ => partial), comparable = !partial && !traffic.sharedProperty)
+    }
+    windowKey match {
+      case "30d" => Some(windowed(traffic.newVisitors30d, 30))
+      case "90d" => Some(windowed(traffic.newVisitors90d, 90))
+      // Over a property's whole history every visitor was a first-time visitor once.
+      case "all" => Some(FunnelVisitors(traffic.visitorsAllTime, traffic.gaSince, comparable = false))
+      case _     => None
+    }
   }
+
+  /**
+   * How long the funnels wait for traffic that isn't cached yet before answering without their visitors line. The
+   * cross-city fan-out can outlast the reverse proxy's timeout, and the funnels are worth showing without it.
+   */
+  val FunnelColdWait: FiniteDuration = Duration(2, "seconds")
 
   /** Start of the all-time window: the earliest date the API accepts, so it resolves to each property's own history. */
   val AllTimeStart: String = "2015-08-14"
@@ -308,20 +336,22 @@ trait TrafficService {
   /**
    * Returns every configured city's GA traffic summary, from cache when warm ([[TrafficService.TrafficFreshFor]]).
    *
-   * @return None when traffic reporting isn't configured on this deployment (no usable service-account key, or no
-   *         property ids); a failed future when a fetch was attempted and every property failed (auth/quota/outage),
-   *         so callers degrade rather than cache emptiness.
+   * @param coldWait How long to wait for the fan-out when nothing is cached; None waits for it to finish.
+   * @return         None when traffic reporting isn't configured on this deployment (no usable service-account key,
+   *                 or no property ids) or `coldWait` ran out; a failed future when a fetch was attempted and every
+   *                 property failed (auth/quota/outage), so callers degrade rather than cache emptiness.
    */
-  def getCityTraffic(): Future[Option[TrafficSnapshot]]
+  def getCityTraffic(coldWait: Option[FiniteDuration] = None): Future[Option[TrafficSnapshot]]
 
   /**
    * Returns this deployment's own GA traffic and top sources, from cache when warm. Asks GA about one property only,
    * so a city's admin page never pays for the cross-city fan-out.
    *
-   * @return None when traffic reporting isn't configured here or this city has no property id; a failed future when
-   *         GA couldn't be reached.
+   * @param coldWait How long to wait for a fetch when nothing is cached; None waits for it to finish.
+   * @return         None when traffic reporting isn't configured here, this city has no property id, or `coldWait`
+   *                 ran out; a failed future when GA couldn't be reached.
    */
-  def getCurrentCityTraffic(): Future[Option[CurrentCityTraffic]]
+  def getCurrentCityTraffic(coldWait: Option[FiniteDuration] = None): Future[Option[CurrentCityTraffic]]
 }
 
 @Singleton
@@ -364,34 +394,42 @@ class TrafficServiceImpl @Inject() (
       }
       .toMap
 
-  def getCityTraffic(): Future[Option[TrafficSnapshot]] = credentials match {
+  def getCityTraffic(coldWait: Option[FiniteDuration]): Future[Option[TrafficSnapshot]] = credentials match {
     case None        => Future.successful(None)
     case Some(creds) =>
       val byCity = propertyIdsByCity
       if (byCity.isEmpty) Future.successful(None)
-      else {
-        swrCache
-          .staleWhileRevalidate[TrafficSnapshot]("getCityTraffic", TrafficFreshFor, TrafficMaxAge) {
-            fetchSnapshot(creds, byCity)
-          }
-          .map(Some(_))
-      }
+      else cached("getCityTraffic", coldWait)(fetchSnapshot(creds, byCity))
   }
 
-  def getCurrentCityTraffic(): Future[Option[CurrentCityTraffic]] = {
+  /** @return The cached or fetched value, or None when nothing was cached and `coldWait` ran out first. */
+  private def cached[T](key: String, coldWait: Option[FiniteDuration])(fetch: => Future[T]): Future[Option[T]] =
+    coldWait match {
+      case Some(wait) => swrCache.staleWhileRevalidateWithin[T](key, TrafficFreshFor, TrafficMaxAge, wait)(fetch)
+      case None       => swrCache.staleWhileRevalidate[T](key, TrafficFreshFor, TrafficMaxAge)(fetch).map(Some(_))
+    }
+
+  def getCurrentCityTraffic(coldWait: Option[FiniteDuration]): Future[Option[CurrentCityTraffic]] = {
     val cityId     = config.get[String]("city-id")
     val propertyId = config.getOptional[String](s"city-params.google-analytics-property-id.$envType.$cityId")
     (credentials, propertyId) match {
       case (Some(creds), Some(id)) =>
-        swrCache
-          .staleWhileRevalidate[CurrentCityTraffic]("getCurrentCityTraffic", TrafficFreshFor, TrafficMaxAge) {
-            for {
-              token   <- accessToken(creds)
-              traffic <- fetchProperty(token, id)
-              sources <- fetchTopSources(token, id)
-            } yield CurrentCityTraffic(OffsetDateTime.now(), traffic.copy(cityId = cityId), sources)
+        cached("getCurrentCityTraffic", coldWait) {
+          accessToken(creds).flatMap { token =>
+            val shared  = propertyIdsByCity.exists { case (other, otherId) => other != cityId && otherId == id }
+            val sources = fetchTopSources(token, id).map(Some(_)).recover { case NonFatal(e) =>
+              logger.warn(s"GA top sources fetch failed for property $id: ${e.getMessage}")
+              None
+            }
+            fetchProperty(token, id).zipWith(sources) { (traffic, topSources) =>
+              CurrentCityTraffic(
+                OffsetDateTime.now(),
+                traffic.copy(cityId = cityId, sharedProperty = shared),
+                topSources
+              )
+            }
           }
-          .map(Some(_))
+        }
       case _ => Future.successful(None)
     }
   }
@@ -407,7 +445,10 @@ class TrafficServiceImpl @Inject() (
       Batching
         .inBatches(properties, FanOutParallelism) { case (propertyId, cityIds) =>
           fetchProperty(token, propertyId)
-            .map(traffic => (cityIds.sorted.map(cityId => traffic.copy(cityId = cityId)), Seq.empty[String]))
+            .map { traffic =>
+              val shared = cityIds.size > 1
+              (cityIds.sorted.map(id => traffic.copy(cityId = id, sharedProperty = shared)), Seq.empty[String])
+            }
             .recover { case NonFatal(e) =>
               logger.warn(
                 s"GA traffic fetch failed for property $propertyId (${cityIds.mkString(", ")}): ${e.getMessage}"
@@ -558,6 +599,8 @@ class TrafficServiceImpl @Inject() (
           mobileShareAllTime = allTimeMobile,
           gaSince = gaSince,
           weeklySessions = weekly,
+          weeksEnd = sessionsByDate.keys.maxOption,
+          sharedProperty = false,
           baselineMedian = baselineMedian(weekly),
           anomaly = trafficAnomaly(sessions7d, weekly)
         )
