@@ -35,10 +35,16 @@ class PartnerMetadataSpec extends SidewalkSpec {
       others.map(_.partnerId) mustBe Seq(3)
     }
 
-    "treat an organization with a project-wide row as project-wide, showing that row's logo" in {
+    "list an organization with project-wide and city rows in both groups, each with its own row's logo" in {
       val (projectWide, others) = group(
         Seq(row(1, Some("seattle"), "SciStarter"), row(9, None, "scistarter"), row(4, Some("chicago"), "Easterseals"))
       )
+      projectWide.map(_.partnerId) mustBe Seq(9)
+      others.map(_.partnerId) mustBe Seq(4, 1)
+    }
+
+    "keep an organization with only project-wide rows out of the city group" in {
+      val (projectWide, others) = group(Seq(row(9, None, "SciStarter"), row(4, Some("chicago"), "Easterseals")))
       projectWide.map(_.partnerId) mustBe Seq(9)
       others.map(_.partnerId) mustBe Seq(4)
     }
@@ -82,7 +88,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
         )
       )
       others.map(p => (p.partnerId, p.url, p.altText)) mustBe
-        Seq((3, Some("https://publicnudge.org/"), Some("PN")))
+        Seq((3, Some("https://publicnudge.org/"), Some("PN")), (2, Some("https://scistarter.org/"), None))
       projectWide.map(p => (p.partnerId, p.url)) mustBe Seq((10, Some("https://scistarter.org/")))
     }
 

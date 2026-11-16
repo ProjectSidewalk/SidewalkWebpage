@@ -79,31 +79,32 @@ object PartnerMetadata {
    * the grid credits the organizations behind the project as a whole, and naming a partner doesn't reveal the
    * private deployment's site or data.
    *
-   * The table holds one row per organization per city, so each organization (by [[nameKey]]) shows once. One with any
-   * project-wide row is a project-wide partner, shown with the lowest-id project-wide row's logo, in the project-wide
-   * display order the admins set. Every other organization shows its lowest-id row's logo, sorted alphabetically with
-   * a root-locale collator, so an accented or non-Latin initial sorts with its base letter rather than after Z. A
-   * winning row with no URL or alt text takes the first one its sibling rows have, lowest id first, since an
-   * Administrator can't edit another city's row to add the link there.
+   * The table holds one row per organization per city, so each organization (by [[nameKey]]) shows at most once per
+   * group. One with any project-wide row is a project-wide partner, shown with the lowest-id project-wide row's logo,
+   * in the project-wide display order the admins set. One with any city row is also a city partner, shown with its
+   * lowest-id city row's logo, sorted alphabetically with a root-locale collator, so an accented or non-Latin initial
+   * sorts with its base letter rather than after Z. The groups overlap on purpose: a project-wide partner that also
+   * works in particular cities belongs in the "Partners in our cities" list too, not only in the top row. A shown row
+   * with no URL or alt text takes the first one its sibling rows have, lowest id first, since an Administrator can't
+   * edit another city's row to add the link there.
    *
    * {{{
-   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter", 5 = Taipei "Foo".
-   * groupForAbout(Seq(row4, row2, row9, row5)) // == (Seq(row9), Seq(row2, row5))
+   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter",
+   * //       7 = Seattle "SciStarter", 5 = Taipei "Foo".
+   * groupForAbout(Seq(row4, row2, row9, row7, row5)) // == (Seq(row9), Seq(row2, row5, row7))
    * }}}
    *
-   * @return (the project-wide partners, every other organization), each with one row per organization
+   * @return (the project-wide partners, the partners of one or more cities), each with one row per organization
    */
   def groupForAbout(partners: Seq[PartnerMetadata]): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
-    val (projectWide, others) = partners.groupBy(p => nameKey(p.name)).values.toSeq.partitionMap { rows =>
-      val byId     = rows.sortBy(_.partnerId)
-      val winner   = byId.find(_.cityId.isEmpty).getOrElse(byId.head)
-      val gapsFill = winner.copy(
-        url = winner.url.orElse(byId.flatMap(_.url).headOption),
-        altText = winner.altText.orElse(byId.flatMap(_.altText).headOption)
-      )
-      if (winner.cityId.isEmpty) Left(gapsFill) else Right(gapsFill)
-    }
-    val collator = java.text.Collator.getInstance(java.util.Locale.ROOT)
+    val organizations = partners.groupBy(p => nameKey(p.name)).values.toSeq.map(_.sortBy(_.partnerId))
+    def gapsFilled(shown: PartnerMetadata, byId: Seq[PartnerMetadata]): PartnerMetadata = shown.copy(
+      url = shown.url.orElse(byId.flatMap(_.url).headOption),
+      altText = shown.altText.orElse(byId.flatMap(_.altText).headOption)
+    )
+    val projectWide = organizations.flatMap(byId => byId.find(_.cityId.isEmpty).map(gapsFilled(_, byId)))
+    val others      = organizations.flatMap(byId => byId.find(_.cityId.isDefined).map(gapsFilled(_, byId)))
+    val collator    = java.text.Collator.getInstance(java.util.Locale.ROOT)
     collator.setStrength(java.text.Collator.SECONDARY)
     val alphabetical = Ordering.fromLessThan[PartnerMetadata] { (a, b) =>
       val byCollator = collator.compare(nameKey(a.name), nameKey(b.name))
