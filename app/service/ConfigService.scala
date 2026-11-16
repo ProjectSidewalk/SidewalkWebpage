@@ -582,6 +582,14 @@ case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[Strin
 case class CrossCityContributorCounts(distinct: Int, multiCity: Int)
 
 /**
+ * People who contributed, for the public aggregate stats, AI accounts excluded (#5914).
+ *
+ * @param total  Each person counted once, wherever they contributed.
+ * @param byCity Each city's own count, for the cities whose contributors could be read.
+ */
+case class AggregateContributorCounts(total: Int, byCity: Map[String, Int])
+
+/**
  * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
  *
  * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
@@ -1061,6 +1069,23 @@ object ConfigService {
   def contributorCounts(perCity: Seq[Seq[String]], aiIds: Set[String]): CrossCityContributorCounts = {
     val cityCount = perCity.flatMap(_.distinct).filterNot(aiIds).groupMapReduce(identity)(_ => 1)(_ + _)
     CrossCityContributorCounts(cityCount.size, cityCount.count { case (_, n) => n >= 2 })
+  }
+
+  /**
+   * Counts contributors for the public aggregate stats, AI accounts dropped so they match the admin counts.
+   *
+   * @param perCity Each city's contributor `user_id`s, or None if they couldn't be read.
+   * @param aiIds   The AI accounts' `user_id`s.
+   * @return        Each person counted once overall, plus a count for each city that could be read.
+   */
+  def aggregateContributorCounts(
+      perCity: Seq[(String, Option[Set[String]])],
+      aiIds: Set[String]
+  ): AggregateContributorCounts = {
+    val people: Map[String, Set[String]] = perCity.collect { case (cityId, Some(ids)) =>
+      cityId -> (ids -- aiIds)
+    }.toMap
+    AggregateContributorCounts(people.values.flatten.toSet.size, people.view.mapValues(_.size).toMap)
   }
 
   /**
@@ -2160,20 +2185,21 @@ class ConfigServiceImpl @Inject() (
           }
         )
 
-        // Wait for all futures to complete and aggregate results.
-        Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
-          // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
-          // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
-          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
+        // Distinct contributors across all cities, deduped by the global `user_id` (#3976) so a user active in
+        // multiple cities counts once. Unlike the per-city reads, a failed AI-account read fails the whole computation:
+        // the counts would otherwise include AI accounts, and a failed background refresh keeps the last good stats.
+        val contributorsFut: Future[AggregateContributorCounts] =
+          contributorIdsFut.zip(db.run(configTable.getAiUserIds)).map { case (perCity, aiIds) =>
+            ConfigService.aggregateContributorCounts(perCity, aiIds.toSet)
+          }
 
+        // Wait for all futures to complete and aggregate results.
+        Future.sequence(cityStatsFutures).zip(contributorsFut).map { case (cityStats, contributors) =>
           // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
-          val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
-            cityId -> ids.size
-          }.toMap
           val byCity: Map[String, CityImpact] = cityStats.collect {
-            case (cityId, Some(stats)) if contributorCounts.contains(cityId) =>
+            case (cityId, Some(stats)) if contributors.byCity.contains(cityId) =>
               cityId -> CityImpact(
-                contributorCounts(cityId),
+                contributors.byCity(cityId),
                 stats.totalLabels,
                 stats.totalValidations,
                 stats.kmExploredNoOverlap
@@ -2188,7 +2214,7 @@ class ConfigServiceImpl @Inject() (
             // Return empty aggregate stats if no cities provided data.
             AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
           } else {
-            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, totalUsers)
+            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, contributors.total)
             AggregateStatsBundle(overall, byCity)
           }
         }
