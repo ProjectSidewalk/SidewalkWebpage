@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext
 /**
  * A community-partner logo shown on the landing page (#4516). `cityId` None means project-wide: shown on every
  * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global". Every deployment's
- * /about page shows every row, private cities' included, one logo per organization
+ * /about page shows every row, private cities' included, one logo per organization per list
  * ([[PartnerMetadata.groupForAbout]], #5980).
  */
 case class Partner(
@@ -91,7 +91,7 @@ object PartnerMetadata {
    * {{{
    * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter",
    * //       7 = Seattle "SciStarter", 5 = Taipei "Foo".
-   * groupForAbout(Seq(row4, row2, row9, row7, row5)) // == (Seq(row9), Seq(row2, row5, row7))
+   * groupForAbout(Seq(row4, row2, row9, row7, row5)) // == (Seq(row9), Seq(row5, row2, row7))
    * }}}
    *
    * @return (the project-wide partners, the partners of one or more cities), each with one row per organization

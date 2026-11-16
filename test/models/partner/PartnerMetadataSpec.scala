@@ -6,7 +6,7 @@ import java.time.OffsetDateTime
 
 /**
  * Pins how the /about page's logo grid (#5980) collapses the shared partner table, which holds one row per
- * organization per city, into one logo per organization.
+ * organization per city, into one logo per organization in each of its two lists.
  */
 class PartnerMetadataSpec extends SidewalkSpec {
 
@@ -54,7 +54,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
       projectWide.map(_.partnerId) mustBe Seq(6)
     }
 
-    "order project-wide partners as the admins did and the rest alphabetically, ignoring case" in {
+    "order project-wide partners as the admins did and city partners alphabetically, ignoring case" in {
       val (projectWide, others) = group(
         Seq(
           row(1, None, "Zeta Foundation", displayOrder = 0),
