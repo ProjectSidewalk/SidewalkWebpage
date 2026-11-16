@@ -240,7 +240,7 @@ about.pubs.cite.copy = Copy
 about.data.title = Open data &amp; open source
 about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">code is open source</a>, too.
 about.partners.title = Community partners
-about.partners.body = We work hand in hand with disability advocacy organizations, governments, schools, and community groups around the world — including Easterseals, World Enabled, Liga Peatonal, and the Active Transportation Alliance — to plan deployments, run community mapping events, and turn data into local action.
+about.partners.body = We work with disability and walkability advocacy organizations, governments, schools, and community groups around the world to plan deployments, run community mapping events, and turn data into local action.
 about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Learn how to use Project Sidewalk in your community</a>.
 about.partners.project.title = Project-wide partners
 about.partners.city.title = Partners in our cities

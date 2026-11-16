@@ -236,7 +236,7 @@ about.pubs.cite.copy = Kopiëren
 about.data.title = Open data en open source
 about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">code is open source</a>.
 about.partners.title = Maatschappelijke partners
-about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
+about.partners.body = We werken samen met belangenorganisaties voor mensen met een beperking en voor loopvriendelijkheid, overheden, scholen en gemeenschapsgroepen wereldwijd om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
 about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
 about.partners.project.title = Projectbrede partners
 about.partners.city.title = Partners in onze steden

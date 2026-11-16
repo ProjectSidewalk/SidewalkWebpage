@@ -239,7 +239,7 @@ about.pubs.cite.copy = Kopieren
 about.data.title = Offene Daten und Open Source
 about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, Cluster, Straßen und Zugänglichkeits-Scores über unsere <a href="/api">öffentlichen APIs</a> herunter — in Formaten von CSV bis GeoJSON, alles unter CC0 veröffentlicht; Details und Hinweise zum Zitieren finden Sie in der <a href="/api">API-Dokumentation</a>. Auch unser <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">Code ist Open Source</a>.
 about.partners.title = Community-Partner
-about.partners.body = Wir arbeiten eng mit Behindertenverbänden, Behörden, Schulen und Gemeinschaftsgruppen weltweit zusammen — darunter Easterseals, World Enabled, Liga Peatonal und die Active Transportation Alliance — um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
+about.partners.body = Wir arbeiten weltweit mit Interessenverbänden für Menschen mit Behinderungen und für den Fußverkehr, Behörden, Schulen und Gemeinschaftsgruppen zusammen, um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
 about.partners.schools = Lehrkräfte bringen Project Sidewalk in den Gesellschafts- und Datenunterricht, und unser Team und unsere Partner haben Lehrmaterialien für Service Learning und berufliche Entwicklung für Jugendliche mit Behinderungen erprobt. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Erfahren Sie, wie Sie Project Sidewalk in Ihrer Gemeinde einsetzen</a>.
 about.partners.project.title = Projektweite Partner
 about.partners.city.title = Partner in unseren Städten
