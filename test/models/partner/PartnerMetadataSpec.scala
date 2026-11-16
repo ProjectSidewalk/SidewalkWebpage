@@ -6,7 +6,7 @@ import java.time.OffsetDateTime
 
 /**
  * Pins how the /about page's logo grid (#5980) collapses the shared partner table, which holds one row per
- * organization per city, into one logo per organization.
+ * organization per city, into one logo per organization in each of its two lists.
  */
 class PartnerMetadataSpec extends SidewalkSpec {
 
@@ -22,7 +22,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
   private def group(rows: Seq[PartnerMetadata]) = PartnerMetadata.groupForAbout(rows)
 
   "PartnerMetadata.groupForAbout" should {
-    "show an organization once, ignoring case and spacing (no-break spaces too), with its lowest-id row" in {
+    "collapse an organization's city rows into its lowest-id one, ignoring case and spacing (no-break spaces too)" in {
       val (projectWide, others) = group(
         Seq(
           row(7, Some("seattle"), "Public Nudge"),
@@ -35,10 +35,16 @@ class PartnerMetadataSpec extends SidewalkSpec {
       others.map(_.partnerId) mustBe Seq(3)
     }
 
-    "treat an organization with a project-wide row as project-wide, showing that row's logo" in {
+    "list an organization with project-wide and city rows in both groups, each with its own row's logo" in {
       val (projectWide, others) = group(
         Seq(row(1, Some("seattle"), "SciStarter"), row(9, None, "scistarter"), row(4, Some("chicago"), "Easterseals"))
       )
+      projectWide.map(_.partnerId) mustBe Seq(9)
+      others.map(_.partnerId) mustBe Seq(4, 1)
+    }
+
+    "keep an organization with only project-wide rows out of the city group" in {
+      val (projectWide, others) = group(Seq(row(9, None, "SciStarter"), row(4, Some("chicago"), "Easterseals")))
       projectWide.map(_.partnerId) mustBe Seq(9)
       others.map(_.partnerId) mustBe Seq(4)
     }
@@ -48,7 +54,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
       projectWide.map(_.partnerId) mustBe Seq(6)
     }
 
-    "order project-wide partners as the admins did and the rest alphabetically, ignoring case" in {
+    "order project-wide partners as the admins did and city partners alphabetically, ignoring case" in {
       val (projectWide, others) = group(
         Seq(
           row(1, None, "Zeta Foundation", displayOrder = 0),
@@ -82,7 +88,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
         )
       )
       others.map(p => (p.partnerId, p.url, p.altText)) mustBe
-        Seq((3, Some("https://publicnudge.org/"), Some("PN")))
+        Seq((3, Some("https://publicnudge.org/"), Some("PN")), (2, Some("https://scistarter.org/"), None))
       projectWide.map(p => (p.partnerId, p.url)) mustBe Seq((10, Some("https://scistarter.org/")))
     }
 
