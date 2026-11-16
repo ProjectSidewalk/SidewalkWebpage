@@ -1961,13 +1961,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
           l.streetEdgeId === face.streetEdgeId && lp.streetSide === face.streetSide
         }
-        .map { case (row @ (l, _, _, us, at, _, _, _, _, _), face) =>
+        .map { case (row @ (l, _, _, us, at, _, _, _, _, aiv), face) =>
           val evidence = ValidationQueuePolicy.FaceEvidenceRep(face.map(_.labelerCount), face.map(_.support))
-          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, evidence))
+          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, aiv.map(_.validationResult), evidence))
         }
     else
-      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, _) =>
-        (row, ValidationQueuePolicy.priorityScore(l, at, us))
+      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, aiv) =>
+        (row, ValidationQueuePolicy.priorityScore(l, at, us, aiv.map(_.validationResult)))
       }
   }
 

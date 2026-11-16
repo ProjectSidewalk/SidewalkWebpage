@@ -582,6 +582,32 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
       // Weighted sampling, not a ranking: the low scorers still win the top slot sometimes.
       winners.size must be > 1
     }
+
+    "score a label whose only vote is the AI's Unsure like one with no votes" in {
+      // One label with only the AI's Unsure (score 200) against five with one person's Unsure (score 100). Weights
+      // are score², so it wins the top slot 44% of the time; counting the AI's Unsure would make that one in six.
+      val Draws = 200
+      val hits  = runRolledBack(for {
+        labeler  <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        aiUnsure <- insertLabel(labeler, 0, 0, 1, None)
+        _        <- insertAiVote(aiUnsure, "Unsure")
+        _        <- DBIO.sequence((1 to 5).map(_ => insertLabel(labeler, 0, 0, 1, None)))
+        drawn    <- DBIO.sequence((1 to Draws).map { _ =>
+          labelTable
+            .retrieveLabelListForValidationQuery(
+              requester, viewer, LabelType.CurbRamp, ValidationQueue.NeedsVotes,
+              filter = ValidationLabelFilter(userIds = Some(Set(labeler)))
+            )
+            .map(_._1)
+            .take(1)
+            .result
+            .map(_.head)
+        })
+      } yield drawn.count(_ == aiUnsure))
+
+      // Binomial(200, 0.444) has mean 89 and sd 7; one in six would have mean 33 and sd 5.3. 60 is four sd from both.
+      hits must be >= 60
+    }
   }
 
   "The queue cascade" should {

@@ -210,6 +210,15 @@ def test_the_new_labeler_bonus_follows_needs_votes_not_the_correct_flag():
     assert float(new) == pytest.approx(250.0)
 
 
+def test_the_ais_unsure_does_not_lower_the_consensus_need():
+    args = dict(own_labels_validated=100, high_quality=False, low_quality=False, stale=False, recent=False)
+    assert float(avq.new_priority_score(0, 0, 1, ai_result="Unsure", **args)) == pytest.approx(200.0)
+    assert float(avq.new_priority_score(0, 0, 1, ai_result="", **args)) == pytest.approx(100.0)
+    assert float(avq.new_priority_score(0, 0, 2, ai_result="Unsure", **args)) == pytest.approx(100.0)
+    # An AI vote that isn't in the counts takes nothing off them.
+    assert float(avq.new_priority_score(0, 0, 0, ai_result="Unsure", **args)) == pytest.approx(200.0)
+
+
 def test_a_low_quality_or_stale_audit_task_forfeits_the_new_labeler_bonus():
     base = dict(own_labels_validated=0, high_quality=False, recent=False)
     assert float(avq.new_priority_score(0, 0, 0, low_quality=True, stale=False, **base)) == pytest.approx(200.0)

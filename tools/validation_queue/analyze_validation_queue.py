@@ -199,12 +199,17 @@ def old_priority_score(agree, disagree, correct_is_null, own_labels_validated, h
     )
 
 
-def new_priority_score(agree, disagree, unsure, own_labels_validated, high_quality, low_quality, stale, recent):
+def new_priority_score(agree, disagree, unsure, own_labels_validated, high_quality, low_quality, stale, recent,
+                       ai_result=""):
     """The #4715 deterministic score: unsure votes lower the need, and the new-labeler bonus follows `needs_votes`.
 
     Tying the bonus to `needs_votes` rather than `correct IS NULL` is the one behavioural change inside the score:
-    a label whose only vote is the AI's still needs a human, so it keeps the emphasis it was meant to have.
+    a label whose only vote is the AI's still needs a human, so it keeps the emphasis it was meant to have. The AI's
+    own Unsure is taken off the need's unsure count (#5833): no one has judged the label yet.
+
+    @param ai_result: Per-label AI verdict as text ('Agree', 'Disagree', 'Unsure', or '' when the AI never voted).
     """
+    human_unsure = np.maximum(np.asarray(unsure) - (np.asarray(ai_result) == "Unsure"), 0)
     new_labeler = (
         (np.asarray(own_labels_validated) < NEW_LABELER_OWN_LABELS_VALIDATED)
         & needs_votes(agree, disagree, unsure)
@@ -214,7 +219,7 @@ def new_priority_score(agree, disagree, unsure, own_labels_validated, high_quali
     return (
         new_labeler * NEW_LABELER_BONUS
         + np.asarray(high_quality) * HIGH_QUALITY_BONUS
-        + consensus_need(agree, disagree, unsure)
+        + consensus_need(agree, disagree, human_unsure)
         + np.asarray(recent) * RECENCY_BONUS
     )
 
@@ -733,7 +738,7 @@ class Pool(object):
 
     def new_score(self):
         return new_priority_score(self.agree, self.disagree, self.unsure, self.own_labels_validated,
-                                  self.high_quality, self.low_quality, self.stale, self.recent)
+                                  self.high_quality, self.low_quality, self.stale, self.recent, self.ai_result)
 
     def faces_score(self):
         """The #5285 score: the #4715 score for every type, with NoSidewalk's rows rescored by block face."""
@@ -1047,7 +1052,7 @@ class _VoteSim(object):
                                       pool.low_quality[idx], pool.stale[idx], pool.recent[idx])
         base = new_priority_score(self.agree[idx], self.disagree[idx], self.unsure[idx],
                                   pool.own_labels_validated[idx], pool.high_quality[idx], pool.low_quality[idx],
-                                  pool.stale[idx], pool.recent[idx])
+                                  pool.stale[idx], pool.recent[idx], pool.ai_result[idx])
         if POLICIES[self.policy]["score"] == "faces":
             no_sidewalk = pool.label_type[idx] == "NoSidewalk"
             scored = no_sidewalk_priority_score(base, self.has_face[idx], self.face_labelers[idx],
@@ -1530,7 +1535,7 @@ def build_report(pool, validations, schema, seed=4715, votes=20000, missions_per
         "beside it. Every number below comes from that run; none is typed by hand.",
         "",
         "Policy under test: a label still needs votes while `total_votes = 0 OR (|agree - disagree| < {0} AND "
-        "total_votes < {1})`, priority is the additive score with `{2} / (1 + margin^2 + unsure)` as the "
+        "total_votes < {1})`, priority is the additive score with `{2} / (1 + margin^2 + human unsure)` as the "
         "consensus term, and pick probability is proportional to `score^{3:g}`. NoSidewalk is scored per block face "
         "(#5285): `(score + {4:g} / labelers^2 + min({5:g}, {6:g} x years)) / (1 + agreeing votes on the face)`, "
         "and a face leaves NoSidewalk's mission share at {7} agreeing votes. Pool rows: {8}; validations "

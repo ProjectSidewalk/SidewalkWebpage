@@ -21,7 +21,7 @@ import '../../common/utilitiesSidewalk.js';
 
 export class GalleryFilter {
   /** Validation options shown by default, matching the `/gallery` route's default query param. */
-  static #DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
+  static #DEFAULT_VALIDATIONS = ['correct', 'unsure', 'unvalidated'];
 
   /** @type {?HTMLElement} Absent in review-list mode, which renders no filter controls at all (#5444). */
   #root;

@@ -23,7 +23,7 @@ mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
-const DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
+const DEFAULT_VALIDATIONS = ['correct', 'unsure', 'unvalidated'];
 
 /** Builds the sidebar markup Gallery renders: label types, severity toggles, validations. */
 function buildFixture() {
@@ -275,7 +275,7 @@ describe('GalleryFilter', () => {
 
       document.querySelector('#incorrect').click();
 
-      expect(currentUrl()).toBe('/gallery?validationOptions=correct,incorrect,unvalidated');
+      expect(currentUrl()).toBe('/gallery?validationOptions=correct,incorrect,unsure,unvalidated');
     });
 
     it('keeps reporting the filters that have no UI of their own', () => {
