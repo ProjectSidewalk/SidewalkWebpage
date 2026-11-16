@@ -315,6 +315,9 @@ about.data.body = 我們收集的一切都是開放的。您可以透過<a href=
 about.partners.title = 社區夥伴
 about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
 about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">了解如何在您的社區使用 Project Sidewalk</a>。
+about.partners.project.title = 全專案合作夥伴
+about.partners.city.title = 各城市的合作夥伴
+about.partners.city.tagline = 在我們的一個或多個城市中與我們合作的政府、學校、倡議團體與社區組織。
 about.funding.title = 研究經費
 about.funding.body = Project Sidewalk 是由研究經費支持的學術研究，主要由美國國家科學基金會（NSF）資助，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
 about.cta.title = 與我們一起繪製每一條人行道

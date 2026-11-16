@@ -11,7 +11,9 @@ import scala.concurrent.ExecutionContext
 
 /**
  * A community-partner logo shown on the landing page (#4516). `cityId` None means project-wide: shown on every
- * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global".
+ * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global". Every deployment's
+ * /about page shows every row, private cities' included, one logo per organization
+ * ([[PartnerMetadata.groupForAbout]], #5980).
  */
 case class Partner(
     partnerId: Int,
@@ -73,6 +75,44 @@ object PartnerMetadata {
   }
 
   /**
+   * Groups every city's partners for the /about page's logo grid (#5980). Private cities' partners are included:
+   * the grid credits the organizations behind the project as a whole, and naming a partner doesn't reveal the
+   * private deployment's site or data.
+   *
+   * The table holds one row per organization per city, so each organization (by [[nameKey]]) shows once. One with any
+   * project-wide row is a project-wide partner, shown with the lowest-id project-wide row's logo, in the project-wide
+   * display order the admins set. Every other organization shows its lowest-id row's logo, sorted alphabetically with
+   * a root-locale collator, so an accented or non-Latin initial sorts with its base letter rather than after Z. A
+   * winning row with no URL or alt text takes the first one its sibling rows have, lowest id first, since an
+   * Administrator can't edit another city's row to add the link there.
+   *
+   * {{{
+   * // Rows: 4 = Seattle "Public Nudge", 2 = Chicago "public nudge", 9 = project-wide "SciStarter", 5 = Taipei "Foo".
+   * groupForAbout(Seq(row4, row2, row9, row5)) // == (Seq(row9), Seq(row2, row5))
+   * }}}
+   *
+   * @return (the project-wide partners, every other organization), each with one row per organization
+   */
+  def groupForAbout(partners: Seq[PartnerMetadata]): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
+    val (projectWide, others) = partners.groupBy(p => nameKey(p.name)).values.toSeq.partitionMap { rows =>
+      val byId     = rows.sortBy(_.partnerId)
+      val winner   = byId.find(_.cityId.isEmpty).getOrElse(byId.head)
+      val gapsFill = winner.copy(
+        url = winner.url.orElse(byId.flatMap(_.url).headOption),
+        altText = winner.altText.orElse(byId.flatMap(_.altText).headOption)
+      )
+      if (winner.cityId.isEmpty) Left(gapsFill) else Right(gapsFill)
+    }
+    val collator = java.text.Collator.getInstance(java.util.Locale.ROOT)
+    collator.setStrength(java.text.Collator.SECONDARY)
+    val alphabetical = Ordering.fromLessThan[PartnerMetadata] { (a, b) =>
+      val byCollator = collator.compare(nameKey(a.name), nameKey(b.name))
+      if (byCollator != 0) byCollator < 0 else nameKey(a.name) < nameKey(b.name)
+    }
+    (projectWide.sortBy(p => (p.displayOrder, p.partnerId)), others.sorted(using alphabetical))
+  }
+
+  /**
    * Partner identity across scopes: project-wide and city rows aren't linked, so the admin-typed name is the only
    * shared key. Case and spacing are ignored so a stray capital doesn't show a logo twice.
    */
@@ -129,6 +169,9 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         .sortBy(p => (p.cityId.isDefined, p.displayOrder))
     ).result
   }
+
+  /** Every partner of every city plus the project-wide ones, unordered: the /about page's grid (#5980). */
+  def getAll: DBIO[Seq[PartnerMetadata]] = metadataOf(partners).result
 
   /** All partners in one scope (None = global), in display order. */
   def getByScope(cityId: Option[String]): DBIO[Seq[PartnerMetadata]] = {

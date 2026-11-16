@@ -159,9 +159,13 @@ class ApplicationController @Inject() (
    * Returns the About page.
    */
   def about = cc.securityService.UserAwareAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+    val partnersFuture = partnerService.getAllPartners
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      partners   <- partnersFuture
+    } yield {
       cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_About")
-      Ok(views.html.about(commonData, Messages("seo.title.about"), request.identity))
+      Ok(views.html.about(commonData, Messages("seo.title.about"), request.identity, partners))
     }
   }
 
