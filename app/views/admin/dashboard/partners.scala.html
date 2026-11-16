@@ -8,9 +8,11 @@
 
 @*
 * Admin Partners page (#4516): the community-partner logos rendered on the landing page. Any admin manages the
-* current city's list; the global list (every deployment's landing page) is shown for context but editable only by
-* Owners — enforced server-side on the /adminapi/globalPartners routes. The page also sets the city's official-contact
-* notice (#5462), which renders in the landing page's partners section. Admin-only surface, English only.
+* current city's list; the project-wide list (every deployment's landing page, #5984; "global" in the code and routes)
+* is shown for context but editable only by Owners — enforced server-side on the /adminapi/globalPartners routes.
+* The page also sets the city's official-contact notice (#5462), which renders in the landing page's partners
+* section. Both lists also feed every deployment's /about grid (one logo per organization;
+* PartnerMetadata.groupForAbout, #5980). Admin-only surface, English only.
 *@
 
 @isOwner = @{user.role == Role.Owner}
@@ -53,7 +55,7 @@
 @content = {
   <div class="page-section" id="partners-intro-section">
     <h1 class="page-heading" id="partners">Partners <a href="#partners" class="permalink">#</a></h1>
-    <p>Logos in the landing page's "Community Partners" section: global ones in every city, then this city's.</p>
+    <p>Logos in the landing page's partner sections: this city's under "Community Partners in &lt;city&gt;", then the project-wide ones, shown in every city, under "Project-Wide Partners". Both lists also appear on every deployment's About page, where an organization listed by several cities shows once, with the earliest-added entry's logo; a missing link or alt text is taken from another entry.</p>
     <p>Upload the best PNG or JPEG you have, ideally a wide wordmark on transparency; an SVG's text must be outlines, not live text.</p>
     <div class="partners-status" id="partners-status" role="status" aria-live="polite">Loading partners…</div>
   </div>
@@ -88,16 +90,16 @@
 
   <div class="page-section" id="partners-city-section">
     <h2 class="page-heading" id="city-partners">City partners <a href="#city-partners" class="permalink">#</a></h2>
-    <p>Only on <strong>this city's</strong> landing page.</p>
+    <p>On <strong>this city's</strong> landing page, and on every deployment's About page.</p>
     <div id="partners-city-list" class="partners-list"></div>
     @addForm("city")
   </div>
 
   <div class="page-section" id="partners-global-section">
-    <h2 class="page-heading" id="global-partners">Global partners <a href="#global-partners" class="permalink">#</a></h2>
-    <p>On <strong>every</strong> deployment's landing page.</p>
+    <h2 class="page-heading" id="global-partners">Project-wide partners <a href="#global-partners" class="permalink">#</a></h2>
+    <p>On <strong>every</strong> deployment's landing page, under "Project-Wide Partners", and on the About page. One list, shared by every city. A partner that is also in a city's own list shows only in that city's row on that city.</p>
     @if(!isOwner) {
-      <p class="partners-owner-note">Only Owners can edit the global list.</p>
+      <p class="partners-owner-note">Only Owners can edit the project-wide list.</p>
     }
     <div id="partners-global-list" class="partners-list"></div>
     @if(isOwner) {

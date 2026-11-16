@@ -1312,6 +1312,27 @@ describe('AboutPage', () => {
       ]);
     });
 
+    test('a partner logo logs which partner; a prose link in the partners band logs nothing', async () => {
+      document.body.insertAdjacentHTML('beforeend', `
+        <section id="about-partners">
+          <p><a id="partners-prose-link" href="https://accessiblecommunities.org/">Learn how</a></p>
+          <ul class="about-partner-logos">
+            <li class="about-partner-logo" data-ps-tooltip="SciStarter">
+              <a href="https://scistarter.org/" data-partner-source="scistarter"><img alt="SciStarter logo"></a>
+            </li>
+          </ul>
+        </section>`);
+      stubFetch({ '/people/?format=json': page([]), ...EMPTY_SECTIONS });
+      await loadModules('frontend/js/pages/about.js');
+      await hydrate();
+
+      document.getElementById('partners-prose-link').click();
+      document.querySelector('.about-partner-logo img').click();
+      expect(window.logWebpageActivity.mock.calls.map(([activity]) => activity)).toEqual([
+        'Click_module=AboutPage_target=partner_scistarter',
+      ]);
+    });
+
     test('a click before the activity logger exists is simply not logged', async () => {
       stubFetch({ '/people/?format=json': page([personRow()]), ...EMPTY_SECTIONS });
       await loadModules('frontend/js/pages/about.js');

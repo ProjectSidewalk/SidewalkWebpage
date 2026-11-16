@@ -574,5 +574,12 @@ export class AboutPage {
         if (/** @type {Element} */ (e.target).closest('a')) this.#log(target);
       });
     });
+    // Partner logos (#5980) name which partner, from the same data-partner-source slug the landing page logs, so a
+    // partner's clicks can be counted across both pages. The prose links in that band carry no slug and aren't logged.
+    document.getElementById('about-partners')?.addEventListener('click', (e) => {
+      const clicked = /** @type {Element} */ (e.target);
+      const link = /** @type {HTMLElement | null} */ (clicked.closest('a[data-partner-source]'));
+      if (link) this.#log(`partner_${link.dataset.partnerSource}`);
+    });
   }
 }
