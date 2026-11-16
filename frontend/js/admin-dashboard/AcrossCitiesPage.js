@@ -17,6 +17,7 @@ import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
+import { funnelVisitorsRowHtml, funnelVisitorsText } from './funnelVisitors.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -1515,10 +1516,16 @@ export class AcrossCitiesPage {
   #funnelTableHtml(steps, cities, segs) {
     const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
     const multi = segs.length > 1;
+    // GA can't be split the way the breakdowns are; and with GA off everywhere the column would be all dashes.
+    const showGa = this.#funnelDim === 'all' && cities.some((c) => c.ga_visitors);
+    const secondStep = (labels[steps[1]] || { full: steps[1] }).full;
+    const gaTip = 'First-time visitors per Google Analytics in this window. A separate count from the accounts: GA '
+      + 'counts browsers and skips most bots.';
     const head = [
       '<tr>',
       '<th class="ac-th-text">City</th>',
       multi ? '<th class="ac-th-text">Group</th>' : '',
+      showGa ? `<th tabindex="0" data-ps-tooltip="${gaTip}">GA visitors</th>` : '',
       ...steps.map((k) => {
         const l = labels[k] || { full: k, short: k };
         const short = util.escapeHTML(l.short);
@@ -1540,7 +1547,7 @@ export class AcrossCitiesPage {
 
     let body;
     if (!rows.length) {
-      const span = steps.length + (multi ? 3 : 2);
+      const span = steps.length + 2 + (multi ? 1 : 0) + (showGa ? 1 : 0);
       body = `<tr><td colspan="${span}" class="dq-empty">No funnel data to show.</td></tr>`;
     } else {
       body = rows.map(({ c, seg, d }) => {
@@ -1550,10 +1557,16 @@ export class AcrossCitiesPage {
             : `${this.#num(v)} — ${this.#pct(d.step_conversion[i])} of previous step`;
           return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
         }).join('');
+        const ga = c.ga_visitors;
+        const gaCell = ga
+          ? `<td class="ac-num" title="${util.escapeHTML(funnelVisitorsText(ga, secondStep))}">`
+          + `${this.#compact(ga.count)}</td>`
+          : '<td class="ac-num">—</td>';
         return [
           '<tr>',
           `<td class="ac-td-city">${this.#cityLink(c)}</td>`,
           multi ? `<td>${util.escapeHTML(seg.label)}</td>` : '',
+          showGa ? gaCell : '',
           stepCells,
           `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>`,
           '</tr>',
@@ -1603,8 +1616,10 @@ export class AcrossCitiesPage {
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
         + `<div class="ac-funnel-bars">${bars}</div></div>`;
     }).join('');
+    const secondStep = (labels[steps[1]] || { full: steps[1] }).full;
+    const visitors = this.#funnelDim === 'all' ? funnelVisitorsRowHtml(c.ga_visitors, secondStep) : '';
     return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>`
-      + `${legend}${stepRows}</div>`;
+      + `${legend}${visitors}${stepRows}</div>`;
   }
 
   // --- Hover breakdown cards --------------------------------------------------------------------------------------

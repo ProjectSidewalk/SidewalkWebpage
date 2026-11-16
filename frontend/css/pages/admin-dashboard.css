@@ -2466,6 +2466,17 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-bottom: 2px;
 }
 
+/* The Google Analytics visitors line above a funnel: plain text, since it isn't a share of the bars below it. */
+.ac-funnel-step--ga {
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px dashed var(--color-neutral-300);
+}
+
+.ac-funnel-ga {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
 .ac-funnel-bars {
   display: flex;
   flex-direction: column;

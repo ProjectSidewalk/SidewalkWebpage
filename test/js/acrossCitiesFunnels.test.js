@@ -239,4 +239,22 @@ describe('Across Cities — engagement funnels, sparse data', () => {
       scorecards: { cities: [makeCity('alpha')] }, funnels: { funnels: { contribution: CONTRIBUTION } } });
     expect(document.getElementById('ac-funnel-status').textContent).toBe('Loading funnels…');
   });
+  it('adds a GA visitors column and panel line for all users, and drops both under a breakdown', async () => {
+    const withGa = { ...MAPPING, cities: [
+      { ...MAPPING.cities[0], ga_visitors: { count: 2500, since: '2021-10-27', second_step_rate: 0.02 } },
+      { ...MAPPING.cities[1], ga_visitors: null },
+    ] };
+    await render({ funnels: { mapping: withGa } });
+    const [block] = blocks();
+    expect([...block.querySelectorAll('thead th')].map((th) => th.textContent)).toContain('GA visitors');
+    const gaCells = Object.fromEntries(tableText(block).map((row) => [row[0], row[1]]));
+    expect(Object.values(gaCells).sort()).toEqual(['2,500', '—']);
+    const lines = [...block.querySelectorAll('.ac-funnel-step--ga .ac-funnel-ga')].map((el) => el.textContent);
+    expect(lines).toEqual(['2,500 · 2% reached “Took a step”']);
+
+    click('ac-funnel-dim', 'dim', 'role');
+    const [split] = blocks();
+    expect([...split.querySelectorAll('thead th')].map((th) => th.textContent)).not.toContain('GA visitors');
+    expect(split.querySelectorAll('.ac-funnel-step--ga').length).toBe(0);
+  });
 });

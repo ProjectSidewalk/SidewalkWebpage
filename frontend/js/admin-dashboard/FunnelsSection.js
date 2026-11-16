@@ -6,7 +6,8 @@
  * labeling/validation contribution and finishing a mission) — as horizontal bar funnels, each step normalized to its
  * segment's step 1 (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
  * breakdown selector (all / registered-vs-anonymous / desktop-vs-mobile) re-renders from cached data. Reuses the
- * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library.
+ * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library. With all users shown, each funnel is headed by Google
+ * Analytics' new-visitor count for the same window (#5996).
  *
  * The set and order of steps come from each funnel's `steps` array in the response — this class only supplies
  * presentational labels — so the funnel shape stays defined by the backend (ConfigService.FunnelDefs).
@@ -14,6 +15,7 @@
 
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
+import { funnelVisitorsRowHtml } from './funnelVisitors.js';
 
 export class FunnelsSection {
   /**
@@ -132,7 +134,8 @@ export class FunnelsSection {
   /**
    * One funnel block: heading, description, optional legend, and the step bars for the active dimension.
    * @param {string} funnelType - 'mapping' | 'contribution'.
-   * @param {{steps: string[], segments: object}} funnel - The funnel's step keys and per-segment data.
+   * @param {{steps: string[], segments: object, ga_visitors?: any}} funnel - The funnel's step keys, per-segment
+   *   data, and GA visitors for the window (null when GA has none).
    * @param {{key: string, label: string}[]} segs - Segments to show for the active dimension.
    * @returns {string} The block's HTML.
    */
@@ -173,11 +176,15 @@ export class FunnelsSection {
         </div>`;
     }).join('');
 
+    // GA can't be split the way the breakdowns are, so the line only heads the whole funnel.
+    const secondStep = (FunnelsSection.#STEP_LABELS[steps[1]] || { full: steps[1] }).full;
+    const visitors = this.#dim === 'all' ? funnelVisitorsRowHtml(funnel.ga_visitors, secondStep) : '';
+
     return `
       <div class="ac-funnel-block">
         <h3 class="ac-funnel-block-title">${util.escapeHTML(meta.title)}</h3>
         <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
-        <div class="ac-funnel-panel">${legend}${stepRows}</div>
+        <div class="ac-funnel-panel">${legend}${visitors}${stepRows}</div>
       </div>`;
   }
 

@@ -201,6 +201,43 @@ describe('the breakdown toggle', () => {
   });
 });
 
+describe('the Google Analytics visitors line', () => {
+  const ga = (extra) => ({ count: 4000, since: '2021-10-27', second_step_rate: null, ...extra });
+  const gaRows = () => Array.from(document.querySelectorAll('.ac-funnel-step--ga')).map(textOf);
+
+  test('heads each funnel with the count and the share that reached its second step', async () => {
+    await load({ '30d': answer('30d', {
+      mapping: { ...MAPPING, ga_visitors: ga({ second_step_rate: 1.5 }) },
+      contribution: { ...CONTRIBUTION, ga_visitors: ga({ second_step_rate: 0.05 }) },
+    }) });
+    expect(gaRows()).toEqual([
+      'New visitors (Google Analytics) 4,000 · 150% reached “Started tutorial”',
+      'New visitors (Google Analytics) 4,000 · 5% reached “Labeled or validated”',
+    ]);
+    expect(steps(0)[1]).toEqual({ label: 'New account, visited this city', bars: ['12k'] });
+  });
+
+  test('gives small shares one decimal', async () => {
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION,
+      ga_visitors: ga({ second_step_rate: 0.0137 }) } }) });
+    expect(gaRows()).toEqual(['New visitors (Google Analytics) 4,000 · 1.4% reached “Labeled or validated”']);
+  });
+
+  test('says when Google Analytics\' history starts where there is no share to give', async () => {
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga() } }) });
+    expect(gaRows()).toEqual(['New visitors (Google Analytics) 4,000 · since Oct 27, 2021']);
+  });
+
+  test('is left out when Google Analytics has nothing, and under a breakdown', async () => {
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: null } }) });
+    expect(gaRows()).toEqual([]);
+
+    await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga() } }) });
+    document.querySelector('[data-dim="role"]').click();
+    expect(gaRows()).toEqual([]);
+  });
+});
+
 describe('the window picker', () => {
   test('fetches the chosen window and redraws from it', async () => {
     const fetch = await load({ all: answer('all', { mapping: { ...MAPPING,
