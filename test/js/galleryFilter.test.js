@@ -23,7 +23,7 @@ mockModule('frontend/js/common/label-detail/LabelDetail.js', () => ({
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
-const DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
+const DEFAULT_VALIDATIONS = ['correct', 'unsure', 'unvalidated'];
 
 /** Builds the sidebar markup Gallery renders: label types, severity toggles, validations. */
 function buildFixture() {
@@ -137,7 +137,7 @@ describe('GalleryFilter', () => {
   function build(initialFilters = {}, sortSelect = null) {
     buildFixture();
     const built = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect, {
-      regionIds: [], aiValidationOptions: [], ...initialFilters,
+      regionIds: [], aiValidationOptions: [], defaultValidationOptions: DEFAULT_VALIDATIONS, ...initialFilters,
     }, tracker);
     built.onUpdate(onUpdate);
     built.onSortChange(onSortChange);
@@ -190,7 +190,7 @@ describe('GalleryFilter', () => {
       window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
       buildFixture();
       const filter = new GalleryFilter(null, null, null, {
-        regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
+        regionIds: [], aiValidationOptions: [], defaultValidationOptions: DEFAULT_VALIDATIONS, labelIds: [5, 6],
       }, tracker);
 
       expect(currentUrl()).toBe('/gallery?labelIds=5,6&labelId=6');
@@ -200,7 +200,9 @@ describe('GalleryFilter', () => {
     it('with no sidebar and no list, answers the empty defaults and writes a bare URL', () => {
       // The class promises every method is safe with nothing to read, so a caller never has to check first.
       document.body.innerHTML = '';
-      const filter = new GalleryFilter(null, null, null, { regionIds: [], aiValidationOptions: [] }, tracker);
+      const filter = new GalleryFilter(null, null, null, {
+        regionIds: [], aiValidationOptions: [], defaultValidationOptions: DEFAULT_VALIDATIONS,
+      }, tracker);
       filter.onUpdate(onUpdate);
       filter.clearFilters();
       filter.update();
@@ -275,7 +277,7 @@ describe('GalleryFilter', () => {
 
       document.querySelector('#incorrect').click();
 
-      expect(currentUrl()).toBe('/gallery?validationOptions=correct,incorrect,unvalidated');
+      expect(currentUrl()).toBe('/gallery?validationOptions=correct,incorrect,unsure,unvalidated');
     });
 
     it('keeps reporting the filters that have no UI of their own', () => {
@@ -429,7 +431,7 @@ describe('GalleryFilter', () => {
               </div>`);
       document.body.insertAdjacentHTML('beforeend', '<div id="gallery-footer">gallery:cards</div>');
       const built = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
-        regionIds: [], aiValidationOptions: [],
+        regionIds: [], aiValidationOptions: [], defaultValidationOptions: DEFAULT_VALIDATIONS,
       }, tracker);
       built.onUpdate(onUpdate);
       built.onSortChange(onSortChange);
@@ -551,7 +553,7 @@ describe('GalleryFilter', () => {
         document.querySelector('.filter-sidebar__only[data-section="label-validations"][data-value="unvalidated"]')
           .click();
         filter = new GalleryFilter(document.getElementById('card-filter'), clearBtn(), sortSelect(), {
-          regionIds: [], aiValidationOptions: [],
+          regionIds: [], aiValidationOptions: [], defaultValidationOptions: DEFAULT_VALIDATIONS,
         }, tracker);
         expect(note().textContent).toBe('gallery:sort-moot-no-validated');
       });

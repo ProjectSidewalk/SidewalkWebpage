@@ -584,6 +584,38 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
     }
   }
 
+  "The priority score" should {
+    "leave the AI's Unsure out of the consensus need, but only while that vote is in the label's counts" in {
+      val scores = runRolledBack(for {
+        labeler      <- insertLabeler(ownLabelsValidated = 100, highQuality = false)
+        unvoted      <- insertLabel(labeler, 0, 0, 0, None)
+        aiUnsure     <- insertLabel(labeler, 0, 0, 1, None)
+        personUnsure <- insertLabel(labeler, 0, 0, 1, None)
+        both         <- insertLabel(labeler, 0, 0, 2, None)
+        aiAgree      <- insertLabel(labeler, 1, 0, 0, Some(true))
+        ownLabel     <- insertLabel(labeler, 0, 0, 1, None)
+        _            <- insertAiVote(aiUnsure, "Unsure")
+        _            <- insertAiVote(both, "Unsure")
+        _            <- insertAiVote(aiAgree, "Agree")
+        _            <- insertAiVote(ownLabel, "Unsure")
+        // A vote by the label's own author is never counted, so the one Unsure in the counts is someone else's.
+        _      <- sqlu"UPDATE label_validation SET user_id = $labeler WHERE label_id = $ownLabel"
+        scored <- labelTable
+          .validationPriorityScoresQuery(
+            requester,
+            viewer,
+            LabelType.CurbRamp,
+            ValidationLabelFilter(userIds = Some(Set(labeler)))
+          )
+          .result
+          .map(_.toMap)
+      } yield Seq(unvoted, aiUnsure, personUnsure, both, aiAgree, ownLabel).map(scored))
+
+      // An established labeler's month-old labels score the consensus need alone: 200 / (1 + margin² + human unsure).
+      scores mustBe Seq(200d, 200d, 100d, 100d, 100d, 100d)
+    }
+  }
+
   "The queue cascade" should {
     "top a queue that cannot fill a mission up from the next queue in the list" in {
       // This one runs against the schema's own labels: the service checks imagery on its own connection, which cannot

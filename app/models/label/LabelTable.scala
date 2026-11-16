@@ -1961,14 +1961,38 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
           l.streetEdgeId === face.streetEdgeId && lp.streetSide === face.streetSide
         }
-        .map { case (row @ (l, _, _, us, at, _, _, _, _, _), face) =>
+        .map { case (row @ (l, _, _, us, at, _, _, _, _, aiv), face) =>
           val evidence = ValidationQueuePolicy.FaceEvidenceRep(face.map(_.labelerCount), face.map(_.support))
-          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, evidence))
+          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, countedAiResult(l, aiv), evidence))
         }
     else
-      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, _) =>
-        (row, ValidationQueuePolicy.priorityScore(l, at, us))
+      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, aiv) =>
+        (row, ValidationQueuePolicy.priorityScore(l, at, us, countedAiResult(l, aiv)))
       }
+  }
+
+  /** The AI's vote, when it is in the label's counts; a vote by the label's own author never is. */
+  private def countedAiResult(
+      l: LabelTableDef,
+      aiv: Rep[Option[LabelValidationTableDef]]
+  ): Rep[Option[ValidationOption]] =
+    aiv.filter(_.userId =!= l.userId).map(_.validationResult)
+
+  /**
+   * Each candidate label's priority score, without the queue filter or the random draw, so a spec can check the
+   * score itself. Parameters are those of [[retrieveLabelListForValidationQuery]].
+   *
+   * @return `(label id, score)` per label the user could be asked to validate.
+   */
+  def validationPriorityScoresQuery(
+      userId: String,
+      viewer: PanoSource,
+      labelType: LabelType,
+      filter: ValidationLabelFilter
+  ): Query[(Rep[Int], Rep[Double]), (Int, Double), Seq] = {
+    val candidates =
+      validationCandidates(userId, viewer, labelType, filter, unvalidatedOnly = false, Set.empty, Set.empty)
+    scoredForQueue(labelType, candidates).map { case (row, score) => (row._1.labelId, score) }
   }
 
   /**

@@ -23,6 +23,9 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 object GalleryController {
 
+  /** The validation statuses Gallery shows when the URL names none; the route default and the page's reset read it. */
+  val DefaultValidationOptions: Seq[String] = Seq("correct", "unsure", "unvalidated")
+
   /**
    * How many ids a `?labelIds=` review list may name.
    *
