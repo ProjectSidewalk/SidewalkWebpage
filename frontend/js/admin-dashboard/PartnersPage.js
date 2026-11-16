@@ -28,11 +28,12 @@ import { util } from '../common/utilities.js';
 /**
  * PartnersPage — the /admin/partners manager for the landing page's community-partner logos (#4516).
  *
- * Renders two independently ordered lists from /adminapi/partners — this city's partners and the global list shown
- * on every deployment — with per-row reorder/edit/delete and one add form per editable scope. City rows are editable
- * by any admin; global rows only by Owners (the server enforces this on the /adminapi/globalPartners routes, so the
- * flag here only decides what UI to draw). It also runs the page's official-contact form (#5462), the city's
- * "contact us directly" sentence in the landing page's partners section. Admin-only page, English-only by convention.
+ * Renders two independently ordered lists from /adminapi/partners — this city's partners and the project-wide list
+ * shown on every deployment (#5984; "global" in the code and routes) — with per-row reorder/edit/delete and one add
+ * form per editable scope. City rows are editable by any admin; global rows only by Owners (the server enforces this
+ * on the /adminapi/globalPartners routes, so the flag here only decides what UI to draw). It also runs the page's
+ * official-contact form (#5462), the city's "contact us directly" sentence in the landing page's partners section.
+ * Admin-only page, English-only by convention.
  */
 export class PartnersPage {
   /** Long edge, in px, of the PNG an uploaded SVG is rasterized to: ~4x the widest the strip ever renders a logo. */
@@ -168,7 +169,7 @@ export class PartnersPage {
       this.#partners = { city: data.city_partners, global: data.global_partners };
       this.#render('city');
       this.#render('global');
-      this.#setStatus(`${this.#partners.global.length} global · ${this.#partners.city.length} city`);
+      this.#setStatus(`${this.#partners.global.length} project-wide · ${this.#partners.city.length} city`);
     } catch (err) {
       console.error('Partners page: list failed to load.', err);
       this.#setStatus('Could not load partners. Reload to try again.');
@@ -183,7 +184,7 @@ export class PartnersPage {
     if (rows.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'partners-empty';
-      empty.textContent = scope === 'city' ? 'No city partners yet.' : 'No global partners yet.';
+      empty.textContent = scope === 'city' ? 'No city partners yet.' : 'No project-wide partners yet.';
       listEl.appendChild(empty);
       return;
     }
@@ -221,6 +222,13 @@ export class PartnersPage {
       link.rel = 'noopener';
       link.textContent = partner.url;
       info.appendChild(link);
+    }
+    // Flagged server-side so the dedup rule has one definition (PartnerMetadata.splitForLanding).
+    if (partner.also_project_wide) {
+      const note = document.createElement('div');
+      note.className = 'partners-row-note';
+      note.textContent = 'Also a project-wide partner; on this city it shows only here, not twice.';
+      info.appendChild(note);
     }
 
     row.append(thumb, info);

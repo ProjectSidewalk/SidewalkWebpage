@@ -285,11 +285,13 @@ landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners in {0}
 landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze communitypartners, waaronder:
+landing.partners.project.title = Projectbrede partners
+landing.partners.project.tagline = De volgende organisaties hebben Project Sidewalk blijvend en over steden heen beïnvloed.
 landing.partners.official.contact = Project Sidewalk is een onderzoekstool. Neem voor het melden van een probleem of het aanvragen van een reparatie rechtstreeks contact op met {0}. Je kunt links naar <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> of <a href="/stories" data-partner-source="official-contact-stories">verhalen</a> van Project Sidewalk aan je verzoek toevoegen.
 landing.partners.logo.alt = Logo van {0}
 landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
-landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, het <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> en de <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, samen met 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
+landing.partners.created.credits = …en gevormd door 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab-logo
 landing.partners.creator.uw.alt = Logo van de Paul G. Allen School of Computer Science & Engineering van de University of Washington
 landing.partners.creator.uic.alt = Logo van het Institute on Disability and Human Development van de University of Illinois Chicago

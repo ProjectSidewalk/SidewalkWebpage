@@ -9,7 +9,10 @@ import java.time.OffsetDateTime
 import javax.inject.*
 import scala.concurrent.ExecutionContext
 
-/** A community-partner logo shown on the landing page (#4516). `cityId` None means global (every deployment). */
+/**
+ * A community-partner logo shown on the landing page (#4516). `cityId` None means project-wide: shown on every
+ * deployment, under "Project-Wide Partners" (#5984). The code and routes call that scope "global".
+ */
 case class Partner(
     partnerId: Int,
     cityId: Option[String],
@@ -55,6 +58,26 @@ object PartnerMetadata {
 
   /** See [[PartnerMetadata.logoVersion]] — for callers holding a bare `updated_at` rather than the metadata row. */
   def logoVersionOf(updatedAt: OffsetDateTime): Long = updatedAt.toInstant.toEpochMilli
+
+  /**
+   * Splits a landing page's partners into the city's own row and the Project-Wide Partners row (#5984). A project-wide
+   * partner that is also one of this city's own (same [[nameKey]]) is left out of the project-wide row, so a home
+   * city credits it once, in the more specific place.
+   *
+   * @return (the city's partners, the project-wide partners to show), each in the order given
+   */
+  def splitForLanding(partners: Seq[PartnerMetadata]): (Seq[PartnerMetadata], Seq[PartnerMetadata]) = {
+    val (city, projectWide) = partners.partition(_.cityId.isDefined)
+    val cityNames           = city.map(p => nameKey(p.name)).toSet
+    (city, projectWide.filterNot(p => cityNames.contains(nameKey(p.name))))
+  }
+
+  /**
+   * Partner identity across scopes: project-wide and city rows aren't linked, so the admin-typed name is the only
+   * shared key. Case and spacing are ignored so a stray capital doesn't show a logo twice.
+   */
+  def nameKey(name: String): String =
+    name.replaceAll("[\\s\\p{Z}]+", " ").trim.toLowerCase(java.util.Locale.ROOT) // \p{Z}: pasted no-break spaces.
 }
 
 class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {

@@ -298,11 +298,13 @@ landing.deployment.map.title = Explorer d''autres villes
 landing.deployment.map.subtitle = Cliquez sur un cercle ci-dessous pour explorer d''autres villes Project Sidewalk !
 landing.partners.title = Partenaires locaux à {0}
 landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos partenaires locaux, dont :
+landing.partners.project.title = Partenaires de l''ensemble du projet
+landing.partners.project.tagline = Les organisations suivantes ont eu un impact durable sur Project Sidewalk, au-delà d''une seule ville.
 landing.partners.official.contact = Project Sidewalk est un outil de recherche. Pour signaler un problème ou demander une réparation, contactez directement {0}. Vous pouvez joindre à votre demande des liens vers des <a href="/labelMap" data-partner-source="official-contact-labelmap">étiquettes</a> ou des <a href="/stories" data-partner-source="official-contact-stories">témoignages</a> de Project Sidewalk.
 landing.partners.logo.alt = Logo de {0}
 landing.partners.created.by = Project Sidewalk a été créé avec {0} par
 landing.partners.created.heart = amour
-landing.partners.created.credits = … et façonné par des partenaires de longue date comme <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, la <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">section New Jersey Metro de la National Multiple Sclerosis Society</a> et la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, ainsi que plus de 100 étudiants contributeurs et des milliers de cartographes bénévoles dans le monde. <a href="/about" data-partner-source="about-team">Rencontrez l''équipe</a>.
+landing.partners.created.credits = … et façonné par plus de 100 étudiants contributeurs et des milliers de cartographes bénévoles dans le monde. <a href="/about" data-partner-source="about-team">Rencontrez l''équipe</a>.
 landing.partners.creator.makeability.alt = Logo du Makeability Lab
 landing.partners.creator.uw.alt = Logo de la Paul G. Allen School of Computer Science & Engineering de l''Université de Washington
 landing.partners.creator.uic.alt = Logo de l''Institute on Disability and Human Development de l''Université de l''Illinois à Chicago
