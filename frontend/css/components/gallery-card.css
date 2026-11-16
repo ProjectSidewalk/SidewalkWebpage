@@ -479,7 +479,10 @@ with respect to the image holder. This allows the validation menu to be placed o
   }
 }
 
-.expanded-view-background-card {
+/* The cards behind the open one fade their picture, not their text: they can still be clicked, so the words on
+   them have to stay readable (#5917). A missing picture stays hidden behind its placeholder. */
+.expanded-view-background-card .static-gallery-image:not(.static-gallery-image--missing),
+.expanded-view-background-card .gallery-marker-wrapper {
   opacity: 0.5;
 }
 

@@ -747,9 +747,11 @@ button.label-detail__meta-cell:focus-visible {
   gap: 8px;
 }
 
-/* A light dim is the only cue that severity and tags aren't controls for a viewer who can't edit them (#2575). */
+/* A light dim is the only cue that severity and tags aren't controls for a viewer who can't edit them (#2575).
+   On the faces and pills, not the tags row: its grey "None" can't pass for a control, and dimmed it is too faint
+   to read (#5917). 0.6 is as faint as this goes: the black words under it land at 5.7:1 on the card's white. */
 .label-detail:not(.label-detail--editable) .label-detail__severity-faces,
-.label-detail:not(.label-detail--editable) .label-detail__tags {
+.label-detail:not(.label-detail--editable) .label-detail__tags .tag-pill {
   opacity: 0.6;
 }
 

@@ -1,6 +1,7 @@
 /**
  * Paging Gallery's open card back to the first label switches off Prev, which must keep focus, ignore presses, and
- * pass axe (#5135). Gallery rather than LabelMap, whose markers are on a map canvas a spec can't click.
+ * pass axe along with the faded cards behind it (#5135, #5917). Gallery rather than LabelMap, whose markers are on
+ * a map canvas a spec can't click.
  */
 const {test, expect, serveAnyPano, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
@@ -25,6 +26,9 @@ test('Prev at the first card switches off with aria-disabled, keeps focus, and i
   context, consoleErrors}) => {
   // Lets the Maps stub stand in for a dev database's live panos.
   await serveAnyPano(context);
+  // Marks the "drag to look around" hint as already seen: it fades in and out on its own clock, and axe would
+  // fail its words whenever the scan lands mid-fade.
+  await context.addInitScript(() => sessionStorage.setItem('psLabelDetailPanHintShown', 'true'));
   await loadAndSettle(page, context, GALLERY);
 
   // Card images carry `label_id_<id>`, in the order the expanded view pages through them.
@@ -66,14 +70,15 @@ test('Prev at the first card switches off with aria-disabled, keeps focus, and i
   await prev.focus();
   await expect(prev).toBeFocused();
 
-  // Just the open card: a11y.spec.js already gates the grid behind it.
-  const results = await new AxeBuilder({page}).include('.gallery-expanded-view').withTags(WCAG_TAGS).analyze();
+  // The whole page, not just the open card: the cards behind it are faded while it is open (#5917).
+  await expect(page.locator('.gallery-card.expanded-view-background-card').first()).toBeAttached();
+  const results = await new AxeBuilder({page}).withTags(WCAG_TAGS).analyze();
   const {blocking, staleEntries} = partitionViolations(A11Y_STATE, results.violations);
   for (const entry of staleEntries) {
     test.info().annotations.push({type: 'stale-a11y-allowlist',
       description: `${A11Y_STATE}: '${entry.rule}' on '${entry.selector}' no longer fires (${entry.issue})`});
   }
-  expect(formatViolations(blocking), 'WCAG 2.1 AA violations in the card with Prev switched off').toEqual([]);
+  expect(formatViolations(blocking), 'WCAG 2.1 AA violations with a card open and Prev switched off').toEqual([]);
 
   // Paging forward again gives Prev somewhere to go, so it switches back on.
   await next.focus();

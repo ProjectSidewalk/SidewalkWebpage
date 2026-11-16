@@ -81,8 +81,9 @@ a page's healthy render cannot silently cover its error render. `EXEMPT_PAGES` k
 exemption is looked up by bare path, and it drops every state of the page — a page nobody is holding to AA yet
 cannot be held to it the moment its feed fails.
 
-`label-card-paging.spec.js` also scans a state from outside the gate: Gallery's open card (`/gallery [expanded
-card]`). Its key is listed in `OTHER_FORCED_STATES` in `a11y-allowlist.js`, so the stale-key check accepts it.
+`label-card-paging.spec.js` also scans a state from outside the gate: Gallery with a card open (`/gallery [expanded
+card]`), the whole page, so the faded cards behind the open one are checked too. Its key is listed in
+`OTHER_FORCED_STATES` in `a11y-allowlist.js`, so the stale-key check accepts it.
 
 ### Announcing what was injected
 
