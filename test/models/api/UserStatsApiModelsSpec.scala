@@ -1,7 +1,9 @@
 package models.api
 
-import models.label.LabelType
+import models.label.{Dimensions, LabelType, LocationXY, POV}
+import models.pano.PanoSource
 import models.user.LabelTypeStat
+import models.validation.ValidationResultCounts
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsNull, JsObject}
@@ -70,10 +72,22 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   private def sampleCVMetadata: LabelCVMetadata = LabelCVMetadata(
-    labelId = 1, panoId = "pano-1", labelType = "NoCurbRamp", agreeCount = 3, disagreeCount = 1, unsureCount = 0,
-    panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
-    canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
-    cameraRoll = None
+    labelId = 1,
+    panoId = "pano-1",
+    labelType = "NoCurbRamp",
+    validationCounts = ValidationResultCounts(3, 1, 0),
+    panoWidth = None,
+    panoHeight = Some(8192),
+    panoXY = LocationXY(100, 200),
+    canvasSize = Dimensions(720, 480),
+    canvasXY = LocationXY(50, 60),
+    pov = POV(heading = 90.0, pitch = -10.0, zoom = 1.0),
+    cameraHeading = 95.0,
+    cameraPitch = 0.0,
+    cameraRoll = None,
+    source = PanoSource.Mapillary,
+    copyright = Some("Jane Doe"),
+    license = None
   )
 
   test("LabelCVMetadata JSON uses snake_case keys, with a null for each unset optional field") {
@@ -83,6 +97,9 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     (json \ "pano_height").as[Int] shouldBe 8192
     (json \ "pano_width").get shouldBe JsNull
     (json \ "camera_roll").get shouldBe JsNull
+    (json \ "source").as[String] shouldBe "mapillary"
+    (json \ "copyright").as[String] shouldBe "Jane Doe"
+    (json \ "license").get shouldBe JsNull
     json.as[JsObject].keys.filter(k => k != k.toLowerCase) shouldBe empty
   }
 
@@ -92,7 +109,8 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
     cols.length shouldBe header.length
 
     header.head shouldBe "label_id"
-    cols(6) shouldBe ""   // panoWidth = None
-    cols.last shouldBe "" // cameraRoll = None
+    cols(6) shouldBe ""                                           // panoWidth = None
+    cols(19) shouldBe ""                                          // cameraRoll = None
+    cols.takeRight(3) shouldBe Array("mapillary", "Jane Doe", "") // license = None
   }
 }
