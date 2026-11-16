@@ -22,7 +22,7 @@ class PartnerMetadataSpec extends SidewalkSpec {
   private def group(rows: Seq[PartnerMetadata]) = PartnerMetadata.groupForAbout(rows)
 
   "PartnerMetadata.groupForAbout" should {
-    "show an organization once, ignoring case and spacing (no-break spaces too), with its lowest-id row" in {
+    "collapse an organization's city rows into its lowest-id one, ignoring case and spacing (no-break spaces too)" in {
       val (projectWide, others) = group(
         Seq(
           row(7, Some("seattle"), "Public Nudge"),

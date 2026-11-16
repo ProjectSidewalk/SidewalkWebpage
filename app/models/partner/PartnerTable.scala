@@ -115,7 +115,7 @@ object PartnerMetadata {
 
   /**
    * Partner identity across scopes: project-wide and city rows aren't linked, so the admin-typed name is the only
-   * shared key. Case and spacing are ignored so a stray capital doesn't show a logo twice.
+   * shared key. Case and spacing are ignored so a stray capital doesn't show a logo twice in one list.
    */
   def nameKey(name: String): String =
     name.replaceAll("[\\s\\p{Z}]+", " ").trim.toLowerCase(java.util.Locale.ROOT) // \p{Z}: pasted no-break spaces.
