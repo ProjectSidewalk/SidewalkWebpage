@@ -256,6 +256,8 @@ Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/l
   `<h1>` (its review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
   assistive technology, so Label Map and AccessScore pass `asHeading = false` and state the name in a visually hidden
   `<h1>` ahead of the map (`views.ToolLockup.name`).
+- **Sidebar sections descend from that `<h1>`.** `common.filterSidebar` and `common.accessScoreWeights` take a
+  `headingLevel`, since the pages that share them sit at different depths.
 - **"AccessScore" is a wordmark** and is written that way in every language. "Gallery", "Label Map" and "Reports"
   are ordinary words and are translated (`gallery`, `navbar.labelmap`, `report.tool.name`). `LabelMap` as one word
   is the code and API identifier only, never text a user reads.

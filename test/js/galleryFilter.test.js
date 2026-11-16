@@ -74,7 +74,7 @@ function buildFixture() {
   // The header sits outside #card-filter, as on the page: the loading class must not reach the disclosure.
   document.body.innerHTML = `
       <div class="gallery-filter-header">
-        <h4 id="filter-header">Filter By</h4>
+        <h2 id="filter-header">Filter By</h2>
         <button type="button" id="clear-filters" class="button button--tiny button--secondary" hidden>
           <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
         </button>
