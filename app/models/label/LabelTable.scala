@@ -3300,7 +3300,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Get metadata used for 2022 CV project for all labels.
+   * Gets what the CV/ML tools need to cut a crop for each label and credit its imagery.
+   *
+   * @return One row per label whose pano has a known camera heading and pitch, ordered by label id.
    */
   def getLabelCVMetadata: StreamingDBIO[Seq[LabelCVMetadata], LabelCVMetadata] = {
     (for {

@@ -8,7 +8,7 @@ package models.api
 
 import models.api.ApiModelUtils.createGeoJsonPointGeometry
 import models.label.{Dimensions, LocationXY, POV, StreetSide}
-import models.pano.PanoSource
+import models.pano.{ImageryAttribution, PanoSource}
 import models.validation.ValidationResultCounts
 import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
@@ -414,7 +414,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
  * Computer-vision metadata for a single label, used by the CV/ML export (`/adminapi/labels/cvMetadata`).
  *
  * Implements StreamingApiType to support streaming output formats like JSON and CSV. Holds the panorama
- * and canvas geometry needed to locate the label within its Street View image.
+ * and canvas geometry needed to locate the label within its street-level image, and who to credit for that image.
  *
  * @param labelId Unique identifier for the label
  * @param panoId Identifier of the panorama the label was placed on
@@ -431,7 +431,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
  * @param cameraRoll Camera roll of the panorama, if known
  * @param source Imagery provider the panorama came from (e.g. gsv, mapillary)
  * @param copyright Who to credit for the panorama, if the provider names someone
- * @param license License the panorama is shared under, if the provider states one
+ * @param license License recorded for the panorama, which only Panoramax states per picture
  */
 case class LabelCVMetadata(
     labelId: Int,
@@ -482,9 +482,10 @@ object LabelCVMetadata extends ApiFields[LabelCVMetadata] {
     field("camera_pitch")(_.cameraPitch),
     field("camera_roll")(_.cameraRoll),
     // Named `source`, as `/adminapi/panos` does, because the cropper reads these three names as they are.
-    field("source")(_.source.name),
+    field("source")(_.source),
     field("copyright")(_.copyright),
-    field("license")(_.license)
+    // Mapillary's license is the same for every picture, so it is never stored and has to be filled in here.
+    field("license")(metadata => ImageryAttribution.licenseId(metadata.source, metadata.license))
   )
 
   given writes: Writes[LabelCVMetadata] = (metadata: LabelCVMetadata) => toJson(metadata)

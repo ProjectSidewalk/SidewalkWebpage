@@ -286,7 +286,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(using ec: Execu
 
     // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
     // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.
-    Future.successful(Ok.chunked(csvSource, inline.getOrElse(false), Some(filename)).as("text/csv"))
+    Future.successful(Ok.chunked(csvSource, inline.getOrElse(false), Some(filename)).as("text/csv; charset=utf-8"))
   }
 
   /**
