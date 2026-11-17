@@ -10,7 +10,7 @@
 -- always once the schema is at evolution HEAD: it writes street_edge.status and its ON CONFLICT targets need
 -- constraints the committed template lacks. Idempotent, so a job retry can re-run it.
 --
--- Five deliberate departures from prod:
+-- Seven deliberate departures from prod:
 --   * NO FREE TEXT. Label descriptions and validator comments are contributor-authored and this repo is public, so
 --     the slice query never selected them; the strings below are written here instead.
 --   * USERS ARE SYNTHETIC. A contributor's account is not ours to copy, and nothing here reads more than its role.
@@ -23,6 +23,10 @@
 --     test/e2e/fixtures/media: those columns describe the imagery we hold, and a full-resolution one is ~15 MB.
 --     label_point.pano_x/pano_y are rescaled by the same factor, since they index that same panorama -- rawLabels
 --     publishes the four side by side for clients to use together, so a mismatched row would be a broken one.
+--   * ONE SEVERITY IS RAISED. Label 900026 is rated 3 where prod says 2: nothing in the slice sits at
+--     the bad end of its scale, and the neighborhood report's worst-problems map draws only what does (#5936).
+--   * THE PLACE, THE STORY AND THE VOTES ARE MADE UP. The slice carries no place, story or validation, and the
+--     report needs one of each to show its places, its stories and a fix.
 --
 -- EVERY PANORAMA IS EXPIRED, which is what keeps the server side hermetic: an expired pano is never fetched from a
 -- provider, so nothing here depends on Google still serving a 2022 panorama or on a GOOGLE_MAPS_SECRET CI does not
@@ -251,7 +255,7 @@ VALUES
   (900025, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoCurbRamp', 479, 11,
    now() - INTERVAL '26 days', FALSE, FALSE, 2, '{"no alternate route"}'),  -- NoCurbRamp, prod label 4793
   (900026, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoCurbRamp', 479, 12,
-   now() - INTERVAL '26 days', FALSE, FALSE, 2, '{"no alternate route"}'),  -- NoCurbRamp, prod label 4797
+   now() - INTERVAL '26 days', FALSE, FALSE, 3, '{"no alternate route"}'),  -- NoCurbRamp, prod label 4797
   (900027, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoSidewalk', 479, 13,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- NoSidewalk, prod label 796
   (900028, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoSidewalk', 479, 14,
@@ -463,6 +467,26 @@ ON CONFLICT (label_validation_id) DO NOTHING;
 UPDATE sidewalk_teaneck.label SET agree_count = 2, correct = TRUE
 WHERE label_id = 900002 AND agree_count = 0;
 
+-- A person's Agree on the worst problem too. The neighborhood report lists a problem as a fix only once a reviewer
+-- has agreed with it and none has disagreed, so without this vote its fixes list is empty.
+INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
+VALUES (900006, 'validation', '00000000-5115-4000-8000-000000000003',
+        now() - INTERVAL '3 days', now() - INTERVAL '3 days',
+        TRUE, 0.0, FALSE, 18, 1, 1, 'NoCurbRamp', FALSE)
+ON CONFLICT (mission_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
+                                               canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
+VALUES (900003, 900026, 'Agree', '00000000-5115-4000-8000-000000000003', 900006, 366, 267,
+        56.66964340209961, -11.517857551574707, 2,
+        480, 720, now() - INTERVAL '3 days', now() - INTERVAL '3 days', 'Validate', 'Default', 'NoCurbRamp')
+ON CONFLICT (label_validation_id) DO NOTHING;
+
+UPDATE sidewalk_teaneck.label SET agree_count = 1, correct = TRUE
+WHERE label_id = 900026 AND agree_count = 0;
+
 -- A route over the region's streets. distance_meters is computed the way RouteTable.updateStats does, because
 -- GeodesicDistanceSpec re-runs that recompute and demands the cached value already match.
 INSERT INTO sidewalk_teaneck.route (route_id, user_id, region_id, name, public, deleted, created_at, slug,
@@ -478,6 +502,126 @@ VALUES
   (900003, 900001, 1141, FALSE, 2),
   (900004, 900001, 1334, FALSE, 3)
 ON CONFLICT (route_street_id) DO NOTHING;
+
+-- Label clusters, which the neighborhood report and AccessScore are built from (#5936). CI never runs the
+-- clustering job, so these are what it would write: the labels it would pick, grouped by its own code
+-- (scripts/label_clustering.py), each cluster on its nearest open street as ApiService.submitClusteringResults
+-- places it. No cluster is tied to an intersection because the seeded streets never meet, so there is none.
+INSERT INTO sidewalk_teaneck.clustering_session (clustering_session_id, region_id, thresholds, timestamp)
+VALUES (900001, 18,
+        '[{"label_type": "CurbRamp", "threshold": 0.0075},
+         {"label_type": "NoCurbRamp", "threshold": 0.0075},
+         {"label_type": "SurfaceProblem", "threshold": 0.01},
+         {"label_type": "Obstacle", "threshold": 0.01},
+         {"label_type": "NoSidewalk", "threshold": 0.01},
+         {"label_type": "Crosswalk", "threshold": 0.01},
+         {"label_type": "Signal", "threshold": 0.01},
+         {"label_type": "Occlusion", "threshold": 0.01},
+         {"label_type": "Other", "threshold": 0.01}]'::jsonb,
+        now() - INTERVAL '1 day')
+ON CONFLICT (clustering_session_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.cluster (cluster_id, clustering_session_id, street_edge_id, label_type, geom, severity)
+SELECT c.cluster_id, 900001, nearest_street.street_edge_id, c.label_type::sidewalk_teaneck.label_type,
+       c.geom, c.severity::integer
+FROM (VALUES
+  (900001, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99189990134902, 40.90674440089164), 4326), 1),
+  (900002, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99229263731901, 40.903772353540866), 4326), NULL),
+  (900003, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99188632022113, 40.90665249572615), 4326), 1),
+  (900004, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99230644459702, 40.90377628674277), 4326), NULL),
+  (900005, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99189463208181, 40.906634803286764), 4326), 1),
+  (900006, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99238031243651, 40.903797632029494), 4326), NULL),
+  (900007, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99228906064927, 40.90377191934317), 4326), 1),
+  (900008, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99190036734737, 40.90674739718381), 4326), NULL),
+  (900009, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99868476842572, 40.90629255696513), 4326), 1),
+  (900010, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99192277894302, 40.906760204639575), 4326), NULL),
+  (900011, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99237559614758, 40.90379926221117), 4326), 1),
+  (900012, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.9918943579489, 40.90663432930094), 4326), NULL),
+  (900013, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99230709630278, 40.90377641200025), 4326), 1),
+  (900014, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99188888694293, 40.9066509264618), 4326), NULL),
+  (900015, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99192363034562, 40.9067550143793), 4326), 1),
+  (900016, 'CurbRamp', ST_SetSRID(ST_MakePoint(-73.99225262537192, 40.90374128121807), 4326), 1),
+  (900017, 'NoSidewalk', ST_SetSRID(ST_MakePoint(-73.99312212607911, 40.902869425121864), 4326), NULL),
+  (900018, 'NoSidewalk', ST_SetSRID(ST_MakePoint(-73.99297018811754, 40.90282029820424), 4326), NULL),
+  (900019, 'SurfaceProblem', ST_SetSRID(ST_MakePoint(-73.99149696724463, 40.906710939631004), 4326), 1),
+  (900020, 'NoCurbRamp', ST_SetSRID(ST_MakePoint(-73.99311357299085, 40.90286480337585), 4326), 2),
+  (900021, 'NoCurbRamp', ST_SetSRID(ST_MakePoint(-73.99299146226697, 40.902825519888374), 4326), 3),
+  (900022, 'Crosswalk', ST_SetSRID(ST_MakePoint(-73.99189764383632, 40.906688036627834), 4326), 1),
+  (900023, 'Crosswalk', ST_SetSRID(ST_MakePoint(-73.99233463198286, 40.90379199154322), 4326), 1),
+  (900024, 'Crosswalk', ST_SetSRID(ST_MakePoint(-73.99233901271069, 40.903790742363526), 4326), 1),
+  (900025, 'Crosswalk', ST_SetSRID(ST_MakePoint(-73.9918889409885, 40.90669191009617), 4326), 1),
+  (900026, 'Crosswalk', ST_SetSRID(ST_MakePoint(-73.99228098045577, 40.9037588857308), 4326), 1)
+) AS c(cluster_id, label_type, geom, severity)
+CROSS JOIN LATERAL (
+  SELECT street_edge.street_edge_id
+  FROM sidewalk_teaneck.street_edge
+  WHERE street_edge.status = 'open'
+  ORDER BY street_edge.geom <-> c.geom
+  LIMIT 1
+) AS nearest_street
+ON CONFLICT (cluster_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.cluster_label (cluster_label_id, cluster_id, label_id)
+VALUES
+  (900001, 900009, 900002),
+  (900002, 900005, 900004),
+  (900003, 900003, 900005),
+  (900004, 900015, 900006),
+  (900005, 900001, 900007),
+  (900006, 900011, 900008),
+  (900007, 900013, 900009),
+  (900008, 900007, 900010),
+  (900009, 900016, 900011),
+  (900010, 900014, 900012),
+  (900011, 900012, 900013),
+  (900012, 900010, 900014),
+  (900013, 900008, 900015),
+  (900014, 900006, 900016),
+  (900015, 900004, 900017),
+  (900016, 900002, 900018),
+  (900017, 900017, 900027),
+  (900018, 900018, 900028),
+  (900019, 900019, 900033),
+  (900020, 900020, 900025),
+  (900021, 900021, 900026),
+  (900022, 900022, 900020),
+  (900023, 900024, 900021),
+  (900024, 900026, 900022),
+  (900025, 900025, 900023),
+  (900026, 900023, 900024)
+ON CONFLICT (cluster_label_id) DO NOTHING;
+
+-- One important place, so the report's maps carry their "Places" switch (#5936). Made up, and entered as the
+-- city's own rather than OSM's: that way it claims no OSM id, and PlacesRefreshSpec's merge case only runs on a
+-- schema with no OSM places. Its region and nearest street are filled in the way PlaceTable.replaceOsmPlaces does.
+INSERT INTO sidewalk_teaneck.place (place_id, category, name, source, geom, region_id, nearest_street_edge_id,
+                                    nearest_street_distance_m, fetched_at)
+SELECT 900001, 'library', 'CI seed library', 'city', p.geom,
+       (SELECT region.region_id FROM sidewalk_teaneck.region
+        WHERE NOT region.deleted AND ST_Within(p.geom, region.geom)
+        ORDER BY region.region_id
+        LIMIT 1),
+       nearest_street.street_edge_id, nearest_street.distance_m, now() - INTERVAL '1 day'
+FROM (SELECT ST_SetSRID(ST_MakePoint(-73.992908, 40.903478), 4326) AS geom) AS p
+LEFT JOIN LATERAL (
+  SELECT street_edge.street_edge_id, ST_Distance(street_edge.geom::geography, p.geom::geography) AS distance_m
+  FROM sidewalk_teaneck.street_edge
+  WHERE street_edge.status = 'open'
+    AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM sidewalk_teaneck.config)
+    AND ST_DWithin(street_edge.geom, p.geom, 0.005)
+    AND ST_DWithin(street_edge.geom::geography, p.geom::geography, 250)
+  ORDER BY ST_Distance(street_edge.geom::geography, p.geom::geography)
+  LIMIT 1
+) AS nearest_street ON TRUE
+ON CONFLICT (place_id) DO NOTHING;
+
+-- One visible story, on the worst problem, so the report has a stories section (#5936). The text is written here,
+-- like every other string in this file.
+INSERT INTO sidewalk_teaneck.story (story_id, label_id, user_id, story_text, display_name_mode, visible, created_at)
+VALUES (900001, 900026, '00000000-5115-4000-8000-000000000002',
+        'There is no ramp at this corner, so I have to roll along the street to the next driveway.',
+        'anonymous', TRUE, now() - INTERVAL '2 days')
+ON CONFLICT (story_id) DO NOTHING;
 
 UPDATE sidewalk_teaneck.route
 SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)

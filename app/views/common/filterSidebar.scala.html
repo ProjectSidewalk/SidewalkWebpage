@@ -3,6 +3,7 @@
  * The shared filter sidebar (#4585): the same controls on the map pages and in Gallery, driven by the
  * FilterSidebar controller in `frontend/js/common/filter-sidebar/`.
  *
+ * @param headingLevel        The section headings' level in the host page's outline, e.g. 2 for `<h2>`.
  * @param tags                All tags for the city, rendered as per-label-type drawers.
  * @param sections            Which sections to render, in order: "search", "severity", "label-type",
  *                            "validations", "admin", "streets". Anything else is ignored.
@@ -22,7 +23,8 @@
  *                            map. Never the page's `<h1>`, since the panel can be collapsed: the host page states
  *                            that itself. Ignored without map chrome, where the host places its own header.
  *@
-@(tags: Seq[Tag] = Seq.empty,
+@(headingLevel: Int,
+  tags: Seq[Tag] = Seq.empty,
   sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),
   streetsShownByDefault: Boolean = false,
   showOutdatedStreetFilter: Boolean = false,
@@ -51,7 +53,7 @@
 @* A section's heading, plus the action that flips the whole section on or off. *@
 @sectionHeading(i18nKey: String, text: String, section: String, headingId: String = "") = {
   <div class="filter-sidebar__heading-row">
-    <h3 class="filter-sidebar__heading" @if(headingId.nonEmpty){id="@headingId"} data-i18n="@i18nKey">@text</h3>
+    @common.heading(headingLevel, "filter-sidebar__heading", headingId, i18nKey){@text}
     <button type="button" class="filter-sidebar__deselect-all" data-section="@section" data-i18n="labelmap:deselect-all">Deselect all</button>
   </div>
 }
@@ -203,7 +205,7 @@
         @* Admin-only filter (#4243). Only rendered inside the admin dashboard's Map tab. *@
         <section class="filter-sidebar__section" data-filter-section="admin">
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading" data-i18n="labelmap:admin-only">Admin only</h3>
+            @common.heading(headingLevel, "filter-sidebar__heading", i18nKey = "labelmap:admin-only"){Admin only}
           </div>
           <ul class="filter-sidebar__list">
             <li class="filter-sidebar__item">
@@ -216,7 +218,7 @@
       case "streets" => {
         <section class="filter-sidebar__section" data-filter-section="streets">
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
+            @common.heading(headingLevel, "filter-sidebar__heading", i18nKey = "labelmap:streets"){Streets}
             @if(streetsShownByDefault) {
               <button type="button" class="filter-sidebar__deselect-all" data-section="streets" data-i18n="labelmap:deselect-all">Deselect all</button>
             } else {

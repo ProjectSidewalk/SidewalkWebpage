@@ -139,7 +139,7 @@ export class OverviewPage {
     const specs = [
       { key: 'coverage', get: (r) => r.audits || 0, unit: 'streets' },
       { key: 'quality', get: (r) => r.labels || 0, unit: 'labels' },
-      { key: 'contributors', get: (r) => r.new_users || 0, unit: 'new' },
+      { key: 'contributors', get: (r) => r.new_contributors || 0, unit: 'new' },
       { key: 'activity', get: (r) => (r.labels || 0) + (r.validations || 0) + (r.audits || 0), unit: 'actions' },
     ];
     const byDate = new Map(series.map((r) => [r.date, r]));
