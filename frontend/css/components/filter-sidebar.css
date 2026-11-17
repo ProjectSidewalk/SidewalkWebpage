@@ -78,7 +78,7 @@
   position: relative;
   z-index: 100;
   margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
-  margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+  margin-bottom: 28px; /* A bit more space above the Severity section than between the other sections. */
 }
 
 /* Lifted into the panel's 40px of headroom, which exists to clear the close button: the mark's top then sits level
@@ -197,7 +197,7 @@ body.filter-sidebar-resizing {
 /* ---- Sections ---- */
 
 .filter-sidebar__section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .filter-sidebar__section:last-child {

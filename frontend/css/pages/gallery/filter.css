@@ -27,7 +27,7 @@
   display: flex;
   flex-direction: column;
   padding: 40px 5px 0;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 
 /* Spaced by margins rather than the column's gap: the note is always in the flow (see the view), and a gap would
@@ -81,7 +81,7 @@
 
   /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
   padding: 40px 5px 0;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 
 .gallery-sort + .gallery-filter-header {
