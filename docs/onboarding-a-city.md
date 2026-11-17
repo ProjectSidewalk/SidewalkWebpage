@@ -224,9 +224,10 @@ its default either way.
   English, so that a missing line always means "not looked at yet" and the orchestrator can list exactly what is
   owed (`docs/internationalization.md`). `make lint-locales` must stay green.
 - **The `config` row.** The clone carries the donor's `excluded_tags` (a European city may want a different set),
-  `update_offset_hours` (assigned from the load-spreading spreadsheet), and `make_crops`; the fill prints all three
-  and clears the donor's `mapathon_event_link` and official contact. If the city's government wants residents
-  pointed to its own contact page (#5462), set it on `/admin/partners` after launch. Check them before launch.
+  `update_offset_hours` (overnight for the city, on the slot the fewest prod cities share; the `onboard-city`
+  skill has the recipe), and `make_crops`; the fill prints all three and clears the donor's `mapathon_event_link`
+  and official contact. If the city's government wants residents pointed to its own contact page (#5462), set it
+  on `/admin/partners` after launch. Check them before launch.
 - **Visual QA.** Land on the site as the new city (`SIDEWALK_CITY_ID` + `DATABASE_USER` in
   `docker-compose.override.yml`, recreate the container): the map centers on the city, neighborhood names read right,
   one street walks in Explore on the chosen imagery, the Explore tag lists match `excluded_tags`. Two things the
