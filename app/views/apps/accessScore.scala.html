@@ -16,7 +16,7 @@
 @section(id: String, headingKey: String, headingText: String, infoKey: String = "")(content: Html) = {
   <section class="filter-sidebar__section acs-section" id="@id" aria-labelledby="@id-heading">
     <div class="filter-sidebar__heading-row">
-      <h3 class="filter-sidebar__heading" id="@id-heading" data-i18n="accessscore:@headingKey">@headingText</h3>
+      <h2 class="filter-sidebar__heading" id="@id-heading" data-i18n="accessscore:@headingKey">@headingText</h2>
       @if(infoKey.nonEmpty) {@info(infoKey)}
     </div>
     @content
@@ -63,7 +63,7 @@
           </div>
         }
 
-        @common.accessScoreWeights(3, "acs-section")(info("weights-help"))
+        @common.accessScoreWeights(2, "acs-section")(info("weights-help"))
 
         @* How street slope enters the score (#5223). Hidden until AccessScoreSlopePanel.js finds both the engine's
            slope settings and a sampled city in the config; folded like the weights, so the panel reads as map
@@ -71,13 +71,13 @@
            config. *@
         <section class="filter-sidebar__section acs-section" id="acs-slope-section" aria-labelledby="acs-slope-section-heading" hidden>
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading ps-disclosure__heading" id="acs-slope-section-heading">
+            <h2 class="filter-sidebar__heading ps-disclosure__heading" id="acs-slope-section-heading">
               <button type="button" id="acs-slope-toggle" class="ps-disclosure" aria-expanded="false" aria-controls="acs-slope">
                 <img class="ps-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 <span data-i18n="accessscore:slope-section">Street grade</span>
                 <span class="ps-disclosure__hint" id="acs-slope-summary"></span>
               </button>
-            </h3>
+            </h2>
             <button type="button" id="acs-slope-reset" class="filter-sidebar__deselect-all ps-heading-action" data-i18n="accessscore:slope-reset" hidden>Reset grade</button>
             @info("slope-help")
           </div>
@@ -140,13 +140,13 @@
            sidebar's: "Select all" until every row is on, then "Deselect all". *@
         <section class="filter-sidebar__section acs-section" id="acs-places-section" aria-labelledby="acs-places-section-heading">
           <div class="filter-sidebar__heading-row">
-            <h3 class="filter-sidebar__heading ps-disclosure__heading" id="acs-places-section-heading">
+            <h2 class="filter-sidebar__heading ps-disclosure__heading" id="acs-places-section-heading">
               <button type="button" id="acs-places-toggle" class="ps-disclosure" aria-expanded="false" aria-controls="acs-place-categories">
                 <img class="ps-disclosure__chevron" src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
                 <span data-i18n="accessscore:places">Places</span>
                 <span class="ps-disclosure__hint" id="acs-places-summary"></span>
               </button>
-            </h3>
+            </h2>
             <button type="button" id="acs-places-toggle-all" class="filter-sidebar__deselect-all ps-heading-action" data-i18n="labelmap:select-all">Select all</button>
             @info("places-help")
           </div>
@@ -233,21 +233,21 @@
         <div id="acs-dock-body" class="acs-dock__body">
           <section class="acs-dock__panel acs-dock__panel--histogram" aria-labelledby="acs-dock-histogram-title">
             <div class="acs-dock__panel-head">
-              <h3 class="acs-dock__panel-title" id="acs-dock-histogram-title" data-i18n="accessscore:chart-histogram">Score distribution</h3>
+              <h2 class="acs-dock__panel-title" id="acs-dock-histogram-title" data-i18n="accessscore:chart-histogram">Score distribution</h2>
               @info("chart-histogram-help")
             </div>
             <div id="acs-histogram" class="acs-histogram"></div>
           </section>
           <section class="acs-dock__panel acs-dock__panel--whats-here" aria-labelledby="acs-dock-whats-here-title">
             <div class="acs-dock__panel-head">
-              <h3 class="acs-dock__panel-title" id="acs-dock-whats-here-title" data-i18n="accessscore:chart-whats-here">What's here</h3>
+              <h2 class="acs-dock__panel-title" id="acs-dock-whats-here-title" data-i18n="accessscore:chart-whats-here">What's here</h2>
               @info("chart-whats-here-help")
             </div>
             <div id="acs-whats-here" class="acs-whats-here"></div>
           </section>
           <section class="acs-dock__panel acs-dock__panel--rank" aria-labelledby="acs-dock-rank-title">
             <div class="acs-dock__panel-head">
-              <h3 class="acs-dock__panel-title" id="acs-dock-rank-title" data-i18n="accessscore:chart-rank">Neighborhoods ranked</h3>
+              <h2 class="acs-dock__panel-title" id="acs-dock-rank-title" data-i18n="accessscore:chart-rank">Neighborhoods ranked</h2>
               @info("chart-rank-help")
               @* A city has tens of neighborhoods and thousands of streets, so the streets list is one end of a
                  leaderboard and this button is the way to the other end (#5223). The dock writes its wording and
@@ -258,7 +258,7 @@
           </section>
           <section class="acs-dock__panel acs-dock__panel--photos" aria-labelledby="acs-dock-photos-title">
             <div class="acs-dock__panel-head">
-              <h3 class="acs-dock__panel-title" id="acs-dock-photos-title" data-i18n="accessscore:chart-photos">Photos</h3>
+              <h2 class="acs-dock__panel-title" id="acs-dock-photos-title" data-i18n="accessscore:chart-photos">Photos</h2>
               @info("chart-photos-help")
             </div>
             <div id="acs-photos" class="acs-photos"></div>

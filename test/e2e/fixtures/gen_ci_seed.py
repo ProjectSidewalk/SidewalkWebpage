@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Regenerates test/e2e/fixtures/ci-seed.sql from a prod slice pulled by test/e2e/fixtures/ci_seed_slice.sql (#5115).
 
-    python3 test/e2e/fixtures/gen_ci_seed.py [path/to/ci-seed-slice.csv]
+    docker exec -w /home projectsidewalk-web python3 test/e2e/fixtures/gen_ci_seed.py [path/to/ci-seed-slice.csv]
+
+Run it in the web container: the clusters are made by the app's own clusterer (scripts/label_clustering.py), which
+needs the Python packages installed there. It rewrites the seed of the checkout it is run from, so for a worktree
+set `-w /home/.claude/worktrees/<name>` and pass the slice path, which defaults to that checkout's own scratchpad/.
 
 The seed is real prod data, so it cannot be edited freely: the derived caches it writes have to keep agreeing with
 the recomputes GeodesicDistanceSpec re-runs, label ids have to stay inside a window the share and phone-viewport
 specs both depend on, and label_point.pano_x has to stay in the same pixel space as the downscaled imagery in
 test/e2e/fixtures/media. Those rules live here, as code, so a refresh re-derives them instead of a reader having to
-rediscover them in 500 lines of INSERTs.
+rediscover them in 500 lines of INSERTs. The clusters, the place and the story the neighborhood report is drawn from
+(#5936) follow the same rule: whatever the app would work out from other rows is worked out here the app's way.
 
 Getting the slice (the maintainer runs this; see CLAUDE.local.md):
 
@@ -24,7 +29,12 @@ import json
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT / 'scripts'))
+import label_clustering  # noqa: E402  (needs the path set on the line above)
+
 SLICE = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO_ROOT / 'scratchpad' / 'ci-seed-slice.csv'
 OUTPUT = REPO_ROOT / 'test' / 'e2e' / 'fixtures' / 'ci-seed.sql'
 
@@ -43,6 +53,12 @@ BACKUP_W, BACKUP_H = 1024, 512
 # Groups the label block by type, so the file reads as one type at a time. Any total order will do; this one is
 # fixed only so a regeneration doesn't reshuffle ids for no reason.
 TYPE_ORDER = ['CurbRamp', 'Crosswalk', 'NoCurbRamp', 'NoSidewalk', 'Obstacle', 'SurfaceProblem']
+# The prod label seeded as the region's one worst problem: rated 3 here where prod says 2, because nothing in the
+# slice is rated 3 and the report's worst-problems map draws only locations at the bad end of their scale. It also
+# carries the second human vote and the story, so the report has a fix to list and a story to show.
+WORST_LABEL = 4797
+# UserStatTable.updateHighQuality's bar: a labeler placing fewer labels per meter walked than this is low quality.
+MIN_LABELS_PER_METER = 0.0375
 
 rows = {r['city']: json.loads(r['slice']) for r in csv.DictReader(open(SLICE))}
 tn, rich = rows['teaneck'], rows['richmond']
@@ -55,6 +71,8 @@ mlbl = next(l for l in rich['labels'] if l['pano_id'] == mp['pano_id'])
 # Every label on a pano we hold imagery for, grouped by type and then in prod id order.
 labels = sorted((l for l in tn['labels'] if l['pano_id'] in kept),
                 key=lambda l: (TYPE_ORDER.index(l['label_type']), l['label_id']))
+worst = next(l for l in labels if l['label_id'] == WORST_LABEL)
+worst['severity'] = 3
 
 # The Mapillary label sits at the FRONT of its type group, which is the only position that satisfies both specs
 # reading the ends of this block: the share and story specs take the highest label id and need its pano to carry GSV
@@ -109,7 +127,7 @@ w(f"""-- =======================================================================
 -- always once the schema is at evolution HEAD: it writes street_edge.status and its ON CONFLICT targets need
 -- constraints the committed template lacks. Idempotent, so a job retry can re-run it.
 --
--- Five deliberate departures from prod:
+-- Seven deliberate departures from prod:
 --   * NO FREE TEXT. Label descriptions and validator comments are contributor-authored and this repo is public, so
 --     the slice query never selected them; the strings below are written here instead.
 --   * USERS ARE SYNTHETIC. A contributor's account is not ours to copy, and nothing here reads more than its role.
@@ -122,6 +140,10 @@ w(f"""-- =======================================================================
 --     test/e2e/fixtures/media: those columns describe the imagery we hold, and a full-resolution one is ~15 MB.
 --     label_point.pano_x/pano_y are rescaled by the same factor, since they index that same panorama -- rawLabels
 --     publishes the four side by side for clients to use together, so a mismatched row would be a broken one.
+--   * ONE SEVERITY IS RAISED. Label {id_map[WORST_LABEL]} is rated 3 where prod says 2: nothing in the slice sits at
+--     the bad end of its scale, and the neighborhood report's worst-problems map draws only what does (#5936).
+--   * THE PLACE, THE STORY AND THE VOTES ARE MADE UP. The slice carries no place, story or validation, and the
+--     report needs one of each to show its places, its stories and a fix.
 --
 -- EVERY PANORAMA IS EXPIRED, which is what keeps the server side hermetic: an expired pano is never fetched from a
 -- provider, so nothing here depends on Google still serving a 2022 panorama or on a GOOGLE_MAPS_SECRET CI does not
@@ -134,7 +156,7 @@ w(f"""-- =======================================================================
 --
 -- Cached columns (user_stat.meters_audited, labels_per_meter, high_quality, region_completion,
 -- route.distance_meters) are COMPUTED at the end by the same rules their runtime recomputes use, never hardcoded:
--- GeodesicDistanceSpec asserts exactly that agreement.
+-- GeodesicDistanceSpec asserts that agreement for labels_per_meter, region_completion and route.distance_meters.
 -- =====================================================================================================================
 
 -- With zero region rows /explore is a server error before any JS runs (#4748). With one, a fresh anonymous user
@@ -333,10 +355,14 @@ w("INSERT INTO sidewalk_teaneck.label_point (label_point_id, label_id, pano_x, p
   "WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.label_point WHERE label_id = p.label_id);\n")
 
 validated = id_map[labels[0]['label_id']]
+validated_type = q(labels[0]['label_type'])
 # Validate never shows a user their own label (`getAvailableValidationsLabelsByType` filters `_lb.userId =!= userId`),
 # so a row stamped source = 'Validate' has to come from someone else. Labeler 1 audited this label's street too.
 validator = U[2]
 assert validator != U[OWNER[labels[0]['street_edge_id']]], 'the seeded validation would be a self-validation'
+WORST_ID = id_map[WORST_LABEL]
+worst_validator = U[3]
+assert worst_validator != U[OWNER[worst['street_edge_id']]], 'the seeded validation would be a self-validation'
 w(f"""-- One label carries a full validation -- the vote, its effect on the label's counts, and the comment beside it --
 -- because the share page takes a different branch for a label with no validator comments.
 INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
@@ -350,8 +376,7 @@ INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, va
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
                                                start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900001, {validated}, 'Agree', {q(validator)}, 900004, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default',
-        {q(labels[0]['label_type'])})
+        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default', {validated_type})
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.validation_task_comment (validation_task_comment_id, mission_id, label_id, user_id,
@@ -379,13 +404,32 @@ INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, va
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
                                                start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900002, {validated}, 'Agree', {q(AI_USER)}, 900005, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default',
-        {q(labels[0]['label_type'])})
+        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default', {validated_type})
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 -- What the two Agrees leave behind on the label itself.
 UPDATE sidewalk_teaneck.label SET agree_count = 2, correct = TRUE
 WHERE label_id = {validated} AND agree_count = 0;
+
+-- A person's Agree on the worst problem too. The neighborhood report lists a problem as a fix only once a reviewer
+-- has agreed with it and none has disagreed, so without this vote its fixes list is empty.
+INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
+VALUES (900006, 'validation', {q(worst_validator)},
+        now() - INTERVAL '3 days', now() - INTERVAL '3 days',
+        TRUE, 0.0, FALSE, {tn['region']['region_id']}, 1, 1, {q(worst['label_type'])}, FALSE)
+ON CONFLICT (mission_id) DO NOTHING;
+
+INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
+                                               canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
+VALUES (900003, {WORST_ID}, 'Agree', {q(worst_validator)}, 900006, {worst['canvas_x']}, {worst['canvas_y']},
+        {worst['heading']}, {worst['pitch']}, {worst['zoom']},
+        480, 720, now() - INTERVAL '3 days', now() - INTERVAL '3 days', 'Validate', 'Default', {q(worst['label_type'])})
+ON CONFLICT (label_validation_id) DO NOTHING;
+
+UPDATE sidewalk_teaneck.label SET agree_count = 1, correct = TRUE
+WHERE label_id = {WORST_ID} AND agree_count = 0;
 
 -- A route over the region's streets. distance_meters is computed the way RouteTable.updateStats does, because
 -- GeodesicDistanceSpec re-runs that recompute and demands the cached value already match.
@@ -399,6 +443,94 @@ w("INSERT INTO sidewalk_teaneck.route_street (route_street_id, route_id, street_
   "VALUES\n" + rows_sql([f"  ({900000 + i}, 900001, {st}, FALSE, {i - 1})"
                           for i, st in enumerate(sorted(STREETS), start=1)],
                          "ON CONFLICT (route_street_id) DO NOTHING;") + "\n")
+
+# Who the app would cluster (ClusteringSessionTable.labelsForApiQuery): every label judged correct, plus the unjudged
+# labels of high-quality labelers. Quality is the labeling-frequency rule the seed applies at the end, restated here
+# over the same streets and labels because the clusters are made before any database exists to ask. The Mapillary
+# label is left out by hand: its labeler falls below the bar, and it has no row in `labels` to carry a street.
+audited_m = {2: sum(s['length_m'] for s in STREETS.values()), 3: STREETS[1141]['length_m']}
+placed = collections.Counter(3 if l is mlbl else OWNER[l['street_edge_id']] for l in ordered)
+high_quality = {u for u in audited_m if placed[u] / audited_m[u] > MIN_LABELS_PER_METER}
+judged_correct = {labels[0]['label_id'], WORST_LABEL}
+to_cluster = pd.DataFrame([
+    {'label_id': id_map[l['label_id']], 'label_type': l['label_type'], 'lat': l['lat'], 'lng': l['lng'],
+     'user_id': U[OWNER[l['street_edge_id']]], 'pano_id': l['pano_id'], 'severity': l['severity']}
+    for l in labels if l['label_id'] in judged_correct or OWNER[l['street_edge_id']] in high_quality
+]).sort_values('label_id')
+# The steps of label_clustering.main, without its HTTP calls or worker processes.
+to_cluster = label_clustering.clean_label_data(to_cluster)
+to_cluster['coords'] = to_cluster.apply(lambda row: (row.lat, row.lng), axis=1)
+clustered_labels, clusters = label_clustering.offset_and_combine(
+    [label_clustering.cluster_label_type(t, to_cluster, label_clustering.THRESHOLDS)
+     for t in label_clustering.LABEL_TYPES])
+CLUSTER_ID = {int(c): 900000 + i for i, c in enumerate(clusters.cluster, start=1)}
+assert any(c.severity == 3 for c in clusters.itertuples()), 'no cluster is rated worst, so the worst map is empty'
+thresholds = '[' + ',\n         '.join(
+    json.dumps({'label_type': t, 'threshold': v}) for t, v in label_clustering.THRESHOLDS.items()) + ']'
+
+w("""-- Label clusters, which the neighborhood report and AccessScore are built from (#5936). CI never runs the
+-- clustering job, so these are what it would write: the labels it would pick, grouped by its own code
+-- (scripts/label_clustering.py), each cluster on its nearest open street as ApiService.submitClusteringResults
+-- places it. No cluster is tied to an intersection because the seeded streets never meet, so there is none.""")
+w("INSERT INTO sidewalk_teaneck.clustering_session (clustering_session_id, region_id, thresholds, timestamp)\n"
+  f"VALUES (900001, {tn['region']['region_id']},\n        {q(thresholds)}::jsonb,\n"
+  "        now() - INTERVAL '1 day')\nON CONFLICT (clustering_session_id) DO NOTHING;\n")
+def severity_sql(v):
+    return 'NULL' if pd.isnull(v) else str(int(v))
+cluster_rows = [
+    f"  ({CLUSTER_ID[int(c.cluster)]}, {q(c.label_type)}, ST_SetSRID(ST_MakePoint({c.lng}, {c.lat}), 4326), "
+    f"{severity_sql(c.severity)})"
+    for c in clusters.itertuples()]
+w("INSERT INTO sidewalk_teaneck.cluster (cluster_id, clustering_session_id, street_edge_id, label_type, geom, "
+  "severity)\nSELECT c.cluster_id, 900001, nearest_street.street_edge_id, c.label_type::sidewalk_teaneck.label_type,"
+  "\n       c.geom, c.severity::integer\nFROM (VALUES\n" + ',\n'.join(cluster_rows) +
+  "\n) AS c(cluster_id, label_type, geom, severity)\nCROSS JOIN LATERAL (\n  SELECT street_edge.street_edge_id\n"
+  "  FROM sidewalk_teaneck.street_edge\n  WHERE street_edge.status = 'open'\n"
+  "  ORDER BY street_edge.geom <-> c.geom\n  LIMIT 1\n) AS nearest_street\n"
+  "ON CONFLICT (cluster_id) DO NOTHING;\n")
+w("INSERT INTO sidewalk_teaneck.cluster_label (cluster_label_id, cluster_id, label_id)\nVALUES\n"
+  + rows_sql([f"  ({900000 + i}, {CLUSTER_ID[int(l.cluster)]}, {int(l.label_id)})"
+              for i, l in enumerate(clustered_labels.itertuples(), start=1)],
+             "ON CONFLICT (cluster_label_id) DO NOTHING;") + "\n")
+
+# The place sits about 30 m to one side of the middle of the worst problem's street.
+place_street = STREETS[worst['street_edge_id']]
+dx, dy = place_street['x2'] - place_street['x1'], place_street['y2'] - place_street['y1']
+norm = (dx * dx + dy * dy) ** 0.5
+place_lng = round((place_street['x1'] + place_street['x2']) / 2 - dy / norm * 0.0003, 6)
+place_lat = round((place_street['y1'] + place_street['y2']) / 2 + dx / norm * 0.0003, 6)
+w(f"""-- One important place, so the report's maps carry their "Places" switch (#5936). Made up, and entered as the
+-- city's own rather than OSM's: that way it claims no OSM id, and PlacesRefreshSpec's merge case only runs on a
+-- schema with no OSM places. Its region and nearest street are filled in the way PlaceTable.replaceOsmPlaces does.
+INSERT INTO sidewalk_teaneck.place (place_id, category, name, source, geom, region_id, nearest_street_edge_id,
+                                    nearest_street_distance_m, fetched_at)
+SELECT 900001, 'library', 'CI seed library', 'city', p.geom,
+       (SELECT region.region_id FROM sidewalk_teaneck.region
+        WHERE NOT region.deleted AND ST_Within(p.geom, region.geom)
+        ORDER BY region.region_id
+        LIMIT 1),
+       nearest_street.street_edge_id, nearest_street.distance_m, now() - INTERVAL '1 day'
+FROM (SELECT ST_SetSRID(ST_MakePoint({place_lng}, {place_lat}), 4326) AS geom) AS p
+LEFT JOIN LATERAL (
+  SELECT street_edge.street_edge_id, ST_Distance(street_edge.geom::geography, p.geom::geography) AS distance_m
+  FROM sidewalk_teaneck.street_edge
+  WHERE street_edge.status = 'open'
+    AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM sidewalk_teaneck.config)
+    AND ST_DWithin(street_edge.geom, p.geom, 0.005)
+    AND ST_DWithin(street_edge.geom::geography, p.geom::geography, 250)
+  ORDER BY ST_Distance(street_edge.geom::geography, p.geom::geography)
+  LIMIT 1
+) AS nearest_street ON TRUE
+ON CONFLICT (place_id) DO NOTHING;
+
+-- One visible story, on the worst problem, so the report has a stories section (#5936). The text is written here,
+-- like every other string in this file.
+INSERT INTO sidewalk_teaneck.story (story_id, label_id, user_id, story_text, display_name_mode, visible, created_at)
+VALUES (900001, {WORST_ID}, {q(U[OWNER[worst['street_edge_id']]])},
+        'There is no ramp at this corner, so I have to roll along the street to the next driveway.',
+        'anonymous', TRUE, now() - INTERVAL '2 days')
+ON CONFLICT (story_id) DO NOTHING;
+""")
 
 w(f"""UPDATE sidewalk_teaneck.route
 SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
@@ -484,11 +616,11 @@ WHERE user_stat.user_id = accuracy_subquery.user_id
   AND user_stat.user_id LIKE '00000000-5115-%';
 
 -- The quality heuristic, minus only the branches these rows can't reach (none is excluded or manually rated). The
--- two seeded labelers land either side of the 0.0375 labeling-frequency threshold, which exercises the recompute in
+-- two seeded labelers land either side of the {MIN_LABELS_PER_METER} labeling-frequency threshold, which exercises the recompute in
 -- both directions; the accuracy clause is written out rather than assumed away, so seeding more validations later
 -- can't silently diverge from updateHighQuality.
 UPDATE sidewalk_teaneck.user_stat
-SET high_quality = (meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+SET high_quality = (meters_audited = 0 OR COALESCE(labels_per_meter, 5) > {MIN_LABELS_PER_METER})
                    AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)
 WHERE user_stat.user_id LIKE '00000000-5115-%';
 
@@ -537,4 +669,5 @@ SET excluded_tags = (
 """)
 
 OUTPUT.write_text('\n'.join(out))
-print(f'wrote {OUTPUT.relative_to(REPO_ROOT)} ({len(ordered)} labels, {len(kept) + 2} panoramas)')
+print(f'wrote {OUTPUT.relative_to(REPO_ROOT)} ({len(ordered)} labels, {len(kept) + 2} panoramas, '
+      f'{len(clusters)} clusters)')

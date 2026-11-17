@@ -147,7 +147,8 @@ class AdminController @Inject() (
 
   /**
    * Daily activity for the admin Activity page (#4272): per day, each contribution type's volume, sign-ins and active
-   * users (registered vs anonymous), and new accounts. Only active days are sent; the page fills in the gaps.
+   * users (registered vs anonymous), new accounts and new contributors. Only active days are sent; the page fills in
+   * the gaps.
    */
   def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getActivityByDay.map { series =>
@@ -163,7 +164,8 @@ class AdminController @Inject() (
           "signins_anon"        -> r.signinsAnon,
           "active_registered"   -> r.activeRegistered,
           "active_anon"         -> r.activeAnon,
-          "new_users"           -> r.newUsers
+          "new_users"           -> r.newUsers,
+          "new_contributors"    -> r.newContributors
         )
       })))
     }

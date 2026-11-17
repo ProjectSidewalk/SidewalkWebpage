@@ -172,11 +172,12 @@ during local development** — your edit / `npm run watch` / reload loop is unto
 ### The CI test city
 
 `fixtures/ci-seed.sql`, applied by this job and by `backend-tests`, and the one definition of what CI's database
-holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from
-prod with `fixtures/ci_seed_slice.sql` and rebuilt by `fixtures/gen_ci_seed.py`. Real, because a fixture that
-invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the shape of data
-it will meet. Small on purpose: enough that every page renders real content and every backend spec has something to
-read, not a second city dump to maintain. Three things about it shape this suite:
+holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from prod
+with `fixtures/ci_seed_slice.sql` and rebuilt by `fixtures/gen_ci_seed.py`, plus what the neighborhood report reads
+(#5936): the label clusters the app's own clusterer makes of those labels, one place and one story. Real, because a
+fixture that invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the
+shape of data it will meet. Small on purpose: enough that every page renders real content and every backend spec has
+something to read, not a second city dump to maintain. Three things about it shape this suite:
 
 - **Every panorama it names is expired**, as the rows it was taken from are. That is what keeps the server side
   hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
@@ -249,10 +250,10 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate` and its mission helpers, `signInAsAdmin`, `horizontalOverflowReport`, allowlist |
-| `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
+| `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos, clusters, a place, a story. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
-| `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants. Run in the web container |
 | `fixtures/ensure-admin.sh` | Makes the admin the admin specs sign in as, with random credentials it keeps in the git-ignored `.admin-account.json`. Run by `make test-e2e` and CI before the suite |
 | `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
@@ -278,4 +279,4 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `map-attribution.spec.js` | Map credit links open in a new tab (#5856) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
 | `access-score.spec.js` | The AccessScore tool's behavior against a stubbed three-street fixture (#5217) |
-| `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason against CI's seed |
+| `report.spec.js` | A neighborhood report's behavior (#5876, #5889, #5900): maps, per-map "Places" switch, worst-problems key, weight sliders, card-marker linkage, stories. Region discovered from `/v3/api/regions`; data-dependent checks skip with a reason on a dev database that lacks the data, and fail on CI, whose seed carries it (#5936) |

@@ -36,7 +36,7 @@ class AboutPartnersViewSpec extends SidewalkSpec with ViewSpecFixtures {
       band must not include "about-partner-logos"
     }
 
-    "put the project-wide partners first, then each other organization once, alphabetically" in {
+    "put the project-wide partners first, then each city partner once, alphabetically" in {
       val band = partnersBand(
         render(
           Seq(
@@ -51,8 +51,9 @@ class AboutPartnersViewSpec extends SidewalkSpec with ViewSpecFixtures {
       band.indexOf("about-project-partners-title") must be < band.indexOf("partnerLogo/9")
       band.indexOf("partnerLogo/9") must be < band.indexOf("about-city-partners-title")
       band.indexOf("about-city-partners-title") must be < band.indexOf("partnerLogo/2")
-      band.indexOf("partnerLogo/2") must be < band.indexOf("partnerLogo/4")
-      Seq("partnerLogo/3", "partnerLogo/6").foreach(dropped => band must not include dropped)
+      band.indexOf("partnerLogo/2") must be < band.indexOf("partnerLogo/3")
+      band.indexOf("partnerLogo/3") must be < band.indexOf("partnerLogo/4")
+      band must not include "partnerLogo/6"
     }
 
     "include the partners of a city that isn't public" in {
