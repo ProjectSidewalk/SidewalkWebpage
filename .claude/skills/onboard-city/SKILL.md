@@ -161,9 +161,25 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   "not looked at yet". English city/state/country names go in the base `messages` (proper nouns are
   language-neutral); the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
 - **`config` row review.** The clone carries the donor's `excluded_tags` (a European city may want a different tag
-  set), `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these), and `make_crops`; the fill prints
-  all three and clears the donor's `mapathon_event_link` and official contact (#5462; a city that wants one sets it on
-  `/admin/partners`). Ask; don't guess.
+  set), `update_offset_hours` (pick it, below), and `make_crops`; the fill prints all three and clears the donor's
+  `mapathon_event_link` and official contact (#5462; a city that wants one sets it on `/admin/partners`). Ask about
+  the tags and crops; don't guess.
+- **Picking `update_offset_hours`.** The nightly jobs run 00:15 to about 06:00 Pacific (`ScheduledJobs.scala`), and
+  the offset shifts that whole window by whole hours, negative allowed. Two rules, in this order:
+  1. *Overnight for the city.* Keep the offsets that put the window inside roughly 23:00–07:00 local time.
+  2. *Quietest for the server.* Get every prod city's current offset: save
+     `SELECT :'city' AS city, update_offset_hours FROM config;` as `current-query.sql` and run
+     `./run-query-in-every-city.sh -p -m -o offsets` on the prod host (both from the
+     [`sidewalk-server-tools`](https://github.com/ProjectSidewalk/sidewalk-server-tools) repo; read-only). Without
+     access to that host, hand the maintainer the query and the command and wait for the CSV; never use the local
+     dev schemas, which are old copies of a few cities. Among the offsets rule 1 kept, take the one the fewest
+     cities sit on, breaking a tie toward smaller cities. Offsets 24 apart are the same slot.
+
+  Set it as the city's own role, which is what picks the schema:
+  `docker exec projectsidewalk-db psql -U sidewalk_<city> -d sidewalk -c "UPDATE config SET update_offset_hours = <n>;"`
+  `make onboard-city` has already written the dump with the donor's offset by then, so rerun it with
+  `args="--dump-only"` and hand over that dump. Tell the maintainer the pick and the cities it shares the slot
+  with. Goiânia (UTC−3, #5959) took −5, shared with two small New Jersey towns.
 - **Optional flags** left unset on purpose: `private-profiles-by-default`, `global-leaderboard-excluded`,
   `ai-label-submission-enabled` (all false by default).
 - **A new country** also needs a call on `news-email-opt-out-countries` in `conf/application.conf` (#5864): the

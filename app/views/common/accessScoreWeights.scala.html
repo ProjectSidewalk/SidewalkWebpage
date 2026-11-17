@@ -6,7 +6,7 @@
  * accordion pattern, with the LabelMap drawers' chevron), and the hint beside it says "Custom" while the weights in
  * force are not the engine's own, since that is what a folded section would otherwise hide.
  *
- * @param headingLevel The heading's level in the page's outline (3 in the tool's sidebar, 2 in the report's).
+ * @param headingLevel The heading's level in the host page's outline, e.g. 2 for `<h2>`.
  * @param sectionClass Classes the host adds to the section, for its own spacing.
  * @param info         The info button beside the heading, in the host's own style.
  *@
@@ -22,13 +22,8 @@
 
 <section class="filter-sidebar__section ps-weights-section @sectionClass" id="acs-weights-section" aria-labelledby="acs-weights-section-heading">
   <div class="filter-sidebar__heading-row">
-    @* The id names the section from the words alone, not the "Custom" hint, and sits in the button so each branch
-       renders it once. *@
-    @if(headingLevel == 2) {
-      <h2 class="filter-sidebar__heading ps-disclosure__heading">@disclosure</h2>
-    } else {
-      <h3 class="filter-sidebar__heading ps-disclosure__heading">@disclosure</h3>
-    }
+    @* The id names the section from the words alone, not the "Custom" hint, so it sits in the button. *@
+    @common.heading(headingLevel, "filter-sidebar__heading ps-disclosure__heading")(disclosure)
     <button type="button" id="acs-reset" class="filter-sidebar__deselect-all ps-heading-action" data-i18n="accessscore:reset" hidden>Reset weights</button>
     @info
   </div>

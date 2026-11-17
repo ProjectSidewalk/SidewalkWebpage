@@ -3,8 +3,9 @@
  *
  * ToolHeaderViewSpec covers what the component renders. Only a browser can say that the header reached each page,
  * that the mark's file was served (a wrong path is a broken image with a clean console), that the header is laid
- * out beside the close button rather than under it, and that each page has exactly one `<h1>` whether or not its map
- * panel is open. The pages load from pages.spec.js's table, so their stubs stay defined in one place.
+ * out beside the close button rather than under it, that each page has exactly one `<h1>` whether or not its map
+ * panel is open, and that the headings under it skip no level. The pages load from pages.spec.js's table, so their
+ * stubs stay defined in one place.
  */
 const {test, expect, loadAndSettle} = require('./fixtures');
 const {PAGES} = require('./pages');
@@ -54,6 +55,12 @@ for (const tool of TOOLS) {
     } else {
       await expect(pageHeadings).toHaveText(tool.name);
     }
+
+    // Read down the page, no heading sits more than one level below the heading before it.
+    const levels = await page.locator(':is(h1, h2, h3, h4, h5, h6):visible')
+      .evaluateAll((headings) => headings.map((h) => Number(h.tagName[1])));
+    const gaps = levels.filter((level, i) => i > 0 && level > levels[i - 1] + 1);
+    expect(gaps, `heading levels on ${tool.path}: ${levels.join(' ')}`).toEqual([]);
     if (tool.heading !== 'outside') return;
 
     const closeButton = page.locator('#filter-sidebar-close');
