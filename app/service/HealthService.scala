@@ -224,8 +224,10 @@ class HealthServiceImpl @Inject() (
   private val healthDbWait: FiniteDuration = 2.seconds
 
   def getHealthStatus: Future[HealthStatus] = {
-    val read: Future[HealthStatus] =
-      versionTable.currentVersion().map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime), None))
+    // PostGIS too: a database that answers but can't load it fails every map query while looking healthy (#6005).
+    val read: Future[HealthStatus] = versionTable.currentVersion().zip(db.run(healthTable.postgisLibVersion)).map {
+      case (v, _) => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime), None)
+    }
     val deadline: Future[HealthStatus] =
       after(healthDbWait, actorSystem.scheduler)(Future.failed(TimeoutException(s"no answer in $healthDbWait")))
     // No log line: a down database already logs itself, and a probe hits this every few seconds.

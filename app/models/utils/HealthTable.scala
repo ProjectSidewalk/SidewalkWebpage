@@ -62,6 +62,9 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private def bounded[T](action: DBIO[T]): DBIO[T] =
     (sqlu"SET LOCAL statement_timeout = 5000" >> action).transactionally
 
+  /** Loads PostGIS, which fails when the server is older than the installed PostGIS (#6005). */
+  def postgisLibVersion: DBIO[String] = sql"SELECT postgis_lib_version()".as[String].head
+
   /**
    * The connecting role's environment: database name, role name, and whether it can read every session's statement
    * text and state. True for a superuser or any role that has `pg_read_all_stats` — which is the exact privilege
