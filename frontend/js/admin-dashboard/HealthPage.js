@@ -404,7 +404,6 @@ export class HealthPage {
         ? `<a href="${util.escapeHTML(commitUrl)}" target="_blank" rel="noopener" ${newTab(`commit ${label}`)}>`
         + `<code${dirtyTip}>${util.escapeHTML(label)}</code></a>`
         : '—';
-      // The fetch's failure, else the instance's own reason (e.g. PostGIS won't load).
       const detail = util.escapeHTML(c.error || h.error || '');
       const started = h.app_started_at ? AdminShell.relativeTime(h.app_started_at) : '—';
       const cityLink = `<a href="${util.escapeHTML(c.url)}" target="_blank" rel="noopener" ${newTab(c.city_name)}>`

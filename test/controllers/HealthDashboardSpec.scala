@@ -74,12 +74,12 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   }
 }
 
-/** A database that answers but can't load PostGIS, as test's did when it outlived a package update (#6005). */
+/** Answers but can't load PostGIS, like test's database after a package update (#6005). */
 class BrokenPostgisHealthTable @Inject() (provider: DatabaseConfigProvider) extends HealthTable(provider) {
   override def postgisLibVersion: DBIO[String] = sql"SELECT postgis_function_that_does_not_exist()".as[String].head
 }
 
-/** GET /health when PostGIS won't load: a 503 that still names the release and says what failed. */
+/** GET /health when PostGIS won't load: a 503 that still names the release. */
 class HealthPostgisDownSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
