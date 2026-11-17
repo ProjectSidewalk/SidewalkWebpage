@@ -9,9 +9,10 @@ import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
- * Smoke tests for the cross-city GA traffic endpoint (Planning#8): GET /adminapi/cityTraffic (Owner).
+ * Smoke tests for the GA traffic endpoints (Planning#8): GET /adminapi/cityTraffic (Owner) and GET /adminapi/traffic
+ * (Admin).
  *
- * Verifies the route is wired (not 404) and the auth guard is in place — unauthenticated requests are redirected to
+ * Verifies each route is wired (not 404) and the auth guard is in place — unauthenticated requests are redirected to
  * sign-in rather than served data — and that a deployment with an unusable service-account key (the dev/CI dummy)
  * reports traffic as unavailable instead of failing. Boots the full application with a real DB.
  *
@@ -33,6 +34,20 @@ class AdminCityTrafficSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/adminapi/cityTraffic")).get
       // Must be a redirect (3xx) to sign-in — never a 404, which would indicate a missing route.
       status(resp) must (be >= 300 and be < 400)
+    }
+  }
+
+  "GET /adminapi/traffic" should {
+    "redirect unauthenticated users to the sign-in page (not 404)" in {
+      val resp = route(app, FakeRequest(GET, "/adminapi/traffic")).get
+      status(resp) must (be >= 300 and be < 400)
+    }
+  }
+
+  "TrafficService.getCurrentCityTraffic" should {
+    "report traffic as not configured when the service-account key is unusable" in {
+      val trafficService = app.injector.instanceOf[service.TrafficService]
+      await(trafficService.getCurrentCityTraffic()) mustBe None
     }
   }
 

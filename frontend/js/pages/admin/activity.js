@@ -3,6 +3,7 @@
 import { LabelPopup } from '../../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';
 import { ActivityPage } from '../../admin-dashboard/ActivityPage.js';
+import { TrafficSection } from '../../admin-dashboard/TrafficSection.js';
 
 const data = document.getElementById('page-entry').dataset;
 window.appManager.ready(async () => {
@@ -12,6 +13,7 @@ window.appManager.ready(async () => {
     contributionTimeUrl: '/adminapi/getContributionTimeStats',
   });
   page.init();
+  new TrafficSection({ trafficUrl: '/adminapi/traffic', bodyId: 'traffic-body', statusId: 'traffic-status' }).init();
   // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so feed label
   // links open inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
   try {

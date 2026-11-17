@@ -7,7 +7,7 @@
 @content = {
   <div class="page-section" id="activity-intro-section">
     <h1 class="page-heading" id="activity">Activity <a href="#activity" class="permalink">#</a></h1>
-    <p>How much work happens here, and when. The range applies to the whole page except the all-time totals.</p>
+    <p>How much work happens here, and when. The range applies to the whole page except the all-time totals and website traffic.</p>
     <div class="activity-controls">
       <div class="coverage-toggle" role="group" aria-label="Time range">
         <span class="coverage-sort-label">Range</span>
@@ -54,6 +54,20 @@
     <h2 class="page-heading" id="active-contributors">Active contributors over time <a href="#active-contributors" class="permalink">#</a></h2>
     <p>Distinct people active per bucket; anonymous sessions (one per browser cookie) get their own line.</p>
     <div class="activity-chart-card" id="activity-active"></div>
+  </div>
+
+  <div class="page-section" id="website-traffic-section">
+    <h2 class="page-heading" id="website-traffic">Website traffic <a href="#website-traffic" class="permalink">#</a></h2>
+    <p>Visits to this city's site, from Google Analytics.</p>
+    <div id="traffic-body">
+      <div class="ps-kpis" data-traffic="kpis"></div>
+      <h3 class="page-subhead">Sessions per week</h3>
+      <div class="activity-chart-card" data-traffic="weekly"></div>
+      <h3 class="page-subhead">Where visitors came from, last 30 days</h3>
+      <p>The sites that sent the most visits here, such as a search engine, a news story, or a partner's page.</p>
+      <div data-traffic="sources"></div>
+    </div>
+    <div class="coverage-status" id="traffic-status" role="status" aria-live="polite"></div>
   </div>
 
   <div class="page-section" id="recent-activity-section">

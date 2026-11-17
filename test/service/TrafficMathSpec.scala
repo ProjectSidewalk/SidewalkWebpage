@@ -135,25 +135,98 @@ class TrafficMathSpec extends SidewalkSpec {
           40,
           0.4,
           0.05,
+          300,
+          700,
           32494L,
           17690L,
           0.116,
           Some(LocalDate.of(2021, 10, 27)),
           Seq(1, 2, 3),
+          Some(LocalDate.of(2026, 11, 15)),
+          false,
           Some(33.5),
           Some("traffic_spike")
         )
       )
       json.as[play.api.libs.json.JsObject].keys mustBe Set("city_id", "sessions_7d", "sessions_prior_7d",
-        "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_28d",
-        "sessions_all_time", "visitors_all_time", "mobile_share_all_time", "ga_since", "weekly_sessions",
-        "baseline_median", "anomaly")
+        "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_30d",
+        "new_visitors_30d", "new_visitors_90d", "sessions_all_time", "visitors_all_time", "mobile_share_all_time",
+        "ga_since", "weekly_sessions", "weekly_sessions_end", "shared_property", "baseline_median", "anomaly")
       (json \ "sessions_7d").as[Int] mustBe 100
       (json \ "sessions_all_time").as[Long] mustBe 32494L
       (json \ "visitors_all_time").as[Long] mustBe 17690L
       (json \ "ga_since").as[String] mustBe "2021-10-27"
       (json \ "baseline_median").as[Double] mustBe 33.5
       (json \ "anomaly").as[String] mustBe "traffic_spike"
+    }
+  }
+
+  "funnelVisitors" should {
+    val today   = LocalDate.of(2026, 11, 16)
+    val traffic = CityTraffic(
+      "seattle-wa",
+      100,
+      90,
+      80,
+      70,
+      40,
+      0.4,
+      0.05,
+      300,
+      700,
+      32494L,
+      17690L,
+      0.116,
+      Some(LocalDate.of(2021, 10, 27)),
+      Seq(1, 2, 3),
+      None,
+      false,
+      None,
+      None
+    )
+
+    "pick first-time visitors for the 30 and 90 day windows and every visitor for all time" in {
+      TrafficService.funnelVisitors(traffic, "30d", today).map(_.visitors) mustBe Some(300L)
+      TrafficService.funnelVisitors(traffic, "90d", today).map(_.visitors) mustBe Some(700L)
+      TrafficService.funnelVisitors(traffic, "all", today).map(_.visitors) mustBe Some(17690L)
+    }
+
+    "have an answer for every funnel window and none for anything else" in {
+      ConfigService.FunnelWindowKeys.foreach(w => TrafficService.funnelVisitors(traffic, w, today) must not be empty)
+      TrafficService.funnelVisitors(traffic, "7d", today) mustBe None
+    }
+
+    "give a rate for a window GA fully covers, and no start date" in {
+      val visitors = TrafficService.funnelVisitors(traffic, "30d", today).get
+      visitors.rate(30) mustBe Some(0.1)
+      visitors.since mustBe None
+    }
+
+    "give no rate for all time, with the day GA's history starts" in {
+      val visitors = TrafficService.funnelVisitors(traffic, "all", today).get
+      visitors.rate(30) mustBe None
+      visitors.since mustBe Some(LocalDate.of(2021, 10, 27))
+    }
+
+    "give no rate, and the start date, when GA started partway through the window" in {
+      val young = traffic.copy(gaSince = Some(LocalDate.of(2026, 11, 6)))
+      val v30   = TrafficService.funnelVisitors(young, "30d", today).get
+      v30.rate(30) mustBe None
+      v30.since mustBe Some(LocalDate.of(2026, 11, 6))
+      // The window's first day counts as covered.
+      val edge = traffic.copy(gaSince = Some(LocalDate.of(2026, 10, 18)))
+      TrafficService.funnelVisitors(edge, "30d", today).get.rate(30) mustBe Some(0.1)
+      TrafficService.funnelVisitors(edge, "90d", today).get.rate(30) mustBe None
+    }
+
+    "give no rate when the GA property is shared with another city" in {
+      TrafficService.funnelVisitors(traffic.copy(sharedProperty = true), "30d", today).get.rate(30) mustBe None
+    }
+
+    "give no rate with no visitors, or when more accounts reached the step than GA saw visitors" in {
+      FunnelVisitors(0, None, comparable = true).rate(5) mustBe None
+      FunnelVisitors(10, None, comparable = true).rate(11) mustBe None
+      FunnelVisitors(10, None, comparable = true).rate(10) mustBe Some(1.0)
     }
   }
 

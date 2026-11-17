@@ -33,7 +33,7 @@ function makeTraffic(overrides = {}) {
     active_users_prior_7d: 80,
     engaged_sessions_7d: 40,
     engagement_rate_7d: 0.4,
-    mobile_share_28d: 0.05,
+    mobile_share_30d: 0.05,
     weekly_sessions: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
     baseline_median: 100,
     sessions_all_time: 32494,
@@ -55,7 +55,7 @@ const MARKUP = `
           <th data-sort="traffic.sessions_7d">Sessions 7d</th>
           <th data-sort="traffic.active_users_7d">Visitors 7d</th>
           <th data-sort="traffic.engagement_rate_7d">Engagement</th>
-          <th data-sort="traffic.mobile_share_28d">Mobile share</th>
+          <th data-sort="traffic.mobile_share_30d">Mobile share</th>
           <th data-sort="traffic.sessions_all_time">Sessions</th>
           <th data-sort="traffic.visitors_all_time">Visitors</th>
           <th data-sort="traffic.mobile_share_all_time">Mobile share</th>
@@ -107,12 +107,12 @@ describe('Across Cities — traffic section', () => {
     await render([makeCity('alpha'), makeCity('bravo')], {
       available: true,
       traffic_by_city: {
-        alpha: makeTraffic({ sessions_7d: 500, mobile_share_28d: 0.02 }),
-        bravo: makeTraffic({ sessions_7d: 50, mobile_share_28d: 0.4 }),
+        alpha: makeTraffic({ sessions_7d: 500, mobile_share_30d: 0.02 }),
+        bravo: makeTraffic({ sessions_7d: 50, mobile_share_30d: 0.4 }),
       },
     });
     expect(trafficCityOrder()).toEqual(['alpha', 'bravo']);
-    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_28d"]').click();
+    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_30d"]').click();
     expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
   });
 
@@ -120,11 +120,11 @@ describe('Across Cities — traffic section', () => {
     await render([makeCity('alpha'), makeCity('bravo')], {
       available: true,
       traffic_by_city: {
-        alpha: makeTraffic({ sessions_7d: 500, mobile_share_28d: null }),
-        bravo: makeTraffic({ sessions_7d: 50, mobile_share_28d: 0.01 }),
+        alpha: makeTraffic({ sessions_7d: 500, mobile_share_30d: null }),
+        bravo: makeTraffic({ sessions_7d: 50, mobile_share_30d: 0.01 }),
       },
     });
-    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_28d"]').click();
+    document.querySelector('#ac-traffic-table thead th[data-sort="traffic.mobile_share_30d"]').click();
     expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
   });
 
