@@ -41,13 +41,7 @@ const OTHER_FORCED_STATES = {
 };
 
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
-const A11Y_ALLOWLIST = {
-  // Only an untagged first card shows this, so a tagged one just flags it stale.
-  [OTHER_FORCED_STATES.galleryExpandedCard]: [
-    {rule: 'color-contrast', selector: '.label-detail__tags', issue: '#5917',
-      note: 'read-only tags are dimmed with opacity'},
-  ],
-};
+const A11Y_ALLOWLIST = {};
 
 /**
  * Splits a page's axe violations into what its allowlist covers and what fails the gate.
