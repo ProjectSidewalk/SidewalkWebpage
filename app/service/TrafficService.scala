@@ -352,6 +352,12 @@ trait TrafficService {
    *                 ran out; a failed future when GA couldn't be reached.
    */
   def getCurrentCityTraffic(coldWait: Option[FiniteDuration] = None): Future[Option[CurrentCityTraffic]]
+
+  /** @return Whether [[getCityTraffic]] has anything to ask GA, so a None from it means "not ready yet". */
+  def cityTrafficConfigured: Boolean
+
+  /** @return Whether [[getCurrentCityTraffic]] has anything to ask GA, so a None from it means "not ready yet". */
+  def currentCityTrafficConfigured: Boolean
 }
 
 @Singleton
@@ -393,6 +399,11 @@ class TrafficServiceImpl @Inject() (
         config.getOptional[String](s"city-params.google-analytics-property-id.$envType.$cityId").map(cityId -> _)
       }
       .toMap
+
+  def cityTrafficConfigured: Boolean = credentials.isDefined && propertyIdsByCity.nonEmpty
+
+  def currentCityTrafficConfigured: Boolean =
+    credentials.isDefined && propertyIdsByCity.contains(config.get[String]("city-id"))
 
   def getCityTraffic(coldWait: Option[FiniteDuration]): Future[Option[TrafficSnapshot]] = credentials match {
     case None        => Future.successful(None)

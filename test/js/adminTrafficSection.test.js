@@ -74,7 +74,17 @@ describe('the Website traffic section', () => {
     ] });
     const rows = Array.from(document.querySelectorAll('[data-traffic="sources"] tbody tr'))
       .map((tr) => Array.from(tr.cells).map((td) => td.textContent.trim()));
-    expect(rows).toEqual([['google', 'organic', '1,500'], ['<b>news</b>.example', 'referral', '40']]);
+    expect(rows).toEqual([['google', 'Search', '1,500'], ['<b>news</b>.example', 'Link on another site', '40']]);
+  });
+
+  test('puts Google Analytics\' placeholders in plain words', async () => {
+    await load({ available: true, fetched_at: '2026-11-16T20:00:00Z', traffic: TRAFFIC, top_sources: [
+      { source: '(direct)', medium: '(none)', sessions: 9 },
+      { source: 'newsletter', medium: 'email', sessions: 3 },
+    ] });
+    const rows = Array.from(document.querySelectorAll('[data-traffic="sources"] tbody tr'))
+      .map((tr) => Array.from(tr.cells).map((td) => td.textContent.trim()));
+    expect(rows).toEqual([['Direct: typed address, bookmark, or untracked link', '—', '9'], ['newsletter', 'email', '3']]);
   });
 
   test('says so when there are no sources or too little history to chart', async () => {

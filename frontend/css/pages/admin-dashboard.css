@@ -2473,6 +2473,8 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 .ac-funnel-ga {
+  /* Only as wide as its text, so its tooltip opens over the words. */
+  width: fit-content;
   font: var(--text-caption-regular);
   color: var(--color-neutral-900);
 }
@@ -2501,8 +2503,11 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 .ac-funnel-bar-val {
+  /* Pinned left and only as wide as its text, so a tooltip on it opens over the number. */
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
   padding-left: 6px;

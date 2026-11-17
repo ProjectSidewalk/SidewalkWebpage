@@ -15,7 +15,7 @@
 
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
-import { funnelVisitorsRowHtml } from './funnelVisitors.js';
+import { funnelVisitorsRowHtml, settledFunnels } from './funnelVisitors.js';
 
 export class FunnelsSection {
   /**
@@ -103,21 +103,32 @@ export class FunnelsSection {
   /**
    * Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. An
    * answer for a window the reader has since clicked away from is dropped, so the bars always match the lit button.
+   * An answer that beat Google Analytics is shown as is, and redrawn once the visitors line is ready.
    */
   async #load() {
     const timeWindow = this.#window;
+    const fetchFunnels = () => util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
     AdminShell.setText(this.#statusId, 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+      const data = await fetchFunnels();
       if (timeWindow !== this.#window) return;
-      this.#funnels = (data && data.funnels) || {};
-      this.#computedAt = (data && data.computed_at) || null;
-      this.#render();
+      this.#show(data);
+      if (data && data.ga_pending) {
+        settledFunnels(fetchFunnels, () => timeWindow === this.#window)
+          .then((settled) => settled && this.#show(settled));
+      }
     } catch (err) {
       if (timeWindow !== this.#window) return;
       console.error('Funnel load failed:', err);
       AdminShell.setText(this.#statusId, 'Could not load funnel data.');
     }
+  }
+
+  /** @param {?{funnels?: object, computed_at?: string}} data - A /adminapi/funnels answer. */
+  #show(data) {
+    this.#funnels = (data && data.funnels) || {};
+    this.#computedAt = (data && data.computed_at) || null;
+    this.#render();
   }
 
   /** Renders each available funnel (mapping, contribution) for the active breakdown dimension. */
@@ -169,10 +180,10 @@ export class FunnelsSection {
           ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-          <div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">
+          <div class="ac-funnel-bar">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>
-            <span class="ac-funnel-bar-val">${valText}</span>
+            <span class="ac-funnel-bar-val" data-ps-tooltip="${util.escapeHTML(tip)}">${valText}</span>
           </div>`;
       }).join('');
       return `

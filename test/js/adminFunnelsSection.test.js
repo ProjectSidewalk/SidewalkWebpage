@@ -117,8 +117,8 @@ describe('the funnels', () => {
     const bars = Array.from(document.querySelectorAll('.ac-funnel-block')[0].querySelectorAll('.ac-funnel-bar'));
     expect(bars.map((b) => b.querySelector('.ac-funnel-bar-fill').style.width))
       .toEqual(['100%', '50%', '37.5%', '12.5%', '7.5%', '0.3%']);
-    expect(bars[0].dataset.psTooltip).toBe('New account, visited this city: 12,000 accounts');
-    expect(bars[1].dataset.psTooltip).toBe('Started tutorial: 6,000 — 50% of previous step');
+    expect(bars[0].querySelector('.ac-funnel-bar-val').dataset.psTooltip).toBe('New account, visited this city: 12,000 accounts');
+    expect(bars[1].querySelector('.ac-funnel-bar-val').dataset.psTooltip).toBe('Started tutorial: 6,000 — 50% of previous step');
   });
 
   test('show a step the page has no name for by its key', async () => {
@@ -240,6 +240,34 @@ describe('the Google Analytics visitors line', () => {
     await load({ '30d': answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga() } }) });
     document.querySelector('[data-dim="role"]').click();
     expect(gaRows()).toEqual([]);
+  });
+
+  test('is added without a reload once an answer that beat Google Analytics is followed by a settled one', async () => {
+    vi.useFakeTimers();
+    const pending = { ...answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: null } }), ga_pending: true };
+    const settled = answer('30d', { contribution: { ...CONTRIBUTION, ga_visitors: ga() } });
+    const answers = [pending, pending, settled];
+    const stub = await load({ get '30d'() { return answers.shift() ?? settled; } });
+    expect(gaRows()).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(gaRows()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(gaRows()).toEqual(['New visitors (Google Analytics) 4,000']);
+
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(stub).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+
+  test('stops being asked for once the reader moves to another window', async () => {
+    vi.useFakeTimers();
+    const pending = { ...answer('30d', { contribution: CONTRIBUTION }), ga_pending: true };
+    const stub = await load({ '30d': pending, '90d': answer('90d') });
+    document.querySelector('[data-window="90d"]').click();
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(stub).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });
 

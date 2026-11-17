@@ -11,6 +11,32 @@ import { util } from '../common/utilities.js';
 const TIP = 'First-time visitors counted by Google Analytics. A separate count from the accounts below: GA counts '
   + 'browsers and skips most bots, while every account made is counted here.';
 
+/** Pacing for re-asking when a funnels answer came back before GA's numbers were in. */
+const RETRY_MS = 3000;
+const MAX_RETRIES = 10;
+
+/**
+ * Re-asks for a funnels answer that arrived with `ga_pending` set, until one comes back with GA's numbers settled.
+ *
+ * @param {() => Promise<?{ga_pending?: boolean}>} fetchAgain - Fetches the same funnels answer again.
+ * @param {() => boolean} stillWanted - False once the reader has moved to another window, which ends the asking.
+ * @returns {Promise<?object>} The settled answer, or null when it never came or is no longer wanted.
+ */
+export async function settledFunnels(fetchAgain, stillWanted) {
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+    if (!stillWanted()) return null;
+    try {
+      const data = await fetchAgain();
+      if (!stillWanted()) return null;
+      if (data && !data.ga_pending) return data;
+    } catch {
+      return null; // The funnels on screen are still right; they just stay without their visitors line.
+    }
+  }
+  return null;
+}
+
 /**
  * @param {number} frac - A 0–1 fraction (or above 1).
  * @returns {string} A percent, with one decimal below 10% so small conversion rates don't all read "1%".

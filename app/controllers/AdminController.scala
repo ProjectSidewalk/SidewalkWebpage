@@ -1080,17 +1080,22 @@ class AdminController @Inject() (
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
 
-    // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line.
-    val today                                           = LocalDate.now(ZoneOffset.UTC)
-    val trafficByCity: Future[Map[String, CityTraffic]] = trafficService
+    // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line. None from a
+    // configured service means the fetch outlasted the wait, which the page is told so it can ask again.
+    val today                                                      = LocalDate.now(ZoneOffset.UTC)
+    val trafficFuture: Future[(Map[String, CityTraffic], Boolean)] = trafficService
       .getCityTraffic(Some(TrafficService.FunnelColdWait))
-      .map(_.map(_.cities.map(c => c.cityId -> c).toMap).getOrElse(Map.empty))
-      .recover { case NonFatal(_) => Map.empty }
+      .map {
+        case Some(snapshot) => (snapshot.cities.map(c => c.cityId -> c).toMap, false)
+        case None           => (Map.empty, trafficService.cityTrafficConfigured)
+      }
+      .recover { case NonFatal(_) => (Map.empty, false) }
 
     for {
       funnelsByType <- configService.getCityFunnels(windowKey)
-      traffic       <- trafficByCity
+      trafficResult <- trafficFuture
     } yield {
+      val (traffic, gaPending) = trafficResult
       def cityJson(stepKeys: Seq[String])(f: CityFunnel): JsObject = {
         val info     = cityInfoById.get(f.cityId)
         val visitors = traffic.get(f.cityId).flatMap(TrafficService.funnelVisitors(_, windowKey, today))
@@ -1117,7 +1122,7 @@ class AdminController @Inject() (
           "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson(stepKeys)))
         )
       })
-      Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
+      Ok(Json.obj("window" -> windowKey, "ga_pending" -> gaPending, "funnels" -> funnels))
     }
   }
 
@@ -1190,17 +1195,22 @@ class AdminController @Inject() (
       // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
       val windowKey = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
 
-      // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line.
-      val today                                          = LocalDate.now(ZoneOffset.UTC)
-      val visitorsFuture: Future[Option[FunnelVisitors]] = trafficService
+      // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line. None from a
+      // configured service means the fetch outlasted the wait, which the page is told so it can ask again.
+      val today                                                     = LocalDate.now(ZoneOffset.UTC)
+      val visitorsFuture: Future[(Option[FunnelVisitors], Boolean)] = trafficService
         .getCurrentCityTraffic(Some(TrafficService.FunnelColdWait))
-        .map(_.flatMap(t => TrafficService.funnelVisitors(t.traffic, windowKey, today)))
-        .recover { case NonFatal(_) => None }
+        .map {
+          case Some(t) => (TrafficService.funnelVisitors(t.traffic, windowKey, today), false)
+          case None    => (None, trafficService.currentCityTrafficConfigured)
+        }
+        .recover { case NonFatal(_) => (None, false) }
 
       for {
-        result   <- configService.getCurrentCityFunnels(windowKey)
-        visitors <- visitorsFuture
+        result         <- configService.getCurrentCityFunnels(windowKey)
+        visitorsResult <- visitorsFuture
       } yield {
+        val (visitors, gaPending) = visitorsResult
         def segmentsJson(f: CityFunnel): JsObject = Json.obj(
           "all"            -> funnelSegJson(f.all),
           "registered"     -> funnelSegJson(f.registered),
@@ -1220,7 +1230,14 @@ class AdminController @Inject() (
             )
         })
         // ISO-8601 string (OffsetDateTime.toString) so the page can show a "data as of" label; null until precomputed.
-        Ok(Json.obj("window" -> windowKey, "computed_at" -> result.computedAt.map(_.toString), "funnels" -> funnels))
+        Ok(
+          Json.obj(
+            "window"      -> windowKey,
+            "computed_at" -> result.computedAt.map(_.toString),
+            "ga_pending"  -> gaPending,
+            "funnels"     -> funnels
+          )
+        )
       }
   }
 

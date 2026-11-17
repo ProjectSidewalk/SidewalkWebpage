@@ -11,6 +11,11 @@ import { AdminShell } from './AdminShell.js';
 import { MiniLineChart } from './MiniLineChart.js';
 
 export class TrafficSection {
+  /** Plain names for GA's own placeholders and jargon. */
+  static #SOURCE_NAMES = { '(direct)': 'Direct: typed address, bookmark, or untracked link', '(not set)': 'Unknown' };
+  static #MEDIUM_NAMES = { '(none)': '—', '(not set)': '—', 'organic': 'Search',
+    'referral': 'Link on another site' };
+
   #trafficUrl;
   #bodyId;
   #statusId;
@@ -137,11 +142,11 @@ export class TrafficSection {
     }
     const rows = sources.map((s) => `
       <tr>
-        <td>${util.escapeHTML(s.source)}</td>
-        <td>${util.escapeHTML(s.medium)}</td>
+        <td>${util.escapeHTML(TrafficSection.#SOURCE_NAMES[s.source] || s.source)}</td>
+        <td>${util.escapeHTML(TrafficSection.#MEDIUM_NAMES[s.medium] || s.medium)}</td>
         <td class="ac-num">${AdminShell.num(s.sessions)}</td>
       </tr>`).join('');
-    host.innerHTML = AdminShell.tableHtml(['Source', 'Medium', ['Sessions', true]], rows);
+    host.innerHTML = AdminShell.tableHtml(['Came from', 'How', ['Sessions', true]], rows);
   }
 
   /** A 0–1 fraction as a rounded percent. */

@@ -17,7 +17,7 @@ import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
-import { funnelVisitorsRowHtml, funnelVisitorsText } from './funnelVisitors.js';
+import { funnelVisitorsRowHtml, funnelVisitorsText, settledFunnels } from './funnelVisitors.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -1455,17 +1455,26 @@ export class AcrossCitiesPage {
 
   /**
    * Fetches and renders the funnels for the current window. A stale response is dropped and a failure puts the
-   * highlight back on the shown window, so a button never labels another window's numbers.
+   * highlight back on the shown window, so a button never labels another window's numbers. An answer that beat Google
+   * Analytics is shown as is, and redrawn once the visitors are ready.
    */
   async #loadFunnels() {
     const timeWindow = this.#funnelWindow;
-    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
-    try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
-      if (timeWindow !== this.#funnelWindow) return;
+    const fetchFunnels = () => util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+    const show = (data) => {
       this.#funnels = (data && data.funnels) || {};
       this.#shownFunnelWindow = timeWindow;
       this.#renderFunnels();
+    };
+    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
+    try {
+      const data = await fetchFunnels();
+      if (timeWindow !== this.#funnelWindow) return;
+      show(data);
+      if (data && data.ga_pending) {
+        settledFunnels(fetchFunnels, () => timeWindow === this.#funnelWindow)
+          .then((settled) => settled && show(settled));
+      }
     } catch (err) {
       if (timeWindow !== this.#funnelWindow) return;
       console.error('Funnel load failed:', err);
