@@ -52,6 +52,7 @@ class VersionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val versions = TableQuery[VersionTableDef]
 
   /** The version to display as current — the whole table is a handful of rows, so ordering happens in Scala. */
-  def currentVersion(): Future[Version] =
-    db.run(versions.result).map(VersionTable.latestVersion)
+  def currentVersionAction: DBIO[Version] = versions.result.map(VersionTable.latestVersion)
+
+  def currentVersion(): Future[Version] = db.run(currentVersionAction)
 }

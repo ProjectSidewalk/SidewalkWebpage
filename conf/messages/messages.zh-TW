@@ -129,6 +129,7 @@ city.name.bayonne-fr = 巴約訥
 city.name.laurens-ia = 勞倫斯
 city.name.juneau-ak = 朱諾
 city.name.beringen-be = 貝靈恩
+city.name.goiania-br = 戈亞尼亞
 
 state.name.dc = 特區
 state.name.oregon = 奧勒岡州
@@ -313,7 +314,7 @@ about.pubs.cite.copy = 複製
 about.data.title = 開放資料與開放原始碼
 about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有——所有資料均以 CC0 授權發布；詳情與引用指南請參閱 <a href="/api">API 文件</a>。我們的<a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">程式碼也完全開源</a>。
 about.partners.title = 社區夥伴
-about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
+about.partners.body = 我們與世界各地的身心障礙及步行友善倡議組織、政府、學校及社區團體合作，共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
 about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">了解如何在您的社區使用 Project Sidewalk</a>。
 about.partners.project.title = 全專案合作夥伴
 about.partners.city.title = 各城市的合作夥伴

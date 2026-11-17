@@ -1,0 +1,13 @@
+@*
+ * A heading whose level the caller picks, for markup shared by pages whose outlines differ.
+ *
+ * Usage: `@common.heading(2, "filter-sidebar__heading", i18nKey = "labelmap:streets"){Streets}`.
+ *
+ * @param level    1 to 6, for `<h1>` to `<h6>`.
+ * @param cssClass The heading's classes.
+ * @param id       Its id, or empty for none.
+ * @param i18nKey  Its `data-i18n` key, or empty for none.
+ *@
+@(level: Int, cssClass: String, id: String = "", i18nKey: String = "")(content: Html)
+@* HTMLHint rejects a tag whose name holds a Twirl or Scala value, so each tag is built with its "<" kept apart. *@
+@Html("<" + s"h$level") class="@cssClass"@if(id.nonEmpty){ id="@id"}@if(i18nKey.nonEmpty){ data-i18n="@i18nKey"}>@content@Html("<" + s"/h$level>")

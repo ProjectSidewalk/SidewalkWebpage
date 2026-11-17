@@ -8,9 +8,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
 import util.{RolledBackDb, SidewalkSpec}
 
+import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
+
 /**
- * The admin Overview's Contributors count (#4344) and the per-city contributor ids behind `/v3/api/aggregateStats`
- * (#5914). Seeds its own rows in a rolled-back transaction, so it runs on CI.
+ * The admin Overview's Contributors count (#4344), its new-contributors-per-day series (#5913), and the per-city
+ * contributor ids behind `/v3/api/aggregateStats` (#5914). Seeds its own rows in a rolled-back transaction, so it runs
+ * on CI.
  */
 class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -62,7 +65,11 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
    *
    * @return The new label_id.
    */
-  private def seedLabel(userId: String, tutorial: Boolean = false): DBIO[Int] = {
+  private def seedLabel(
+      userId: String,
+      tutorial: Boolean = false,
+      at: OffsetDateTime = OffsetDateTime.now
+  ): DBIO[Int] = {
     val panoId = "ci-contrib-pano-" + java.util.UUID.randomUUID().toString.take(8)
     for {
       streetEdgeId <- seedStreet()
@@ -75,15 +82,15 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
       _         <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source) VALUES ($panoId, '2020-01', 'gsv')"""
       labelId   <-
         sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type, temporary_label_id, mission_id,
-                                 street_edge_id, user_id, tutorial)
+                                 street_edge_id, user_id, tutorial, time_created)
               VALUES ((SELECT COALESCE(MAX(label_id), 0) + 1 FROM label),
-                      $auditTaskId, $panoId, 'CurbRamp', 1, $missionId, $streetEdgeId, $userId, $tutorial)
+                      $auditTaskId, $panoId, 'CurbRamp', 1, $missionId, $streetEdgeId, $userId, $tutorial, $at)
               RETURNING label_id""".as[Int].head
     } yield labelId
   }
 
   /** Seeds one Agree vote by the user on the label, as the label's type. */
-  private def seedVote(userId: String, labelId: Int): DBIO[Int] =
+  private def seedVote(userId: String, labelId: Int, at: OffsetDateTime = OffsetDateTime.now): DBIO[Int] =
     for {
       missionId <- seedMission(userId, "validation")
       n         <-
@@ -91,7 +98,7 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
                                              heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
                                              end_timestamp, source, viewer_type, label_type)
                SELECT (SELECT COALESCE(MAX(label_validation_id), 0) + 1 FROM label_validation), $labelId, 'Agree',
-                      $userId, $missionId, 0, 0, 1, 480, 720, now(), now(), 'Validate', 'Default', label.label_type
+                      $userId, $missionId, 0, 0, 1, 480, 720, $at, $at, 'Validate', 'Default', label.label_type
                FROM label
                WHERE label.label_id = $labelId"""
     } yield n
@@ -116,6 +123,41 @@ class UserStatTableContributorCountSpec extends SidewalkSpec with GuiceOneAppPer
 
       // Only the labeler and the validator are new contributors.
       after mustBe before + 2
+    }
+  }
+
+  "UserStatTable.getNewContributorCountsByDate" should {
+    "count each contributor once, on the day of their first counted label or vote" in {
+      // Days long before any real data, so each one holds only the rows seeded here.
+      def day(n: Int): OffsetDateTime = OffsetDateTime.of(1990, 1, n, 12, 0, 0, 0, ZoneOffset.UTC)
+
+      val (series, headline) = runRolledBack(for {
+        tutorialOnly  <- seedUser()
+        _             <- seedLabel(tutorialOnly, tutorial = true, at = day(1))
+        tutorialFirst <- seedUser()
+        _             <- seedLabel(tutorialFirst, tutorial = true, at = day(1))
+        labelId       <- seedLabel(tutorialFirst, at = day(2))
+        validator     <- seedUser()
+        _             <- seedVote(validator, labelId, at = day(3))
+        voteFirst     <- seedUser()
+        _             <- seedVote(voteFirst, labelId, at = day(4))
+        _             <- seedLabel(voteFirst, at = day(5))
+        _             <- seedLabel(voteFirst, at = day(6))
+        excluded      <- seedUser(excluded = true)
+        _             <- seedLabel(excluded, at = day(7))
+        _             <- seedVote(excluded, labelId, at = day(7))
+        aiUser        <- seedUser(ai = true)
+        _             <- seedVote(aiUser, labelId, at = day(8))
+        series        <- userStatTable.getNewContributorCountsByDate
+        headline      <- userStatTable.countAllUsersContributed()
+      } yield (series, headline))
+
+      val seeded: Map[LocalDate, Int] = series
+        .map { case (d, n) => d.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate -> n }
+        .filter { case (d, _) => d.getYear == 1990 }
+        .toMap
+      seeded mustBe Map(LocalDate.of(1990, 1, 2) -> 1, LocalDate.of(1990, 1, 3) -> 1, LocalDate.of(1990, 1, 4) -> 1)
+      series.map { case (_, n) => n }.sum mustBe headline
     }
   }
 

@@ -78,6 +78,7 @@ city.name.new-taipei-tw = Nova Taipé
 city.name.niagara-falls-ny = Cataratas do Niágara
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.goiania-br = Goiânia
 
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
@@ -244,7 +245,7 @@ about.pubs.cite.copy = Copiar
 about.data.title = Dados abertos e código aberto
 about.data.body = Tudo o que coletamos é aberto. Baixe rótulos, grupos de rótulos, ruas e pontuações de acessibilidade pelas nossas <a href="/api">APIs públicas</a>, em formatos de CSV a GeoJSON — tudo publicado sob CC0; consulte a <a href="/api">documentação da API</a> para detalhes e orientações de citação. Nosso <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">código também é aberto</a>.
 about.partners.title = Parceiros comunitários
-about.partners.body = Trabalhamos lado a lado com organizações de defesa das pessoas com deficiência, governos, escolas e grupos comunitários no mundo todo — incluindo Easterseals, World Enabled, Liga Peatonal e a Active Transportation Alliance — para planejar implantações, organizar mutirões de mapeamento e transformar dados em ação local.
+about.partners.body = Trabalhamos com organizações de defesa das pessoas com deficiência e da caminhabilidade, governos, escolas e grupos comunitários no mundo todo para planejar implantações, organizar mutirões de mapeamento e transformar dados em ação local.
 about.partners.schools = Educadores levam o Project Sidewalk para aulas de cidadania e ciência de dados, e nossa equipe e parceiros pilotaram currículos de aprendizagem-serviço e desenvolvimento profissional para jovens com deficiência. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Saiba como usar o Project Sidewalk na sua comunidade</a>.
 about.partners.project.title = Parceiros de todo o projeto
 about.partners.city.title = Parceiros em nossas cidades

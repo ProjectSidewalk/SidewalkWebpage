@@ -237,11 +237,11 @@ curl -s https://sidewalk-sea.cs.washington.edu/health
 #  "version_released_at":"...","city_id":"seattle-wa","environment":"prod","app_started_at":"..."}
 ```
 
-`git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's
-commit: `git rev-parse v<X.Y.Z>`. Until it matches, that city is still on the old build. `status` is `"error"` with
-a 503 when the instance is up but can't reach its database. `version` is what the footer shows and comes from the
-`version` table, so it reflects step 4's evolution, not the deployed code; the two agree only when both steps were
-done.
+`git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's commit:
+`git rev-parse v<X.Y.Z>`. Until it matches, that city is still on the old build. `status` is `"error"` with a 503 when
+the instance is up but its database doesn't answer or can't load PostGIS. `version` is what the footer shows and comes
+from the `version` table, so it reflects step 4's evolution, not the deployed code; the two agree only when both steps
+were done.
 
 **Two independent gotchas, both learned from #4545:**
 - Merging to `master` alone does **not** deploy to prod — the **tag** (step 7) does.
@@ -548,12 +548,12 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 
-The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers, 503 when it is
-up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a probe
-creates no user, session, or activity row, and it is never rate-limited. The body also names the build (`git_sha`),
-which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's call, with
-one thing to get right: a 503 from every city at once is the shared database, and restarting the instances won't
-help, so restart on no answer and alert on 503.
+The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers (PostGIS included),
+503 when it is up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a
+probe creates no user, session, or activity row, and it is never rate-limited. The body also names the build
+(`git_sha`), which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's
+call, with one thing to get right: a 503 from every city at once is the shared database, and restarting the instances
+won't help, so restart on no answer and alert on 503.
 
 Until the ops repo switches (#5138), the probe hits `/anonSignUp`, which mints a new anonymous account on every hit,
 including a `HEAD`, and is rate-limited per IP, so a probe from one host gets throttled into false alarms.
