@@ -189,8 +189,8 @@ trait HealthService {
   def getDbHealth: Future[DbHealthData]
 
   /**
-   * The `GET /health` body (#4548). Reads the `version` table uncached so every probe is a real database round-trip;
-   * `status` is "error" and the version fields are empty when that read fails.
+   * The `GET /health` body (#4548). Every probe reads the `version` table uncached and loads PostGIS; `status` is
+   * "error" when either fails, and the version fields are empty only when the read does.
    */
   def getHealthStatus: Future[HealthStatus]
 
@@ -224,8 +224,12 @@ class HealthServiceImpl @Inject() (
   private val healthDbWait: FiniteDuration = 2.seconds
 
   def getHealthStatus: Future[HealthStatus] = {
+    // A database that can't load PostGIS still answers, but fails every map query (#6005).
     val read: Future[HealthStatus] =
-      versionTable.currentVersion().map(v => healthStatus("ok", Some(v.versionId), Some(v.versionStartTime), None))
+      db.run(versionTable.currentVersionAction.zip(healthTable.postgisLibVersion.asTry)).map { case (v, postgis) =>
+        val error = postgis.failed.toOption.map(e => s"PostGIS: ${e.getClass.getSimpleName}")
+        healthStatus(if (error.isEmpty) "ok" else "error", Some(v.versionId), Some(v.versionStartTime), error)
+      }
     val deadline: Future[HealthStatus] =
       after(healthDbWait, actorSystem.scheduler)(Future.failed(TimeoutException(s"no answer in $healthDbWait")))
     // No log line: a down database already logs itself, and a probe hits this every few seconds.

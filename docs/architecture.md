@@ -370,7 +370,7 @@ that started before this JVM did. That rule rests on each stage running one proc
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
 
 The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
-`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
+`BuildInfo` and whether the database answers and loads PostGIS, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
