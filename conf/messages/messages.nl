@@ -76,6 +76,7 @@ city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.goiania-br = Goiânia
 
 state.name.california = Californië
 state.name.alaska = Alaska
