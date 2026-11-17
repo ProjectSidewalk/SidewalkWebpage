@@ -1,13 +1,19 @@
 package controllers
 
+import models.utils.HealthTable
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import util.SidewalkSpec
+
+import javax.inject.Inject
 
 /**
  * The health routes, on one booted application with a real DB: the Owner-only dashboard (#4561), GET /admin/health
@@ -64,6 +70,35 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (body \ "app_started_at").asOpt[String] mustBe defined
       // The git fields are absent where git couldn't answer at build time, so only the flag is pinned.
       (body \ "git_dirty").asOpt[Boolean] mustBe defined
+    }
+  }
+}
+
+/** A database that answers but can't load PostGIS, as test's did when it outlived a package update (#6005). */
+class BrokenPostgisHealthTable @Inject() (provider: DatabaseConfigProvider) extends HealthTable(provider) {
+  override def postgisLibVersion: DBIO[String] = sql"SELECT postgis_function_that_does_not_exist()".as[String].head
+}
+
+/** GET /health when PostGIS won't load: a 503 that still names the release and says what failed. */
+class HealthPostgisDownSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .overrides(bind[HealthTable].to[BrokenPostgisHealthTable])
+      .build()
+
+  given mat: Materializer = app.materializer
+
+  "GET /health" should {
+    "answer 503 naming PostGIS, and keep the version, when PostGIS won't load" in {
+      val resp = route(app, FakeRequest(GET, "/health")).get
+      status(resp) mustBe SERVICE_UNAVAILABLE
+
+      val body = contentAsJson(resp).as[JsObject]
+      (body \ "status").as[String] mustBe "error"
+      (body \ "error").as[String] mustBe "PostGIS: PSQLException"
+      (body \ "version").as[String] must not be empty
     }
   }
 }

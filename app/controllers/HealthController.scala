@@ -19,7 +19,7 @@ class HealthController @Inject() (cc: CustomControllerComponents, healthService:
     ec: ExecutionContext
 ) extends CustomBaseController(cc) {
 
-  /** 200 when the database answers, 503 otherwise; `no-store` so a cached answer can't pass a deploy check. */
+  /** 200 when the database answers and loads PostGIS, 503 otherwise; `no-store` so a cached answer can't pass. */
   def health: Action[AnyContent] = Action.async { _ =>
     healthService.getHealthStatus.map { status =>
       noStore((if (status.status == "ok") Ok else ServiceUnavailable) (Json.toJson(status)))

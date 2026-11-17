@@ -96,14 +96,16 @@ describe('the fleet panel', () => {
         city('oslo', 'Oslo', 'bbbbbbb222'),
         city('chicago', 'Chicago, IL', 'aaaaaaa111', {
           http_status: 503,
-          health: { ...city('chicago', 'Chicago, IL', 'aaaaaaa111').health, status: 'error', version: null },
+          health: {
+            ...city('chicago', 'Chicago, IL', 'aaaaaaa111').health, status: 'error', error: 'PostGIS: PSQLException',
+          },
         }),
         city('cdmx', 'Mexico City', 'aaaaaaa111', { http_status: null, health: null, error: 'ConnectException' }),
       ],
     });
     expect(rows().map((r) => [r[0], r[1]])).toEqual([
       ['Mexico City', 'unreachable ConnectException'],
-      ['Chicago, IL', 'error'],
+      ['Chicago, IL', 'error PostGIS: PSQLException'],
       ['Oslo', 'older build'],
       ['Seattle, WA (this instance)', 'ok'],
     ]);
