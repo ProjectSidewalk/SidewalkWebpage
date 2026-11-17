@@ -22,7 +22,7 @@
 
   <div class="page-section" id="label-map-section">
     <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
-      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
+      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(headingLevel = 2, tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
   </div>
 
 @common.labelPopup(admin = true)

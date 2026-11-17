@@ -134,15 +134,20 @@
     margin-bottom: 8px;
   }
 
-  /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */
+  /* The heading fills the row so its toggle button keeps the whole row as its tap target. */
   #filter-header {
+    flex: 1;
+  }
+
+  /* The toggle button carries the same "Filter By" text, so the heading's own would duplicate it. */
+  .gallery-filter-header__text {
     display: none;
   }
 
   .gallery-filter-toggle {
     display: flex;
     align-items: center;
-    flex: 1;
+    width: 100%;
     gap: 6px;
     min-height: 44px;
     padding: 0;
