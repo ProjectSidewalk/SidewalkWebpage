@@ -1096,6 +1096,7 @@ class AdminController @Inject() (
       trafficResult <- trafficFuture
     } yield {
       val (traffic, gaPending) = trafficResult
+
       def cityJson(stepKeys: Seq[String])(f: CityFunnel): JsObject = {
         val info     = cityInfoById.get(f.cityId)
         val visitors = traffic.get(f.cityId).flatMap(TrafficService.funnelVisitors(_, windowKey, today))
@@ -1211,6 +1212,7 @@ class AdminController @Inject() (
         visitorsResult <- visitorsFuture
       } yield {
         val (visitors, gaPending) = visitorsResult
+
         def segmentsJson(f: CityFunnel): JsObject = Json.obj(
           "all"            -> funnelSegJson(f.all),
           "registered"     -> funnelSegJson(f.registered),
