@@ -82,7 +82,11 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
 **The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the dropped segments, and any
-flagged region. Two ways back:
+flagged region. In a small town, also look at every `primary` and `trunk` street. The filter keeps them because in a
+city they are main streets, but a town's can be a rural highway that no home or shop faces, often divided into two
+one-way carriageways with a 55 mph limit. Evansdale's Dubuque Road was 7% of the city's streets, and a test user's
+first mission routed onto it. Delete such streets as a hand edit (below); dropping a highway on purpose is not the
+same as dropping short segments, which #4717 rules out. Two ways back:
 
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse
   region into its neighbour by **name** and reruns the whole assignment, so streets re-split against the merged
