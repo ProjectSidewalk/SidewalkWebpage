@@ -77,10 +77,12 @@ city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.evansdale-ia = Evansdale
 city.name.goiania-br = Goiânia
 
 state.name.california = Kalifornien
 state.name.alaska = Alaska
+state.name.iowa = Iowa
 
 country.name.usa = USA
 country.name.mexico = Mexiko

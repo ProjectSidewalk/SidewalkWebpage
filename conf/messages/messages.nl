@@ -76,10 +76,12 @@ city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.evansdale-ia = Evansdale
 city.name.goiania-br = Goiânia
 
 state.name.california = Californië
 state.name.alaska = Alaska
+state.name.iowa = Iowa
 
 country.name.usa = USA
 country.name.netherlands = Nederland

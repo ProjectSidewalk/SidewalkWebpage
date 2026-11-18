@@ -82,6 +82,7 @@ city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.evansdale-ia = Evansdale
 city.name.goiania-br = Goiânia
 
 state.name.oregon = Oregón
@@ -91,6 +92,7 @@ state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
 state.name.alaska = Alaska
+state.name.iowa = Iowa
 
 country.name.usa = EE.UU.
 country.name.mexico = México
