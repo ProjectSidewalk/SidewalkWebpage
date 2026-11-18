@@ -39,7 +39,7 @@ case class FanOutResult[A](results: Seq[(String, A)], notReady: Seq[(String, Thr
  *     of time again, at the same cost.
  *
  * {{{
- * BoundedCityFanOut.run(Seq("seattle-wa", "chicago-il"), parallelism = 6, maxAttempts = 3, retryDelay = 1.second) {
+ * BoundedCityFanOut.run(Seq("seattle-wa", "chicago-il"), parallelism = 2, maxAttempts = 3, retryDelay = 1.second) {
  *   cityId => db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
  * }
  * // => FanOutResult(results = Seq("seattle-wa" -> ids1, "chicago-il" -> ids2), notReady = Seq())

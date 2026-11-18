@@ -739,11 +739,13 @@ object ConfigService {
   /**
    * How many cities a cross-city fan-out queries at once (#5977).
    *
-   * Each city's unit runs up to two queries, so this keeps a refresh to about a dozen of the pool's 25 connections,
-   * leaving the rest to Explore and Validate. It also limits how many new connections ~60 JVMs open on the shared
-   * Postgres at the moment their refreshes coincide.
+   * Sized to what the pool can actually get, not to its nominal 25. Prod Postgres is at its connection ceiling much of
+   * the day (#5238): in Nov 2026 the pools sat at 2–5 connections with ~20 requests waiting, because every attempt to
+   * grow them was refused. Each city's unit runs up to two queries, so 2 cities keeps a refresh to about the
+   * connections an idle pool already holds instead of queueing Explore and Validate behind it. The refresh runs in the
+   * background behind a cached value, so taking longer costs nothing a visitor sees.
    */
-  val CrossCityParallelism: Int = 6
+  val CrossCityParallelism: Int = 2
 
   /**
    * How many times a city's query may run in a cross-city fan-out, retries included (#5977).
