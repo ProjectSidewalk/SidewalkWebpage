@@ -1,5 +1,6 @@
 package models.street
 
+import models.region.RegionCompletionTable
 import models.route.RouteTable
 import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
@@ -12,7 +13,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.RegionService
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
 import util.SidewalkSpec
@@ -55,10 +55,10 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
 
   given mat: Materializer = app.materializer
 
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
-  private val userStatTable   = app.injector.instanceOf[UserStatTable]
-  private val routeTable      = app.injector.instanceOf[RouteTable]
-  private val regionService   = app.injector.instanceOf[RegionService]
+  private val streetEdgeTable       = app.injector.instanceOf[StreetEdgeTable]
+  private val userStatTable         = app.injector.instanceOf[UserStatTable]
+  private val routeTable            = app.injector.instanceOf[RouteTable]
+  private val regionCompletionTable = app.injector.instanceOf[RegionCompletionTable]
   // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -279,15 +279,14 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
     }
 
     "match a fresh runtime recompute of region_completion.total_distance, with audited_distance in bounds" in {
-      // total_distance must equal what initializeRegionCompletionTable would write today. audited_distance is only
+      // total_distance must equal what RegionCompletionTable.rebuild would write today. audited_distance is only
       // bounds-checked: it is maintained incrementally at runtime (with deliberate equalization fudges in
       // RegionCompletionTable), so exact equality with a fresh recompute is not an invariant.
       val (cached, fresh) = runRolledBack(for {
         cached <- sql"SELECT region_id, total_distance, audited_distance FROM region_completion"
           .as[(Int, Double, Double)]
           .map(_.map { case (id, total, audited) => id -> (total, audited) }.toMap)
-        _     <- sqlu"TRUNCATE TABLE region_completion"
-        _     <- regionService.initializeRegionCompletionTableAction
+        _     <- regionCompletionTable.rebuild
         fresh <- sql"SELECT region_id, total_distance, audited_distance FROM region_completion"
           .as[(Int, Double, Double)]
           .map(_.map { case (id, total, audited) => id -> (total, audited) }.toMap)
@@ -295,7 +294,7 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
 
       assume(cached.nonEmpty, "no region_completion rows in this schema; cache freshness needs a seeded DB")
       cached.foreach { case (regionId, (cachedTotal, cachedAudited)) =>
-        // A cached region absent from the recompute is itself a failure: initializeRegionCompletionTable inserts a
+        // A cached region absent from the recompute is itself a failure: RegionCompletionTable.rebuild writes a
         // row per non-deleted region, so the only way to be missing is to belong to a region that was deleted.
         val (freshTotal, _) = fresh.get(regionId).value
         assertClose(cachedTotal, freshTotal)

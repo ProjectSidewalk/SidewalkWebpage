@@ -237,9 +237,9 @@ class StreetLifecycleServiceImpl @Inject() (
    * the status flip + change row are load-bearing: the
    * street_edge_priority row must be re-inserted if absent (task assignment INNER JOINs on priority and the nightly
    * recalc only ever updates existing rows, so without it the street is open yet silently unroutable), and
-   * region_completion must be truncated (the reopened street raises its region's total distance; the table is a
-   * cache rebuilt on next read). The Play cache is cleared after commit, never inside: landing-page stats and the
-   * cached trend payloads all embed street counts that just changed.
+   * region_completion must be rebuilt (the reopened street raises its region's total distance). The Play cache is
+   * cleared after commit, never inside: landing-page stats and the cached trend payloads all embed street counts
+   * that just changed.
    *
    * @param streetEdgeId The street to reopen.
    * @return Reopened on success; NotNoImagery with the current status when the street isn't reopenable; or
@@ -275,7 +275,7 @@ class StreetLifecycleServiceImpl @Inject() (
               );
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
-            _ <- regionCompletionTable.truncateTable
+            _ <- regionCompletionTable.rebuild
           } yield ReopenOutcome.Reopened
         }
     } yield outcome

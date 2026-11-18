@@ -36,7 +36,6 @@ class StreetLifecycleServiceSpec
 
   private val statusChangeTable      = app.injector.instanceOf[StreetEdgeStatusChangeTable]
   private val streetLifecycleService = app.injector.instanceOf[StreetLifecycleService]
-  private val regionService          = app.injector.instanceOf[RegionService]
 
   /** A real street to hang the seeded transitions off, since the log carries a foreign key to street_edge. */
   private lazy val streetEdgeId: Option[Int] =
@@ -254,11 +253,17 @@ class StreetLifecycleServiceSpec
         LIMIT 1""".as[(Int, Double)].headOption)
       assume(picked.isDefined, "no open street with a priority row in the connected database")
       val (streetId, originalPriority) = picked.get
+      val regionId = run(sql"SELECT region_id FROM street_edge_region WHERE street_edge_id = $streetId".as[Int].head)
+      val completionsBefore = run(
+        sql"SELECT region_id, total_distance, audited_distance FROM region_completion".as[(Int, Double, Double)]
+      )
 
       try {
         run(sqlu"UPDATE street_edge SET status = 'no_imagery' WHERE street_edge_id = $streetId")
         run(sqlu"DELETE FROM street_edge_priority WHERE street_edge_id = $streetId")
         run(sqlu"INSERT INTO street_reopen_candidate (street_edge_id, n_panos) VALUES ($streetId, 2)")
+        run(sqlu"""INSERT INTO region_completion VALUES ($regionId, 0, 0)
+                   ON CONFLICT (region_id) DO UPDATE SET total_distance = 0""")
 
         Await.result(streetLifecycleService.reopenStreet(streetId), 120.seconds) mustBe
           StreetLifecycleService.ReopenOutcome.Reopened
@@ -271,8 +276,8 @@ class StreetLifecycleServiceSpec
         // nightly recalc only ever updates rows that exist.
         run(sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetId".as[Double].head) mustBe 1.0
         run(sql"SELECT COUNT(*) FROM street_reopen_candidate WHERE street_edge_id = $streetId".as[Int].head) mustBe 0
-        // The completion cache must not survive the reopen: the street's region now has more total distance.
-        run(sql"SELECT COUNT(*) FROM region_completion".as[Int].head) mustBe 0
+        // The reopened street adds to its region's total distance, so the stale zero must have been recomputed.
+        run(sql"SELECT total_distance FROM region_completion WHERE region_id = $regionId".as[Double].head) must be > 0.0
       } finally {
         run(sqlu"DELETE FROM street_edge_status_change WHERE street_edge_id = $streetId AND source = 'admin_reopen'")
         run(sqlu"DELETE FROM street_reopen_candidate WHERE street_edge_id = $streetId")
@@ -280,8 +285,11 @@ class StreetLifecycleServiceSpec
         run(sqlu"""INSERT INTO street_edge_priority (street_edge_id, priority)
                    VALUES ($streetId, $originalPriority)
                    ON CONFLICT (street_edge_id) DO UPDATE SET priority = EXCLUDED.priority""")
-        // Refill the completion cache so later suites that assume a populated one aren't cancelled.
-        val _ = Await.result(regionService.initializeRegionCompletionTable, 120.seconds)
+        // Back to the rows as found rather than a fresh rebuild: GeodesicDistanceSpec checks the seeded ones.
+        val _ = run(DBIO.sequence(completionsBefore.map { case (id, total, audited) =>
+          sqlu"""UPDATE region_completion SET total_distance = $total, audited_distance = $audited
+                 WHERE region_id = $id"""
+        }))
       }
     }
 
