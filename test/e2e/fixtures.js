@@ -161,6 +161,7 @@ async function csrfTokenFrom(request, path) {
  * admin fails only the admin specs.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context to sign in.
+ * @returns {Promise<string>} The admin's username.
  */
 async function signInAsAdmin(context) {
   const missing = `no ${ADMIN_ACCOUNT_FILE}: run test/e2e/fixtures/ensure-admin.sh, which makes the admin`;
@@ -173,6 +174,7 @@ async function signInAsAdmin(context) {
   const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which says why`;
   base.expect(response.status(), refused).toBe(303);
   base.expect(response.headers().location, refused).not.toContain('/signIn');
+  return username;
 }
 
 /**
@@ -315,6 +317,17 @@ async function readLabel(page, id) {
   const response = await page.request.get(`/label/id/${id}`);
   base.expect(response.ok(), `GET /label/id/${id} responded ${response.status()}`).toBe(true);
   return response.json();
+}
+
+const NO_BACKUP_404 = /status of 404 .*\/backupImage\/[^/]+\/metadata\)$/;
+
+/**
+ * Drops the /backupImage 404s a dev database's expired panos log. CI's seed has every backup, so there they still fail.
+ * @param {string[]} errors - The test's consoleErrors.
+ * @returns {string[]} The errors that count.
+ */
+function withoutMissingBackups(errors) {
+  return process.env.CI ? errors : errors.filter((e) => !NO_BACKUP_404.test(e));
 }
 
 /**
@@ -474,6 +487,7 @@ module.exports = {
   nextLabel,
   currentLabelId,
   readLabel,
+  withoutMissingBackups,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,

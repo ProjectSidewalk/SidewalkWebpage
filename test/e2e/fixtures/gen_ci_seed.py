@@ -530,6 +530,12 @@ VALUES (900001, {WORST_ID}, {q(U[OWNER[worst['street_edge_id']]])},
         'There is no ramp at this corner, so I have to roll along the street to the next driveway.',
         'anonymous', TRUE, now() - INTERVAL '2 days')
 ON CONFLICT (story_id) DO NOTHING;
+
+-- One team, so the admin team page has one to load (#4276). Made up, like the story, and with no members, so no
+-- leaderboard or user-stat count moves.
+INSERT INTO sidewalk_teaneck.team (team_id, name, description, open, visible)
+VALUES (900001, 'CI Seed Team', 'A team for the browser suite.', TRUE, TRUE)
+ON CONFLICT (team_id) DO NOTHING;
 """)
 
 w(f"""UPDATE sidewalk_teaneck.route

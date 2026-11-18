@@ -623,6 +623,12 @@ VALUES (900001, 900026, '00000000-5115-4000-8000-000000000002',
         'anonymous', TRUE, now() - INTERVAL '2 days')
 ON CONFLICT (story_id) DO NOTHING;
 
+-- One team, so the admin team page has one to load (#4276). Made up, like the story, and with no members, so no
+-- leaderboard or user-stat count moves.
+INSERT INTO sidewalk_teaneck.team (team_id, name, description, open, visible)
+VALUES (900001, 'CI Seed Team', 'A team for the browser suite.', TRUE, TRUE)
+ON CONFLICT (team_id) DO NOTHING;
+
 UPDATE sidewalk_teaneck.route
 SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
 FROM (
