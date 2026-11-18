@@ -46,8 +46,6 @@ class RegionCompletionTable @Inject() (
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
-  def count: DBIO[Int] = regionCompletions.length.result
-
   /**
    * Returns each region's completion distances along with its name. If provided, filter for only given regions.
    */
@@ -102,28 +100,81 @@ class RegionCompletionTable @Inject() (
         .exists
         .result
 
-      // Check if the region is fully audited, and set audited_distance equal to total_distance if so. We are
-      // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete. Also
-      // doing a check to see if the completion is erroneously over 100%, when the streets have not all been audited in
-      // that region; this has never been observed, but it could theoretically be an issue if there is a sizable
-      // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
-      // we are just being safe, and setting audited_distance to be less than total_distance.
-      rCQuery = regionCompletions.filter(_.regionId === regionId)
-      rowsUpdated: Int <- rCQuery.result.head.flatMap { (rC: RegionCompletion) =>
-        if (!regionIncomplete) {
-          rCQuery.map(_.auditedDistance).update(rC.totalDistance)
-        } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
-          rCQuery.map(_.auditedDistance).update(rC.totalDistance * 0.995)
-        } else {
-          rCQuery.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
-        }
-      }
+      // A fully audited region is set to exactly total_distance, so floating point error can't keep it off 100%; one
+      // that isn't is held just under, in case that error overshoots with a very short street left (never observed).
+      // One UPDATE, so the sum starts from the row as it is when the write lands, not from a read that a rebuild or
+      // another save has since replaced. A region with no row is left for the rebuild that creates it.
+      rowsUpdated: Int <- sqlu"""
+        UPDATE region_completion
+        SET audited_distance = CASE
+            WHEN NOT $regionIncomplete THEN total_distance
+            WHEN audited_distance + $distToAdd > total_distance THEN total_distance * 0.995
+            ELSE audited_distance + $distToAdd
+        END
+        WHERE region_id = $regionId"""
     } yield {
       rowsUpdated
     }
   }
 
-  def truncateTable: DBIO[Int] = {
-    sqlu"TRUNCATE TABLE region_completion"
+  /**
+   * Recomputes every region's row in place. Never TRUNCATE: that waits out the nightly backup, with every reader
+   * of the table stuck behind it, and leaves the table empty for whoever reads next (#6014).
+   * @return The number of rows written.
+   */
+  def rebuild: DBIO[Int] = (lockAgainstWriters >> recompute).transactionally
+
+  /** Writes every region's fresh row and drops rows of regions that are gone. Run under [[lockAgainstWriters]]. */
+  private def recompute: DBIO[Int] = {
+    val streetsInRegion = for {
+      _edgeRegion   <- streetEdgeRegion
+      _edges        <- streetEdgeTable.streets if _edges.streetEdgeId === _edgeRegion.streetEdgeId
+      _edgePriority <- streetEdgePriorityTable if _edges.streetEdgeId === _edgePriority.streetEdgeId
+    } yield (_edgeRegion.regionId, _edges.geom.lengthGeodesic, _edgePriority.priority < 1.0)
+
+    val distancesByRegion =
+      streetsInRegion.groupBy { case (regionId, _, _) => regionId }.map { case (regionId, group) =>
+        val totalDistance   = group.map { case (_, length, _) => length }.sum.getOrElse(0.0d)
+        val auditedDistance = group
+          .map { case (_, length, audited) => Case.If(audited).Then(length).Else(0.0d) }
+          .sum
+          .getOrElse(0.0d)
+        (regionId, totalDistance, auditedDistance)
+      }
+
+    // Left join so a region with no streets still gets a row, with zero distances.
+    val freshCompletions = regionsWithoutDeleted
+      .joinLeft(distancesByRegion)
+      .on { case (region, (regionId, _, _)) => region.regionId === regionId }
+      .map { case (region, regionData) =>
+        (
+          region.regionId,
+          regionData.map { case (_, totalDistance, _) => totalDistance }.getOrElse(0.0d),
+          regionData.map { case (_, _, auditedDistance) => auditedDistance }.getOrElse(0.0d)
+        ).mapTo[RegionCompletion]
+      }
+
+    for {
+      fresh <- freshCompletions.result
+      _     <- regionCompletions.filterNot(rc => regionsWithoutDeleted.filter(_.regionId === rc.regionId).exists).delete
+      _     <- regionCompletions.insertOrUpdateAll(fresh)
+    } yield fresh.size
+  }
+
+  // Blocks writers only, not readers or the backup, so Explore saves in flight are counted and rebuilds take turns.
+  private val lockAgainstWriters = sqlu"LOCK TABLE region_completion IN SHARE ROW EXCLUSIVE MODE"
+
+  /**
+   * Fills the table the first time it is read in a city that has never had it built.
+   * @return The number of rows written, 0 when the table already had rows.
+   */
+  def rebuildIfEmpty: DBIO[Int] = regionCompletions.exists.result.flatMap { filled =>
+    if (filled) DBIO.successful(0)
+    else {
+      // Checked again under the lock: requests that all found it empty would otherwise each rebuild in turn.
+      (lockAgainstWriters >> regionCompletions.exists.result.flatMap { filledMeanwhile =>
+        if (filledMeanwhile) DBIO.successful(0) else recompute
+      }).transactionally
+    }
   }
 }

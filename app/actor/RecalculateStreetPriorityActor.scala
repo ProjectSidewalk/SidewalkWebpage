@@ -117,8 +117,7 @@ class RecalculateStreetPriorityActor @Inject() (
           }
         _ = logger.info(s"Imagery freshness sync: $syncSummary")
         recalc        <- streetService.recalculateStreetPriority
-        _             <- regionService.truncateRegionCompletionTable
-        regionsSeeded <- regionService.initializeRegionCompletionTable
+        regionsSeeded <- regionService.rebuildRegionCompletionTable
       } yield (recalc, regionsSeeded)) { case (recalc, regionsSeeded) =>
         RecalculateStreetPriorityActor.runDetails(recalc, Some(regionsSeeded))
       }

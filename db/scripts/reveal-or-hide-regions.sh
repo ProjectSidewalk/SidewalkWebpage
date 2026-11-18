@@ -97,8 +97,8 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
         -- Reveal the regions.
         UPDATE region SET deleted = FALSE WHERE region_id IN (${regions_to_reveal// /,});
 
-        -- Truncate the region_completion table to force recalculation of distances.
-        TRUNCATE TABLE region_completion;
+        -- Empty region_completion to force recalculation of distances. Not TRUNCATE: it waits out the backup (#6014).
+        DELETE FROM region_completion;
         COMMIT;
 EOSQL
 
@@ -155,7 +155,7 @@ EOSQL
   fi
 
   # Finally, hide the regions: flip their 'open' streets to 'closed', drop those streets' priority rows, remove any
-  # user_current_regions, and truncate region_completion. We only touch 'open' streets, so 'no_imagery' and
+  # user_current_regions, and empty region_completion. We only touch 'open' streets, so 'no_imagery' and
   # 'disabled' streets keep their status.
   psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p "$PORT" <<EOSQL
         BEGIN;
@@ -189,7 +189,7 @@ EOSQL
         WHERE street_edge_priority.street_edge_id = street_edge_region.street_edge_id
             AND street_edge_region.region_id IN (${regions_to_hide// /,});
 
-        TRUNCATE TABLE region_completion;
+        DELETE FROM region_completion;
         COMMIT;
 EOSQL
 fi

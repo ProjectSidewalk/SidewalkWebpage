@@ -551,7 +551,7 @@ WHERE route.route_id = 900001;
 -- Derived caches, last because each reads the rows above. Keep in step with:
 --   meters_audited / labels_per_meter / high_quality -> UserStatTable.updateAuditedDistanceHelper,
 --                                                       updateLabelsPerMeterHelper, updateHighQuality
---   region_completion                                -> RegionService.initializeRegionCompletionTableAction
+--   region_completion                                -> RegionCompletionTable.rebuild
 --   label_point.centerline_offset_m                  -> LabelPointTable.computeCenterlineOffset (377.sql's backfill)
 -- "Auditable streets" in all of them means open, non-tutorial streets -- StreetEdgeTable's `streets`.
 
