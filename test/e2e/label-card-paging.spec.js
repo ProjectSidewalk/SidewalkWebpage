@@ -3,7 +3,7 @@
  * pass axe along with the faded cards behind it (#5135, #5917). Gallery rather than LabelMap, whose markers are on
  * a map canvas a spec can't click.
  */
-const {test, expect, serveAnyPano, loadAndSettle} = require('./fixtures');
+const {test, expect, serveAnyPano, loadAndSettle, withoutMissingBackups} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
 const {OTHER_FORCED_STATES, WCAG_TAGS, partitionViolations, formatViolations} = require('./a11y-allowlist');
@@ -11,7 +11,6 @@ const {OTHER_FORCED_STATES, WCAG_TAGS, partitionViolations, formatViolations} = 
 const GALLERY = PAGES.find((p) => p.path === '/gallery');
 // The a11y-allowlist.js key for the open card.
 const A11Y_STATE = OTHER_FORCED_STATES.galleryExpandedCard;
-const NO_BACKUP_404 = /status of 404 .*\/backupImage\/[^/]+\/metadata\)$/;
 
 /**
  * The label the expanded view shows, read from its ?labelId= param.
@@ -87,8 +86,5 @@ test('Prev at the first card switches off with aria-disabled, keeps focus, and i
   await expect(prev).not.toHaveAttribute('aria-disabled', 'true');
   await expect(prev).not.toHaveAttribute('disabled');
 
-  // On a dev database an expired pano has no backup, so its /backupImage metadata 404s and the card shows the crop.
-  // CI has every backup, so there a 404 still fails.
-  const errors = process.env.CI ? consoleErrors : consoleErrors.filter((e) => !NO_BACKUP_404.test(e));
-  expect(errors).toEqual([]);
+  expect(withoutMissingBackups(consoleErrors)).toEqual([]);
 });

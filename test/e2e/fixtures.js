@@ -161,6 +161,7 @@ async function csrfTokenFrom(request, path) {
  * admin fails only the admin specs.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context to sign in.
+ * @returns {Promise<string>} The admin's username.
  */
 async function signInAsAdmin(context) {
   const missing = `no ${ADMIN_ACCOUNT_FILE}: run test/e2e/fixtures/ensure-admin.sh, which makes the admin`;
@@ -173,6 +174,7 @@ async function signInAsAdmin(context) {
   const refused = `signing in as ${username} was refused: run test/e2e/fixtures/ensure-admin.sh, which says why`;
   base.expect(response.status(), refused).toBe(303);
   base.expect(response.headers().location, refused).not.toContain('/signIn');
+  return username;
 }
 
 /**
@@ -251,6 +253,55 @@ async function loadAndSettle(page, context, p) {
 }
 
 /**
+ * Skips a test the connected database has no data for, except on CI, whose seed always has it: there it fails, so a
+ * regression that empties a page can't pass as a skip.
+ * @param {boolean} present - Whether the data is there.
+ * @param {string} what - The missing data, for the message.
+ */
+function requireData(present, what) {
+  if (process.env.CI) base.expect(present, `CI's seed has no ${what}`).toBe(true);
+  else base.test.skip(!present, `the connected database has no ${what}`);
+}
+
+/**
+ * Loads Gallery and settles it, the cheap way to a label id on a database of any size.
+ * @param {import('@playwright/test').Page} page - The test's page.
+ * @param {import('@playwright/test').BrowserContext} context - The page's context.
+ * @returns {Promise<string>} The first card's label id. Skips the test if there are no cards.
+ */
+async function firstGalleryLabelId(page, context) {
+  await loadAndSettle(page, context, {path: '/gallery', loadingOverlay: true});
+  const image = page.locator('.gallery-card .static-gallery-image').first();
+  requireData(await image.count() > 0, 'Gallery cards');
+  return (await image.getAttribute('id')).replace('label_id_', '');
+}
+
+/**
+ * @param {number[]} a - A [lng, lat] point.
+ * @param {number[]} b - Another.
+ * @returns {number} The distance between them in meters, flat-earth: close enough at a street's scale.
+ */
+function metersBetween([lng1, lat1], [lng2, lat2]) {
+  const perDegree = 111320;
+  return Math.hypot((lng1 - lng2) * perDegree * Math.cos((lat1 * Math.PI) / 180), (lat1 - lat2) * perDegree);
+}
+
+/**
+ * Finds a street to drop a labeler onto in Explore. Open streets only: a drop-in anywhere else sends a new labeler to
+ * the tutorial instead.
+ * @param {import('@playwright/test').APIRequestContext} request - A request client.
+ * @param {number} [minMeters] - How long the street's first segment must be.
+ * @returns {Promise<number[][]>} The first segment's two [lng, lat] ends. Skips the test if no street qualifies.
+ */
+async function openStreetSegment(request, minMeters = 0) {
+  const streets = await (await request.get('/v3/api/streets?status=open')).json();
+  const segment = streets.features.map((f) => f.geometry.coordinates.slice(0, 2))
+    .find(([a, b]) => metersBetween(a, b) >= minMeters);
+  requireData(!!segment, `open street with a first segment of ${minMeters} m or more`);
+  return segment;
+}
+
+/**
  * Loads `/validate`, `/expertValidate` or `/mobile` and settles it. On CI it also fails without a mission (#4948): the
  * seed always makes one, so the mission-only checks would otherwise skip and stay green. A local database may have
  * none to give.
@@ -315,6 +366,17 @@ async function readLabel(page, id) {
   const response = await page.request.get(`/label/id/${id}`);
   base.expect(response.ok(), `GET /label/id/${id} responded ${response.status()}`).toBe(true);
   return response.json();
+}
+
+const NO_BACKUP_404 = /status of 404 .*\/backupImage\/[^/]+\/metadata\)$/;
+
+/**
+ * Drops the /backupImage 404s a dev database's expired panos log. CI's seed has every backup, so there they still fail.
+ * @param {string[]} errors - The test's consoleErrors.
+ * @returns {string[]} The errors that count.
+ */
+function withoutMissingBackups(errors) {
+  return process.env.CI ? errors : errors.filter((e) => !NO_BACKUP_404.test(e));
 }
 
 /**
@@ -469,11 +531,16 @@ module.exports = {
   stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
+  requireData,
+  firstGalleryLabelId,
+  metersBetween,
+  openStreetSegment,
   loadValidate,
   pastDoubleTapGuard,
   nextLabel,
   currentLabelId,
   readLabel,
+  withoutMissingBackups,
   horizontalOverflowReport,
   PHONE_DEVICE,
   STORAGE_STATE,
