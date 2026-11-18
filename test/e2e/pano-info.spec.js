@@ -2,8 +2,8 @@
  * The Details (info) button opens a filled-in popover wherever a pano is shown (#4504). One class serves every page, so
  * a slip at one call site breaks only that page, as #4464 did on Explore. Validate's is in validate-interactions.
  */
-const {test, expect, stubMapbox, serveAnyPano, waitForAppReady, readLabel, withoutMissingBackups} =
-  require('./fixtures');
+const {test, expect, stubMapbox, serveAnyPano, waitForAppReady, readLabel, withoutMissingBackups, openStreetSegment,
+  firstGalleryLabelId} = require('./fixtures');
 
 /**
  * Opens the Details popover and reads its values.
@@ -22,9 +22,7 @@ async function openDetails(page, scope) {
 test('Explore\'s Details button shows the pano on screen', async ({page, context, consoleErrors}) => {
   await stubMapbox(context);
   // Dropping in by location skips the tutorial, whose overlays cover the button.
-  const streets = await (await page.request.get('/v3/api/streets')).json();
-  test.skip(!streets.features.length, 'the connected database has no streets');
-  const [[lng1, lat1], [lng2, lat2]] = streets.features[0].geometry.coordinates;
+  const [[lng1, lat1], [lng2, lat2]] = await openStreetSegment(page.request);
   await page.goto(`/explore?lat=${((lat1 + lat2) / 2).toFixed(6)}&lng=${((lng1 + lng2) / 2).toFixed(6)}`);
   await waitForAppReady(page);
   await page.locator('#page-loading').waitFor({state: 'hidden'});
@@ -42,12 +40,7 @@ test('Gallery\'s open card shows its label, and its Details button that label\'s
   consoleErrors}) => {
   // Lets the Maps stub stand in for a dev database's live panos.
   await serveAnyPano(context);
-  await page.goto('/gallery');
-  await waitForAppReady(page);
-  await page.locator('#page-loading').waitFor({state: 'hidden'});
-  const image = page.locator('.gallery-card .static-gallery-image').first();
-  test.skip(await image.count() === 0, 'the connected database has no Gallery cards');
-  const labelId = (await image.getAttribute('id')).replace('label_id_', '');
+  const labelId = await firstGalleryLabelId(page, context);
 
   // The holder, not the image: a missing crop covers the image with a placeholder.
   await page.locator('.gallery-card .image-holder').first().click();
