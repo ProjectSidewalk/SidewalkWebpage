@@ -22,8 +22,10 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
   (`bayonne-fr`). It becomes `SIDEWALK_CITY_ID`, the schema (`sidewalk_laurens_ia`), and the output dir.
 - **Server name.** The id without its suffix (`sidewalk-laurens`), unless a clearly larger city shares the name
   (`sidewalk-newport-ky`).
-- **Imagery provider.** `gsv` unless the partner says otherwise; `mapillary` / `panoramax` / `infra3d` need the
-  matching credentials in the web container (Panoramax needs none). If unsure, the preflight in step 3 decides.
+- **Imagery provider.** Prefer open imagery: `mapillary` or `panoramax` wherever the preflight in step 3 finds them
+  covering the city, `gsv` only where open imagery falls short or the partner asks for it (the project is moving to
+  fully open imagery). `mapillary` / `infra3d` need the matching credentials in the web container (Panoramax needs
+  none).
 - **Neighborhood boundaries**, in this order of preference, and record where they came from (`--regions-source`, a
   URL or the collaborator's email — it lands in `region.data_source`):
   1. A partner- or city-supplied dataset (any OGR format/CRS; note its name column for `--region-name-col`).
@@ -31,6 +33,10 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
      "quartiers", "barrios", "council districts". Prefer official, non-overlapping polygons that tile the city.
   3. Let the tool fall back: OSM neighbourhood polygons (used only above 75% coverage), then US census tracts
      (TIGERweb), then the whole city as one region (small towns; split later in QGIS if it grows).
+  4. None of those gives regions a resident would recognise, in a town above ~20 km of streets: draw them with
+     `make draw-regions` (#6013). The recipe, the design rules (borders on arterials, landmark names, each arterial
+     owned by one side) and Evansdale's worked example are in `docs/onboarding-a-city.md` → "No neighbourhood data:
+     draw your own". Propose the split to the developer as a map before building with it.
 - **A one-region city** takes the city's name (from `--place`), not the source's — otherwise a small town is the
   neighbourhood "Census Tract 7801" in every mission message and API response. Use `--single-region-name` with a
   `--boundary-file`, or to override. Names you chose (`--regions-file`, `--rename-regions`, a `--merge-regions`

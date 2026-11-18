@@ -1,14 +1,15 @@
 # City tools
 
-Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py`,
-`street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web container as `python3` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (Python >= 3.12), which is what their
-`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
+Scripts that build, check or update one city's data. `onboard_city.py`, `draw_regions.py`,
+`check_streets_for_imagery.py`, `street_gradient.py`, `osm_lineage.py` and `backfill_osm_lineage.py` run in the web
+container as `python3` with [`requirements-offline-tools.txt`](../../requirements-offline-tools.txt)
+(Python >= 3.12), which is what their `make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve paths from the repo
 root, so they run from any directory; unit tests live in [`test/python/`](../../test/python).
 
 | Script | Run with | What it does |
 | --- | --- | --- |
 | `onboard_city.py` | `make build-city-data` | Builds a new city's street/region staging data from open sources |
+| `draw_regions.py` | `make draw-regions` | Draws regions for a city with no neighbourhood data, from rough zones and the build's streets, borders along roads (#6013; `docs/onboarding-a-city.md` → "No neighbourhood data") |
 | `check_streets_for_imagery.py` | `make check-imagery` | Imagery preflight or full scan of a city's streets |
 | `setup_new_city.py` | `make onboard-city` | Chains the rest of a new city's setup: configs, GA, schema, fill, scan, dump |
 | `create_ga_properties.py` | `make onboard-city`, or by hand | Creates a city's Google Analytics properties |

@@ -2,7 +2,7 @@
         lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python \
-        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data draw-regions check-imagery \
         hide-streets-without-imagery disable-streets-outside-area \
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         export-osm-lineage-input osm-lineage import-osm-lineage \
@@ -268,6 +268,12 @@ onboard-city:
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
 	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/onboard_city.py --city-id $(id) $(args)"
+
+# Draw regions for a city with no neighbourhood data (tools/city/draw_regions.py, #6013) from its build's QA GeoPackage
+# and hand-drawn zones; writes db/onboarding/<id>/regions_drawn.geojson for the next build's --regions-file.
+# Main checkout only, like build-city-data. Recipe: docs/onboarding-a-city.md -> "No neighbourhood data".
+draw-regions:
+	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/draw_regions.py --city-id $(id) $(args)"
 
 # Imagery preflight or full scan for a city's streets (tools/city/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:

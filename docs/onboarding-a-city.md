@@ -28,7 +28,9 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   2. the city's open-data portal (ArcGIS Hub, Socrata, CKAN, data.gouv.fr, …) — look for official, non-overlapping
      polygons that tile the city;
   3. what the tool finds on its own: OSM neighbourhood polygons (used only when they cover ≥ 75% of the city), then
-     US census tracts, then the whole city as one region (fine for a small town).
+     US census tracts, then the whole city as one region (fine for a very small town);
+  4. regions you draw yourself, when none of the above splits a town of more than ~20 km of streets into pieces a
+     resident would recognise ("No neighbourhood data: draw your own" below; Laurens IA, Juneau AK, Evansdale IA).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
   stored in `region.data_source`. **Regions must tile the city — never overlap.** Street pieces are cut out of the
   region polygons, so a street lying under two of them is cut twice and lands in the database twice (#3067). Those
@@ -97,6 +99,72 @@ flagged region. Two ways back:
   source instead: `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.
+
+### No neighbourhood data: draw your own
+
+A town with no neighbourhood polygons comes out of the first build as one region, or as census tracts that cut
+across it. Above ~20 km of streets that is too coarse for missions and completion to mean much, so draw regions
+(#6013). `tools/city/draw_regions.py` does the geometry; the judgment is yours.
+
+**Design the regions first, on a map of the town.** What has worked:
+
+- **Size.** 4–9 km of streets each, the same order as each other. A small town gets 3–4 regions, a town of
+  60 km about 9.
+- **Borders on the roads people already use to give directions**: the main arterials, a freeway, a river, a rail
+  line. A border that wanders through a block, or switches from one road to another mid-block, reads as arbitrary.
+- **Names residents know**: the arterial (Gilbert Drive), a park or school at the region's heart (Fullerton Park,
+  Bunger), the compass only when nothing better exists (East Side). A name taken from a landmark is a promise: the
+  landmark must lie inside, which the tool checks (`--landmark`).
+- **Downtown is all of downtown**, both sides of the main street, not just the blocks north of it.
+- **Each arterial belongs to one region per stretch.** It is labelled from one side and audited as one street, so
+  it goes to the region on its *owning* side (`--divide-road "Gilbert Drive:south"`), never by whichever side its
+  midpoint wobbles to. A street that leaves a region and comes back reads like a border weaving across the road,
+  and the tool refuses it.
+
+**Inputs**, under `db/onboarding/<city-id>/inputs/draw_regions/` (git-ignored, kept with the city's other inputs):
+
+- `zones.geojson`: one rough polygon per region with a `name` column, drawn in QGIS over the first build's
+  `qgis_road` layer. Precision is wasted here: the zones only decide which region each street belongs to (by its
+  midpoint), and the borders are redrawn from the streets.
+- `dividers.geojson` (optional): lines that separate regions where no included street does. A freeway is the usual
+  one: motorways are filtered out of the build, so without its line the blocks either side of it merge into one
+  face. Also the line of a border road carried on across open ground to the city edge.
+- The flags: one `--divide-road "<OSM name>:<north|south|east|west>"` per arterial, one
+  `--landmark "<region>=<lon>,<lat>"` per landmark-named region.
+
+**Run it** on a build made *without* drawn regions (the first one), whose GeoPackage carries the OSM street names
+on its `osm_way` layer. A build with drawn regions has cut its streets at their borders, so drawing again from it
+weighs the blocks differently: Evansdale's Bunger Middle School block moved to Northeast that way.
+
+```
+make draw-regions id=evansdale-ia args="--zones db/onboarding/evansdale-ia/inputs/draw_regions/zones.geojson \
+    --dividers db/onboarding/evansdale-ia/inputs/draw_regions/dividers.geojson \
+    --divide-road 'Gilbert Drive:south' --landmark 'Bunger=-92.2747,42.4716'"
+make build-city-data id=evansdale-ia args="--place 'Evansdale, Iowa, USA' \
+    --regions-file db/onboarding/evansdale-ia/regions_drawn.geojson \
+    --regions-source 'Drawn for Project Sidewalk: <town> has no official neighbourhoods; \
+    regions are blocks bordered by <roads>'"
+```
+
+It assigns each street a region, cuts the city into blocks along the streets, the city edge and the dividers,
+gives each block to the region owning most of the side-street length around it, and lets each street claim a 15 m
+strip (`--strip-m`) for its region. So every border runs alongside a road, 15 m off it, on the side away from the
+road's own region. It prints the street count and km per region and writes `regions_drawn.geojson`, or
+`regions_drawn.rejected.geojson` and a list of problems when a check fails:
+
+- the regions do not tile the city;
+- a street leaves its region for 30 m or more, so the build would cut that stretch into a street of its own (a
+  zone edge or divider crosses the street; move it);
+- a named street switches region and back again (give it a `--divide-road` side, or redraw the zones);
+- a landmark is not in the region named after it, or a region holds no street.
+
+**What not to do.** Tiling the city by the nearest street (a Voronoi diagram of street points, then smoothed) was
+tried first for Evansdale and abandoned. Its borders zigzag between the ends of side streets, two regions' streets
+meeting at a junction leave thin wedges, and simplifying the polygons cannot remove either without moving streets
+between regions. Blocks have none of these problems, because a block's edges are streets already.
+
+Evansdale's inputs (`db/onboarding/evansdale-ia/inputs/draw_regions/`, with `args.txt` holding its flags) are the
+worked example: nine regions on Lafayette Road, Central Avenue, Evans Road, Gilbert Drive, US-20 and McCoy Road.
 
 ## 2. Imagery preflight
 

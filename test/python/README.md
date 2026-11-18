@@ -19,6 +19,10 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   region prep/merging/validation, COPY/EWKB serialization, and the I/O layer — fetch wrappers (osmnx and the TIGERweb
   API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
   source fallback chain and the `--from-gpkg` re-export mode.
+- `test_draw_regions.py` — drawn regions for a city with no neighbourhood data (#6013): the flag parsers, street
+  names from OSM ways, divide roads assigned by their owning side, the block tiling and its strips, fragment
+  absorption, every check (tiling, stray pieces, weaving, landmarks, empty regions) and `main`, on a synthetic grid
+  town in a metric CRS; plus Evansdale, IA reproduced from a fixture (`test/fixtures/draw-regions-evansdale.json`).
 - `test_street_gradient.py` — the street-gradient sampler (#5223): point spacing along a street, the bilinear lookup,
   gap filling and smoothing, the windowed grade statistics, the structure / suspect / no-data verdicts, USGS tile
   naming, the hand-downloaded-directory locator, the raster sampler, and `main` with `--resume`. Rasters are synthetic
