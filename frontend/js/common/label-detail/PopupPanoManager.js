@@ -17,7 +17,9 @@ import { createPanoViewerLogo } from '../pano-viewer/PanoViewerLogo.js';
 import { util } from '../utilities.js';
 import { PanoViewer } from '../pano-viewer/PanoViewer.js';
 import '../pano-viewer/panoUtilities.js';
-import '../utilitiesSidewalk.js';
+import {
+  fetchBackupImageMetadata, fetchCropImageMetadata, freshBackupImage, retrySignedImage,
+} from '../utilitiesSidewalk.js';
 
 export class PopupPanoManager {
   // panoViewer always points at the active viewer (primary or Pannellum). Callers should query it through this
@@ -67,6 +69,12 @@ export class PopupPanoManager {
   #logo;
   #attribution;
   #cropUrl;
+
+  /**
+   * Called when a crop setPano() reported as shown fails for good, so the host can relock what it unlocked.
+   * @type {?Function}
+   */
+  onFallbackLost = null;
   #labelsHidden = false;
 
   /**
@@ -191,6 +199,7 @@ export class PopupPanoManager {
       display: 'none',
       pointerEvents: 'none',
     }, 'icon-outline label-marker');
+    this.#fallbackImage.addEventListener('error', () => this.#onFallbackImageError());
     this.#fallbackPanzoomWrap.append(this.#fallbackImage);
     this.#fallbackContainer.append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
 
@@ -315,20 +324,6 @@ export class PopupPanoManager {
   }
 
   /**
-   * Fetches backup image metadata from the backend for Pannellum fallback.
-   * @param {string} panoId
-   * @returns {Promise<object|null>} The metadata, or null if none exists.
-   */
-  async #fetchBackupImageMetadata(panoId) {
-    try {
-      const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
-      return res.ok ? await res.json() : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
    *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
    *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
@@ -351,6 +346,7 @@ export class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
+    delete this.#fallbackImage.dataset.resigned; // One element serves every label; each gets its own retry.
     this.svHolder.style.visibility = 'hidden'; // Hide until we've finished rendering.
     this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
@@ -369,12 +365,16 @@ export class PopupPanoManager {
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
-        if (!backupImage) backupImage = await this.#fetchBackupImageMetadata(panoId);
+        if (!backupImage) backupImage = await fetchBackupImageMetadata(panoId);
       }
     } else if (!backupImage) {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
-      backupImage = await this.#fetchBackupImageMetadata(panoId);
+      backupImage = await fetchBackupImageMetadata(panoId);
     }
+    // A label payload from page load can carry a URL whose signature has since expired (#5861).
+    backupImage = await freshBackupImage(backupImage);
+    // A newer label took over during the requests above; its own load owns the viewer now.
+    if (load !== this.#loadToken) return false;
     const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.
@@ -499,6 +499,31 @@ export class PopupPanoManager {
         this.renderLabel(this.label);
         resolve();
       }, 250);
+    });
+  }
+
+  /**
+   * Re-signs a failed signed crop and tries it once more, since its signature likely expired (#5861); otherwise, or
+   * on a second failure, shows the "imagery not available" panel.
+   */
+  #onFallbackImageError() {
+    const load = this.#loadToken;
+    const failed = this.#fallbackImage.getAttribute('src');
+    // An error for a crop this load no longer shows (a newer label's, or one already given up) is stale.
+    if (!failed || failed !== this.#cropUrl) return;
+    const label = this.label;
+    retrySignedImage(this.#fallbackImage, {
+      fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.labelId),
+      isCurrent: () => load === this.#loadToken,
+      onFresh: (url) => {
+        this.#cropUrl = url;
+      },
+      onGiveUp: () => {
+        this.#cropUrl = null;
+        this.#attribution?.hide();
+        this.#panoFailureCallback();
+        this.onFallbackLost?.();
+      },
     });
   }
 

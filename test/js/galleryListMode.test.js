@@ -83,7 +83,8 @@ describe('Gallery in review-list mode', () => {
     function build(labelIds) {
       document.body.innerHTML = '<div class="gallery-list-bar"></div>';
       return new GalleryFilter(
-        null, null, null, { regionIds: [], aiValidationOptions: [], labelIds }, fakeTracker(),
+        null, null, null,
+        { regionIds: [], aiValidationOptions: [], defaultValidationOptions: ['correct'], labelIds }, fakeTracker(),
       );
     }
 

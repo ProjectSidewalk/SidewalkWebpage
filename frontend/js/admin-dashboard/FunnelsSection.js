@@ -6,7 +6,8 @@
  * labeling/validation contribution and finishing a mission) — as horizontal bar funnels, each step normalized to its
  * segment's step 1 (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
  * breakdown selector (all / registered-vs-anonymous / desktop-vs-mobile) re-renders from cached data. Reuses the
- * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library.
+ * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library. With all users shown, each funnel is headed by Google
+ * Analytics' new-visitor count for the same window (#5996).
  *
  * The set and order of steps come from each funnel's `steps` array in the response — this class only supplies
  * presentational labels — so the funnel shape stays defined by the backend (ConfigService.FunnelDefs).
@@ -14,6 +15,7 @@
 
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
+import { funnelVisitorsRowHtml, settledFunnels } from './funnelVisitors.js';
 
 export class FunnelsSection {
   /**
@@ -98,18 +100,35 @@ export class FunnelsSection {
     }));
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
+  /**
+   * Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. An
+   * answer for a window the reader has since clicked away from is dropped, so the bars always match the lit button.
+   * An answer that beat Google Analytics is shown as is, and redrawn once the visitors line is ready.
+   */
   async #load() {
+    const timeWindow = this.#window;
+    const fetchFunnels = () => util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
     AdminShell.setText(this.#statusId, 'Loading funnels…');
     try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
-      this.#funnels = (data && data.funnels) || {};
-      this.#computedAt = (data && data.computed_at) || null;
-      this.#render();
+      const data = await fetchFunnels();
+      if (timeWindow !== this.#window) return;
+      this.#show(data);
+      if (data && data.ga_pending) {
+        settledFunnels(fetchFunnels, () => timeWindow === this.#window)
+          .then((settled) => settled && this.#show(settled));
+      }
     } catch (err) {
+      if (timeWindow !== this.#window) return;
       console.error('Funnel load failed:', err);
       AdminShell.setText(this.#statusId, 'Could not load funnel data.');
     }
+  }
+
+  /** @param {?{funnels?: object, computed_at?: string}} data - A /adminapi/funnels answer. */
+  #show(data) {
+    this.#funnels = (data && data.funnels) || {};
+    this.#computedAt = (data && data.computed_at) || null;
+    this.#render();
   }
 
   /** Renders each available funnel (mapping, contribution) for the active breakdown dimension. */
@@ -132,7 +151,8 @@ export class FunnelsSection {
   /**
    * One funnel block: heading, description, optional legend, and the step bars for the active dimension.
    * @param {string} funnelType - 'mapping' | 'contribution'.
-   * @param {{steps: string[], segments: object}} funnel - The funnel's step keys and per-segment data.
+   * @param {{steps: string[], segments: object, ga_visitors?: any}} funnel - The funnel's step keys, per-segment
+   *   data, and GA visitors for the window (null when GA has none).
    * @param {{key: string, label: string}[]} segs - Segments to show for the active dimension.
    * @returns {string} The block's HTML.
    */
@@ -160,10 +180,10 @@ export class FunnelsSection {
           ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-          <div class="ac-funnel-bar" data-ps-tooltip="${util.escapeHTML(tip)}">
+          <div class="ac-funnel-bar">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si]}"></span>
-            <span class="ac-funnel-bar-val">${valText}</span>
+            <span class="ac-funnel-bar-val" data-ps-tooltip="${util.escapeHTML(tip)}">${valText}</span>
           </div>`;
       }).join('');
       return `
@@ -173,11 +193,15 @@ export class FunnelsSection {
         </div>`;
     }).join('');
 
+    // GA can't be split the way the breakdowns are, so the line only heads the whole funnel.
+    const stepLabel = (k) => (FunnelsSection.#STEP_LABELS[k] || { full: k }).full;
+    const visitors = this.#dim === 'all' ? funnelVisitorsRowHtml(funnel.ga_visitors, stepLabel) : '';
+
     return `
       <div class="ac-funnel-block">
         <h3 class="ac-funnel-block-title">${util.escapeHTML(meta.title)}</h3>
         <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
-        <div class="ac-funnel-panel">${legend}${stepRows}</div>
+        <div class="ac-funnel-panel">${legend}${visitors}${stepRows}</div>
       </div>`;
   }
 

@@ -14,6 +14,9 @@ mockModule('i18next', () => ({ default: { t: (key) => key } }));
 window.ResizeObserver = class { observe() {} disconnect() {} };
 const { MistakeGallery } = await loadModules('frontend/js/user-dashboard/MistakeGallery.js');
 
+/** Lets the failed crop's re-sign request (#5861) answer. */
+const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
 
@@ -104,6 +107,8 @@ describe('the dashboard mistake card\'s imagery credit', () => {
 
     photo().dispatchEvent(new Event('error'));
 
+    await settle();
+
     expect(photo().src).toContain(GSV_URL);
     expect(logo().style.display).toBe('none');
   });
@@ -126,6 +131,8 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     expect(logo().style.display).toBe('flex');
 
     photo().dispatchEvent(new Event('error'));
+
+    await settle();
 
     expect(photo()).toBeNull();
     expect(logo().style.display).toBe('none');

@@ -7,4 +7,5 @@ new DataQualityPage({
   labelTypesUrl: '/v3/api/labelTypes',
   byDayUrl: '/v3/api/overallStatsByDay',
   tagSeverityUrl: '/adminapi/tagSeverity',
+  reliabilityUrl: '/adminapi/validatorReliability',
 }).init();

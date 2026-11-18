@@ -12,7 +12,7 @@ import { createPanoAttribution } from './common/pano-viewer/PanoAttribution.js';
 import { createPanoViewerLogo } from './common/pano-viewer/PanoViewerLogo.js';
 import { ShareWidget } from './common/share/ShareWidget.js';
 import { util } from './common/utilities.js';
-import './common/utilitiesSidewalk.js';
+import { fetchCropImageMetadata, retrySignedImage } from './common/utilitiesSidewalk.js';
 import '../css/components/landing-validation-grid.css';
 
 /**
@@ -49,7 +49,8 @@ export class LandingValidationGrid {
   #grid;
   #loadedLabelIds = new Set();
   #pool = [];
-  #fetching = false;
+  /** @type {?Promise<void>} The batch request in flight, if any. */
+  #loading = null;
 
   /**
    * @param {HTMLElement} sectionEl - The #landing-validation-container section (rendered with `hidden`).
@@ -125,10 +126,19 @@ export class LandingValidationGrid {
   /**
    * Fetches n recent labels needing validation and appends the usable ones to the pool.
    * @param {number} n - How many labels to request (the server spreads this across label types).
+   * @returns {Promise<void>} Settles once the pool has the batch; a call during a request shares that request.
    */
-  async #loadBatch(n) {
-    if (this.#fetching) return;
-    this.#fetching = true;
+  #loadBatch(n) {
+    this.#loading ??= this.#fetchBatch(n).finally(() => {
+      this.#loading = null;
+    });
+    return this.#loading;
+  }
+
+  /**
+   * @param {number} n - How many labels to request.
+   */
+  async #fetchBatch(n) {
     try {
       const response = await fetch('/label/labels', {
         method: 'POST',
@@ -155,8 +165,6 @@ export class LandingValidationGrid {
       this.#pool.push(...usable.filter((entry) => entry.cropUrl), ...usable.filter((entry) => !entry.cropUrl));
     } catch (e) {
       console.error('Failed to load labels for the validation grid', e);
-    } finally {
-      this.#fetching = false;
     }
   }
 
@@ -189,9 +197,8 @@ export class LandingValidationGrid {
     img.alt = util.misc.labelTypeName(label.label_type);
     // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
     let creditImage = null;
-    img.addEventListener('error', () => {
-      // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
-      // whose every source fails is dead weight — swap it for a fresh label.
+    // A card whose every source fails is dead weight — swap it for a fresh label.
+    const fallBack = () => {
       if (card.dataset.imageSource === 'crop' && entry.gsvImageUrl) {
         card.dataset.imageSource = 'api';
         // The crop's recorded position describes the crop only; the still is the Explore frame again.
@@ -201,6 +208,18 @@ export class LandingValidationGrid {
       } else {
         this.#replaceCard(card);
       }
+    };
+    img.addEventListener('error', () => {
+      if (card.dataset.imageSource !== 'crop') {
+        fallBack();
+        return;
+      }
+      // A pooled label's signed crop can expire before it's shown (#5861): re-sign once before the billed still.
+      retrySignedImage(img, {
+        fetchMetadata: () => fetchCropImageMetadata(label.label_type, label.label_id),
+        isCurrent: () => card.isConnected,
+        onGiveUp: fallBack,
+      });
     });
     img.src = entry.cropUrl || entry.gsvImageUrl;
     imgWrap.appendChild(img);
@@ -367,9 +386,9 @@ export class LandingValidationGrid {
   async #validate(card, entry, result) {
     const label = entry.label;
     const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (card.querySelectorAll('.lvg-btn'));
-    buttons.forEach((button) => {
-      button.disabled = true;
-    });
+    if (buttons[0].getAttribute('aria-disabled') === 'true') return;
+    // aria-disabled, not disabled, which would take keyboard focus off the button just pressed.
+    buttons.forEach((button) => button.setAttribute('aria-disabled', 'true'));
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
     // Mirror Gallery's static-image validation payload: canvas_* describe where the label sits within the
@@ -418,9 +437,7 @@ export class LandingValidationGrid {
       setTimeout(() => this.#replaceCard(card), LandingValidationGrid.#THANKS_MS);
     } catch (e) {
       console.error('Failed to submit validation', e);
-      buttons.forEach((button) => {
-        button.disabled = false;
-      });
+      buttons.forEach((button) => button.removeAttribute('aria-disabled'));
     }
   }
 
@@ -434,13 +451,16 @@ export class LandingValidationGrid {
       const refill = this.#loadBatch(LandingValidationGrid.#REFILL_FETCH);
       if (this.#pool.length === 0) await refill;
     }
+    // A failed image may have swapped this card out while its vote's thanks was still showing.
+    if (!card.isConnected) return;
     const hadFocus = card.contains(document.activeElement);
     const index = [...this.#grid.children].indexOf(card);
     const entry = this.#pool.shift();
     if (entry) {
       const fresh = this.#buildCard(entry, index);
       card.replaceWith(fresh);
-      if (hadFocus) fresh.querySelector('.lvg-btn')?.focus();
+      // No scroll: a mouse click focuses the button too, and that reader may have scrolled on since.
+      if (hadFocus) fresh.querySelector('.lvg-btn')?.focus({ preventScroll: true });
     } else {
       card.remove();
       if (this.#grid.querySelectorAll('.lvg-card').length === 0) this.#section.hidden = true;

@@ -5,8 +5,8 @@
 # so Apple Silicon gets a native browser. The web image installs none of Chromium's runtime libs, caps /dev/shm at
 # 256mb, and would lose any browser installed at runtime the next time the container is recreated.
 #
-# PW_VERSION and AXE_VERSION come from `make test-e2e`, which reads them out of package.json. The base image tag and
-# the runner installed below therefore both derive from the repo's own pins and cannot drift apart.
+# PW_VERSION and AXE_VERSION come from `make test-e2e`, which reads them out of package-lock.json. The base image tag
+# and the runner installed below therefore both derive from the repo's own pins and cannot drift apart.
 ARG PW_VERSION
 FROM mcr.microsoft.com/playwright:v${PW_VERSION}-noble
 

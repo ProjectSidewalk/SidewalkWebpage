@@ -45,6 +45,17 @@ object FilteredTables {
     s"$streetIdColumn <> ${tutorialStreetId(schema)}"
 
   /**
+   * Whether a label isn't from the tutorial, for a query that has `label` and its `audit_task`. Also checks the
+   * audit's street, since a tutorial label can land on a real street.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A boolean SQL expression.
+   */
+  def notTutorialLabel(schema: Option[String] = None): String =
+    s"label.tutorial = FALSE AND ${notTutorialStreet("label.street_edge_id", schema)} " +
+      s"AND ${notTutorialStreet("audit_task.street_edge_id", schema)}"
+
+  /**
    * Streets that count: open and not the tutorial street. Twin of `StreetEdgeTable.streets`.
    *
    * @param schema A city schema to read instead of the current one.
@@ -89,18 +100,8 @@ object FilteredTables {
     }
 
   /**
-   * Whether a user isn't an AI account, for admin numbers that count people.
-   *
-   * @param userIdColumn The column holding the user's id, e.g. `contributor.user_id`.
-   * @return             A boolean SQL expression.
-   */
-  def notAi(userIdColumn: String): String =
-    s"NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = $userIdColumn " +
-      "AND user_role.role = 'AI')"
-
-  /**
-   * Labels that count: not deleted, not tutorial, not by an excluded user, not on the tutorial street. Twin of
-   * `LabelTable.labels`. Also checks the audit's street, since a tutorial label can land on a real street.
+   * Labels that count: not deleted, not tutorial ([[notTutorialLabel]]), not by an excluded user. Twin of
+   * `LabelTable.labels`.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.
@@ -114,9 +115,7 @@ object FilteredTables {
          FROM ${table(schema, "label")} AS label
          INNER JOIN ${table(schema, "audit_task")} AS audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE label.deleted = FALSE
-             AND label.tutorial = FALSE
-             AND ${notTutorialStreet("label.street_edge_id", schema)}
-             AND ${notTutorialStreet("audit_task.street_edge_id", schema)}
+             AND ${notTutorialLabel(schema)}
              AND ${userCounts(schema, "audit_task.user_id", contributors)}
        ) AS label"""
 
@@ -131,9 +130,7 @@ object FilteredTables {
          FROM label
          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE ${models.label.LabelTable.countsTowardAccuracySql}
-             AND label.tutorial = FALSE
-             AND ${notTutorialStreet("label.street_edge_id")}
-             AND ${notTutorialStreet("audit_task.street_edge_id")}
+             AND ${notTutorialLabel()}
        ) AS label"""
 
   /**
@@ -216,21 +213,64 @@ object FilteredTables {
          WHERE ${userCounts(schema, "voided_label_validation.user_id", Contributors.NotExcluded)}
        ) AS voided_label_validation"""
 
+  /** Whether the user in `work.user_id` isn't an AI account. */
+  private val workIsNotAi: String =
+    "NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_role.user_id = work.user_id " +
+      "AND user_role.role = 'AI')"
+
   /**
-   * Users with a counted label or a vote, voided votes included since the work still happened (#3976).
+   * The work that makes someone a contributor: a counted label or a vote, voided votes included since the work still
+   * happened (#3976).
+   *
+   * @param schema   A city schema to read instead of the current one.
+   * @param withTime Adds a `done_at` column and keeps every row; otherwise each `user_id` comes back once.
+   * @return         A SELECT of `user_id` (a `text` column), with no AI filter yet.
+   */
+  private def contributorWork(schema: Option[String], withTime: Boolean): String = {
+    def time(column: String): String = if (withTime) s", $column AS done_at" else ""
+    val union                        = if (withTime) "UNION ALL" else "UNION"
+    s"""SELECT label.user_id${time("label.time_created")}
+           FROM ${labels(schema)}
+           $union
+           SELECT label_validation.user_id${time("label_validation.end_timestamp")}
+           FROM ${votesCast(schema)}
+           $union
+           SELECT voided_label_validation.user_id${time("voided_label_validation.end_timestamp")}
+           FROM ${voidedVotesCast(schema)}"""
+  }
+
+  /**
+   * People with a counted label or a vote ([[contributorWork]]). AI accounts are left out, since every count built on
+   * this is a count of people (#5914).
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause, one row per distinct `user_id` (a `text` column).
    */
   def contributorIds(schema: Option[String] = None): String =
     s"""(
-         SELECT label.user_id
-         FROM ${labels(schema)}
-         UNION
-         SELECT label_validation.user_id
-         FROM ${votesCast(schema)}
-         UNION
-         SELECT voided_label_validation.user_id
-         FROM ${voidedVotesCast(schema)}
+         SELECT work.user_id
+         FROM (
+           ${contributorWork(schema, withTime = false)}
+         ) AS work
+         WHERE $workIsNotAi
+       ) AS contributor"""
+
+  /**
+   * When each contributor ([[contributorIds]]) first did work that counts.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause, one row per `user_id` with its `first_at` timestamp.
+   */
+  def contributorFirstWork(schema: Option[String] = None): String =
+    s"""(
+         SELECT work.user_id, work.first_at
+         FROM (
+           SELECT work.user_id, MIN(work.done_at) AS first_at
+           FROM (
+             ${contributorWork(schema, withTime = true)}
+           ) AS work
+           GROUP BY work.user_id
+         ) AS work
+         WHERE $workIsNotAi
        ) AS contributor"""
 }

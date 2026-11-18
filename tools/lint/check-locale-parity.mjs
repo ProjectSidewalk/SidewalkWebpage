@@ -116,8 +116,8 @@ function reference(baseNamespace) {
 /**
  * Collect leaf values that aren't a usable translation string.
  *
- * i18next only falls back when a key is *absent*, so an empty string is a silent blank in the UI rather than a
- * fallback to the reference locale. An empty object holds no keys at all, so the parity comparison can't see it.
+ * i18next treats an empty string as missing and shows the reference locale's text, so nothing on the page gives the
+ * gap away. An empty object holds no keys at all, so the parity comparison can't see it.
  *
  * @param {object} obj - Parsed translation JSON (or a nested sub-object).
  * @param {string} [prefix] - Accumulated dotted path prefix for recursion.

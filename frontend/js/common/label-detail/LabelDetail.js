@@ -287,6 +287,11 @@ export class LabelDetail {
       this.#viewerType,
       this.#viewerAccessToken,
     );
+    // The crop setPano() reported shown failed for good, so there's nothing left to judge (#5861).
+    this.panoManager.onFallbackLost = () => {
+      this.#noImagery = true;
+      this.#applyInteractionLock();
+    };
 
     this.#initInfoPopover();
     this.#initHideLabelToggle();

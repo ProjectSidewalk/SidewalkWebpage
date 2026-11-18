@@ -2,6 +2,8 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import views.ViewHelpers.jsonForScript
+@import models.partner.PartnerMetadata
+@import models.utils.SlugUtils
 @import service.{CommonPageData, PageMeta}
 @*
  * About page (#4237, #4631): the canonical "what is Project Sidewalk" page for search engines, server-rendered for SEO
@@ -11,8 +13,9 @@
  * @param commonData Per-page config; allCityInfo drives the server-rendered deployment city/country counts.
  * @param title      Localized page title.
  * @param user       The signed-in or anonymous display user (for the navbar).
+ * @param partners   Every row of the shared partner table, all cities plus project-wide, for the logo grid (#5980).
  *@
-@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole], partners: Seq[PartnerMetadata]
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
@@ -24,6 +27,34 @@
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
    regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
 @languageCount = @{commonData.supportedLanguages.map(_.takeWhile(_ != '-')).distinct.size}
+
+@* The partner logo grid (#5980): every organization in the shared partner table, project-wide partners first, then
+   every city's partners alphabetically, private cities' included (PartnerMetadata.groupForAbout). An organization
+   appears once per list, so a project-wide partner that also works in particular cities is in both. Each grid
+   renders only when it has logos, so a fresh database shows just the prose above. Markup mirrors the landing partial
+   (landing/_partners), including why the name's psTooltip sits on the non-focusable wrapper rather than the link: the
+   alt already describes the logo, and aria-describedby on the link would make a screen reader read the name twice. *@
+@partnerLogoImg(p: PartnerMetadata) = {
+  <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.logoVersion"
+  width="@p.logoWidth" height="@p.logoHeight"
+  alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
+}
+
+@partnerGrid(rows: Seq[PartnerMetadata], labelledBy: String) = {
+  <ul class="about-partner-logos" aria-labelledby="@labelledBy">
+    @for(p <- rows) {
+      <li class="about-partner-logo" data-ps-tooltip="@p.name">
+        @* No-URL partners render a bare img: an <a> without href would read as a broken link. *@
+        @if(p.url.isDefined) {
+          <a href="@p.url" data-partner-source="@SlugUtils.slugify(p.name, s"partner-${p.partnerId}")"
+             target="_blank" rel="noopener">@partnerLogoImg(p)</a>
+        } else {
+          @partnerLogoImg(p)
+        }
+      </li>
+    }
+  </ul>
+}
 
 @* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid, and through
    jsonForScript so no interpolated string can close the block with `</script>`. *@
@@ -215,7 +246,30 @@
       </div>
     </section>
 
-    <section class="about-band" id="about-history">
+    <section class="about-band" id="about-partners">
+      <div class="about-container">
+        <h2>@Messages("about.partners.title")</h2>
+        <p>@Messages("about.partners.body")</p>
+        <p>@Html(Messages("about.partners.schools"))</p>
+        @* Grouped once here, since a Twirl value definition would re-run the grouping at each use: groups._1 is the
+           project-wide partners, groups._2 the city partners (which can repeat a project-wide one). *@
+        @defining(PartnerMetadata.groupForAbout(partners)) { groups =>
+          @if(groups._1.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-project-partners-title">
+              @Messages("about.partners.project.title")</h3>
+            <p class="about-partners-tagline">@Messages("landing.partners.project.tagline")</p>
+            @partnerGrid(groups._1, "about-project-partners-title")
+          }
+          @if(groups._2.nonEmpty) {
+            <h3 class="about-partners-heading" id="about-city-partners-title">@Messages("about.partners.city.title")</h3>
+            <p class="about-partners-tagline">@Messages("about.partners.city.tagline")</p>
+            @partnerGrid(groups._2, "about-city-partners-title")
+          }
+        }
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-history">
       <div class="about-container">
         <h2>@Messages("about.history.title")</h2>
         <ol class="about-timeline">
@@ -224,16 +278,24 @@
             <p>@Html(Messages("about.history.2012"))</p>
           </li>
           <li>
-            <span class="about-timeline-year">2017</span>
-            <p>@Html(Messages("about.history.2017"))</p>
+            <span class="about-timeline-year">2016</span>
+            <p>@Html(Messages("about.history.2016"))</p>
           </li>
           <li>
             <span class="about-timeline-year">2019</span>
             <p>@Html(Messages("about.history.2019"))</p>
           </li>
           <li>
+            <span class="about-timeline-year">2019</span>
+            <p>@Html(Messages("about.history.2019.mexico"))</p>
+          </li>
+          <li>
             <span class="about-timeline-year">2021</span>
             <p>@Html(Messages("about.history.2021"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2022</span>
+            <p>@Html(Messages("about.history.2022"))</p>
           </li>
           <li>
             <span class="about-timeline-year">@Messages("about.history.today.label")</span>
@@ -243,7 +305,7 @@
       </div>
     </section>
 
-    <section class="about-band about-band--tint" id="about-pubs">
+    <section class="about-band" id="about-pubs">
       <div class="about-container">
         <h2>@Messages("about.pubs.title")</h2>
         <p class="about-section-intro">@Html(Messages("about.pubs.intro"))</p>
@@ -276,18 +338,10 @@
       </div>
     </section>
 
-    <section class="about-band" id="about-data">
+    <section class="about-band about-band--tint" id="about-data">
       <div class="about-container">
         <h2>@Html(Messages("about.data.title"))</h2>
         <p>@Html(Messages("about.data.body"))</p>
-      </div>
-    </section>
-
-    <section class="about-band about-band--tint" id="about-partners">
-      <div class="about-container">
-        <h2>@Messages("about.partners.title")</h2>
-        <p>@Messages("about.partners.body")</p>
-        <p>@Html(Messages("about.partners.schools"))</p>
       </div>
     </section>
 

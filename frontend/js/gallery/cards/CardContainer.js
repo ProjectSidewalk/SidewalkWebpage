@@ -79,7 +79,7 @@ export class CardContainer {
   // that stops being true), used rather than the cards' own severity or votes because those change under the admin as
   // they vote or edit, which moved cards between pages mid-review. In the random order, whose cache survives filter
   // changes, it only keeps pages stable as more cards load.
-  /** @type {Map<string, number>} Keyed as Card.getLabelId() types its answer. */
+  /** @type {Map<number, number>} Keyed as Card.getLabelId() types its answer. */
   #fetchOrder = new Map();
 
   // Current labels being displayed of current type based off filters.

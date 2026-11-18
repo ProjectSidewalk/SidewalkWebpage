@@ -142,6 +142,11 @@ module.exports = [
       // output/editor without failing the build. Every other rule here is an `error` (must-fix).
       '@stylistic/max-len': ['warn', {code: 120, ignoreUrls: true}],
       '@stylistic/generator-star-spacing': ['error', 'after'],
+      // The preset wants a list all on one line or one item per line; ours wrap to fill the 120 columns. It also took
+      // over brace and bracket spacing from the two rules below, which the plugin now calls deprecated on every run.
+      '@stylistic/list-style': 'off',
+      '@stylistic/object-curly-spacing': ['error', 'always'],
+      '@stylistic/array-bracket-spacing': ['error', 'never'],
       '@stylistic/no-confusing-arrow': ['error', {allowParens: true}],
       '@stylistic/padding-line-between-statements': [
         'error',

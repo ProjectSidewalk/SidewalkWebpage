@@ -8,7 +8,7 @@ import { createPanoAttribution } from '../../common/pano-viewer/PanoAttribution.
 import { createPanoViewerLogo } from '../../common/pano-viewer/PanoViewerLogo.js';
 import { util } from '../../common/utilities.js';
 import { validationReasons } from '../../common/validationReasons.js';
-import { buildBackupImageData } from '../../common/utilitiesSidewalk.js';
+import { buildBackupImageData, fetchCropImageMetadata, retrySignedImage } from '../../common/utilitiesSidewalk.js';
 import { LabelMiniCard } from '../../common/LabelMiniCard.js';
 import { SeverityDisplay } from '../displays/SeverityDisplay.js';
 import { TagDisplay } from '../displays/TagDisplay.js';
@@ -33,6 +33,8 @@ export class Card {
 
   #params;
   #cropUrl;
+  /** Counts loadImage() calls, so a re-sign answering after a newer call has taken over the image is dropped. */
+  #loadAttempt = 0;
   #cropMarker;
   #gsvImageUrl;
   #tracker;
@@ -270,7 +272,7 @@ export class Card {
   /**
    * This function returns labelId property.
    *
-   * @returns {string}
+   * @returns {number}
    */
   getLabelId() {
     return this.#properties.label_id;
@@ -343,7 +345,8 @@ export class Card {
   }
 
   /**
-   * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
+   * Loads the image, preferring the crop. A crop that fails is re-signed and tried once more, since its signed URL may
+   * have expired while the page sat open (#5861); after that it falls back to GSV.
    * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
    */
   loadImage() {
@@ -362,12 +365,14 @@ export class Card {
         // The container asks again on every page and filter render, so a card whose last attempt fell back to the
         // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
         this.#useSource(this.#cropUrl ? 'crop' : 'api');
+        const attempt = ++this.#loadAttempt;
+        delete img.dataset.resigned; // Each attempt gets its own retry.
         img.onload = () => {
           this.#status.imageFetched = true;
           this.#showImage();
           resolve(true);
         };
-        img.onerror = () => {
+        const fallBack = () => {
           if (fallbackUrl) {
             // The crop failed; try the still, and place the marker and the credit for it.
             this.#useSource('api');
@@ -380,6 +385,23 @@ export class Card {
             this.#hideMissingImage();
             resolve(false);
           }
+        };
+        // A report card shows the crop's thumbnail (reportCards.js), so it re-signs to one.
+        const thumbnail = /\/thumbnail(\?|$)/.test(this.#cropUrl ?? '');
+        img.onerror = () => {
+          if (this.#status.imageSource !== 'crop') {
+            fallBack();
+            return;
+          }
+          retrySignedImage(img, {
+            fetchMetadata: () => fetchCropImageMetadata(this.getLabelType(), this.getLabelId())
+              .then((meta) => meta && { image_url: thumbnail ? meta.thumbnail_url : meta.image_url }),
+            isCurrent: () => attempt === this.#loadAttempt,
+            onFresh: (url) => {
+              this.#cropUrl = url;
+            },
+            onGiveUp: fallBack,
+          });
         };
         img.src = primaryUrl;
       } else {

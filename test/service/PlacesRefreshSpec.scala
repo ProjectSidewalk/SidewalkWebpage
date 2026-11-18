@@ -160,17 +160,19 @@ class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with Optio
       val (lat, lon) = liveRegionCentroid.get
 
       val answer = Json.obj("elements" -> Json.arr(node(SpecOsmId, lat, lon, "amenity" -> "school", "name" -> "Spec")))
+      // City-supplied places (CI's seed has one) are no part of a refresh, so they are counted around.
+      val cityPlaces = run(placeTable.places.length.result)
       withOverpass(answer) { (service, queries) =>
         try {
-          await(service.getFullCityPlaces(batchSize = 100)) mustBe empty
+          await(service.getFullCityPlaces(batchSize = 100)).flatMap(_.osmId) mustBe empty
           val result = await(service.refresh(force = true))
           result.skipped mustBe false
           result.fetched mustBe 1
           result.inserted mustBe 1
-          result.total mustBe 1
+          result.total mustBe cityPlaces + 1
           queries.get mustBe 1
           // The cached whole-city list was last week's; the refresh cleared it, so the tool's next download is fresh.
-          await(service.getFullCityPlaces(batchSize = 100)).map(_.osmId) mustBe Seq(Some(SpecOsmId))
+          await(service.getFullCityPlaces(batchSize = 100)).flatMap(_.osmId) mustBe Seq(SpecOsmId)
         } finally {
           val _ = run(sqlu"DELETE FROM place WHERE source = 'osm' AND osm_id = $SpecOsmId")
           val _ = await(app.injector.instanceOf[AsyncCacheApi].remove(PlacesService.FullCityCacheKey))

@@ -148,6 +148,28 @@ class StatsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         sumOf("not_validated") mustBe (row \ "labels_not_validated").as[Int]
       }
     }
+
+    // Data-independent: holds whether or not the nightly job has scored anyone in the connected schema.
+    "report a validator reliability exactly when the user has graded validations" in {
+      val rows = contentAsJson(route(app, FakeRequest(GET, "/v3/api/userStats")).get).as[Seq[JsObject]]
+      rows.foreach { row =>
+        val (graded, matched) = ((row \ "validations_graded").as[Int], (row \ "validations_matched").as[Int])
+        matched must be <= graded
+        (row \ "validator_reliability").asOpt[Double].isDefined mustBe graded > 0
+        (row \ "validation_agreement").asOpt[Double] mustBe Option.when(graded > 0)(matched.toDouble / graded)
+      }
+    }
+
+    "carry the reliability columns in the CSV" in {
+      val csv    = contentAsString(route(app, FakeRequest(GET, "/v3/api/userStats?filetype=csv")).get)
+      val header = csv.linesIterator.next().split(",")
+      header must contain allOf (
+        "validations_graded",
+        "validations_matched",
+        "validation_agreement",
+        "validator_reliability"
+      )
+    }
   }
 
   "GET /v3/api/aggregateStatsByDay" should {

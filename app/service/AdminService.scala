@@ -118,6 +118,7 @@ case class ApiAnalyticsBySourceData(
  * @param activeRegistered  Distinct registered users with any logged activity that day.
  * @param activeAnon        Distinct anonymous users with any logged activity that day.
  * @param newUsers          Newly registered accounts (SignUp events) that day.
+ * @param newContributors   People whose first non-tutorial label or first validation fell on that day.
  */
 case class ActivityDayRecord(
     date: LocalDate,
@@ -130,7 +131,8 @@ case class ActivityDayRecord(
     signinsAnon: Int,
     activeRegistered: Int,
     activeAnon: Int,
-    newUsers: Int
+    newUsers: Int,
+    newContributors: Int
 )
 
 /**
@@ -334,6 +336,7 @@ trait AdminService {
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
@@ -412,6 +415,7 @@ class AdminServiceImpl @Inject() (
     val signinsFut     = db.run(webpageActivityTable.getSignInCountsByDate)
     val activeFut      = db.run(webpageActivityTable.getActiveUserCountsByDate)
     val newUsersFut    = db.run(webpageActivityTable.getNewUserCountsByDate)
+    val newContribFut  = db.run(userStatTable.getNewContributorCountsByDate)
 
     for {
       labels      <- labelsFut
@@ -422,6 +426,7 @@ class AdminServiceImpl @Inject() (
       signins     <- signinsFut
       active      <- activeFut
       newUsers    <- newUsersFut
+      newContribs <- newContribFut
     } yield {
       def toDayMap(rows: Seq[(OffsetDateTime, Int)]): Map[LocalDate, Int] =
         rows.map { case (day, count) => day.toLocalDate -> count }.toMap
@@ -435,14 +440,15 @@ class AdminServiceImpl @Inject() (
       val distanceMap   = distances.map { case (day, meters) => day.toLocalDate -> meters }.toMap
       val missionMap    = toDayMap(missions)
       val newUserMap    = toDayMap(newUsers)
+      val newContribMap = toDayMap(newContribs)
       val signinRegMap  = splitMap(signins, anon = false)
       val signinAnonMap = splitMap(signins, anon = true)
       val activeRegMap  = splitMap(active, anon = false)
       val activeAnonMap = splitMap(active, anon = true)
 
       val allDates: Seq[LocalDate] = (labelMap.keySet ++ validationMap.keySet ++ auditMap.keySet ++ missionMap.keySet ++
-        newUserMap.keySet ++ signinRegMap.keySet ++ signinAnonMap.keySet ++ activeRegMap.keySet ++
-        activeAnonMap.keySet).toSeq.sorted
+        newUserMap.keySet ++ newContribMap.keySet ++ signinRegMap.keySet ++ signinAnonMap.keySet ++
+        activeRegMap.keySet ++ activeAnonMap.keySet).toSeq.sorted
 
       allDates.map { d =>
         ActivityDayRecord(
@@ -456,7 +462,8 @@ class AdminServiceImpl @Inject() (
           signinsAnon = signinAnonMap.getOrElse(d, 0),
           activeRegistered = activeRegMap.getOrElse(d, 0),
           activeAnon = activeAnonMap.getOrElse(d, 0),
-          newUsers = newUserMap.getOrElse(d, 0)
+          newUsers = newUserMap.getOrElse(d, 0),
+          newContributors = newContribMap.getOrElse(d, 0)
         )
       }
     }
@@ -481,6 +488,8 @@ class AdminServiceImpl @Inject() (
         .toSeq
     }
   }
+  def getValidatorReliabilityScores: Future[Seq[(Int, Int, Double)]] =
+    db.run(userStatTable.validatorReliabilityScores)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
 
@@ -903,7 +912,8 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
+   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time,
+   * except validator reliability, which is refreshed for everyone.
    * @param cutoffTime Only update users who have done any auditing since this cutoff time
    * @return The number of users whose stats were updated
    */
@@ -913,6 +923,7 @@ class AdminServiceImpl @Inject() (
         _ad         <- userStatTable.updateAuditedDistance(cutoffTime)
         _lpm        <- userStatTable.updateLabelsPerMeter(cutoffTime)
         _a          <- userStatTable.updateAccuracy(Seq())
+        _vr         <- userStatTable.updateValidatorReliability()
         rowsUpdated <- userStatTable.updateHighQuality(cutoffTime)
       } yield rowsUpdated
     )

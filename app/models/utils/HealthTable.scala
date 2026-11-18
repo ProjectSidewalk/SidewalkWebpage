@@ -8,7 +8,7 @@ import slick.jdbc.GetResult
 import javax.inject.*
 
 /**
- * Read-only DAO of Postgres catalog queries backing the Owner-only Health dashboard (#4561).
+ * Read-only Postgres catalog queries for the Owner-only Health dashboard (#4561) and `/health`'s PostGIS check.
  *
  * Every method here reads a system view (`pg_locks`, `pg_stat_activity`, `pg_stat_user_tables`,
  * `pg_stat_database`) or a per-schema `play_evolutions` table; nothing writes. The queries are hand-written raw SQL
@@ -61,6 +61,9 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   private def bounded[T](action: DBIO[T]): DBIO[T] =
     (sqlu"SET LOCAL statement_timeout = 5000" >> action).transactionally
+
+  /** Fails when the running server is older than the installed PostGIS (#6005). */
+  def postgisLibVersion: DBIO[String] = sql"SELECT postgis_lib_version()".as[String].head
 
   /**
    * The connecting role's environment: database name, role name, and whether it can read every session's statement

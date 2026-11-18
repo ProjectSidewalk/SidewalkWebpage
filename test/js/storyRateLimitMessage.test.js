@@ -17,13 +17,13 @@ mockModule('i18next', () => ({ default: i18next }));
 /** The two real English strings, so the assertions read as the user would see them. */
 const STRINGS = {
   'labelmap:story.error.rate-limited':
-        'You’ve published as many stories as we allow in a day. Please try again later.',
+    'You’ve published as many stories as we allow in a day. Please try again later.',
   'labelmap:story.error.rate-limited-retry':
-        'You’ve published as many stories as we allow in a day. You can publish another {{when}}.',
+    'You’ve published as many stories as we allow in a day. You can publish another {{when}}.',
   'labelmap:story.error.rate-limited-ip':
-        'Too many stories have been submitted from your network recently. Please try again later.',
+    'Too many stories have been submitted from your network recently. Please try again later.',
   'labelmap:story.error.rate-limited-ip-retry':
-        'Too many stories have been submitted from your network recently. You can try again {{when}}.',
+    'Too many stories have been submitted from your network recently. You can try again {{when}}.',
   'labelmap:story.error.generic': 'Something went wrong.',
 };
 

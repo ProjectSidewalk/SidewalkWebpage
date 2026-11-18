@@ -16,7 +16,7 @@ import i18next from 'i18next';
 import { BadgeAchievements } from './BadgeAchievements.js';
 import { Toast } from './Toast.js';
 import { util } from './utilities.js';
-import './utilitiesSidewalk.js';
+import { fetchBackupImageMetadata, fetchCropImageMetadata, retrySignedImage } from './utilitiesSidewalk.js';
 import '../../css/components/label-mini-card.css';
 
 export class LabelMiniCard {
@@ -43,10 +43,13 @@ export class LabelMiniCard {
    * @param {Function} options.log - Called with an event name for an interaction worth logging.
    * @param {string} [options.className] - Extra class(es) for the root, for the host's layout rules.
    * @param {string} [options.tag='li'] - The root element's tag.
+   * @param {(labelId: number, field: string, url: string) => void} [options.onImageUrlRefresh] - Called when the
+   *     picture's signed URL was re-signed (#5861), so a host that caches label JSON can keep it for the next render.
    */
-  constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li' }) {
+  constructor(label, { size = 'sheet', showType = false, onOpen, source, log, className = '', tag = 'li',
+    onImageUrlRefresh = () => {} }) {
     this.#label = { ...label };
-    this.#opts = { size, showType, onOpen, source, log, className };
+    this.#opts = { size, showType, onOpen, source, log, className, onImageUrlRefresh };
     this.#el = document.createElement(tag);
     this.#el.className = ['lmc', `lmc--${size}`, className].filter(Boolean).join(' ');
     this.#el.dataset.labelId = String(label.label_id);
@@ -169,14 +172,40 @@ export class LabelMiniCard {
       this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
     }
     this.#els.open.addEventListener('click', () => this.#opts.onOpen(label.label_id));
-    // A failed picture falls back to the type icon, as if it never had one; its marker then has nothing to point at.
-    this.#els.image?.addEventListener('error', () => {
-      this.#els.image.replaceWith(LabelMiniCard.placeholder(type));
-      this.#els.marker?.remove();
-    }, { once: true });
+    const imageEl = this.#els.image;
+    imageEl?.addEventListener('error', () => this.#onImageError(imageEl));
     for (const [action, chip] of Object.entries(this.#els.chips)) {
       chip.addEventListener('click', () => this.#vote(action));
     }
+  }
+
+  /**
+   * Re-signs a failed signed picture and tries it once more, since its signature likely expired (#5861). Otherwise, or
+   * on a second failure, shows the type icon instead and drops the marker, which has nothing left to point at.
+   * @param {HTMLImageElement} image - The picture that failed.
+   */
+  #onImageError(image) {
+    if (image !== this.#els.image) return;
+    const label = this.#label;
+    const field = label.crop_url ? 'crop_url' : 'backup_image_url';
+    retrySignedImage(image, {
+      fetchMetadata: () => (field === 'crop_url'
+        ? fetchCropImageMetadata(label.label_type, label.label_id)
+        : fetchBackupImageMetadata(label.pano_id)),
+      // A re-render meanwhile replaced the picture, and that render's picture looks after itself.
+      isCurrent: () => image === this.#els.image,
+      onFresh: (url) => {
+        label[field] = url;
+        this.#opts.onImageUrlRefresh(label.label_id, field, url);
+      },
+      onGiveUp: () => {
+        // Dropped from the label too, so a vote's re-render doesn't bring the dead picture back.
+        label.crop_url = null;
+        label.backup_image_url = null;
+        image.replaceWith(LabelMiniCard.placeholder(label.label_type));
+        this.#els.marker?.remove();
+      },
+    });
   }
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */

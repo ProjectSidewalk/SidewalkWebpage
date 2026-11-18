@@ -12,7 +12,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "", labelIdsTotal: Int ?= 0, sort: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= controllers.GalleryController.DefaultValidationOptions.mkString(","), aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "", labelIdsTotal: Int ?= 0, sort: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -102,6 +102,7 @@ GET     /adminapi/newsEmailRecipients.csv               controllers.NewsEmailCon
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                           controllers.AdminController.getTagSeverityCounts
+GET     /adminapi/validatorReliability                  controllers.AdminController.getValidatorReliability
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
@@ -113,6 +114,7 @@ GET     /adminapi/recentActivity                        controllers.AdminControl
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
 GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/funnels                               controllers.AdminController.getCurrentCityFunnels(window: Option[String])
+GET     /adminapi/traffic                               controllers.AdminController.getCurrentCityTraffic
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
 GET     /adminapi/activityByDay                         controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                             controllers.AdminController.getHumanVsAiStats

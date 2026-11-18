@@ -47,6 +47,7 @@ import models.validation.{
   ValidationOption,
   ValidationQueuePolicy,
   ValidationReason,
+  ValidationResultCounts,
   ValidationTaskCommentTableDef
 }
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -1960,14 +1961,38 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
           l.streetEdgeId === face.streetEdgeId && lp.streetSide === face.streetSide
         }
-        .map { case (row @ (l, _, _, us, at, _, _, _, _, _), face) =>
+        .map { case (row @ (l, _, _, us, at, _, _, _, _, aiv), face) =>
           val evidence = ValidationQueuePolicy.FaceEvidenceRep(face.map(_.labelerCount), face.map(_.support))
-          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, evidence))
+          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, countedAiResult(l, aiv), evidence))
         }
     else
-      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, _) =>
-        (row, ValidationQueuePolicy.priorityScore(l, at, us))
+      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, aiv) =>
+        (row, ValidationQueuePolicy.priorityScore(l, at, us, countedAiResult(l, aiv)))
       }
+  }
+
+  /** The AI's vote, when it is in the label's counts; a vote by the label's own author never is. */
+  private def countedAiResult(
+      l: LabelTableDef,
+      aiv: Rep[Option[LabelValidationTableDef]]
+  ): Rep[Option[ValidationOption]] =
+    aiv.filter(_.userId =!= l.userId).map(_.validationResult)
+
+  /**
+   * Each candidate label's priority score, without the queue filter or the random draw, so a spec can check the
+   * score itself. Parameters are those of [[retrieveLabelListForValidationQuery]].
+   *
+   * @return `(label id, score)` per label the user could be asked to validate.
+   */
+  def validationPriorityScoresQuery(
+      userId: String,
+      viewer: PanoSource,
+      labelType: LabelType,
+      filter: ValidationLabelFilter
+  ): Query[(Rep[Int], Rep[Double]), (Int, Double), Seq] = {
+    val candidates =
+      validationCandidates(userId, viewer, labelType, filter, unvalidatedOnly = false, Set.empty, Set.empty)
+    scoredForQueue(labelType, candidates).map { case (row, score) => (row._1.labelId, score) }
   }
 
   /**
@@ -3167,10 +3192,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          ELSE 3
                          END AS human_mv,
                      CASE
-                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END)
-                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Disagree' THEN 1 END) THEN 1
-                         WHEN COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Disagree' THEN 1 END)
-                             > COUNT(CASE WHEN role IN ('Administrator', 'Owner') AND validation_result = 'Agree' THEN 1 END) THEN 2
+                         WHEN COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Agree' THEN 1 END)
+                             > COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Disagree' THEN 1 END) THEN 1
+                         WHEN COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Disagree' THEN 1 END)
+                             > COUNT(CASE WHEN role IN (#${Role.ADMIN_ROLES_SQL}) AND validation_result = 'Agree' THEN 1 END) THEN 2
                          ELSE 3
                          END AS admin_mv
               -- The same labels and votes as val_counts above.
@@ -3299,7 +3324,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Get metadata used for 2022 CV project for all labels.
+   * Gets what the CV/ML tools need to cut a crop for each label and credit its imagery.
+   *
+   * @return One row per label whose pano has a known camera heading and pitch, ordered by label id.
    */
   def getLabelCVMetadata: StreamingDBIO[Seq[LabelCVMetadata], LabelCVMetadata] = {
     (for {
@@ -3314,23 +3341,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           _l.labelId,
           _pd.panoId,
           _l.labelTypeName,
-          _l.agreeCount,
-          _l.disagreeCount,
-          _l.unsureCount,
+          (_l.agreeCount, _l.disagreeCount, _l.unsureCount).mapTo[ValidationResultCounts],
           _pd.width,
           _pd.height,
-          _lp.panoX,
-          _lp.panoY,
-          _lp.canvasWidth,
-          _lp.canvasHeight,
-          _lp.canvasX,
-          _lp.canvasY,
-          _lp.zoom,
-          _lp.heading,
-          _lp.pitch,
+          (_lp.panoX, _lp.panoY).mapTo[LocationXY],
+          (_lp.canvasWidth, _lp.canvasHeight).mapTo[Dimensions],
+          (_lp.canvasX, _lp.canvasY).mapTo[LocationXY],
+          (_lp.heading, _lp.pitch, _lp.zoom).mapTo[POV],
           _pd.cameraHeading.asColumnOf[Double],
           _pd.cameraPitch.asColumnOf[Double],
-          _pd.cameraRoll
+          _pd.cameraRoll,
+          _pd.source,
+          _pd.copyright,
+          _pd.license
         ).mapTo[LabelCVMetadata]
       }
       .result

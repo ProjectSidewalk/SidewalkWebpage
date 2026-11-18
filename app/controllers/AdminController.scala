@@ -6,7 +6,7 @@ import formats.json.AdminFormats.{given, *}
 import formats.json.LabelFormats.*
 import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.api.ApiModelUtils
+import models.api.{ApiError, ApiModelUtils}
 import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.street.StreetPriorityRecalc
 import models.user.Role
@@ -22,13 +22,13 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service.*
 
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.{Failure, Success, Try}
-import scala.util.control.NonFatal
+import scala.util.control.{NoStackTrace, NonFatal}
 
 @Singleton
 class AdminController @Inject() (
@@ -100,6 +100,19 @@ class AdminController @Inject() (
     }
   }
 
+  /** Each scored validator's graded and matched vote counts and reliability, for the Data Quality page (#5063). */
+  def getValidatorReliability = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    adminService.getValidatorReliabilityScores.map { scores =>
+      Ok(Json.obj("validators" -> JsArray(scores.map { case (graded, matched, reliability) =>
+        Json.obj(
+          "validations_graded"    -> graded,
+          "validations_matched"   -> matched,
+          "validator_reliability" -> reliability
+        )
+      })))
+    }
+  }
+
   def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
@@ -134,7 +147,8 @@ class AdminController @Inject() (
 
   /**
    * Daily activity for the admin Activity page (#4272): per day, each contribution type's volume, sign-ins and active
-   * users (registered vs anonymous), and new accounts. Only active days are sent; the page fills in the gaps.
+   * users (registered vs anonymous), new accounts and new contributors. Only active days are sent; the page fills in
+   * the gaps.
    */
   def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getActivityByDay.map { series =>
@@ -150,7 +164,8 @@ class AdminController @Inject() (
           "signins_anon"        -> r.signinsAnon,
           "active_registered"   -> r.activeRegistered,
           "active_anon"         -> r.activeAnon,
-          "new_users"           -> r.newUsers
+          "new_users"           -> r.newUsers,
+          "new_contributors"    -> r.newContributors
         )
       })))
     }
@@ -669,6 +684,11 @@ class AdminController @Inject() (
    * computed metrics ([[service.ConfigService.getCityScorecards]]) with each city's display name / URL / visibility
    * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
    * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
+   *
+   * Each read fans out to every city schema behind a per-JVM cache, so on a cold JVM waiting for them all would pass
+   * Apache's 60 s proxy timeout (#5432). Each waits at most [[service.ConfigService.CrossCityColdWait]] instead; if one
+   * the page needs is still computing, this answers the AccessScore endpoints' `503` + `Retry-After` (#5418) while the
+   * fan-outs keep filling the cache for the retry.
    */
   def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -682,22 +702,30 @@ class AdminController @Inject() (
     // this week" tiles (#4758). One 30-day read rather than a 7- and a 30-day one: the page takes the week from its
     // last seven days, so the two groups can't disagree about a shared day and the fan-out runs once.
     val dailyTrendDays = 30
-    val scorecardsF    = configService.getCityScorecards()
-    val allTimeF       = configService.getCrossCityWeeklyTrend(None)
-    val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
+    val scorecardsF    = required(configService.getCityScorecards())
+    val allTimeF       = required(configService.getCrossCityWeeklyTrend(None))
+    val dailyF         = required(configService.getCrossCityDailyTrend(dailyTrendDays))
     // A failed or still-computing baseline only costs the charts their average line; it must not take the rest of the
     // page down with it, nor hold it (the read's own cold wait bounds the latter).
     val baselineF = configService.getCrossCityDailyBaseline().recover { case e: Exception =>
       logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
       None
     }
-    val windowSummaryF = configService.getCrossCityActivitySummary()
-    val labelingSpeedF = configService.getCrossCityLabelingSpeed()
-    val storyStatsF    = configService.getCrossCityStoryStats()
-    // People active in several cities count once here, unlike a sum of each city's contributors.
+    val windowSummaryF = required(configService.getCrossCityActivitySummary())
+    // Labeling speed scans the interaction tables, so it's the likeliest read to outlast the cold wait; the page shows
+    // a missing speed as unknown, so it's optional. Story stats stay required: an empty map would claim "no stories".
+    val labelingSpeedF = configService
+      .getCrossCityLabelingSpeed()
+      .map(_.getOrElse {
+        logger.warn("Cross-city labeling speed still computing; serving Across Cities without it.")
+        Map.empty[String, Double]
+      })
+    val storyStatsF = required(configService.getCrossCityStoryStats())
+    // People active in several cities count once here, unlike a sum of each city's contributors. Optional, like speed.
     val contributorCountsF = configService.getCrossCityContributorCounts()
 
-    for {
+    // Every future above is already running, so the waits overlap and the response is bounded by the longest one.
+    (for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
@@ -748,8 +776,19 @@ class AdminController @Inject() (
           "summary" -> crossCitySummaryJson(scorecards, cityInfoById, contributors)
         )
       )
+    }).recover { case StillComputing =>
+      ApiError.stillComputingResult(
+        "Cross-city figures are still being computed. Retry after the number of seconds in the Retry-After header."
+      )
     }
   }
+
+  /** A bounded cross-city read whose fan-out outlasted its cold wait (#5432); `getCityScorecards` answers 503. */
+  private case object StillComputing extends Exception with NoStackTrace
+
+  /** Fails with [[StillComputing]] on None, so one `.recover` turns any still-computing required read into the 503. */
+  private def required[T](f: Future[Option[T]]): Future[T] =
+    f.flatMap(_.fold(Future.failed[T](StillComputing))(Future.successful))
 
   /**
    * One city's row of the scorecard table, with snake_case keys like the v3 API.
@@ -1020,6 +1059,22 @@ class AdminController @Inject() (
     "overall_conversion" -> ConfigService.overallConversion(seg.steps)
   )
 
+  /**
+   * @param stepKeys The funnel's step keys; the visitors' rate is measured against the second, the first real action.
+   * @return         GA's visitors for one funnel as JSON, or null when GA has none for the city.
+   */
+  private def gaVisitorsJson(visitors: Option[FunnelVisitors], stepKeys: Seq[String], all: FunnelSegment): JsValue =
+    visitors match {
+      case Some(v) =>
+        Json.obj(
+          "count"     -> v.visitors,
+          "since"     -> v.since.map(_.toString),
+          "rate"      -> v.rate(all.steps.lift(1).getOrElse(0)),
+          "rate_step" -> stepKeys.lift(1)
+        )
+      case None => JsNull
+    }
+
   def getCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
     // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
@@ -1027,15 +1082,33 @@ class AdminController @Inject() (
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
 
-    configService.getCityFunnels(windowKey).map { funnelsByType =>
-      def cityJson(f: CityFunnel): JsObject = {
-        val info = cityInfoById.get(f.cityId)
+    // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line. None from a
+    // configured service means the fetch outlasted the wait, which the page is told so it can ask again.
+    val today                                                      = LocalDate.now(ZoneOffset.UTC)
+    val trafficFuture: Future[(Map[String, CityTraffic], Boolean)] = trafficService
+      .getCityTraffic(Some(TrafficService.FunnelColdWait))
+      .map {
+        case Some(snapshot) => (snapshot.cities.map(c => c.cityId -> c).toMap, false)
+        case None           => (Map.empty, trafficService.cityTrafficConfigured)
+      }
+      .recover { case NonFatal(_) => (Map.empty, false) }
+
+    for {
+      funnelsByType <- configService.getCityFunnels(windowKey)
+      trafficResult <- trafficFuture
+    } yield {
+      val (traffic, gaPending) = trafficResult
+
+      def cityJson(stepKeys: Seq[String])(f: CityFunnel): JsObject = {
+        val info     = cityInfoById.get(f.cityId)
+        val visitors = traffic.get(f.cityId).flatMap(TrafficService.funnelVisitors(_, windowKey, today))
         Json.obj(
           "city_id"             -> f.cityId,
           "city_name"           -> info.map(_.cityNameShort),
           "city_name_formatted" -> info.map(_.cityNameFormatted),
           "url"                 -> info.map(_.URL),
           "visibility"          -> info.map(_.visibility),
+          "ga_visitors"         -> gaVisitorsJson(visitors, stepKeys, f.all),
           "all"                 -> funnelSegJson(f.all),
           "registered"          -> funnelSegJson(f.registered),
           "anonymous"           -> funnelSegJson(f.anonymous),
@@ -1049,10 +1122,10 @@ class AdminController @Inject() (
       val funnels = JsObject(ConfigService.FunnelDefs.map { case (funnelType, stepKeys) =>
         funnelType -> Json.obj(
           "steps"  -> stepKeys,
-          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson))
+          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson(stepKeys)))
         )
       })
-      Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
+      Ok(Json.obj("window" -> windowKey, "ga_pending" -> gaPending, "funnels" -> funnels))
     }
   }
 
@@ -1086,6 +1159,32 @@ class AdminController @Inject() (
   }
 
   /**
+   * Returns this deployment's own GA traffic and top sources (#5996). Admin-gated (a city's Administrators see their
+   * own city), unlike the Owner-gated [[getCityTraffic]]; degrades to `available: false` the same way.
+   */
+  def getCurrentCityTraffic = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    trafficService
+      .getCurrentCityTraffic()
+      .map {
+        case Some(current) =>
+          Ok(
+            Json.obj(
+              "available"   -> true,
+              "fetched_at"  -> current.fetchedAt,
+              "traffic"     -> current.traffic,
+              "top_sources" -> current.topSources
+            )
+          )
+        case None => Ok(Json.obj("available" -> false))
+      }
+      .recover { case NonFatal(e) =>
+        logger.warn(s"GA traffic unavailable: ${e.getMessage}")
+        Ok(Json.obj("available" -> false))
+      }
+  }
+
+  /**
    * Returns THIS deployment's own precomputed engagement funnels for one time window (#4379), for the per-city
    * Contributors page. Admin-gated (per-city Administrators see their own city), unlike the Owner-gated cross-city
    * [[getCityFunnels]]. Output is snake_case per the v3 convention; each funnel's `steps` array names its steps in
@@ -1099,7 +1198,23 @@ class AdminController @Inject() (
       // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
       val windowKey = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
 
-      configService.getCurrentCityFunnels(windowKey).map { result =>
+      // GA being down, unconfigured, or not cached yet only costs the funnels their visitors line. None from a
+      // configured service means the fetch outlasted the wait, which the page is told so it can ask again.
+      val today                                                     = LocalDate.now(ZoneOffset.UTC)
+      val visitorsFuture: Future[(Option[FunnelVisitors], Boolean)] = trafficService
+        .getCurrentCityTraffic(Some(TrafficService.FunnelColdWait))
+        .map {
+          case Some(t) => (TrafficService.funnelVisitors(t.traffic, windowKey, today), false)
+          case None    => (None, trafficService.currentCityTrafficConfigured)
+        }
+        .recover { case NonFatal(_) => (None, false) }
+
+      for {
+        result         <- configService.getCurrentCityFunnels(windowKey)
+        visitorsResult <- visitorsFuture
+      } yield {
+        val (visitors, gaPending) = visitorsResult
+
         def segmentsJson(f: CityFunnel): JsObject = Json.obj(
           "all"            -> funnelSegJson(f.all),
           "registered"     -> funnelSegJson(f.registered),
@@ -1111,10 +1226,22 @@ class AdminController @Inject() (
         // One entry per funnel type the city has data for, each with its ordered step keys and this city's segments.
         val funnels = JsObject(ConfigService.FunnelDefs.collect {
           case (funnelType, stepKeys) if result.byType.contains(funnelType) =>
-            funnelType -> Json.obj("steps" -> stepKeys, "segments" -> segmentsJson(result.byType(funnelType)))
+            val funnel = result.byType(funnelType)
+            funnelType -> Json.obj(
+              "steps"       -> stepKeys,
+              "ga_visitors" -> gaVisitorsJson(visitors, stepKeys, funnel.all),
+              "segments"    -> segmentsJson(funnel)
+            )
         })
         // ISO-8601 string (OffsetDateTime.toString) so the page can show a "data as of" label; null until precomputed.
-        Ok(Json.obj("window" -> windowKey, "computed_at" -> result.computedAt.map(_.toString), "funnels" -> funnels))
+        Ok(
+          Json.obj(
+            "window"      -> windowKey,
+            "computed_at" -> result.computedAt.map(_.toString),
+            "ga_pending"  -> gaPending,
+            "funnels"     -> funnels
+          )
+        )
       }
   }
 

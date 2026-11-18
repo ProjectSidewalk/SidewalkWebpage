@@ -163,4 +163,18 @@ class ImageryAttributionSpec extends SidewalkSpec {
       }
     }
   }
+
+  "ImageryAttribution.licenseId" should {
+    "name Mapillary's licence from the source alone, in the form Panoramax records and under the same name" in {
+      ImageryAttribution.licenseId(PanoSource.Mapillary, None) mustBe Some("CC-BY-SA-4.0")
+      ImageryAttribution.PanoramaxLicenses(ImageryAttribution.MapillaryLicenseId).name mustBe
+        ImageryAttribution.MapillaryLicense
+    }
+
+    "hand back the identifier a Panoramax pano recorded, and none for a blank or a provider without one" in {
+      ImageryAttribution.licenseId(PanoSource.Panoramax, Some(" etalab-2.0 ")) mustBe Some("etalab-2.0")
+      ImageryAttribution.licenseId(PanoSource.Panoramax, Some(" ")) mustBe None
+      ImageryAttribution.licenseId(PanoSource.Gsv, None) mustBe None
+    }
+  }
 }

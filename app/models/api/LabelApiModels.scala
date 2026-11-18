@@ -7,8 +7,9 @@
 package models.api
 
 import models.api.ApiModelUtils.createGeoJsonPointGeometry
-import models.label.StreetSide
-import models.pano.PanoSource
+import models.label.{Dimensions, LocationXY, POV, StreetSide}
+import models.pano.{ImageryAttribution, PanoSource}
+import models.validation.ValidationResultCounts
 import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
 
@@ -413,50 +414,42 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
  * Computer-vision metadata for a single label, used by the CV/ML export (`/adminapi/labels/cvMetadata`).
  *
  * Implements StreamingApiType to support streaming output formats like JSON and CSV. Holds the panorama
- * and canvas geometry needed to locate the label within its Street View image.
+ * and canvas geometry needed to locate the label within its street-level image, and who to credit for that image.
  *
  * @param labelId Unique identifier for the label
  * @param panoId Identifier of the panorama the label was placed on
  * @param labelType Label type name (e.g. "CurbRamp")
- * @param agreeCount Number of "agree" validations the label received
- * @param disagreeCount Number of "disagree" validations the label received
- * @param unsureCount Number of "unsure" validations the label received
+ * @param validationCounts Number of agree, disagree, and unsure validations the label received
  * @param panoWidth Panorama width in pixels, if known
  * @param panoHeight Panorama height in pixels, if known
- * @param panoX X coordinate of the label within the panorama
- * @param panoY Y coordinate of the label within the panorama
- * @param canvasWidth Width of the canvas the label was placed on
- * @param canvasHeight Height of the canvas the label was placed on
- * @param canvasX X coordinate of the label on the canvas
- * @param canvasY Y coordinate of the label on the canvas
- * @param zoom Zoom level when the label was placed
- * @param heading Viewport heading when the label was placed
- * @param pitch Viewport pitch when the label was placed
+ * @param panoXY Where the label sits within the panorama
+ * @param canvasSize Size of the canvas the label was placed on
+ * @param canvasXY Where the label sits on the canvas
+ * @param pov Viewport heading, pitch, and zoom when the label was placed
  * @param cameraHeading Camera heading of the panorama
  * @param cameraPitch Camera pitch of the panorama
  * @param cameraRoll Camera roll of the panorama, if known
+ * @param source Imagery provider the panorama came from (e.g. gsv, mapillary)
+ * @param copyright Who to credit for the panorama, if the provider names someone
+ * @param license License recorded for the panorama, which only Panoramax states per picture
  */
 case class LabelCVMetadata(
     labelId: Int,
     panoId: String,
     labelType: String,
-    agreeCount: Int,
-    disagreeCount: Int,
-    unsureCount: Int,
+    validationCounts: ValidationResultCounts,
     panoWidth: Option[Int],
     panoHeight: Option[Int],
-    panoX: Int,
-    panoY: Int,
-    canvasWidth: Int,
-    canvasHeight: Int,
-    canvasX: Int,
-    canvasY: Int,
-    zoom: Double,
-    heading: Double,
-    pitch: Double,
+    panoXY: LocationXY,
+    canvasSize: Dimensions,
+    canvasXY: LocationXY,
+    pov: POV,
     cameraHeading: Double,
     cameraPitch: Double,
-    cameraRoll: Option[Double]
+    cameraRoll: Option[Double],
+    source: PanoSource,
+    copyright: Option[String],
+    license: Option[String]
 ) extends StreamingApiType {
 
   override def toJson: JsValue = LabelCVMetadata.toJson(this)
@@ -471,23 +464,27 @@ object LabelCVMetadata extends ApiFields[LabelCVMetadata] {
     field("label_id")(_.labelId),
     field("pano_id")(_.panoId),
     field("label_type")(_.labelType),
-    field("agree_count")(_.agreeCount),
-    field("disagree_count")(_.disagreeCount),
-    field("unsure_count")(_.unsureCount),
+    field("agree_count")(_.validationCounts.agreeCount),
+    field("disagree_count")(_.validationCounts.disagreeCount),
+    field("unsure_count")(_.validationCounts.unsureCount),
     field("pano_width")(_.panoWidth),
     field("pano_height")(_.panoHeight),
-    field("pano_x")(_.panoX),
-    field("pano_y")(_.panoY),
-    field("canvas_width")(_.canvasWidth),
-    field("canvas_height")(_.canvasHeight),
-    field("canvas_x")(_.canvasX),
-    field("canvas_y")(_.canvasY),
-    field("zoom")(_.zoom),
-    field("heading")(_.heading),
-    field("pitch")(_.pitch),
+    field("pano_x")(_.panoXY.x),
+    field("pano_y")(_.panoXY.y),
+    field("canvas_width")(_.canvasSize.width),
+    field("canvas_height")(_.canvasSize.height),
+    field("canvas_x")(_.canvasXY.x),
+    field("canvas_y")(_.canvasXY.y),
+    field("zoom")(_.pov.zoom),
+    field("heading")(_.pov.heading),
+    field("pitch")(_.pov.pitch),
     field("camera_heading")(_.cameraHeading),
     field("camera_pitch")(_.cameraPitch),
-    field("camera_roll")(_.cameraRoll)
+    field("camera_roll")(_.cameraRoll),
+    field("source")(_.source),
+    field("copyright")(_.copyright),
+    // Mapillary's license is the same for every picture, so it is never stored and has to be filled in here.
+    field("license")(metadata => ImageryAttribution.licenseId(metadata.source, metadata.license))
   )
 
   given writes: Writes[LabelCVMetadata] = (metadata: LabelCVMetadata) => toJson(metadata)

@@ -155,9 +155,7 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually
       def serve(c: => Future[Payload]) = swrCache.staleWhileRevalidate[Payload](key, 1.minute, 1.hour, backoff)(c)
 
       intercept[IllegalStateException](await(serve(compute)))
-      val refused = intercept[SwrCache.RecentlyFailedException](await(serve(compute)))
-      assert(refused.getCause eq failure)
-      refused.retryAfter must be <= backoff
+      assert(intercept[IllegalStateException](await(serve(compute))) eq failure)
       runs.get mustBe 1
 
       eventually(timeout(Span(5, Seconds)))(swrCache.isBackingOff(key, backoff) mustBe false)

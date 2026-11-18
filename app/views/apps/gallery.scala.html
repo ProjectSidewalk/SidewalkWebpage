@@ -39,8 +39,8 @@
            not a filter, so the reset below leaves it alone and a phone reaches it without opening the filters. The
            options are the GallerySort enum, so the JS never re-declares the list. *@
         @if(isAdmin) {
-          <div class="gallery-sort">
-            <label for="gallery-sort" class="gallery-sort__label" data-i18n="gallery:sort-by">@Messages("gallery.sort.by")</label>
+          <div class="gallery-sidebar-block gallery-sort">
+            <label for="gallery-sort" class="gallery-sidebar-title" data-i18n="gallery:sort-by">@Messages("gallery.sort.by")</label>
             <select id="gallery-sort" class="ps-select" aria-describedby="gallery-sort-note">
               @for(s <- GallerySort.values) {
                 <option value="@s.name" @if(s==sort){selected} data-i18n="@sortI18nKey(s)">@Messages(sortMsgKey(s))</option>
@@ -52,39 +52,45 @@
             <p id="gallery-sort-note" class="gallery-sort__note" aria-live="polite"></p>
           </div>
         }
-        @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
-           is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
-        <div class="gallery-filter-header">
-          <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
-          @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
-          <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
-            <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
-            <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
-          </button>
-          @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
-          <button type="button" id="clear-filters" class="button button--tiny button--secondary" hidden>
-            <span aria-hidden="true">&#10006;</span>
-            <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
-          </button>
-        </div>
-        @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
-           Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
-           drawer is the only one open. *@
-        <div id="card-filter" class="filter-sidebar--loading">
-          @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
-             wrapper to toggle and point aria-controls at. *@
-          <div id="gallery-filter-sections">
-            @common.filterSidebar(
-              tags = allTags,
-              sections = Seq("severity", "label-type", "validations"),
-              withMapChrome = false,
-              checkedLabelTypes = labelTypes,
-              checkedValidations = valOptions,
-              checkedSeverities = severities.map(s => if(s == "null") "0" else s),
-              activeTags = tags
-            )
+        <section class="gallery-sidebar-block gallery-filter" aria-labelledby="filter-header">
+          @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the
+             disclosure is the only way to reach the filters on a phone, so it has to stay live through that load. *@
+          <div class="gallery-filter-header">
+            <h2 id="filter-header" class="gallery-sidebar-title">
+              <span class="gallery-filter-header__text" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
+              @* Narrow-layout stand-in for the text: disclosure toggle for the filter sections (see filter.css).
+                 Inside the heading so a phone, which hides the text, still has a heading above the sections. *@
+              <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
+                <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
+                <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
+              </button>
+            </h2>
+            @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+            <button type="button" id="clear-filters" class="button button--tiny button--secondary" hidden>
+              <span aria-hidden="true">&#10006;</span>
+              <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
+            </button>
           </div>
-        </div>
+          @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
+             Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
+             drawer is the only one open. *@
+          <div id="card-filter" class="filter-sidebar--loading">
+            @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
+               wrapper to toggle and point aria-controls at. *@
+            <div id="gallery-filter-sections">
+              @common.filterSidebar(
+                headingLevel = 3,
+                tags = allTags,
+                sections = Seq("severity", "label-type", "validations"),
+                withMapChrome = false,
+                checkedLabelTypes = labelTypes,
+                checkedValidations = valOptions,
+                checkedSeverities = severities.map(s => if(s == "null") "0" else s),
+                activeTags = tags
+              )
+            </div>
+          </div>
+        </section>
       </div>
     }
     <div id="labels-not-found-text">@Html(Messages("gallery.labels.not.found"))</div>
@@ -149,10 +155,11 @@
     "dataStoreUrl": "@routes.GalleryController.post",
     @* The filters with controls of their own are read off the rendered sidebar; these two have no UI yet, so the page
        carries them through for the card query and the URL. A non-empty labelIds puts Gallery in review-list mode:
-       these labels, in this order, filters ignored. *@
+       these labels, in this order, filters ignored. defaultValidationOptions is what a reset goes back to. *@
     "initialFilters": {
       "regionIds": @jsonForScript(regionIds),
       "aiValidationOptions": @jsonForScript(aiValOptions),
+      "defaultValidationOptions": @jsonForScript(controllers.GalleryController.DefaultValidationOptions),
       "labelIds": @jsonForScript(labelIds)
     },
     @* Region names, keyed by the region id each label carries, for the location line on a card. *@

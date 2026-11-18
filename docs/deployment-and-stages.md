@@ -237,11 +237,11 @@ curl -s https://sidewalk-sea.cs.washington.edu/health
 #  "version_released_at":"...","city_id":"seattle-wa","environment":"prod","app_started_at":"..."}
 ```
 
-`git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's
-commit: `git rev-parse v<X.Y.Z>`. Until it matches, that city is still on the old build. `status` is `"error"` with
-a 503 when the instance is up but can't reach its database. `version` is what the footer shows and comes from the
-`version` table, so it reflects step 4's evolution, not the deployed code; the two agree only when both steps were
-done.
+`git_sha` is the commit the running binary was built from (baked in by `build.sbt`), so compare it to the tag's commit:
+`git rev-parse v<X.Y.Z>`. Until it matches, that city is still on the old build. `status` is `"error"` with a 503 when
+the instance is up but its database doesn't answer or can't load PostGIS. `version` is what the footer shows and comes
+from the `version` table, so it reflects step 4's evolution, not the deployed code; the two agree only when both steps
+were done.
 
 **Two independent gotchas, both learned from #4545:**
 - Merging to `master` alone does **not** deploy to prod — the **tag** (step 7) does.
@@ -548,12 +548,12 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 
-The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers, 503 when it is
-up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a probe
-creates no user, session, or activity row, and it is never rate-limited. The body also names the build (`git_sha`),
-which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's call, with
-one thing to get right: a 503 from every city at once is the shared database, and restarting the instances won't
-help, so restart on no answer and alert on 503.
+The liveness probe should be **`GET /health`**: 200 when the instance is up and its database answers (PostGIS included),
+503 when it is up but the database doesn't, and no response at all when the instance is down. It is a plain action, so a
+probe creates no user, session, or activity row, and it is never rate-limited. The body also names the build
+(`git_sha`), which is how a deploy is verified (step 8 of the release runbook above). Restart policy is the ops side's
+call, with one thing to get right: a 503 from every city at once is the shared database, and restarting the instances
+won't help, so restart on no answer and alert on 503.
 
 Until the ops repo switches (#5138), the probe hits `/anonSignUp`, which mints a new anonymous account on every hit,
 including a `HEAD`, and is rate-limited per IP, so a probe from one host gets throttled into false alarms.
@@ -594,10 +594,11 @@ hostnames, and ports are omitted here for the same reason as the rest of this do
 `502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Apache's
 `ProxyTimeout` is **60 s**: a request the app takes longer than that to answer is a `502` at the client no matter
 what the JVM does next, which is why the full-city AccessScore endpoints give up waiting at 45 s and answer `503` +
-`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418) — lower the proxy's timeout and that constant has
-to follow. That `Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses
-(`ProxyErrorOverride`), which is worth checking whenever the Apache config changes; without it the AccessScore tool
-falls back to its own backoff and still converges, just more slowly. Two checks:
+`Retry-After` instead (`AccessScoreService.FullCityColdWait`, #5418), as does `/adminapi/cityScorecards`
+(`ConfigService.CrossCityColdWait`, #5432); lower the proxy's timeout and both constants have to follow. That
+`Retry-After` reaches the browser only if the vhost does not rewrite proxied error responses (`ProxyErrorOverride`),
+which is worth checking whenever the Apache config changes; without it both pages fall back to their own backoff and
+still converge, just more slowly. Two checks:
 
 - **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
   (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to

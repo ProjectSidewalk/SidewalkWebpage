@@ -220,7 +220,10 @@ class ImageController @Inject() (
         case None            => Future.successful(BadRequest(invalidLabelTypeMessage(labelType)))
         case Some(None)      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
         case Some(Some(url)) =>
-          cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
+          val thumbnailUrl = signingService.signedUrl(s"/cropImage/$labelType/$labelId/thumbnail")
+          cropService
+            .cropMarker(labelId)
+            .map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, thumbnailUrl, m)))
       }
     }
   }

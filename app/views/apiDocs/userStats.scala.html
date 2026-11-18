@@ -154,6 +154,10 @@
     "agree_validations_given": 14,
     "disagree_validations_given": 6,
     "unsure_validations_given": 0,
+    "validations_graded": 16,
+    "validations_matched": 13,
+    "validation_agreement": 0.8125,
+    "validator_reliability": 0.8056,
     "stats_by_label_type": {
       "CurbRamp": {
         "labels": 16,
@@ -203,6 +207,10 @@
           <tr><td><code>agree_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user agreed with the label.</td></tr>
           <tr><td><code>disagree_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user disagreed with the label.</td></tr>
           <tr><td><code>unsure_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user was unsure about the label.</td></tr>
+          <tr><td><code>validations_graded</code></td><td><code>integer</code></td><td>Number of the user's agree/disagree validations that had an answer to check against. See <a href="#validator-reliability">Validator reliability</a>.</td></tr>
+          <tr><td><code>validations_matched</code></td><td><code>integer</code></td><td>Number of the user's graded validations that matched the answer.</td></tr>
+          <tr><td><code>validation_agreement</code></td><td><code>number | null</code></td><td><code>validations_matched</code> divided by <code>validations_graded</code>, ranging from 0.0 to 1.0, or null if none were graded.</td></tr>
+          <tr><td><code>validator_reliability</code></td><td><code>number | null</code></td><td>How much weight to give the user's validations, ranging from 0.0 to 1.0, or null if none were graded. Updated nightly.</td></tr>
           <tr><td><code>stats_by_label_type</code></td><td><code>object</code></td><td>Breakdown of statistics by label type.</td></tr>
         </tbody>
       </table>
@@ -229,6 +237,16 @@
         </tbody>
       </table>
     </div>
+
+    <h5 id="validator-reliability">Validator reliability <a href="#validator-reliability" class="permalink">#</a></h5>
+    <p>An agree or disagree validation is <em>graded</em> when there is an answer to check it against. The answer is the first of these that exists, always leaving out the user's own validation:</p>
+    <ol>
+      <li>Disagree, if administrators have marked the label as a training example of a common mistake.</li>
+      <li>What the administrators who validated the label said.</li>
+      <li>What most of the other validations of the label said.</li>
+    </ol>
+    <p>A tie gives no answer, and unsure validations and validations of tutorial labels are never graded. Validations by excluded users and disagree validations by the AI validator are not used as answers.</p>
+    <p><code>validator_reliability</code> is <code>(validations_matched + @models.user.ValidatorReliability.PriorVotes × c) / (validations_graded + @models.user.ValidatorReliability.PriorVotes)</code>, where <code>c</code> is the share of graded validations in the city, the AI validator's left out, that matched. Every user is counted as if they had also given @models.user.ValidatorReliability.PriorVotes validations at the city's rate, so a user with few graded validations sits near the city's average, and the score approaches their own <code>validation_agreement</code> as they validate more.</p>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the header fields, with the <code>stats_by_label_type</code> object flattened into individual columns for each label type and statistic.</p>

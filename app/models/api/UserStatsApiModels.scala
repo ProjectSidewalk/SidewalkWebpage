@@ -33,6 +33,9 @@ import play.api.libs.json.{JsObject, Writes}
  * @param agreeValidationsGiven Number of "agree" validations the user gave
  * @param disagreeValidationsGiven Number of "disagree" validations the user gave
  * @param unsureValidationsGiven Number of "unsure" validations the user gave
+ * @param validationsGraded Agree/Disagree validations the user gave that had an answer to check against
+ * @param validationsMatched How many of those matched the answer
+ * @param validatorReliability The weight to give the user's validations, if any were graded
  * @param statsByLabelType Per-label-type breakdown of label and validation counts
  */
 case class UserStatForApi(
@@ -53,8 +56,15 @@ case class UserStatForApi(
     agreeValidationsGiven: Int,
     disagreeValidationsGiven: Int,
     unsureValidationsGiven: Int,
+    validationsGraded: Int,
+    validationsMatched: Int,
+    validatorReliability: Option[Double],
     statsByLabelType: Map[String, LabelTypeStat]
 ) extends StreamingApiType {
+
+  /** The share of the user's graded validations that matched, if any were graded. */
+  def validationAgreement: Option[Double] =
+    Option.when(validationsGraded > 0)(validationsMatched.toDouble / validationsGraded)
 
   override def toJson: JsObject = UserStatForApi.toJson(this)
 
@@ -81,7 +91,11 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     field("dissenting_validations_given")(_.dissentingValidationsGiven),
     field("agree_validations_given")(_.agreeValidationsGiven),
     field("disagree_validations_given")(_.disagreeValidationsGiven),
-    field("unsure_validations_given")(_.unsureValidationsGiven)
+    field("unsure_validations_given")(_.unsureValidationsGiven),
+    field("validations_graded")(_.validationsGraded),
+    field("validations_matched")(_.validationsMatched),
+    field("validation_agreement")(_.validationAgreement),
+    field("validator_reliability")(_.validatorReliability)
   ) ++ LabelType.names.flatMap { labelType =>
     Seq(
       field(s"stats_by_label_type.$labelType.labels")(_.statsByLabelType(labelType).labels),

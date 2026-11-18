@@ -82,6 +82,7 @@ city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
+city.name.goiania-br = Goiânia
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -222,9 +223,11 @@ about.where.body = De Seattle a la Ciudad de México y Zúrich, las personas vol
 about.where.links = <a href="/cities">Consulta todos los despliegues</a> o <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">lleva Project Sidewalk a tu ciudad</a>.
 about.history.title = Nuestra historia
 about.history.2012 = Project Sidewalk nace como proyecto de investigación del profesor Jon E. Froehlich y el estudiante de doctorado Kotaro Hara en el <a href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a>, con apoyo inicial de un <a href="https://research.google/outreach/past-programs/faculty-research-awards/" target="_blank" rel="noopener">Google Faculty Research Award</a> y la <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">National Science Foundation</a>.
-about.history.2017 = Se lanza el primer despliegue a escala de ciudad en Washington, DC, dirigido por la estudiante de doctorado Manaswi Saha y el científico de investigación Mikey Saugstad, mientras el laboratorio se traslada a la Escuela Paul G. Allen de Ciencias de la Computación e Ingeniería de la Universidad de Washington.
+about.history.2016 = Se lanza el primer despliegue a escala de ciudad en Washington, DC, dirigido por la estudiante de doctorado Manaswi Saha y el científico de investigación Mikey Saugstad.
 about.history.2019 = El estudio piloto de DC demuestra que la colaboración colectiva en línea puede usarse para mapear las banquetas de una ciudad entera, y recibe el premio Best Paper en CHI 2019.
+about.history.2019.mexico = Project Sidewalk se internacionaliza en la Ciudad de México y luego en San Pedro Garza García, junto con la organización por los derechos peatonales <a href="https://ligapeatonal.org/" target="_blank" rel="noopener">Liga Peatonal</a>. La Liga tejió relaciones con gobiernos locales y organizaciones comunitarias, tradujo la herramienta al español y la adaptó a las calles mexicanas, abriendo la puerta a todos los despliegues posteriores en otros idiomas.
 about.history.2021 = Una <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">subvención NSF Smart &amp; Connected Communities</a> profundiza nuestra colaboración con la Universidad de Illinois en Chicago y Easterseals, ampliando despliegues, programas educativos y nuestro sitio hermano <a href="https://accessiblecommunities.org/" target="_blank" rel="noopener">accessiblecommunities.org</a>.
+about.history.2022 = En Oradell, Nueva Jersey, una tropa de Girl Scouts mapea cada calle del municipio junto con el consejo local de la National MS Society y Hackensack Meridian Health, y luego <a href="https://www.hackensackmeridianhealth.org/en/news/2023/03/13/humc-and-community-groups-demonstrate-sidewalk-deficiencies" target="_blank" rel="noopener">presenta sus hallazgos al concejo municipal</a>. Desde entonces, el modelo se ha extendido a otros seis municipios de Nueva Jersey, a San Luis y a <a href="https://walthamtimes.org/2026/06/28/mcdevitt-civics-class-earns-state-recognition-for-sidewalk-accessibility-project/" target="_blank" rel="noopener">aulas como las de Waltham</a>.
 about.history.today.label = Hoy
 about.history.today = Project Sidewalk opera en <span data-live-stat="num_cities">{0}</span> ciudades alrededor del mundo, con traducción nativa a {1} idiomas y el impulso de miles de personas voluntarias.
 about.team.title = El equipo
@@ -247,8 +250,11 @@ about.pubs.cite.copy = Copiar
 about.data.title = Datos abiertos y código abierto
 about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupos de etiquetas, calles y puntuaciones de accesibilidad mediante nuestras <a href="/api">API públicas</a>, en formatos desde CSV hasta GeoJSON — todo publicado bajo CC0; consulta la <a href="/api">documentación de la API</a> para más detalles y guía de citación. Nuestro <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank" rel="noopener">código también es abierto</a>.
 about.partners.title = Socios comunitarios
-about.partners.body = Trabajamos de la mano con organizaciones de defensa de la discapacidad, gobiernos, escuelas y grupos comunitarios de todo el mundo — incluidos Easterseals, World Enabled, Liga Peatonal y la Active Transportation Alliance — para planear despliegues, organizar eventos de mapeo comunitario y convertir los datos en acción local.
+about.partners.body = Trabajamos con organizaciones de defensa de la discapacidad y la caminabilidad, gobiernos, escuelas y grupos comunitarios de todo el mundo para planear despliegues, organizar eventos de mapeo comunitario y convertir los datos en acción local.
 about.partners.schools = Docentes llevan Project Sidewalk a clases de civismo y ciencia de datos, y nuestro equipo y socios han pilotado planes de estudio de aprendizaje-servicio y desarrollo laboral para jóvenes con discapacidades. <a href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank" rel="noopener">Aprende a usar Project Sidewalk en tu comunidad</a>.
+about.partners.project.title = Socios de todo el proyecto
+about.partners.city.title = Socios en nuestras ciudades
+about.partners.city.tagline = Gobiernos, escuelas, grupos de defensa y organizaciones comunitarias con los que trabajamos en una o más de nuestras ciudades.
 about.funding.title = Financiamiento de la investigación
 about.funding.body = Project Sidewalk es investigación académica financiada con subvenciones, con el apoyo de la National Science Foundation y apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
 about.cta.title = Ayúdanos a mapear todas las banquetas
@@ -296,11 +302,13 @@ landing.deployment.map.title = Explora otras ciudades
 landing.deployment.map.subtitle = ¡Haga clic en un círculo a continuación para explorar otras ciudades del Proyecto Sidewalk!
 landing.partners.title = Socios comunitarios en {0}
 landing.partners.tagline = Nuestro trabajo en {0} es posible gracias a nuestros socios comunitarios, incluyendo:
+landing.partners.project.title = Socios de todo el proyecto
+landing.partners.project.tagline = Las siguientes organizaciones han dejado una huella duradera en Project Sidewalk, más allá de una sola ciudad.
 landing.partners.official.contact = Project Sidewalk es una herramienta de investigación. Para reportar un problema o solicitar una reparación, comunícate directamente con {0}. Puedes incluir en tu solicitud enlaces a <a href="/labelMap" data-partner-source="official-contact-labelmap">etiquetas</a> o <a href="/stories" data-partner-source="official-contact-stories">historias</a> de Project Sidewalk.
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = Project Sidewalk fue creado con {0} por
 landing.partners.created.heart = amor
-landing.partners.created.credits = …y moldeado por socios de largo plazo como <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal" target="_blank" rel="noopener">Liga Peatonal</a>, el <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society" target="_blank" rel="noopener">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> y la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som" target="_blank" rel="noopener">Hackensack Meridian School of Medicine</a>, junto con más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
+landing.partners.created.credits = …y moldeado por más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
 landing.partners.creator.makeability.alt = Logotipo del Makeability Lab
 landing.partners.creator.uw.alt = Logotipo de la Paul G. Allen School of Computer Science & Engineering de la Universidad de Washington
 landing.partners.creator.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de la Universidad de Illinois en Chicago
@@ -324,7 +332,7 @@ footer.api = Sidewalk API
 footer.connect = CONECTA
 footer.email = Envíanos un correo
 footer.funding = ESTAMOS ORGULLOSAMENTE FINANCIADOS POR
-footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a> <br> y <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>
+footer.award = Subvenciones <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=1302338" target="_blank" rel="noopener">#1302338</a>, <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2125087" target="_blank" rel="noopener">#2125087</a>, <br> <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2236277" target="_blank" rel="noopener">#2236277</a> y <a href="https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2623243" target="_blank" rel="noopener">#2623243</a>
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/" target="_blank" rel="noopener">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/" target="_blank" rel="noopener">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: {1}
 

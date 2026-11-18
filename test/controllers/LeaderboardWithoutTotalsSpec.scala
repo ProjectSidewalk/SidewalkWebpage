@@ -1,7 +1,6 @@
 package controllers
 
 import models.utils.{ConfigTable, FunnelStatTable, VersionTable}
-import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -35,7 +34,7 @@ class SchemaListFailingConfigService @Inject() (
     panos: PanoDataService,
     swr: SwrCache,
     manifest: AssetManifestService
-)(using executionContext: ExecutionContext, mat: Materializer)
+)(using executionContext: ExecutionContext)
     extends ConfigServiceImpl(dbcp, configuration, messages, cache, wsClient, table, funnels, versions, panos, swr,
       manifest) {
   override protected def readableSchemas(): Future[Set[String]] =

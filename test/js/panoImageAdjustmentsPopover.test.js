@@ -332,7 +332,7 @@ describe('sliders', () => {
       slider(key).value = value;
       fire(slider(key), 'input');
     }
-    expect(pano.style.filter).toBe('url(#ps-pano-tone-curve) brightness(1.6) contrast(0.6)');
+    expect(pano.style.filter).toBe('url("#ps-pano-tone-curve") brightness(1.6) contrast(0.6)');
 
     popover.querySelector('[data-action="reset"]').click();
     expect(model.isDefault()).toBe(true);

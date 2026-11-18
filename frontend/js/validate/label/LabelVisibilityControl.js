@@ -19,14 +19,16 @@ export class LabelVisibilityControl {
   // beside the icon, so without a delay the gap between the two is a dead zone that dismisses the card on the way
   // over — and the card has a button in it that has to be reachable. Matches Explore's hover card (Canvas.js).
   static #CARD_HIDE_DELAY_MS = 200;
+  // How far a press on the marker may move and still be a click, not a pan. Mouse px, so not scaled by --ui-scale.
+  static #CLICK_SLOP_PX = 5;
 
   #cardVisible = false;
   #hideCardTimer = null;
   // Infra3d cities (Zurich, Winterthur) asked for each label's tags and description to be on screen as soon as it
   // loads (#5675). Desktop only: on a phone the card would cover much of the small pano.
   #opensOnLoad;
-  // True while a card opened on load is up. Mouse movement and keypresses leave it alone; only a press on the pano,
-  // hiding the label, Escape, or the next label closes it.
+  // True while the card is opened on load or pinned. Mouse movement and keypresses leave it alone; a press on the pano,
+  // a click on the marker, hiding the label, Escape, or the next label closes it.
   #heldOpen = false;
   #card;
   #toggle;
@@ -198,20 +200,44 @@ export class LabelVisibilityControl {
       // reach it and an instant hide would make the button inside it unclickable.
       marker.addEventListener('mouseout', () => this.scheduleHideLabelCard());
 
-      // A click focuses the marker too, and that focus must not reopen the card the same press just closed.
-      let pressing = false;
-      marker.addEventListener('mousedown', () => {
-        pressing = true;
+      // A click pins the card open and a second click closes it. A press that turns into a pan closes it instead.
+      let dragged = false;
+      marker.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        // Don't focus the marker: a focused marker sends keys like Y and Enter to the card instead of the page.
+        e.preventDefault();
+        dragged = false;
         // On the window, since a drag that starts here can end anywhere.
-        window.addEventListener('mouseup', () => {
-          pressing = false;
+        const onMove = (/** @type {MouseEvent} */ move) => {
+          if (Math.hypot(move.clientX - e.clientX, move.clientY - e.clientY) <= LabelVisibilityControl.#CLICK_SLOP_PX) {
+            return;
+          }
+          dragged = true;
+          this.hideLabelCard();
+          window.removeEventListener('mousemove', onMove);
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', (up) => {
+          window.removeEventListener('mousemove', onMove);
+          // No click follows a release off the marker, and a stale flag would eat the next click that has no press.
+          if (!(up.target instanceof Node && marker.contains(up.target))) dragged = false;
         }, { once: true });
+      });
+
+      marker.addEventListener('click', (e) => {
+        // The end of a pan that comes back onto the marker isn't a click.
+        if (dragged) {
+          dragged = false;
+          return;
+        }
+        // detail 0 means no mouse (a screen reader's press), so it toggles like Enter/Space rather than pinning.
+        if (e.detail === 0) this.toggleLabelCard();
+        else this.toggleLabelCardPin();
       });
 
       // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
       // can travel from the marker onto the card's controls before the hide fires.
       marker.addEventListener('focus', (e) => {
-        if (pressing) return;
         // Focus returning from inside the card is not an open request: it is either Escape closing the card, which
         // must stay closed, or Shift+Tab walking back out, whose focusout just scheduled a hide this cancel undoes.
         const cameFrom = /** @type {Node} */ (e.relatedTarget);
@@ -244,7 +270,7 @@ export class LabelVisibilityControl {
     return this.#cardVisible;
   }
 
-  /** @returns {boolean} True while a card opened on load is up, which ordinary keypresses shouldn't close. */
+  /** @returns {boolean} True while the card is opened on load or pinned, so ordinary keys shouldn't close it. */
   isCardHeldOpen() {
     return this.#heldOpen;
   }
@@ -263,13 +289,14 @@ export class LabelVisibilityControl {
    *     see docs/logged-events.md.
    * @param {boolean} [options.holdOpen] - Opened on load rather than by the user, so it stays up until something
    *     deliberate closes it (see openCardOnLoad).
+   * @param {boolean} [options.pin] - Hold the card open like holdOpen, but logged as a normal open.
    */
-  showLabelCard({ viaKeyboard = false, holdOpen = false } = {}) {
+  showLabelCard({ viaKeyboard = false, holdOpen = false, pin = false } = {}) {
     this.cancelScheduledCardHide();
     if (!this.#anchorCard()) return;
     if (holdOpen) this.#tracker.push('LabelCard_OpenedOnLoad');
     else if (!this.#cardVisible) this.#tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
-    if (holdOpen) this.#heldOpen = true;
+    if (holdOpen || pin) this.#heldOpen = true;
     // In immersive mode a held card would otherwise sit over the voting dock (svv-immersive.css).
     this.#card.classList.toggle('label-card--held', this.#heldOpen);
     this.#cardVisible = true;
@@ -321,6 +348,18 @@ export class LabelVisibilityControl {
     if (!this.#cardVisible) return;
     if (this.#card.matches(':hover') || this.#card.contains(document.activeElement)) return;
     this.scheduleHideLabelCard();
+  }
+
+  /** Pins the card open on a mouse click, or closes a held one. Not a toggle, since hover already opened the card. */
+  toggleLabelCardPin() {
+    if (this.#heldOpen) {
+      this.hideLabelCard();
+      this.#tracker.push('Click_UnpinLabelCard');
+      return;
+    }
+    this.showLabelCard({ pin: true });
+    // Stays unheld when there was no marker on screen to pin the card to.
+    if (this.#heldOpen) this.#tracker.push('Click_PinLabelCard');
   }
 
   /**

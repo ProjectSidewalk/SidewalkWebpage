@@ -81,8 +81,9 @@ a page's healthy render cannot silently cover its error render. `EXEMPT_PAGES` k
 exemption is looked up by bare path, and it drops every state of the page — a page nobody is holding to AA yet
 cannot be held to it the moment its feed fails.
 
-`label-card-paging.spec.js` also scans a state from outside the gate: Gallery's open card (`/gallery [expanded
-card]`). Its key is listed in `OTHER_FORCED_STATES` in `a11y-allowlist.js`, so the stale-key check accepts it.
+`label-card-paging.spec.js` also scans a state from outside the gate: Gallery with a card open (`/gallery [expanded
+card]`), the whole page, so the faded cards behind the open one are checked too. Its key is listed in
+`OTHER_FORCED_STATES` in `a11y-allowlist.js`, so the stale-key check accepts it.
 
 ### Announcing what was injected
 
@@ -223,9 +224,8 @@ non-semantic `div`s from the pre-2024 codebase. Bringing them to AA is a sequenc
 keyboard path to "place a label at this point in the image" even looks like — tracked as
 [#4227](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4227),
 [#4233](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4233),
-[#4234](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4234),
-[#4235](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4235), and
-[#4843](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4843).
+[#4234](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4234), and
+[#4235](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4235).
 
 So they are **not in the automated gate yet**: a page whose allowlist would be longer than its violation list
 teaches nobody anything, and a gate that is red by design gets muted. They join once the backlog above has closed

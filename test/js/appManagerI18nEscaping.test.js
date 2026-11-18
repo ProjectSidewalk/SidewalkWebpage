@@ -99,9 +99,8 @@ describe('i18next under that configuration', () => {
 
   test('opting in escapes only the values, never the markup the translation itself carries', async () => {
     const t = (await instance(false)).t;
-    // The anchor is the translation's own, so it survives as a tag; only the href it is given is escaped, and
-    // `&#x2F;` decodes back to `/` when the parser reads the attribute.
-    expect(t('link', { href: '/help', interpolation: { escapeValue: true } }))
-      .toBe('Read <a href="&#x2F;help">how it works</a>');
+    // The anchor is the translation's own, so it survives as a tag; only the href it is given is escaped.
+    expect(t('link', { href: '/help?a=1&b=2', interpolation: { escapeValue: true } }))
+      .toBe('Read <a href="/help?a=1&amp;b=2">how it works</a>');
   });
 });

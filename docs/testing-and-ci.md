@@ -204,7 +204,8 @@ Parallel jobs:
   the suite, which needs both. The seed is generated: `test/e2e/fixtures/gen_ci_seed.py` rebuilds it from a prod slice
   pulled by `test/e2e/fixtures/ci_seed_slice.sql`, and the invariants it has to preserve (derived caches matching their
   runtime recomputes, the label-id window the share and phone-viewport specs read from opposite ends,
-  `label_point.pano_x` sharing a pixel space with the downscaled fixture imagery) are written there as code rather than
+  `label_point.pano_x` sharing a pixel space with the downscaled fixture imagery, the label clusters being the ones the
+  app's own clusterer makes of the seeded labels) are written there as code rather than
   left for a reader to rediscover in 500 lines of INSERTs. The seed is the whole reason the data-dependent half of the
   suite runs at all: before #5115 it was one region and two streets, and 87 tests `assume`d their way out as canceled —
   the great majority for want of a single `label` row. Until #5042 this was a hand-maintained list of spec names and

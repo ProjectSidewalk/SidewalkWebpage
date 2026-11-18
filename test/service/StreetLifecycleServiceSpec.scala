@@ -1,16 +1,14 @@
 package service
 
 import models.street.{StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdgeStatusChangeTable}
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
-import util.SidewalkSpec
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -27,7 +25,11 @@ import scala.concurrent.duration.*
  * Seeds its own transitions against a real street and removes them afterwards. Requires a Postgres+PostGIS database
  * (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors are disabled.
  */
-class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class StreetLifecycleServiceSpec
+    extends SidewalkSpec
+    with BeforeAndAfterAll
+    with GuiceOneAppPerSuite
+    with RolledBackDb {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -35,25 +37,35 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
   private val statusChangeTable      = app.injector.instanceOf[StreetEdgeStatusChangeTable]
   private val streetLifecycleService = app.injector.instanceOf[StreetLifecycleService]
   private val regionService          = app.injector.instanceOf[RegionService]
-  private val dbConfig               = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
   /** A real street to hang the seeded transitions off, since the log carries a foreign key to street_edge. */
   private lazy val streetEdgeId: Option[Int] =
     run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].headOption)
 
-  private def seedChange(oldStatus: StreetEdgeStatus, newStatus: StreetEdgeStatus, changedAt: OffsetDateTime): Unit = {
+  private def seedChangeAction(
+      oldStatus: StreetEdgeStatus,
+      newStatus: StreetEdgeStatus,
+      changedAt: OffsetDateTime
+  ): DBIO[Int] = {
     val streetId = streetEdgeId.get
-    val _        = run(
-      sqlu"""INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, changed_at, source)
-               VALUES ($streetId,
-                       $oldStatus,
-                       $newStatus,
-                       $changedAt,
-                       ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery})"""
-    )
+    sqlu"""INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, changed_at, source)
+            VALUES ($streetId,
+                    $oldStatus,
+                    $newStatus,
+                    $changedAt,
+                    ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery})"""
   }
+
+  private def seedChange(oldStatus: StreetEdgeStatus, newStatus: StreetEdgeStatus, changedAt: OffsetDateTime): Unit = {
+    val _ = run(seedChangeAction(oldStatus, newStatus, changedAt))
+  }
+
+  /**
+   * Runs `body` against an emptied status-change log, in a transaction that always rolls back, so its counts are exact
+   * on a database with real history and that history is left as found.
+   */
+  private def withEmptyLog[T](body: DBIO[T]): T =
+    runRolledBack(sqlu"DELETE FROM street_edge_status_change".andThen(body))
 
   private def cleanUp(): Unit = streetEdgeId.foreach { streetId =>
     val _ = run(sqlu"DELETE FROM street_edge_status_change WHERE street_edge_id = $streetId")
@@ -98,12 +110,12 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
   "transitionsByWeek" should {
     "bucket transitions by week and destination status" in {
       assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
-      cleanUp()
-      val now = OffsetDateTime.now
-      seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, now)
-      seedChange(StreetEdgeStatus.NoImagery, StreetEdgeStatus.Closed, now.minusWeeks(3))
-
-      val weeks = run(statusChangeTable.transitionsByWeek(now.minusWeeks(8)))
+      val now   = OffsetDateTime.now
+      val weeks = withEmptyLog(for {
+        _     <- seedChangeAction(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, now)
+        _     <- seedChangeAction(StreetEdgeStatus.NoImagery, StreetEdgeStatus.Closed, now.minusWeeks(3))
+        weeks <- statusChangeTable.transitionsByWeek(now.minusWeeks(8))
+      } yield weeks)
       weeks.filter(_.newStatus == StreetEdgeStatus.NoImagery).map(_.streetCount).sum mustBe 1
       weeks.filter(_.newStatus == StreetEdgeStatus.Closed).map(_.streetCount).sum mustBe 1
       weeks.map(_.weekStart).distinct must have size 2
@@ -111,23 +123,22 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
 
     "count a street once even when it moved twice into the same status in one week" in {
       assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
-      cleanUp()
-      val now = OffsetDateTime.now
-      seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, now)
-      seedChange(StreetEdgeStatus.Closed, StreetEdgeStatus.NoImagery, now)
-
-      val weeks = run(statusChangeTable.transitionsByWeek(now.minusWeeks(2)))
+      val now   = OffsetDateTime.now
+      val weeks = withEmptyLog(for {
+        _     <- seedChangeAction(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, now)
+        _     <- seedChangeAction(StreetEdgeStatus.Closed, StreetEdgeStatus.NoImagery, now)
+        weeks <- statusChangeTable.transitionsByWeek(now.minusWeeks(2))
+      } yield weeks)
       weeks.filter(_.newStatus == StreetEdgeStatus.NoImagery).map(_.streetCount).sum mustBe 1
     }
 
     "leave out transitions older than the window" in {
       assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
-      cleanUp()
-      // Compared with what the window held before the seed, since a real database can have recent changes of its own.
-      val since  = OffsetDateTime.now.minusWeeks(4)
-      val before = run(statusChangeTable.transitionsByWeek(since))
-      seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.Closed, OffsetDateTime.now.minusWeeks(20))
-      run(statusChangeTable.transitionsByWeek(since)) must contain theSameElementsAs before
+      val now = OffsetDateTime.now
+      withEmptyLog(
+        seedChangeAction(StreetEdgeStatus.Open, StreetEdgeStatus.Closed, now.minusWeeks(20))
+          .andThen(statusChangeTable.transitionsByWeek(now.minusWeeks(4)))
+      ) mustBe empty
     }
   }
 

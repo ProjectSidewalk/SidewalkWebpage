@@ -1258,6 +1258,8 @@ export class AccessScoreStreetPanel {
       className: 'acs-tile__card',
       source: 'AccessScorePanel',
       log: this.#callbacks.log,
+      // Reopening a street rebuilds its tiles from the feed, so it keeps the re-signed URL (#5861).
+      onImageUrlRefresh: (labelId, field, url) => this.#feed.rememberImageUrl(labelId, field, url),
       onOpen: (labelId) => {
         this.#callbacks.log('PanelOpenLabel_labelId', labelId);
         this.#callbacks.onOpenLabel(labelId, this.#labelIds);

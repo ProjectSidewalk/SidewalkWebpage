@@ -65,6 +65,12 @@ The backend follows a consistent layering: **routes → Controller → Service �
   `user_stat` table.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Validator reliability (#5063)** — `user_stat.validator_reliability` is the weight to give a user's validations,
+  refreshed by the nightly user stats job. `UserStatTable.validatorTallies` grades each Agree or Disagree vote against
+  the first answer that exists (a training example's, then an admin's vote, then the majority of the other votes) and
+  `ValidatorReliability` turns the graded and matched counts into the score. The AI's Disagree votes grade no one
+  until #5974. The formula is published on the User Stats API docs page, and the admin Data Quality page charts the
+  people's scores from `/adminapi/validatorReliability`.
 - **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
   `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
   turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a
@@ -84,15 +90,13 @@ The backend follows a consistent layering: **routes → Controller → Service �
   (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
 - **Cross-city totals** — a number summed over every city (`/v3/api/aggregateStats` and `aggregateStatsByDay`, the
   Leaderboard's community bands, the Admin cross-city contributor count) is complete or it is a failure, never a
-  smaller number (#5977). `ConfigService.fanOutAcrossCities` lists the readable schemas in one query, then queries six
-  cities at a time through `BoundedCityFanOut`. A failed city query gets up to three attempts with jittered backoff,
-  and a failure that outlasts them fails the whole compute. `SwrCache` then keeps serving the last complete value and,
-  for these totals, starts no new compute for a minute; with nothing cached the API answers `503` with `Retry-After`
-  and the Leaderboard drops its bands. A city whose schema can't answer the query yet (SQLSTATE class 42, such as a
-  missing column or privilege) is left out with a warning, and the city count covers only the cities summed. More
-  than two such cities, or this deployment's own schema, fails the compute instead: that is a release still rolling
-  out, or a broken query. A new cross-city total goes through the same path. A `recover` that turns one city's
-  failure into "skip it" lowers a public total by a whole city and caches that.
+  smaller number (#5977). `ConfigService.queryEveryCity` lists the readable schemas in one query, then queries two
+  cities at a time; on prod, one city failing fails the whole compute (elsewhere, where schemas lag on evolutions, it
+  is skipped with a warning). `SwrCache` then keeps serving the last complete value and starts no new compute for a
+  minute; with nothing cached the API answers `503` with `Retry-After` and the Leaderboard drops its bands. The totals
+  refresh hourly, plus a random extra per app so the city apps don't all refresh at once (#5238). A new cross-city
+  total goes through `queryEveryCity`; a read that can do without a city (the Admin cross-city pages) uses
+  `queryEachCity` and recovers per city.
 - **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
   separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
   lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,
@@ -274,6 +278,12 @@ the network one, waiting a bounded time for a prefetch still in flight rather th
 lacks a column Pannellum needs, and the body names which (#5183). The file is checked first, so the common miss costs
 no query.
 
+`/backupImage` and `/cropImage` URLs are HMAC-signed for about an hour (`ImageSigningService`), so a page that stays
+open longer holds URLs that 403. The client gets a fresh one from the two `/metadata` endpoints: a plain `<img>`
+re-signs once after a failed load (`retrySignedImage` in `utilitiesSidewalk.js`), and since Pannellum (Validate, the
+popup) retries a failed load itself, its loads re-sign beforehand when the URL is within 10 minutes of its `exp`
+(`freshBackupImage`); a client clock running further behind than that still 403s there (#5861).
+
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
 was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than
@@ -335,7 +345,8 @@ its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418):
 computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
 opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
 endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
-background; the AccessScore tool retries on that header and says so under its spinner.
+background; the AccessScore tool retries on that header and says so under its spinner. `/adminapi/cityScorecards`
+does the same for Across Cities (`ConfigService.CrossCityColdWait`, #5432); both pages retry via `FetchWithRetry.js`.
 
 The **minimap basemap refresh** (#5716) keeps each city's own copy of the minimap's OpenStreetMap tiles.
 `BasemapService` runs the `pmtiles` tool to copy the regions' area, plus 2 km, out of Protomaps' daily world file: a few
@@ -368,7 +379,7 @@ that started before this JVM did. That rule rests on each stage running one proc
 inside a live process is not caught at boot; the Health panel reads it as `abandoned` after 12 hours.
 
 The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
-`BuildInfo` and whether the database answers, so a release can be watched landing city by city.
+`BuildInfo` and whether the database answers and loads PostGIS, so a release can be watched landing city by city.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the

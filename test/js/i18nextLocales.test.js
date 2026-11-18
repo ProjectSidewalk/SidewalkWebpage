@@ -152,12 +152,17 @@ describe('i18next over our locale files', () => {
       const english = flatten(readLocale('en', 'common'));
       const key = Object.keys(english).find((k) => k.endsWith('_one') && `${k.slice(0, -4)}_other` in english)
         .slice(0, -4);
-      const expected = (suffix, count) => (own[`${key}_${suffix}`] ?? english[`${key}_${suffix}`])
-        .replace(/\{\{count(, number)?\}\}/, new Intl.NumberFormat(language).format(count));
+      const withCount = (text, count) =>
+        text.replace(/\{\{count(, number)?\}\}/, new Intl.NumberFormat(language).format(count));
+      const expected = (suffix, count) => withCount(own[`${key}_${suffix}`] ?? english[`${key}_${suffix}`], count);
       // Chinese has a single plural form, so a count of one reads the `_other` string there.
       const singular = new Intl.PluralRules(language).select(1);
       expect(page.i18next.t(`common:${key}`, { count: 1 })).toBe(expected(singular, 1));
       expect(page.i18next.t(`common:${key}`, { count: 5 })).toBe(expected('other', 5));
+      // A form this language's file leaves out (Spanish `_many`, for a million) reads its own `_other`, not English.
+      const million = new Intl.PluralRules(language).select(1000000);
+      const millionText = own[`${key}_${million}`] ?? own[`${key}_other`] ?? english[`${key}_other`];
+      expect(page.i18next.t(`common:${key}`, { count: 1000000 })).toBe(withCount(millionText, 1000000));
     });
 
     test('renders a distance through our formatter, with the unit the page was given', () => {

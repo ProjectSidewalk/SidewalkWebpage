@@ -30,6 +30,8 @@ const MARKUP = `
     <button type="button" class="dq-validator-btn" data-validator="ai" aria-pressed="false">AI</button>
   </div>
   <div class="dq-rows" id="dq-validation"></div>
+  <p id="dq-reliability-summary"></p>
+  <div id="dq-reliability"></div>
   <div id="dq-trend" class="dq-trend"></div>
   <div id="dq-tags"></div>
   <div id="dq-tag-severity"></div>`;
@@ -96,18 +98,29 @@ const BY_DAY = {
   ],
 };
 
+/** /adminapi/validatorReliability: one row per scored validator. */
+const RELIABILITY = {
+  validators: [
+    { validator_reliability: 0.95, validations_graded: 200, validations_matched: 190 },
+    { validator_reliability: 0.9, validations_graded: 100, validations_matched: 95 },
+    { validator_reliability: 0.72, validations_graded: 60, validations_matched: 45 },
+    { validator_reliability: 0.41, validations_graded: 40, validations_matched: 10 },
+  ],
+};
+
 const URLS = {
   statsUrl: '/v3/api/overallStats', tagsUrl: '/adminapi/labelTags', labelTypesUrl: '/v3/api/labelTypes',
   byDayUrl: '/v3/api/overallStatsByDay', tagSeverityUrl: '/adminapi/tagSeverity',
+  reliabilityUrl: '/adminapi/validatorReliability',
 };
 
 /**
  * Builds the page with the given answers (each defaulting to the fixtures above) and lets it load.
- * @param {object} [answers] - Bodies keyed `stats`, `tags`, `labelTypes`, `byDay`, `tagSeverity`.
+ * @param {object} [answers] - Bodies keyed `stats`, `tags`, `labelTypes`, `byDay`, `tagSeverity`, `reliability`.
  * @returns {Promise<import('vitest').Mock>} The fetch stub.
  */
 async function render({ stats = STATS, tags = TAGS, labelTypes = LABEL_TYPES, byDay = BY_DAY,
-  tagSeverity = TAG_SEVERITY } = {}) {
+  tagSeverity = TAG_SEVERITY, reliability = RELIABILITY } = {}) {
   document.body.innerHTML = MARKUP;
   const fetch = routeFetch({
     [URLS.statsUrl]: stats,
@@ -116,6 +129,7 @@ async function render({ stats = STATS, tags = TAGS, labelTypes = LABEL_TYPES, by
     [URLS.tagsUrl]: tags,
     [URLS.labelTypesUrl]: labelTypes,
     [URLS.tagSeverityUrl]: tagSeverity,
+    [URLS.reliabilityUrl]: reliability,
   });
   await new DataQualityPage(URLS).init();
   return fetch;
@@ -183,7 +197,8 @@ describe('Data Quality — KPIs and loading', () => {
     document.body.innerHTML = MARKUP;
     for (const id of ['kpi-total-labels', 'dq-status', 'dq-tag-severity']) document.getElementById(id).remove();
     routeFetch({ [URLS.statsUrl]: STATS, [URLS.byDayUrl]: BY_DAY, [URLS.tagsUrl]: TAGS,
-      [URLS.labelTypesUrl]: LABEL_TYPES, [URLS.tagSeverityUrl]: TAG_SEVERITY });
+      [URLS.labelTypesUrl]: LABEL_TYPES, [URLS.tagSeverityUrl]: TAG_SEVERITY,
+      [URLS.reliabilityUrl]: RELIABILITY });
     await new DataQualityPage(URLS).init();
     expect(console.error).not.toHaveBeenCalled();
     expect(rowTexts('dq-labels')).toHaveLength(4);
@@ -432,5 +447,31 @@ describe('Data Quality — label types', () => {
     await render({ labelTypes: null });
     expect(document.getElementById('dq-labels').innerHTML).toBe('');
     expect(text('dq-tags')).toBe('No tags recorded yet.');
+  });
+});
+
+describe('Data Quality — validator reliability', () => {
+  /** @returns {Array<string>} Each band as read: its range, then how many validators are in it. */
+  const bands = () => [...document.querySelectorAll('#dq-reliability .dq-tag-row')]
+    .map((row) => `${textOf(row.querySelector('.dq-tag-name'))}: ${textOf(row.querySelector('.dq-tag-count'))}`);
+
+  test('counts the scored validators in each band and sums what was checked', async () => {
+    await render();
+    expect(text('dq-reliability-summary')).toBe('4 validators scored · 400 validations checked · 85% matched');
+    expect(bands()).toEqual(['90% and up: 2', '80–90%: 0', '70–80%: 1', '60–70%: 0', 'Below 60%: 1']);
+  });
+
+  test('says so when nobody has a score', async () => {
+    await render({ reliability: { validators: [] } });
+    expect(text('dq-reliability-summary')).toBe('');
+    expect(text('dq-reliability')).toBe('No validator has a score yet.');
+  });
+
+  test('a failed request costs only this section, not the rest of the page', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await render({ reliability: { status: 503 } });
+    expect(text('dq-reliability')).toBe('Could not load validator reliability.');
+    expect(document.getElementById('dq-status').classList.contains('error')).toBe(false);
+    expect(rowTexts('dq-labels').length).toBeGreaterThan(0);
   });
 });

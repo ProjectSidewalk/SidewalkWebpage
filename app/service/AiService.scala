@@ -8,7 +8,7 @@ import models.utils.MyPostgresProfile.api.given
 import models.utils.*
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /** The AI server rejected our password, so no request in this run can succeed. */
 class AiApiAuthException(message: String) extends Exception(message)
@@ -30,6 +31,18 @@ case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]
 
   /** @return True when the schema already carried every row, so the run was a no-op. */
   def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
+}
+
+object AiService {
+
+  /**
+   * Tells the AI server's own "no imagery" 502, after which the label can never be assessed, from the one its Apache
+   * sends while the server is down. The message must match the one in sidewalk-ai-api's main.py.
+   * @param body The 502 response's body.
+   * @return True when the AI server itself said it couldn't fetch the panorama.
+   */
+  def panoFetchFailed(body: String): Boolean =
+    Try((Json.parse(body) \ "error").asOpt[String]).toOption.flatten.contains("Failed to fetch panorama")
 }
 
 @ImplementedBy(classOf[AiServiceImpl])
@@ -316,7 +329,7 @@ class AiServiceImpl @Inject() (
                 )
               )
             )
-          } else if (response.status == 502) {
+          } else if (response.status == 502 && AiService.panoFetchFailed(response.body)) {
             // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
             // imagery is likely expired. Check expiration (panoExists records it) then record a failure row so we stop
             // retrying this label. Sequenced with flatMap rather than Await so we don't block a pool thread on the call.
