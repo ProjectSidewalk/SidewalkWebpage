@@ -715,8 +715,14 @@ object ConfigService {
    */
   val AggregateStatsCacheKey: String = "getAggregateStats:v2-bundle"
 
-  /** Cached aggregate stats older than this trigger a background recompute when served (#4600). */
-  val AggregateStatsFreshFor: FiniteDuration = Duration(5, "minutes")
+  /**
+   * Cached aggregate stats older than this trigger a background recompute when served (#4600).
+   *
+   * An hour because these are all-time, all-city totals that barely move in one, and each refresh is ~2 queries per
+   * city repeated by every deployment: on prod that refresh was most of the connection pressure behind #5238. It is
+   * an overview, not a live mapathon counter: each city's own pages show its full stats.
+   */
+  val AggregateStatsFreshFor: FiniteDuration = Duration(1, "hour")
 
   /**
    * How long cached aggregate stats may be served at all; past this, a request blocks on recomputing them.
