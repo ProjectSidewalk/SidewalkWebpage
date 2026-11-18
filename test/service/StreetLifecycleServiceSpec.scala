@@ -259,6 +259,7 @@ class StreetLifecycleServiceSpec
         run(sqlu"UPDATE street_edge SET status = 'no_imagery' WHERE street_edge_id = $streetId")
         run(sqlu"DELETE FROM street_edge_priority WHERE street_edge_id = $streetId")
         run(sqlu"INSERT INTO street_reopen_candidate (street_edge_id, n_panos) VALUES ($streetId, 2)")
+        run(sqlu"UPDATE region_completion SET total_distance = -1")
 
         Await.result(streetLifecycleService.reopenStreet(streetId), 120.seconds) mustBe
           StreetLifecycleService.ReopenOutcome.Reopened
@@ -271,8 +272,9 @@ class StreetLifecycleServiceSpec
         // nightly recalc only ever updates rows that exist.
         run(sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetId".as[Double].head) mustBe 1.0
         run(sql"SELECT COUNT(*) FROM street_reopen_candidate WHERE street_edge_id = $streetId".as[Int].head) mustBe 0
-        // The completion cache must not survive the reopen: the street's region now has more total distance.
-        run(sql"SELECT COUNT(*) FROM region_completion".as[Int].head) mustBe 0
+        // The street's region now has more total distance, so every stale row must be overwritten, none left empty.
+        run(sql"SELECT COUNT(*) FROM region_completion".as[Int].head) must be > 0
+        run(sql"SELECT COUNT(*) FROM region_completion WHERE total_distance < 0".as[Int].head) mustBe 0
       } finally {
         run(sqlu"DELETE FROM street_edge_status_change WHERE street_edge_id = $streetId AND source = 'admin_reopen'")
         run(sqlu"DELETE FROM street_reopen_candidate WHERE street_edge_id = $streetId")
@@ -280,8 +282,8 @@ class StreetLifecycleServiceSpec
         run(sqlu"""INSERT INTO street_edge_priority (street_edge_id, priority)
                    VALUES ($streetId, $originalPriority)
                    ON CONFLICT (street_edge_id) DO UPDATE SET priority = EXCLUDED.priority""")
-        // Refill the completion cache so later suites that assume a populated one aren't cancelled.
-        val _ = Await.result(regionService.initializeRegionCompletionTable, 120.seconds)
+        // Recompute the completion cache for the restored street, clearing the stale marker if the reopen failed.
+        val _ = Await.result(regionService.rebuildRegionCompletionTable, 120.seconds)
       }
     }
 

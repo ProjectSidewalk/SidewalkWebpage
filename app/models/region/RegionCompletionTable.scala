@@ -46,8 +46,6 @@ class RegionCompletionTable @Inject() (
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
-  def count: DBIO[Int] = regionCompletions.length.result
-
   /**
    * Returns each region's completion distances along with its name. If provided, filter for only given regions.
    */
@@ -109,21 +107,67 @@ class RegionCompletionTable @Inject() (
       // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
       // we are just being safe, and setting audited_distance to be less than total_distance.
       rCQuery = regionCompletions.filter(_.regionId === regionId)
-      rowsUpdated: Int <- rCQuery.result.head.flatMap { (rC: RegionCompletion) =>
-        if (!regionIncomplete) {
-          rCQuery.map(_.auditedDistance).update(rC.totalDistance)
-        } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
+      // No row means a maintenance script emptied the table to force a rebuild; that rebuild will count this street.
+      rowsUpdated: Int <- rCQuery.result.headOption.flatMap {
+        case None                          => DBIO.successful(0)
+        case Some(rC) if !regionIncomplete => rCQuery.map(_.auditedDistance).update(rC.totalDistance)
+        case Some(rC) if rC.auditedDistance + distToAdd > rC.totalDistance =>
           rCQuery.map(_.auditedDistance).update(rC.totalDistance * 0.995)
-        } else {
-          rCQuery.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
-        }
+        case Some(rC) => rCQuery.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
       }
     } yield {
       rowsUpdated
     }
   }
 
-  def truncateTable: DBIO[Int] = {
-    sqlu"TRUNCATE TABLE region_completion"
+  /**
+   * Recomputes every region's row in place. Never TRUNCATE: that waits out the nightly backup, with every reader
+   * of the table stuck behind it, and leaves the table empty for whoever reads next (#6014).
+   * @return The number of rows written.
+   */
+  def rebuild: DBIO[Int] = {
+    val streetsInRegion = for {
+      _edgeRegion   <- streetEdgeRegion
+      _edges        <- streetEdgeTable.streets if _edges.streetEdgeId === _edgeRegion.streetEdgeId
+      _edgePriority <- streetEdgePriorityTable if _edges.streetEdgeId === _edgePriority.streetEdgeId
+    } yield (_edgeRegion.regionId, _edges.geom.lengthGeodesic, _edgePriority.priority < 1.0)
+
+    val distancesByRegion =
+      streetsInRegion.groupBy { case (regionId, _, _) => regionId }.map { case (regionId, group) =>
+        val totalDistance   = group.map { case (_, length, _) => length }.sum.getOrElse(0.0d)
+        val auditedDistance = group
+          .map { case (_, length, audited) => Case.If(audited).Then(length).Else(0.0d) }
+          .sum
+          .getOrElse(0.0d)
+        (regionId, totalDistance, auditedDistance)
+      }
+
+    // Left join so a region with no streets still gets a row, with zero distances.
+    val freshCompletions = regionsWithoutDeleted
+      .joinLeft(distancesByRegion)
+      .on { case (region, (regionId, _, _)) => region.regionId === regionId }
+      .map { case (region, regionData) =>
+        (
+          region.regionId,
+          regionData.map { case (_, totalDistance, _) => totalDistance }.getOrElse(0.0d),
+          regionData.map { case (_, _, auditedDistance) => auditedDistance }.getOrElse(0.0d)
+        ).mapTo[RegionCompletion]
+      }
+
+    // Blocks writers only, not readers or the backup, so Explore saves in flight are counted and rebuilds take turns.
+    (for {
+      _     <- sqlu"LOCK TABLE region_completion IN SHARE ROW EXCLUSIVE MODE"
+      fresh <- freshCompletions.result
+      _     <- regionCompletions.filterNot(_.regionId inSet fresh.map(_.regionId)).delete
+      _     <- regionCompletions.insertOrUpdateAll(fresh)
+    } yield fresh.size).transactionally
+  }
+
+  /**
+   * Fills the table the first time it is read in a city that has never had it built.
+   * @return The number of rows written, 0 when the table already had rows.
+   */
+  def rebuildIfEmpty: DBIO[Int] = regionCompletions.exists.result.flatMap { filled =>
+    if (filled) DBIO.successful(0) else rebuild
   }
 }

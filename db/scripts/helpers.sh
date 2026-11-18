@@ -130,8 +130,8 @@ mark_streets_no_imagery() {
         DELETE FROM street_reopen_candidate
         WHERE street_edge_id IN ($street_ids);
 
-        -- Truncate the region_completion table to force recalculation of distances.
-        TRUNCATE TABLE region_completion;
+        -- Empty region_completion to force recalculation of distances. Not TRUNCATE: it waits out the backup (#6014).
+        DELETE FROM region_completion;
         COMMIT;
 EOSQL
 }
@@ -186,8 +186,8 @@ reopen_streets_with_imagery() {
         DELETE FROM street_reopen_candidate
         WHERE street_edge_id IN (SELECT street_edge_id FROM reopening);
 
-        -- Truncate the region_completion table to force recalculation of distances.
-        TRUNCATE TABLE region_completion;
+        -- Empty region_completion to force recalculation of distances. Not TRUNCATE: it waits out the backup (#6014).
+        DELETE FROM region_completion;
         COMMIT;
 EOSQL
 }

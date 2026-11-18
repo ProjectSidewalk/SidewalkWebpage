@@ -142,8 +142,8 @@ WHERE new_status = 'open'
 DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT street_edge_id FROM to_disable);
 DELETE FROM street_reopen_candidate WHERE street_edge_id IN (SELECT street_edge_id FROM to_disable);
 
--- Truncate the region_completion table to force recalculation of distances.
-TRUNCATE TABLE region_completion;
+-- Empty region_completion to force recalculation of distances. Not TRUNCATE: it waits out the backup (#6014).
+DELETE FROM region_completion;
 COMMIT;
 
 \echo 'Open regions left with no open street (hide them with make reveal-or-hide-regions):'
