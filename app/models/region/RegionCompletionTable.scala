@@ -100,21 +100,18 @@ class RegionCompletionTable @Inject() (
         .exists
         .result
 
-      // Check if the region is fully audited, and set audited_distance equal to total_distance if so. We are
-      // doing this to fix floating point error, so that in the end, the region is marked as exactly 100% complete. Also
-      // doing a check to see if the completion is erroneously over 100%, when the streets have not all been audited in
-      // that region; this has never been observed, but it could theoretically be an issue if there is a sizable
-      // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
-      // we are just being safe, and setting audited_distance to be less than total_distance.
-      rCQuery = regionCompletions.filter(_.regionId === regionId)
-      // No row means a maintenance script emptied the table to force a rebuild; that rebuild will count this street.
-      rowsUpdated: Int <- rCQuery.result.headOption.flatMap {
-        case None                          => DBIO.successful(0)
-        case Some(rC) if !regionIncomplete => rCQuery.map(_.auditedDistance).update(rC.totalDistance)
-        case Some(rC) if rC.auditedDistance + distToAdd > rC.totalDistance =>
-          rCQuery.map(_.auditedDistance).update(rC.totalDistance * 0.995)
-        case Some(rC) => rCQuery.map(_.auditedDistance).update(rC.auditedDistance + distToAdd)
-      }
+      // A fully audited region is set to exactly total_distance, so floating point error can't keep it off 100%; one
+      // that isn't is held just under, in case that error overshoots with a very short street left (never observed).
+      // One UPDATE, so the sum starts from the row as it is when the write lands, not from a read that a rebuild or
+      // another save has since replaced. A region with no row is left for the rebuild that creates it.
+      rowsUpdated: Int <- sqlu"""
+        UPDATE region_completion
+        SET audited_distance = CASE
+            WHEN NOT $regionIncomplete THEN total_distance
+            WHEN audited_distance + $distToAdd > total_distance THEN total_distance * 0.995
+            ELSE audited_distance + $distToAdd
+        END
+        WHERE region_id = $regionId"""
     } yield {
       rowsUpdated
     }
@@ -125,7 +122,10 @@ class RegionCompletionTable @Inject() (
    * of the table stuck behind it, and leaves the table empty for whoever reads next (#6014).
    * @return The number of rows written.
    */
-  def rebuild: DBIO[Int] = {
+  def rebuild: DBIO[Int] = (lockAgainstWriters >> recompute).transactionally
+
+  /** Writes every region's fresh row and drops rows of regions that are gone. Run under [[lockAgainstWriters]]. */
+  private def recompute: DBIO[Int] = {
     val streetsInRegion = for {
       _edgeRegion   <- streetEdgeRegion
       _edges        <- streetEdgeTable.streets if _edges.streetEdgeId === _edgeRegion.streetEdgeId
@@ -154,20 +154,27 @@ class RegionCompletionTable @Inject() (
         ).mapTo[RegionCompletion]
       }
 
-    // Blocks writers only, not readers or the backup, so Explore saves in flight are counted and rebuilds take turns.
-    (for {
-      _     <- sqlu"LOCK TABLE region_completion IN SHARE ROW EXCLUSIVE MODE"
+    for {
       fresh <- freshCompletions.result
-      _     <- regionCompletions.filterNot(_.regionId inSet fresh.map(_.regionId)).delete
+      _     <- regionCompletions.filterNot(rc => regionsWithoutDeleted.filter(_.regionId === rc.regionId).exists).delete
       _     <- regionCompletions.insertOrUpdateAll(fresh)
-    } yield fresh.size).transactionally
+    } yield fresh.size
   }
+
+  // Blocks writers only, not readers or the backup, so Explore saves in flight are counted and rebuilds take turns.
+  private val lockAgainstWriters = sqlu"LOCK TABLE region_completion IN SHARE ROW EXCLUSIVE MODE"
 
   /**
    * Fills the table the first time it is read in a city that has never had it built.
    * @return The number of rows written, 0 when the table already had rows.
    */
   def rebuildIfEmpty: DBIO[Int] = regionCompletions.exists.result.flatMap { filled =>
-    if (filled) DBIO.successful(0) else rebuild
+    if (filled) DBIO.successful(0)
+    else {
+      // Checked again under the lock: requests that all found it empty would otherwise each rebuild in turn.
+      (lockAgainstWriters >> regionCompletions.exists.result.flatMap { filledMeanwhile =>
+        if (filledMeanwhile) DBIO.successful(0) else recompute
+      }).transactionally
+    }
   }
 }

@@ -17,7 +17,7 @@ trait RegionService {
   def getRegionCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
   def getOutdatedDistanceByRegion: Future[Map[Int, Double]]
   def rebuildRegionCompletionTable: Future[Int]
-  def initializeRegionCompletionTable: Future[Int]
+  def rebuildRegionCompletionTableIfEmpty: Future[Int]
 }
 
 @Singleton
@@ -47,5 +47,5 @@ class RegionServiceImpl @Inject() (
 
   def rebuildRegionCompletionTable: Future[Int] = db.run(regionCompletionTable.rebuild)
 
-  def initializeRegionCompletionTable: Future[Int] = db.run(regionCompletionTable.rebuildIfEmpty)
+  def rebuildRegionCompletionTableIfEmpty: Future[Int] = db.run(regionCompletionTable.rebuildIfEmpty)
 }

@@ -23,6 +23,20 @@ class RegionCompletionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite wi
       .as[(Double, Double)]
       .headOption
 
+  /** Runs a body whose rebuilds commit, then puts the rows back as found: GeodesicDistanceSpec checks the seeded ones. */
+  private def restoringCompletions[T](body: => T): T = {
+    val before = run(
+      sql"SELECT region_id, total_distance, audited_distance FROM region_completion".as[(Int, Double, Double)]
+    )
+    try body
+    finally {
+      val _ = run(DBIO.sequence(before.map { case (id, total, audited) =>
+        sqlu"""UPDATE region_completion SET total_distance = $total, audited_distance = $audited
+               WHERE region_id = $id"""
+      }))
+    }
+  }
+
   "rebuild" should {
     "overwrite stale rows, add missing ones, and drop rows of deleted regions" in {
       val (written, rowCount, stale, fresh, empty, deleted) = runRolledBack(for {
@@ -70,7 +84,7 @@ class RegionCompletionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite wi
       )
       try {
         Await.result(hasRead.future, dbTimeout)
-        Await.result(dbConfig.db.run(table.rebuild), 30.seconds) must be > 0
+        restoringCompletions(Await.result(dbConfig.db.run(table.rebuild), 30.seconds)) must be > 0
       } finally {
         release.success(())
         Await.result(reader, dbTimeout)
@@ -78,9 +92,9 @@ class RegionCompletionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite wi
     }
 
     "let several rebuilds run at once without one failing on the other's rows" in {
-      // These commit, harmlessly: a rebuild only rewrites the table to what the streets already say.
-      val rebuilds = Future.sequence((1 to 6).map(_ => dbConfig.db.run(table.rebuild)))
-      val written  = Await.result(rebuilds, dbTimeout)
+      val written = restoringCompletions {
+        Await.result(Future.sequence((1 to 6).map(_ => dbConfig.db.run(table.rebuild))), dbTimeout)
+      }
       written.distinct must have size 1
     }
   }
@@ -103,6 +117,40 @@ class RegionCompletionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite wi
   }
 
   "updateAuditedDistance" should {
+
+    /**
+     * Credits one just-explored street to a region whose row starts at the given distances.
+     * @param otherStreetPriority Priority of the region's second street; 1.0 leaves the region unfinished.
+     * @return (the street's length, the region's audited distance afterwards).
+     */
+    def creditStreet(total: Double, audited: Double, otherStreetPriority: Double): (Double, Double) =
+      runRolledBack(for {
+        regionId <- insertRegion()
+        streetId <- insertStreet(Some(regionId), withPriority = true, priority = 0.5)
+        _        <- insertStreet(Some(regionId), withPriority = true, priority = otherStreetPriority)
+        _        <- sqlu"INSERT INTO region_completion VALUES ($regionId, $total, $audited)"
+        length   <- sql"SELECT ST_Length(geom::geography) FROM street_edge WHERE street_edge_id = $streetId"
+          .as[Double]
+          .head
+        _     <- table.updateAuditedDistance(streetId)
+        after <- distances(regionId)
+      } yield (length, after.get._2))
+
+    "add the street's length to what the row holds" in {
+      val (length, audited) = creditStreet(total = 1e9, audited = 500.0, otherStreetPriority = 1.0)
+      audited mustBe 500.0 + length +- 1e-6
+    }
+
+    "hold an unfinished region just under its total when the sum would overshoot" in {
+      val (_, audited) = creditStreet(total = 100.0, audited = 50.0, otherStreetPriority = 1.0)
+      audited mustBe 99.5 +- 1e-9
+    }
+
+    "set a finished region to exactly its total" in {
+      val (_, audited) = creditStreet(total = 100.0, audited = 50.0, otherStreetPriority = 0.5)
+      audited mustBe 100.0
+    }
+
     "skip the credit rather than fail when the region has no row" in {
       val updated = runRolledBack(for {
         regionId <- insertRegion()
