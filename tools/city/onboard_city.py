@@ -1341,7 +1341,8 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
         retry_kwargs:      The clock fakes ``overpass.fetch_each`` takes, for tests.
 
     Returns:
-        A GeoDataFrame of ways: ``osm_way_id``, ``highway``, LineString geometry in lon/lat.
+        A GeoDataFrame of ways: ``osm_way_id``, ``highway``, ``name`` (None for an unnamed way; ``draw_regions.py``
+        finds a city's divide roads by it), LineString geometry in lon/lat.
 
     Raises:
         overpass.OverpassUnavailable: when a request is refused for the whole retry window.
@@ -1405,7 +1406,7 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
         raise RuntimeError(f'Overpass gave no whole answer in three tries ({reason}): run again with a larger '
                            f'--request-timeout-s and --request-memory-mb, or a smaller --tile-km2.')
 
-    ways, highway = {}, {}
+    ways, highway, name = {}, {}, {}
     for features in fetch_each(polygons, fetch_one, pause_s, policy, **retry_kwargs):
         if way_types == 'alleys' and 'highway' in features.columns:
             # Without the service column no way in the tile says what kind of service road it is, so none is an alley.
@@ -1413,8 +1414,10 @@ def fetch_ways(polygons, way_types, request_timeout_s=180, memory_mb=None, pause
             features = features[(features['highway'] != 'service') | is_alley]
         ways.update(ways_from_features(features))
         highway.update(features['highway'].to_dict() if 'highway' in features.columns else {})
+        name.update(features['name'].dropna().to_dict() if 'name' in features.columns else {})
     return gpd.GeoDataFrame({'osm_way_id': list(ways),
-                             'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways]},
+                             'highway': [normalize_way_type(highway.get(('way', way_id))) for way_id in ways],
+                             'name': [name.get(('way', way_id)) for way_id in ways]},
                             geometry=list(ways.values()), crs='EPSG:4326')
 
 

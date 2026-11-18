@@ -1072,7 +1072,8 @@ def test_fetch_ways_keeps_whole_linestring_ways_and_the_way_types_asked_for(monk
     def features_from_polygon(poly, tags):
         seen['poly'], seen['tags'] = poly, tags
         return gpd.GeoDataFrame(
-            {'highway': ['residential', 'service', 'service', 'pedestrian'], 'service': [None, 'alley', 'parking', None]},
+            {'highway': ['residential', 'service', 'service', 'pedestrian'], 'service': [None, 'alley', 'parking', None],
+             'name': ['Elm Street', None, None, 'Plaza']},
             geometry=[LineString([(0, 0), (0.001, 0)]), LineString([(0, 0.001), (0.001, 0.001)]),
                       LineString([(0, 0.002), (0.001, 0.002)]), Polygon([(0, 0), (0.001, 0), (0.001, 0.001)])],
             index=pd.MultiIndex.from_tuples([('way', 1), ('way', 2), ('way', 3), ('way', 4)]), crs='EPSG:4326')
@@ -1081,6 +1082,7 @@ def test_fetch_ways_keeps_whole_linestring_ways_and_the_way_types_asked_for(monk
     ways = oc.fetch_ways([oc.fetch_area(_CITY, 50)], 'alleys')
     assert list(ways['osm_way_id']) == [1, 2]
     assert list(ways['highway']) == ['residential', 'service']
+    assert ways['name'].iloc[0] == 'Elm Street' and pd.isna(ways['name'].iloc[1])
     assert seen['tags'] == {'highway': list(oc.DEFAULT_WAY_TYPES) + ['service']}
     assert seen['poly'].contains(_CITY)
     ways = oc.fetch_ways([_CITY], 'streets')
