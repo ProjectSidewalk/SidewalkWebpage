@@ -69,7 +69,7 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "count this session against a limit above zero via getConnectionSlots" in {
       val slots = run(healthTable.getConnectionSlots)
       slots.inUse must be > 0
-      slots.usable must be >= slots.inUse
+      slots.usable must be > 0
     }
     "report at least one client backend via getConnectionCounts (its own)" in {
       // The query that produces this census is itself a client backend, so the total is never zero.

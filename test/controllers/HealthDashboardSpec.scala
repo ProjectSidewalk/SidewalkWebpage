@@ -68,6 +68,7 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (body \ "city_id").as[String] mustBe app.configuration.get[String]("city-id")
       (body \ "environment").as[String] mustBe app.configuration.get[String]("environment-type")
       (body \ "app_started_at").asOpt[String] mustBe defined
+      (body \ "db_queued").as[Int] must be >= 0
       // The git fields are absent where git couldn't answer at build time, so only the flag is pinned.
       (body \ "git_dirty").asOpt[Boolean] mustBe defined
     }

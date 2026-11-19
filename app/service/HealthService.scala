@@ -21,12 +21,16 @@ import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
 import modules.CityDbPool
 
+import java.lang.management.ManagementFactory
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject.*
+import javax.management.ObjectName
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.*
+import scala.util.Try
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
 case class BlockingSession(
@@ -251,7 +255,18 @@ class HealthServiceImpl @Inject() (
       error: Option[String]
   ) =
     HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
-      configService.getCityId, envType, configService.appStartTime, error)
+      configService.getCityId, envType, configService.appStartTime, error, dbQueued)
+
+  /**
+   * Postgres can't show a query still waiting for a connection, since it has no session yet; Slick's queue can.
+   *
+   * @return Queries waiting for a database connection in this app, or None when Slick's JMX bean isn't registered.
+   */
+  private def dbQueued: Option[Int] = Try {
+    val server = ManagementFactory.getPlatformMBeanServer
+    val beans  = server.queryNames(ObjectName("slick:type=AsyncExecutor,*"), null).asScala
+    if (beans.isEmpty) None else Some(beans.toSeq.map(server.getAttribute(_, "QueueSize").asInstanceOf[Int]).sum)
+  }.toOption.flatten
 
   // Each city's pool size, keyed by its database role. "staging" reuses zurich's role, so it is left out.
   private val poolMaxByRole: Map[String, Int] = config
