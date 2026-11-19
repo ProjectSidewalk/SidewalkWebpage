@@ -21,7 +21,8 @@ object HealthFormats {
       cityId: String,
       environment: String,
       appStartedAt: OffsetDateTime,
-      error: Option[String] = None
+      error: Option[String] = None,
+      dbQueued: Option[Int] = None
   )
 
   /** One city's `/health`: the body when it parsed, else why not. */

@@ -133,6 +133,12 @@ export class HealthPage {
       tone = tone === 'bad' ? 'bad' : 'warn';
       problems.push(`${bloated} bloated table${bloated === 1 ? '' : 's'}`);
     }
+    const slots = data.connection_slots;
+    const slotsTone = slots ? this.#slotsTone(slots) : 'good';
+    if (slotsTone !== 'good') {
+      tone = slotsTone === 'bad' || tone === 'bad' ? 'bad' : 'warn';
+      problems.push(`server connections ${Math.round(100 * slots.in_use / slots.usable)}% full`);
+    }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
       ? ` — ${problems.map((p) => util.escapeHTML(p)).join(', ')}`
@@ -147,7 +153,7 @@ export class HealthPage {
     const active = data.active_queries || [];
     const idle = data.idle_in_transaction || [];
     const evolutions = data.stuck_evolutions || [];
-    const conns = (data.connections || []).reduce((sum, c) => sum + (c.count || 0), 0);
+    const slots = data.connection_slots;
     const atRisk = data.pano_backups?.at_risk;
     const bloated = (data.table_bloat || []).filter((b) => this.#bloatTone(b) !== 'good').length;
     const longIdle = idle.filter((s) => (s.idle_seconds || 0) >= t.idle_txn_warn_seconds).length;
@@ -157,7 +163,9 @@ export class HealthPage {
     this.#setKpi('kpi-idle', idle.length, longIdle > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-evolutions', evolutions.length, evolutions.length > 0 ? 'bad' : 'good');
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
-    this.#setKpi('kpi-connections', conns, 'ok');
+    // No reading means unknown, not healthy.
+    const slotsText = slots ? `${AdminShell.num(slots.in_use)} / ${AdminShell.num(slots.usable)}` : '—';
+    this.#setKpi('kpi-connections', slotsText, slots ? this.#slotsTone(slots) : 'ok');
     // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
     const panoTone = AdminShell.nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
     this.#setKpi('kpi-panos', AdminShell.nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
@@ -312,10 +320,9 @@ export class HealthPage {
     const body = [...byRole.entries()]
       .sort((a, b) => b[1].total - a[1].total)
       .map(([role, e]) => {
-        // Pools differ by city, so each role is judged against its own.
         const poolMax = t.conn_pool_max_by_role[role] ?? t.conn_pool_max;
-        const share = e.active / poolMax;
-        const tone = share >= t.conn_bad_fraction ? 'bad' : share >= t.conn_warn_fraction ? 'warn' : 'ok';
+        // A full pool only hints that queries may be waiting; the Fleet table's count is the real signal.
+        const tone = e.active >= poolMax ? 'warn' : 'ok';
         return `
         <tr>
           <td>${util.escapeHTML(role)}</td>
@@ -407,6 +414,10 @@ export class HealthPage {
         : '—';
       const detail = util.escapeHTML(c.error || h.error || '');
       const started = h.app_started_at ? AdminShell.relativeTime(h.app_started_at) : '—';
+      // An older build doesn't report it.
+      const waiting = AdminShell.nil(h.db_queued)
+        ? '—'
+        : `<span class="ac-badge ac-badge--${h.db_queued > 0 ? 'warn' : 'ok'}">${AdminShell.num(h.db_queued)}</span>`;
       const cityLink = `<a href="${util.escapeHTML(c.url)}" target="_blank" rel="noopener" ${newTab(c.city_name)}>`
         + `${util.escapeHTML(c.city_name)}</a>`;
       return `
@@ -415,11 +426,14 @@ export class HealthPage {
           <td><span class="ac-badge ac-badge--${v.tone}">${util.escapeHTML(v.label)}</span> ${detail}</td>
           <td>${build}</td>
           <td>${util.escapeHTML(h.version || '—')}</td>
+          <td class="ac-num">${waiting}</td>
           <td class="ac-muted">${util.escapeHTML(started)}</td>
         </tr>`;
     }).join('');
     // Redrawing would drop keyboard focus from a link in the table.
-    if (body !== this.#fleetHtml) this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', 'Started'], body);
+    if (body !== this.#fleetHtml) {
+      this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', ['Queries waiting', true], 'Started'], body);
+    }
     this.#fleetHtml = body;
     const onBuild = rows.filter(({ v }) => v.rank === 3).length;
     const down = rows.filter(({ v }) => v.rank < 2).length;
@@ -521,6 +535,16 @@ export class HealthPage {
     if (AdminShell.nil(query)) return '<em>hidden</em>';
     const q = query.length > 160 ? `${query.slice(0, 160)}…` : query;
     return `<code>${util.escapeHTML(q)}</code>`;
+  }
+
+  /**
+   * @param {{in_use: number, usable: number}} slots - The server's connections in use and its limit.
+   * @returns {string} 'bad', 'warn' or 'good', by how full the server is.
+   */
+  #slotsTone(slots) {
+    const t = this.#thresholds;
+    const share = slots.in_use / slots.usable;
+    return share >= t.conn_bad_fraction ? 'bad' : share >= t.conn_warn_fraction ? 'warn' : 'good';
   }
 
   #setKpi(id, value, tone) {

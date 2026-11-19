@@ -66,6 +66,11 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       env.database must not be empty
       env.role must not be empty
     }
+    "count this session against a limit above zero via getConnectionSlots" in {
+      val slots = run(healthTable.getConnectionSlots)
+      slots.inUse must be > 0
+      slots.usable must be > 0
+    }
     "report at least one client backend via getConnectionCounts (its own)" in {
       // The query that produces this census is itself a client backend, so the total is never zero.
       run(healthTable.getConnectionCounts).map(_.count).sum must be > 0
@@ -86,6 +91,7 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       data.currentRole must not be empty
 
       val t = data.thresholds
+      data.connectionSlots.map(_.usable).getOrElse(0) must be > 0
       t.connPoolMax must be > 0
       t.connBadFraction must be >= t.connWarnFraction
       t.connPoolMaxByRole("sidewalk_knox") must be < t.connPoolMaxByRole("sidewalk_seattle")
