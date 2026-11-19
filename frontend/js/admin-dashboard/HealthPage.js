@@ -312,19 +312,20 @@ export class HealthPage {
     const body = [...byRole.entries()]
       .sort((a, b) => b[1].total - a[1].total)
       .map(([role, e]) => {
-        const tone = e.active >= t.conn_bad_active ? 'bad' : e.active >= t.conn_warn_active ? 'warn' : 'ok';
+        // Pools differ by city, so each role is judged against its own.
+        const poolMax = t.conn_pool_max_by_role[role] ?? t.conn_pool_max;
+        const share = e.active / poolMax;
+        const tone = share >= t.conn_bad_fraction ? 'bad' : share >= t.conn_warn_fraction ? 'warn' : 'ok';
         return `
         <tr>
           <td>${util.escapeHTML(role)}</td>
-          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${e.active}</span></td>
+          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${e.active} / ${poolMax}</span></td>
           <td class="ac-num">${e.idle}</td>
           <td class="ac-num">${e.total}</td>
         </tr>`;
       }).join('');
-    // Each city's app instance connects as its own per-city role, so a role's active count is one instance's pool
-    // draw — labeled with that instance's pool ceiling so it reads as "17 of 25 in use".
-    this.#table('health-connections',
-      ['Role', [`Active (pool ${t.conn_pool_max})`, true], ['Idle', true], ['Total', true]], body);
+    // Each city's app connects as its own role, so a role's active count is one app's draw on its pool.
+    this.#table('health-connections', ['Role', ['Active / pool', true], ['Idle', true], ['Total', true]], body);
   }
 
   // ---- Panel: pano downloads -------------------------------------------------------------------------------------

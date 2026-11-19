@@ -747,7 +747,7 @@ object ConfigService {
    *
    * One `/admin/across-cities` request triggers six of these reads (plus two more on their own longer clocks:
    * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
-   * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
+   * ~280 queries against one app's connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
    * expiring cache is that **no request ever waits on that fan-out once it is cached**: past this age the cached copy
    * is still served immediately and the refresh runs behind it, whereas an expiring entry makes whichever request
    * arrives first pay for the whole thing while holding pool connections that Explore and Validate share. With nothing

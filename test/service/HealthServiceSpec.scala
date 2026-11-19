@@ -23,7 +23,7 @@ import scala.concurrent.{Await, Future}
  *     query-shape check has to run at the DAO layer, below that recovery).
  *  2. A burst of concurrent `getDbHealth` calls stays within the connection pool. A regression to a per-schema
  *     evolution fan-out (one query per city schema) would demand ~one-connection-per-schema per call and, on a
- *     many-city database, exhaust the 25-slot pool with a `RejectedExecutionException` (#4559). The single-query
+ *     many-city database, exhaust the connection pool with a `RejectedExecutionException` (#4559). The single-query
  *     fan-out plus caching keeps every call within budget.
  *
  * Read-only. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
@@ -87,6 +87,9 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
       val t = data.thresholds
       t.connPoolMax must be > 0
+      t.connBadFraction must be >= t.connWarnFraction
+      t.connPoolMaxByRole("sidewalk_knox") must be < t.connPoolMaxByRole("sidewalk_seattle")
+      t.connPoolMaxByRole("sidewalk_seattle") mustBe t.connPoolMax
       t.idleTxnBadSeconds must be >= t.idleTxnWarnSeconds
       t.lockWaitBadSeconds must be >= t.lockWaitWarnSeconds
       t.bloatBadRatio must be >= t.bloatWarnRatio
@@ -95,7 +98,7 @@ class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "survive a burst of concurrent polls without exhausting the connection pool" in {
       // Simulate many Owner tabs polling at once, from a cold cache (the worst case). If getDbHealth fanned out one
       // query per city schema, 30 concurrent calls would each demand ~one-connection-per-schema and, on a many-city
-      // DB, blow the 25-slot pool; the single-query fan-out + caching keeps every call within budget. (On a
+      // DB, blow the connection pool; the single-query fan-out + caching keeps every call within budget. (On a
       // single-schema test DB this proves general concurrency-safety; the fan-out regression bites hardest on a
       // realistic multi-city DB, where this same test would fail pre-fix.)
       val results = await(Future.sequence((1 to 30).map(_ => healthService.getDbHealth)), 90.seconds)
