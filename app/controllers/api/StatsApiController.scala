@@ -128,17 +128,23 @@ class StatsApiController @Inject() (
   }
 
   /**
-   * Renders cross-city statistics, or answers `503` with `Retry-After` when none are cached and the refresh failed
-   * (#5977). A failure while rendering is a bug, so it stays a `500`.
+   * Renders cross-city statistics, or answers `503` with `Retry-After` when none are cached and the refresh failed or
+   * is still running (#5977). A failure while rendering is a bug, so it stays a `500`.
    *
    * @param what   The statistics requested, for the message.
-   * @param stats  The cross-city statistics being served.
+   * @param stats  The cross-city statistics being served; None while they are still being computed.
    * @param render Builds the response from the statistics.
    * @return       The rendered response, or the `503`.
    */
-  private def withCrossCityStats[T](what: String)(stats: Future[T])(render: T => Result): Future[Result] =
+  private def withCrossCityStats[T](what: String)(stats: Future[Option[T]])(render: T => Result): Future[Result] =
     stats.transform {
-      case Success(value)       => Try(render(value))
+      case Success(Some(value)) => Try(render(value))
+      case Success(None)        =>
+        Success(
+          ApiError.stillComputingResult(
+            s"The $what are still being computed. Retry after the number of seconds in the Retry-After header."
+          )
+        )
       case Failure(NonFatal(_)) =>
         // The body stays generic because the error can name schemas. SwrCache already logged it.
         val error = ApiError.temporarilyUnavailable(s"The $what are temporarily unavailable. Please retry later.")

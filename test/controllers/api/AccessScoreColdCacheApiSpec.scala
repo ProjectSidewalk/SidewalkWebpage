@@ -92,6 +92,10 @@ class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       }
     }
 
+    "be matched by the cross-city totals, which share the cold wait (#5977)" in {
+      Seq("/v3/api/aggregateStats", "/v3/api/aggregateStatsByDay").foreach(mustBeStillComputing)
+    }
+
     "leave a filtered request on the live path, which never waits on the cache" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreStreets?bbox=0,0,0.001,0.001")).get
       status(resp) mustBe OK

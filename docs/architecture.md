@@ -92,8 +92,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
   Leaderboard's community bands, the Admin cross-city contributor count) is complete or it is a failure, never a
   smaller number (#5977). `ConfigService.queryEveryCity` lists the readable schemas in one query, then queries two
   cities at a time; on prod, one city failing fails the whole compute (elsewhere, where schemas lag on evolutions, it
-  is skipped with a warning). `SwrCache` then keeps serving the last complete value and starts no new compute for a
-  minute; with nothing cached the API answers `503` with `Retry-After` and the Leaderboard drops its bands. The totals
+  is skipped with a warning). `SwrCache` then keeps serving the last complete value and starts no new compute for
+  five minutes; with nothing cached (a failure, or a first compute still running) the API answers `503` with
+  `Retry-After` and the Leaderboard drops its bands. The totals
   refresh hourly, plus a random extra per app so the city apps don't all refresh at once (#5238). A new cross-city
   total goes through `queryEveryCity`; a read that can do without a city (the Admin cross-city pages) uses
   `queryEachCity` and recovers per city.

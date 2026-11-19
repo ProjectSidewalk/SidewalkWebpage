@@ -37,9 +37,7 @@ export const CONFIG = {
  * Fetches data from a URL with timeout and retry logic.
  *
  * Timeouts are retried like any other failure: the server finishes computing an aborted request and caches the
- * result, so a follow-up attempt typically succeeds quickly even when the first one timed out (#4600). A `503` is not
- * retried: it means the server has no complete totals and won't try again for the `Retry-After` it sends (about a
- * minute), so another attempt a second later would only get the same answer (#5977).
+ * result, so a follow-up attempt typically succeeds quickly even when the first one timed out (#4600).
  *
  * @param {string} url - The URL to fetch data from
  * @param {number} [timeout=CONFIG.REQUEST_TIMEOUT] - Request timeout in milliseconds
@@ -60,9 +58,7 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
     });
 
     if (!response.ok) {
-      throw Object.assign(new Error(`HTTP ${response.status}: ${response.statusText}`), {
-        retryable: response.status !== 503,
-      });
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     return await response.json();
@@ -71,7 +67,7 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
     const isTimeout = error.name === 'TimeoutError' || error.name === 'AbortError';
     const friendlyError = isTimeout ? new Error(`Request timed out after ${timeout / 1000} seconds`) : error;
 
-    if (retries > 0 && error.retryable !== false) {
+    if (retries > 0) {
       console.warn(`Request failed, retrying... (${retries} attempts left)`, friendlyError.message);
       await new Promise((resolve) => setTimeout(resolve, CONFIG.RETRY_DELAY));
       return fetchWithRetry(url, timeout, retries - 1);

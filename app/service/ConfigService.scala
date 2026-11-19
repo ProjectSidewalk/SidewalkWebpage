@@ -737,7 +737,7 @@ object ConfigService {
   val CrossCityParallelism: Int = 2
 
   /** After a cross-city total fails to refresh, how long before another try, to spare a struggling database (#5977). */
-  val CrossCityFailureBackoff: FiniteDuration = Duration(1, "minute")
+  val CrossCityFailureBackoff: FiniteDuration = Duration(5, "minutes")
 
   /** A city with activity within this many days is "active". */
   val ActiveWithinDays: Long = 30
@@ -1439,10 +1439,10 @@ trait ConfigService {
    * immediately while a background recompute refreshes it (#4600). A recompute replaces the cached value only when
    * every city answered, so the totals are never a partial sum (#5977).
    *
-   * @return A Future containing aggregated statistics across all cities; failed when no complete value is cached and
-   *         the compute failed.
+   * @return The statistics across all cities, or None when nothing is cached and the compute outlasted
+   *         [[ConfigService.CrossCityColdWait]]; failed when nothing is cached and the compute failed.
    */
-  def getAggregateStats(): Future[AggregateStats]
+  def getAggregateStats(): Future[Option[AggregateStats]]
 
   /**
    * The cross-city totals plus this deployment's own slice of them, for the Leaderboard's two bands (#4687).
@@ -1467,13 +1467,14 @@ trait ConfigService {
    * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
    * @param endDate          Inclusive end date; no upper bound if None.
    * @param filterLowQuality If true, restrict to high-quality users.
-   * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities.
+   * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities, or None when nothing
+   *                         is cached and the compute outlasted [[ConfigService.CrossCityColdWait]].
    */
   def getAggregateStatsByDay(
       startDate: Option[LocalDate],
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
-  ): Future[Seq[DailyStatRecord]]
+  ): Future[Option[Seq[DailyStatRecord]]]
 
   def getCityMapParams: Future[MapParams]
   def getTutorialStreetId: Future[Int]
@@ -2129,14 +2130,11 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
+  def getAggregateStats(): Future[Option[AggregateStats]] =
+    aggregateStatsBundle(ConfigService.CrossCityColdWait).map(_.map(_.overall))
 
   def getAggregateStatsWithCurrentCity(): Future[Option[(AggregateStats, Option[CityImpact])]] =
-    swrCache
-      .staleWhileRevalidateWithin(
-        ConfigService.AggregateStatsCacheKey, aggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge,
-        ConfigService.AggregateStatsColdWait, ConfigService.CrossCityFailureBackoff
-      )(computeAggregateStats())
+    aggregateStatsBundle(ConfigService.AggregateStatsColdWait)
       .map(_.map { bundle =>
         // Looked up by schema: the staging deployment's own city id is never a key, but its schema's city is.
         val ownSchema = getCitySchema(getCityId)
@@ -2151,22 +2149,17 @@ class ConfigServiceImpl @Inject() (
       }
 
   /**
-   * The cached cross-schema fan-out behind [[getAggregateStats]]. [[getAggregateStatsWithCurrentCity]] reads the same
-   * cache entry, but gives up waiting sooner.
+   * The cached cross-city totals behind [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
    *
-   * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
-   * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
-   * cached stats are served immediately for up to [[ConfigService.AggregateStatsMaxAge]], with a single background
-   * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
-   * after a JVM start (nothing cached yet) waits for the full computation.
+   * Cached totals are served at once for up to [[ConfigService.AggregateStatsMaxAge]], with one background recompute
+   * once they are older than this app's refresh interval (#4600). Only a request that finds nothing cached waits.
    *
-   * @return A Future containing the cross-city totals plus each city's own slice of them
+   * @param coldWait How long a request that finds nothing cached waits for the compute.
+   * @return         The cross-city totals plus each city's own slice of them, or None if `coldWait` ran out first.
    */
-  private def aggregateStatsBundle(): Future[AggregateStatsBundle] =
-    swrCache.staleWhileRevalidate(
-      ConfigService.AggregateStatsCacheKey,
-      aggregateStatsFreshFor,
-      ConfigService.AggregateStatsMaxAge,
+  private def aggregateStatsBundle(coldWait: FiniteDuration): Future[Option[AggregateStatsBundle]] =
+    swrCache.staleWhileRevalidateWithin(
+      ConfigService.AggregateStatsCacheKey, aggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge, coldWait,
       ConfigService.CrossCityFailureBackoff
     )(computeAggregateStats())
 
@@ -2210,22 +2203,23 @@ class ConfigServiceImpl @Inject() (
       startDate: Option[LocalDate],
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
-  ): Future[Seq[DailyStatRecord]] = {
+  ): Future[Option[Seq[DailyStatRecord]]] = {
     // Cache the full date range once per filterLowQuality variant — a bounded key space, where caching per requested
     // date range would let arbitrary query params mint unbounded cache entries — and slice the requested window out
     // of it. A per-day row depends only on its own day's data, so slicing cached rows is equivalent to querying with
     // bounds; and because rows are keyed by Pacific date, the slice honors the documented inclusive-Pacific-date
     // window exactly, where the raw-timestamp WHERE it replaced could emit partial edge days outside it.
     swrCache
-      .staleWhileRevalidate(
+      .staleWhileRevalidateWithin(
         s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
         aggregateStatsFreshFor,
         ConfigService.AggregateStatsMaxAge,
+        ConfigService.CrossCityColdWait,
         ConfigService.CrossCityFailureBackoff
       )(computeAggregateStatsByDay(filterLowQuality))
-      .map { allDays =>
+      .map(_.map { allDays =>
         allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
-      }
+      })
   }
 
   /**
