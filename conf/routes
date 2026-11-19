@@ -5,6 +5,7 @@ GET     /about                                          controllers.ApplicationC
 GET     /robots.txt                                     controllers.SeoController.robots
 GET     /sitemap.xml                                    controllers.SeoController.sitemap
 GET     /health                                         controllers.HealthController.health
+GET     /health/memory                                  controllers.HealthController.memory
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms

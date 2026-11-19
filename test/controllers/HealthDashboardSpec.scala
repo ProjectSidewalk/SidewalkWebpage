@@ -19,7 +19,7 @@ import javax.inject.Inject
  * The health routes, on one booted application with a real DB: the Owner-only dashboard (#4561), GET /admin/health
  * and its JSON pollers /adminapi/dbHealth and /adminapi/fleetHealth, which must be wired (not 404) and send an
  * unauthenticated request to sign-in rather than serve the payload; and the public GET /health (#4548), whose "ok"
- * path here is the one a probe sees.
+ * path here is the one a probe sees, with its memory readout GET /health/memory (#6022).
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
@@ -71,6 +71,25 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (body \ "db_queued").as[Int] must be >= 0
       // The git fields are absent where git couldn't answer at build time, so only the flag is pinned.
       (body \ "git_dirty").asOpt[Boolean] mustBe defined
+    }
+  }
+
+  "GET /health/memory" should {
+    "report this process's memory, uncached, without minting a session" in {
+      val resp = route(app, FakeRequest(GET, "/health/memory")).get
+      status(resp) mustBe OK
+      header(CACHE_CONTROL, resp) mustBe Some("no-store")
+      header(SET_COOKIE, resp) mustBe None
+
+      val body = contentAsJson(resp).as[JsObject]
+      (body \ "city_id").as[String] mustBe app.configuration.get[String]("city-id")
+      (body \ "heap_committed_mb").as[Long] must be > 0L
+      (body \ "heap_max_mb").as[Long] must be >= (body \ "heap_committed_mb").as[Long]
+      (body \ "non_heap_pools_mb").as[Map[String, Long]].keys must contain("Metaspace")
+      (body \ "threads").as[Int] must be > 0
+      // The spec runs on Linux in dev and CI, where the app can read its own /proc entries.
+      (body \ "rss_mb").as[Long] must be > (body \ "heap_used_mb").as[Long] / 2
+      (body \ "anon_huge_pages_mb").asOpt[Long] mustBe defined
     }
   }
 }
