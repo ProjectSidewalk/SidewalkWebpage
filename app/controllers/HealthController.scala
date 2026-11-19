@@ -4,8 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import formats.json.HealthFormats.given
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
-import play.api.Configuration
-import service.{HealthService, MemoryReport}
+import service.{ConfigService, HealthService, MemoryReport}
 
 import javax.inject.*
 import scala.concurrent.ExecutionContext
@@ -19,7 +18,7 @@ import scala.concurrent.ExecutionContext
 class HealthController @Inject() (
     cc: CustomControllerComponents,
     healthService: HealthService,
-    config: Configuration
+    configService: ConfigService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
@@ -35,6 +34,6 @@ class HealthController @Inject() (
    * `/health`, so one loop on the server can read every city without a session.
    */
   def memory: Action[AnyContent] = Action { _ =>
-    noStore(Ok(Json.toJson(MemoryReport.read(config.get[String]("city-id")))))
+    noStore(Ok(Json.toJson(MemoryReport.read(configService.getCityId, configService.appStartTime))))
   }
 }

@@ -3,6 +3,8 @@ package service
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.time.OffsetDateTime
+
 /** The `/proc` parsing behind `GET /health/memory` (#6022), and that a reading works on the machine running it. */
 class MemoryReportSpec extends AnyFunSuite with Matchers {
 
@@ -15,10 +17,22 @@ class MemoryReportSpec extends AnyFunSuite with Matchers {
   }
 
   test("read reports a heap within its limit and the pools outside it") {
-    val status = MemoryReport.read("test-city")
+    val status = MemoryReport.read("test-city", OffsetDateTime.now())
     status.cityId shouldBe "test-city"
     status.heapUsedMb should be <= status.heapCommittedMb
     status.heapCommittedMb should be <= status.heapMaxMb
     status.nonHeapPoolsMb.keys should contain("Metaspace")
+  }
+
+  test("unaccounted counts the class space once, inside Metaspace") {
+    val status = MemoryReport.read("test-city", OffsetDateTime.now())
+    val named  = status.heapCommittedMb + (status.nonHeapPoolsMb - "Compressed Class Space").values.sum +
+      status.directBuffersMb
+    status.unaccountedMb.foreach(_ shouldBe status.rssMb.get + status.swapMb.get - named)
+  }
+
+  test("a second read within the cache window returns the same reading") {
+    val first = MemoryReport.read("test-city", OffsetDateTime.now())
+    MemoryReport.read("test-city", OffsetDateTime.now()).readAt shouldBe first.readAt
   }
 }
