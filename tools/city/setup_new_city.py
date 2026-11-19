@@ -421,9 +421,8 @@ Server handoff for {city_id}:{owed}
      `{schema}-dump`, which is what `make import-dump` restores, and which a populated prod pull also uses):
        scp db/{schema}-dump <netid>@makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/{schema}-empty-dump
      (or an ssh alias of your own that sets the user; a bare hostname without one fails with "Permission denied").
-  2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
-     DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
-  3. DNS, and confirm {test_url} and {prod_url} are on the Maps API key's referrers, or the city's map and panos
+  2. Have IT run setup-new.pl (uwcseit-sidewalk-tools), test stage first. The URLs work about an hour later.
+  3. Confirm {test_url} and {prod_url} are on the Maps API key's referrers, or the city's map and panos
      won't load: step 2 offers to add them, and `python3 tools/city/maps_key_referrers.py {city_id}`
      adds them otherwise (docs/google-cloud.md).
   4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on

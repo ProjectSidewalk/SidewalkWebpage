@@ -195,7 +195,7 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
 renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2
 asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/city/maps_key_referrers.py
-<city-id>`), DNS, the pano scraper's manifest row (`<city-id>,<prod fqdn>` in `/etc/sidewalk/cities.csv` on the
+<city-id>`), the pano scraper's manifest row (`<city-id>,<prod fqdn>` in `/etc/sidewalk/cities.csv` on the
 scraper host), then the PR (configs + messages + docs). The checklist's step 7 says whether the street grades are in
 the dump; when they are not (no registered elevation model, or `--skip-gradient`), the maintainer either samples
 before the dump (for a hand-downloaded model, a rerun with `args="--dem-dir … --dem-name … --dem-resolution-m …"`)
