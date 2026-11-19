@@ -70,6 +70,10 @@ HEAL_M = 30.0
 # --method zones looks up a divide road's owner once per stretch this long, so a road that runs along several zones
 # (Kuna's section-line arterials cross a zone edge every mile) hands each stretch to the zone beside it.
 SEGMENT_M = 100.0
+# A stretch lying deep in the zone its probe reached is reported only when another zone lies this many probe lengths
+# or fewer to its owning side: a border that close is plausibly the one the road was meant to own, and the probe too
+# short to reach it. A road running on past the end of its border has no other zone that near, and is not reported.
+PROBE_SEARCH = 4
 # Region parts smaller than this (m², or deg² after reprojection) are crumbs of strip cutting and snapping.
 MIN_PART_M2 = 1.0
 MIN_PART_DEG2 = 1e-10
@@ -81,8 +85,9 @@ ZONE_STEP_M = 10.0
 BUILD_MIN_PART_M2 = 10_000.0
 # A cut-off piece this small or smaller is a crumb of strip cutting, not worth a message.
 DETACHED_MIN_M2 = 50.0
-# A gap, overlap or spill past the city edge counts only when it is wider than this (2 x area / perimeter, m) and
-# larger than DEFECT_MIN_M2: the regions are snapped to 1 cm, so the city edge is off by that much all the way round.
+# A gap, overlap or spill past the city edge counts only when some of it is wider than this (it survives an erosion
+# by half of it) and it is larger than DEFECT_MIN_M2: the regions are snapped to 1 cm, so the city edge is off by that
+# much all the way round.
 DEFECT_MIN_WIDTH_M = 0.5
 DEFECT_MIN_M2 = 5.0
 # A street counts as inside its region within this much of it, so a street on a border is not a stray.
@@ -379,7 +384,8 @@ def zone_regions(zones, boundary, divide_ways, strip_m=15.0, probe_m=30.0):
     no strip: its probe crossed a bay or enclave to a zone the city does not reach there, and the strip would be a
     ribbon cut off from the rest of its region (Kuna's Columbia Road gave Stroebel one 700 m from Stroebel). Pieces
     a strip cuts off from the rest of a region, too small for the build to keep as parts of their own, go to the
-    neighbour they share the longest border with, as the build would hand them.
+    neighbour they share the longest border with, as the build would hand them. A strip that still ends up cut off
+    from its owner's own ground (the road runs farther inside the other zone than the strip is wide) is reported.
 
     Args:
         zones:       ``{region name: Polygon}``, unclipped, in a metric CRS. A divide road's owner is looked up in
@@ -396,14 +402,15 @@ def zone_regions(zones, boundary, divide_ways, strip_m=15.0, probe_m=30.0):
         A ``(geoms, report)`` pair. ``geoms`` is ``{region name: (Multi)Polygon}`` in the zones' order, tiling the
         part of ``boundary`` the zones cover. ``report`` is ``{road name: {key: metres inside the city}}``, the
         keys being the regions its strips went to, ``'no zone'`` (the probe left every zone), ``'out of reach'``
-        (the owner has no ground nearby), and ``('inside', zone)`` for stretches more than ``probe_m`` inside one
-        zone, which stay in it: right where the road runs on past the border, wrong where the border is just farther
-        off the road than ``probe_m``.
+        (the owner has no ground nearby), ``('inside', zone, other)`` for stretches more than ``probe_m`` inside
+        ``zone`` with ``other`` within ``PROBE_SEARCH`` probe lengths to the owning side (a probe too short, maybe),
+        ``('cut off', region)`` for strip that stays ``region``'s without touching the region's own ground (a ribbon
+        of 1 ha or more), and ``('handed away', region)`` for strip so cut off that it went to a neighbour.
     """
     # Polygons only: a zone that merely touches the city edge clips to a line, which is no ground to attach to.
     clipped = {name: polygons(zone.intersection(boundary)) for name, zone in zones.items()}
     geoms = dict(clipped)
-    report = {}
+    report, strips = {}, []
 
     def zone_of(point):
         return next((name for name, zone in zones.items() if zone.contains(point)), None)
@@ -422,7 +429,11 @@ def zone_regions(zones, boundary, divide_ways, strip_m=15.0, probe_m=30.0):
             elif clipped[owner].is_empty or clipped[owner].distance(piece) > probe_m:
                 key, owner = 'out of reach', None
             elif owner == zone_of(mid) == zone_of(translate(mid, -dx * probe_m, -dy * probe_m)):
-                key = ('inside', owner)
+                # Deep in one zone: the flag changes nothing here. Worth a word only if a border lies near ahead.
+                ahead = (zone_of(translate(mid, dx * k * probe_m, dy * k * probe_m))
+                         for k in range(2, PROBE_SEARCH + 1))
+                other = next((name for name in ahead if name not in (None, owner)), None)
+                key = ('inside', owner, other) if other else owner
             else:
                 key = owner
             inside = piece.intersection(boundary).length   # Ways run on past the city edge; only the city counts.
@@ -433,13 +444,27 @@ def zone_regions(zones, boundary, divide_ways, strip_m=15.0, probe_m=30.0):
             else:
                 runs.append((owner, [start, end]))
         for owner, run in runs:
-            if owner is None:
-                continue
+            length = LineString(run).intersection(boundary).length
+            if owner is None or not length:
+                continue   # No owner, or a way running outside the city, which borders no region.
             strip = LineString(run).buffer(strip_m, cap_style='flat').intersection(boundary)
+            strips.append((road, owner, strip, length))
             for name in geoms:
                 geoms[name] = geoms[name].union(strip) if name == owner else geoms[name].difference(strip)
     geoms = absorb_fragments({name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}, BUILD_MIN_PART_M2)
-    return {name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}, report
+    geoms = {name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}
+    for road, owner, strip, length in strips:
+        # The owner's parts on this strip must reach its own zone's ground; a part made of strip alone is a ribbon
+        # beside the road with the other region between it and the rest of the owner (or was handed away whole).
+        held = [part for part in shapely.get_parts(geoms[owner]) if part.intersection(strip).area > MIN_PART_M2]
+        if not held:
+            key = ('handed away', owner)
+        elif not any(part.intersection(clipped[owner]).area > MIN_PART_M2 for part in held):
+            key = ('cut off', owner)
+        else:
+            continue
+        report[road][key] = report[road].get(key, 0.0) + length
+    return geoms, report
 
 
 def majority_regions(streets, geoms):
@@ -540,10 +565,12 @@ def where(geom, crs):
 def defects(geom):
     """
     The pieces of a gap, overlap or spill worth reporting: larger than ``DEFECT_MIN_M2`` and wider than
-    ``DEFECT_MIN_WIDTH_M``.
+    ``DEFECT_MIN_WIDTH_M`` somewhere.
 
     Measured piece by piece, by width, because the total of 1 cm snapping noise grows with the length of the city
-    edge (Kuna's 45 km edge totals about 70 m²) while a real gap between two zones can be thin and still matter.
+    edge (Kuna's 45 km edge totals about 70 m²) while a real gap between two zones can be thin and still matter. The
+    width is an erosion, not an average (2 x area / perimeter): a real 10 m gap joined to a hair-thin filament running
+    the length of the city edge averages out to a few centimetres.
 
     Args:
         geom: Any geometry; only its polygons count.
@@ -552,7 +579,7 @@ def defects(geom):
         A list of Polygons.
     """
     return [part for part in shapely.get_parts(polygons(geom))
-            if part.area > DEFECT_MIN_M2 and 2 * part.area / part.length > DEFECT_MIN_WIDTH_M]
+            if part.area > DEFECT_MIN_M2 and not part.buffer(-DEFECT_MIN_WIDTH_M / 2).is_empty]
 
 
 def tiling_problems(geoms, boundary, crs=None):
@@ -586,8 +613,9 @@ def detached_pieces(geoms):
     Region pieces cut off from the rest of their region that the build would hand to a neighbour.
 
     A piece at least ``BUILD_MIN_PART_M2`` large is a part the build keeps (a region drawn as several polygons, or
-    split by a bay); a smaller one touching none of those goes to the neighbour sharing its longest border, taking any
-    street on it along. Crumbs of ``DETACHED_MIN_M2`` or less are ignored.
+    split by a bay); a smaller one other than the region's largest goes to the neighbour sharing its longest border,
+    taking any street on it along. That holds for a piece touching the rest of its region at a corner too: a corner
+    is no border. Crumbs of ``DETACHED_MIN_M2`` or less are ignored.
 
     Args:
         geoms: ``{region name: (Multi)Polygon}`` in a metric CRS.
@@ -598,10 +626,7 @@ def detached_pieces(geoms):
     out = []
     for name, geom in geoms.items():
         parts = sorted(shapely.get_parts(geom), key=lambda part: -part.area)
-        anchors = [part for i, part in enumerate(parts) if i == 0 or part.area >= BUILD_MIN_PART_M2]
-        out += [(name, part) for part in parts
-                if DETACHED_MIN_M2 < part.area < BUILD_MIN_PART_M2 and part not in anchors
-                and all(part.distance(anchor) > 0.01 for anchor in anchors)]
+        out += [(name, part) for part in parts[1:] if DETACHED_MIN_M2 < part.area < BUILD_MIN_PART_M2]
     return out
 
 
@@ -771,14 +796,37 @@ def print_divide_report(report, sides):
         went = ', '.join(f'{key} {metres / 1000:.2f}' for key, metres in tally.items() if isinstance(key, str)
                          and key not in ('no zone', 'out of reach'))
         print(f'  {road}:{sides[road]} -> {went or "no region"}')
-        inside = ', '.join(f'{key[1]} {metres / 1000:.2f}' for key, metres in tally.items() if isinstance(key, tuple))
-        if inside:
-            print(f'    runs through the middle of {inside}: right where it runs on past a border; where a border '
-                  f'lies farther off it than --probe-m, raise --probe-m')
+        for key, metres in tally.items():
+            if key[0] == 'inside':
+                print(f'    {metres / 1000:.2f} lie more than --probe-m inside {key[1]}, with {key[2]} within '
+                      f'{PROBE_SEARCH}x --probe-m to the {sides[road]}: raise --probe-m if that border runs along it')
+            elif key[0] == 'handed away' and metres >= HEAL_M:
+                print(f'    {metres / 1000:.2f} of strip for {key[1]} went to a neighbour, cut off from the rest of '
+                      f'{key[1]}: the road is farther inside the other zone than the strip is wide')
         for key, why in (('no zone', 'the probe left every zone'),
                          ('out of reach', f'the zone to its {sides[road]} has no ground nearby in the city')):
             if tally.get(key):
                 print(f'    {tally[key] / 1000:.2f} kept no strip: {why}')
+
+
+def cut_off_problems(report, sides):
+    """
+    A problem per divide road whose strip, given to its owner, does not touch the owner's own ground.
+
+    The road runs farther inside the other zone than its strip is wide, so the strip is a ribbon with the other
+    region between it and the rest of the owner. The build keeps one of 1 ha or more as a detached part of the owner
+    and hands a smaller one to the other region, so either way the road does not border its owner.
+
+    Args:
+        report: :func:`zone_regions`'s ``{road name: {key: metres}}``.
+        sides:  ``{road name: side}`` from ``--divide-road``.
+
+    Returns:
+        A list of messages.
+    """
+    return [f'{road}:{sides[road]}: {metres:.0f} m of its strip for "{key[1]}" is cut off from the rest of '
+            f'"{key[1]}"; draw the zone edge along the road there' for road, tally in report.items()
+            for key, metres in tally.items() if key[0] == 'cut off']
 
 
 def main(argv=None):
@@ -830,6 +878,8 @@ def main(argv=None):
     landmarks = [(region, gpd.GeoSeries([Point(lon, lat)], crs=4326).to_crs(crs).iloc[0])
                  for region, lon, lat in args.landmark]
     problems = check_regions(streets, names, regions, geoms, boundary, landmarks, crs=crs)
+    if report is not None:
+        problems += cut_off_problems(report, dict(args.divide_road))
     rows = summary_rows(regions, roads['length_m'], list(zones))
     collection = feature_collection(geoms, rows, crs)
     print(f'{"region":<24} {"streets":>7} {"km":>6}')

@@ -192,14 +192,20 @@ that lies wholly outside the boundary is refused by name.
 It prints the street count and km per region and writes `regions_drawn.geojson`, or
 `regions_drawn.rejected.geojson` and a list of problems when a check fails (each run first deletes both, so a file
 from an earlier run is never left to build with). With zones it also prints, per divide road, the km of strip each
-region got, the stretches that kept none (the probe left every zone, or reached a zone with no city ground nearby,
-across a bay or enclave), and the stretches that run through the middle of one zone: right where the road runs on
-past the end of a border, a sign to raise `--probe-m` where a border lies farther off the road than the probe.
+region got and the stretches worth a look: ones that kept no strip (the probe left every zone, or reached a zone with
+no city ground nearby, across a bay or enclave); ones lying more than `--probe-m` inside one zone with another zone
+within four probe lengths ahead, where a probe too short may have missed the border the road was meant to own (a
+road running on past the end of its border has no zone that near and is not mentioned); and strip that went to a
+neighbour because the road runs farther inside the other zone than the strip is wide.
 
-- the regions leave a gap inside the city, reach outside it, or overlap, by more than snapping noise (a piece wider
-  than 0.5 m);
-- a region has a piece cut off from the rest, under the 1 ha the build keeps as a part of its own, so the build would
-  hand it to a neighbour (with zones, the tool hands such pieces over itself, as the build would);
+- the regions leave a gap inside the city, reach outside it, or overlap, by more than snapping noise (a piece over
+  5 m² with some of it wider than 0.5 m);
+- a region has a piece cut off from the rest (touching it at a corner counts as cut off), under the 1 ha the build
+  keeps as a part of its own, so the build would hand it to a neighbour (with zones, the tool hands such pieces over
+  itself, as the build would);
+- with zones, a divide road's strip stays its owner's without touching the owner's own ground: a ribbon of 1 ha or
+  more beside a road that runs farther inside the other zone than the strip is wide (draw the zone edge along the
+  road there);
 - a street leaves its region for 30 m or more, so the build would cut that stretch into a street of its own (a
   zone edge or divider crosses the street; move it);
 - a named street switches region and back again (give it a `--divide-road` side, or redraw the zones);
