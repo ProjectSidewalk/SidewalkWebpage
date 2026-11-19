@@ -260,7 +260,7 @@ its default either way.
   dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
   street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
-  skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
+  skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), and the PR with the config, message, and docs
   changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod
   servers, with both URLs, any redirect from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 

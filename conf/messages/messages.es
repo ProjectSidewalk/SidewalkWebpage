@@ -83,6 +83,7 @@ city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
+city.name.niteroi-br = Niterói
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
