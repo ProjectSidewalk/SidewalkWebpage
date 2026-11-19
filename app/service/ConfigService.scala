@@ -1413,15 +1413,14 @@ trait ConfigService {
    * city switcher and names no deployment that has not launched — intersected with the schemas that exist here and
    * have applied the evolution the Spotlight tables come from.
    *
-   * @param lang The language the city names are wanted in.
-   * @return     (city, schema) pairs in configured order; empty is a valid answer on a single-city database.
+   * @return (city, schema) pairs in configured order, city names in English; empty on a single-city database.
    */
-  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]]
+  def getAccessScoreSpotlightScope: Future[Seq[(CityInfo, String)]]
 
   /**
    * Every city's map parameters (center, zoom, bounds), read from each city's own schema.
    *
-   * @return Map params by city id; a city whose schema is absent or whose read failed is left out.
+   * @return Map params by city id, up to an hour old; a city whose schema is absent or whose read failed is left out.
    */
   def getAllCityMapParams(): Future[Map[String, MapParams]]
 
@@ -1543,18 +1542,22 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getAllCityMapParams(): Future[Map[String, MapParams]] =
-    queryEachCity { (cityId, schema) =>
-      // The recover sits outside the cache so a failed read is retried next time, not kept for a day (#6021).
-      cacheApi
-        .getOrElseUpdate[MapParams](s"getMapParams_$cityId", Duration(1, "days")) {
-          db.run(configTable.getCityMapParamsBySchema(schema))
+    // Map params almost never change, and the landing page reads them on every visit: an hourly background refresh
+    // keeps those visits off the database, and retries a city whose read failed within the hour (#6021).
+    swrCache.staleWhileRevalidate[Map[String, MapParams]](
+      "getAllCityMapParams",
+      Duration(1, "hours"),
+      Duration(7, "days"),
+      ConfigService.CrossCityFailureBackoff
+    ) {
+      queryEachCity { (cityId, schema) =>
+        db.run(configTable.getCityMapParamsBySchema(schema)).map(params => Some(cityId -> params)).recover {
+          case e: Exception =>
+            logger.warn(s"Failed to retrieve map params for city $cityId from schema $schema: ${e.getMessage}")
+            None
         }
-        .map(params => Some(cityId -> params))
-        .recover { case e: Exception =>
-          logger.warn(s"Failed to retrieve map params for city $cityId from schema $schema: ${e.getMessage}")
-          None
-        }
-    }.map(_.flatten.toMap)
+      }.map(_.flatten.toMap)
+    }
 
   def getGlobalLeaderboardScope: Future[GlobalLeaderboardScope] = {
     // Cached because the answer only changes when config or the schema list does, and it gates a per-page-load query.
@@ -1596,13 +1599,13 @@ class ConfigServiceImpl @Inject() (
   def getCrossCityHoursScope: Future[SelfViewScope] =
     crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
 
-  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]] = {
+  def getAccessScoreSpotlightScope: Future[Seq[(CityInfo, String)]] = {
     for {
       cityIds <- availableCityIds()
       ready   <- schemasWithColumns(ConfigService.SpotlightRequiredColumns)
     } yield {
       val available: Set[String] = cityIds.toSet
-      getAllCityInfo(lang)
+      getAllCityInfo(Lang("en"))
         .filter(city => city.isPublic && available.contains(city.cityId))
         .flatMap { city =>
           // A city id with no db-schema entry simply can't be queried.

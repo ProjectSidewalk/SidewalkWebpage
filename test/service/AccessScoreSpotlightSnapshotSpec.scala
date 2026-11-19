@@ -1,6 +1,6 @@
 package service
 
-import models.api.{RegionSpotlightRowForApi, SpotlightUnit, StreetSpotlightRowForApi}
+import models.api.{RegionSpotlightRowForApi, SpotlightCityForApi, SpotlightUnit, StreetSpotlightRowForApi}
 import models.region.{RegionAccessScoreTable, RegionAccessScoreTableDef}
 import models.street.{StreetAccessScore, StreetAccessScoreTable, StreetAccessScoreTableDef}
 import models.utils.MyPostgresProfile
@@ -263,7 +263,7 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
     }
 
     "fan out over the public cities without failing on a city it cannot read" in {
-      val feed = await(service.getCrossCitySpotlight(SpotlightUnit.Regions, 5, Lang("en")))
+      val feed = await(service.getCrossCitySpotlight(SpotlightUnit.Regions, 5, Lang("en"))).value
       feed.unit mustBe SpotlightUnit.Regions
       feed.qualifying must be <= feed.total
       feed.nearest mustBe empty
@@ -272,12 +272,18 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
     }
 
     "name each city in the reader's language from the one cached entry" in {
-      val configService = app.injector.instanceOf[ConfigService]
-      Seq(Lang("en"), Lang("es"), Lang("zh-TW")).foreach { lang =>
-        val names = configService.getAllCityInfo(lang).map(c => c.cityId -> c.cityNameShort).toMap
-        val feed  = await(service.getCrossCitySpotlight(SpotlightUnit.Regions, 5, lang))
-        (feed.top ++ feed.bottom).flatMap(_.city).foreach(city => city.cityName mustBe names(city.cityId))
-      }
+      // A planted feed, so the check holds on a database where nothing is ranked.
+      val english = SpotlightCityForApi("seattle-wa", "Seattle", "https://sidewalk-sea.cs.washington.edu")
+      val row     = RegionSpotlightRowForApi(1, "Downtown", Some(0.9), 1.0, 1000.0, 1000.0, 5, Some(english))
+      val planted = await(service.getSpotlight(SpotlightUnit.Regions, 5)).copy(top = Seq(row), bottom = Seq.empty)
+      val key     = AccessScoreSpotlightService.crossCityCacheKey(SpotlightUnit.Regions)
+      await(app.injector.instanceOf[SwrCache].put(key, planted, ConfigService.CrossCityMaxAge))
+      try {
+        val zhTw = app.injector.instanceOf[ConfigService].getAllCityInfo(Lang("zh-TW")).find(_.cityId == "seattle-wa")
+        val feed = await(service.getCrossCitySpotlight(SpotlightUnit.Regions, 5, Lang("zh-TW"))).value
+        feed.top.flatMap(_.city).map(_.cityName) mustBe zhTw.map(_.cityNameShort).toSeq
+        feed.top.flatMap(_.city).map(_.cityName) must not contain "Seattle"
+      } finally { await(app.injector.instanceOf[AsyncCacheApi].remove(key)): Unit }
     }
   }
 

@@ -144,11 +144,7 @@ class CitiesApiController @Inject() (
           )
         )
       }
-      .getOrElse {
-        // If no map parameters are available, log warning and return base info only
-        logger.warn(s"No map parameters available for city ${cityInfo.cityId}")
-        baseInfo
-      }
+      .getOrElse(baseInfo) // A failed read is already logged; an absent schema (a dev DB) is normal.
   }
 
   /**
