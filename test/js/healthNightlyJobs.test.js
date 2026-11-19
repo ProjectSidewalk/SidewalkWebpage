@@ -352,7 +352,7 @@ describe('a quiet database', () => {
     expect(kpi('kpi-idle')).toEqual(['0', 'good']);
     expect(kpi('kpi-evolutions')).toEqual(['0', 'good']);
     expect(kpi('kpi-bloat')).toEqual(['0', 'good']);
-    expect(kpi('kpi-connections')).toEqual(['0', 'ok']);
+    expect(kpi('kpi-connections')).toEqual(['—', 'ok']);
     // No pano stats is unknown, not healthy, so it isn't green.
     expect(kpi('kpi-panos')).toEqual(['—', 'ok']);
     expect(text('health-locks')).toBe('✓ No sessions are blocking others.');
@@ -456,7 +456,7 @@ describe('the KPI tones', () => {
       idle_in_transaction: [{ idle_seconds: 130 }, {}],
       stuck_evolutions: [{}],
       table_bloat: [{ dead_ratio: 0.3, dead_tuples: 20000 }],
-      connections: [{ usename: 'a', state: 'active', count: 1200 }, { usename: 'b', state: 'idle' }],
+      connection_slots: { in_use: 1180, usable: 1197 },
       pano_backups: { labeled_panos: 2000000, backed_up: 0, unchecked: 0, no_backup: 0, at_risk: 3400 },
     }));
     expect(kpi('kpi-blocking')).toEqual(['1', 'bad']);
@@ -464,7 +464,7 @@ describe('the KPI tones', () => {
     expect(kpi('kpi-idle')).toEqual(['2', 'warn']);
     expect(kpi('kpi-evolutions')).toEqual(['1', 'bad']);
     expect(kpi('kpi-bloat')).toEqual(['1', 'warn']);
-    expect(kpi('kpi-connections')).toEqual(['1,200', 'ok']);
+    expect(kpi('kpi-connections')).toEqual(['1,180 / 1,197', 'bad']);
     expect(kpi('kpi-panos')).toEqual(['3k', 'warn']);
   });
 
@@ -475,6 +475,25 @@ describe('the KPI tones', () => {
     }));
     expect(kpi('kpi-active')).toEqual(['1', 'bad']);
     expect(kpi('kpi-panos')).toEqual(['0', 'good']);
+  });
+});
+
+describe('the connections KPI', () => {
+  test.each([
+    [{ in_use: 80, usable: 197 }, ['80 / 197', 'good']],
+    [{ in_use: 140, usable: 197 }, ['140 / 197', 'warn']],
+    [{ in_use: 185, usable: 197 }, ['185 / 197', 'bad']],
+  ])('tones %j by how full the server is', async (slots, expected) => {
+    await start(health({ connection_slots: slots }));
+    expect(kpi('kpi-connections')).toEqual(expected);
+  });
+
+  test('a nearly full server is not "All clear"', async () => {
+    await start(health({ connection_slots: { in_use: 185, usable: 197 } }));
+    expect(text('health-pulse')).toBe('Needs attention — server connections 94% full');
+    expect(badgeTone(document.getElementById('health-pulse'))).toBe('bad');
+    await start(health({ connection_slots: { in_use: 140, usable: 197 } }));
+    expect(badgeTone(document.getElementById('health-pulse'))).toBe('warn');
   });
 });
 
@@ -581,26 +600,26 @@ describe('the table bloat panel', () => {
 });
 
 describe('the connections panel', () => {
-  test('folds the counts into one row per role, busiest first, each toned against its own pool', async () => {
+  test('folds the counts into one row per role, busiest first, marking only a full pool', async () => {
     await start(health({ connections: [
       { usename: 'sidewalk_seattle', state: 'active', count: 5 },
       { usename: 'sidewalk_seattle', state: 'idle', count: 10 },
       { usename: 'sidewalk_chicago', state: 'active', count: 23 },
       { usename: 'sidewalk_chicago', state: 'idle in transaction', count: 1 },
       { usename: 'sidewalk_dc', state: 'active', count: 18 },
-      { usename: 'sidewalk_knox', state: 'active', count: 14 },
+      { usename: 'sidewalk_knox', state: 'active', count: 15 },
       { usename: null, state: 'active', count: null },
     ] }));
     expect(panelRows('health-connections')).toEqual([
       ['sidewalk_chicago', '23 / 25', '0', '24'],
       ['sidewalk_dc', '18 / 25', '0', '18'],
       ['sidewalk_seattle', '5 / 25', '10', '15'],
-      ['sidewalk_knox', '14 / 15', '0', '14'],
+      ['sidewalk_knox', '15 / 15', '0', '15'],
       ['—', '0 / 25', '0', '0'],
     ]);
-    // Knox's 14 would read as fine against a pool of 25; against its own 15 it is nearly full.
+    // Knox's pool is 15, so it is full where Chicago's 23 of 25 is only busy.
     const tones = [...document.querySelectorAll('#health-connections tbody tr')].map((tr) => badgeTone(tr.cells[1]));
-    expect(tones).toEqual(['bad', 'warn', 'ok', 'bad', 'ok']);
+    expect(tones).toEqual(['ok', 'ok', 'ok', 'warn', 'ok']);
   });
 });
 

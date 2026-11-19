@@ -47,6 +47,8 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private given getConnCount: GetResult[ConnCount] =
     r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt())
 
+  private given grConnectionSlots: GetResult[ConnectionSlots] = r => ConnectionSlots(r.nextInt(), r.nextInt())
+
   private given grPanoBackupStats: GetResult[PanoBackupStats] = { r =>
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
@@ -255,6 +257,20 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       GROUP BY usename, state
       ORDER BY cnt DESC
     """.as[ConnCount]
+  }
+
+  /**
+   * Connections in use on the whole server against the limit every city's app shares (#5238). A role without
+   * `pg_read_all_stats` can't see another role's session type, so there any session with a database and a user counts.
+   */
+  def getConnectionSlots: DBIO[ConnectionSlots] = bounded {
+    sql"""
+      SELECT (SELECT count(*) FROM pg_stat_activity
+              WHERE backend_type = 'client backend'
+                 OR (backend_type IS NULL AND datid IS NOT NULL AND usesysid IS NOT NULL))::int,
+             current_setting('max_connections')::int - current_setting('superuser_reserved_connections')::int
+               - current_setting('reserved_connections')::int
+    """.as[ConnectionSlots].head
   }
 
   /**
