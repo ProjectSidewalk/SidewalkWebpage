@@ -922,6 +922,28 @@ def test_polygonal_parts_drops_stray_lines():
     assert oc.polygonal_parts(shapely.geometry.GeometryCollection([])).is_empty
 
 
+def test_polygonal_parts_opens_nested_collections_and_unions_touching_parts():
+    # A strip cut out of a drawn region can come back as a collection inside a collection (#6013, Kuna); the two
+    # halves share an edge, so listing them as a MultiPolygon would be invalid.
+    halves = shapely.geometry.MultiPolygon([Polygon([(0, 0), (0.005, 0), (0.005, 0.01), (0, 0.01)]),
+                                            Polygon([(0.005, 0), (0.01, 0), (0.01, 0.01), (0.005, 0.01)])])
+    nested = shapely.geometry.GeometryCollection([
+        shapely.geometry.GeometryCollection([halves, shapely.geometry.Point(0, 0)]),
+        LineString([(0, 0), (0.01, 0)])])
+    result = oc.polygonal_parts(nested)
+    assert result.is_valid and result.geom_type == 'Polygon'
+    assert result.equals(_W)
+
+
+def test_prepare_regions_takes_a_region_that_make_valid_leaves_as_a_collection():
+    # A drawn regions file can carry a polygon with a stray line (Kuna, #6013); the overlay used to fail on it.
+    with_line = shapely.geometry.GeometryCollection([_W, LineString([(0.012, 0.002), (0.018, 0.002)])])
+    raw = gpd.GeoDataFrame({'name': ['west', 'east']}, geometry=[with_line, _E], crs='EPSG:4326')
+    regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
+    assert list(regions['name']) == ['east', 'west']
+    assert set(regions.geometry.geom_type) == {'MultiPolygon'}
+
+
 def _streets_gdf(lines, structures=None):
     n = len(lines)
     return gpd.GeoDataFrame({'u': list(range(1, 2 * n, 2)), 'v': list(range(2, 2 * n + 1, 2)),

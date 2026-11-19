@@ -1522,7 +1522,9 @@ def prepare_regions(raw_regions, boundary, min_part_m2, max_sliver_width_m=5.0):
         A GeoDataFrame with ``region_id`` (1..N), ``name``, and MultiPolygon geometry.
     """
     regions = raw_regions.copy().reset_index(drop=True)
-    regions['geometry'] = regions.geometry.make_valid()
+    # make_valid can return a GeometryCollection (a self-touching ring gives a polygon plus a line), and the overlay
+    # below with keep_geom_type=True fails on one, so only the polygons go on (Kuna's drawn regions, #6013).
+    regions['geometry'] = [polygonal_parts(geom) for geom in regions.geometry.make_valid()]
     regions['name'] = regions['name'].fillna('').astype(str)
     regions.loc[regions['name'] == '', 'name'] = [
         f'Region {i}' for i in range(1, (regions['name'] == '').sum() + 1)
@@ -1699,7 +1701,9 @@ def polygonal_parts(geom):
     Keeps only the polygon parts of a geometry.
 
     Subtracting one polygon from another that touches it can leave stray points and lines in the result, which are
-    not ground and break anything downstream that expects a polygon.
+    not ground and break anything downstream that expects a polygon. Collections can nest (``get_parts`` opens only
+    one level), so they are opened until none is left, and the parts are unioned rather than listed because two
+    parts sharing an edge make an invalid MultiPolygon.
 
     Args:
         geom: Any shapely geometry.
@@ -1709,7 +1713,11 @@ def polygonal_parts(geom):
     """
     if geom.is_empty or geom.geom_type in ('Polygon', 'MultiPolygon'):
         return geom
-    parts = [part for part in shapely.get_parts(geom) if part.geom_type in ('Polygon', 'MultiPolygon')]
+    parts = list(shapely.get_parts(geom))
+    while any(part.geom_type == 'GeometryCollection' for part in parts):
+        parts = [inner for part in parts for inner in
+                 (shapely.get_parts(part) if part.geom_type == 'GeometryCollection' else [part])]
+    parts = [part for part in parts if part.geom_type in ('Polygon', 'MultiPolygon') and not part.is_empty]
     return shapely.union_all(parts) if parts else Polygon()
 
 
