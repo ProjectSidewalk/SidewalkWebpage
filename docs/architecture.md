@@ -929,6 +929,8 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 - `conf/application.conf` is the base; environment overlays are `application.local.conf`, `application.staging.conf`,
   `application.test.conf`. Local dev runs with `application.local.conf`.
 - Per-city settings live in `conf/cityparams.conf`, selected via the `SIDEWALK_CITY_ID` env var.
+- Every city's app shares one Postgres, so each app's pool counts against the same connection limit. Cities listed
+  under `city-params.low-traffic` start with the smaller pool in `db-pool.low-traffic` (`modules.CityDbPool`).
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 

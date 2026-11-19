@@ -1215,7 +1215,7 @@ def test_main_dry_run_registers_nothing_and_stops_before_docker(repo_copy, monke
     snc.main(['testville-wa', '--dry-run'])
     out = capsys.readouterr().out
     assert 'No imagery preflight yet' in out
-    assert 'would add 17 entries' in out and '[dry-run] stopping' in out
+    assert 'would add 18 entries' in out and '[dry-run] stopping' in out
     assert snc.CITYPARAMS.read_text() == before
     assert not any('docker' in cmd for cmd in calls)
 
@@ -1744,6 +1744,6 @@ def test_main_yes_needs_country_and_pano_type_flags_for_a_non_us_city(repo_copy,
     snc.main(['atlantis-city', '--dry-run', '--yes', '--country', 'france', '--pano-type', 'panoramax'])
     out = capsys.readouterr().out
     assert 'atlantis-city = "panoramax"' not in out   # dry-run writes nothing
-    assert 'would add 17 entries' in out and 'Country id' not in out and 'Pano viewer type' not in out
+    assert 'would add 18 entries' in out and 'Country id' not in out and 'Pano viewer type' not in out
     with pytest.raises(SystemExit, match='2'):
         snc.main(['atlantis-city', '--pano-type', 'hologram'])

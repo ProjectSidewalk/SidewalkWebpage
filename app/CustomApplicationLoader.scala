@@ -1,3 +1,4 @@
+import modules.CityDbPool
 import play.api.ApplicationLoader
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceApplicationLoader}
 
@@ -6,6 +7,6 @@ class CustomApplicationLoader extends GuiceApplicationLoader {
     super
       .builder(context)
       .in(context.environment)
-      .loadConfig(context.initialConfiguration)
+      .loadConfig(CityDbPool.applyTo(context.initialConfiguration))
   }
 }
