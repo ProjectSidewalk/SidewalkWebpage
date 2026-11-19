@@ -271,9 +271,10 @@ build-city-data:
 
 # Draw regions for a city with no neighbourhood data (tools/city/draw_regions.py, #6013) from its build's QA GeoPackage
 # and hand-drawn zones; writes db/onboarding/<id>/regions_drawn.geojson for the next build's --regions-file.
+# `args="--method zones ..."` for zones drawn on the arterials or city limits full of holes (Kuna).
 # Main checkout only, like build-city-data. Recipe: docs/onboarding-a-city.md -> "No neighbourhood data".
 draw-regions:
-	@docker exec -it $(web-container) sh -c "cd /home && python3 tools/city/draw_regions.py --city-id $(id) $(args)"
+	@docker exec $(tty-flags) $(web-container) sh -c "cd /home && python3 tools/city/draw_regions.py --city-id $(id) $(args)"
 
 # Imagery preflight or full scan for a city's streets (tools/city/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:
