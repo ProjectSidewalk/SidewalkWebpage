@@ -380,6 +380,8 @@ inside a live process is not caught at boot; the Health panel reads it as `aband
 
 The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
 `BuildInfo` and whether the database answers and loads PostGIS, so a release can be watched landing city by city.
+Its sibling `/health/memory` (#6022) reports the instance's own memory split: RAM, swap, heap, the non-heap pools,
+and the remainder Java can't name. The app reports it itself because nothing else can read it without root.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
