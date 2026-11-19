@@ -581,6 +581,9 @@ sealed trait SpotlightRowForApi {
   /** The deployment the row came from, present only under `scope=cities`. */
   def city: Option[SpotlightCityForApi]
 
+  /** The same row stamped with `city`. */
+  def withCity(city: SpotlightCityForApi): SpotlightRowForApi
+
   /** The row as the endpoint publishes it, snake_case per the v3 conventions. */
   def toJson: JsObject
 }
@@ -608,6 +611,8 @@ case class RegionSpotlightRowForApi(
     clusterCount: Int,
     city: Option[SpotlightCityForApi] = None
 ) extends SpotlightRowForApi {
+
+  def withCity(city: SpotlightCityForApi): RegionSpotlightRowForApi = copy(city = Some(city))
 
   def toJson: JsObject = Json.obj(
     "region_id"          -> regionId,
@@ -646,6 +651,8 @@ case class StreetSpotlightRowForApi(
     validationCount: Int,
     city: Option[SpotlightCityForApi] = None
 ) extends SpotlightRowForApi {
+
+  def withCity(city: SpotlightCityForApi): StreetSpotlightRowForApi = copy(city = Some(city))
 
   def toJson: JsObject = Json.obj(
     "osm_way_id"       -> osmWayId,

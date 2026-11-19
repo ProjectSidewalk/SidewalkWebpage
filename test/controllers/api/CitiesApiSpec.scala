@@ -67,6 +67,13 @@ class CitiesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       (json \ "cities").asOpt[Seq[JsObject]] mustBe defined
     }
 
+    "carry map params for this deployment's own city, whose schema always exists" in {
+      val cityId = app.injector.instanceOf[service.ConfigService].getCityId
+      val cities = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/cities")).get) \ "cities").as[Seq[JsObject]]
+      val own    = cities.find(city => (city \ "city_id").as[String] == cityId)
+      own.flatMap(city => (city \ "center_lat").asOpt[Double]) mustBe defined
+    }
+
     "include snake_case fields in each city object" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/cities")).get
       status(resp) mustBe OK

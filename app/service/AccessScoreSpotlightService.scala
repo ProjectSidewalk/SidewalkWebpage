@@ -18,7 +18,7 @@ import models.utils.MyPostgresProfile
 import play.api.Logger
 import play.api.i18n.Lang
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.ConfigService.{CrossCityFreshFor, CrossCityMaxAge}
+import service.ConfigService.{CrossCityFreshFor, CrossCityMaxAge, CrossCityParallelism}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -424,13 +424,14 @@ class AccessScoreSpotlightService @Inject() (
   /**
    * The Spotlight feed across every public deployment, cached like the other cross-city fan-outs.
    *
-   * Each city is queried in parallel and a city whose query fails is dropped with a warning rather than sinking the
-   * page, the same bargain `getCityScorecards` makes. `computed_at` comes back as the *oldest* contributing run, so
-   * "updated nightly, last at …" is true of every row rather than only the freshest city's.
+   * Cities are queried [[CrossCityParallelism]] at a time, so a refresh can't take every pool connection (#6021). A
+   * city whose query fails is dropped with a warning rather than sinking the page, the same bargain `getCityScorecards`
+   * makes. `computed_at` comes back as the *oldest* contributing run, so "updated nightly, last at …" is true of every
+   * row rather than only the freshest city's.
    *
    * Cached at [[AccessScoreSpotlight.MaxListSize]] and sliced to `n`: the global top `n` is a prefix of the global
    * top 25, and `n` is caller-controlled, so keying the fan-out on it would let a hand-typed loop run it 25 times
-   * per unit and language.
+   * per unit. Likewise one entry serves every language, with the city names put in the reader's on the way out.
    *
    * @param unit Which unit to rank.
    * @param n    How many rows each list holds.
@@ -438,18 +439,23 @@ class AccessScoreSpotlightService @Inject() (
    * @return     The response the endpoint publishes; `nearest` is always empty here.
    */
   def getCrossCitySpotlight(unit: String, n: Int, lang: Lang): Future[AccessScoreSpotlightForApi] =
-    crossCitySpotlightFull(unit, lang).map(full => full.copy(top = full.top.take(n), bottom = full.bottom.take(n)))
+    crossCitySpotlightFull(unit).map { full =>
+      val names: Map[String, String] = configService.getAllCityInfo(lang).map(c => c.cityId -> c.cityNameShort).toMap
+      def inReadersLanguage(rows: Seq[SpotlightRowForApi]): Seq[SpotlightRowForApi] =
+        rows.take(n).map(row => row.city.fold(row)(c => row.withCity(c.copy(cityName = names(c.cityId)))))
+      full.copy(top = inReadersLanguage(full.top), bottom = inReadersLanguage(full.bottom))
+    }
 
-  /** [[getCrossCitySpotlight]] at the largest list size, which is the one entry per unit and language cached. */
-  private def crossCitySpotlightFull(unit: String, lang: Lang): Future[AccessScoreSpotlightForApi] = {
+  /** [[getCrossCitySpotlight]] at the largest list size with English city names, the one entry cached per unit. */
+  private def crossCitySpotlightFull(unit: String): Future[AccessScoreSpotlightForApi] = {
     val n = AccessScoreSpotlight.MaxListSize
     swrCache.staleWhileRevalidate[AccessScoreSpotlightForApi](
-      s"accessScoreSpotlight:cities:${unit}_${lang.code}",
+      s"accessScoreSpotlight:cities:$unit",
       CrossCityFreshFor,
       CrossCityMaxAge
     ) {
-      configService.getAccessScoreSpotlightScope(lang).flatMap { cities =>
-        val perCity: Seq[Future[Option[CitySpotlight]]] = cities.map { case (city, schema) =>
+      configService.getAccessScoreSpotlightScope(Lang("en")).flatMap { cities =>
+        val perCity = Batching.inBatches(cities, CrossCityParallelism) { case (city, schema) =>
           val spotlightCity               = SpotlightCityForApi(city.cityId, city.cityNameShort, city.URL)
           val rows: Future[CitySpotlight] =
             if (unit == SpotlightUnit.Streets) {
@@ -475,7 +481,7 @@ class AccessScoreSpotlightService @Inject() (
           }
         }
 
-        Future.sequence(perCity).map { results =>
+        perCity.map { results =>
           val contributing = results.flatten
           val candidates   = contributing.flatMap(_.candidates)
           val qualifying   = contributing.map(_.qualifying).sum

@@ -95,8 +95,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
   serving the last complete value and starts no new compute for five minutes. With nothing cached (a failure, or a
   first compute still running) the API answers `503` with `Retry-After` and the Leaderboard drops its bands. The
   totals refresh hourly, plus a random extra per app so the city apps don't all refresh at once (#5238). A new
-  cross-city total goes through `queryEveryCity`; a read that can do without a city (the Admin cross-city pages) uses
-  `queryEachCity` and recovers per city.
+  cross-city total goes through `queryEveryCity`; a read that can do without a city (the Admin cross-city pages,
+  `/v3/api/cities`) uses `queryEachCity` and recovers per city. The Spotlight's `/cities` scope does the same over its
+  own city list, at `CrossCityParallelism` (#6021).
 - **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
   separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
   lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,

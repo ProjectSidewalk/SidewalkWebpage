@@ -270,6 +270,15 @@ class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerS
       // A cross-city row must name its deployment, or a click has nowhere to go.
       (feed.top ++ feed.bottom).foreach(row => row.city mustBe defined)
     }
+
+    "name each city in the reader's language from the one cached entry" in {
+      val configService = app.injector.instanceOf[ConfigService]
+      Seq(Lang("en"), Lang("es"), Lang("zh-TW")).foreach { lang =>
+        val names = configService.getAllCityInfo(lang).map(c => c.cityId -> c.cityNameShort).toMap
+        val feed  = await(service.getCrossCitySpotlight(SpotlightUnit.Regions, 5, lang))
+        (feed.top ++ feed.bottom).flatMap(_.city).foreach(city => city.cityName mustBe names(city.cityId))
+      }
+    }
   }
 
   "the table helper" should {
