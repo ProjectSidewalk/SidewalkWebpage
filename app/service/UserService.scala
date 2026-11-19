@@ -304,10 +304,9 @@ object UserService {
   /**
    * How many cities the volunteer-hours fan-out queries at once (#4526).
    *
-   * Chosen against the pool rather than the city count: `numThreads`/`maxConnections` are both 25, and one page load
-   * taking every connection would stall every other request on the instance for the duration. Six keeps most of the
-   * parallelism win — the wall clock stays near the volunteer's single heaviest city rather than the sum of 52 — while
-   * leaving the pool with room to serve everyone else.
+   * Chosen against the connection pool rather than the city count: one page load taking every connection would stall
+   * every other request on the instance. Six keeps most of the parallelism win — the wall clock stays near the
+   * volunteer's single heaviest city rather than the sum of 52 — while leaving the pool room to serve everyone else.
    */
   val CrossCityHoursBatchSize: Int = 6
 
@@ -1190,7 +1189,7 @@ class UserServiceImpl @Inject() (
 
         // A per-city fan-out rather than one union: this query is a window function over the interaction log, so it is
         // heavy where the volunteer worked and three index misses where they didn't, and a 52-arm union serializes.
-        // Batched rather than started all at once, because the pool has 25 connections and this page is both uncached
+        // Batched rather than started all at once, because the connection pool is small and this page is both uncached
         // and reload-heavy — an unbounded fan-out would park every connection and stall the whole instance.
         Batching
           .inBatches(scope.cities, UserService.CrossCityHoursBatchSize) { case (cityId, schema) =>

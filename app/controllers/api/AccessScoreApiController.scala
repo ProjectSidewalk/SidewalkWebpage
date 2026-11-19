@@ -287,13 +287,18 @@ class AccessScoreApiController @Inject() (
       } else {
         val listSize: Int = n.getOrElse(AccessScoreSpotlight.DefaultListSize)
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-        val spotlight =
-          if (scope.contains(AccessScoreApiController.CitiesScope)) {
-            accessScoreSpotlightService.getCrossCitySpotlight(resolvedUnit, listSize, request2Messages.lang)
-          } else {
-            accessScoreSpotlightService.getSpotlight(resolvedUnit, listSize)
+        if (scope.contains(AccessScoreApiController.CitiesScope)) {
+          accessScoreSpotlightService.getCrossCitySpotlight(resolvedUnit, listSize, request2Messages.lang).map {
+            case Some(result) => Ok(result.toJson)
+            case None         =>
+              ApiError.stillComputingResult(
+                "The cross-city Spotlight is still being computed. Retry after the number of seconds in the " +
+                  "Retry-After header."
+              )
           }
-        spotlight.map(result => Ok(result.toJson))
+        } else {
+          accessScoreSpotlightService.getSpotlight(resolvedUnit, listSize).map(result => Ok(result.toJson))
+        }
       }
     }
 

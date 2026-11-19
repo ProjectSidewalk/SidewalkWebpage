@@ -19,6 +19,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
+import modules.CityDbPool
 
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
@@ -114,8 +115,9 @@ case class HealthThresholds(
     bloatMinDeadTuples: Long,
     vacuumAgeWarnSeconds: Long,
     connPoolMax: Int,
-    connWarnActive: Int,
-    connBadActive: Int,
+    connPoolMaxByRole: Map[String, Int],
+    connWarnFraction: Double,
+    connBadFraction: Double,
     jobOverdueHours: Long,
     jobWindowDays: Int
 )
@@ -247,8 +249,14 @@ class HealthServiceImpl @Inject() (
     HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
       configService.getCityId, envType, configService.appStartTime, error)
 
-  // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
-  private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)
+  // Each city's pool size, keyed by its database role. "staging" reuses zurich's role, so it is left out.
+  private val poolMaxByRole: Map[String, Int] = config
+    .get[Seq[String]]("city-params.city-ids")
+    .filter(_ != "staging")
+    .flatMap { cityId =>
+      config.getOptional[String](s"city-params.db-schema.$cityId").map(_ -> CityDbPool.maxConnections(config, cityId))
+    }
+    .toMap
 
   // Cache each signal so that N Owner tabs polling every ~20s don't each re-run the catalog queries against the one
   // shared database — the dashboard must never itself become the connection-pressure problem it exists to surface
@@ -271,9 +279,10 @@ class HealthServiceImpl @Inject() (
     bloatBadRatio = 0.4,
     bloatMinDeadTuples = 10000,    // ignore ratios on tables with few dead tuples (stale post-restore estimates)
     vacuumAgeWarnSeconds = 604800, // 7 days
-    connPoolMax = poolMax,
-    connWarnActive = math.max(1, (poolMax * 0.7).toInt),
-    connBadActive = math.max(1, (poolMax * 0.9).toInt),
+    connPoolMax = config.get[Int]("db-pool.default.max-connections"), // for a role that is no city's
+    connPoolMaxByRole = poolMaxByRole,
+    connWarnFraction = 0.7,
+    connBadFraction = 0.9,
     jobOverdueHours = ScheduledJobs.OverdueAfterHours,
     jobWindowDays = HealthService.JobWindowDays
   )

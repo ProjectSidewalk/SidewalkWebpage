@@ -18,7 +18,7 @@ import models.utils.MyPostgresProfile
 import play.api.Logger
 import play.api.i18n.Lang
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.ConfigService.{CrossCityFreshFor, CrossCityMaxAge}
+import service.ConfigService.{CrossCityColdWait, CrossCityFreshFor, CrossCityMaxAge, CrossCityParallelism}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -424,32 +424,45 @@ class AccessScoreSpotlightService @Inject() (
   /**
    * The Spotlight feed across every public deployment, cached like the other cross-city fan-outs.
    *
-   * Each city is queried in parallel and a city whose query fails is dropped with a warning rather than sinking the
-   * page, the same bargain `getCityScorecards` makes. `computed_at` comes back as the *oldest* contributing run, so
-   * "updated nightly, last at …" is true of every row rather than only the freshest city's.
+   * Cities are queried [[CrossCityParallelism]] at a time, so a refresh can't take every pool connection (#6021). A
+   * city whose query fails is dropped with a warning rather than sinking the page, the same bargain `getCityScorecards`
+   * makes. `computed_at` comes back as the *oldest* contributing run, so "updated nightly, last at …" is true of every
+   * row rather than only the freshest city's.
    *
    * Cached at [[AccessScoreSpotlight.MaxListSize]] and sliced to `n`: the global top `n` is a prefix of the global
    * top 25, and `n` is caller-controlled, so keying the fan-out on it would let a hand-typed loop run it 25 times
-   * per unit and language.
+   * per unit. Likewise one entry serves every language, with the city names put in the reader's on the way out.
    *
    * @param unit Which unit to rank.
    * @param n    How many rows each list holds.
    * @param lang The language the city names are wanted in.
-   * @return     The response the endpoint publishes; `nearest` is always empty here.
+   * @return     The response the endpoint publishes, with `nearest` always empty; None when nothing was cached and the
+   *             fan-out outlasted [[CrossCityColdWait]].
    */
-  def getCrossCitySpotlight(unit: String, n: Int, lang: Lang): Future[AccessScoreSpotlightForApi] =
-    crossCitySpotlightFull(unit, lang).map(full => full.copy(top = full.top.take(n), bottom = full.bottom.take(n)))
+  def getCrossCitySpotlight(unit: String, n: Int, lang: Lang): Future[Option[AccessScoreSpotlightForApi]] =
+    crossCitySpotlightFull(unit).map(_.map { full =>
+      val names: Map[String, String] = configService.getAllCityInfo(lang).map(c => c.cityId -> c.cityNameShort).toMap
+      def inReadersLanguage(rows: Seq[SpotlightRowForApi]): Seq[SpotlightRowForApi] =
+        rows.take(n).map(row => row.city.fold(row)(c => row.withCity(c.copy(cityName = names(c.cityId)))))
+      full.copy(top = inReadersLanguage(full.top), bottom = inReadersLanguage(full.bottom))
+    })
 
-  /** [[getCrossCitySpotlight]] at the largest list size, which is the one entry per unit and language cached. */
-  private def crossCitySpotlightFull(unit: String, lang: Lang): Future[AccessScoreSpotlightForApi] = {
+  /**
+   * [[getCrossCitySpotlight]] at the largest list size with English city names, the one entry cached per unit.
+   *
+   * @param unit Which unit to rank.
+   * @return     The merged feed, or None when nothing was cached and the fan-out outlasted [[CrossCityColdWait]].
+   */
+  private def crossCitySpotlightFull(unit: String): Future[Option[AccessScoreSpotlightForApi]] = {
     val n = AccessScoreSpotlight.MaxListSize
-    swrCache.staleWhileRevalidate[AccessScoreSpotlightForApi](
-      s"accessScoreSpotlight:cities:${unit}_${lang.code}",
+    swrCache.staleWhileRevalidateWithin[AccessScoreSpotlightForApi](
+      AccessScoreSpotlightService.crossCityCacheKey(unit),
       CrossCityFreshFor,
-      CrossCityMaxAge
+      CrossCityMaxAge,
+      CrossCityColdWait
     ) {
-      configService.getAccessScoreSpotlightScope(lang).flatMap { cities =>
-        val perCity: Seq[Future[Option[CitySpotlight]]] = cities.map { case (city, schema) =>
+      configService.getAccessScoreSpotlightScope.flatMap { cities =>
+        val perCity = Batching.inBatches(cities, CrossCityParallelism) { case (city, schema) =>
           val spotlightCity               = SpotlightCityForApi(city.cityId, city.cityNameShort, city.URL)
           val rows: Future[CitySpotlight] =
             if (unit == SpotlightUnit.Streets) {
@@ -459,15 +472,16 @@ class AccessScoreSpotlightService @Inject() (
                 CitySpotlight(response.top ++ response.bottom, response.qualifying, response.total, response.computedAt)
               }
             } else {
-              db.run(regionAccessScoreTable.getLatestSnapshot(Some(schema)))
-                .zip(
-                  db.run(regionAccessScoreTable.latestComputedAt(Some(schema)))
-                )
-                .map { case (snapshot, computedAt) =>
-                  val withCity   = snapshot.map(_.copy(city = Some(spotlightCity)))
-                  val qualifying = withCity.filter(row => AccessScoreSpotlight.regionQualifies(row))
-                  CitySpotlight(qualifying, qualifying.size, withCity.size, computedAt)
-                }
+              // One db.run, so a city uses one connection at a time rather than two.
+              db.run(
+                regionAccessScoreTable
+                  .getLatestSnapshot(Some(schema))
+                  .zip(regionAccessScoreTable.latestComputedAt(Some(schema)))
+              ).map { case (snapshot, computedAt) =>
+                val withCity   = snapshot.map(_.copy(city = Some(spotlightCity)))
+                val qualifying = withCity.filter(row => AccessScoreSpotlight.regionQualifies(row))
+                CitySpotlight(qualifying, qualifying.size, withCity.size, computedAt)
+              }
             }
           rows.map(Some(_)).recover { case e: Exception =>
             logger.warn(s"AccessScore Spotlight skipped city ${city.cityId} (schema $schema): ${e.getMessage}")
@@ -475,7 +489,7 @@ class AccessScoreSpotlightService @Inject() (
           }
         }
 
-        Future.sequence(perCity).map { results =>
+        perCity.map { results =>
           val contributing = results.flatten
           val candidates   = contributing.flatMap(_.candidates)
           val qualifying   = contributing.map(_.qualifying).sum
@@ -582,4 +596,12 @@ object AccessScoreSpotlightService {
 
   /** DB fetch size for the cluster stream the snapshot is computed from, matching the API's own default. */
   val BatchSize: Int = 25000
+
+  /**
+   * The cache key of one unit's cross-city feed, which a spec plants a known value under.
+   *
+   * @param unit The unit ranked.
+   * @return     The key.
+   */
+  def crossCityCacheKey(unit: String): String = s"accessScoreSpotlight:cities:$unit"
 }

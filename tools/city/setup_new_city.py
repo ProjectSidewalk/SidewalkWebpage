@@ -1382,6 +1382,7 @@ def main(argv=None):
         (['ai-validation-enabled'], 'true'),
         (['ai-validation-min-accuracy'], '"0.92"'),
         (['pano-viewer-type'], f'"{pano_type}"'),
+        (['low-traffic'], 'false'),
     ], args.dry_run)
     if registered:
         print(f'  Left unset (false by default; opt in by hand if wanted): {", ".join(OPTIONAL_FLAG_MAPS)}.')

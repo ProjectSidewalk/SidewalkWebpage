@@ -60,15 +60,9 @@ class CitiesApiController @Inject() (
     // Get city information from ConfigService, excluding the staging server.
     val cityInfos: Seq[CityInfo] = configService.getAllCityInfo(request.lang).filter(_.cityId != "staging")
 
-    // Get map parameters for each city - use parallel execution for efficiency.
-    val cityDetailsWithMapParams: Future[Seq[JsObject]] = Future.sequence(
-      cityInfos.map { cityInfo =>
-        // Retrieve map parameters for this city from its database schema.
-        configService.getCityMapParamsBySchema(cityInfo.cityId).map { mapParamsOpt =>
-          buildCityObject(cityInfo, mapParamsOpt)
-        }
-      }
-    )
+    val cityDetailsWithMapParams: Future[Seq[JsObject]] = configService.getAllCityMapParams().map { mapParams =>
+      cityInfos.map(cityInfo => buildCityObject(cityInfo, mapParams.get(cityInfo.cityId)))
+    }
 
     cityDetailsWithMapParams
       .map { cityDetails =>
@@ -150,11 +144,7 @@ class CitiesApiController @Inject() (
           )
         )
       }
-      .getOrElse {
-        // If no map parameters are available, log warning and return base info only
-        logger.warn(s"No map parameters available for city ${cityInfo.cityId}")
-        baseInfo
-      }
+      .getOrElse(baseInfo) // A failed read is already logged; an absent schema (a dev DB) is normal.
   }
 
   /**
