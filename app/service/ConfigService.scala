@@ -722,7 +722,7 @@ object ConfigService {
   /** Each app adds a random extra of up to this to [[AggregateStatsFreshFor]], so they don't all refresh together. */
   val AggregateStatsFreshForJitter: FiniteDuration = Duration(30, "minutes")
 
-  /** How long cached totals may be served at all. Long, so the last complete totals outlast failed refreshes (#5977). */
+  /** How long cached totals may be served. Long, so the last complete totals outlast failed refreshes (#5977). */
   val AggregateStatsMaxAge: FiniteDuration = Duration(7, "days")
 
   /** How long a Leaderboard load waits for the totals when none are cached, before rendering without them (#5977). */
@@ -1220,7 +1220,7 @@ trait ConfigService {
    * Computes a per-city summary scorecard for every configured city whose schema exists (#4329).
    *
    * Reuses the same cross-schema fan-out as [[getAggregateStats]] — read the configured city ids, keep the ones whose
-   * schema actually exists, query each in parallel with per-city recovery, cache the merged result — but keeps cities
+   * schema actually exists, query them two at a time with per-city recovery, cache the merged result — but keeps cities
    * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
    * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
    *
@@ -1805,12 +1805,7 @@ class ConfigServiceImpl @Inject() (
    * @return      Each city's result, in configured order.
    */
   private def queryEachCity[A](query: (String, String) => Future[A]): Future[Seq[A]] =
-    availableCities().flatMap { cities =>
-      val noneYet: Future[Seq[A]] = Future.successful(Vector.empty[A])
-      cities.grouped(ConfigService.CrossCityParallelism).foldLeft(noneYet) { (doneF, batch) =>
-        doneF.flatMap(done => Future.traverse(batch) { case (cityId, schema) => query(cityId, schema) }.map(done ++ _))
-      }
-    }
+    availableCities().flatMap(Batching.inBatches(_, ConfigService.CrossCityParallelism)(query.tupled))
 
   /**
    * Whether a cross-city total needs every city to answer. True on prod, where every schema is kept in step; elsewhere
@@ -1844,9 +1839,8 @@ class ConfigServiceImpl @Inject() (
       ConfigService.CrossCityMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) =>
+      queryEachCity { (cityId, schema) =>
         // One failing schema yields None rather than sinking the whole page.
-        val schema = getCitySchema(cityId)
         db.run(configTable.getCityScorecardBySchema(schema))
           .map(sc => Some(sc.copy(cityId = cityId))) // The DAO only knows the schema; restore the real cityId here.
           .recover { case e: Exception =>
@@ -1865,8 +1859,8 @@ class ConfigServiceImpl @Inject() (
       ConfigService.CrossCityMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) =>
-        db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
+      queryEachCity { (cityId, schema) =>
+        db.run(configTable.getCityWeeklyTrendBySchema(schema, weeks))
           .recover { case e: Exception =>
             logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
             Seq.empty[WeeklyPoint]
@@ -1897,8 +1891,8 @@ class ConfigServiceImpl @Inject() (
       ConfigService.CrossCityMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) =>
-        db.run(configTable.getCityDailyActivityByUserBySchema(getCitySchema(cityId), days))
+      queryEachCity { (cityId, schema) =>
+        db.run(configTable.getCityDailyActivityByUserBySchema(schema, days))
           .recover { case e: Exception =>
             logger.warn(s"Failed to fetch daily trend for city $cityId: ${e.getMessage}")
             Seq.empty[DailyContributorActivity]
@@ -1927,8 +1921,8 @@ class ConfigServiceImpl @Inject() (
       ConfigService.DailyBaselineMaxAge,
       coldWait
     ) {
-      queryEachCity { (cityId, _) =>
-        db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
+      queryEachCity { (cityId, schema) =>
+        db.run(configTable.getCityDailyBaselineBySchema(schema, days))
           .recoverWith { case e: Exception =>
             Future.failed(new RuntimeException(s"Daily baseline query failed for city $cityId", e))
           }
@@ -1946,8 +1940,8 @@ class ConfigServiceImpl @Inject() (
       ConfigService.CrossCityMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) =>
-        db.run(configTable.getCityWindowActivityByUserBySchema(getCitySchema(cityId)))
+      queryEachCity { (cityId, schema) =>
+        db.run(configTable.getCityWindowActivityByUserBySchema(schema))
           .recover { case e: Exception =>
             logger.warn(s"Failed to fetch activity windows for city $cityId: ${e.getMessage}")
             Seq.empty[ContributorWindowActivity]
@@ -2000,7 +1994,7 @@ class ConfigServiceImpl @Inject() (
       ConfigService.LabelingSpeedMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) => labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _)) }
+      queryEachCity { (cityId, schema) => labelingSpeedForSchema(schema).map(_.map(cityId -> _)) }
         .map(_.flatten.toMap)
     }
   }
@@ -2012,8 +2006,7 @@ class ConfigServiceImpl @Inject() (
       ConfigService.CrossCityMaxAge,
       ConfigService.CrossCityColdWait
     ) {
-      queryEachCity { (cityId, _) =>
-        val schema = getCitySchema(cityId)
+      queryEachCity { (cityId, schema) =>
         db.run(configTable.getCityStoryStatsBySchema(schema))
           .map(stats => cityId -> Option(stats))
           .recover { case e: Exception =>
@@ -2030,8 +2023,8 @@ class ConfigServiceImpl @Inject() (
         "getCrossCityContributorCounts", ConfigService.CrossCityFreshFor, ConfigService.CrossCityMaxAge,
         ConfigService.CrossCityColdWait, ConfigService.CrossCityFailureBackoff
       ) {
-        // Unlike the per-city reads beside it, one city's failure fails the whole count: a union missing a city would
-        // undercount, and a failed background refresh leaves the last good count cached rather than replacing it.
+        // Unlike the per-city reads beside it, on prod one city's failure fails the whole count: a union missing a
+        // city would undercount, and a failed refresh leaves the last good count cached.
         queryEveryCity("contributor counts") { (_, schema) =>
           db.run(configTable.getContributorUserIdsBySchema(schema))
         }.map(perCity => ConfigService.contributorCounts(perCity.map { case (_, ids) => ids }))
@@ -2058,10 +2051,9 @@ class ConfigServiceImpl @Inject() (
   def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]] = {
     // Reads the precomputed funnel_stat per schema, so it is cheap; the short cache just coalesces bursts of requests.
     cacheApi.getOrElseUpdate[Map[String, Seq[CityFunnel]]](s"getCityFunnels_$window", Duration(10, "minutes")) {
-      queryEachCity { (cityId, _) =>
+      queryEachCity { (cityId, schema) =>
         // Each city's rows cover all funnel types for this window; None ⇒ no funnel_stat yet, so omit the city.
-
-        db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window))
+        db.run(funnelStatTable.getFunnelStatsBySchema(schema, window))
           .map(rows => if (rows.isEmpty) None else Some(cityId -> rows))
           .recover { case e: Exception =>
             logger.warn(s"Failed to read funnel for city $cityId (window $window): ${e.getMessage}")
@@ -2159,7 +2151,8 @@ class ConfigServiceImpl @Inject() (
       }
 
   /**
-   * The cached cross-schema fan-out that backs [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
+   * The cached cross-schema fan-out behind [[getAggregateStats]]. [[getAggregateStatsWithCurrentCity]] reads the same
+   * cache entry, but gives up waiting sooner.
    *
    * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
    * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So

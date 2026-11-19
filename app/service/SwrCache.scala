@@ -210,8 +210,8 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
                 before
               }
               result.failed.foreach { e =>
-                val message =
-                  s"Recompute of cached '$key' failed (next attempt allowed in ${failureBackoff.toSeconds} s): ${e.getMessage}"
+                val message = s"Recompute of cached '$key' failed (next attempt allowed in " +
+                  s"${failureBackoff.toSeconds} s): ${e.getMessage}"
                 // The stack trace only for the first failure in a row: an outage repeats the same one every backoff.
                 if (failedBefore) logger.warn(message) else logger.warn(message, e)
               }
