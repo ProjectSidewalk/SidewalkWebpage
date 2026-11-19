@@ -5,7 +5,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Bounded fan-out for services that run the same work over many items without starting all of it at once.
  *
- * `UserService`'s cross-city hours query is bounded by the 25-connection pool (#4526) and `TrafficService`'s GA fetch
+ * `UserService`'s cross-city hours query is bounded by the connection pool (#4526) and `TrafficService`'s GA fetch
  * by the Data API's concurrency (Planning#8) — neither owns the helper, so it lives here.
  */
 object Batching {

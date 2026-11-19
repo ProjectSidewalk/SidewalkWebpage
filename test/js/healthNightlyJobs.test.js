@@ -34,8 +34,9 @@ const THRESHOLDS = {
   bloat_min_dead_tuples: 10000,
   vacuum_age_warn_seconds: 604800,
   conn_pool_max: 25,
-  conn_warn_active: 17,
-  conn_bad_active: 22,
+  conn_pool_max_by_role: { sidewalk_knox: 15 },
+  conn_warn_fraction: 0.7,
+  conn_bad_fraction: 0.9,
   job_overdue_hours: 36,
   job_window_days: 7,
 };
@@ -580,24 +581,26 @@ describe('the table bloat panel', () => {
 });
 
 describe('the connections panel', () => {
-  test('folds the counts into one row per role, busiest first, toned against the pool', async () => {
+  test('folds the counts into one row per role, busiest first, each toned against its own pool', async () => {
     await start(health({ connections: [
       { usename: 'sidewalk_seattle', state: 'active', count: 5 },
       { usename: 'sidewalk_seattle', state: 'idle', count: 10 },
-      { usename: 'sidewalk_chicago', state: 'active', count: 22 },
+      { usename: 'sidewalk_chicago', state: 'active', count: 23 },
       { usename: 'sidewalk_chicago', state: 'idle in transaction', count: 1 },
-      { usename: 'sidewalk_dc', state: 'active', count: 17 },
+      { usename: 'sidewalk_dc', state: 'active', count: 18 },
+      { usename: 'sidewalk_knox', state: 'active', count: 14 },
       { usename: null, state: 'active', count: null },
     ] }));
     expect(panelRows('health-connections')).toEqual([
-      ['sidewalk_chicago', '22', '0', '23'],
-      ['sidewalk_dc', '17', '0', '17'],
-      ['sidewalk_seattle', '5', '10', '15'],
-      ['—', '0', '0', '0'],
+      ['sidewalk_chicago', '23 / 25', '0', '24'],
+      ['sidewalk_dc', '18 / 25', '0', '18'],
+      ['sidewalk_seattle', '5 / 25', '10', '15'],
+      ['sidewalk_knox', '14 / 15', '0', '14'],
+      ['—', '0 / 25', '0', '0'],
     ]);
+    // Knox's 14 would read as fine against a pool of 25; against its own 15 it is nearly full.
     const tones = [...document.querySelectorAll('#health-connections tbody tr')].map((tr) => badgeTone(tr.cells[1]));
-    expect(tones).toEqual(['bad', 'warn', 'ok', 'ok']);
-    expect(document.querySelector('#health-connections thead').textContent).toContain('Active (pool 25)');
+    expect(tones).toEqual(['bad', 'warn', 'ok', 'bad', 'ok']);
   });
 });
 
