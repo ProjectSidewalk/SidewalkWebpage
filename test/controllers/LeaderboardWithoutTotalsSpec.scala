@@ -18,10 +18,7 @@ import java.sql.SQLTransientConnectionException
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
- * A [[ConfigServiceImpl]] whose schema list always fails, which is what a database refusing connections looks like to
- * every cross-city total.
- */
+/** A [[ConfigServiceImpl]] whose schema list always fails, as when the database refuses connections. */
 class SchemaListFailingConfigService @Inject() (
     dbcp: DatabaseConfigProvider,
     configuration: Configuration,

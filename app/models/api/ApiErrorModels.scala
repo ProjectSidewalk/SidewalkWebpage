@@ -105,8 +105,7 @@ object ApiError {
     toResult(stillComputing(detail)).withHeaders(HeaderNames.RETRY_AFTER -> StillComputingRetryAfterSeconds.toString)
 
   /**
-   * Creates a 503 for a value that can't be produced right now but should be shortly (#5977). The caller adds a
-   * `Retry-After` header.
+   * Creates a 503 for a value that can't be produced right now (#5977). The caller adds `Retry-After`.
    *
    * @param detail Human-readable explanation, kept free of internal error text.
    */

@@ -146,7 +146,7 @@ class StatsApiController @Inject() (
           )
         )
       case Failure(NonFatal(_)) =>
-        // The body stays generic because the error can name schemas. SwrCache already logged it.
+        // Generic on purpose: the error can name schemas, and SwrCache already logged it.
         val error = ApiError.temporarilyUnavailable(s"The $what are temporarily unavailable. Please retry later.")
         Success(
           ApiError.toResult(error).withHeaders(RETRY_AFTER -> ConfigService.CrossCityFailureBackoff.toSeconds.toString)

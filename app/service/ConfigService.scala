@@ -1434,10 +1434,8 @@ trait ConfigService {
   /**
    * Calculates aggregate statistics across all Project Sidewalk deployments.
    *
-   * Fetches statistics from all configured cities by querying their respective db schemas and aggregating the results.
-   * Results are cached and may lag reality by roughly [[ConfigService.AggregateStatsFreshFor]]; stale data is served
-   * immediately while a background recompute refreshes it (#4600). A recompute replaces the cached value only when
-   * every city answered, so the totals are never a partial sum (#5977).
+   * Sums every configured city's schema. Cached totals are served at once while a background recompute refreshes them
+   * (#4600), and a recompute replaces them only when every city answered, so they are never a partial sum (#5977).
    *
    * @return The statistics across all cities, or None when nothing is cached and the compute outlasted
    *         [[ConfigService.CrossCityColdWait]]; failed when nothing is cached and the compute failed.
@@ -1459,10 +1457,8 @@ trait ConfigService {
   /**
    * Returns daily label and validation counts aggregated across all configured cities.
    *
-   * Queries each city schema and sums counts by (date, labelType) across cities. Cities whose schemas do not exist in
-   * the current environment are skipped, and a city lost to a failed query fails the compute rather than shrinking the
-   * sums (same rules as getAggregateStats, #5977). The full-range result is cached like getAggregateStats (stale data
-   * served immediately, background refresh — #4600), and the requested date window is sliced from the cached rows.
+   * Sums counts by (date, labelType) across cities, under the same rules and caching as [[getAggregateStats]]. The
+   * full date range is cached, and the requested window is sliced from it.
    *
    * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
    * @param endDate          Inclusive end date; no upper bound if None.
@@ -1526,7 +1522,7 @@ class ConfigServiceImpl @Inject() (
 
   /**
    * How old this app lets the cross-city totals get before refreshing them. The random extra is picked once at
-   * startup, so the city apps spread their refreshes out instead of all running them in the same minute (#5238).
+   * startup, so the city apps spread their refreshes out (#5238).
    */
   private val aggregateStatsFreshFor: FiniteDuration = ConfigService.AggregateStatsFreshFor +
     Duration(Random.nextLong(ConfigService.AggregateStatsFreshForJitter.toSeconds + 1), "seconds")
@@ -1779,11 +1775,11 @@ class ConfigServiceImpl @Inject() (
     }
 
   /**
-   * Resolves which configured cities have a readable schema in this database, for the cross-city queries.
+   * The configured cities whose schema this database has, for the cross-city queries.
    *
-   * An absent schema is skipped, which lets a localhost DB holding a few schemas serve pages that read every city. A
-   * failure to read the schema list fails the call, so it is never mistaken for "no cities" (#5977). Each schema is
-   * listed once, so a sum can't count one twice.
+   * An absent schema is skipped, so a local DB holding a few schemas can serve pages that read every city. A failure
+   * to read the schema list fails the call, so it is never mistaken for "no cities" (#5977). Each schema is listed
+   * once, so a sum can't count one twice.
    *
    * @return (cityId, schema) for every configured city whose schema is readable, in configured order.
    */
@@ -2024,8 +2020,7 @@ class ConfigServiceImpl @Inject() (
         "getCrossCityContributorCounts", ConfigService.CrossCityFreshFor, ConfigService.CrossCityMaxAge,
         ConfigService.CrossCityColdWait, ConfigService.CrossCityFailureBackoff
       ) {
-        // Unlike the per-city reads beside it, on prod one city's failure fails the whole count: a union missing a
-        // city would undercount, and a failed refresh leaves the last good count cached.
+        // Unlike the per-city reads beside it, a union missing a city would undercount, so this is all or nothing.
         queryEveryCity("contributor counts") { (_, schema) =>
           db.run(configTable.getContributorUserIdsBySchema(schema))
         }.map(perCity => ConfigService.contributorCounts(perCity.map { case (_, ids) => ids }))
@@ -2151,8 +2146,7 @@ class ConfigServiceImpl @Inject() (
   /**
    * The cached cross-city totals behind [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
    *
-   * Cached totals are served at once for up to [[ConfigService.AggregateStatsMaxAge]], with one background recompute
-   * once they are older than this app's refresh interval (#4600). Only a request that finds nothing cached waits.
+   * Only a request that finds nothing cached waits; any other is served the cached totals at once (#4600).
    *
    * @param coldWait How long a request that finds nothing cached waits for the compute.
    * @return         The cross-city totals plus each city's own slice of them, or None if `coldWait` ran out first.
@@ -2164,10 +2158,7 @@ class ConfigServiceImpl @Inject() (
     )(computeAggregateStats())
 
   /**
-   * Runs the full cross-schema fan-out that computes aggregate statistics.
-   *
-   * All or nothing ([[queryEveryCity]]): a failed city fails the compute, and the last complete value stays cached.
-   * `numCities` and `numCountries` count the cities that were summed.
+   * Computes the cross-city totals, all or nothing ([[queryEveryCity]]). `numCities` counts the cities summed.
    *
    * @return A Future containing freshly computed aggregate statistics across all cities, plus the per-city slices
    */
@@ -2223,9 +2214,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Runs the full cross-schema fan-out that computes daily stats over the entire date range.
-   *
-   * Sums counts by (date, labelType) across cities. All or nothing, like [[computeAggregateStats]].
+   * Sums daily counts by (date, labelType) across cities for all dates, all or nothing ([[queryEveryCity]]).
    *
    * @param filterLowQuality If true, restrict to high-quality users.
    * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities.

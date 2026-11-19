@@ -18,10 +18,8 @@ import scala.concurrent.{ExecutionContext, Future}
  * One instance serves every caller, so the in-flight map's lock is shared across services. It covers registering a
  * `Future`, never awaiting one — a `compute` that blocks before returning would stall every other service's cache.
  *
- * A failed compute never replaces the cached value. A caller can also pass a `failureBackoff`, for a compute expensive
- * enough that rerunning it on every request after a failure would add load to whatever just failed: for that long no
- * new compute of the key starts, so a stale hit is served without a refresh and a miss fails at once with that last
- * failure (#5977). The default of zero retries on the next request.
+ * A failed compute never replaces the cached value. With a `failureBackoff`, no new compute of the key starts for that
+ * long after a failure: a stale hit is served unrefreshed, and a miss fails at once with that failure (#5977).
  */
 @Singleton
 class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using val ec: ExecutionContext) {
@@ -39,9 +37,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    */
   private val recentFailures = scala.collection.mutable.Map.empty[String, (Long, Throwable)]
 
-  /**
-   * Whether a compute of `key` would be refused. Lets a spec wait for a failed refresh to be recorded.
-   */
+  /** Whether a compute of `key` would be refused. Lets a spec wait for a failed refresh to be recorded. */
   private[service] def isBackingOff(key: String, failureBackoff: FiniteDuration): Boolean =
     synchronized(backoffFailure(key, failureBackoff).isDefined)
 
@@ -50,8 +46,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    *
    * When the cached copy is older than `freshFor`, a single background recompute is kicked off and the stale copy is
    * returned right away; requests arriving while a recompute runs share it rather than piling more load on the
-   * database. Only a request that finds nothing cached at all (first call since JVM start, or the value aged past
-   * `maxAge`) blocks on `compute`.
+   * database. Only a request that finds nothing cached (first call since JVM start, or aged past `maxAge`) blocks.
    *
    * The cache key should name the value's shape (e.g. a `:v2-bundle` suffix) when it could change across versions:
    * this reads `cacheApi.get[Timestamped[T]](key)` and `T` erases, so nothing would catch a differently-shaped value
@@ -60,7 +55,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * @param key      Cache key; must uniquely identify the computation, including any parameters.
    * @param freshFor Age beyond which serving the cached value also triggers a background recompute.
    * @param maxAge   Hard cache-eviction bound; past this, a request blocks on recomputing.
-   * @param failureBackoff How long after a failed compute no new one starts; zero (the default) never holds one back.
+   * @param failureBackoff How long after a failed compute no new one starts. Zero, the default, never holds one back.
    * @param compute  The expensive computation producing a fresh value.
    * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
    */
@@ -166,8 +161,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
    * mid-clustering would otherwise land afterwards and replace the post-clustering scores with pre-clustering ones
    * for the rest of the fresh window. The refresh's own callers still receive what it computed (#5418).
    *
-   * Within `failureBackoff` of this key's last failed compute, nothing is started and that failure is returned again
-   * (#5977). A stale hit discards the result, so it simply goes unrefreshed until the backoff ends.
+   * Within `failureBackoff` of this key's last failed compute, nothing starts and that failure is returned (#5977).
    *
    * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
    */
@@ -181,9 +175,8 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
         case (None, Some(lastError)) => Future.failed(lastError)
         case (None, None)            =>
           val startedAt = OffsetDateTime.now()
-          // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
-          // becomes a failed Future handled by the bookkeeping below, instead of escaping to a caller that could have
-          // been served stale data.
+          // Future.delegate turns a synchronous throw from `compute` into a failed Future handled below, instead of
+          // letting it escape to a caller that could have been served stale data.
           val computation = Future
             .delegate(compute)
             .flatMap { value =>
@@ -195,10 +188,9 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
                   cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
               }
             }
-            // Part of the Future the callers get rather than a side callback, so the in-flight entry is gone and the
-            // backoff recorded by the time any caller sees the outcome. The callback runs on the pool, never inline on
-            // this thread (`synchronized` is reentrant, so an inline one would run before the map write below and
-            // leave the entry stuck); on another thread it waits on this lock until that write has happened.
+            // Chained onto the Future the callers get, so the in-flight entry is gone and the backoff recorded before
+            // any caller sees the outcome. It runs on the pool, never inline: `synchronized` is reentrant, so an
+            // inline run would come before the map write below and leave the entry stuck.
             .transform { result =>
               val failedBefore: Boolean = synchronized {
                 val _      = refreshesInFlight.remove(key)

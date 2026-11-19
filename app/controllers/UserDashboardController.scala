@@ -145,7 +145,7 @@ class UserDashboardController @Inject() (
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     val myTeamF: Future[Option[TeamBoard]]                   =
       signedInUser.map(u => userService.getTeamBoard(u.userId)).getOrElse(Future.successful(None))
-    // Started here too, so its wait of up to 5 s on a cold cache overlaps the other queries instead of preceding them.
+    // Started early so its cold-cache wait of up to 5 s overlaps the other queries.
     val aggregateAndImpactF = configService.getAggregateStatsWithCurrentCity()
     for {
       commonData         <- configService.getCommonPageData(request2Messages.lang)
