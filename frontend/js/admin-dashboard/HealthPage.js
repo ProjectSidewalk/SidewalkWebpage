@@ -431,8 +431,9 @@ export class HealthPage {
         </tr>`;
     }).join('');
     // Redrawing would drop keyboard focus from a link in the table.
-    const headers = ['City', 'Status', 'Build', 'Version', ['Queries waiting', true], 'Started'];
-    if (body !== this.#fleetHtml) this.#table('health-fleet', headers, body);
+    if (body !== this.#fleetHtml) {
+      this.#table('health-fleet', ['City', 'Status', 'Build', 'Version', ['Queries waiting', true], 'Started'], body);
+    }
     this.#fleetHtml = body;
     const onBuild = rows.filter(({ v }) => v.rank === 3).length;
     const down = rows.filter(({ v }) => v.rank < 2).length;
