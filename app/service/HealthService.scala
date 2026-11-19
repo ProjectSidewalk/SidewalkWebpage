@@ -87,6 +87,9 @@ case class TableBloat(
 /** Client-backend connection count for one (role, state) pair. */
 case class ConnCount(usename: Option[String], state: Option[String], count: Int)
 
+/** Connections open on the whole database server, against the most it lets the city apps open between them. */
+case class ConnectionSlots(inUse: Int, usable: Int)
+
 /** Backup-coverage counts for the current city's labeled panos. */
 case class PanoBackupStats(
     labeledPanos: Long,
@@ -171,6 +174,7 @@ case class DbHealthData(
     stuckEvolutions: Seq[StuckEvolution],
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
+    connectionSlots: Option[ConnectionSlots],
     panoBackups: Option[PanoBackupStats],
     nightlyJobs: Seq[NightlyJobStatus],
     thresholds: HealthThresholds
@@ -311,6 +315,13 @@ class HealthServiceImpl @Inject() (
     val connF = cacheApi
       .getOrElseUpdate[Seq[ConnCount]]("health.conn", liveTtl)(db.run(healthTable.getConnectionCounts))
       .recover(logAndEmpty("connection counts"))
+    val slotsF = cacheApi
+      .getOrElseUpdate[Option[ConnectionSlots]]("health.slots", liveTtl)(
+        db.run(healthTable.getConnectionSlots).map(Option(_))
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read connection slots: ${e.getMessage}"); None
+      }
     val panoF = cacheApi
       .getOrElseUpdate[Option[PanoBackupStats]]("health.pano", panoTtl)(
         db.run(healthTable.getPanoBackupStats).map(Option(_))
@@ -329,6 +340,7 @@ class HealthServiceImpl @Inject() (
       evo      <- evoF
       bloat    <- bloatF
       conn     <- connF
+      slots    <- slotsF
       pano     <- panoF
       jobs     <- jobsF
     } yield DbHealthData(
@@ -342,6 +354,7 @@ class HealthServiceImpl @Inject() (
       stuckEvolutions = evo,
       tableBloat = bloat,
       connections = conn,
+      connectionSlots = slots,
       panoBackups = pano,
       nightlyJobs = jobs,
       thresholds = thresholds
@@ -493,6 +506,7 @@ object HealthService {
   given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
   given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
   given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given connectionSlotsWrites: Writes[ConnectionSlots]   = Json.writes[ConnectionSlots]
   given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
   given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
   given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]

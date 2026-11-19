@@ -147,7 +147,7 @@ export class HealthPage {
     const active = data.active_queries || [];
     const idle = data.idle_in_transaction || [];
     const evolutions = data.stuck_evolutions || [];
-    const conns = (data.connections || []).reduce((sum, c) => sum + (c.count || 0), 0);
+    const slots = data.connection_slots;
     const atRisk = data.pano_backups?.at_risk;
     const bloated = (data.table_bloat || []).filter((b) => this.#bloatTone(b) !== 'good').length;
     const longIdle = idle.filter((s) => (s.idle_seconds || 0) >= t.idle_txn_warn_seconds).length;
@@ -157,7 +157,9 @@ export class HealthPage {
     this.#setKpi('kpi-idle', idle.length, longIdle > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-evolutions', evolutions.length, evolutions.length > 0 ? 'bad' : 'good');
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
-    this.#setKpi('kpi-connections', conns, 'ok');
+    // No reading means unknown, not healthy.
+    const slotsText = slots ? `${AdminShell.num(slots.in_use)} / ${AdminShell.num(slots.usable)}` : '—';
+    this.#setKpi('kpi-connections', slotsText, slots ? this.#shareTone(slots.in_use / slots.usable, 'good') : 'ok');
     // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
     const panoTone = AdminShell.nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
     this.#setKpi('kpi-panos', AdminShell.nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
@@ -314,8 +316,7 @@ export class HealthPage {
       .map(([role, e]) => {
         // Pools differ by city, so each role is judged against its own.
         const poolMax = t.conn_pool_max_by_role[role] ?? t.conn_pool_max;
-        const share = e.active / poolMax;
-        const tone = share >= t.conn_bad_fraction ? 'bad' : share >= t.conn_warn_fraction ? 'warn' : 'ok';
+        const tone = this.#shareTone(e.active / poolMax, 'ok');
         return `
         <tr>
           <td>${util.escapeHTML(role)}</td>
@@ -521,6 +522,16 @@ export class HealthPage {
     if (AdminShell.nil(query)) return '<em>hidden</em>';
     const q = query.length > 160 ? `${query.slice(0, 160)}…` : query;
     return `<code>${util.escapeHTML(q)}</code>`;
+  }
+
+  /**
+   * @param {number} share - Connections in use over their limit.
+   * @param {string} fine - The tone below the warning level.
+   * @returns {string} 'bad', 'warn', or `fine`.
+   */
+  #shareTone(share, fine) {
+    const t = this.#thresholds;
+    return share >= t.conn_bad_fraction ? 'bad' : share >= t.conn_warn_fraction ? 'warn' : fine;
   }
 
   #setKpi(id, value, tone) {

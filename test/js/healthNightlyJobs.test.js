@@ -352,7 +352,7 @@ describe('a quiet database', () => {
     expect(kpi('kpi-idle')).toEqual(['0', 'good']);
     expect(kpi('kpi-evolutions')).toEqual(['0', 'good']);
     expect(kpi('kpi-bloat')).toEqual(['0', 'good']);
-    expect(kpi('kpi-connections')).toEqual(['0', 'ok']);
+    expect(kpi('kpi-connections')).toEqual(['—', 'ok']);
     // No pano stats is unknown, not healthy, so it isn't green.
     expect(kpi('kpi-panos')).toEqual(['—', 'ok']);
     expect(text('health-locks')).toBe('✓ No sessions are blocking others.');
@@ -456,7 +456,7 @@ describe('the KPI tones', () => {
       idle_in_transaction: [{ idle_seconds: 130 }, {}],
       stuck_evolutions: [{}],
       table_bloat: [{ dead_ratio: 0.3, dead_tuples: 20000 }],
-      connections: [{ usename: 'a', state: 'active', count: 1200 }, { usename: 'b', state: 'idle' }],
+      connection_slots: { in_use: 1180, usable: 1197 },
       pano_backups: { labeled_panos: 2000000, backed_up: 0, unchecked: 0, no_backup: 0, at_risk: 3400 },
     }));
     expect(kpi('kpi-blocking')).toEqual(['1', 'bad']);
@@ -464,7 +464,7 @@ describe('the KPI tones', () => {
     expect(kpi('kpi-idle')).toEqual(['2', 'warn']);
     expect(kpi('kpi-evolutions')).toEqual(['1', 'bad']);
     expect(kpi('kpi-bloat')).toEqual(['1', 'warn']);
-    expect(kpi('kpi-connections')).toEqual(['1,200', 'ok']);
+    expect(kpi('kpi-connections')).toEqual(['1,180 / 1,197', 'bad']);
     expect(kpi('kpi-panos')).toEqual(['3k', 'warn']);
   });
 
@@ -475,6 +475,17 @@ describe('the KPI tones', () => {
     }));
     expect(kpi('kpi-active')).toEqual(['1', 'bad']);
     expect(kpi('kpi-panos')).toEqual(['0', 'good']);
+  });
+});
+
+describe('the connections KPI', () => {
+  test.each([
+    [{ in_use: 80, usable: 197 }, ['80 / 197', 'good']],
+    [{ in_use: 140, usable: 197 }, ['140 / 197', 'warn']],
+    [{ in_use: 185, usable: 197 }, ['185 / 197', 'bad']],
+  ])('tones %j by how full the server is', async (slots, expected) => {
+    await start(health({ connection_slots: slots }));
+    expect(kpi('kpi-connections')).toEqual(expected);
   });
 });
 
