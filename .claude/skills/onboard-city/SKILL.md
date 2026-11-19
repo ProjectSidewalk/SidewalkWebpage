@@ -35,8 +35,10 @@ checkout** (`db/` is the bind mount), so run these from the main checkout, not a
      (TIGERweb), then the whole city as one region (small towns; split later in QGIS if it grows).
   4. None of those gives regions a resident would recognise, in a town above ~20 km of streets: draw them with
      `make draw-regions` (#6013). The recipe, the design rules (borders on arterials, landmark names, each arterial
-     owned by one side) and Evansdale's worked example are in `docs/onboarding-a-city.md` → "No neighbourhood data:
-     draw your own". Propose the split to the developer as a map before building with it.
+     owned by one side, ~20–40 km per region in a bigger town), when to use `--method zones` (a section-line grid,
+     or city limits full of county holes, which you fill first) and the Evansdale and Kuna worked examples are in
+     `docs/onboarding-a-city.md` → "No neighbourhood data: draw your own". Propose the split to the developer as a
+     map before building with it.
 - **A one-region city** takes the city's name (from `--place`), not the source's — otherwise a small town is the
   neighbourhood "Census Tract 7801" in every mission message and API response. Use `--single-region-name` with a
   `--boundary-file`, or to override. Names you chose (`--regions-file`, `--rename-regions`, a `--merge-regions`

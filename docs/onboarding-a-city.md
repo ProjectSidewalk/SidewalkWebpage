@@ -112,24 +112,47 @@ across it. Above ~20 km of streets that is too coarse for missions and completio
 
 **Design the regions first, on a map of the town.** What has worked:
 
-- **Size.** 4–9 km of streets each, the same order as each other. A small town gets 3–4 regions, a town of
-  60 km about 9.
+- **Size scales with the town.** Aim for about 20–40 km of streets per region (Seattle's median is 28 km; the build
+  flags a region over 60 km), the same order as each other, so a town of 300 km gets about 10. A town under ~60 km
+  is the exception: it still wants a few regions so missions and completion mean something, so its regions run
+  smaller (Evansdale's 54 km made nine of 4–9 km; that size would have cut Kuna's 312 km into about 45).
 - **Borders on the roads people already use to give directions**: the main arterials, a freeway, a river, a rail
   line. A border that wanders through a block, or switches from one road to another mid-block, reads as arbitrary.
 - **Names residents know**: the arterial (Gilbert Drive), a park or school at the region's heart (Fullerton Park,
   Bunger), the compass only when nothing better exists (East Side). A name taken from a landmark is a promise: the
-  landmark must lie inside, which the tool checks (`--landmark`).
+  landmark must lie inside, which the tool checks (`--landmark`). Find candidates in OSM (`amenity=school`,
+  `leisure=park` with a name, inside each zone). Where a region has none, as in new subdivision country, the
+  county's subdivision layer names the largest development there (Kuna's Memory Ranch; Ada County publishes one).
 - **Downtown is all of downtown**, both sides of the main street, not just the blocks north of it.
 - **Each arterial belongs to one region per stretch.** It is labelled from one side and audited as one street, so
   it goes to the region on its *owning* side (`--divide-road "Gilbert Drive:south"`), never by whichever side its
   midpoint wobbles to. A street that leaves a region and comes back reads like a border weaving across the road,
   and the tool refuses it.
 
+**Fix the boundary before drawing.** Legal city limits can be full of holes: Kuna's are 15 pieces with 43
+unincorporated county enclaves, and annexation leaves long bays along the edge. A street in a hole is not in the
+build, so Explore would skip it mid-neighbourhood. Fill the holes and close bays under ~500 m wide (a 250 m
+buffer-out, buffer-in), cut off outlying pieces nobody would walk to as part of the town, and pass the result as
+`--boundary-file`. Say so in `--regions-source`, since the deployment then differs from the legal limits.
+
+**Pick a method.** Two ways from zones to regions:
+
+- `--method blocks` (the default) cuts the city into blocks along the streets, so borders follow the street
+  pattern wherever it goes. Use it when borders must follow curving or irregular roads (Evansdale).
+- `--method zones` takes each zone, clipped to the city, as its region, and gives each divide road a strip on its
+  owning side. Use it when the zones' edges already lie on the arterials, as on a section-line grid (most of the US
+  West and Midwest), or when blocks report many problems. Faces that span several zones defeat blocks: a city edge
+  full of holes and bays splits a region into parts, and blocks hand all but the largest part, streets and all, to
+  a neighbour. Kuna's first blocks run reported 163 problems; zones reported none. Draw the zone edges on the
+  arterials' lines; `--dividers` has no role here (draw the line as a zone edge instead).
+
 **Inputs**, under `db/onboarding/<city-id>/inputs/draw_regions/` (git-ignored, kept with the city's other inputs):
 
-- `zones.geojson`: one rough polygon per region with a `name` column, drawn in QGIS over the first build's
-  `qgis_road` layer. Precision is wasted here: the zones only decide which region each street belongs to (by its
-  midpoint), and the borders are redrawn from the streets.
+- `zones.geojson`: one polygon per region with a `name` column, drawn in QGIS over the first build's `qgis_road`
+  layer, or written by a script from the arterials' coordinates (Kuna's `make_inputs.py`). With blocks, precision is
+  wasted: the zones only decide which region each street belongs to (by its midpoint), and the borders are redrawn
+  from the streets. With zones, the edges are the borders, so they must meet without gaps or overlaps; the tool
+  densifies them before reprojecting, so edges drawn as lon/lat corners kilometres apart still meet.
 - `dividers.geojson` (optional): lines that separate regions where no included street does. A freeway is the usual
   one: motorways are filtered out of the build, so without its line the blocks either side of it merge into one
   face. Also the line of a border road carried on across open ground to the city edge.
@@ -144,16 +167,24 @@ weighs the blocks differently: Evansdale's Bunger Middle School block moved to N
 make draw-regions id=evansdale-ia args="--zones db/onboarding/evansdale-ia/inputs/draw_regions/zones.geojson \
     --dividers db/onboarding/evansdale-ia/inputs/draw_regions/dividers.geojson \
     --divide-road 'Gilbert Drive:south' --landmark 'Bunger=-92.2747,42.4716'"
+make draw-regions id=kuna-id args="--method zones --probe-m 120 \
+    --zones db/onboarding/kuna-id/inputs/draw_regions/zones.geojson \
+    --divide-road 'West Hubbard Road:north' --landmark 'Downtown=-116.4225,43.4910'"
 make build-city-data id=evansdale-ia args="--place 'Evansdale, Iowa, USA' \
     --regions-file db/onboarding/evansdale-ia/regions_drawn.geojson \
     --regions-source 'Drawn for Project Sidewalk: <town> has no official neighbourhoods; \
     regions are blocks bordered by <roads>'"
 ```
 
-It assigns each street a region, cuts the city into blocks along the streets, the city edge and the dividers,
-gives each block to the region owning most of the side-street length around it, and lets each street claim a 15 m
-strip (`--strip-m`) for its region. So every border runs alongside a road, 15 m off it, on the side away from the
-road's own region. It prints the street count and km per region and writes `regions_drawn.geojson`, or
+With blocks it assigns each street a region, cuts the city into blocks along the streets, the city edge and the
+dividers, gives each block to the region owning most of the side-street length around it, and lets each street
+claim a 15 m strip (`--strip-m`) for its region. So every border runs alongside a road, 15 m off it, on the side away
+from the road's own region. With zones only the divide roads claim strips, and each street then takes the region
+holding most of its length. Keep the strip at 15 m: Kuna tried 25, which swallowed frontage streets running beside
+an arterial. A divide road's owner is the zone `--probe-m` metres to its owning side (default 30); it must reach past
+the road's offset from the zone edge, so an arterial that wanders off its line needs more (Kuna used 120).
+
+It prints the street count and km per region and writes `regions_drawn.geojson`, or
 `regions_drawn.rejected.geojson` and a list of problems when a check fails:
 
 - the regions do not tile the city;
@@ -167,8 +198,22 @@ tried first for Evansdale and abandoned. Its borders zigzag between the ends of 
 meeting at a junction leave thin wedges, and simplifying the polygons cannot remove either without moving streets
 between regions. Blocks have none of these problems, because a block's edges are streets already.
 
-Evansdale's inputs (`db/onboarding/evansdale-ia/inputs/draw_regions/`, with `args.txt` holding its flags) are the
-worked example: nine regions on Lafayette Road, Central Avenue, Evans Road, Gilbert Drive, US-20 and McCoy Road.
+Two worked examples, each with `args.txt` holding its flags:
+
+- **Evansdale, IA** (`db/onboarding/evansdale-ia/inputs/draw_regions/`, blocks): nine regions on Lafayette Road,
+  Central Avenue, Evans Road, Gilbert Drive, US-20 and McCoy Road.
+- **Kuna, ID** (`db/onboarding/kuna-id/inputs/`, zones): eleven regions of 18–42 km on the mile-section arterials
+  (Black Cat, Ten Mile, Linder, Meridian; Columbia, Hubbard, Deer Flat, Avalon/Kuna Road, King) plus a Downtown on
+  both sides of Main Street, from a boundary with its enclaves and bays filled (`make_boundary.py`). What it
+  taught:
+  - *An arterial with a gap in OSM.* Deer Flat Road is missing west of Ten Mile, so nothing marks the border there;
+    the zones carry a local notch so a subdivision's stub street stays with its subdivision.
+  - *An arterial off its section line.* East Kuna Road runs 70 m south of the line its zones meet on, so a 30 m
+    probe landed in the wrong zone; `--probe-m 120` reaches past it.
+  - *A road that changes name along its line* (Avalon Street becomes Kuna Road) needs a `--divide-road` per name,
+    and a road with a `North`/`South` or `East`/`West` prefix is two names.
+  - *A rail line or diagonal road* (Shortline Street) cuts a triangle no grid zone matches; give it to one side
+    with a zone edge along it.
 
 ## 2. Imagery preflight
 
