@@ -6,9 +6,10 @@ so ``onboard_city.py`` makes the whole city one region, which is too big for mis
 This draws regions a resident would recognise, from the street build ``onboard_city.py`` already wrote:
 
 1. **Streets to regions.** A rough polygon per region (``--zones``; sloppy edges are fine) claims every street whose
-   midpoint it holds. A divide road (``--divide-road "Central Avenue:south"``) goes instead to the zone a short step
-   to the named side of each of its pieces, so the road the regions meet along belongs to one of them per stretch
-   rather than flipping with where its midpoint happens to fall.
+   midpoint it holds; zones sharing a name are one region, so a region may be drawn as several polygons. A divide
+   road (``--divide-road "Central Avenue:south"``) goes instead to the zone a short step to the named side of each of
+   its pieces, so the road the regions meet along belongs to one of them per stretch rather than flipping with where
+   its midpoint happens to fall.
 2. **Blocks, not points.** The streets, the city edge and any ``--dividers`` lines (a freeway, a river, a road's line
    carried across open ground) cut the city into faces. Each face goes to the region owning most of the side-street
    length around and inside it; divide roads only break ties, so the block behind a row of side streets follows them.
@@ -18,21 +19,26 @@ This draws regions a resident would recognise, from the street build ``onboard_c
    ``--method zones`` skips the blocks: each zone, clipped to the city, is its region, and each divide road hands a
    strip along itself to the zone on its owning side. Use it where the zones' edges already lie on the arterials (a
    section-line grid like Kuna's) or where the city limits are full of holes and bays, whose faces span many zones
-   and send blocks to the wrong region.
+   and send blocks to the wrong region. It prints where each divide road's strip went.
 3. **Checks.** The regions must tile the city; no street may leave its region by more than the build's 30 m heal
    (a longer piece would become a street of its own); no named street may switch region and back again; each
-   ``--landmark`` must lie in the region named after it; no region may be empty.
+   ``--landmark`` must lie in the region named after it; no region may be empty, or have a piece cut off from the
+   rest that the build would hand to a neighbour.
 
 It reads ``db/onboarding/<city-id>/<city-id>_qa.gpkg`` (``qgis_road``, ``city_boundary``, and ``osm_way`` for the
 street names) and writes ``regions_drawn.geojson`` beside it, the input for the next build:
 
-    make draw-regions id=evansdale-ia args="--zones zones.geojson --dividers dividers.geojson \\
+    make draw-regions id=evansdale-ia args="--zones db/onboarding/evansdale-ia/inputs/draw_regions/zones.geojson \\
+        --dividers db/onboarding/evansdale-ia/inputs/draw_regions/dividers.geojson \\
         --divide-road 'Gilbert Drive:south' --divide-road 'Central Avenue:south' --landmark 'Bunger=-92.2747,42.4716'"
     make build-city-data id=evansdale-ia args="--place 'Evansdale, Iowa, USA' \\
         --regions-file db/onboarding/evansdale-ia/regions_drawn.geojson --regions-source '...'"
 
-    make draw-regions id=kuna-id args="--method zones --zones zones.geojson --probe-m 120 \\
+    make draw-regions id=kuna-id args="--method zones --probe-m 120 \\
+        --zones db/onboarding/kuna-id/inputs/draw_regions/zones.geojson \\
         --divide-road 'West Hubbard Road:north' --landmark 'Downtown=-116.4225,43.4910'"
+
+Paths are from the repository root, where the make target runs.
 
 When a check fails it writes ``regions_drawn.rejected.geojson`` instead, for a look in QGIS, and exits 1. The method,
 its pitfalls and a worked example are in ``docs/onboarding-a-city.md`` → "No neighbourhood data: draw your own".
@@ -70,6 +76,17 @@ MIN_PART_DEG2 = 1e-10
 # Zone edges get a vertex at least this often before they are reprojected (about 10 m either way).
 ZONE_STEP_DEG = 0.0001
 ZONE_STEP_M = 10.0
+# onboard_city.py's --min-region-part-m2 default: a region part smaller than this that is cut off from the rest of its
+# region is handed by the build to the neighbour it shares the longest border with. A larger one stays a part.
+BUILD_MIN_PART_M2 = 10_000.0
+# A cut-off piece this small or smaller is a crumb of strip cutting, not worth a message.
+DETACHED_MIN_M2 = 50.0
+# A gap, overlap or spill past the city edge counts only when it is wider than this (2 x area / perimeter, m) and
+# larger than DEFECT_MIN_M2: the regions are snapped to 1 cm, so the city edge is off by that much all the way round.
+DEFECT_MIN_WIDTH_M = 0.5
+DEFECT_MIN_M2 = 5.0
+# A street counts as inside its region within this much of it, so a street on a border is not a stray.
+STRAY_SLACK_M = 0.5
 
 
 def parse_divide_road(value):
@@ -128,6 +145,26 @@ def street_names(osm_ids, way_names):
     """
     ids = (int(part) for part in str(osm_ids).split(',') if part.strip())
     return frozenset(way_names[i] for i in ids if i in way_names)
+
+
+def zones_by_name(names, geometries):
+    """
+    The zones as one geometry per name, in the order each name first appears.
+
+    A region drawn as several polygons (a town split by a river, a detached subdivision) is several zones with the
+    same name; a dict built straight from the rows would keep only the last of them.
+
+    Args:
+        names:      Each zone's region name.
+        geometries: Each zone's polygon, aligned with ``names``.
+
+    Returns:
+        ``{region name: (Multi)Polygon}``.
+    """
+    parts = {}
+    for name, geom in zip(names, geometries):
+        parts.setdefault(name, []).append(geom)
+    return {name: geoms[0] if len(geoms) == 1 else shapely.union_all(geoms) for name, geoms in parts.items()}
 
 
 def polygons(geom, min_area=0.0):
@@ -192,32 +229,41 @@ def assign_streets(streets, names, zones, divide_roads, offset_m=30.0):
     return regions, is_divide
 
 
-def absorb_fragments(geoms):
+def absorb_fragments(geoms, keep_m2=None):
     """
     Keeps each region's largest piece and hands every other piece to the neighbour it shares the longest edge with.
 
     Clipping to a concave city edge, or a strip cutting a corner, can leave a region in pieces.
 
     Args:
-        geoms: ``{region name: (Multi)Polygon}``.
+        geoms:   ``{region name: (Multi)Polygon}``; an empty region stays empty.
+        keep_m2: Pieces at least this large stay with their region too (a part the build would keep); by default
+                 only the largest does.
 
     Returns:
-        ``{region name: Polygon}``; a piece that touches no other region (an island of the city) joins the nearest.
+        ``{region name: (Multi)Polygon}``; a piece that touches no other region (an island of the city) joins the
+        nearest.
     """
-    main = {name: max(shapely.get_parts(geom), key=lambda part: part.area) for name, geom in geoms.items()}
-    orphans = [part for name, geom in geoms.items() for part in shapely.get_parts(geom) if not part.equals(main[name])]
+    main, orphans = {}, []
+    for name, geom in geoms.items():
+        parts = sorted(shapely.get_parts(geom), key=lambda part: -part.area)
+        stays = [i == 0 or (keep_m2 is not None and part.area >= keep_m2) for i, part in enumerate(parts)]
+        main[name] = shapely.union_all([part for part, stay in zip(parts, stays) if stay]) if parts else Polygon()
+        orphans += [part for part, stay in zip(parts, stays) if not stay]
+    reach = {name: geom.buffer(0.05) for name, geom in main.items()}
     stalled = 0
     while orphans:
         piece = orphans.pop(0)
-        shared = {name: piece.boundary.intersection(geom.buffer(0.05)).length for name, geom in main.items()}
+        shared = {name: piece.boundary.intersection(near).length for name, near in reach.items()}
         best = max(shared, key=shared.get)
         if shared[best] == 0 and stalled <= len(orphans):
             orphans.append(piece)   # Touches only another orphan for now; retry once that one is absorbed.
             stalled += 1
             continue
         if shared[best] == 0:
-            best = min(main, key=lambda name: main[name].distance(piece))
+            best = min((name for name in main if not main[name].is_empty), key=lambda name: main[name].distance(piece))
         main[best] = shapely.union_all([main[best], piece])
+        reach[best] = main[best].buffer(0.05)
         stalled = 0
     return main
 
@@ -239,21 +285,22 @@ def trim_slivers(geoms, width=2.0):
         ``{region name: (Multi)Polygon}``.
     """
     geoms = dict(geoms)
+    reach = {name: geom.buffer(0.05) for name, geom in geoms.items()}
     for name in list(geoms):
         geom = geoms[name]
         kept = geom.buffer(-width / 2, join_style='mitre').buffer(width / 2, join_style='mitre').intersection(geom)
         for piece in shapely.get_parts(geom.difference(kept)):
-            shared = {other: piece.boundary.intersection(g.buffer(0.05)).length
-                      for other, g in geoms.items() if other != name}
+            shared = {other: piece.boundary.intersection(near).length for other, near in reach.items() if other != name}
             best = max(shared, key=shared.get, default=None)
             if piece.area < 0.01 or best is None or shared[best] == 0:
                 continue   # A city-edge sliver, or a rounding crumb: no other region borders it.
             geoms[name] = geoms[name].difference(piece)
             geoms[best] = shapely.union_all([geoms[best], piece])
+            reach[name], reach[best] = geoms[name].buffer(0.05), geoms[best].buffer(0.05)
     return geoms
 
 
-def block_regions(streets, regions, is_divide, boundary, dividers=(), strip_m=15.0, names=None):
+def block_regions(streets, regions, is_divide, boundary, dividers=(), strip_m=15.0, names=None, order=None):
     """
     Tiles the city from its blocks, so every border runs along a street (step 2 of the module docstring).
 
@@ -266,18 +313,22 @@ def block_regions(streets, regions, is_divide, boundary, dividers=(), strip_m=15
         strip_m:   Half-width of the strip each street claims for its own region.
         names:     Each street's frozenset of OSM names; a named street's strip is buffered as one run per region.
                    Without names every street is a run of its own.
+        order:     Every region name, including any no street went to (it comes back empty, for the check to
+                   report); by default the regions in ``regions``.
 
     Returns:
-        ``{region name: Polygon}`` for every region in ``regions``, tiling ``boundary``.
+        ``{region name: Polygon}`` for every region in ``order``, tiling ``boundary``.
     """
-    order = list(dict.fromkeys(regions))
+    order = list(dict.fromkeys([*(order or []), *regions]))
     # Snap-rounded to 1 cm: noded in floating point, a street lying along the city edge or a divider is noded
     # differently on two machines (93 faces on one, 94 on another for Evansdale; 111 snapped, on both), and a face
     # that fails to close merges with its neighbour and can change owner.
     lines = shapely.union_all([line.intersection(boundary) for line in streets]
                               + [boundary.boundary] + [line.intersection(boundary) for line in dividers],
                               grid_size=0.01)
-    faces = [face for face in shapely.get_parts(shapely.polygonize(shapely.get_parts(lines))) if face.area > 1]
+    # The city edge's hole rings are polygonized too, so a county enclave would come back as a face of its own.
+    faces = [face for face in shapely.get_parts(shapely.polygonize(shapely.get_parts(lines)))
+             if face.area > 1 and boundary.contains(face.representative_point())]
     tree = shapely.STRtree(streets)
     geoms = {name: [] for name in order}
     unowned = []
@@ -293,7 +344,8 @@ def block_regions(streets, regions, is_divide, boundary, dividers=(), strip_m=15
             unowned.append(face)
     geoms = {name: shapely.union_all(parts) for name, parts in geoms.items()}
     for face in unowned:   # Ground no street reaches: the neighbour it shares most edge with.
-        best = max(order, key=lambda name: face.boundary.intersection(geoms[name].buffer(0.5)).length)
+        best = max(order, key=lambda name: 0.0 if geoms[name].is_empty else
+                   face.boundary.intersection(geoms[name].buffer(0.5)).length)
         geoms[best] = shapely.union_all([geoms[best], face])
     for divide_pass in (False, True):
         # Each street's whole run in its region is buffered as one line, not segment by segment: flat caps at every
@@ -321,34 +373,73 @@ def zone_regions(zones, boundary, divide_ways, strip_m=15.0, probe_m=30.0):
     its faces reached across several mile-square zones and went to the wrong region wholesale (163 problems). Where
     the zones' edges already sit on the arterials, a zone is the region; only the arterial itself needs a side.
 
+    Each road is looked at in stretches of ``SEGMENT_M``, since one road can run along several zones; consecutive
+    stretches with the same owner are buffered as one line, because flat caps at every stretch leave crumbs of the
+    other region on the inside of each bend. A stretch whose owner has no ground in the city within ``probe_m`` keeps
+    no strip: its probe crossed a bay or enclave to a zone the city does not reach there, and the strip would be a
+    ribbon cut off from the rest of its region (Kuna's Columbia Road gave Stroebel one 700 m from Stroebel). Pieces
+    a strip cuts off from the rest of a region, too small for the build to keep as parts of their own, go to the
+    neighbour they share the longest border with, as the build would hand them.
+
     Args:
         zones:       ``{region name: Polygon}``, unclipped, in a metric CRS. A divide road's owner is looked up in
                      these, not in the clipped regions: a probe that lands in an enclave or bay outside the city would
                      otherwise find no region.
         boundary:    The city (Multi)Polygon, same CRS.
-        divide_ways: ``[(LineString, side)]``: each divide road's OSM ways with the side that owns them, in the order
-                     the roads were given (a later strip wins where two cross).
+        divide_ways: ``[(LineString, side, road name)]``: each divide road's OSM ways with the side that owns them,
+                     in the order the roads were given (a later strip wins where two cross).
         strip_m:     Half-width of the strip a divide road claims for its owner.
         probe_m:     How far to the owning side the owner is looked up. It must clear the road's offset from the zone
                      edge: Kuna's East Kuna Road runs 70 m off its section line and needed 120.
 
     Returns:
-        ``{region name: (Multi)Polygon}`` in the zones' order, tiling the part of ``boundary`` the zones cover.
+        A ``(geoms, report)`` pair. ``geoms`` is ``{region name: (Multi)Polygon}`` in the zones' order, tiling the
+        part of ``boundary`` the zones cover. ``report`` is ``{road name: {key: metres inside the city}}``, the
+        keys being the regions its strips went to, ``'no zone'`` (the probe left every zone), ``'out of reach'``
+        (the owner has no ground nearby), and ``('inside', zone)`` for stretches more than ``probe_m`` inside one
+        zone, which stay in it: right where the road runs on past the border, wrong where the border is just farther
+        off the road than ``probe_m``.
     """
-    geoms = {name: zone.intersection(boundary) for name, zone in zones.items()}
-    for way, side in divide_ways:
+    # Polygons only: a zone that merely touches the city edge clips to a line, which is no ground to attach to.
+    clipped = {name: polygons(zone.intersection(boundary)) for name, zone in zones.items()}
+    geoms = dict(clipped)
+    report = {}
+
+    def zone_of(point):
+        return next((name for name, zone in zones.items() if zone.contains(point)), None)
+
+    for way, side, road in divide_ways:
         dx, dy = SIDES[side]
+        tally = report.setdefault(road, {})
         coords = list(shapely.segmentize(way, SEGMENT_M).coords)
+        runs = []   # [(owner or None, [coords])], consecutive stretches with one owner merged.
         for start, end in zip(coords[:-1], coords[1:]):
             piece = LineString([start, end])
-            probe = translate(piece.interpolate(0.5, normalized=True), dx * probe_m, dy * probe_m)
-            owner = next((name for name, zone in zones.items() if zone.contains(probe)), None)
+            mid = piece.interpolate(0.5, normalized=True)
+            owner = zone_of(translate(mid, dx * probe_m, dy * probe_m))
             if owner is None:
-                continue   # Past the outer edge of every zone: no region to give this stretch to.
-            strip = piece.buffer(strip_m, cap_style='flat').intersection(boundary)
+                key = 'no zone'
+            elif clipped[owner].is_empty or clipped[owner].distance(piece) > probe_m:
+                key, owner = 'out of reach', None
+            elif owner == zone_of(mid) == zone_of(translate(mid, -dx * probe_m, -dy * probe_m)):
+                key = ('inside', owner)
+            else:
+                key = owner
+            inside = piece.intersection(boundary).length   # Ways run on past the city edge; only the city counts.
+            if inside:
+                tally[key] = tally.get(key, 0.0) + inside
+            if runs and runs[-1][0] == owner:
+                runs[-1][1].append(end)
+            else:
+                runs.append((owner, [start, end]))
+        for owner, run in runs:
+            if owner is None:
+                continue
+            strip = LineString(run).buffer(strip_m, cap_style='flat').intersection(boundary)
             for name in geoms:
                 geoms[name] = geoms[name].union(strip) if name == owner else geoms[name].difference(strip)
-    return {name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}
+    geoms = absorb_fragments({name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}, BUILD_MIN_PART_M2)
+    return {name: polygons(geom, MIN_PART_M2) for name, geom in geoms.items()}, report
 
 
 def majority_regions(streets, geoms):
@@ -386,12 +477,14 @@ def stray_pieces(streets, regions, geoms, boundary):
         boundary: The city (Multi)Polygon.
 
     Returns:
-        A list aligned with ``streets``: the length of the longest piece outside the street's region, 0 when none.
+        A list aligned with ``streets``: the length of the longest piece more than ``STRAY_SLACK_M`` outside the
+        street's region, 0 when none.
     """
+    near = {name: geom.buffer(STRAY_SLACK_M) for name, geom in geoms.items()}
     out = []
     for line, region in zip(streets, regions):
         # Merged, because the overlay can split one stretch at its vertices, and the build heals a stretch as a whole.
-        stray = shapely.line_merge(line.intersection(boundary).difference(geoms[region].buffer(0.5)))
+        stray = shapely.line_merge(line.intersection(boundary).difference(near[region]))
         out.append(max((part.length for part in shapely.get_parts(stray)), default=0.0))
     return out
 
@@ -427,7 +520,92 @@ def weaving_streets(streets, names, regions):
     return sorted(weave)
 
 
-def check_regions(streets, names, regions, geoms, boundary, landmarks, heal_m=HEAL_M):
+def where(geom, crs):
+    """
+    A place to look in QGIS, for a message: `` near <lat>, <lon>``, or nothing without a CRS.
+
+    Args:
+        geom: Any non-empty shapely geometry.
+        crs:  Its CRS, or None.
+
+    Returns:
+        The text.
+    """
+    if crs is None:
+        return ''
+    point = gpd.GeoSeries([geom.representative_point()], crs=crs).to_crs(4326).iloc[0]
+    return f' near {point.y:.5f}, {point.x:.5f}'
+
+
+def defects(geom):
+    """
+    The pieces of a gap, overlap or spill worth reporting: larger than ``DEFECT_MIN_M2`` and wider than
+    ``DEFECT_MIN_WIDTH_M``.
+
+    Measured piece by piece, by width, because the total of 1 cm snapping noise grows with the length of the city
+    edge (Kuna's 45 km edge totals about 70 m²) while a real gap between two zones can be thin and still matter.
+
+    Args:
+        geom: Any geometry; only its polygons count.
+
+    Returns:
+        A list of Polygons.
+    """
+    return [part for part in shapely.get_parts(polygons(geom))
+            if part.area > DEFECT_MIN_M2 and 2 * part.area / part.length > DEFECT_MIN_WIDTH_M]
+
+
+def tiling_problems(geoms, boundary, crs=None):
+    """
+    Where the regions fail to tile the city: gaps inside it, ground outside it, and overlaps between two regions.
+
+    Args:
+        geoms:    ``{region name: (Multi)Polygon}`` in a metric CRS.
+        boundary: The city (Multi)Polygon.
+        crs:      The CRS, to give each problem a lat/lon; omitted, the messages carry none.
+
+    Returns:
+        A list of messages.
+    """
+    union = shapely.union_all(list(geoms.values()))
+    problems = [f'the regions leave a gap of {gap.area:.0f} m² inside the city{where(gap, crs)}'
+                for gap in defects(boundary.difference(union))]
+    for name, geom in geoms.items():
+        problems += [f'region "{name}" reaches {spill.area:.0f} m² outside the city{where(spill, crs)}'
+                     for spill in defects(geom.difference(boundary))]
+    names = list(geoms)
+    for i, first in enumerate(names):
+        for second in names[i + 1:]:
+            problems += [f'regions "{first}" and "{second}" overlap by {lap.area:.0f} m²{where(lap, crs)}'
+                         for lap in defects(geoms[first].intersection(geoms[second]))]
+    return problems
+
+
+def detached_pieces(geoms):
+    """
+    Region pieces cut off from the rest of their region that the build would hand to a neighbour.
+
+    A piece at least ``BUILD_MIN_PART_M2`` large is a part the build keeps (a region drawn as several polygons, or
+    split by a bay); a smaller one touching none of those goes to the neighbour sharing its longest border, taking any
+    street on it along. Crumbs of ``DETACHED_MIN_M2`` or less are ignored.
+
+    Args:
+        geoms: ``{region name: (Multi)Polygon}`` in a metric CRS.
+
+    Returns:
+        ``[(region name, Polygon)]``.
+    """
+    out = []
+    for name, geom in geoms.items():
+        parts = sorted(shapely.get_parts(geom), key=lambda part: -part.area)
+        anchors = [part for i, part in enumerate(parts) if i == 0 or part.area >= BUILD_MIN_PART_M2]
+        out += [(name, part) for part in parts
+                if DETACHED_MIN_M2 < part.area < BUILD_MIN_PART_M2 and part not in anchors
+                and all(part.distance(anchor) > 0.01 for anchor in anchors)]
+    return out
+
+
+def check_regions(streets, names, regions, geoms, boundary, landmarks, heal_m=HEAL_M, crs=None):
     """
     Every check of step 3 of the module docstring, as messages.
 
@@ -439,22 +617,21 @@ def check_regions(streets, names, regions, geoms, boundary, landmarks, heal_m=HE
         boundary:  The city (Multi)Polygon.
         landmarks: ``[(region name, Point)]`` in the same CRS.
         heal_m:    The longest stray piece the build reattaches to its street.
+        crs:       The CRS, to give tiling and detached-piece problems a lat/lon.
 
     Returns:
         A list of problems, empty when the regions are fit to build with.
     """
-    problems = []
-    union = shapely.union_all(list(geoms.values()))
-    overlap = sum(geom.area for geom in geoms.values()) - union.area
-    # The faces are snapped to 1 cm (block_regions), so the city edge may be off by up to that much all the way round.
-    tolerance = 0.01 * boundary.length + 1e-6 * boundary.area
-    if union.symmetric_difference(boundary).area > tolerance or overlap > tolerance:
-        problems.append('the regions do not tile the city (gaps or overlaps)')
+    problems = tiling_problems(geoms, boundary, crs)
     for name in geoms:
         if name not in regions:
             problems.append(f'region "{name}" holds no street: fold its zone into a neighbour')
+    for name, piece in detached_pieces(geoms):
+        problems.append(f'region "{name}" has a {piece.area:.0f} m² piece cut off from the rest{where(piece, crs)}; '
+                        f'the build would hand it to a neighbour')
+    # A stray is measured STRAY_SLACK_M clear of its region, so it is that much short at the end where it leaves.
     for line, street, stray in zip(streets, names, stray_pieces(streets, regions, geoms, boundary)):
-        if stray >= heal_m:
+        if stray >= heal_m - STRAY_SLACK_M:
             label = ' / '.join(sorted(street)) or 'an unnamed street'
             problems.append(f'{label} leaves its region for {stray:.0f} m; the build would cut it into a street of '
                             f'its own (move a zone edge or a divider off it)')
@@ -545,7 +722,63 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     if args.method == 'zones' and args.dividers:
         parser.error('--dividers cuts blocks, so it does nothing with --method zones; draw that line as a zone edge.')
+    if args.probe_m <= args.strip_m:
+        parser.error('--probe-m must be longer than --strip-m, or the probe lands in the road\'s own strip.')
     return args
+
+
+def read_zones(path, name_col, crs):
+    """
+    Reads the zones file, densified and reprojected, one geometry per name (:func:`zones_by_name`).
+
+    Densified before reprojecting: a zone edge drawn as two lon/lat corners kilometres apart reprojects as a straight
+    UTM chord, which a neighbour with different corners on the same latitude does not follow. Kuna's mile-grid zones
+    left a gap up to 46 m wide along Columbia Road that way, and overlaps along Deer Flat Road.
+
+    Args:
+        path:     The zones file (any OGR format).
+        name_col: Its name column.
+        crs:      The metric CRS to reproject to.
+
+    Returns:
+        ``{region name: (Multi)Polygon}``.
+
+    Raises:
+        ValueError: when the file has no CRS or no ``name_col`` column.
+    """
+    frame = gpd.read_file(path)
+    if frame.crs is None:
+        raise ValueError(f'{path} has no CRS; save it with one (EPSG:4326 when drawn over a web map).')
+    if name_col not in frame.columns:
+        columns = ', '.join(str(c) for c in frame.columns if c != 'geometry')
+        raise ValueError(f'{path} has no "{name_col}" column (it has: {columns}); pass --zone-name-col.')
+    frame['geometry'] = shapely.segmentize(frame.geometry.values,
+                                           ZONE_STEP_DEG if frame.crs.is_geographic else ZONE_STEP_M)
+    frame = frame.to_crs(crs)
+    return zones_by_name(frame[name_col].astype(str), frame.geometry)
+
+
+def print_divide_report(report, sides):
+    """
+    Prints where each divide road's strips went (``--method zones``), and the stretches worth a look.
+
+    Args:
+        report: :func:`zone_regions`'s ``{road name: {key: metres}}``.
+        sides:  ``{road name: side}`` from ``--divide-road``.
+    """
+    print('\ndivide road strips (km inside the city):')
+    for road, tally in report.items():
+        went = ', '.join(f'{key} {metres / 1000:.2f}' for key, metres in tally.items() if isinstance(key, str)
+                         and key not in ('no zone', 'out of reach'))
+        print(f'  {road}:{sides[road]} -> {went or "no region"}')
+        inside = ', '.join(f'{key[1]} {metres / 1000:.2f}' for key, metres in tally.items() if isinstance(key, tuple))
+        if inside:
+            print(f'    runs through the middle of {inside}: right where it runs on past a border; where a border '
+                  f'lies farther off it than --probe-m, raise --probe-m')
+        for key, why in (('no zone', 'the probe left every zone'),
+                         ('out of reach', f'the zone to its {sides[road]} has no ground nearby in the city')):
+            if tally.get(key):
+                print(f'    {tally[key] / 1000:.2f} kept no strip: {why}')
 
 
 def main(argv=None):
@@ -557,6 +790,9 @@ def main(argv=None):
     """
     args = parse_args(argv)
     city_dir = REPO_ROOT / 'db' / 'onboarding' / args.city_id
+    # Whatever an earlier run left is stale now: a run that stops before writing must not leave it to be built with.
+    for stale in (OUTPUT_NAME, REJECTED_NAME):
+        (city_dir / stale).unlink(missing_ok=True)
     gpkg = city_dir / f'{args.city_id}_qa.gpkg'
     roads = gpd.read_file(gpkg, layer='qgis_road')
     crs = roads.estimate_utm_crs()
@@ -568,42 +804,42 @@ def main(argv=None):
               f'onboard_city.py.')
         return 1
     way_names = {int(i): name for i, name in zip(ways['osm_way_id'], ways['name']) if isinstance(name, str)}
-    zones_frame = gpd.read_file(args.zones)
-    # Densified before reprojecting: a zone edge drawn as two lon/lat corners kilometres apart reprojects as a straight
-    # UTM chord, which a neighbour with different corners on the same latitude does not follow. Kuna's mile-grid
-    # zones left a gap up to 46 m wide along Columbia Road that way, and overlaps along Deer Flat Road.
-    zones_frame['geometry'] = shapely.segmentize(zones_frame.geometry.values,
-                                                 ZONE_STEP_DEG if zones_frame.crs.is_geographic else ZONE_STEP_M)
-    zones_frame = zones_frame.to_crs(crs)
-    zones = dict(zip(zones_frame[args.zone_name_col].astype(str), zones_frame.geometry))
-    dividers = list(gpd.read_file(args.dividers).to_crs(crs).geometry) if args.dividers else []
-    unknown = sorted({name for name, _ in args.divide_road} - set(way_names.values()))
-    if unknown:   # A misspelt divide road would otherwise be zoned by its midpoint without a word.
-        print(f'error: no street is named {", ".join(unknown)}; names must match OSM exactly.')
+    try:
+        zones = read_zones(args.zones, args.zone_name_col, crs)
+    except ValueError as error:
+        print(f'error: {error}')
         return 1
+    dividers = list(gpd.read_file(args.dividers).to_crs(crs).geometry) if args.dividers else []
     streets = list(roads.geometry)
     names = [street_names(ids, way_names) for ids in roads['osm_ids']]
+    # Against the built streets, not every OSM way: a road outside the build would be accepted and do nothing.
+    unknown = sorted({name for name, _ in args.divide_road} - set().union(*names))
+    if unknown:   # A misspelt divide road would otherwise be zoned by its midpoint without a word.
+        print(f'error: no built street is named {", ".join(unknown)}; names must match OSM exactly.')
+        return 1
     if args.method == 'zones':
         ways = ways.to_crs(crs)
-        divide_ways = [(part, side) for name, side in args.divide_road
+        divide_ways = [(part, side, name) for name, side in args.divide_road
                        for way in ways.geometry[ways['name'] == name] for part in shapely.get_parts(way)]
-        geoms = zone_regions(zones, boundary, divide_ways, args.strip_m, args.probe_m)
+        geoms, report = zone_regions(zones, boundary, divide_ways, args.strip_m, args.probe_m)
         regions = majority_regions(streets, geoms)
     else:
+        report = None
         regions, is_divide = assign_streets(streets, names, zones, args.divide_road, args.probe_m)
-        geoms = block_regions(streets, regions, is_divide, boundary, dividers, args.strip_m, names)
+        geoms = block_regions(streets, regions, is_divide, boundary, dividers, args.strip_m, names, list(zones))
     landmarks = [(region, gpd.GeoSeries([Point(lon, lat)], crs=4326).to_crs(crs).iloc[0])
                  for region, lon, lat in args.landmark]
-    problems = check_regions(streets, names, regions, geoms, boundary, landmarks)
+    problems = check_regions(streets, names, regions, geoms, boundary, landmarks, crs=crs)
     rows = summary_rows(regions, roads['length_m'], list(zones))
+    collection = feature_collection(geoms, rows, crs)
     print(f'{"region":<24} {"streets":>7} {"km":>6}')
     for name, count, km in rows:
         print(f'{name:<24} {count:>7} {km:>6.2f}')
+    if report is not None:
+        print_divide_report(report, dict(args.divide_road))
     out = city_dir / (REJECTED_NAME if problems else OUTPUT_NAME)
-    out.write_text(json.dumps(feature_collection(geoms, rows, crs)))
+    out.write_text(json.dumps(collection))
     if problems:
-        # A passing file from an earlier run would otherwise sit beside the rejection, ready to be built with.
-        (city_dir / OUTPUT_NAME).unlink(missing_ok=True)
         print(f'\n{len(problems)} problem(s); wrote {out.name} for a look in QGIS, not for a build:')
         for problem in problems:
             print(f'  - {problem}')

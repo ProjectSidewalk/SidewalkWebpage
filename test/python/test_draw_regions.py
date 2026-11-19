@@ -17,6 +17,7 @@ import shapely
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box, shape
 
 import draw_regions as dr
+import onboard_city
 
 FIXTURE = Path(__file__).resolve().parent.parent / 'fixtures' / 'draw-regions-evansdale.json'
 UTM = 32615
@@ -69,6 +70,12 @@ def test_street_names_reads_every_way_and_skips_unnamed_ones():
     assert dr.street_names('3', names) == frozenset()
 
 
+def test_zones_by_name_unions_repeated_names_in_first_seen_order():
+    zones = dr.zones_by_name(['West', 'East', 'West'], [box(0, 0, 1, 1), box(5, 0, 6, 1), box(2, 0, 3, 1)])
+    assert list(zones) == ['West', 'East']
+    assert zones['West'].area == pytest.approx(2) and zones['West'].contains(Point(2.5, 0.5))
+
+
 def test_zone_at_falls_back_to_the_nearest_zone():
     assert dr.zone_at(Point(100, 100), ZONES) == 'West'
     assert dr.zone_at(Point(420, 100), ZONES) == 'East'
@@ -115,6 +122,21 @@ def test_block_regions_gives_ground_no_street_reaches_to_its_neighbour():
     assert shapely.union_all(list(geoms.values())).area == pytest.approx(boundary.area)
 
 
+def test_block_regions_leaves_a_county_enclave_out():
+    # A hole inside one block: its ring is polygonized with the streets, so it is a face, but it is not the city's.
+    streets, names, square, regions, is_divide = assigned_grid()
+    city = square.difference(box(120, 120, 180, 180))
+    geoms = dr.block_regions(streets, regions, is_divide, city, names=names)
+    assert not any(geom.intersects(Point(150, 150)) for geom in geoms.values())
+    assert dr.check_regions(streets, names, regions, geoms, city, []) == []
+
+
+def test_block_regions_returns_a_zone_no_street_went_to_empty():
+    streets, names, boundary, regions, is_divide = assigned_grid()
+    geoms = dr.block_regions(streets, regions, is_divide, boundary, order=['North', 'West', 'East'])
+    assert list(geoms) == ['North', 'West', 'East'] and geoms['North'].is_empty
+
+
 def test_absorb_fragments_hands_pieces_to_neighbours_and_islands_to_the_nearest():
     west, east = box(0, 0, 10, 10), box(20, 0, 30, 10)
     # Listed first, the far piece touches only the near one, so it waits for that one to be absorbed.
@@ -141,7 +163,7 @@ def test_check_regions_reports_every_kind_of_problem():
     # A gap: East loses a corner.
     gappy = {'West': geoms['West'], 'East': geoms['East'].difference(box(390, 390, 400, 400))}
     assert dr.check_regions(streets, names, regions, gappy, boundary, []) == \
-        ['the regions do not tile the city (gaps or overlaps)']
+        ['the regions leave a gap of 100 m² inside the city']
     # An empty region, a street far into the wrong region, a weave, and landmarks in the wrong place or nowhere.
     swapped = list(regions)
     swapped[names.index(frozenset({'Avenue 100'}))] = 'East'
@@ -175,20 +197,32 @@ def test_summary_rows_and_feature_collection_keep_the_zone_order():
     assert -94 < lon < -92 and 42 < lat < 43
 
 
-def test_block_regions_buffers_each_named_run_whole_so_no_tick_crosses_a_border():
-    # Row 100 bends 3 degrees at x=100; buffered segment by segment, the flat caps there leave a wedge that Avenue
-    # 100's strip (East, here) shows through as a tick across West's ground (Evansdale, 2026-11-18).
+def bent_row(dy):
+    """
+    Row, West's divide road, bends at (100, 100), dropping ``dy`` over its west half; Avenue, East's, crosses it there.
+
+    Returns:
+        ``(streets, names, regions, is_divide, boundary, row_strip)``, the last being Row's own 15 m strip.
+    """
     bend = (100, 100)
-    streets = [LineString([(0, 95), bend]), LineString([bend, (200, 100)]), LineString([(100, 0), bend]),
+    streets = [LineString([(0, 100 - dy), bend]), LineString([bend, (200, 100)]), LineString([(100, 0), bend]),
                LineString([bend, (100, 200)])]
     names = [frozenset({'Row'})] * 2 + [frozenset({'Avenue'})] * 2
-    regions, is_divide = ['West', 'West', 'East', 'East'], [True, True, False, False]
-    boundary = box(0, 0, 200, 200)
-    by_run = dr.block_regions(streets, regions, is_divide, boundary, names=names)
-    assert not by_run['East'].intersects(Point(100, 112))
-    # Unnamed, each segment is its own run, and the wedge is still trimmed to the neighbour.
+    row_strip = shapely.line_merge(shapely.union_all(streets[:2])).buffer(15, cap_style='flat')
+    return streets, names, ['West', 'West', 'East', 'East'], [True, True, False, False], box(0, 0, 200, 200), row_strip
+
+
+def test_block_regions_buffers_each_named_run_whole_so_no_tick_crosses_a_border():
+    # Buffered segment by segment, flat caps at the bend leave a wedge in Row's strip that Avenue's strip (East) shows
+    # through as a tick across West's ground (Evansdale, 2026-11-18). A 3 degree bend makes a wedge the sliver trim
+    # removes either way; a 20 degree one makes one too wide for it, so only buffering the run whole keeps it out.
+    streets, names, regions, is_divide, boundary, row_strip = bent_row(5)
+    assert dr.block_regions(streets, regions, is_divide, boundary)['East'].intersection(row_strip).area == 0
+    streets, names, regions, is_divide, boundary, row_strip = bent_row(36.4)
     by_segment = dr.block_regions(streets, regions, is_divide, boundary)
-    assert not by_segment['East'].intersects(Point(100, 112))
+    assert by_segment['East'].intersection(row_strip).area > 10
+    by_run = dr.block_regions(streets, regions, is_divide, boundary, names=names)
+    assert by_run['East'].intersection(row_strip).area == 0
 
 
 def test_trim_slivers_moves_a_thin_part_to_its_neighbour_but_keeps_one_nobody_borders():
@@ -231,7 +265,8 @@ def test_bay_defeats_blocks_but_not_zones():
     # Blocks keep East's larger part and hand the south one, streets and all, to West.
     problems = dr.check_regions(streets, names, regions, blocks, boundary, [])
     assert any('leaves its region for 100 m' in problem for problem in problems)
-    zones = dr.zone_regions(ZONES, boundary, [])
+    zones, _ = dr.zone_regions(ZONES, boundary, [])
+    # East's south part is larger than the build's 1 ha floor, so it stays East's.
     assert len(shapely.get_parts(zones['East'])) == 2
     regions = dr.majority_regions(streets, zones)
     assert dr.check_regions(streets, names, regions, zones, boundary, []) == []
@@ -243,20 +278,118 @@ def test_zone_regions_gives_a_divide_road_to_the_zone_its_probe_reaches():
     # west stays in East, a 120 m one reaches West.
     main = LineString([(260, 0), (260, 400)])
     boundary = box(0, 0, 400, 400)
-    short = dr.zone_regions(ZONES, boundary, [(main, 'west')], strip_m=15, probe_m=30)
-    long = dr.zone_regions(ZONES, boundary, [(main, 'west')], strip_m=15, probe_m=120)
+    short, report = dr.zone_regions(ZONES, boundary, [(main, 'west', 'Main')], strip_m=15, probe_m=30)
     assert short['East'].contains(Point(250, 200)) and not short['West'].intersects(Point(250, 200))
+    # The short probe stays in East, the zone the road lies in, and the report says so.
+    assert report == {'Main': {('inside', 'East'): pytest.approx(400)}}
+    long, report = dr.zone_regions(ZONES, boundary, [(main, 'west', 'Main')], strip_m=15, probe_m=120)
     assert long['West'].contains(Point(250, 200)) and long['West'].contains(Point(270, 200))
     assert long['East'].contains(Point(280, 200))
+    assert report == {'Main': {'West': pytest.approx(400)}}
+    # The 40 m of East between the strip and West's zone is cut off from the rest of East. In this 400 m tall city it
+    # covers 1.6 ha, a part the build keeps; in a 200 m one, 0.8 ha, which the build would hand to West, so it goes
+    # to West here too.
+    assert len(shapely.get_parts(long['East'])) == 2
+    low, _ = dr.zone_regions(ZONES, box(0, 0, 400, 200), [(LineString([(260, 0), (260, 200)]), 'west', 'Main')],
+                             probe_m=120)
+    assert low['West'].contains(Point(230, 100)) and len(shapely.get_parts(low['East'])) == 1
+    assert dr.detached_pieces(low) == []
     # A road whose probe lands past every zone keeps no strip.
-    edge = dr.zone_regions(ZONES, boundary, [(LineString([(2, 0), (2, 400)]), 'west')], probe_m=30)
+    edge, report = dr.zone_regions(ZONES, boundary, [(LineString([(2, 0), (2, 400)]), 'west', 'Edge')], probe_m=30)
     assert edge['West'].equals(dr.polygons(ZONES['West'].intersection(boundary)))
+    assert report == {'Edge': {'no zone': pytest.approx(400)}}
+
+
+def test_zone_regions_looks_a_road_up_one_stretch_at_a_time():
+    # Row runs along the south edge of two zones; its west stretches belong to the zone north of them, its east ones
+    # to the other. One lookup for the whole road would hand it all to the zone its midpoint's probe reaches. The way
+    # runs on 100 m past the city edge, which the report leaves out.
+    zones = {'Northwest': box(-10, 200, 205, 410), 'Northeast': box(205, 200, 410, 410),
+             'South': box(-10, -10, 410, 200)}
+    row = LineString([(0, 200), (500, 200)])
+    geoms, report = dr.zone_regions(zones, box(0, 0, 400, 400), [(row, 'north', 'Row')])
+    assert geoms['Northwest'].contains(Point(100, 195)) and geoms['Northeast'].contains(Point(300, 195))
+    assert report['Row'] == {'Northwest': pytest.approx(200), 'Northeast': pytest.approx(200)}
+
+
+def test_zone_regions_keeps_strips_inside_the_city():
+    # Row runs 5 m inside the city's north edge and belongs to South; its strip would reach 10 m past the edge.
+    zones = {'North': box(-10, 390, 410, 410), 'South': box(-10, -10, 410, 390)}
+    geoms, _ = dr.zone_regions(zones, box(0, 0, 400, 400), [(LineString([(0, 395), (400, 395)]), 'south', 'Row')])
+    assert geoms['South'].contains(Point(200, 398))
+    assert all(geom.difference(box(0, 0, 400, 400)).area < 1e-6 for geom in geoms.values())
+
+
+def test_zone_regions_finds_an_owner_whose_zone_is_a_county_enclave_at_the_probe():
+    # An enclave fills North's zone right behind Row, so a 120 m probe lands outside the city. The owner is looked up
+    # in the unclipped zones, which still hold the probe, and North has ground beside the enclave to attach to.
+    zones = {'North': box(-10, 200, 410, 410), 'South': box(-10, -10, 410, 200)}
+    city = box(0, 0, 400, 400).difference(box(100, 205, 300, 340))
+    geoms, report = dr.zone_regions(zones, city, [(LineString([(0, 200), (400, 200)]), 'north', 'Row')], probe_m=120)
+    assert geoms['North'].contains(Point(200, 195))
+    assert report['Row'] == {'North': pytest.approx(400)}
+
+
+def test_zone_regions_gives_no_strip_to_a_zone_with_no_ground_nearby():
+    # East's zone lies wholly outside the city, past Row on its east edge: its strip would be a ribbon cut off from
+    # any region of its own (Kuna's Columbia Road gave Stroebel one, 700 m from the rest of it).
+    zones = {'West': box(-10, -10, 400, 410), 'East': box(400, -10, 600, 410)}
+    road = LineString([(395, 0), (395, 400)])
+    geoms, report = dr.zone_regions(zones, box(0, 0, 400, 400), [(road, 'east', 'Edge Road')], probe_m=30)
+    assert geoms['East'].is_empty and geoms['West'].contains(Point(398, 200))
+    assert report == {'Edge Road': {'out of reach': pytest.approx(400)}}
+
+
+def test_tiling_problems_report_gaps_spills_and_overlaps_but_not_snapping_noise():
+    city = box(0, 0, 400, 400)
+    west, east = box(0, 0, 200, 400), box(200, 0, 400, 400)
+    assert dr.tiling_problems({'West': west, 'East': east}, city) == []
+    # 10 cm off all the way along the border: 40 m² in all, but thinner than any real gap.
+    assert dr.tiling_problems({'West': box(0, 0, 199.9, 400), 'East': east}, city) == []
+    assert dr.tiling_problems({'West': box(0, 0, 199, 400), 'East': east}, city) == \
+        ['the regions leave a gap of 400 m² inside the city']
+    assert dr.tiling_problems({'West': box(0, 0, 201, 400), 'East': east}, city) == \
+        ['regions "West" and "East" overlap by 400 m²']
+    problems = dr.tiling_problems({'West': box(-10, 0, 200, 400), 'East': east}, city, crs=UTM)
+    assert problems[0].startswith('region "West" reaches 4000 m² outside the city near ')
+
+
+def test_detached_pieces_and_the_check_ignore_crumbs_and_parts_the_build_keeps():
+    main, crumb, piece, part = box(0, 0, 200, 200), box(300, 0, 305, 5), box(300, 100, 330, 130), box(500, 0, 700, 100)
+    geoms = {'West': shapely.union_all([main, crumb, piece, part])}
+    assert [(name, round(p.area)) for name, p in dr.detached_pieces(geoms)] == [('West', 900)]
+    problems = dr.check_regions([], [], [], geoms, shapely.union_all(list(geoms.values())), [])
+    assert problems == ['region "West" holds no street: fold its zone into a neighbour',
+                        'region "West" has a 900 m² piece cut off from the rest; the build would hand it to a '
+                        'neighbour']
+
+
+def test_check_regions_flags_a_stray_from_the_build_heal_length():
+    # Avenue runs north out of West into East; the build reattaches a stray shorter than 30 m.
+    geoms = {'West': box(0, 0, 100, 100), 'East': box(0, 100, 100, 300)}
+    boundary = box(0, 0, 100, 300)
+    lane = LineString([(20, 200), (20, 290)])   # East's own street.
+
+    def problems(stray):
+        return dr.check_regions([LineString([(50, 0), (50, 100 + stray)]), lane],
+                                [frozenset({'Avenue'}), frozenset({'Lane'})], ['West', 'East'], geoms, boundary, [])
+    assert problems(20) == [] and problems(29) == []
+    for stray in (30.2, 40):
+        assert problems(stray) == [f'Avenue leaves its region for {stray - dr.STRAY_SLACK_M:.0f} m; the build would '
+                                   f'cut it into a street of its own (move a zone edge or a divider off it)']
 
 
 def test_majority_regions_takes_the_longer_share_or_the_nearest_region():
     geoms = {'West': box(0, 0, 100, 100), 'East': box(100, 0, 200, 100)}
     streets = [LineString([(80, 50), (150, 50)]), LineString([(250, 50), (260, 50)])]
     assert dr.majority_regions(streets, geoms) == ['East', 'East']
+
+
+def test_feature_collection_snaps_to_a_1e7_degree_grid_and_drops_crumbs():
+    region = shapely.union_all([box(X0, Y0, X0 + 100, Y0 + 100), box(X0 + 200, Y0, X0 + 200.7, Y0 + 0.7)])
+    geom = shape(dr.feature_collection({'West': region}, [('West', 1, 0.1)], UTM)['features'][0]['geometry'])
+    assert geom.geom_type == 'Polygon' and geom.is_valid
+    assert all(round(v * 1e7) == pytest.approx(v * 1e7, abs=1e-6) for xy in geom.exterior.coords for v in xy)
 
 
 def test_feature_collection_refuses_a_region_it_cannot_make_valid(monkeypatch):
@@ -266,9 +399,13 @@ def test_feature_collection_refuses_a_region_it_cannot_make_valid(monkeypatch):
         dr.feature_collection({'West': box(X0, Y0, X0 + 10, Y0 + 10)}, [('West', 1, 0.1)], UTM)
 
 
-def write_city(root, city_id, names=True):
+def write_city(root, city_id, names=True, zones=None):
     """
     Writes the synthetic grid as a build's QA GeoPackage under ``root/db/onboarding/<city_id>/``, shifted into UTM 15N.
+    Its ``osm_way`` layer also holds Far Road, a named way outside the city that no built street lies on.
+
+    Args:
+        zones: ``[(name, Polygon)]`` for ``zones.geojson``, in the grid's coordinates; :data:`ZONES` by default.
 
     Returns:
         The city directory.
@@ -284,17 +421,18 @@ def write_city(root, city_id, names=True):
                       'length_m': [line.length for line in streets]},
                      geometry=[shift(line) for line in streets], crs=UTM).to_file(gpkg, layer='qgis_road')
     gpd.GeoDataFrame(geometry=[shift(boundary)], crs=UTM).to_file(gpkg, layer='city_boundary')
-    ways = {'osm_way_id': list(way_ids.values())}
+    ways = {'osm_way_id': [*way_ids.values(), len(way_ids) + 1]}
     if names:
-        ways['name'] = list(way_ids)
+        ways['name'] = [*way_ids, 'Far Road']
     # Each way is the merged run of the streets carrying its name, which --method zones strips along.
     way_lines = [shift(shapely.line_merge(shapely.union_all([line for line, s in zip(streets, street_names)
                                                              if n in s])))
-                 for n in way_ids]
+                 for n in way_ids] + [shift(LineString([(600, 0), (600, 400)]))]
     gpd.GeoDataFrame(ways, geometry=way_lines, crs=UTM).to_file(gpkg, layer='osm_way')
     # In lon/lat, as zones drawn in QGIS usually are, so main() densifies them before reprojecting.
-    zones = gpd.GeoDataFrame({'name': list(ZONES)}, geometry=[shift(z) for z in ZONES.values()], crs=UTM)
-    zones.to_crs(4326).to_file(city_dir / 'zones.geojson', driver='GeoJSON')
+    zones = zones or list(ZONES.items())
+    frame = gpd.GeoDataFrame({'name': [name for name, _ in zones]}, geometry=[shift(z) for _, z in zones], crs=UTM)
+    frame.to_crs(4326).to_file(city_dir / 'zones.geojson', driver='GeoJSON')
     gpd.GeoDataFrame(geometry=[shift(LineString([(-5, 450), (-5, 460)]))], crs=UTM) \
         .to_file(city_dir / 'dividers.geojson', driver='GeoJSON')
     return city_dir
@@ -314,6 +452,14 @@ def test_main_writes_the_regions_and_the_build_reads_them(tmp_path, monkeypatch,
     out = json.loads((city_dir / dr.OUTPUT_NAME).read_text())
     assert [f['properties']['name'] for f in out['features']] == ['West', 'East']
     assert 'West' in capsys.readouterr().out
+    # The build reads the file as written: two valid regions, each one polygon, tiling the city.
+    regions = gpd.read_file(city_dir / dr.OUTPUT_NAME)
+    city = gpd.read_file(city_dir / 'grid-ia_qa.gpkg', layer='city_boundary').to_crs(4326)
+    built = onboard_city.prepare_regions(regions, city, 10_000).to_crs(UTM)
+    assert sorted(built['name']) == ['East', 'West'] and built.is_valid.all()
+    assert [len(shapely.get_parts(geom)) for geom in built.geometry] == [1, 1]
+    # To within the 1 cm the regions are snapped to, around a 1.6 km edge.
+    assert built.union_all().symmetric_difference(city.to_crs(UTM).union_all()).area < 16
     # Without dividers too.
     assert dr.main(argv) == 0
 
@@ -328,24 +474,91 @@ def test_main_draws_zones_with_a_divide_road_strip(tmp_path, monkeypatch, capsys
            json.loads((city_dir / dr.OUTPUT_NAME).read_text())['features']}
     # Main Street, on x=200 just inside West's zone, goes to East with its strip.
     assert out['East']['streets'] == 22 and out['West']['streets'] == 18
+    assert 'Main Street:east -> East 0.40' in capsys.readouterr().out
     with pytest.raises(SystemExit):
         dr.main(argv + ['--dividers', str(city_dir / 'dividers.geojson')])
     assert 'does nothing with --method zones' in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        dr.main(argv + ['--probe-m', '15'])
+    assert '--probe-m must be longer than --strip-m' in capsys.readouterr().err
+
+
+def test_main_prints_the_stretches_a_divide_road_kept_no_strip_for(tmp_path, monkeypatch, capsys):
+    # East's zone is drawn only south of y=300 and a zone of North's lies past the city's north edge, so Row 400
+    # (the edge) has nowhere to go to its north and Row 300 finds North's zone with no city ground near it.
+    monkeypatch.setattr(dr, 'REPO_ROOT', tmp_path)
+    city_dir = write_city(tmp_path, 'grid-ia', zones=[('West', box(-10, -10, 410, 300)),
+                                                      ('North', box(-10, 300, 410, 410)), ('Sky', box(-10, 500, 410,
+                                                                                                         700))])
+    out = capsys.readouterr
+    argv = ['--city-id', 'grid-ia', '--method', 'zones', '--zones', str(city_dir / 'zones.geojson'),
+            '--divide-road', 'Row 400:north', '--divide-road', 'Row 100:north']
+    assert dr.main(argv) == 1
+    printed = out().out
+    assert 'Row 400:north -> no region' in printed and '0.40 kept no strip: the probe left every zone' in printed
+    assert 'runs through the middle of West 0.40' in printed
+    assert 'region "Sky" holds no street' in printed
 
 
 def test_main_refuses_bad_inputs_and_writes_a_rejected_file(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(dr, 'REPO_ROOT', tmp_path)
     city_dir = write_city(tmp_path, 'grid-ia')
     zones = ['--zones', str(city_dir / 'zones.geojson')]
-    assert dr.main(['--city-id', 'grid-ia', *zones, '--divide-road', 'Mian Street:west']) == 1
-    assert 'no street is named Mian Street' in capsys.readouterr().out
+    # A misspelt road, and one OSM has but the build does not.
+    for road in ('Mian Street', 'Far Road'):
+        assert dr.main(['--city-id', 'grid-ia', *zones, '--divide-road', f'{road}:west']) == 1
+        assert f'no built street is named {road}' in capsys.readouterr().out
     (city_dir / dr.OUTPUT_NAME).write_text('{}')   # A stale pass from an earlier run.
     assert dr.main(['--city-id', 'grid-ia', *zones, '--landmark', f'West={lonlat(300, 200)}']) == 1
     assert (city_dir / dr.REJECTED_NAME).exists() and not (city_dir / dr.OUTPUT_NAME).exists()
     assert 'landmark for "West"' in capsys.readouterr().out
+    # A pass clears the earlier rejection.
+    assert dr.main(['--city-id', 'grid-ia', *zones]) == 0
+    assert (city_dir / dr.OUTPUT_NAME).exists() and not (city_dir / dr.REJECTED_NAME).exists()
+    # A run that fails before writing leaves neither file behind.
+    monkeypatch.setattr(dr, 'feature_collection', lambda *_: (_ for _ in ()).throw(ValueError('not valid')))
+    with pytest.raises(ValueError):
+        dr.main(['--city-id', 'grid-ia', *zones])
+    assert not (city_dir / dr.OUTPUT_NAME).exists() and not (city_dir / dr.REJECTED_NAME).exists()
     other = write_city(tmp_path, 'nameless-ia', names=False)
     assert dr.main(['--city-id', 'nameless-ia', '--zones', str(other / 'zones.geojson')]) == 1
     assert 'no street names on its osm_way layer' in capsys.readouterr().out
+
+
+def test_main_names_a_zones_file_it_cannot_read(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(dr, 'REPO_ROOT', tmp_path)
+    city_dir = write_city(tmp_path, 'grid-ia')
+    assert dr.main(['--city-id', 'grid-ia', '--zones', str(city_dir / 'zones.geojson'), '--zone-name-col', 'nom']) == 1
+    assert 'has no "nom" column (it has: name); pass --zone-name-col' in capsys.readouterr().out
+    gpd.GeoDataFrame({'name': ['West']}, geometry=[box(0, 0, 1, 1)]).to_file(city_dir / 'bare.gpkg')
+    assert dr.main(['--city-id', 'grid-ia', '--zones', str(city_dir / 'bare.gpkg')]) == 1
+    assert 'has no CRS' in capsys.readouterr().out
+
+
+def test_main_draws_a_region_from_several_zones_and_reports_one_without_streets(tmp_path, monkeypatch, capsys):
+    # West drawn as two polygons, and a zone Empty out past the city's east edge, by blocks.
+    monkeypatch.setattr(dr, 'REPO_ROOT', tmp_path)
+    city_dir = write_city(tmp_path, 'grid-ia', zones=[('West', box(-10, -10, 205, 200)), ('East', ZONES['East']),
+                                                      ('West', box(-10, 200, 205, 410)), ('Empty', box(500, 0, 600,
+                                                                                                         400))])
+    assert dr.main(['--city-id', 'grid-ia', '--zones', str(city_dir / 'zones.geojson')]) == 1
+    printed = capsys.readouterr().out
+    assert printed.splitlines()[1].split() == ['West', '22', '2.20']
+    assert 'region "Empty" holds no street: fold its zone into a neighbour' in printed
+
+
+def test_read_zones_densifies_lonlat_edges_before_reprojecting(tmp_path):
+    # Two zones share a 16 km parallel, one drawn with a corner halfway along it. Reprojected corner to corner, the
+    # undivided edge would run as a straight chord nearly 5 m off the other zone's corner (Kuna's 46 m gap, #6013).
+    lon, lat = -93.3, 42.0
+    frame = gpd.GeoDataFrame({'name': ['North', 'South', 'South']},
+                             geometry=[box(lon, lat, lon + 0.2, lat + 0.05), box(lon, lat - 0.05, lon + 0.1, lat),
+                                       box(lon + 0.1, lat - 0.05, lon + 0.2, lat)], crs=4326)
+    frame.to_file(tmp_path / 'zones.geojson')
+    zones = dr.read_zones(tmp_path / 'zones.geojson', 'name', UTM)
+    corner = gpd.GeoSeries([Point(lon + 0.1, lat)], crs=4326).to_crs(UTM).iloc[0]
+    assert zones['North'].distance(corner) < 0.01
+    assert zones['North'].intersection(zones['South']).area < 1
 
 
 def test_evansdale_regions_are_reproduced():
