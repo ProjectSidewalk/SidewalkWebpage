@@ -148,8 +148,9 @@ buffer-out, buffer-in), cut off outlying pieces nobody would walk to as part of 
 
 **Inputs**, under `db/onboarding/<city-id>/inputs/draw_regions/` (git-ignored, kept with the city's other inputs):
 
-- `zones.geojson`: one polygon per region with a `name` column, drawn in QGIS over the first build's `qgis_road`
-  layer, or written by a script from the arterials' coordinates (Kuna's `make_inputs.py`). With blocks, precision is
+- `zones.geojson`: one polygon per region with a `name` column (polygons sharing a name make one region), drawn in
+  QGIS over the first build's `qgis_road` layer, or written by a script from the arterials' coordinates (Kuna's
+  `make_inputs.py`). With blocks, precision is
   wasted: the zones only decide which region each street belongs to (by its midpoint), and the borders are redrawn
   from the streets. With zones, the edges are the borders, so they must meet without gaps or overlaps; the tool
   densifies them before reprojecting, so edges drawn as lon/lat corners kilometres apart still meet.
@@ -169,7 +170,7 @@ make draw-regions id=evansdale-ia args="--zones db/onboarding/evansdale-ia/input
     --divide-road 'Gilbert Drive:south' --landmark 'Bunger=-92.2747,42.4716'"
 make draw-regions id=kuna-id args="--method zones --probe-m 120 \
     --zones db/onboarding/kuna-id/inputs/draw_regions/zones.geojson \
-    --divide-road 'West Hubbard Road:north' --landmark 'Downtown=-116.4225,43.4910'"
+    $(cat db/onboarding/kuna-id/inputs/draw_regions/args.txt)"
 make build-city-data id=evansdale-ia args="--place 'Evansdale, Iowa, USA' \
     --regions-file db/onboarding/evansdale-ia/regions_drawn.geojson \
     --regions-source 'Drawn for Project Sidewalk: <town> has no official neighbourhoods; \
@@ -184,10 +185,21 @@ holding most of its length. Keep the strip at 15 m: Kuna tried 25, which swallow
 an arterial. A divide road's owner is the zone `--probe-m` metres to its owning side (default 30); it must reach past
 the road's offset from the zone edge, so an arterial that wanders off its line needs more (Kuna used 120).
 
-It prints the street count and km per region and writes `regions_drawn.geojson`, or
-`regions_drawn.rejected.geojson` and a list of problems when a check fails:
+Paths are from the repository root, where the make target runs; `args.txt` holds the `--divide-road` and
+`--landmark` flags, so the method and probe go on the command line. A divide road must be a street in the build: one
+that lies wholly outside the boundary is refused by name.
 
-- the regions do not tile the city;
+It prints the street count and km per region and writes `regions_drawn.geojson`, or
+`regions_drawn.rejected.geojson` and a list of problems when a check fails (each run first deletes both, so a file
+from an earlier run is never left to build with). With zones it also prints, per divide road, the km of strip each
+region got, the stretches that kept none (the probe left every zone, or reached a zone with no city ground nearby,
+across a bay or enclave), and the stretches that run through the middle of one zone: right where the road runs on
+past the end of a border, a sign to raise `--probe-m` where a border lies farther off the road than the probe.
+
+- the regions leave a gap inside the city, reach outside it, or overlap, by more than snapping noise (a piece wider
+  than 0.5 m);
+- a region has a piece cut off from the rest, under the 1 ha the build keeps as a part of its own, so the build would
+  hand it to a neighbour (with zones, the tool hands such pieces over itself, as the build would);
 - a street leaves its region for 30 m or more, so the build would cut that stretch into a street of its own (a
   zone edge or divider crosses the street; move it);
 - a named street switches region and back again (give it a `--divide-road` side, or redraw the zones);
@@ -202,10 +214,10 @@ Two worked examples, each with `args.txt` holding its flags:
 
 - **Evansdale, IA** (`db/onboarding/evansdale-ia/inputs/draw_regions/`, blocks): nine regions on Lafayette Road,
   Central Avenue, Evans Road, Gilbert Drive, US-20 and McCoy Road.
-- **Kuna, ID** (`db/onboarding/kuna-id/inputs/`, zones): eleven regions of 18–42 km on the mile-section arterials
-  (Black Cat, Ten Mile, Linder, Meridian; Columbia, Hubbard, Deer Flat, Avalon/Kuna Road, King) plus a Downtown on
-  both sides of Main Street, from a boundary with its enclaves and bays filled (`make_boundary.py`). What it
-  taught:
+- **Kuna, ID** (`db/onboarding/kuna-id/inputs/draw_regions/`, zones, `--probe-m 120`): eleven regions of 18–42 km
+  on the mile-section arterials (Black Cat, Ten Mile, Linder, Meridian; Columbia, Hubbard, Deer Flat, Avalon/Kuna
+  Road, King) plus a Downtown on both sides of Main Street, from a boundary with its enclaves and bays filled
+  (`make_boundary.py`, one level up). What it taught:
   - *An arterial with a gap in OSM.* Deer Flat Road is missing west of Ten Mile, so nothing marks the border there;
     the zones carry a local notch so a subdivision's stub street stays with its subdivision.
   - *An arterial off its section line.* East Kuna Road runs 70 m south of the line its zones meet on, so a 30 m
