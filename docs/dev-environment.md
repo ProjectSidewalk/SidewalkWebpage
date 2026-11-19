@@ -226,6 +226,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | bayonne-fr | sidewalk_bayonne_fr | | laurens-ia | sidewalk_laurens_ia |
 | juneau-ak | sidewalk_juneau_ak | | beringen-be | sidewalk_beringen_be |
 | goiania-br | sidewalk_goiania_br | | niteroi-br | sidewalk_niteroi_br |
+| kuna-id | sidewalk_kuna_id | | | |
 
 ---
 

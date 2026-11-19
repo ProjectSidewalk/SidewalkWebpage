@@ -92,6 +92,7 @@ state.name.texas = TX
 state.name.kentucky = KY
 state.name.iowa = IA
 state.name.alaska = AK
+state.name.idaho = ID
 
 navbar.explore = Explore
 navbar.validate = Validate

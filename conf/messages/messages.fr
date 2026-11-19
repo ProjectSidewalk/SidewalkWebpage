@@ -80,6 +80,7 @@ city.name.niagara-falls-ny = Chutes du Niagara
 city.name.validation-study = Étude de validation
 city.name.la-piedad-old = La Piedad (ancien)
 city.name.juneau-ak = Juneau
+city.name.kuna-id = Kuna
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
@@ -90,6 +91,7 @@ state.name.south-carolina = Caroline du Sud
 state.name.virginia = Virginie
 state.name.florida = Floride
 state.name.alaska = Alaska
+state.name.idaho = Idaho
 
 country.name.usa = États-Unis
 country.name.mexico = Mexique

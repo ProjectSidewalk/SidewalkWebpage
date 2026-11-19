@@ -81,6 +81,7 @@ city.name.niagara-falls-ny = Cataratas del Niágara
 city.name.fort-wayne-in = Fuerte Wayne
 city.name.bayonne-fr = Bayona
 city.name.juneau-ak = Juneau
+city.name.kuna-id = Kuna
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
@@ -92,6 +93,7 @@ state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
 state.name.alaska = Alaska
+state.name.idaho = Idaho
 
 country.name.usa = EE.UU.
 country.name.mexico = México

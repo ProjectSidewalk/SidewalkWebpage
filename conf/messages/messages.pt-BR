@@ -77,6 +77,7 @@ city.name.taipei = Taipé
 city.name.new-taipei-tw = Nova Taipé
 city.name.niagara-falls-ny = Cataratas do Niágara
 city.name.juneau-ak = Juneau
+city.name.kuna-id = Kuna
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
@@ -86,6 +87,7 @@ state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
 state.name.florida = Flórida
 state.name.alaska = Alasca
+state.name.idaho = Idaho
 
 country.name.usa = EUA
 country.name.mexico = México

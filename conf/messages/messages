@@ -69,6 +69,7 @@ city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
+city.name.kuna-id = Kuna
 
 state.name.dc = DC
 state.name.oregon = Oregon
@@ -92,6 +93,7 @@ state.name.texas = Texas
 state.name.kentucky = Kentucky
 state.name.iowa = Iowa
 state.name.alaska = Alaska
+state.name.idaho = Idaho
 
 country.name.usa = USA
 country.name.mexico = Mexico

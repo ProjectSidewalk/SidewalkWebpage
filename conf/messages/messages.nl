@@ -75,12 +75,14 @@ city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
+city.name.kuna-id = Kuna
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
 
 state.name.california = Californië
 state.name.alaska = Alaska
+state.name.idaho = Idaho
 
 country.name.usa = USA
 country.name.netherlands = Nederland
