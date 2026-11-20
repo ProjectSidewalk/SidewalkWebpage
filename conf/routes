@@ -5,6 +5,7 @@ GET     /about                                          controllers.ApplicationC
 GET     /robots.txt                                     controllers.SeoController.robots
 GET     /sitemap.xml                                    controllers.SeoController.sitemap
 GET     /health                                         controllers.HealthController.health
+GET     /health/memory                                  controllers.HealthController.memory
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms
@@ -114,6 +115,7 @@ GET     /adminapi/recentActivity                        controllers.AdminControl
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
 GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/funnels                               controllers.AdminController.getCurrentCityFunnels(window: Option[String])
+GET     /adminapi/traffic                               controllers.AdminController.getCurrentCityTraffic
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
 GET     /adminapi/activityByDay                         controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                             controllers.AdminController.getHumanVsAiStats

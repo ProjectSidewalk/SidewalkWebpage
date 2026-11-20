@@ -10,7 +10,8 @@
  * navigating, `loadingOverlay` waits for the shared #page-loading overlay to hide, and `waitFor` is an extra
  * page-specific readiness wait.
  *
- * Registered-user pages are not here — they need a session, so they live in dashboard.spec.js with its storageState.
+ * Registered-user pages are not here — they need a session, so they live in dashboard.spec.js with its storageState —
+ * and neither are admin pages, which admin-pages.spec.js loads signed in as the admin.
  */
 const PAGES = [
   // Deferred landing maps (#4486): wait until they're built so their init errors land inside the settle window.

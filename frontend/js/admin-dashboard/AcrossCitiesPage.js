@@ -17,6 +17,7 @@ import { FetchWithRetry } from '../common/FetchWithRetry.js';
 import mapboxgl from '../common/mapboxgl.js';
 import { util } from '../common/utilities.js';
 import { AdminShell } from './AdminShell.js';
+import { funnelVisitorsRowHtml, funnelVisitorsText, settledFunnels } from './funnelVisitors.js';
 import { MiniLineChart } from './MiniLineChart.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -1174,7 +1175,7 @@ export class AcrossCitiesPage {
         ? `Weekly sessions: latest ${this.#num(weeks[weeks.length - 1])}, `
         + `peak ${this.#num(Math.max(...weeks))}`
         : 'No weekly sessions to plot.';
-      const mobileTitle = `${this.#pct(t.mobile_share_28d)} in the last 28 days, `
+      const mobileTitle = `${this.#pct(t.mobile_share_30d)} in the last 30 days, `
         + `vs ${this.#pct(t.mobile_share_all_time)} over all time`;
       return `
         <tr class="${t.anomaly ? 'ac-row--flagged' : ''}">
@@ -1182,7 +1183,7 @@ export class AcrossCitiesPage {
           ${this.#trafficCell(t.sessions_7d, t.sessions_prior_7d, 'sessions')}
           ${this.#trafficCell(t.active_users_7d, t.active_users_prior_7d, 'visitors')}
           <td class="ac-num" title="${engagementTitle}">${this.#pct(t.engagement_rate_7d)}</td>
-          <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_28d)}</td>
+          <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_30d)}</td>
           <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTip}">${this.#num(t.sessions_all_time)}</td>
           <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#num(t.visitors_all_time)}</td>
           <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#pct(t.mobile_share_all_time)}</td>
@@ -1454,17 +1455,26 @@ export class AcrossCitiesPage {
 
   /**
    * Fetches and renders the funnels for the current window. A stale response is dropped and a failure puts the
-   * highlight back on the shown window, so a button never labels another window's numbers.
+   * highlight back on the shown window, so a button never labels another window's numbers. An answer that beat Google
+   * Analytics is shown as is, and redrawn once the visitors are ready.
    */
   async #loadFunnels() {
     const timeWindow = this.#funnelWindow;
-    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
-    try {
-      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
-      if (timeWindow !== this.#funnelWindow) return;
+    const fetchFunnels = () => util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(timeWindow)}`);
+    const show = (data) => {
       this.#funnels = (data && data.funnels) || {};
       this.#shownFunnelWindow = timeWindow;
       this.#renderFunnels();
+    };
+    AdminShell.setText('ac-funnel-status', 'Loading funnels…');
+    try {
+      const data = await fetchFunnels();
+      if (timeWindow !== this.#funnelWindow) return;
+      show(data);
+      if (data && data.ga_pending) {
+        settledFunnels(fetchFunnels, () => timeWindow === this.#funnelWindow)
+          .then((settled) => settled && show(settled));
+      }
     } catch (err) {
       if (timeWindow !== this.#funnelWindow) return;
       console.error('Funnel load failed:', err);
@@ -1515,10 +1525,16 @@ export class AcrossCitiesPage {
   #funnelTableHtml(steps, cities, segs) {
     const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
     const multi = segs.length > 1;
+    // GA can't be split the way the breakdowns are; and with GA off everywhere the column would be all dashes.
+    const showGa = this.#funnelDim === 'all' && cities.some((c) => c.ga_visitors);
+    const stepLabel = (k) => (labels[k] || { full: k }).full;
+    const gaTip = 'First-time visitors per Google Analytics in this window. A separate count from the accounts: GA '
+      + 'counts browsers and skips most bots.';
     const head = [
       '<tr>',
       '<th class="ac-th-text">City</th>',
       multi ? '<th class="ac-th-text">Group</th>' : '',
+      showGa ? `<th tabindex="0" data-ps-tooltip="${gaTip}">GA visitors</th>` : '',
       ...steps.map((k) => {
         const l = labels[k] || { full: k, short: k };
         const short = util.escapeHTML(l.short);
@@ -1540,7 +1556,7 @@ export class AcrossCitiesPage {
 
     let body;
     if (!rows.length) {
-      const span = steps.length + (multi ? 3 : 2);
+      const span = steps.length + 2 + (multi ? 1 : 0) + (showGa ? 1 : 0);
       body = `<tr><td colspan="${span}" class="dq-empty">No funnel data to show.</td></tr>`;
     } else {
       body = rows.map(({ c, seg, d }) => {
@@ -1550,10 +1566,16 @@ export class AcrossCitiesPage {
             : `${this.#num(v)} — ${this.#pct(d.step_conversion[i])} of previous step`;
           return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
         }).join('');
+        const ga = c.ga_visitors;
+        const gaTitle = ga ? util.escapeHTML(funnelVisitorsText(ga, stepLabel)) : '';
+        const gaCell = ga
+          ? `<td class="ac-num" title="${gaTitle}">${this.#compact(ga.count)}</td>`
+          : '<td class="ac-num">—</td>';
         return [
           '<tr>',
           `<td class="ac-td-city">${this.#cityLink(c)}</td>`,
           multi ? `<td>${util.escapeHTML(seg.label)}</td>` : '',
+          showGa ? gaCell : '',
           stepCells,
           `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>`,
           '</tr>',
@@ -1603,8 +1625,10 @@ export class AcrossCitiesPage {
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
         + `<div class="ac-funnel-bars">${bars}</div></div>`;
     }).join('');
+    const stepLabel = (k) => (labels[k] || { full: k }).full;
+    const visitors = this.#funnelDim === 'all' ? funnelVisitorsRowHtml(c.ga_visitors, stepLabel) : '';
     return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>`
-      + `${legend}${stepRows}</div>`;
+      + `${legend}${visitors}${stepRows}</div>`;
   }
 
   // --- Hover breakdown cards --------------------------------------------------------------------------------------

@@ -13,12 +13,8 @@ describe('PanoMarker projection', () => {
   let pano;
 
   beforeEach(async () => {
-    // PanoMarker probes for WebGL on load; jsdom has no canvas contexts and would log a not-implemented error.
-    HTMLCanvasElement.prototype.getContext = () => null;
     ({ PanoMarker } = await loadModules('frontend/js/common/PanoMarker.js'));
     pano = {
-      // jsdom has no WebGL, so PanoMarker picks the 2d projection; both take the same trailing fov.
-      centeredPovToCanvasCoord2d: vi.fn(() => ({ x: 10, y: 20 })),
       centeredPovToCanvasCoord: vi.fn(() => ({ x: 10, y: 20 })),
       renderedHFov: vi.fn(() => 42),
     };
@@ -43,7 +39,7 @@ describe('PanoMarker projection', () => {
     });
     marker.draw();
     expect(pano.renderedHFov).toHaveBeenCalledWith(3, 2, 'gsv');
-    expect(pano.centeredPovToCanvasCoord2d).toHaveBeenCalledWith(
+    expect(pano.centeredPovToCanvasCoord).toHaveBeenCalledWith(
       { heading: 95, pitch: 0 }, { heading: 90, pitch: 5, zoom: 3 }, 800, 400, 22, 42,
     );
   });

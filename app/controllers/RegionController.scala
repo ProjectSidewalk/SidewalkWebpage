@@ -63,8 +63,8 @@ class RegionController @Inject() (
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
 
     for {
-      // Ensure the region_completion cache table is populated before reading rates from it.
-      _             <- regionService.initializeRegionCompletionTable
+      // A maintenance script or a new city can leave region_completion empty; fill it before reading rates from it.
+      _             <- regionService.rebuildRegionCompletionTableIfEmpty
       completions   <- regionService.getRegionCompletions(regionIds)
       outdatedDists <- regionService.getOutdatedDistanceByRegion
     } yield {

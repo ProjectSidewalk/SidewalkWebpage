@@ -530,6 +530,12 @@ VALUES (900001, {WORST_ID}, {q(U[OWNER[worst['street_edge_id']]])},
         'There is no ramp at this corner, so I have to roll along the street to the next driveway.',
         'anonymous', TRUE, now() - INTERVAL '2 days')
 ON CONFLICT (story_id) DO NOTHING;
+
+-- One team, so the admin team page has one to load (#4276). Made up, like the story, and with no members, so no
+-- leaderboard or user-stat count moves.
+INSERT INTO sidewalk_teaneck.team (team_id, name, description, open, visible)
+VALUES (900001, 'CI Seed Team', 'A team for the browser suite.', TRUE, TRUE)
+ON CONFLICT (team_id) DO NOTHING;
 """)
 
 w(f"""UPDATE sidewalk_teaneck.route
@@ -545,7 +551,7 @@ WHERE route.route_id = 900001;
 -- Derived caches, last because each reads the rows above. Keep in step with:
 --   meters_audited / labels_per_meter / high_quality -> UserStatTable.updateAuditedDistanceHelper,
 --                                                       updateLabelsPerMeterHelper, updateHighQuality
---   region_completion                                -> RegionService.initializeRegionCompletionTableAction
+--   region_completion                                -> RegionCompletionTable.rebuild
 --   label_point.centerline_offset_m                  -> LabelPointTable.computeCenterlineOffset (377.sql's backfill)
 -- "Auditable streets" in all of them means open, non-tutorial streets -- StreetEdgeTable's `streets`.
 

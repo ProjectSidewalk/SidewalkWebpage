@@ -51,6 +51,7 @@ function city(cityId, name, sha, overrides = {}) {
       city_id: cityId,
       environment: 'prod',
       app_started_at: '2026-08-20T03:00:00Z',
+      db_queued: 0,
     },
     error: null,
     ...overrides,
@@ -65,7 +66,7 @@ async function render(fleet) {
   await new HealthPage({ healthUrl: '/adminapi/dbHealth', fleetUrl: '/adminapi/fleetHealth' }).init();
 }
 
-/** Each rendered row as [city, status, build, version, started]. */
+/** Each rendered row as [city, status, build, version, queries waiting, started]. */
 const rows = () => [...document.querySelectorAll('#health-fleet tbody tr')].map((tr) => [...tr.cells].map(textOf));
 
 describe('the fleet panel', () => {
@@ -78,7 +79,7 @@ describe('the fleet panel', () => {
       not_deployed: ['crowdstudy', 'staging'],
     });
     expect(rows().map((r) => r[0])).toEqual(['Chicago, IL', 'Seattle, WA (this instance)']);
-    expect(rows()[0].slice(1, 4)).toEqual(['ok', 'v11.20.0-gaaaaaaa', '11.20.0']);
+    expect(rows()[0].slice(1, 5)).toEqual(['ok', 'v11.20.0-gaaaaaaa', '11.20.0', '0']);
     expect(document.querySelectorAll('#health-fleet .ac-row--flagged')).toHaveLength(0);
     const note = textOf(document.getElementById('health-fleet-note'));
     expect(note).toContain('2 of 2 cities are healthy and on the newest build');
@@ -115,6 +116,21 @@ describe('the fleet panel', () => {
     const note = textOf(document.getElementById('health-fleet-note'));
     expect(note).toContain('1 of 4 cities are healthy and on the newest build');
     expect(note).toContain('2 not answering healthily');
+  });
+
+  test('shows how many queries each city has waiting, and a dash for a build that does not say', async () => {
+    const seattle = city('seattle', 'Seattle, WA', 'aaaaaaa111');
+    const older = city('oslo', 'Oslo', 'aaaaaaa111');
+    delete older.health.db_queued;
+    await render({
+      generated_at: '2026-08-20T04:00:00Z',
+      this_city_id: 'x',
+      latest_git_sha: 'aaaaaaa111',
+      cities: [{ ...seattle, health: { ...seattle.health, db_queued: 1200 } }, older],
+      not_deployed: [],
+    });
+    expect(rows().map((r) => [r[0], r[4]])).toEqual([['Oslo', '—'], ['Seattle, WA', '1,200']]);
+    expect(document.querySelector('#health-fleet tbody tr:last-child .ac-num .ac-badge').className).toContain('--warn');
   });
 
   test('reads a 200 that is not a health document as a problem row, not a healthy one', async () => {

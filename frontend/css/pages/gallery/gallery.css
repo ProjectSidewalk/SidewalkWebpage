@@ -45,6 +45,14 @@
   position: sticky;
   top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
 
+  /* On a window shorter than the filters, the column scrolls by itself rather than hiding its last rows (#5967). */
+  max-height: calc(100dvh - var(--navbar-height) - var(--test-banner-height, 0px));
+  overflow: hidden auto;
+
+  /* A row's focus ring is drawn on its label around a hidden 1px checkbox, so the browser needs telling to bring
+     more than that one pixel into view. */
+  scroll-padding-block: 24px;
+
   /* A stretched flex item is as tall as the row and so has nowhere to stick to; this keeps it its own height. */
   align-self: flex-start;
   flex: none;
@@ -240,6 +248,8 @@
   .sidebar {
     position: static;
     width: 100%;
+    max-height: none;
+    overflow: visible;
     padding-left: 0;
   }
 

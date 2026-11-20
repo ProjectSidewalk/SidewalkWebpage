@@ -221,8 +221,6 @@ describe('Canvas pointer handling', () => {
       expect(c.tracker.push).toHaveBeenCalledWith('LabelingCanvas_MouseUp', { x: 360, y: 240 });
       expect(c.form.submitData).toHaveBeenCalledTimes(1);
 
-      expect(c.labelModes.backToWalk).not.toHaveBeenCalled();
-      vi.advanceTimersByTime(20);
       expect(c.labelModes.backToWalk).toHaveBeenCalledTimes(1);
     });
 

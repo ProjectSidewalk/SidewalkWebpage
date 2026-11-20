@@ -2,7 +2,6 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{AggregateStats, ApiError, DailyStatRecord, ProjectSidewalkStats, UserStatForApi}
-import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
@@ -10,6 +9,8 @@ import service.{ApiService, ConfigService}
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -20,8 +21,6 @@ class StatsApiController @Inject() (
     configService: ConfigService
 )(using ec: ExecutionContext)
     extends BaseApiController(cc) {
-
-  private val logger = Logger(this.getClass)
 
   /**
    * Returns statistics for registered users in either JSON or CSV format with optional filtering.
@@ -106,35 +105,54 @@ class StatsApiController @Inject() (
    * @return Aggregate statistics in the requested format
    */
   def getAggregateStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    // Fetch aggregate statistics from the config service.
-    configService
-      .getAggregateStats()
-      .map { aggregateStats =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+    withCrossCityStats("aggregate statistics")(configService.getAggregateStats()) { aggregateStats =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-        // Generate response in the requested format.
-        filetype match {
-          case Some("csv") =>
-            val baseFileName = timestampedFilename("aggregateStats")
+      // Generate response in the requested format.
+      filetype match {
+        case Some("csv") =>
+          val baseFileName = timestampedFilename("aggregateStats")
 
-            // Create temporary CSV file (following the same pattern as other endpoints).
-            val aggregateStatsFile = newDownloadFile(s"$baseFileName.csv")
-            val writer             = java.io.PrintStream(aggregateStatsFile)
-            writer.print((AggregateStats.csvHeader +: aggregateStats.toCsvRows).mkString("\n"))
-            writer.close()
+          // Create temporary CSV file (following the same pattern as other endpoints).
+          val aggregateStatsFile = newDownloadFile(s"$baseFileName.csv")
+          val writer             = java.io.PrintStream(aggregateStatsFile)
+          writer.print((AggregateStats.csvHeader +: aggregateStats.toCsvRows).mkString("\n"))
+          writer.close()
 
-            Ok.sendFile(content = aggregateStatsFile, onClose = () => deleteDownload(aggregateStatsFile))
+          Ok.sendFile(content = aggregateStatsFile, onClose = () => deleteDownload(aggregateStatsFile))
 
-          case _ => // Default to JSON
-            Ok(aggregateStats.toJson)
-        }
-
+        case _ => // Default to JSON
+          Ok(aggregateStats.toJson)
       }
-      .recover { case e: Exception =>
-        logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
-        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}"))
-      }
+    }
   }
+
+  /**
+   * Renders cross-city statistics, or answers `503` with `Retry-After` when none are cached and the refresh failed or
+   * is still running (#5977). A failure while rendering is a bug, so it stays a `500`.
+   *
+   * @param what   The statistics requested, for the message.
+   * @param stats  The cross-city statistics being served; None while they are still being computed.
+   * @param render Builds the response from the statistics.
+   * @return       The rendered response, or the `503`.
+   */
+  private def withCrossCityStats[T](what: String)(stats: Future[Option[T]])(render: T => Result): Future[Result] =
+    stats.transform {
+      case Success(Some(value)) => Try(render(value))
+      case Success(None)        =>
+        Success(
+          ApiError.stillComputingResult(
+            s"The $what are still being computed. Retry after the number of seconds in the Retry-After header."
+          )
+        )
+      case Failure(NonFatal(_)) =>
+        // Generic on purpose: the error can name schemas, and SwrCache already logged it.
+        val error = ApiError.temporarilyUnavailable(s"The $what are temporarily unavailable. Please retry later.")
+        Success(
+          ApiError.toResult(error).withHeaders(RETRY_AFTER -> ConfigService.CrossCityFailureBackoff.toSeconds.toString)
+        )
+      case Failure(fatal) => Failure(fatal)
+    }
 
   /**
    * Parses a pair of optional YYYY-MM-DD date strings into Option[LocalDate] values.
@@ -234,7 +252,9 @@ class StatsApiController @Inject() (
     parseDateParams(startDate, endDate) match {
       case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
-        configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
+        withCrossCityStats("aggregate daily statistics")(
+          configService.getAggregateStatsByDay(start, end, filterLowQuality)
+        ) { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
           renderDailyStats(stats, filetype, "aggregateStatsByDay")
         }

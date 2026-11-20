@@ -283,7 +283,7 @@ async function recordLoad(ctx) {
     }
     manifest.panos[pano.name] = init.meta;
 
-    // WebGL renderer assertion — the 2D fallback renders through a different projection curve entirely.
+    // Canvas renderer assertion — the image-tile fallback renders through a different projection curve entirely.
     // The render canvas mounts asynchronously after pano_changed, so give it time to appear.
     await page.waitForFunction(() => window.__probe.getState().renderer.fullSizeCanvas, { timeout: 20000 })
       .catch(() => {});

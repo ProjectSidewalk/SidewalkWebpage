@@ -88,6 +88,16 @@ The backend follows a consistent layering: **routes → Controller → Service �
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
   (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
+- **Cross-city totals** — a number summed over every city (`/v3/api/aggregateStats` and `aggregateStatsByDay`, the
+  Leaderboard's community bands, the Admin cross-city contributor count) is complete or it is a failure, never a
+  smaller number (#5977). `ConfigService.queryEveryCity` queries two cities at a time; on prod, one city failing fails
+  the whole compute (elsewhere, where schemas lag on evolutions, it is skipped with a warning). `SwrCache` then keeps
+  serving the last complete value and starts no new compute for five minutes. With nothing cached (a failure, or a
+  first compute still running) the API answers `503` with `Retry-After` and the Leaderboard drops its bands. The
+  totals refresh hourly, plus a random extra per app so the city apps don't all refresh at once (#5238). A new
+  cross-city total goes through `queryEveryCity`; a read that can do without a city (the Admin cross-city pages,
+  `/v3/api/cities`) uses `queryEachCity` and recovers per city. The Spotlight's `/cities` scope does the same over its
+  own city list, at `CrossCityParallelism` (#6021).
 - **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
   separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
   lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,
@@ -371,6 +381,8 @@ inside a live process is not caught at boot; the Health panel reads it as `aband
 
 The same page's Fleet table asks every city's public `/health` (#4548), which reports the build's git SHA from
 `BuildInfo` and whether the database answers and loads PostGIS, so a release can be watched landing city by city.
+Its sibling `/health/memory` (#6022) reports the instance's own memory split: RAM, swap, heap, the non-heap pools,
+and the remainder Java can't name. The app reports it itself because nothing else can read it without root.
 
 The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
 in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
@@ -920,6 +932,8 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 - `conf/application.conf` is the base; environment overlays are `application.local.conf`, `application.staging.conf`,
   `application.test.conf`. Local dev runs with `application.local.conf`.
 - Per-city settings live in `conf/cityparams.conf`, selected via the `SIDEWALK_CITY_ID` env var.
+- Every city's app shares one Postgres connection limit, so cities set to `true` under `city-params.low-traffic`
+  start with the smaller pool in `db-pool.low-traffic` (`modules.CityDbPool`).
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 

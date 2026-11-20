@@ -358,6 +358,16 @@ describe('a ?labelId= deep link', () => {
     expect(labelDetail.showLabel).toHaveBeenCalledTimes(1);
   });
 
+  test('fades the cards behind it, sparing the label\'s own card when it is on the page', async () => {
+    urlLabelId = 42;
+    (await build(stubContainer())).restoreFromUrl();
+    expect(dimmed()).toEqual(['gallery_card_1', 'gallery_card_2', 'gallery_card_3']);
+
+    urlLabelId = 2;
+    (await build(stubContainer())).restoreFromUrl();
+    expect(dimmed()).toEqual(['gallery_card_1', 'gallery_card_3']);
+  });
+
   test('from a review list that holds the label, opens it at its place in the list', async () => {
     urlLabelId = 2;
     const container = stubContainer({ listSize: 3 });

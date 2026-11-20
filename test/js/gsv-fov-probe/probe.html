@@ -78,9 +78,9 @@
     let panoMeta = null;
 
     /**
-     * Census of what the Maps API mounted inside the container — the WebGL-vs-2D-fallback assertion.
-     * The WebGL renderer mounts a container-filling <canvas>; the 2D tile fallback builds <img> stacks and
-     * renders through the OTHER projection curve, which would silently poison the experiment (see README).
+     * Census of what the Maps API mounted inside the container — the canvas-vs-image-tiles assertion.
+     * WebGL and 2D canvas both mount a container-filling <canvas>; the image-tile fallback builds <img> stacks
+     * and renders through the OTHER projection curve, which would silently poison the experiment (see README).
      */
     const rendererCensus = () => {
       const container = document.getElementById('pano');
@@ -149,8 +149,11 @@
           scrollwheel: false,
           showRoadLabels: false,
           zoomControl: false,
+          visible: false,
         });
+        // Hidden until the provider is registered, as in GsvViewer, so Google starts on its 2D-canvas renderer.
         gsvPano.registerPanoProvider((pano) => (TUTORIAL_PANO_IDS.has(pano) ? getCustomPanoData(pano) : null));
+        gsvPano.setVisible(true);
 
         let panoId = cfg.pano;
         let svcData = null;

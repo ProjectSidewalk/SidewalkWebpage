@@ -10,7 +10,7 @@ import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 /**
  * The bound on how wide a fan-out may get (#4526).
  *
- * `getCrossCityHours` fans out over a 25-connection pool and the GA traffic fetch over the Data API's concurrency
+ * `getCrossCityHours` fans out over the connection pool and the GA traffic fetch over the Data API's concurrency
  * (Planning#8). Whether the batching actually caps what is in flight is observable with a counter, so it is checked
  * here rather than inferred from a page that happens to load.
  */

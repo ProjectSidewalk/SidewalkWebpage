@@ -11,7 +11,7 @@
  *
  * What this adds over the projection coverage already in the tree: PanoDataServiceSpec pins the Scala port and
  * exploreLabelPovStaleness.test.js replays the forward composition, but neither covers the canvas→POV→canvas
- * inverse or the non-WebGL 2D fallback, and nothing held the JS port to the Scala one. The record fixtures below are
+ * inverse, and nothing held the JS port to the Scala one. The record fixtures below are
  * PanoDataServiceSpec's, so both ports are pinned to the same pov_replay.py values rather than to each other.
  */
 
@@ -22,6 +22,13 @@ const VALIDATE_LABEL_PATH = 'frontend/js/validate/label/Label.js';
 const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities.js',
   'frontend/js/common/utilities.js');
 const pano = util.pano;
+
+/**
+ * Folds a heading difference into [-180, 180), so two headings a full turn apart compare as equal.
+ * @param {number} heading - Degrees.
+ * @returns {number} The same angle in [-180, 180).
+ */
+const wrapHeading = (heading) => ((heading + 180) % 360 + 360) % 360 - 180;
 
 // The authoring canvas every stored canvas_x/canvas_y is expressed in, read from the constant itself rather than
 // copied as a literal. LabelPointTable.canvasWidth/canvasHeight is the backend half of the same pair.
@@ -46,7 +53,7 @@ describe('util.pano projection', () => {
         pov, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT
       );
 
-      expect(pano.wrapHeading(centered.heading - pov.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(centered.heading - pov.heading)).toBeCloseTo(0, 6);
       expect(centered.pitch).toBeCloseTo(pov.pitch, 6);
       expect(centered.zoom).toBe(pov.zoom);
     });
@@ -89,45 +96,6 @@ describe('util.pano projection', () => {
   // The projection flips its horizontal basis on the sign of cos(pitch), and counts a level camera as upright.
   it('sgn counts zero as positive', () => {
     expect([pano.sgn(-0.5), pano.sgn(0), pano.sgn(2)]).toEqual([-1, 1, 1]);
-  });
-
-  // PanoMarker falls back to the 2D projection whenever the browser hands it no WebGL context, so this runs for
-  // real users even though it never executes in a WebGL-capable dev browser. It reaches for helpers on the util.pano
-  // namespace, and a stale reference there is a TypeError on the very first marker draw rather than a bad pixel.
-  describe('centeredPovToCanvasCoord2d (non-WebGL fallback)', () => {
-    it('puts a point at the canvas center when it is already the viewport center', () => {
-      const pov = {heading: 90.5, pitch: -5.9, zoom: 1};
-      const coord = pano.centeredPovToCanvasCoord2d(pov, pov, CANVAS_WIDTH, CANVAS_HEIGHT, 20);
-
-      expect(coord).not.toBeNull();
-      expect(coord.x).toBeCloseTo(CANVAS_WIDTH / 2, 6);
-      expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2, 6);
-    });
-
-    // Without wrapping, the 2° gap across the seam reads as -358° and projects a full turn off-canvas (null).
-    it('wraps the heading difference across the 0/360 seam', () => {
-      const coord = pano.centeredPovToCanvasCoord2d(
-        {heading: 1, pitch: 0}, {heading: 359, pitch: 0, zoom: 1}, CANVAS_WIDTH, CANVAS_HEIGHT, 20
-      );
-
-      // hfov is 90° at zoom 1, so a wrapped +2° lands 2/90 of the canvas width right of center.
-      expect(coord).not.toBeNull();
-      expect(coord.x).toBeCloseTo(CANVAS_WIDTH / 2 + (2 / 90) * CANVAS_WIDTH, 6);
-      expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2, 6);
-    });
-
-    // The vertical axis needs its own case: with equal pitches dv is 0, which evaluates neither the aspect-ratio
-    // correction in vfov nor the sign of targetY, so a mirrored or mis-scaled marker column would pass unseen.
-    it('projects a pitch difference down the canvas, scaled by the vertical fov', () => {
-      const coord = pano.centeredPovToCanvasCoord2d(
-        {heading: 90, pitch: -10}, {heading: 90, pitch: 0, zoom: 1}, CANVAS_WIDTH, CANVAS_HEIGHT, 20
-      );
-
-      // vfov is hfov * 480/720 = 60° at zoom 1, so a 10° drop is a sixth of the canvas height below center.
-      expect(coord).not.toBeNull();
-      expect(coord.x).toBeCloseTo(CANVAS_WIDTH / 2, 6);
-      expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2 + (10 / 60) * CANVAS_HEIGHT, 6);
-    });
   });
 
   // Record consistency: canvasCoordToCenteredPov -> povToPanoCoord is the composition Explore runs at submission
@@ -236,7 +204,7 @@ describe('util.pano projection', () => {
 
       const pov = label.getOriginalPov();
 
-      expect(pano.wrapHeading(pov.heading - authored.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(pov.heading - authored.heading)).toBeCloseTo(0, 6);
       expect(pov.pitch).toBeCloseTo(authored.pitch, 6);
       expect(pov.zoom).toBe(authored.zoom);
     });
@@ -250,7 +218,7 @@ describe('util.pano projection', () => {
       const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};
 
       const wide = new ValidateLabel({...common, canvas_width: 720, canvas_height: 405}).getOriginalPov();
-      expect(pano.wrapHeading(wide.heading - authored.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(wide.heading - authored.heading)).toBeCloseTo(0, 6);
       expect(wide.pitch).toBeCloseTo(authored.pitch, 1);
 
       const legacy = new ValidateLabel(common).getOriginalPov();

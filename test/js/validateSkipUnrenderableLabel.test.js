@@ -54,8 +54,6 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     document.body.innerHTML
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-    // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant here.
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     Object.assign(i18next, {t: () => 'Curb ramp'});
 
     panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};

@@ -21,7 +21,8 @@ object HealthFormats {
       cityId: String,
       environment: String,
       appStartedAt: OffsetDateTime,
-      error: Option[String] = None
+      error: Option[String] = None,
+      dbQueued: Option[Int] = None
   )
 
   /** One city's `/health`: the body when it parsed, else why not. */
@@ -46,6 +47,29 @@ object HealthFormats {
       notDeployed: Seq[String]
   )
 
+  /**
+   * The `GET /health/memory` body (#6022), in MB. The `/proc` fields are None off Linux. `unaccountedMb` is RAM plus
+   * swap minus the heap, the non-heap pools and the direct buffers: memory Java can't name.
+   */
+  case class MemoryStatus(
+      cityId: String,
+      appStartedAt: OffsetDateTime,
+      readAt: OffsetDateTime,
+      rssMb: Option[Long],
+      swapMb: Option[Long],
+      virtualMb: Option[Long],
+      anonHugePagesMb: Option[Long],
+      heapUsedMb: Long,
+      heapCommittedMb: Long,
+      heapMaxMb: Long,
+      nonHeapPoolsMb: Map[String, Long],
+      directBuffersMb: Long,
+      mappedBuffersMb: Long,
+      threads: Int,
+      unaccountedMb: Option[Long]
+  )
+
+  given memoryStatusWrites: Writes[MemoryStatus]       = Json.writes[MemoryStatus]
   given healthStatusWrites: Writes[HealthStatus]       = Json.writes[HealthStatus]
   given healthStatusReads: Reads[HealthStatus]         = Json.reads[HealthStatus]
   given fleetCityHealthWrites: Writes[FleetCityHealth] = Json.writes[FleetCityHealth]

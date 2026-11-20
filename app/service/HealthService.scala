@@ -19,13 +19,18 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
+import modules.CityDbPool
 
+import java.lang.management.ManagementFactory
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject.*
+import javax.management.ObjectName
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.*
+import scala.util.Try
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
 case class BlockingSession(
@@ -86,6 +91,9 @@ case class TableBloat(
 /** Client-backend connection count for one (role, state) pair. */
 case class ConnCount(usename: Option[String], state: Option[String], count: Int)
 
+/** Connections open on the whole database server, against the most it lets the city apps open between them. */
+case class ConnectionSlots(inUse: Int, usable: Int)
+
 /** Backup-coverage counts for the current city's labeled panos. */
 case class PanoBackupStats(
     labeledPanos: Long,
@@ -114,8 +122,9 @@ case class HealthThresholds(
     bloatMinDeadTuples: Long,
     vacuumAgeWarnSeconds: Long,
     connPoolMax: Int,
-    connWarnActive: Int,
-    connBadActive: Int,
+    connPoolMaxByRole: Map[String, Int],
+    connWarnFraction: Double,
+    connBadFraction: Double,
     jobOverdueHours: Long,
     jobWindowDays: Int
 )
@@ -169,6 +178,7 @@ case class DbHealthData(
     stuckEvolutions: Seq[StuckEvolution],
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
+    connectionSlots: Option[ConnectionSlots],
     panoBackups: Option[PanoBackupStats],
     nightlyJobs: Seq[NightlyJobStatus],
     thresholds: HealthThresholds
@@ -245,10 +255,27 @@ class HealthServiceImpl @Inject() (
       error: Option[String]
   ) =
     HealthStatus(status, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, version, releasedAt,
-      configService.getCityId, envType, configService.appStartTime, error)
+      configService.getCityId, envType, configService.appStartTime, error, dbQueued)
 
-  // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
-  private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)
+  /**
+   * Postgres can't show a query still waiting for a connection, since it has no session yet; Slick's queue can.
+   *
+   * @return Queries waiting for a database connection in this app, or None when Slick's JMX bean isn't registered.
+   */
+  private def dbQueued: Option[Int] = Try {
+    val server = ManagementFactory.getPlatformMBeanServer
+    val beans  = server.queryNames(ObjectName("slick:type=AsyncExecutor,*"), null).asScala
+    if (beans.isEmpty) None else Some(beans.toSeq.map(server.getAttribute(_, "QueueSize").asInstanceOf[Int]).sum)
+  }.toOption.flatten
+
+  // Each city's pool size, keyed by its database role. "staging" reuses zurich's role, so it is left out.
+  private val poolMaxByRole: Map[String, Int] = config
+    .get[Seq[String]]("city-params.city-ids")
+    .filter(_ != "staging")
+    .flatMap { cityId =>
+      config.getOptional[String](s"city-params.db-schema.$cityId").map(_ -> CityDbPool.maxConnections(config, cityId))
+    }
+    .toMap
 
   // Cache each signal so that N Owner tabs polling every ~20s don't each re-run the catalog queries against the one
   // shared database — the dashboard must never itself become the connection-pressure problem it exists to surface
@@ -271,9 +298,10 @@ class HealthServiceImpl @Inject() (
     bloatBadRatio = 0.4,
     bloatMinDeadTuples = 10000,    // ignore ratios on tables with few dead tuples (stale post-restore estimates)
     vacuumAgeWarnSeconds = 604800, // 7 days
-    connPoolMax = poolMax,
-    connWarnActive = math.max(1, (poolMax * 0.7).toInt),
-    connBadActive = math.max(1, (poolMax * 0.9).toInt),
+    connPoolMax = config.get[Int]("db-pool.default.max-connections"), // for a role that is no city's
+    connPoolMaxByRole = poolMaxByRole,
+    connWarnFraction = 0.7,
+    connBadFraction = 0.9,
     jobOverdueHours = ScheduledJobs.OverdueAfterHours,
     jobWindowDays = HealthService.JobWindowDays
   )
@@ -302,6 +330,13 @@ class HealthServiceImpl @Inject() (
     val connF = cacheApi
       .getOrElseUpdate[Seq[ConnCount]]("health.conn", liveTtl)(db.run(healthTable.getConnectionCounts))
       .recover(logAndEmpty("connection counts"))
+    val slotsF = cacheApi
+      .getOrElseUpdate[Option[ConnectionSlots]]("health.slots", liveTtl)(
+        db.run(healthTable.getConnectionSlots).map(Option(_))
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read connection slots: ${e.getMessage}"); None
+      }
     val panoF = cacheApi
       .getOrElseUpdate[Option[PanoBackupStats]]("health.pano", panoTtl)(
         db.run(healthTable.getPanoBackupStats).map(Option(_))
@@ -320,6 +355,7 @@ class HealthServiceImpl @Inject() (
       evo      <- evoF
       bloat    <- bloatF
       conn     <- connF
+      slots    <- slotsF
       pano     <- panoF
       jobs     <- jobsF
     } yield DbHealthData(
@@ -333,6 +369,7 @@ class HealthServiceImpl @Inject() (
       stuckEvolutions = evo,
       tableBloat = bloat,
       connections = conn,
+      connectionSlots = slots,
       panoBackups = pano,
       nightlyJobs = jobs,
       thresholds = thresholds
@@ -484,6 +521,7 @@ object HealthService {
   given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
   given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
   given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given connectionSlotsWrites: Writes[ConnectionSlots]   = Json.writes[ConnectionSlots]
   given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
   given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
   given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]

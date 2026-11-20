@@ -48,7 +48,8 @@ function fakePreviewModule(...names) {
 
 const ADMIN_PAGES = ['AcrossCitiesPage', 'ActivityPage', 'ApiAnalyticsPage', 'ContributorsPage', 'FunnelsSection',
   'CoveragePage', 'HealthPage', 'HumanVsAiPage', 'ImageryPage', 'LabelMapPage', 'ManagementPage', 'OverviewPage',
-  'PartnersPage', 'DataQualityPage', 'SidewalksPage', 'StoriesPage', 'StreetStatusPage', 'TeamPage'];
+  'PartnersPage', 'DataQualityPage', 'SidewalksPage', 'StoriesPage', 'StreetStatusPage', 'TeamPage',
+  'TrafficSection'];
 for (const name of ADMIN_PAGES) {
   mockModule(`frontend/js/admin-dashboard/${name}.js`, () => fakePageModule(name));
 }
@@ -176,6 +177,13 @@ describe('admin dashboard entries', () => {
       expect(error).toHaveBeenCalledWith(
         `${logName} page: label popup failed to initialize; links will navigate instead.`, failure);
     });
+});
+
+test('activity also starts its Website traffic section', async () => {
+  await boot('admin/activity.js', { imagerySource: 'gsv', imageryAccessToken: 'tok', username: 'a' });
+  expect(h.pages.TrafficSection.args)
+    .toEqual([{ trafficUrl: '/adminapi/traffic', bodyId: 'traffic-body', statusId: 'traffic-status' }]);
+  expect(h.pages.TrafficSection.calls).toEqual(['init']);
 });
 
 describe('API docs entries', () => {

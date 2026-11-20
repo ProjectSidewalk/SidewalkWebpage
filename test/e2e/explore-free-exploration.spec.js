@@ -2,7 +2,7 @@
  * Free exploration's ways out of a pano with no links (#5968). The Maps stub answers every pano with no links and mints
  * one wherever a location search asks, so any drop-in lands link-less and a step down the street always finds a pano.
  */
-const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
+const {test, expect, stubMapbox, waitForAppReady, metersBetween, openStreetSegment} = require('./fixtures');
 
 test('a free-exploration pano with no links offers an arrow each way down the street', async ({page, context,
   consoleErrors}) => {
@@ -10,13 +10,7 @@ test('a free-exploration pano with no links offers an arrow each way down the st
 
   // Inside a street's first segment, so the drop-in resolves to that street and not one it meets; a segment of 60 m
   // or more, so a 10 m step from its middle is plainly one step and not a jump to its end.
-  const metersBetween = ([lng1, lat1], [lng2, lat2]) => {
-    const perDegree = 111320;
-    return Math.hypot((lng1 - lng2) * perDegree * Math.cos((lat1 * Math.PI) / 180), (lat1 - lat2) * perDegree);
-  };
-  const streets = await (await page.request.get('/v3/api/streets')).json();
-  const coords = streets.features.map((f) => f.geometry.coordinates).find(([a, b]) => metersBetween(a, b) > 60);
-  test.skip(!coords, 'the connected database has no street with a long first segment');
+  const coords = await openStreetSegment(page.request, 60);
   const lng = (coords[0][0] + coords[1][0]) / 2;
   const lat = (coords[0][1] + coords[1][1]) / 2;
 

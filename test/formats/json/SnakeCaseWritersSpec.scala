@@ -3,7 +3,7 @@ package formats.json
 import formats.json.AdminFormats.given
 import formats.json.ClusterFormats.given
 import formats.json.ExploreFormats.{ExploreSession, given}
-import formats.json.HealthFormats.{FleetCityHealth, FleetHealth, HealthStatus, given}
+import formats.json.HealthFormats.{FleetCityHealth, FleetHealth, HealthStatus, MemoryStatus, given}
 import formats.json.LabelFormats.given
 import formats.json.MissionFormats.given
 import formats.json.RouteBuilderFormats.given
@@ -255,6 +255,26 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
     check(
       HealthStatus("error", None, None, true, None, None, "seattle", "test", t, Some("TimeoutException")),
       """{"status":"error","git_dirty":true,"city_id":"seattle","environment":"test","app_started_at":"2026-09-29T12:30:00Z","error":"TimeoutException"}"""
+    )
+    check(
+      MemoryStatus(
+        "seattle",
+        t,
+        t,
+        Some(3000),
+        Some(10),
+        Some(20000),
+        None,
+        900,
+        1536,
+        1536,
+        Map("Metaspace" -> 200),
+        40,
+        0,
+        180,
+        Some(1274)
+      ),
+      """{"city_id":"seattle","app_started_at":"2026-09-29T12:30:00Z","read_at":"2026-09-29T12:30:00Z","rss_mb":3000,"swap_mb":10,"virtual_mb":20000,"heap_used_mb":900,"heap_committed_mb":1536,"heap_max_mb":1536,"non_heap_pools_mb":{"Metaspace":200},"direct_buffers_mb":40,"mapped_buffers_mb":0,"threads":180,"unaccounted_mb":1274}"""
     )
     check(
       FleetHealth(

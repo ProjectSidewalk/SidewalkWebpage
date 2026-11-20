@@ -77,6 +77,8 @@ city.name.niagara-falls-ny = Niagarawatervallen
 city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
+city.name.niteroi-br = Niterói
+city.name.rio-linda-ca = Rio Linda
 
 state.name.california = Californië
 state.name.alaska = Alaska

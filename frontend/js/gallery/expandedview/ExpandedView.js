@@ -119,7 +119,7 @@ export class ExpandedView {
   /**
    * Reopens the label a shared or refreshed ?labelId= URL points at. Called by CardContainer after cards have
    * rendered — any earlier and the initial query's refreshUI() would immediately close it again. The deep link
-   * opens the detail directly by id: no thumbnail highlight, and paging picks up from the first card.
+   * opens the detail directly by id: no reference card, so paging picks up from the first card.
    */
   restoreFromUrl() {
     if (!this.initialUrlLabelId) return;
@@ -137,6 +137,7 @@ export class ExpandedView {
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     this.leftArrow?.setAttribute('aria-disabled', 'true');
+    this.#dimCardsExcept(labelId);
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -415,19 +416,17 @@ export class ExpandedView {
       behavior: 'smooth',
     });
 
-    // Remove transparent effect from selected card.
-    galleryCard.classList.remove(ExpandedView.#unselectedCardClassName);
+    this.#dimCardsExcept(this.refCard.getLabelId());
+  }
 
-    // The rest of the cards should be semitransparent.
-    const currentPageCards = this.#cardContainer.getCurrentPageCards();
-    for (const card of currentPageCards) {
-      const cardLabelId = card.getLabelId();
-      if (cardLabelId !== this.refCard.getLabelId()) {
-        const cardDomEl = document.getElementById(`gallery_card_${cardLabelId}`);
-        if (cardDomEl && !cardDomEl.classList.contains(ExpandedView.#unselectedCardClassName)) {
-          cardDomEl.classList.add(ExpandedView.#unselectedCardClassName);
-        }
-      }
+  /**
+   * Fades every card on the page but the open label's, which a deep link may not have on the page.
+   * @param {number} openLabelId
+   */
+  #dimCardsExcept(openLabelId) {
+    for (const card of this.#cardContainer.getCurrentPageCards()) {
+      const cardDomEl = document.getElementById(`gallery_card_${card.getLabelId()}`);
+      cardDomEl?.classList.toggle(ExpandedView.#unselectedCardClassName, card.getLabelId() !== openLabelId);
     }
   }
 

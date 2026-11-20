@@ -105,6 +105,14 @@ object ApiError {
     toResult(stillComputing(detail)).withHeaders(HeaderNames.RETRY_AFTER -> StillComputingRetryAfterSeconds.toString)
 
   /**
+   * Creates a 503 for a value that can't be produced right now (#5977). The caller adds `Retry-After`.
+   *
+   * @param detail Human-readable explanation, kept free of internal error text.
+   */
+  def temporarilyUnavailable(detail: String): ApiError =
+    ApiError(503, "TEMPORARILY_UNAVAILABLE", "Service Unavailable", detail)
+
+  /**
    * Creates a 404 problem detail for a missing resource.
    *
    * @param detail Human-readable explanation of what was not found.

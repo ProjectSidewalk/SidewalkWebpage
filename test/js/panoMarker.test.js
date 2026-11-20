@@ -8,13 +8,15 @@
 
 import { loadModules, useUtil } from './loader.js';
 
-/** The 2d projection's answer, in the container's pixels. */
+/** The projection's answer, in the container's pixels. */
 const PROJECTED = { x: 300, y: 120 };
 
 let PanoMarker;
 let pano;
 let container;
 let viewer;
+// Every marker a test built, removed afterwards so its window resize listener can't draw during a later test.
+let built = [];
 
 /**
  * A pano viewer whose POV a test can change, firing pov_changed the way the real viewers do.
@@ -40,20 +42,21 @@ function fakeViewer() {
  * @param {object} [overrides] - Options to add or replace.
  * @returns {PanoMarker} The marker.
  */
-const build = (overrides = {}) => new PanoMarker({
-  panoViewer: viewer,
-  markerContainer: container,
-  position: { heading: 95, pitch: -10 },
-  size: { width: 22, height: 22 },
-  ...overrides,
-});
+const build = (overrides = {}) => {
+  const marker = new PanoMarker({
+    panoViewer: viewer,
+    markerContainer: container,
+    position: { heading: 95, pitch: -10 },
+    size: { width: 22, height: 22 },
+    ...overrides,
+  });
+  built.push(marker);
+  return marker;
+};
 
 beforeEach(async () => {
-  // jsdom has no canvas contexts; a browser without WebGL answers null the same way.
-  HTMLCanvasElement.prototype.getContext = () => null;
   ({ PanoMarker } = await loadModules('frontend/js/common/PanoMarker.js'));
   pano = {
-    centeredPovToCanvasCoord2d: vi.fn(() => PROJECTED),
     centeredPovToCanvasCoord: vi.fn(() => PROJECTED),
     renderedHFov: () => 60,
   };
@@ -63,6 +66,11 @@ beforeEach(async () => {
   Object.defineProperty(container, 'offsetWidth', { value: 720 });
   Object.defineProperty(container, 'offsetHeight', { value: 480 });
   viewer = fakeViewer();
+});
+
+afterEach(() => {
+  built.filter((marker) => marker.marker_).forEach((marker) => marker.removeMarker());
+  built = [];
 });
 
 describe('PanoMarker', () => {
@@ -88,19 +96,12 @@ describe('PanoMarker', () => {
     expect(marker.marker_.id).toBe('');
   });
 
-  test('uses the 3d projection when the browser has WebGL', () => {
-    HTMLCanvasElement.prototype.getContext = (type) => (type === 'webgl' ? {} : null);
-    build();
-    expect(pano.centeredPovToCanvasCoord).toHaveBeenCalled();
-    expect(pano.centeredPovToCanvasCoord2d).not.toHaveBeenCalled();
-  });
-
   test('follows the view as the user pans, and tells whatever hangs off it', () => {
     const onDraw = vi.fn();
     const marker = build({ onDraw });
-    pano.centeredPovToCanvasCoord2d.mockReturnValue({ x: 100, y: 200 });
+    pano.centeredPovToCanvasCoord.mockReturnValue({ x: 100, y: 200 });
     viewer.turnTo({ heading: 80, pitch: 0, zoom: 1 });
-    expect(pano.centeredPovToCanvasCoord2d).toHaveBeenLastCalledWith(
+    expect(pano.centeredPovToCanvasCoord).toHaveBeenLastCalledWith(
       { heading: 95, pitch: -10 }, { heading: 80, pitch: 0, zoom: 1 }, 720, 480, 22, 60);
     expect(marker.marker_.style.left).toBe(`${100 - 11}px`);
     expect(onDraw).toHaveBeenCalledTimes(2);
@@ -108,13 +109,13 @@ describe('PanoMarker', () => {
 
   test('redraws when the window is resized', () => {
     const marker = build();
-    pano.centeredPovToCanvasCoord2d.mockReturnValue({ x: 50, y: 60 });
+    pano.centeredPovToCanvasCoord.mockReturnValue({ x: 50, y: 60 });
     window.dispatchEvent(new Event('resize'));
     expect(marker.marker_.style.top).toBe(`${60 - 11}px`);
   });
 
   test('parks itself out of sight while the label is behind the camera', () => {
-    pano.centeredPovToCanvasCoord2d.mockReturnValue(null);
+    pano.centeredPovToCanvasCoord.mockReturnValue(null);
     const marker = build();
     expect(marker.marker_.style.left).toBe(`${-(9999 + 22)}px`);
     expect(marker.marker_.style.top).toBe('0px');
@@ -122,9 +123,9 @@ describe('PanoMarker', () => {
 
   test('moves to a new spot', () => {
     const marker = build();
-    pano.centeredPovToCanvasCoord2d.mockReturnValue({ x: 400, y: 240 });
+    pano.centeredPovToCanvasCoord.mockReturnValue({ x: 400, y: 240 });
     marker.setPosition({ heading: 120, pitch: 0 });
-    expect(pano.centeredPovToCanvasCoord2d).toHaveBeenLastCalledWith(
+    expect(pano.centeredPovToCanvasCoord).toHaveBeenLastCalledWith(
       { heading: 120, pitch: 0 }, expect.any(Object), 720, 480, 22, 60);
     expect(marker.marker_.style.left).toBe(`${400 - 11}px`);
   });
@@ -167,9 +168,9 @@ describe('PanoMarker', () => {
     expect(container.contains(el)).toBe(false);
     expect(marker.marker_).toBeNull();
     expect(viewer.removeListener).toHaveBeenCalledWith('pov_changed', viewer.addListener.mock.calls[0][1]);
-    const draws = pano.centeredPovToCanvasCoord2d.mock.calls.length;
+    const draws = pano.centeredPovToCanvasCoord.mock.calls.length;
     viewer.turnTo({ heading: 0, pitch: 0, zoom: 1 });
     window.dispatchEvent(new Event('resize'));
-    expect(pano.centeredPovToCanvasCoord2d).toHaveBeenCalledTimes(draws);
+    expect(pano.centeredPovToCanvasCoord).toHaveBeenCalledTimes(draws);
   });
 });

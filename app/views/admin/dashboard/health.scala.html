@@ -20,7 +20,7 @@
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-idle">—</span><span class="ps-kpi-label">Idle in transaction</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-evolutions">—</span><span class="ps-kpi-label">Stuck evolutions</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-bloat">—</span><span class="ps-kpi-label">Bloated tables</span></div>
-      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB connections</span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-connections">—</span><span class="ps-kpi-label">DB connections in use (all cities)</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-panos">—</span><span class="ps-kpi-label">At-risk panos (this city)</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
@@ -28,7 +28,7 @@
 
   <div class="page-section" id="health-fleet-section">
     <h2 class="page-heading" id="fleet">Fleet <a href="#fleet" class="permalink">#</a></h2>
-    <p>Every city's app instance: whether it answers and which build it runs. During a release, rows still behind the most recently restarted instance's build are flagged until they restart.</p>
+    <p>Every city's app instance: whether it answers, which build it runs, and how many of its queries are waiting for a database connection. During a release, rows still behind the most recently restarted instance's build are flagged until they restart.</p>
     <div id="health-fleet"></div>
     <p class="ac-note" id="health-fleet-note"></p>
   </div>
