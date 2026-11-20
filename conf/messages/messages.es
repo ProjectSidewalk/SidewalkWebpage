@@ -84,6 +84,7 @@ city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
+city.name.rio-linda-ca = Rio Linda
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -92,6 +93,7 @@ state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
 state.name.new-york = Nueva York
 state.name.alaska = Alaska
+state.name.california = California
 
 country.name.usa = EE.UU.
 country.name.mexico = México
