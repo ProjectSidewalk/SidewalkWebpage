@@ -1,6 +1,6 @@
 # GSV FOV probe (issue #5083)
 
-Measures which field of view Google Street View's JS renderer (`google.maps.StreetViewPanorama`, WebGL) holds
+Measures which field of view Google Street View's JS renderer (`google.maps.StreetViewPanorama`) holds
 fixed when the viewport aspect ratio changes: a **horizontal FOV spanning the container width** (the
 assumption baked into `frontend/js/common/pano-viewer/panoUtilities.js` — `f = (canvasWidth/2)/tan(fov/2)`),
 a **pinned vertical FOV** (how Mapillary and Infra3d behave, bridged via `vFovToHFov()`, #4852), a pinned
@@ -130,7 +130,7 @@ Protocol details, all recorded in each run's `manifest.json`:
   separates aspect-pinning from pixel-count clamping) · `720×480 @ deviceScaleFactor 2` (CSS-px vs
   backing-store pinning; analysis divides fitted f by DSF).
 - **Scenes**: the local-tile `tutorial` pano (deterministic control — repo-pinned tiles, rendered through the
-  same `registerPanoProvider` + WebGL path as live imagery, low-res so its zoom-3 σ is larger) plus live
+  same `registerPanoProvider` path as live imagery, low-res so its zoom-3 σ is larger) plus live
   panos resolved at record time from fixed coordinates (resolved pano id, imagery date, and tile worldSize —
   the generation proxy — go into the manifest).
 - **Zooms** 1–3, which is what Explore clamps to. Zoom 0 is excluded on that basis plus a weaker one: the
@@ -146,9 +146,12 @@ Protocol details, all recorded in each run's `manifest.json`:
   byte-identical (min 3 shots, min 600 ms, 10 s timeout, iteration count logged) — both shots of every pair
   are terminal-state renders, so pan tweening, tile arrival, and LOD sharpening cannot contaminate a pair.
 - **Fresh page + fresh `StreetViewPanorama` per (pano, container, load)** — never in-place resizing.
-- **Renderer assertion**: each load hard-fails unless a container-filling `<canvas>` is mounted. The Maps
-  API's non-WebGL tile fallback renders through a *different* documented FOV curve (`180/2^zoom`), so a
-  silent fallback would poison the verdict.
+- **Which renderer this is**: the Maps API has three — WebGL, 2D canvas, and image tiles. Registering a pano
+  provider without Google's `cors` option puts it on 2D canvas (#5979). The app and this probe both register
+  one, so the numbers here are for the 2D-canvas renderer; a move to WebGL would need them measured again.
+- **Renderer assertion**: each load hard-fails unless a container-filling `<canvas>` is mounted, which both
+  WebGL and 2D canvas do. The image-tile fallback renders through a *different* documented FOV curve
+  (`180/2^zoom`), so a silent fallback to it would poison the verdict.
 - **Readbacks, not requests**: the fitted model uses post-set `getPov()`/`getZoom()` values, and the analyzer
   reports any zoom readback that differs from the request (clamp/quantization detection).
 - **Two independent page loads** per configuration; estimates are clustered by (load, h0) for the bootstrap.
@@ -272,12 +275,10 @@ hFov each hypothesis predicts, using the 3:2-calibrated curve (`zoomToFov`) as t
 
 ## Side questions the same data answers
 
-- The empirical WebGL curve (53° at zoom 2) vs GSV's documented `180/2^zoom` (45°) — the method gate measures
+- The empirical curve (53° at zoom 2) vs GSV's documented `180/2^zoom` (45°) — the method gate measures
   the curve directly.
 - Whether FOV is pinned in CSS px or backing-store px (the DSF-2 config).
 - Whether behavior depends on canvas size at fixed aspect (the 2× config).
-- Optionally, a `--disable-webgl` phase-2 run can measure the 2D tile fallback's curve, which
-  `centeredPovToCanvasCoord2d` assumes to be `180/2^zoom`.
 
 ## Files
 

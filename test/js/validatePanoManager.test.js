@@ -108,8 +108,6 @@ describe('Validate PanoManager', () => {
       </div>`;
     dateEl = document.getElementById('svv-panorama-date');
     controlLayer = document.getElementById('view-control-layer');
-    // jsdom has no WebGL, so PanoMarker takes its 2d projection; null is what jsdom effectively answers.
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     tracker = fakeTracker();
     overlays = fakePanoOverlays();
     panoImageCache = { prefetchBackups: vi.fn() };

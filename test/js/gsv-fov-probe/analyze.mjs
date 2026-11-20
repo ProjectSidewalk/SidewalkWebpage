@@ -42,7 +42,7 @@ const MIN_PAIR_NCC = 0.8;
 // the estimator unit suite holds it to on synthetic ground truth.
 const SEED_AGREEMENT_TOL = 0.03;
 
-/** The app's empirical WebGL zoom->hFov curve (panoUtilities.js zoomToFov), the H1 reference. */
+/** The app's empirical zoom->hFov curve (panoUtilities.js zoomToFov), the H1 reference. */
 const zoomToFov = (zoom) => (zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom));
 
 /**

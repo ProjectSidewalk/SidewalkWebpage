@@ -60,11 +60,6 @@ describe('Validate marker halo pulse (issue #4790)', () => {
     document.body.innerHTML
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-    // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
-    // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
-    // keeps the fallback deterministic without jsdom's "not implemented" console noise.
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-
     const panoData = {
       getPanoId: () => 'pano1',
       getProperty: () => new Date(2026, 5)

@@ -116,6 +116,12 @@ export function installFakeGoogleMaps(panos = {}) {
       this.values = {};
       this.pov = { heading: 0, pitch: 0, zoom: 1 };
       this.panoProvider = null;
+      this.visible = opts.visible !== false;
+      // What was registered by the time the pano was shown: Google picks its renderer at that moment.
+      this.setVisible = vi.fn((visible) => {
+        this.visible = visible;
+        if (visible) this.providerWhenShown = this.panoProvider;
+      });
       this.setPano = vi.fn((id) => {
         this.pano = id;
         Promise.resolve().then(() => {
