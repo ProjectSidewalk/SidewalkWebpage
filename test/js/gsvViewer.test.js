@@ -54,6 +54,14 @@ describe('starting up', () => {
     expect(viewer.initialSeed).toBe('pano');
   });
 
+  test('keeps the pano hidden until the tutorial panos are registered, so Google never swaps its renderer', async () => {
+    await create({ startPanoId: 'P1', defaultNavigation: false });
+
+    expect(panorama().opts.visible).toBe(false);
+    expect(panorama().providerWhenShown).toBeInstanceOf(Function);
+    expect(panorama().visible).toBe(true);
+  });
+
   test('preloading fetches the Street View code without building a panorama', async () => {
     await GsvViewer.preloadLibrary();
     expect(window.google.maps.importLibrary.mock.calls.map(([name]) => name)).toEqual(['core', 'streetView']);

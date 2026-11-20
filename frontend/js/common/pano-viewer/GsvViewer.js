@@ -106,7 +106,10 @@ export class GsvViewer extends PanoViewer {
       defaultNavigation, // If true, we show Google's clickToGo navigation.
     };
     const panoOpts = { ...defaults, ...panoOptions };
-    this.gsvPano = await new StreetViewPanorama(canvasElem, panoOpts);
+
+    // Starts hidden: registering the tutorial panos on a visible pano makes Google rebuild its renderer, and the
+    // new one forgets the settings above, so street names get painted on the road (#5979).
+    this.gsvPano = await new StreetViewPanorama(canvasElem, { ...panoOpts, visible: false });
 
     // Add support for the tutorial panos that we have supplied locally.
     this.gsvPano.registerPanoProvider((pano) => {
@@ -115,6 +118,7 @@ export class GsvViewer extends PanoViewer {
       }
       return null;
     });
+    this.gsvPano.setVisible(true);
 
     // Initialize pano at the desired location.
     await this._moveToInitialLocation(panoOpts);

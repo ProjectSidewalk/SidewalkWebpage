@@ -211,6 +211,7 @@
     registerPanoProvider(provider) {
       this.#provider = provider;
     }
+    setVisible() {}
     #lookup(panoId) {
       const custom = this.#provider ? this.#provider(panoId) : null;
       return custom || lookupPano(panoId);
