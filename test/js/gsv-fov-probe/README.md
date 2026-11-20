@@ -146,12 +146,12 @@ Protocol details, all recorded in each run's `manifest.json`:
   byte-identical (min 3 shots, min 600 ms, 10 s timeout, iteration count logged) — both shots of every pair
   are terminal-state renders, so pan tweening, tile arrival, and LOD sharpening cannot contaminate a pair.
 - **Fresh page + fresh `StreetViewPanorama` per (pano, container, load)** — never in-place resizing.
-- **Which renderer this is**: registering a pano provider without Google's `cors` option puts the API on its
-  2D-canvas renderer, not WebGL (#5979). The app and this probe both register one, so the numbers here are for
-  the canvas renderer; a move to WebGL would need them measured again.
-- **Renderer assertion**: each load hard-fails unless a container-filling `<canvas>` is mounted. The Maps
-  API's non-WebGL tile fallback renders through a *different* documented FOV curve (`180/2^zoom`), so a
-  silent fallback would poison the verdict.
+- **Which renderer this is**: the Maps API has three — WebGL, 2D canvas, and image tiles. Registering a pano
+  provider without Google's `cors` option puts it on 2D canvas (#5979). The app and this probe both register
+  one, so the numbers here are for the 2D-canvas renderer; a move to WebGL would need them measured again.
+- **Renderer assertion**: each load hard-fails unless a container-filling `<canvas>` is mounted, which both
+  WebGL and 2D canvas do. The image-tile fallback renders through a *different* documented FOV curve
+  (`180/2^zoom`), so a silent fallback to it would poison the verdict.
 - **Readbacks, not requests**: the fitted model uses post-set `getPov()`/`getZoom()` values, and the analyzer
   reports any zoom readback that differs from the request (clamp/quantization detection).
 - **Two independent page loads** per configuration; estimates are clustered by (load, h0) for the bootstrap.
@@ -279,8 +279,6 @@ hFov each hypothesis predicts, using the 3:2-calibrated curve (`zoomToFov`) as t
   the curve directly.
 - Whether FOV is pinned in CSS px or backing-store px (the DSF-2 config).
 - Whether behavior depends on canvas size at fixed aspect (the 2× config).
-- Optionally, a `--disable-webgl` phase-2 run can measure the 2D tile fallback's curve, which
-  `centeredPovToCanvasCoord2d` assumes to be `180/2^zoom`.
 
 ## Files
 

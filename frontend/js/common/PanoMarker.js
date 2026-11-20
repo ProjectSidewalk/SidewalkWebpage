@@ -61,22 +61,6 @@ export class PanoMarker {
     /** @type {{width: number, height: number}} */
     this.size_ = opts.size;
 
-    /**
-     * New code (April 17, 2019) -- modified by Aileen
-     * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
-     * @private
-     * @type {(
-     *   centeredPov: {heading: number, pitch: number},
-     *   newPov: {heading: number, pitch: number, zoom: number},
-     *   canvasWidth: number, canvasHeight: number, margin: number, hFov?: number
-     * ) => {x: number, y: number}|null}
-     */
-    this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
-    const pixelCanvas = document.createElement('canvas');
-    if (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl')) {
-      this.povToPixel_ = util.pano.centeredPovToCanvasCoord;
-    }
-
     this.createMarker(opts.zIndex || 1, opts.id, opts.icon);
   }
 
@@ -146,7 +130,7 @@ export class PanoMarker {
     const height = this.markerContainer_.offsetHeight;
     // The fov the viewer renders for this container's shape, not the zoom curve alone: GSV clamps its vertical
     // field on a tall or wide viewport (#5083), and a marker projected with the curve would sit off its feature.
-    const coords = this.povToPixel_(
+    const coords = util.pano.centeredPovToCanvasCoord(
       this.position_, pov, width, height, this.size_.width,
       util.pano.renderedHFov(pov.zoom, width / height, this.panoViewer_.getViewerType?.()),
     );
