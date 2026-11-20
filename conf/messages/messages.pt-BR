@@ -80,12 +80,14 @@ city.name.juneau-ak = Juneau
 city.name.beringen-be = Beringen
 city.name.goiania-br = Goiânia
 city.name.niteroi-br = Niterói
+city.name.rio-linda-ca = Rio Linda
 
 state.name.new-jersey = Nova Jersey
 state.name.south-carolina = Carolina do Sul
 state.name.new-york = Nova York
 state.name.florida = Flórida
 state.name.alaska = Alasca
+state.name.california = Califórnia
 
 country.name.usa = EUA
 country.name.mexico = México
