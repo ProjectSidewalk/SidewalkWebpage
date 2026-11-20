@@ -439,19 +439,3 @@ util.pano.centeredPovToCanvasCoord = (
     return null;
   }
 };
-
-/**
- * Helper function that converts the heading to be in the range [-180,180).
- *
- * @param {number} heading - The heading to convert.
- * @returns {number} The heading converted to the range [-180,180).
- */
-util.pano.wrapHeading = (heading) => {
-  // We shift to the range [0,360) because of the way JS behaves for modulos of negative numbers.
-  heading = (heading + 180) % 360;
-
-  // Determine if we have to wrap around.
-  if (heading < 0) heading += 360;
-
-  return heading - 180;
-};

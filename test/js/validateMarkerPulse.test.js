@@ -60,7 +60,6 @@ describe('Validate marker halo pulse (issue #4790)', () => {
     document.body.innerHTML
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
-
     const panoData = {
       getPanoId: () => 'pano1',
       getProperty: () => new Date(2026, 5)

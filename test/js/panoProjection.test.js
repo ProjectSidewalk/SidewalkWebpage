@@ -23,6 +23,13 @@ const { util } = await loadModules('frontend/js/common/pano-viewer/panoUtilities
   'frontend/js/common/utilities.js');
 const pano = util.pano;
 
+/**
+ * Folds a heading difference into [-180, 180), so two headings a full turn apart compare as equal.
+ * @param {number} heading - Degrees.
+ * @returns {number} The same angle in [-180, 180).
+ */
+const wrapHeading = (heading) => ((heading + 180) % 360 + 360) % 360 - 180;
+
 // The authoring canvas every stored canvas_x/canvas_y is expressed in, read from the constant itself rather than
 // copied as a literal. LabelPointTable.canvasWidth/canvasHeight is the backend half of the same pair.
 const CANVAS_WIDTH = util.EXPLORE_CANVAS_WIDTH;
@@ -46,7 +53,7 @@ describe('util.pano projection', () => {
         pov, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT
       );
 
-      expect(pano.wrapHeading(centered.heading - pov.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(centered.heading - pov.heading)).toBeCloseTo(0, 6);
       expect(centered.pitch).toBeCloseTo(pov.pitch, 6);
       expect(centered.zoom).toBe(pov.zoom);
     });
@@ -197,7 +204,7 @@ describe('util.pano projection', () => {
 
       const pov = label.getOriginalPov();
 
-      expect(pano.wrapHeading(pov.heading - authored.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(pov.heading - authored.heading)).toBeCloseTo(0, 6);
       expect(pov.pitch).toBeCloseTo(authored.pitch, 6);
       expect(pov.zoom).toBe(authored.zoom);
     });
@@ -211,7 +218,7 @@ describe('util.pano projection', () => {
       const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};
 
       const wide = new ValidateLabel({...common, canvas_width: 720, canvas_height: 405}).getOriginalPov();
-      expect(pano.wrapHeading(wide.heading - authored.heading)).toBeCloseTo(0, 6);
+      expect(wrapHeading(wide.heading - authored.heading)).toBeCloseTo(0, 6);
       expect(wide.pitch).toBeCloseTo(authored.pitch, 1);
 
       const legacy = new ValidateLabel(common).getOriginalPov();
