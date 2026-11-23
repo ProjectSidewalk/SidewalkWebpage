@@ -70,3 +70,23 @@ test.describe('stacked above the cards', () => {
     expect(layout.scrolls).toBe(false);
   });
 });
+
+test('/gallery tabs from a filter to its "Only" button, which then works by keyboard (#5999)', async ({page, context}) => {
+  await loadAndSettle(page, context, GALLERY);
+  const labelTypes = page.locator('.sidebar [data-filter-section="label-type"]');
+  const row = labelTypes.locator('.filter-sidebar__item-row').nth(1);
+  const only = row.locator('.filter-sidebar__only');
+
+  // Stepping back and forward arrives by keyboard, which is what shows "Only". Chrome used to drop focus to the page
+  // on the next Tab, because the button it was heading for stopped being rendered as the checkbox let go.
+  await row.locator('input').focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(only).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(only).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  await expect(labelTypes.locator('.filter-sidebar__checkbox:checked')).toHaveCount(1);
+  await expect(row.locator('input')).toBeChecked();
+});

@@ -131,7 +131,8 @@
 
 .acs-place-row:hover .filter-sidebar__only,
 .acs-place-row:has(:focus-visible) .filter-sidebar__only {
-  display: inline;
+  width: auto;
+  overflow: visible;
 }
 
 .acs-place-row:hover .acs-place__count,
