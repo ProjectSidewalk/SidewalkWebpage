@@ -101,6 +101,9 @@ are, since a 3.10 or 3.1 would otherwise merge as a "minor".
   [play-mailer](https://github.com/playframework/play-mailer?tab=readme-ov-file#versioning),
   [play-slick](https://github.com/playframework/play-slick?tab=readme-ov-file#all-releases),
   [play-silhouette](https://github.com/playframework/play-silhouette?tab=readme-ov-file#version-compatibility-matrix).
+  Play WS takes its TLS settings from `ssl-config-core`, whose 0.6 defaults stop at TLS 1.2, so `application.conf` sets
+  `play.ws.ssl.protocol` and `play.ws.ssl.enabledProtocols` itself (#6033). Drop both lines once a Play bump brings
+  `ssl-config-core` 0.7 or later, which has the same values as its defaults.
 - **scala-guice** — **stay on 6.** 7.0.0 is 6.0.0 with `javax` swapped for `jakarta`
   ([Guice 7 transition](https://github.com/google/guice/wiki/Guice700#jee-jakarta-transition)), which Play hasn't done,
   so 7 breaks core Play functionality until Play migrates (watch the
