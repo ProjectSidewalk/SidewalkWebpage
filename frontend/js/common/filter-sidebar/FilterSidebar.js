@@ -226,9 +226,15 @@ export class FilterSidebar {
       btn.setAttribute('aria-label', `${i18next.t('common:only')}: ${rowLabel}`);
 
       btn.addEventListener('click', () => {
+        // The checkboxes are disabled while the host loads; "Only" stays focusable so a keyboard user keeps their
+        // place, and a press is ignored instead.
+        if (this.#root.classList.contains('filter-sidebar--loading')) return;
         const { section, value } = btn.dataset;
         this.setSection(section, (candidate) => String(candidate) === value, { clearTagsWhenOff: true });
         this.#onChange({ kind: 'only', section, value });
+        // A pointer click focuses the button without showing it, so it would hide while still holding focus and
+        // take the next Space or Enter.
+        if (!btn.matches(':focus-visible')) btn.blur();
       });
     });
   }

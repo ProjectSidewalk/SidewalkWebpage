@@ -233,6 +233,8 @@ export class AccessScoreSidebar {
       row.only.addEventListener('click', () => {
         for (const [other, otherRow] of Object.entries(e.placeRows)) otherRow.input.checked = other === category;
         this.#emitPlaceCategories({ kind: 'PlaceCategoryOnly', value: category });
+        // As in FilterSidebar: after a pointer click the button would hide while still holding focus.
+        if (!row.only.matches(':focus-visible')) row.only.blur();
       });
     }
     // Opening a fold is worth knowing about: it says whether people reach for the places at all.
