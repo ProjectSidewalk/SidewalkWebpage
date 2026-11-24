@@ -293,6 +293,16 @@ describe('FilterSidebar', () => {
       expect(changes).toEqual([{ kind: 'only', section: 'label-type', value: 'Obstacle' }]);
     });
 
+    it('does nothing while the host is loading', () => {
+      const sidebar = build();
+      const before = sidebar.getState().sections['label-type'];
+      sidebar.disable();
+      onlyBtn('label-type', 'Obstacle').click();
+
+      expect(sidebar.getState().sections['label-type']).toEqual(before);
+      expect(changes).toEqual([]);
+    });
+
     it('clears the tag filters of the types it turns off', () => {
       const sidebar = build();
       tagPill('CurbRamp').click();

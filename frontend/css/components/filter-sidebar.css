@@ -601,7 +601,12 @@ body.filter-sidebar-resizing {
   cursor: pointer;
   font: var(--text-caption-semibold);
   color: var(--color-asphalt-400);
-  display: none;
+
+  /* Zero width, not display: none, so Tab can still land on it: Chrome drops focus if its target isn't rendered
+     (#5999). nowrap keeps zh-TW's two-character "Only" on one line while squeezed. */
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .filter-sidebar__only:hover {
@@ -614,7 +619,8 @@ body.filter-sidebar-resizing {
    :focus-within would then strand "Only" over the count until focus moved elsewhere. */
 .filter-sidebar__item:hover .filter-sidebar__only,
 .filter-sidebar__item:has(:focus-visible) .filter-sidebar__only {
-  display: inline;
+  width: auto;
+  overflow: visible;
 }
 
 .filter-sidebar__item:hover .filter-sidebar__count,
@@ -622,15 +628,16 @@ body.filter-sidebar-resizing {
   display: none;
 }
 
-/* Severity cells have no count to swap with, so "Only" keeps its space (visibility) to avoid grid reflow. */
+/* Severity cells clip "Only" instead: in fr and pt-BR it is what sets the grid's column width, so it keeps its own. */
 .filter-sidebar__severity-cell .filter-sidebar__only {
-  display: block;
-  visibility: hidden;
+  width: auto;
+  overflow: visible;
+  clip-path: inset(50%);
 }
 
 .filter-sidebar__severity-cell:hover .filter-sidebar__only,
 .filter-sidebar__severity-cell:has(:focus-visible) .filter-sidebar__only {
-  visibility: visible;
+  clip-path: none;
 }
 
 /* ---- Tag expand/collapse toggle ---- */

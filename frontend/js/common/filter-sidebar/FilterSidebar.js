@@ -226,9 +226,13 @@ export class FilterSidebar {
       btn.setAttribute('aria-label', `${i18next.t('common:only')}: ${rowLabel}`);
 
       btn.addEventListener('click', () => {
+        // Ignored while the host loads, not disabled: disabling it would drop a keyboard user's focus to the page.
+        if (this.#root.classList.contains('filter-sidebar--loading')) return;
         const { section, value } = btn.dataset;
         this.setSection(section, (candidate) => String(candidate) === value, { clearTagsWhenOff: true });
         this.#onChange({ kind: 'only', section, value });
+        // A pointer click focuses it without showing it; left focused, it would take the next Space or Enter.
+        if (!btn.matches(':focus-visible')) btn.blur();
       });
     });
   }

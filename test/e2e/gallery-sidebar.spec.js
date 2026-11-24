@@ -70,3 +70,42 @@ test.describe('stacked above the cards', () => {
     expect(layout.scrolls).toBe(false);
   });
 });
+
+test('/gallery tabs from a filter to its "Only" button, which works by keyboard (#5999)', async ({page, context}) => {
+  await loadAndSettle(page, context, GALLERY);
+  const labelTypes = page.locator('.sidebar [data-filter-section="label-type"]');
+  const row = labelTypes.locator('.filter-sidebar__item-row').nth(1);
+  const only = row.locator('.filter-sidebar__only');
+
+  // Stepping back and forward arrives by keyboard, which is what shows "Only". Chrome drops focus to the page on the
+  // next Tab if the button it is heading for stops being rendered as the checkbox lets go.
+  await expect(row.locator('input')).toBeEnabled();
+  await row.locator('input').focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(only).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(only).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  await expect(labelTypes.locator('.filter-sidebar__checkbox:checked')).toHaveCount(1);
+  await expect(row.locator('input')).toBeChecked();
+});
+
+test('/gallery hides "Only" without moving the filters or holding focus (#5999)', async ({page, context}) => {
+  await loadAndSettle(page, context, GALLERY);
+  const cell = page.locator('.sidebar .filter-sidebar__severity-cell').nth(1);
+  const only = cell.locator('.filter-sidebar__only');
+  const width = () => only.evaluate((el) => el.getBoundingClientRect().width);
+
+  // In some languages "Only" is the widest thing in its severity column, so it holds its width while out of sight.
+  const hiddenWidth = await width();
+  expect(hiddenWidth).toBeGreaterThan(0);
+  await cell.hover();
+  expect(await width()).toBe(hiddenWidth);
+
+  // Once the pointer leaves, a clicked "Only" is out of sight again, and Space must not be able to press it there.
+  await only.click();
+  await page.mouse.move(0, 0);
+  await expect(only).not.toBeFocused();
+});
