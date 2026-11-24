@@ -17,6 +17,7 @@ component.json
 docker-compose.override*.yml
 ga-service-account.json
 db/*-dump
+db/*-dump.first-pass
 
 # Generated per-city artifacts from tools/city/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
 # staging SQL, report, imagery-scan CSVs, osmnx cache)

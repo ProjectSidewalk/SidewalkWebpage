@@ -6,7 +6,7 @@ import models.audit.AuditTaskTableDef
 import models.label.LabelType
 import models.region.RegionTableDef
 import models.route.UserRouteTableDef
-import models.user.{SidewalkUserTable, SidewalkUserTableDef}
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Logger
@@ -180,37 +180,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       .map(_.missionId)
       .result
       .head
-  }
-
-  /**
-   * Seeds the SidewalkAI account's `aiValidation` missions, one per label type, where the schema lacks them (#5349).
-   *
-   * 281.sql created these once per schema; a schema created by cloning a donor (or restored from an onboarding dump)
-   * carries 281 as applied without them, and getAiValidateMissionId is `.head`, so the first AI validation would
-   * throw. The rows are 281's: one label to validate, no progress, never completed.
-   *
-   * @return The label types whose mission was inserted, in [[LabelType.ordered]] order; empty when none was.
-   */
-  def insertMissingAiValidationMissions(): DBIO[Seq[LabelType]] = {
-    val now: OffsetDateTime = OffsetDateTime.now
-    DBIO
-      .sequence(LabelType.ordered.map { labelType =>
-        missions
-          .filter(m =>
-            m.userId === SidewalkUserTable.aiUserId && m.missionType === MissionType.AiValidation
-              && m.labelType === labelType
-          )
-          .exists
-          .result
-          .flatMap {
-            case true  => DBIO.successful(None)
-            case false =>
-              val seed = Mission(0, MissionType.AiValidation, SidewalkUserTable.aiUserId, now, now, completed = false,
-                0d, paid = false, None, None, None, Some(1), Some(0), Some(labelType), skipped = false, None, None)
-              (missions += seed).map(_ => Some(labelType))
-          }
-      })
-      .map(_.flatten)
   }
 
   def getCurrentValidationMission(

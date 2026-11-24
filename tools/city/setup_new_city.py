@@ -1036,20 +1036,20 @@ def run_street_gradient(schema, city_id, sampler_args=()):
     return 'sampled'
 
 
-# The tables onboarding itself fills, and so the only ones whose rows belong in the dump: the seed rows the clone
-# copies (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's
+# The tables onboarding itself fills, and so the only ones whose rows the dump step carries over: the seed rows the
+# clone copies (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's
 # imagery-age summary and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), the
 # sampled street grades (import-street-gradient.sh), and
 # region_completion, which the app computes from the streets on first use — and recomputes whenever the table is
 # empty, which is why the dump leaves its data out (a QA walk moves audited_distance, which the landing page's
-# completion figure is divided by). Every other table's data stays out of the dump too: a local QA pass fills some
+# completion figure is divided by). Every other table's data stays out too: a local QA pass fills some
 # (one walk in Explore writes an audit_task and thousands of audit_task_interaction rows), the nightly jobs fill
 # others (intersection, cluster, sidewalk_presence, osm_way, background_job_run — an admin forcing them from
 # /clustering, or an app left running as the city, produces the same), and none of it belongs in a launched city.
 # Naming what is kept rather than what is left out is the point: a denylist has to know every table a QA pass or a
-# job can reach. test_setup_new_city.py pins this list against the scripts' own INSERTs, and pins the evolutions'
-# own seed rows too: an evolution applied at the boot (a donor behind the checkout) that seeded a table outside this
-# list would have that seed silently left out of the dump (#5297).
+# job can reach. The few rows a city needs in the tables left out are put back on the copy dump_schema ships
+# (seed-city-rows.sql). test_setup_new_city.py pins this list against the scripts' own INSERTs, and the evolutions'
+# seed rows too, so an evolution that seeds a table outside this list cannot have its rows silently dropped (#5297).
 ONBOARDING_TABLES = frozenset((
     'play_evolutions', 'version', 'tag', 'survey_question', 'survey_option', 'street_edge', 'config',
     'region', 'street_edge_region', 'street_edge_priority', 'osm_way_street_edge',
@@ -1122,14 +1122,64 @@ def dump_exclusions(schema):
     return patterns, counts
 
 
+# Written on the set-aside schema with the clean copy's id, so a later run can tell that copy from a stranger.
+COPY_NOTE = 'onboarding dump copy '
+
+
+def set_aside_name(schema):
+    """Where the local schema waits while the clean copy borrows its name for the dump."""
+    return f'{schema}_set_aside'
+
+
+def put_local_schema_back(schema, copy_is_ours=False):
+    """
+    Drops the clean copy, gives the set-aside local schema its name back, and lets the city's role log in again.
+    With no schema set aside it only restores the login, so it is safe after a step that failed at any point.
+
+    Args:
+        copy_is_ours: True from the run that made the copy. A later run drops only a copy whose id is noted on the
+                      set-aside schema: anything else under the city's name may be someone's only data.
+    """
+    aside = set_aside_name(schema)
+    is_aside = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{aside}'")
+    by_hand = (f'Your local {schema} is the schema now named {aside}. Once nothing you need is under the name '
+               f'{schema}: DROP SCHEMA {schema} CASCADE; COMMENT ON SCHEMA {aside} IS NULL; ALTER SCHEMA {aside} '
+               f'RENAME TO {schema}; ALTER ROLE {schema} LOGIN.')
+    if is_aside is None:
+        sys.exit(f'error: could not ask the database whether {aside} exists. If it does: {by_hand}')
+    if is_aside:
+        strangers = '0' if copy_is_ours else db_query(
+            f"SELECT count(*) FROM pg_namespace WHERE nspname = '{schema}' AND oid::text IS DISTINCT FROM "
+            f"(SELECT substring(obj_description(oid, 'pg_namespace') FROM '^{COPY_NOTE}(\\d+)$') "
+            f"FROM pg_namespace WHERE nspname = '{aside}')")
+        if strangers != '0':
+            sys.exit(f'error: {aside} is left from a dump step that was killed, and the schema now named {schema} '
+                     f'is not the copy that step made, so it was not dropped. {by_hand}')
+        run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk', '-c',
+                     f'SET client_min_messages = warning; BEGIN; DROP SCHEMA IF EXISTS {schema} CASCADE; '
+                     f'COMMENT ON SCHEMA {aside} IS NULL; ALTER SCHEMA {aside} RENAME TO {schema}; COMMIT;'],
+                    f'putting the local {schema} back under its name failed', by_hand)
+    # A city that has not been cloned yet has no role.
+    docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk', '-c',
+              f"DO $$ BEGIN IF EXISTS (SELECT FROM pg_roles WHERE rolname = '{schema}') THEN "
+              f'ALTER ROLE {schema} LOGIN; END IF; END $$', check=True)
+
+
 def dump_schema(schema):
     """
-    Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc), with
-    the data of every table onboarding did not write left out (see ONBOARDING_TABLES).
+    Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc), as a
+    launched city should start: the tables onboarding wrote (ONBOARDING_TABLES), the seed rows every city needs
+    (seed-city-rows.sql), and nothing a QA pass or a job left behind.
+
+    pg_dump keeps or drops a whole table, and the seed rows share tables with QA data, so this takes two passes. The
+    first dump leaves out every table onboarding did not write. The local schema is renamed aside, that dump is
+    restored under the real name as a clean copy, and the copy is seeded and dumped whole. Then the copy is dropped
+    and the local schema renamed back, untouched (#6036).
 
     Returns:
         The number of objects the dump lists (a sanity check that it isn't empty).
     """
+    put_local_schema_back(schema)
     exclusions = dump_exclusions(schema)
     if exclusions is None:
         sys.exit(f'error: could not read {schema}\'s catalog to decide what the dump leaves out, and "couldn\'t '
@@ -1137,30 +1187,39 @@ def dump_schema(schema):
                  '--dump-only.')
     patterns, counts = exclusions
     if counts:
-        print('  Left out of the dump (rows a QA pass or a job wrote; the launched city starts without them): '
-              + ', '.join(f'{table}: {n_rows}' for table, n_rows in counts))
-    # The one in-place value a QA walk changes in a table the dump keeps: walking a street moves its priority off
-    # the 1 the fill assigns. Derived data the app recomputes nightly, so the reset is safe to take under --yes.
-    moved = db_query(f'SELECT count(*) FROM {schema}.street_edge_priority WHERE priority <> 1')
-    if moved is None:
-        sys.exit(f'error: could not read {schema}.street_edge_priority; is the schema filled? Rerun with --dump-only.')
-    if int(moved):
-        print(f'  A QA walk moved the priority of {moved} street(s) off the 1 the fill assigns, and the dump keeps '
-              'street_edge_priority.')
-        if prompt('  Reset every priority to 1 before dumping? (y/n)', 'y') != 'y':
-            sys.exit('Stopped before writing the dump. Reset them (UPDATE street_edge_priority SET priority = 1) '
-                     'or rerun with --dump-only and answer y.')
-        # A lock timeout, because an app left running as the city with an open transaction would otherwise hang
-        # this step without a word.
-        run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
-                     '-c', "SET lock_timeout = '30s'; UPDATE street_edge_priority SET priority = 1;"],
-                    f'resetting {schema}\'s street priorities failed',
-                    'Stop any app running as the city, then rerun with --dump-only.')
-        print('  Reset.')
+        print('  Left out of the dump (rows a QA pass or a job wrote, and the seed rows put back below; your local '
+              'schema keeps them all): ' + ', '.join(f'{table}: {n_rows}' for table, n_rows in counts))
 
     dump_path = f'/opt/{schema}-dump'
-    docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema,
-              *[f'--exclude-table-data={pattern}' for pattern in patterns], '-f', dump_path, check=True)
+    first_pass = f'{dump_path}.first-pass'
+    psql = ('psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk')
+    set_aside = False
+    try:
+        docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema,
+                  *[f'--exclude-table-data={pattern}' for pattern in patterns], '-f', first_pass, check=True)
+        # An app running as the city would write rows into the copy, and they would ship. So the role cannot log in
+        # while the copy has the name. The lock is its own statement, committed before the connections are dropped.
+        run_or_exit([*psql, '-c', f'ALTER ROLE {schema} NOLOGIN', '-c',
+                     "SET lock_timeout = '30s'; DO $$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity "
+                     f"WHERE usename = '{schema}'; END $$; ALTER SCHEMA {schema} RENAME TO {set_aside_name(schema)};"],
+                    f'setting the local {schema} aside failed', 'Nothing was changed: rerun with --dump-only.')
+        set_aside = True
+        run_or_exit(['pg_restore', '-U', 'sidewalk', '-Fc', '-d', 'sidewalk', first_pass],
+                    f'restoring the first-pass dump as the clean copy of {schema} failed',
+                    'Your local schema was put back as it was: fix the cause and rerun with --dump-only.')
+        # A QA walk moves a street's priority off the 1 the fill assigns, in a table the dump keeps. The reset lands
+        # on the copy, so the local schema keeps what the walk did.
+        run_or_exit([*psql, '-v', f'schema={schema}',
+                     '-c', f"DO $$ BEGIN EXECUTE format('COMMENT ON SCHEMA {set_aside_name(schema)} IS %L', "
+                           f"'{COPY_NOTE}' || '{schema}'::regnamespace::oid); END $$",
+                     '-f', '/opt/scripts/seed-city-rows.sql',
+                     '-c', f'UPDATE {schema}.street_edge_priority SET priority = 1 WHERE priority <> 1'],
+                    f'seeding the clean copy of {schema} failed',
+                    'Your local schema was put back as it was: fix the cause and rerun with --dump-only.')
+        docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema, '-f', dump_path, check=True)
+    finally:
+        docker_db('rm', '-f', first_pass)
+        put_local_schema_back(schema, copy_is_ours=set_aside)
     listing = docker_db('pg_restore', '--list', dump_path, capture_output=True, text=True, check=True)
     n_objects = sum(1 for line in listing.stdout.split('\n') if line and not line.startswith(';'))
     size = docker_db('stat', '-c', '%s', dump_path, capture_output=True, text=True, check=True).stdout.strip()
@@ -1301,7 +1360,9 @@ def main(argv=None):
         if exists is None:
             sys.exit(f'error: the {DB_CONTAINER} container could not be asked; is it running (make docker-up / '
                      'make dev)?')
-        if not exists:
+        # After a killed dump step the city may be under its set-aside name only.
+        put_local_schema_back(schema)
+        if not schema_exists(schema):
             sys.exit(f'error: there is no schema {schema} to dump; run without --dump-only to build it.')
         require_mounted(REPO_ROOT / 'db' / 'scripts' / 'fill-new-schema.sh', '/opt/scripts/fill-new-schema.sh')
         streets = street_count(schema)
@@ -1427,6 +1488,9 @@ def main(argv=None):
         if not container_up(container):
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
     require_mounted(sql_file, f'/opt/onboarding/{city_id}/qgis_tables.sql')
+
+    # A dump step killed part-way leaves the clean copy under the city's name; no step may run on that.
+    put_local_schema_back(schema)
 
     print(f'\nStep 3/9 — create the empty schema {schema} by cloning a donor city...')
     cloned = False

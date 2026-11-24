@@ -157,9 +157,9 @@ its default either way.
    skipped with a pointer.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
-   sequences, grants `readonly_user`. The SidewalkAI user's per-schema rows are not among the seeds: the clone
-   marks 281.sql (which seeded them) applied, so the app inserts them itself at boot — the step 4 boot here, and
-   the server's first boot after the dump is restored (`AiSeedRowsRepair`, #5349). The donor defaults to the dev
+   sequences, grants `readonly_user`. The clone marks every evolution applied, so the rows an evolution seeded once
+   (360.sql's tutorial panos, 281.sql's SidewalkAI `user_stat` row and `aiValidation` missions) come from
+   `db/scripts/seed-city-rows.sql` instead, here and again in the step 9 dump (#6036). The donor defaults to the dev
    container's `DATABASE_USER`; pass `--donor` to choose. A donor is refused below evolution 373 (its `label_type`
    is still a table that `tag` references, so the seed copy fails half-way; such a schema is usually stranded below
    372 too, which no boot can fix — see `docs/dev-environment.md`) and when it has applied an evolution beyond this
@@ -169,7 +169,8 @@ its default either way.
    checked too: it passes when its `play_evolutions` hash is the one Play computes from this checkout's file
    (`make` and the orchestrator pass it in); otherwise every other city schema that has applied that number must
    agree with the donor, and a disagreement names the schemas so you can pick another `--donor`. (The committed
-   `sidewalk_init` template is not used here: it is frozen at evolution 252 and cannot be replayed past 372, #5198.)
+   `sidewalk_init` template is not used here: it is frozen at evolution 372 and goes staler with every evolution,
+   #5198. CI evolves it and then clones, dumps and restores its test city through these same scripts, #6036.)
 4. **Evolutions** — boots the app once as the new city and waits for `play_evolutions` to reach the repo's highest.
    Right after a clone it boots even when the donor was current, because Play is the one reliable check that every
    applied evolution is this checkout's (it compares hashes and, with `autoApplyDowns`, reverts and re-applies from a
@@ -205,16 +206,24 @@ its default either way.
    gets the hand-download recipe printed and the run goes on; once the rasters are downloaded, rerun with
    `args="--dem-dir … --dem-name … --dem-resolution-m …"` (the sampler's own flags), or backfill the live city. A
    build without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
-9. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
-   server both restore, with the data of every table the clone, the fill, the scan and the gradient do not write left out
-   (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`
-   included since the app recomputes it from an empty table. A local QA pass (one walk in Explore leaves an
-   `audit_task`, thousands of `audit_task_interaction` rows, a moved `audited_distance`) and a job run as the city
-   (`intersection`, `cluster`, `sidewalk_presence`, `background_job_run`, …) both stay in the local schema and out
-   of the dump; the step prints what it left out. The one value it has to touch is `street_edge_priority`, which a
-   QA walk moves off the fill's 1 in a table the dump keeps: it offers to reset them (default yes; `--yes` takes
-   it). Then the handoff checklist. `--dump-only` runs this step alone, and refuses a schema that is still the
-   unfilled clone.
+9. **Dump** — writes `db/<schema>-dump` (`pg_dump -Fc`), the file `make import-dump` and the server both restore,
+   in two passes (#6036).
+   - **First pass.** A dump without the data of any table the clone, the fill, the scan and the gradient do not
+     write (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences);
+     `region_completion` is left out too, since the app recomputes it from an empty table. That drops what a
+     local QA pass leaves (an `audit_task`, thousands of `audit_task_interaction` rows, a moved
+     `audited_distance`) and what a job run as the city leaves (`intersection`, `cluster`, `sidewalk_presence`,
+     `background_job_run`, …). The step prints what it left out.
+   - **Second pass.** `pg_dump` keeps or drops a whole table, and the seed rows a city needs share tables with QA
+     data. So the local schema is renamed aside (`<schema>_set_aside`), the first dump is restored under the real
+     name as a clean copy, and the copy gets `seed-city-rows.sql` and every street priority back at the fill's 1.
+     The copy is dumped whole and dropped, and the local schema gets its name back with its QA data untouched.
+   - **A running app.** The city's role cannot log in while the copy holds the name, so an app running as the
+     city loses its connections for those seconds and reconnects by itself. Nothing needs stopping.
+   - **A killed run** leaves the local schema set aside, and the next run puts it back first. If something other
+     than that run's copy now has the city's name (a dump imported since), it stops and says what to do by hand.
+
+   Then the handoff checklist. `--dump-only` runs this step alone, and refuses a schema that is still unfilled.
 
 ## 4. What stays on a person
 
@@ -257,8 +266,7 @@ its default either way.
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
   alias that sets the user works as well; a bare hostname without one fails with `Permission denied`.) **If you
   QA'd the city locally, dump it again first**: `make onboard-city id=<city-id> args="--dump-only"` reruns only the
-  dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
-  street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
+  dump step. The QA data stays in your local schema and out of the dump. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
   skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), and the PR with the config, message, and docs
   changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod

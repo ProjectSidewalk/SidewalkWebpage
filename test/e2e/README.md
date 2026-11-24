@@ -177,7 +177,9 @@ with `fixtures/ci_seed_slice.sql` and rebuilt by `fixtures/gen_ci_seed.py`, plus
 (#5936): the label clusters the app's own clusterer makes of those labels, one place and one story. Real, because a
 fixture that invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the
 shape of data it will meet. Small on purpose: enough that every page renders real content and every backend spec has
-something to read, not a second city dump to maintain. Three things about it shape this suite:
+something to read, not a second city dump to maintain. It goes onto a city cloned, dumped and restored the way a
+launched city is (`fixtures/build-ci-city.sh`, #6036), so a spec sees only the rows a real city would have. Three
+things about it shape this suite:
 
 - **Every panorama it names is expired**, as the rows it was taken from are. That is what keeps the server side
   hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
@@ -253,6 +255,7 @@ something to read, not a second city dump to maintain. Three things about it sha
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / minimap-basemap / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `loadValidate` and its mission helpers, `signInAsAdmin`, `withoutMissingBackups`, `requireData`, `firstGalleryLabelId`, `openStreetSegment`, `horizontalOverflowReport`, allowlist |
+| `fixtures/build-ci-city.sh` | Rebuilds the CI city by clone, dump and restore, checks no needed rows were lost, and drops the donor. Run by both CI jobs before the seed |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos, clusters, a place, a story. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
