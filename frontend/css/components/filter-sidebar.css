@@ -602,10 +602,8 @@ body.filter-sidebar-resizing {
   font: var(--text-caption-semibold);
   color: var(--color-asphalt-400);
 
-  /* Hidden by having no width, not by display or visibility, so Tab can still land on it: Chrome drops focus to the
-     page when the button it is moving to has vanished by the time the row's checkbox lets go (#5999). nowrap keeps
-     a two-character "Only" (zh-TW) on one line while squeezed. The clip comes off when shown, so it can't shave
-     the edge of the text. */
+  /* Zero width, not display: none, so Tab can still land on it: Chrome drops focus if its target isn't rendered
+     (#5999). nowrap keeps zh-TW's two-character "Only" on one line while squeezed. */
   width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -630,8 +628,7 @@ body.filter-sidebar-resizing {
   display: none;
 }
 
-/* Severity cells have no count to swap with, so "Only" keeps its full size and is clipped out of sight instead. Where
-   it is wider than the buttons (fr, pt-BR) it sets the width of the grid's columns, which would jump if it shrank. */
+/* Severity cells clip "Only" instead: in fr and pt-BR it is what sets the grid's column width, so it keeps its own. */
 .filter-sidebar__severity-cell .filter-sidebar__only {
   width: auto;
   overflow: visible;
