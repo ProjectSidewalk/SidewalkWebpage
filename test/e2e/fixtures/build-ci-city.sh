@@ -83,16 +83,16 @@ check() {
 	    compared   int := 0;
 	BEGIN
 	    FOR table_name IN SELECT tablename FROM pg_tables WHERE schemaname = '$DONOR' ORDER BY tablename LOOP
-	        compared := compared + 1;
 	        EXECUTE format('SELECT count(*) FROM %I.%I', '$DONOR', table_name) INTO donor_rows;
 	        CONTINUE WHEN donor_rows = 0;
+	        compared := compared + 1;
 	        EXECUTE format('SELECT count(*) FROM %I.%I', '$CITY', table_name) INTO city_rows;
 	        IF city_rows = 0 AND NOT table_name = ANY (ARRAY[$allowed]::text[]) THEN
 	            lost := lost || format('%s (%s rows in the donor)', table_name, donor_rows);
 	        END IF;
 	    END LOOP;
 	    IF compared = 0 THEN
-	        RAISE EXCEPTION 'No tables in $DONOR to compare against: run check before drop-donor.';
+	        RAISE EXCEPTION 'No table in $DONOR has rows to compare against: run check before drop-donor.';
 	    END IF;
 	    IF cardinality(lost) > 0 THEN
 	        RAISE EXCEPTION 'The launched city has none of the donor''s rows in: %. A clone, dump and restore loses '

@@ -79,15 +79,16 @@ class TutorialPanoRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     }
 
     "leave the reuse lookup with no answer for them, fresh as their last_checked is" in {
-      val statuses = runRolledBack(for {
-        _        <- scratchPanoData
-        _        <- panoDataTable.insertTutorialPanosIfMissing
-        statuses <- panoDataTable.getReusableImageryStatus(
-          PanoDataTable.TutorialPanoIds,
-          OffsetDateTime.now.minusDays(LiveImageryTtlDays)
-        )
-      } yield statuses)
+      val cutoff            = OffsetDateTime.now.minusDays(LiveImageryTtlDays)
+      val (fresh, statuses) = runRolledBack(for {
+        _ <- scratchPanoData
+        _ <- panoDataTable.insertTutorialPanosIfMissing
+        // The premise: both rows are inside the TTL, so only their source can keep the lookup from answering.
+        fresh    <- sql"SELECT count(*) FROM pano_data WHERE last_checked >= $cutoff".as[Int].head
+        statuses <- panoDataTable.getReusableImageryStatus(PanoDataTable.TutorialPanoIds, cutoff)
+      } yield (fresh, statuses))
 
+      fresh mustBe 2
       statuses mustBe empty
     }
   }
