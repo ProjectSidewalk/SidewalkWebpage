@@ -58,20 +58,6 @@ INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environme
 pano-viewer-type=gsv); 41 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
 ```
 
-`AiSeedRowsRepair` (the same module) logs one line per boot about the SidewalkAI user's per-schema rows, which a city
-created by cloning a donor or restoring an onboarding dump lacks until its first boot on a release that carries the
-repair (#5349). A restart is what triggers it; the two lines to expect are:
-
-```
-INFO m.AiSeedRowsRepair - SidewalkAI seed rows: present.
-WARN m.AiSeedRowsRepair - SidewalkAI seed rows: inserted its user_stat row and aiValidation missions for CurbRamp,
-NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, Other. This schema was created without
-281.sql's rows (#5349).
-```
-
-An `ERROR` line there means the AI's labels stay invisible in that city; the message says whether it is the
-foreign-key case (`sidewalk_login` has no SidewalkAI account).
-
 `OrphanedJobRunSweep` (the same module) closes the `background_job_run` rows the previous process left open (#5236):
 a deploy or crash that kills a job mid-run leaves its row `running`, and nothing else would ever close it. Every run
 that started before this JVM did is marked `interrupted` (one WARN line each), which is safe because a stage runs

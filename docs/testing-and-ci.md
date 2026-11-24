@@ -42,9 +42,9 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
   `sidewalk_teaneck`, boot the app once to evolve it to HEAD, then run
   [`test/e2e/fixtures/build-ci-city.sh`](../test/e2e/fixtures/build-ci-city.sh): the evolved schema becomes a donor,
   and `sidewalk_teaneck` is cloned from it by `create-new-schema.sh`, dumped by `setup_new_city.py`'s `dump_schema`
-  and restored by `import-dump.sh`, the same three steps that stand up a real city. `e2e-smoke` then restarts the app
-  and fails if any table the donor has rows in came through empty, unless the script names it with the reason it may
-  start empty. Rows an evolution seeds therefore only reach the specs if they would reach a launched city too.
+  and restored by `import-dump.sh`, the same three steps that stand up a real city. The script then fails if any
+  table the donor has rows in came through empty, unless it names the table with the reason it may start empty.
+  Rows an evolution seeds therefore only reach the specs if they would reach a launched city too.
 - Connection comes from env vars so the *same* tests run against the CI database or a local dev DB (`DATABASE_URL`
   overrides the default).
 - **Schema:** `play.evolutions.db.default.autoApply=true` is already set and `conf/application.test.conf` does `include
@@ -246,7 +246,7 @@ Parallel jobs:
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
-  startup; it then stops the app, rebuilds the city by clone, dump and restore, restarts it and checks the rows, as
+  startup; it then stops the app, rebuilds the city by clone, dump and restore, checks the rows and restarts it, as
   "Test database" describes; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly
   actors' first tick lands uniformly at random within 24h and would rewrite the very `user_stat` and
   `street_edge_priority` rows the seed pins — harmless against the old empty schema, a rare red run against a seeded

@@ -459,15 +459,15 @@ def _catalog(tables=_SCHEMA_TABLES, sequences=_SCHEMA_SEQUENCES):
     return ''.join(f'table|{t}\n' for t in tables) + ''.join(f'sequence|{s}|{t}\n' for s, t in sequences.items())
 
 
-def _dump_env(monkeypatch, counts, tables=_SCHEMA_TABLES, moved='0'):
+def _dump_env(monkeypatch, counts, tables=_SCHEMA_TABLES, **overrides):
     """
     Fakes the dump step's docker calls: ``counts`` is the row-count query's raw psql output (or a list of them,
-    handed out in order), ``tables`` what the catalog lists, ``moved`` how many priorities a QA walk changed.
+    handed out in order), ``tables`` what the catalog lists, ``overrides`` any other answers, matched first.
     """
-    return _fake_run(monkeypatch, {'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
+    return _fake_run(monkeypatch, {**overrides,
+                                   'pg_restore --list': (0, ';\n; Archive header\n1; 0 0 TABLE x\n2; 0 0 TABLE y\n'),
                                    'stat -c %s': (0, '2500000\n'),
                                    'relkind': (0, _catalog(tables)),
-                                   'priority <> 1': (0, f'{moved}\n'),
                                    'count(*)': counts})
 
 
@@ -477,7 +477,7 @@ def test_dump_schema_counts_the_objects(monkeypatch, capsys):
     assert any('pg_dump' in cmd and '/opt/sidewalk_testville_wa-dump' in cmd for cmd in _joined(calls))
     out = capsys.readouterr().out
     assert 'db/sidewalk_testville_wa-dump (2.5 MB, 2 objects)' in out
-    assert 'Left out of the dump' not in out and 'QA walk' not in out
+    assert 'Left out of the dump' not in out
 
 
 def test_dump_exclusions_name_every_table_the_catalog_has_except_what_onboarding_fills(monkeypatch):
@@ -549,10 +549,10 @@ SEEDS_LEFT_OUT_OF_THE_DUMP = {
     (8, 'user_role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
     (15, 'role'): 'role now lives in sidewalk_login, outside a city\'s catalog.',
     (73, 'gsv_data'): 'A one-off migration of imagery rows, which a clone does not carry.',
-    (281, 'mission'): 'SidewalkAI seeds; the app re-creates them at boot wherever missing (AiSeedRowsRepair, #5349).',
-    (281, 'user_stat'): 'SidewalkAI seeds; the app re-creates them at boot wherever missing (AiSeedRowsRepair, #5349).',
+    (281, 'mission'): 'SidewalkAI seeds; seed-city-rows.sql writes them on the clone and on the dumped copy (#6036).',
+    (281, 'user_stat'): 'SidewalkAI seeds; seed-city-rows.sql writes them on the clone and on the dumped copy (#6036).',
     (281, 'user_current_region'): 'A SidewalkAI seed that 337.sql deletes on purpose.',
-    (360, 'pano_data'): 'The tutorial panos\' rows; the server writes them with the first tutorial label (#6036).',
+    (360, 'pano_data'): 'Tutorial panos; seed-city-rows.sql writes them on the clone and on the dumped copy (#6036).',
 }
 
 
@@ -585,30 +585,14 @@ def test_evolutions_seed_no_table_the_dump_would_leave_out():
     assert live == set(SEEDS_LEFT_OUT_OF_THE_DUMP)
 
 
-def test_server_tutorial_pano_rows_match_evolution_360():
+def test_the_seed_file_writes_every_seeded_table_the_dump_leaves_out():
     """
-    A launched city has no rows for the two tutorial panos until the server writes them with the first tutorial label
-    (#6036), so the server holds its own copy of the values evolution 360 seeded on older cities. Both have to describe
-    the imagery the viewer serves; a value changed on one side only would give the cities two different tutorials.
+    The other half of the guard above: each table whose entry there says seed-city-rows.sql puts its rows back is one
+    the file really inserts into, and the file writes nowhere else (#6036).
     """
-    evolution = (REPO_ROOT / 'conf' / 'evolutions' / 'default' / '360.sql').read_text().split('!Downs')[0]
-    number = r'(-?[\d.]+)'
-    seeded = re.findall(r"\('(\w+)', (\d+), (\d+), (\d+), (\d+), '([^']*)', '([^']*)', FALSE, NULL,\s+"
-                        + ', '.join([number] * 4) + r", 'tutorial'", evolution)
-    scala = (REPO_ROOT / 'app' / 'models' / 'pano' / 'PanoDataTable.scala').read_text()
-    declared = re.findall(r'TutorialPano\(\s*"(\w+)",\s*' + r',\s*'.join([r'(\d+)'] * 4 + [number] * 4) + r'\s*\)',
-                          scala)
-    capture_date = re.search(r'TutorialCaptureDate\b[^=\n]*=\s*"([^"]*)"', scala)
-    copyright_line = re.search(r'TutorialCopyright\b[^=\n]*=\s*"([^"]*)"', scala)
-
-    def row(dims, text, coords):
-        return tuple(int(n) for n in dims) + tuple(text) + tuple(float(n) for n in coords)
-
-    assert len(seeded) == 2
-    expected = {r[0]: row(r[1:5], r[5:7], r[7:11]) for r in seeded}
-    actual = {r[0]: row(r[1:5], (capture_date and capture_date.group(1), copyright_line and copyright_line.group(1)),
-                        r[5:9]) for r in declared}
-    assert actual == expected
+    seed_file = (Path(snc.REPO_ROOT) / 'db' / 'scripts' / 'seed-city-rows.sql').read_text()
+    promised = {table for (_, table), reason in SEEDS_LEFT_OUT_OF_THE_DUMP.items() if 'seed-city-rows.sql' in reason}
+    assert set(re.findall(r'(?m)^INSERT INTO (\w+)', seed_file)) == promised == {'pano_data', 'user_stat', 'mission'}
 
 
 def seeds_literal_rows(body):
@@ -625,10 +609,11 @@ def seeds_literal_rows(body):
     return not re.search(r'(?i)\bFROM\b', re.split(r'(?i)\bWHERE\b', body, maxsplit=1)[0])
 
 
-def test_dump_schema_leaves_qa_data_out_instead_of_clearing_it(monkeypatch, capsys):
+def test_dump_schema_leaves_qa_data_out_and_the_local_schema_alone(monkeypatch, capsys):
     """
-    A city QA'd locally carries session data the dump would hand to the launched site. The dump leaves it out
-    rather than clearing it, so the local schema keeps the QA and nothing here truncates anything (#5297).
+    A city QA'd locally carries session data the dump would hand to the launched site. The first pass leaves it out,
+    and everything after that happens to a clean copy, so the local schema keeps the QA: nothing here truncates,
+    deletes from or updates it (#5297, #6036).
     """
     calls = _dump_env(monkeypatch, (0, 'label|5\naudit_task|7\nmission|0\ncluster|5\nwebpage_activity|155\n'))
     assert snc.dump_schema('sidewalk_bayonne') == 2
@@ -640,42 +625,72 @@ def test_dump_schema_leaves_qa_data_out_instead_of_clearing_it(monkeypatch, caps
     assert '--exclude-table-data=sidewalk_bayonne."region_completion"' in dump
     assert not any('street_edge' in arg and 'seq' not in arg for arg in dump if arg.startswith('--exclude'))
     assert dump.index('-f') == len(dump) - 2
-    assert not any('TRUNCATE' in cmd for cmd in _joined(calls))
+    joined = _joined(calls)
+    assert not any('TRUNCATE' in cmd or 'DELETE' in cmd for cmd in joined)
+    aside = next(i for i, cmd in enumerate(joined) if 'RENAME TO sidewalk_bayonne_set_aside' in cmd)
+    assert all('UPDATE' not in cmd for cmd in joined[:aside])
 
 
-def test_dump_schema_resets_moved_priorities_on_request(monkeypatch, capsys):
+def test_dump_schema_seeds_a_clean_copy_and_dumps_that(monkeypatch):
     """
-    The one in-place value a QA walk changes in a table the dump keeps. The reset restores derived data the app
-    recomputes nightly, so its default is yes and --yes may take it; a refusal stops the dump (#5297).
+    pg_dump keeps or drops a whole table, and the rows every city needs share tables with QA data. So the first dump
+    is restored under the city's name while the local schema waits aside, the copy gets the seed rows and the fill's
+    street priorities, and the copy is what ships. The city's role cannot log in meanwhile, or an app running as
+    the city would write rows into the copy (#6036).
     """
-    calls = _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
-    monkeypatch.setattr('builtins.input', lambda text: '')
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{"_set_aside'": [(0, ''), (0, '1\n')]})
     assert snc.dump_schema('sidewalk_bayonne') == 2
     joined = _joined(calls)
-    reset = next(i for i, cmd in enumerate(joined) if 'UPDATE street_edge_priority SET priority = 1' in cmd)
-    assert '-U sidewalk_bayonne' in joined[reset] and "SET lock_timeout = '30s'" in joined[reset]
-    assert next(i for i, cmd in enumerate(joined) if 'pg_dump' in cmd) > reset
-    out = capsys.readouterr().out
-    assert 'moved the priority of 3 street(s)' in out and 'Reset.' in out
-    # Refused: no dump.
-    calls = _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
-    monkeypatch.setattr('builtins.input', lambda text: 'n')
-    with pytest.raises(SystemExit, match='Stopped before writing the dump.*--dump-only'):
+
+    def step(needle):
+        return next(i for i, cmd in enumerate(joined) if needle in cmd)
+
+    first, aside = step('-f /opt/sidewalk_bayonne-dump.first-pass'), step('RENAME TO sidewalk_bayonne_set_aside')
+    restore, seed = step('pg_restore -U sidewalk -Fc -d sidewalk'), step('seed-city-rows.sql')
+    final = next(i for i, cmd in enumerate(joined) if cmd.endswith('-f /opt/sidewalk_bayonne-dump'))
+    back = step('RENAME TO sidewalk_bayonne;')
+    assert first < aside < restore < seed < final < back
+    assert '--exclude-table-data' in joined[first] and '--exclude-table-data' not in joined[final]
+    assert 'ALTER ROLE sidewalk_bayonne NOLOGIN' in joined[aside] and 'pg_terminate_backend' in joined[aside]
+    assert joined[restore].endswith('/opt/sidewalk_bayonne-dump.first-pass')
+    assert '-v schema=sidewalk_bayonne' in joined[seed]
+    assert 'UPDATE sidewalk_bayonne.street_edge_priority SET priority = 1' in joined[seed]
+    assert 'DROP SCHEMA IF EXISTS sidewalk_bayonne CASCADE' in joined[back]
+    assert 'ALTER ROLE sidewalk_bayonne LOGIN' in joined[-3]
+    assert any(cmd.endswith('rm -f /opt/sidewalk_bayonne-dump.first-pass') for cmd in joined)
+
+
+def test_dump_schema_puts_the_local_schema_back_whatever_happens(monkeypatch):
+    """
+    The local schema is the developer's city, QA data and all, and for a few seconds it does not have its own name.
+    A step that fails then still drops the copy and renames it back, and a run that was killed outright is repaired
+    by the next one before it reads anything, since the schema under the city's name would be the copy (#6036).
+    """
+    # The restore fails with the local schema set aside.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'),
+                      **{"_set_aside'": [(0, ''), (0, '1\n')], 'pg_restore -U': (1, '', 'pg_restore: error: boom\n')})
+    with pytest.raises(SystemExit, match='(?s)restoring the first-pass dump.*boom.*put back'):
+        snc.dump_schema('sidewalk_bayonne')
+    joined = _joined(calls)
+    assert any('RENAME TO sidewalk_bayonne;' in cmd for cmd in joined)
+    assert 'ALTER ROLE sidewalk_bayonne LOGIN' in joined[-1]
+    assert not any('seed-city-rows.sql' in cmd for cmd in joined)
+    # A killed run left it aside: put back first, then the catalog is read.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{"_set_aside'": [(0, '1\n'), (0, '')]})
+    snc.dump_schema('sidewalk_bayonne')
+    joined = _joined(calls)
+    assert next(i for i, cmd in enumerate(joined) if 'RENAME TO sidewalk_bayonne;' in cmd) < \
+        next(i for i, cmd in enumerate(joined) if 'relkind' in cmd)
+    # The rename back is refused: the message says where the data is.
+    _dump_env(monkeypatch, (0, 'label|0\n'),
+              **{"_set_aside'": (0, '1\n'), 'RENAME TO sidewalk_bayonne;': (1, '', 'ERROR:  no\n')})
+    with pytest.raises(SystemExit, match='(?s)putting the local sidewalk_bayonne back.*sidewalk_bayonne_set_aside'):
+        snc.dump_schema('sidewalk_bayonne')
+    # The database cannot be asked: say what to check by hand rather than guess.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{"_set_aside'": (1, '')})
+    with pytest.raises(SystemExit, match='(?s)could not ask.*RENAME TO sidewalk_bayonne.*LOGIN'):
         snc.dump_schema('sidewalk_bayonne')
     assert not any('pg_dump' in cmd for cmd in _joined(calls))
-    # Unattended without --yes: a choice nobody made, so it stops and says what would answer it.
-    monkeypatch.setattr('builtins.input', _no_stdin)
-    _dump_env(monkeypatch, (0, 'label|0\n'), moved='3')
-    with pytest.raises(SystemExit, match='pass --yes'):
-        snc.dump_schema('sidewalk_bayonne')
-    # A refused UPDATE (a lock an app still holds) is quoted with a way out, not a CalledProcessError traceback.
-    monkeypatch.setattr('builtins.input', lambda text: 'y')
-    _fake_run(monkeypatch, {'relkind': (0, 'table|label\n'), 'priority <> 1': (0, '3\n'), 'count(*)': (0, 'label|0\n'),
-                            'lock_timeout': (1, '', 'ERROR:  canceling statement due to lock timeout\n')})
-    with pytest.raises(SystemExit) as refused:
-        snc.dump_schema('sidewalk_bayonne')
-    assert 'street priorities failed (exit 1)' in str(refused.value)
-    assert 'lock timeout' in str(refused.value) and '--dump-only' in str(refused.value)
 
 
 def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, capsys):
@@ -685,11 +700,6 @@ def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, ca
     """
     calls = _fake_run(monkeypatch, {'relkind': (1, '')})
     with pytest.raises(SystemExit, match="could not read sidewalk_ancient's catalog.*--dump-only"):
-        snc.dump_schema('sidewalk_ancient')
-    assert not any('pg_dump' in cmd for cmd in _joined(calls))
-    calls = _fake_run(monkeypatch, {'relkind': (0, 'table|label\n'), 'priority <> 1': (1, ''),
-                                    'count(*)': (0, 'label|0\n')})
-    with pytest.raises(SystemExit, match='could not read sidewalk_ancient.street_edge_priority'):
         snc.dump_schema('sidewalk_ancient')
     assert not any('pg_dump' in cmd for cmd in _joined(calls))
 
@@ -1679,7 +1689,7 @@ def test_main_takes_the_fill_answers_from_flags_and_checks_them_against_each_oth
 
 def _dump_only_db(**overrides):
     """The docker answers for a --dump-only run of a filled, mounted city; the most specific needles first."""
-    answers = {'priority <> 1': (0, '0\n'), 'pg_namespace': (0, '1\n'),
+    answers = {"_set_aside'": (0, ''), 'pg_namespace': (0, '1\n'),
                'md5sum /opt/scripts': (0, f'{_FILL_MD5}  fill-new-schema.sh\n'), 'street_edge': (0, '170\n'),
                'relkind': (0, 'table|label\n'), 'street_gradient': (0, '0\n'), 'count(*)': (0, 'label|0\n'),
                'pg_restore --list': (0, '1; 0 0 TABLE x\n'), 'stat -c %s': (0, '1000000\n')}

@@ -29,8 +29,8 @@ import scala.util.{Failure, Success, Try}
  * earlier app's live run, and the owner's own close then overwrites the guess when the run settles.
  *
  * Skipped in test mode: specs boot an app per suite against the shared dev database, and a sweep there would close the
- * live dev app's in-flight runs on every spec boot. `ApplicationEvolutions` is injected for ordering and for its
- * `upToDate`, exactly as in [[AiSeedRowsRepair]], since the sweep writes the `interrupted` value an evolution adds.
+ * live dev app's in-flight runs on every spec boot. `ApplicationEvolutions` is injected so evolutions are applied
+ * first, and for its `upToDate`, since the sweep writes the `interrupted` value an evolution adds.
  *
  * Awaited, so the log line lands with the rest of the boot output; it is one small UPDATE. Nothing here is fatal: a
  * failed sweep leaves orphans for the next boot to close, while an eager singleton that throws keeps the city down.

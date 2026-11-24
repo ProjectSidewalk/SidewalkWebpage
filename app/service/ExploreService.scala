@@ -1069,16 +1069,8 @@ class ExploreServiceImpl @Inject() (
     // Each label's pano metadata is integral to the label (#4587): writing it in the same transaction as the labels
     // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
     // submission with it rather than quietly producing an orphan.
-    val labeledPanos: Seq[PanoSubmission] = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
-    // Tutorial labels carry no pano block, so their rows come from the server. A city launched from a dump starts
-    // without them, and the first tutorial label writes them (#6036). A blockless label on any other pano still needs
-    // its row to exist already.
-    val tutorialPanosAction: DBIO[Unit] =
-      if (data.labels.exists(label => PanoDataTable.TutorialPanoIds.contains(label.panoId)))
-        panoDataTable.insertTutorialPanosIfMissing.map(_ => ())
-      else DBIO.successful(())
-    val saveLabeledPanosAction: DBIO[Unit] =
-      DBIO.seq((tutorialPanosAction +: labeledPanos.map(savePanoAction(_, OffsetDateTime.now)))*)
+    val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now))*)
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)

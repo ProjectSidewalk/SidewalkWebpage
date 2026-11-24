@@ -6,11 +6,9 @@
 # with the full, *current* Project Sidewalk table structure. This copies a donor city's schema (structure only), the
 # handful of seed rows every city carries — the applied evolutions, the version history, `config` with its tutorial
 # street, the tag catalogue, and the survey questions — creates the owning role, and wires up search_path + read-only
-# grants. After this, you'd load the city's streets/regions with fill-new-schema.sh. The SidewalkAI user's per-schema
-# rows are deliberately not among the seeds: copying the donor's play_evolutions marks 281.sql (which seeded them)
-# applied, so the app inserts them itself at boot (AiSeedRowsRepair, #5349), the same way for a clone, a dump, or a
-# restore. Nor are the two tutorial panos' pano_data rows, which 360.sql seeded and the onboarding dump would leave
-# out anyway: the server writes them with the city's first tutorial label (#6036).
+# grants. After this, you'd load the city's streets/regions with fill-new-schema.sh. Copying the donor's
+# play_evolutions marks every evolution applied, so the rows an evolution seeded once (the tutorial panos, the
+# SidewalkAI user's per-schema rows) are written here instead, by seed-city-rows.sql (#6036).
 #
 # It clones a donor rather than restoring the committed `sidewalk_init` template: a template frozen below 372 can't be
 # replayed past evolutions 270/295/355, which read `sidewalk_login.role` that 372 dropped (#5198), and one at any level
@@ -161,6 +159,8 @@ copy_rows survey_option   "SELECT * FROM $DONOR.survey_option ORDER BY survey_op
 copy_rows street_edge     "SELECT * FROM $DONOR.street_edge
                            WHERE street_edge_id = (SELECT tutorial_street_edge_id FROM $DONOR.config)"
 copy_rows config          "SELECT * FROM $DONOR.config"
+
+psql -v ON_ERROR_STOP=1 -q -U postgres -d sidewalk -v schema="$NAME" -f /opt/scripts/seed-city-rows.sql
 
 psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     ALTER SCHEMA $NAME OWNER TO sidewalk;

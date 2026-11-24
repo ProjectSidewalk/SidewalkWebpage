@@ -4,18 +4,16 @@
 #
 # WHY THIS EXISTS: a launched city is never the committed sidewalk_init template. Onboarding clones a donor's structure
 # and seed rows (db/scripts/create-new-schema.sh), dumps the result with the data of every table it did not write left
-# out (tools/city/setup_new_city.py's dump_schema), and the server restores that dump. Rows an evolution seeded into
-# the donor do not survive that trip unless the clone copies them and the dump keeps them, because the clone copies
-# the donor's play_evolutions and so never runs those evolutions itself. The committed template still holds every
-# seeded row, so a suite run on the template alone passes on a schema no launched city has: that is how the tutorial
-# broke on every city onboarded for two months without a red build (#6036).
+# out and the seed rows put back (tools/city/setup_new_city.py's dump_schema), and the server restores that dump.
+# Rows an evolution seeded into the donor do not survive that trip unless seed-city-rows.sql writes them, because
+# the clone copies the donor's play_evolutions and so never runs those evolutions itself. The committed template
+# still holds every seeded row, so a suite run on the template alone passes on a schema no launched city has: that
+# is how the tutorial broke on every city onboarded for two months without a red build (#6036).
 #
 # HOW IT'S RUN (from the repo root, in CI, with the db container up and sidewalk_teaneck already evolved to HEAD):
 #   bash test/e2e/fixtures/build-ci-city.sh build        clone sidewalk_teaneck into a fresh one via a dump
 #   bash test/e2e/fixtures/build-ci-city.sh check        fail if a table lost every row the donor had (see below)
 #   bash test/e2e/fixtures/build-ci-city.sh drop-donor   drop the donor, so CI stays single-city
-# `check` belongs after an app boot on the rebuilt city, because the boot re-creates some rows itself
-# (AiSeedRowsRepair, #5349), and a table it refills must not count as lost.
 #
 # Everything here runs the real scripts — create-new-schema.sh, dump_schema, import-dump.sh — so a change to any of
 # them is tested by every spec in both DB jobs. Not covered: fill-new-schema.sh (ci-seed.sql stands in for the
@@ -39,7 +37,6 @@ DB_CONTAINER=projectsidewalk-db
 # Tables whose rows a launched city legitimately starts without, though the donor has them. Each one needs a reason
 # that says where the launched city's rows come from instead; anything else that goes missing fails `check`.
 declare -A EMPTY_AT_LAUNCH=(
-  [pano_data]="The tutorial panos' rows (evolution 360). The server writes them with the first tutorial label (#6036)."
   [sidewalk_presence]="Derived from the streets and their labels; SidewalkPresenceActor rebuilds it nightly (#5279)."
 )
 
@@ -96,9 +93,9 @@ check() {
 	    END IF;
 	    IF cardinality(lost) > 0 THEN
 	        RAISE EXCEPTION 'The launched city has none of the donor''s rows in: %. A clone, dump and restore loses '
-	            'them, so a real city launched today would too. Copy them in create-new-schema.sh and keep them in '
-	            'the dump, have the app write them, or add the table to EMPTY_AT_LAUNCH in build-ci-city.sh with '
-	            'the reason it may start empty.', array_to_string(lost, ', ');
+	            'them, so a real city launched today would too. Add them to db/scripts/seed-city-rows.sql, or add '
+	            'the table to EMPTY_AT_LAUNCH in build-ci-city.sh with the reason it may start empty.',
+	            array_to_string(lost, ', ');
 	    END IF;
 	END \$\$;
 	EOSQL

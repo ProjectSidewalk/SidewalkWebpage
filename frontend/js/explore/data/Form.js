@@ -230,7 +230,7 @@ export class Form {
         temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
       }
 
-      // Tutorial panos are locally served with fabricated metadata, so their labels use the server's pano_data rows.
+      // Tutorial panos are locally served with fabricated metadata, so their labels lean on the seeded pano_data rows.
       if (!util.pano.TUTORIAL_PANO_IDS.has(prop.panoId)) {
         temp.pano = this.#compilePanoData(panoData);
       }

@@ -366,11 +366,12 @@ jobs:
 
       # The evolved template becomes the donor that sidewalk_teaneck is cloned from, dumped and restored by the real
       # onboarding scripts, so the suite runs on a schema shaped like a launched city's rather than the template's
-      # (#6036). No app boot follows before the seed, so the row check that needs one runs in e2e-smoke only; the
-      # script's header says why.
+      # (#6036). The check fails on a table the donor has rows in and the rebuilt city has none in, unless the
+      # script says why that is expected.
       - name: Rebuild the test city by clone, dump and restore
         run: |
           bash test/e2e/fixtures/build-ci-city.sh build
+          bash test/e2e/fixtures/build-ci-city.sh check
           bash test/e2e/fixtures/build-ci-city.sh drop-donor
 
       # Without this the suite's data-dependent half cancels itself out. Must follow the step above: it writes
@@ -598,6 +599,8 @@ jobs:
           if kill -0 "$pid" 2>/dev/null; then echo "The app did not stop within 60s."; exit 1; fi
           rm -f target/universal/stage/RUNNING_PID
           bash test/e2e/fixtures/build-ci-city.sh build
+          bash test/e2e/fixtures/build-ci-city.sh check
+          bash test/e2e/fixtures/build-ci-city.sh drop-donor
 
       - name: Restart the app on the rebuilt city
         env: *app-env
@@ -606,14 +609,6 @@ jobs:
       - name: Wait for the app to serve HTTP
         id: app-ready
         run: *wait-for-app
-
-      # After the restart, because the boot re-creates some rows itself (AiSeedRowsRepair, #5349): this fails on a
-      # table the donor has rows in and the rebuilt city has none in, unless the script says why that is expected.
-      # Then the donor goes, so the rest of the job sees one city, as before.
-      - name: Check the rebuilt city kept the rows a launched city needs
-        run: |
-          bash test/e2e/fixtures/build-ci-city.sh check
-          bash test/e2e/fixtures/build-ci-city.sh drop-donor
 
       # Shared with backend-tests. Without a region /explore is a server error; without labels Gallery,
       # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the

@@ -156,39 +156,9 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
     sourceMetadata).mapTo[PanoData]
 }
 
-/**
- * One of the tutorial's locally-served panos, as its pano_data row describes it: the imagery the viewer serves, which
- * the client computes each tutorial label's pano_x/pano_y against.
- */
-case class TutorialPano(
-    panoId: String,
-    width: Int,
-    height: Int,
-    tileWidth: Int,
-    tileHeight: Int,
-    lat: Double,
-    lng: Double,
-    cameraHeading: Double,
-    cameraPitch: Double
-)
-
 @ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
 
 object PanoDataTable {
-
-  /**
-   * The tutorial panos' rows, with the values evolution 360 seeded on the cities that existed then. A city cloned from
-   * a donor and launched from a dump has none of them (the clone marks 360 applied, and the dump leaves pano_data out),
-   * so the server writes them with the first tutorial label instead (#6036). test_setup_new_city.py pins these to
-   * 360.sql, and `GsvViewer.#getCustomPanoData` serves the same imagery.
-   */
-  val TutorialPanos: Seq[TutorialPano] = Seq(
-    TutorialPano("tutorial", 4096, 2048, 2048, 1024, 38.94042608, -77.06766133, 50.3866, 1.13769),
-    TutorialPano("afterWalkTutorial", 3400, 1700, 1700, 850, 38.94061618, -77.06768201, 344.0, 0.0)
-  )
-  val TutorialCaptureDate: String  = "2014-05"
-  val TutorialCopyright: String    = "Imagery (c) 2010 Google"
-  val TutorialPanoIds: Set[String] = TutorialPanos.map(_.panoId).toSet
 
   /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
   val MarkHasBackupChunk: Int = 1000
@@ -524,31 +494,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         pano_history_saved = EXCLUDED.pano_history_saved,
         last_checked = EXCLUDED.last_checked
     """
-  }
-
-  /**
-   * Writes the tutorial panos' rows where they are missing, so a tutorial label, which carries no pano block, has a
-   * row for `label_pano_id_fkey` on a city launched without them (#6036). An existing row is left exactly as it is:
-   * not through [[upsert]], which would refresh its usage columns and could log an imagery change. ON CONFLICT is
-   * what makes two first tutorial submissions at once safe; the second waits for the first and then writes nothing.
-   *
-   * @return The ids of the rows it wrote; empty when every row was already there.
-   */
-  def insertTutorialPanosIfMissing: DBIO[Seq[String]] = {
-    val source = PanoSource.Tutorial
-    DBIO
-      .sequence(PanoDataTable.TutorialPanos.map { pano =>
-        sql"""
-          INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, lat, lng,
-                                 camera_heading, camera_pitch, source)
-          VALUES (${pano.panoId}, ${pano.width}, ${pano.height}, ${pano.tileWidth}, ${pano.tileHeight},
-                  ${PanoDataTable.TutorialCaptureDate}, ${PanoDataTable.TutorialCopyright}, ${pano.lat}, ${pano.lng},
-                  ${pano.cameraHeading}, ${pano.cameraPitch}, $source)
-          ON CONFLICT (pano_id) DO NOTHING
-          RETURNING pano_id
-        """.as[String]
-      })
-      .map(_.flatten)
   }
 
   /**
