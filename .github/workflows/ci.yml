@@ -595,6 +595,7 @@ jobs:
           pid=$(cat app.pid)
           kill "$pid"
           for i in $(seq 1 60); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+          if kill -0 "$pid" 2>/dev/null; then echo "The app did not stop within 60s."; exit 1; fi
           rm -f target/universal/stage/RUNNING_PID
           bash test/e2e/fixtures/build-ci-city.sh build
 

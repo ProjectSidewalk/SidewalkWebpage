@@ -22,8 +22,15 @@
 # streets and regions it would load) and the server's own restore (import-dump.sh stands in for it).
 #
 # GOTCHA: import-dump.sh terminates every connection to the database first, so stop the app before `build`.
+# CI only: on a dev machine the same names are the developer's own Teaneck city and its git-ignored dump (db/ is the
+# db container's /opt), and `build` then `drop-donor` would destroy both, so it refuses to run outside CI.
 # =====================================================================================================================
 set -euo pipefail
+
+if [[ "${CI:-}" != "true" ]]; then
+  echo "build-ci-city.sh only runs in CI: here it would replace your sidewalk_teaneck and its db/ dump." >&2
+  exit 1
+fi
 
 CITY=sidewalk_teaneck
 DONOR=sidewalk_ci_donor
@@ -32,7 +39,7 @@ DB_CONTAINER=projectsidewalk-db
 # Tables whose rows a launched city legitimately starts without, though the donor has them. Each one needs a reason
 # that says where the launched city's rows come from instead; anything else that goes missing fails `check`.
 declare -A EMPTY_AT_LAUNCH=(
-  [pano_data]="The two tutorial panos' rows (evolution 360). The server writes them with the first tutorial label (#6036)."
+  [pano_data]="The tutorial panos' rows (evolution 360). The server writes them with the first tutorial label (#6036)."
   [sidewalk_presence]="Derived from the streets and their labels; SidewalkPresenceActor rebuilds it nightly (#5279)."
 )
 
@@ -73,8 +80,10 @@ check() {
 	    donor_rows bigint;
 	    city_rows  bigint;
 	    lost       text[] := '{}';
+	    compared   int := 0;
 	BEGIN
 	    FOR table_name IN SELECT tablename FROM pg_tables WHERE schemaname = '$DONOR' ORDER BY tablename LOOP
+	        compared := compared + 1;
 	        EXECUTE format('SELECT count(*) FROM %I.%I', '$DONOR', table_name) INTO donor_rows;
 	        CONTINUE WHEN donor_rows = 0;
 	        EXECUTE format('SELECT count(*) FROM %I.%I', '$CITY', table_name) INTO city_rows;
@@ -82,6 +91,9 @@ check() {
 	            lost := lost || format('%s (%s rows in the donor)', table_name, donor_rows);
 	        END IF;
 	    END LOOP;
+	    IF compared = 0 THEN
+	        RAISE EXCEPTION 'No tables in $DONOR to compare against: run check before drop-donor.';
+	    END IF;
 	    IF cardinality(lost) > 0 THEN
 	        RAISE EXCEPTION 'The launched city has none of the donor''s rows in: %. A clone, dump and restore loses '
 	            'them, so a real city launched today would too. Copy them in create-new-schema.sh and keep them in '
