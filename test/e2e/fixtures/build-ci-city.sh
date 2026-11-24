@@ -37,6 +37,7 @@ DB_CONTAINER=projectsidewalk-db
 # Tables whose rows a launched city legitimately starts without, though the donor has them. Each one needs a reason
 # that says where the launched city's rows come from instead; anything else that goes missing fails `check`.
 declare -A EMPTY_AT_LAUNCH=(
+  [webpage_activity]="A log of page visits, so a city starts with none; the donor's are from CI's own readiness probe."
   [sidewalk_presence]="Derived from the streets and their labels; SidewalkPresenceActor rebuilds it nightly (#5279)."
 )
 
