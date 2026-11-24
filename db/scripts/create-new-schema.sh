@@ -9,12 +9,14 @@
 # grants. After this, you'd load the city's streets/regions with fill-new-schema.sh. The SidewalkAI user's per-schema
 # rows are deliberately not among the seeds: copying the donor's play_evolutions marks 281.sql (which seeded them)
 # applied, so the app inserts them itself at boot (AiSeedRowsRepair, #5349), the same way for a clone, a dump, or a
-# restore.
+# restore. Nor are the two tutorial panos' pano_data rows, which 360.sql seeded and the onboarding dump would leave
+# out anyway: the server writes them with the city's first tutorial label (#6036).
 #
-# It clones a donor rather than restoring the committed `sidewalk_init` template: the template is frozen at evolution
-# 252, and evolutions 270/295/355 read `sidewalk_login.role`, which 372 dropped, so replaying it forward wedges on the
-# first app boot (#5198). A donor at the current evolution level never goes stale. `init.sh` and CI still restore the
-# template for the dev DB's first boot.
+# It clones a donor rather than restoring the committed `sidewalk_init` template: a template frozen below 372 can't be
+# replayed past evolutions 270/295/355, which read `sidewalk_login.role` that 372 dropped (#5198), and one at any level
+# goes stale. A donor at the current evolution level never does. `init.sh` restores the template for the dev DB's
+# first boot, and CI evolves it to HEAD and then uses it as the donor for its own test city, through this script
+# (test/e2e/fixtures/build-ci-city.sh, #6036).
 #
 # HOW IT'S RUN:  make create-new-schema name=<schema> donor=<schema>   →   /opt/scripts/create-new-schema.sh <args>
 # INPUT:         $1 = new schema name (e.g. sidewalk_newcity)

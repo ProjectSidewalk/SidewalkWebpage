@@ -19,8 +19,9 @@ export class PanoStore {
   addPanoMetadata(panoId, panoMetadata) {
     if (!(panoId in this.store)) {
       // Mark the locally-served tutorial panos as already submitted so getStagedPanoData() never hands their
-      // fabricated metadata to the form POST. Their pano_data rows exist (#4587) but are owned by evolution 360 —
-      // a submission would upsert over them on every tutorial run.
+      // fabricated metadata to the form POST. Their pano_data rows (#4587) are the server's: 360.sql seeded older
+      // cities, and the first tutorial label writes them on a newer one (#6036). A submission would upsert over them
+      // on every tutorial run.
       if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
         panoMetadata.setProperty('submitted', true);
       }

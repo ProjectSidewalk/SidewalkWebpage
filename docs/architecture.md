@@ -228,6 +228,13 @@ A pano's `pano_data.width`/`height` never change: Google re-renders pixels, neve
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
 
+Every label has a `pano_data` row (`label_pano_id_fkey`, #4587), and a label's row normally arrives with it, in the
+label's `pano` block. Tutorial labels carry no block, because the tutorial's two panos (`tutorial`,
+`afterWalkTutorial`) are app assets with fabricated metadata, so their rows (`source = 'tutorial'`) are the
+server's. On cities that existed in August 2026, evolution 360 seeded them. A city cloned and launched since then
+has none until its first tutorial label, which writes them in the same transaction (`PanoDataTable.TutorialPanos`,
+#6036).
+
 Crops are the image Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,

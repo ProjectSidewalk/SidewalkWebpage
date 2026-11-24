@@ -159,7 +159,9 @@ its default either way.
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The SidewalkAI user's per-schema rows are not among the seeds: the clone
    marks 281.sql (which seeded them) applied, so the app inserts them itself at boot — the step 4 boot here, and
-   the server's first boot after the dump is restored (`AiSeedRowsRepair`, #5349). The donor defaults to the dev
+   the server's first boot after the dump is restored (`AiSeedRowsRepair`, #5349). Nor are the two tutorial panos'
+   `pano_data` rows (360.sql), which the dump would leave out anyway: the server writes them with the city's first
+   tutorial label (#6036). The donor defaults to the dev
    container's `DATABASE_USER`; pass `--donor` to choose. A donor is refused below evolution 373 (its `label_type`
    is still a table that `tag` references, so the seed copy fails half-way; such a schema is usually stranded below
    372 too, which no boot can fix — see `docs/dev-environment.md`) and when it has applied an evolution beyond this
@@ -169,7 +171,8 @@ its default either way.
    checked too: it passes when its `play_evolutions` hash is the one Play computes from this checkout's file
    (`make` and the orchestrator pass it in); otherwise every other city schema that has applied that number must
    agree with the donor, and a disagreement names the schemas so you can pick another `--donor`. (The committed
-   `sidewalk_init` template is not used here: it is frozen at evolution 252 and cannot be replayed past 372, #5198.)
+   `sidewalk_init` template is not used here: it is frozen at evolution 372 and goes staler with every evolution,
+   #5198. CI evolves it and then clones, dumps and restores its test city through these same scripts, #6036.)
 4. **Evolutions** — boots the app once as the new city and waits for `play_evolutions` to reach the repo's highest.
    Right after a clone it boots even when the donor was current, because Play is the one reliable check that every
    applied evolution is this checkout's (it compares hashes and, with `autoApplyDowns`, reverts and re-applies from a
